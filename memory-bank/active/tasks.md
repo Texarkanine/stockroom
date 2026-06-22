@@ -7,8 +7,8 @@
 - [x] Draft the brainstorm (`planning/brainstorm/`: README + product + tech + roadmap + implementation-details)
 - [x] Seed this memory bank for window-close continuity
 - [x] Operator finalized scope + resolved Open Items (O1–O15, all except the O9 torch spike); brainstorm committed
-- [ ] Author the Product Brief (`planning/product-brief.md`) and verify ← current gate
-- [ ] Author the Tech Brief (`planning/tech-brief.md`), closing the torch spike (O9), and verify
+- [x] Author the Product Brief (`planning/product-brief.md`) and verify
+- [ ] Author the Tech Brief (`planning/tech-brief.md`), closing the torch spike (O9), and verify ← current gate
 - [ ] Author the Roadmap (`planning/roadmap.md`) and verify
 - [ ] Retire the brainstorm; promote design docs into persistent memory-bank context when build starts
 

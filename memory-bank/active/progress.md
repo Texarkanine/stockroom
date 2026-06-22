@@ -30,9 +30,15 @@
 - Captured the clean-room nuance for Claude Code ingest: parse the *harness's* native on-disk format independently — never reuse `claude-warehouse` code or schema DDL.
 - Committed `planning/` + `memory-bank/`. Next: author the Product Brief in a fresh context window.
 
+## 2026-06-22 — Product Brief authored and verified
+
+- Authored `planning/product-brief.md` from `planning/brainstorm/product.md`, modeled on the Niko `productContext` template (Target Audience / Use Cases / Key Benefits / Success Criteria / Key Constraints) with additional framing (What Stockroom Is, The Problem, v1 Non-Goals).
+- Grounded the fidelity thesis in measured reference data (2,000/500-char caps, ~17% of messages clipped, ~200 KB true tail).
+- Operator verified the PB. Next deliverable: the **Tech Brief** (includes the O9 torch spike).
+
 ## Status
 
-Brainstorm finalized and committed; it is the locked source of truth. Only **O9 (torch spike)** remains, deferred to the Tech Brief. Next deliverable: the **Product Brief**. No product code written.
+Brainstorm finalized and committed; it is the locked source of truth. **Product Brief verified** at `planning/product-brief.md`. Only **O9 (torch spike)** remains, deferred to the Tech Brief. Next deliverable: the **Tech Brief**. No product code written.
 
 ## Notable Decisions Reversed During Refinement
 

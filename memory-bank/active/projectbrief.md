@@ -8,7 +8,7 @@ This memory bank's **active task is the planning effort itself**, not yet the bu
 
 ## What Stockroom Is
 
-A local, AGPLv3, clean-room data warehouse for agentic-coding-harness conversations (Cursor in v1): ingest on-disk traces into DuckDB; search them (blended keyword+semantic, pure semantic, and raw SQL); visualize usage in a local dashboard; keep fresh via a nightly job; and survive schema changes via first-class, concurrency-safe migrations. Shipped as a `uv`-locked Python app inside a Cursor/Claude plugin skill.
+A local, AGPLv3, clean-room data warehouse for agentic-coding-harness conversations (Cursor and Claude Code in v1): ingest on-disk traces into DuckDB; search them (blended keyword+semantic, pure semantic, and raw SQL); visualize usage in a local dashboard; keep fresh via a nightly job; and survive schema changes via first-class, concurrency-safe migrations. Shipped as a `uv`-locked Python app inside a Cursor/Claude plugin skill.
 
 ## Source of Truth
 
@@ -17,3 +17,7 @@ A local, AGPLv3, clean-room data warehouse for agentic-coding-harness conversati
 ## Sequencing Rule
 
 Each document is verified by the operator before the next is authored: **brainstorm → PB → TB → Roadmap.** The brainstorm is retired once the three design docs are solid.
+
+## Current Phase
+
+**Product Brief — complete.** Next: **Tech Brief** (`planning/tech-brief.md`), from `planning/brainstorm/tech.md` + `planning/brainstorm/implementation-details.md`, including the O9 torch spike.
