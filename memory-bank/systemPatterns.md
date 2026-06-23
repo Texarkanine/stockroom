@@ -26,9 +26,29 @@ Kept content (prompts, responses, tool inputs) is stored in full. Output truncat
 
 One shared set of tables (sessions, messages, tool_calls inputs-only, plan_documents, embeddings, `_sync_state`), every row carrying a `harness` column — never per-harness tables. Conversation reconstruction is first-class (conversation id, parent/child, ordering, subagent↔parent edge, model-per-chain) atop a stable message-identity contract. Concrete DDL is derived test-first from real Cursor + Claude Code logs (the first Phase 1 task).
 
-## Dual-manifest plugin, no build step, app inside one skill
+## Dual-manifest plugin, no build step, engine inside the `sr-search` skill
 
-Ships from the `slobac` template as a `.cursor-plugin/plugin.json` + `.claude-plugin/plugin.json` over a shared `skills/` tree, **committed layout = install layout** (no build), versioned by release-please which syncs the version into both manifests. **Unusually, one skill directory also contains the full Python app** (`pyproject.toml`, `uv.lock`, migration SQL, scripts) — heavier than vanilla `slobac`, accepted as the cost of the locked-app trust property. Both manifests ship from day one so both harnesses are continuously exercised.
+Ships from the `slobac` template as a `.cursor-plugin/plugin.json` + `.claude-plugin/plugin.json` over a shared `skills/` tree, **committed layout = install layout** (no build), versioned by release-please which syncs the version into both manifests. Both manifests ship from day one so both harnesses are continuously exercised.
+
+**The full Python engine lives inside one real skill — `skills/sr-search/`** (`pyproject.toml`, `uv.lock`, `src/stockroom/`, `tests/`, and later migration SQL). This is heavier than vanilla `slobac` (whose app sits at repo root) and is the accepted cost of the locked-app trust property. `sr-search` (the core entrypoint) is the chosen host purely for coherence — resolution is plugin-root-relative (see next pattern), so the host dir is invisible to consumers. The engine project sets `[tool.uv] package = false` (run-in-place; deps locked, stockroom itself never built/installed), honoring no-build-step.
+
+**Skeleton-skill convention:** a skill directory may ship before its behavior exists, carrying a `SKILL.md` with real front-matter and a body that states the dir's purpose and that the behavior is built in a named later phase. This is an honest placeholder, explicitly *not* a dummy — it is how the engine-bearing skill exists from Phase 0 while its search behavior lands in Phase 2.
+
+## Cross-skill resource resolution (PLUGIN_ROOT, cribbed from `cursor-warehouse`)
+
+`cursor-warehouse`'s own invention (safe to reuse — not `claude-warehouse`-derived). Sibling skills locate the shared engine **once on startup** via the harness-provided plugin-root env var (`CURSOR_PLUGIN_ROOT` in Cursor; the Claude equivalent — verify exact name empirically per harness at build), with a `find -L` fallback that traverses symlinked dev installs. Then invoke through the **torch-safe** contract — never an exact sync:
+
+```bash
+APP_DIR="${CURSOR_PLUGIN_ROOT:+$CURSOR_PLUGIN_ROOT/skills/sr-search}"
+if [ -z "$APP_DIR" ] || [ ! -d "$APP_DIR" ]; then
+  APP_DIR="$(dirname "$(find -L ~/.cursor/plugins -path '*/stockroom/*/skills/sr-search/pyproject.toml' 2>/dev/null | head -1)")"
+fi
+uv run --project "$APP_DIR" --no-sync python -m stockroom.<entrypoint> ...
+```
+
+## Layered licensing (REUSE/SPDX): AGPL on code, PPL-S on prompts
+
+Intentional and load-bearing (mirrors `../slobac/REUSE.toml`). A root `REUSE.toml` + `LICENSES/*.txt`, enforced by `reuse lint` in CI/tests (not advisory). AGPLv3 is the **battle-tested explicit base on all code**; the experimental **PPL-S is layered over prompt-shaped content** (`skills/**` — `SKILL.md`, references), and code-shaped paths within `skills/**` (`*.py`, `*.sql`, `pyproject.toml`, `uv.lock`, `tests/**`) are **re-asserted AGPL**. Worst case prompts are still AGPL; best case they are PPL-S-clarified too. Relies on REUSE's last-matching-annotation-wins ordering: base AGPL → `skills/**` PPL-S → code-within-skills AGPL → vendored `.cursor/**` NOASSERTION.
 
 ## Clean-room boundary, with a build-time provenance procedure
 

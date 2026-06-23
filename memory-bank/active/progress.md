@@ -36,3 +36,17 @@ Building **Phase 0 — Foundations** of the stockroom roadmap: the trustworthy s
     - PASS with advisories; stopping for operator review before build (per operator's explicit "ride along" instruction).
 * Insights
     - Two items want an explicit operator nod: (1) app-home = dedicated `skills/stockroom/` (no SKILL.md), and (2) reading the "release-please can cut a release" criterion as "config correct + workflow present" in Phase 0, with the live release proven in Phase 5.
+
+## 2026-06-22 - PREFLIGHT - COMPLETE (revised during operator review)
+
+* Work completed
+    - Revised the plan per operator review and re-validated (still PASS). Peeked at `../slobac` and `../cursor-warehouse` to lift exact patterns; recorded them in `systemPatterns.md` so future builds need not re-peek.
+* Decisions made
+    - Engine lives in `skills/sr-search/` with a skeleton `SKILL.md` (rejected the earlier `skills/stockroom/` dummy-dir); `sr-initialize` is the flagged alternative.
+    - PLUGIN_ROOT check-once-on-startup resolution cribbed from `cursor-warehouse` (its own invention; operator-cleared); torch-safe `uv run --project --no-sync`.
+    - REUSE/SPDX licensing promoted from advisory to REQUIRED + enforced (`reuse lint`): AGPL on code, PPL-S layered on prompts, AGPL re-asserted on code within `skills/**`.
+    - `[tool.uv] package = false` + `src/` layout. Live releases flipped on by operator post-merge (confirmed).
+* Insights
+    - The skeleton-skill convention + plugin-root-relative resolution together dissolve the earlier "where does the engine live / is it a dummy" tension: the host dir is invisible to consumers, so the choice is pure coherence, and the skill is honestly present from Phase 0.
+    - REUSE's last-matching-annotation-wins ordering is what makes "AGPL code inside a PPL-S skill dir" expressible — the operator's deliberate two-layer licensing.
+    - One decision remains the operator's: `sr-search` (recommended) vs `sr-initialize` as the engine host.
