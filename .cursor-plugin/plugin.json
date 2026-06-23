@@ -1,0 +1,21 @@
+{
+  "name": "stockroom",
+  "displayName": "Stockroom",
+  "description": "Local, faithful, searchable warehouse of your agentic-coding history.",
+  "version": "0.0.0",
+  "author": {
+    "name": "Texarkanine"
+  },
+  "homepage": "https://github.com/Texarkanine/stockroom",
+  "repository": "https://github.com/Texarkanine/stockroom",
+  "license": "AGPL-3.0-or-later",
+  "keywords": [
+    "agentic-coding",
+    "history",
+    "search",
+    "duckdb",
+    "embeddings"
+  ],
+  "category": "developer-tools",
+  "skills": "./skills/"
+}
