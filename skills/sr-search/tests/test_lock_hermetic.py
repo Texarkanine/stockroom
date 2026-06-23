@@ -9,6 +9,8 @@ override that keeps it out.
 
 from __future__ import annotations
 
+import shutil
+import subprocess
 import tomllib
 from pathlib import Path
 
@@ -102,3 +104,21 @@ def test_pyproject_encodes_torch_contract(pyproject: dict) -> None:
     tool_uv = pyproject["tool"]["uv"]
     assert tool_uv["package"] is False
     assert "torch; python_full_version < '3'" in tool_uv["override-dependencies"]
+
+
+def test_lock_is_not_stale() -> None:
+    """The committed lock matches pyproject: ``uv lock --locked`` succeeds.
+
+    Run hermetically (``--no-config``) so ambient user config can't influence
+    resolution. A non-zero exit means the lock drifted from pyproject and must
+    be regenerated.
+    """
+    uv = shutil.which("uv")
+    assert uv, "uv not found on PATH"
+    proc = subprocess.run(
+        [uv, "lock", "--locked", "--no-config"],
+        cwd=ENGINE_DIR,
+        capture_output=True,
+        text=True,
+    )
+    assert proc.returncode == 0, f"committed lock is stale:\n{proc.stderr}"

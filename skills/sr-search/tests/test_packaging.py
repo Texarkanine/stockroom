@@ -64,16 +64,12 @@ def test_manifests_name_and_license(
     assert claude_manifest["license"] == "AGPL-3.0-or-later"
 
 
-def test_manifest_versions_match(
-    cursor_manifest: dict, claude_manifest: dict
-) -> None:
+def test_manifest_versions_match(cursor_manifest: dict, claude_manifest: dict) -> None:
     """The two manifest versions are in lockstep with each other."""
     assert cursor_manifest["version"] == claude_manifest["version"]
 
 
-def test_cursor_skills_pointer_resolves(
-    cursor_manifest: dict, repo_root: Path
-) -> None:
+def test_cursor_skills_pointer_resolves(cursor_manifest: dict, repo_root: Path) -> None:
     """The Cursor manifest's skills pointer is ``./skills/`` and that dir exists."""
     assert cursor_manifest.get("skills") == "./skills/"
     assert (repo_root / "skills").is_dir()
