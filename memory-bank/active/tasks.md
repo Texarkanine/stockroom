@@ -171,7 +171,7 @@ uv run --project "$APP_DIR" --no-sync python -m stockroom.<entrypoint> ...
 ## Status
 
 - [x] Component analysis complete
-- [x] Open questions resolved (1 flagged for confirmation: engine-skill = `sr-search` vs `sr-initialize`)
+- [x] Open questions resolved (1 flagged for confirmation: engine-skill = `sr-search`)
 - [x] Test planning complete (TDD)
 - [x] Implementation plan complete
 - [x] Technology validation complete
