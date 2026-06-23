@@ -1,0 +1,8 @@
+# Python virtualenvs (uv-managed; recreated from uv.lock)
+.venv/
+
+# Python bytecode / caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/

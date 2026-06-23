@@ -1,0 +1,53 @@
+# stockroom engine
+#
+# The full stockroom Python engine lives inside the sr-search skill (the core
+# entrypoint). This is a run-in-place project: dependencies are locked and
+# hash-verified through uv.lock, but stockroom itself is never built or
+# installed ([tool.uv] package = false). Sibling skills invoke it via
+# `uv run --project <this dir> --no-sync`.
+#
+# THE TORCH EXCEPTION: torch is deliberately excluded from the lock via an
+# impossible environment marker (see [tool.uv] override-dependencies). It is
+# provisioned per-machine out of band. After installing torch, NEVER run an
+# exact `uv sync` (use `uv run --no-sync` / `--inexact`) or it will be removed.
+# Mechanism proven in planning/spikes/o9-torch/.
+
+[project]
+name = "stockroom"
+version = "0.0.0"
+description = "Local, faithful, searchable warehouse of agentic-coding history (engine)."
+requires-python = ">=3.11"
+license = "AGPL-3.0-or-later"
+# Runtime surface. torch is NOT declared here; sentence-transformers pulls it
+# transitively, and the override below keeps it out of the locked resolution.
+dependencies = [
+    "duckdb>=1.2",
+    "sentence-transformers>=3.0",
+    "numpy",
+]
+
+[dependency-groups]
+dev = [
+    "pytest~=8.0",
+    "ruff~=0.0",
+    "reuse~=4.0",
+]
+
+[tool.uv]
+required-version = ">=0.5"
+# Run-in-place: lock the deps, never build/install stockroom itself.
+package = false
+# Exclude torch from the locked resolution entirely. requires-python is >=3.11,
+# so `python_full_version < '3'` is always false -> torch and its CUDA/nvidia
+# transitives never enter the lock. Provisioned out of band per-machine.
+override-dependencies = ["torch; python_full_version < '3'"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Make src/stockroom importable in tests without an editable install (the
+# project is package = false and declares no build backend).
+pythonpath = ["src"]
+
+[tool.ruff]
+target-version = "py311"
+src = ["src", "tests"]
