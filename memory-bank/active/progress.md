@@ -26,3 +26,13 @@ Building **Phase 0 — Foundations** of the stockroom roadmap: the trustworthy s
 * Insights
     - Phase 0 is genuinely test-first: the hermetic-torch-free-lock and lockstep-manifest-version invariants become pytest assertions written before the artifacts exist, so "config scaffolding" still follows TDD.
     - "release-please can cut a release on demand" is only fully exercisable once the repo is on GitHub with an app token; Phase 0 proves config validity + version lockstep, and the live release path belongs to Phase 5.
+
+## 2026-06-22 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated the plan against codebase reality and the `slobac` template; wrote `.preflight-status` = PASS and recorded findings in `tasks.md`.
+    - Applied one in-scope improvement: a `uv lock --locked` staleness guard (test + CI).
+* Decisions made
+    - PASS with advisories; stopping for operator review before build (per operator's explicit "ride along" instruction).
+* Insights
+    - Two items want an explicit operator nod: (1) app-home = dedicated `skills/stockroom/` (no SKILL.md), and (2) reading the "release-please can cut a release" criterion as "config correct + workflow present" in Phase 0, with the live release proven in Phase 5.

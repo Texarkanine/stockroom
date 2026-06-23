@@ -76,6 +76,7 @@ graph TD
 - **Manifests valid & versions in lockstep**: both `plugin.json` files parse as JSON, carry the required keys (`name`, `version`, Cursor manifest also `skills` → `./skills/`), and their `version` equals each other **and** equals `.release-please-manifest.json`'s `"."` value.
 - **release-please syncs both manifests**: `release-please-config.json` parses and declares `extra-files` entries writing `$.version` into *both* `plugin.json` paths.
 - **Edge — skills pointer resolves**: the Cursor manifest's `skills` path (`./skills/`) exists as a directory.
+- **Lock not stale (added in preflight)**: `uv lock --locked --no-config` succeeds in `skills/stockroom/` — the committed `uv.lock` matches `pyproject.toml`. Guards the "a fresh clone resolves the committed lock" promise against silent drift; cheap, in-scope, high-value.
 
 ### Test Infrastructure
 
@@ -109,7 +110,7 @@ graph TD
    - Files: `release-please-config.json`, `.release-please-manifest.json` (`{ ".": "0.0.0" }`), `.github/workflows/release-please.yaml`; extend `test_packaging.py` (version-lockstep + release-please extra-files assertions).
    - TDD: write the lockstep/extra-files assertions (fail) → author the config (adapt `slobac`'s: `release-type: simple`, `bump-minor-pre-major`, `extra-files` → both `plugin.json` `$.version`) + manifest + workflow → pass.
 5. **Lint/format + CI + docs**
-   - Files: `[tool.ruff]` already in pyproject (run `ruff format` + `ruff check` clean), `.github/workflows/ci.yml` (uv sync + ruff check + ruff format --check + pytest), `.gitignore` (`.venv/`, `__pycache__/`, etc.), `README.md` (replace "under construction": what stockroom is + the **torch-safe run contract** — `uv run --no-sync` / `--inexact`, never an exact sync), advisory `REUSE.toml`.
+   - Files: `[tool.ruff]` already in pyproject (run `ruff format` + `ruff check` clean), `.github/workflows/ci.yml` (uv sync + `uv lock --locked --no-config` staleness gate + ruff check + ruff format --check + pytest), `.gitignore` (`.venv/`, `__pycache__/`, etc.), `README.md` (replace "under construction": what stockroom is + the **torch-safe run contract** — `uv run --no-sync` / `--inexact`, never an exact sync), advisory `REUSE.toml`.
    - TDD: this step is config/docs; the harness tests from steps 1–4 are the regression guard. Run the full suite + ruff clean to close the phase.
 
 ## Technology Validation
@@ -126,6 +127,16 @@ graph TD
 - **Packaging tests reaching repo-root from inside the app project.** Mitigated by the `repo_root` conftest fixture rather than brittle `../../` paths.
 - **REUSE/SPDX vs. single AGPL license.** stockroom is uniformly AGPLv3 (unlike `slobac`'s multi-license split), so `REUSE.toml` is simpler and advisory — not a roadmap requirement. Keep it minimal or defer.
 
+## Preflight Findings
+
+**Result: PASS (with advisories).** Validated the plan against codebase reality and the `slobac` template.
+
+1. **TDD encoding — PASS (blocking gate).** Steps 1–4 each explicitly order failing-test-before-artifact; step 5 is config/docs with no new behavior, guarded by the step 1–4 tests. No implementation-before-test ordering anywhere.
+2. **Convention compliance — PASS, with one item for operator confirmation (low severity).** Layout matches `systemPatterns.md` (dual-manifest, no build step, locked-uv-torch-out, app-inside-skill-dir). The dedicated `skills/stockroom/` *without* a `SKILL.md` is a slight deviation from the tech brief's literal "one skill directory also contains the app" (which implies an `sr-*` skill). Recommended as-is; trivially reversible via `git mv`. **→ confirm at review.**
+3. **Completeness — PASS, with one scoping clarification (medium severity).** Every requirement maps to a concrete step. The acceptance criterion *"release-please can cut a versioned release on demand"* is only **partially** satisfiable inside Phase 0: a live release needs the repo on GitHub with an app-token/PAT. The plan correctly proves config validity + version-lockstep now and defers the live release to Phase 5. **→ confirm this reading of the criterion at review.**
+4. **Dependency / conflict — PASS.** Greenfield; no overlapping implementations, no public contract to break (pre-release, no product code). The existing `README.md` ("under construction") and absent root `.gitignore` are both addressed in step 5. The `planning/spikes/o9-torch/` pyproject is a separate artifact, not a conflict.
+5. **Advisory (applied, in-scope): lock-staleness guard.** Added a `uv lock --locked` check (test + CI) so a drifted `uv.lock` fails loudly — directly defends the "fresh clone resolves the committed lock" promise. Folded into the plan rather than flagged, since it's within L3 scope.
+
 ## Status
 
 - [x] Component analysis complete
@@ -133,6 +144,6 @@ graph TD
 - [x] Test planning complete (TDD)
 - [x] Implementation plan complete
 - [x] Technology validation complete
-- [ ] Preflight
+- [x] Preflight (PASS with advisories)
 - [ ] Build
 - [ ] QA

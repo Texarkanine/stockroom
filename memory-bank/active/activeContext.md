@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: p0-foundations
-**Phase:** PLAN - COMPLETE
+**Phase:** PREFLIGHT - COMPLETE (PASS with advisories) — STOPPED for operator review before build
 
 ## What Was Done
 - Researched the canonical `slobac` dual-manifest template (in the plugins cache) for exact manifest, release-please, REUSE, and CI conventions — fully reusable (operator's own template).
