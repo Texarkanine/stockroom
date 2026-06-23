@@ -1,12 +1,18 @@
 # Active Context
 
 ## Current Task: p0-foundations
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Memory bank initialized (persistent files seeded per the agreed pointer/accretion hybrid: `productContext.md` and `techContext.md` as thin pointers into `planning/`, `systemPatterns.md` lightly seeded with non-obvious patterns).
-- Classified **Phase 0 — Foundations** as **Level 3** (intermediate feature: multiple components — plugin scaffold, release-please, locked uv project, test harness — but the hard architectural calls, chiefly the torch exclusion, are already settled by the O9 spike, so no new architecture is being invented).
-- Modeling decision: each roadmap phase is its own standalone L3 run; the roadmap (`planning/roadmap.md`) is the cross-phase milestone tracker rather than a duplicated Niko `milestones.md`.
+- Researched the canonical `slobac` dual-manifest template (in the plugins cache) for exact manifest, release-please, REUSE, and CI conventions — fully reusable (operator's own template).
+- Confirmed the O9 torch spike already validates the riskiest Phase 0 mechanism (hermetic lock + torch exclusion).
+- Wrote the full Level 3 plan to `tasks.md`: 4 components, a test-first plan whose tests encode the acceptance criteria (torch-free hermetic lock; lockstep manifest versions), 5 ordered TDD steps, tech validation, and challenges.
+- Resolved all open questions in-plan (high confidence) — no creative phase needed. One decision is surfaced for operator confirmation at preflight: the **app-bearing directory** = dedicated `skills/stockroom/` (vs. folding into `sr-initialize`).
+
+## Recent Decisions
+- App home: dedicated `skills/stockroom/` engine dir, no `SKILL.md` in Phase 0 (payload, not yet a skill). *Pending operator confirmation.*
+- Tooling: `ruff` (lint+format), `pytest` (dev group); runtime deps `duckdb` + `sentence-transformers` + `numpy` locked now (required to *prove* torch exclusion).
+- Deviation from `slobac`: the locked uv project lives inside the skill dir, not at repo root.
 
 ## Next Step
-- Load the Level 3 workflow and execute the **Plan** phase.
+- Preflight phase (validate the plan against codebase reality), then STOP for operator review before build.

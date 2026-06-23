@@ -14,3 +14,15 @@ Building **Phase 0 — Foundations** of the stockroom roadmap: the trustworthy s
     - Memory-bank persistent files stay thin/pointer-based during the build and are distilled (then the planning docs cut) as the final roadmap step.
 * Insights
     - The O9 torch spike (`planning/spikes/o9-torch/`) already resolves the only hard architectural question in Phase 0, which is what keeps this at L3 rather than L4.
+
+## 2026-06-22 - PLAN - COMPLETE
+
+* Work completed
+    - Located and studied the canonical `slobac` dual-manifest template (plugins cache) for manifest / release-please / REUSE / CI conventions.
+    - Authored the full L3 plan in `tasks.md`: component analysis, a TDD test plan that encodes the phase's acceptance criteria as failing-first tests, 5 ordered implementation steps, technology validation, and challenges/mitigations.
+* Decisions made
+    - App-bearing dir = dedicated `skills/stockroom/` (recommended; pending operator confirmation); `ruff` + `pytest`; lock `duckdb`/`sentence-transformers`/`numpy` now so torch exclusion is provable; locked uv project lives in the skill dir, not repo root (deviation from `slobac`).
+    - No creative phase: all open questions resolved at high confidence.
+* Insights
+    - Phase 0 is genuinely test-first: the hermetic-torch-free-lock and lockstep-manifest-version invariants become pytest assertions written before the artifacts exist, so "config scaffolding" still follows TDD.
+    - "release-please can cut a release on demand" is only fully exercisable once the repo is on GitHub with an app token; Phase 0 proves config validity + version lockstep, and the live release path belongs to Phase 5.
