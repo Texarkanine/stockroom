@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: p0-foundations
-**Phase:** BUILD - COMPLETE (PASS) — QA will run next
+**Phase:** REFLECT - COMPLETE — STOPPED for operator (`/niko-archive` is operator-gated)
 
 ## What Was Done
 - Executed all 6 implementation steps in order, each a failing-test-first TDD cycle (reds observed before every artifact).
@@ -23,5 +23,11 @@
 - Step 2's TDD red was shown by moving the lock aside, since a lock must exist to bootstrap the interpreter for any `uv run`.
 - release-please workflow mirrors `slobac`'s GitHub-App-token pattern; operator flips real releases on post-merge (per plan).
 
+## Reflection Outcome
+- Build + QA both PASS; reflection written to `memory-bank/active/reflection/reflection-p0-foundations.md`.
+- Persistent-file reconcile: `techContext.md` updated (during QA) to point at the new Phase 0 artifacts; `productContext.md` and `systemPatterns.md` needed no change (still accurate).
+- Key process insight: "reconcile docs that point at newly-created artifacts" should be an explicit final build step, not left to QA (the sole QA finding was exactly this).
+- Key technical insight: a locked-project's first test run is a TDD bootstrap paradox (the lockfile is both an artifact-under-test and a prerequisite to run tests) — stage the red by moving an existing lock aside.
+
 ## Next Step
-- Build PASS. QA review runs next (`niko-qa`), then `/niko-reflect`.
+- 🛑 Reflection is terminal. STOPPED for operator. Run `/niko-archive` to create the archive document and finalize Phase 0.

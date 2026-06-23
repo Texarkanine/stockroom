@@ -76,3 +76,16 @@ Building **Phase 0 — Foundations** of the stockroom roadmap: the trustworthy s
     - The skeleton `SKILL.md` and the `__version__`-only package are phase-mandated minimums, not deficiencies — Phase 0 ships substrate only, so "no behavior yet" is correct, not incomplete.
 * Insights
     - The only semantic gap mechanical checks missed was a memory-bank accretion debt (techContext pointers) — exactly the class of thing QA exists to catch.
+
+## 2026-06-22 - REFLECT - COMPLETE
+
+* Work completed
+    - Reviewed the full plan→preflight→build→QA lifecycle and wrote `memory-bank/active/reflection/reflection-p0-foundations.md`.
+    - Reconciled persistent files: `techContext.md` already updated (QA); `productContext.md` + `systemPatterns.md` confirmed still accurate (no change).
+* Decisions made
+    - Skipping the creative phase was the correct call — no build-time decision needed re-exploration.
+    - The "release on demand" criterion stands as config-valid + lockstep-tested for Phase 0; live release flip is the operator's post-merge, end-to-end proof is Phase 5.
+* Insights
+    - Process: fold "update memory-bank pointers to newly-created canonical artifacts" into the final build step so QA comes back fully clean.
+    - Technical: locked-project TDD has a bootstrap paradox (lockfile is both artifact-under-test and prerequisite-to-run); write lock assertions to parse files, and stage the red by moving an existing lock aside.
+    - Process: for substrate/config tasks, plan TDD-cycle boundaries are aspirational — bootstrap order (ignore-file first, lock-before-interpreter) legitimately overrides the tidy one-test-one-artifact framing.
