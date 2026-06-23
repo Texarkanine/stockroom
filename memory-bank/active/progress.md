@@ -50,3 +50,18 @@ Building **Phase 0 — Foundations** of the stockroom roadmap: the trustworthy s
     - The skeleton-skill convention + plugin-root-relative resolution together dissolve the earlier "where does the engine live / is it a dummy" tension: the host dir is invisible to consumers, so the choice is pure coherence, and the skill is honestly present from Phase 0.
     - REUSE's last-matching-annotation-wins ordering is what makes "AGPL code inside a PPL-S skill dir" expressible — the operator's deliberate two-layer licensing.
     - One decision remains the operator's: `sr-search` (recommended) vs `sr-initialize` as the engine host.
+
+## 2026-06-22 - BUILD - COMPLETE (PASS)
+
+* Work completed
+    - Executed all 6 implementation steps in order, each a failing-test-first TDD cycle, across 5 commits (engine+lock, manifests+release-please, licensing, CI+README — plus the pre-build checkpoint).
+    - Stood up the locked torch-free uv engine in `skills/sr-search/` (`package=false`, `src/` layout, impossible-marker torch override), the pytest harness, dual plugin manifests + skeleton `SKILL.md`, release-please wiring, enforced layered REUSE licensing, and the CI workflow.
+    - Final gate green: 17 tests, `ruff check` + `ruff format --check` clean, `uv lock --locked --no-config` clean, `reuse lint` 93/93 compliant.
+* Decisions made
+    - Confirmed engine host = `sr-search` (operator's `/niko-build` invocation; the flagged alternative was dropped from tasks.md).
+    - Lock pins **51 packages** (spike's 38 + dev group `pytest`/`ruff`/`reuse`), all PyPI + hashed, zero torch/CUDA/nvidia; uv provisioned **Python 3.13.7**.
+    - In-scope deviations: root `.gitignore` written in step 1 (not step 6); `triton` added to the lock test's forbidden set (torch companion, defensive).
+* Insights
+    - "Config scaffolding" genuinely ran test-first: the hermetic-lock and lockstep-version invariants became failing pytest assertions before the artifacts existed.
+    - Step 2's red had to be staged by moving the lock aside — a lock must exist to bootstrap the interpreter, so "no lock" and "working uv env" can't truly coexist. The test still has teeth (verified red).
+    - The whole-tree `reuse lint` (93 files) means every committed artifact — planning/, memory-bank/, .cursor/ — now resolves to a license; the base `**/*`→AGPL + `.cursor/**`→NOASSERTION rules carry the non-skill files.

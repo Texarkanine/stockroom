@@ -176,5 +176,20 @@ uv run --project "$APP_DIR" --no-sync python -m stockroom.<entrypoint> ...
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Preflight (PASS with advisories) — re-validated after revision
-- [ ] Build
+- [x] Build — all 6 steps complete; 17 tests green; ruff/format/reuse/lock-locked clean
 - [ ] QA
+
+## Build Notes
+
+All six implementation steps executed in order, each as a failing-test-first TDD cycle:
+
+1. **uv engine + pytest harness** — `skills/sr-search/{pyproject.toml,uv.lock,src/stockroom/__init__.py}` + `tests/{conftest.py,test_smoke.py}`. `package = false`, `src/` layout, `pythonpath=["src"]`. uv provisioned **Python 3.13.7** (satisfies `>=3.11`).
+2. **Hermetic torch-free lock** — `tests/test_lock_hermetic.py`; lock = **51 packages** (o9 spike's 38 + dev group `pytest`/`ruff`/`reuse` and their trees), all PyPI + hashed, **zero torch/CUDA/nvidia**. Forbidden set also blocks `triton` (torch companion). Red was shown by moving the lock aside (a lock must exist to bootstrap the interpreter).
+3. **Skeleton skill + dual manifests** — `skills/sr-search/SKILL.md` (honest skeleton, real front-matter), `.cursor-plugin/plugin.json` (+`displayName`/`category`/`skills:"./skills/"`), `.claude-plugin/plugin.json`. Both `license:"AGPL-3.0-or-later"`.
+4. **release-please** — `release-please-config.json` (extra-files → both manifests' `$.version`), `.release-please-manifest.json` (`{".":"0.0.0"}`), `.github/workflows/release-please.yaml` (App-token pattern from `slobac`; operator flips on post-merge).
+5. **Layered REUSE licensing** — `REUSE.toml` + `LICENSES/{AGPL-3.0-or-later,LicenseRef-PPL-S,LicenseRef-NOASSERTION}.txt`. `reuse lint` clean (93/93 files). `tests/test_licensing.py` proves AGPL-on-code vs PPL-S-on-SKILL.md via `reuse spdx`.
+6. **CI + README + format** — `.github/workflows/ci.yml` (sync + `uv lock --locked` + ruff check/format + pytest + reuse lint), README rewritten with the torch-safe run contract, lock-staleness guard test added (preflight advisory).
+
+**Deviations from plan:** (a) root `.gitignore` created in step 1 instead of step 6 — needed to commit without `.venv/`/`__pycache__/`. (b) `triton` added to the lock's forbidden-exact set (defensive; it's torch's companion). Neither changes scope.
+
+**Integration gate (all green):** `uv lock --locked --no-config` ✓ · `ruff check` ✓ · `ruff format --check` ✓ · `pytest` 17 passed ✓ · `reuse lint` 93/93 ✓.

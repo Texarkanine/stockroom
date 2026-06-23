@@ -1,20 +1,27 @@
 # Active Context
 
 ## Current Task: p0-foundations
-**Phase:** PREFLIGHT - COMPLETE (PASS with advisories) — STOPPED for operator review before build
+**Phase:** BUILD - COMPLETE (PASS) — QA will run next
 
 ## What Was Done
-- Researched the canonical `slobac` dual-manifest template (in the plugins cache) for exact manifest, release-please, REUSE, and CI conventions — fully reusable (operator's own template).
-- Confirmed the O9 torch spike already validates the riskiest Phase 0 mechanism (hermetic lock + torch exclusion).
-- Wrote the full Level 3 plan to `tasks.md`: 4 components, a test-first plan whose tests encode the acceptance criteria (torch-free hermetic lock; lockstep manifest versions), 5 ordered TDD steps, tech validation, and challenges.
-- Resolved all open questions in-plan (high confidence) — no creative phase needed. One decision is surfaced for operator confirmation at preflight: the **app-bearing directory** = dedicated `skills/stockroom/` (vs. folding into `sr-initialize`).
+- Executed all 6 implementation steps in order, each a failing-test-first TDD cycle (reds observed before every artifact).
+- Stood up the locked, torch-free uv engine inside `skills/sr-search/` (`pyproject.toml` with `package=false` + the impossible-marker torch override, hermetic `uv.lock`, `src/stockroom/`), the pytest harness, dual plugin manifests + skeleton `SKILL.md`, release-please wiring, enforced layered REUSE licensing, and the CI workflow.
+- Final gate all green: 17 tests, `ruff check`/`ruff format --check` clean, `uv lock --locked --no-config` clean, `reuse lint` 93/93 compliant.
 
-## Recent Decisions (operator review, revised plan)
-- **Engine home = `skills/sr-search/`** (operator's lead — the core entrypoint), shipping a **skeleton `SKILL.md`** in Phase 0 (operator confirmed skeleton skills are acceptable; real search behavior lands Phase 2). Alternative `sr-initialize` flagged; one-word veto. Replaces the earlier rejected `skills/stockroom/` dummy-dir idea.
-- **PLUGIN_ROOT resolution** (cursor-warehouse's own invention, operator-cleared to crib): check-once-on-startup + `find -L` dev fallback + torch-safe `uv run --project --no-sync`. Recorded in `systemPatterns.md` for future phases.
-- **REUSE/SPDX licensing is REQUIRED and enforced** (operator: intentional) — AGPL base on code, PPL-S layered on prompt content, AGPL re-asserted on code within `skills/**`; `reuse lint` in CI + a test. Not advisory.
-- **Releases:** Phase 0 proves config + lockstep; operator flips real releases on via GitHub after merge. Confirmed.
-- uv shape: `package = false` (run-in-place, no build backend), `src/` layout. Tooling `ruff`/`pytest`/`reuse`; runtime `duckdb`+`sentence-transformers`+`numpy` locked now (to *prove* torch exclusion).
+## Files Created / Modified
+- **Engine:** `skills/sr-search/pyproject.toml`, `uv.lock`, `src/stockroom/__init__.py`
+- **Tests:** `skills/sr-search/tests/{conftest.py,test_smoke.py,test_lock_hermetic.py,test_packaging.py,test_licensing.py}`
+- **Skill + manifests:** `skills/sr-search/SKILL.md`, `.cursor-plugin/plugin.json`, `.claude-plugin/plugin.json`
+- **Release:** `release-please-config.json`, `.release-please-manifest.json`, `.github/workflows/release-please.yaml`
+- **Licensing:** `REUSE.toml`, `LICENSES/{AGPL-3.0-or-later,LicenseRef-PPL-S,LicenseRef-NOASSERTION}.txt`
+- **Harness/docs:** `.github/workflows/ci.yml`, `.gitignore`, `README.md`
+
+## Key Build Decisions / Deviations
+- uv provisioned **Python 3.13.7** (satisfies `requires-python >= 3.11`). Lock = **51 packages** (spike's 38 + dev group `pytest`/`ruff`/`reuse`), all PyPI + hashed, zero torch/CUDA/nvidia.
+- **Deviation:** root `.gitignore` written during step 1 (plan slotted it in step 6) so commits never staged `.venv/`/`__pycache__/`. In scope.
+- **Deviation:** `triton` added to the lock test's forbidden-exact set (torch companion; defensive). In scope.
+- Step 2's TDD red was shown by moving the lock aside, since a lock must exist to bootstrap the interpreter for any `uv run`.
+- release-please workflow mirrors `slobac`'s GitHub-App-token pattern; operator flips real releases on post-merge (per plan).
 
 ## Next Step
-- Plan revised post-preflight; preflight re-validated (still PASS). STILL STOPPED for operator review. Awaiting go/no-go (`/niko-build`) — or confirmation of `sr-search` vs `sr-initialize`.
+- Build PASS. QA review runs next (`niko-qa`), then `/niko-reflect`.
