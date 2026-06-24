@@ -15,3 +15,15 @@ Build the Phase 1 data backbone: an empirically-enumerated, harness-labeled Duck
     - Operator confirmed: treat all of Phase 1 as one L4 project, executed milestone by milestone starting with schema enumeration + locked DDL.
 * Insights
     - Phase 0's archive accurately reflected reality; the only drift was unchecked roadmap boxes.
+
+## 2026-06-24 - PLAN (L4) - COMPLETE
+
+* Work completed
+    - Generated `memory-bank/active/milestones.md` (task-id `p1-data-backbone`): 4 sequential milestones decomposed straight from the roadmap's Phase 1 breakdown.
+    - Recorded cross-milestone invariants (no truncation at rest, harness-labeled schema, tool-inputs-only, forward-only migrations, clean-room boundary, locked-uv trust, harness-neutral warehouse home, test-first, green `make ci` gate).
+* Decisions made
+    - Adopted the roadmap's 4-milestone decomposition unchanged: it already satisfies independently-deliverable / concrete / non-overlapping criteria.
+    - Folded the harness-neutral warehouse-open/connection helper into milestone 2 (migration framework), since the lazy version gate is the first thing that genuinely opens the persistent DB.
+    - Advisory level estimates: milestone 1 (schema) L3, milestone 2 (migration framework) L3, milestone 3 (ingest) L3, milestone 4 (`sr-query`) L2.
+* Insights
+    - Milestone 2 (database migration framework) trends toward L4 in the generic decision tree; flagged for preflight to confirm it stays single-sub-run scoped.

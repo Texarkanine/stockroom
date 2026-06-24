@@ -1,0 +1,24 @@
+# Milestones: p1-data-backbone
+
+## Cross-milestone invariants & constraints
+
+Every sub-run, regardless of which milestone it implements, must preserve these properties:
+
+- **No truncation at rest.** Kept content (prompts, responses, tool inputs) is stored whole. Truncation is a read-time concern only (Phase 2) — no milestone introduces a storage-time cap.
+- **Harness-labeled, one shared schema.** Every content row carries a `harness` column; never per-harness tables. A query omits the column for a cross-harness view or filters `WHERE harness = …` for one.
+- **Tool inputs only.** Tool calls store inputs, never outputs. No verbatim raw layer is persisted.
+- **Schema changes only via a new numbered, forward-only migration** (once the framework exists in milestone 2). No milestone mutates an existing migration; upgrades are data-preserving — "never break your warehouse."
+- **Clean-room boundary.** No `claude-warehouse` code, schema, or unique ideas — ever; Claude Code support is reverse-engineered from the harness's own on-disk format. `cursor-warehouse` is used only via the operator-vetted provenance procedure (`systemPatterns.md`); schema is derived empirically regardless.
+- **Locked-uv trust.** Any new runtime dependency enters the hermetic `uv.lock` via `make lock` (`uv lock --no-config`); torch is never added to the lock. No unaudited run-time code.
+- **Harness-neutral warehouse home.** The single-file DuckDB warehouse lives under `~/.stockroom/`, not beneath any harness's directory.
+- **Test-first.** Every milestone is built TDD, with fixtures drawn from real *and* pathological logs for faithful-capture, linkage, and harness-generality claims.
+- **Green gate.** `make ci` (sync, lock-check, lint, format-check, test, reuse) passes at every milestone boundary.
+
+## Execution Order
+
+Strictly sequential — each milestone depends on the artifacts of the one before it (schema → framework that ships it as migration #1 → ingest that fills it → query surface over it).
+
+- [ ] **Schema field enumeration + locked DDL** — enumerate every field real Cursor and Claude Code transcripts expose (side by side), then lock one shared, harness-labeled table set (sessions, messages, tool calls inputs-only, plan documents, embeddings, sync-state watermark) encoding the stable message-identity contract and the conversation-reconstruction keys (conversation id, parent/child, ordering, subagent↔parent, model-per-chain); proven test-first against real and pathological fixtures. *Estimated **L3*** — architectural foundation every later table read/write depends on; requires empirical enumeration across two formats and a multi-table contract, but no migration/concurrency machinery yet.
+- [ ] **Migration framework** — numbered one-per-file forward-only SQL migrations inside the skill, a `schema_version` record, the lazy gate (each consumer checks version before touching the DB), application under an exclusive write lock, and concurrency-safe reader degradation; includes the harness-neutral warehouse-open/connection helper, and ships the milestone-1 schema as migration `0001`. The lock primitive and reader wait/backoff semantics are chosen here. *Estimated **L3*** — a self-contained subsystem with real concurrency/locking design; database-migration-system shape trends toward L4, so flag at preflight to confirm it stays single-sub-run scoped.
+- [ ] **Trace ingest (ETL)** — incremental, per-source watermarked (`last_mtime` / `last_path`) with a `--full` reset; both Cursor and Claude Code (Claude Code parsed clean-room from its native on-disk format); subagents included and linked to their parent; kept content stored untruncated; tool inputs only; WSL/Windows-mount-aware path resolution; optional model/labeling enrichment from Cursor's `ai-code-tracking.db` limited to model/labeling fields. *Estimated **L3*** — multiple cooperating components (two clean-room parsers, watermark state, path resolution, subagent linkage) writing through the migrated schema.
+- [ ] **`sr-query`** — raw SQL against the warehouse: the first user-facing surface, proving the database is real and queryable end to end. *Estimated **L2*** — a single self-contained surface over the already-built, already-populated warehouse.
