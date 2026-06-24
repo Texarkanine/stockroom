@@ -1,11 +1,22 @@
-PASS
-task: p1-data-backbone (Phase 1 — Schema, Database, Ingest, Migrations) L4
+status: PASS (with advisories)
+phase: preflight
+task: p1-data-backbone-m1-schema-ddl
 date: 2026-06-24
-phase: PLAN -> validated milestone list (milestones.md)
-result: PASS (with advisory findings)
-notes:
-  - TDD encoding deferred to each sub-run's own plan phase; every milestone is marked test-first and the test-first invariant is recorded. OK at L4 granularity.
-  - Convention amendment applied: milestone 1 authors DDL directly as migrations/0001 to avoid a file move in milestone 2.
-  - Radical-innovation enhancement applied (in-scope, L3): milestone 1 commits shared real+pathological fixtures and a field-enumeration record, reused by milestone 3.
-  - Advisory: milestone 2's concurrency/upgrade proof needs a representative second migration (test-only is fine) since 0001-on-empty-DB does not exercise a data-preserving upgrade.
-  - Advisory: milestone 2 (migration framework) trends toward L4 in the generic tree; confirm L3 scope at its sub-run classification, split if it balloons.
+gate: /niko-build unblocked
+
+checks:
+  tdd_plan_encoding: PASS (per-unit test-first ordering hardened in steps 3–8)
+  convention_compliance: PASS (paths/test conventions/_sync_state naming align; REUSE path-based coverage confirmed)
+  dependency_impact: PASS (new SQL consumed by m2/m3; new tests auto-collected; techContext pointer planned)
+  conflict_detection: PASS (no existing schema/migration/.sql; greenfield)
+  completeness: PASS (all m1 requirements mapped to concrete steps)
+
+amendments_made:
+  - Hardened per-unit test-first ordering in implementation steps 3–8.
+  - Corrected licensing: REUSE.toml is path-based; no inline SPDX headers needed.
+  - Added golden locked-schema snapshot test (radical-innovation, in-scope) as step 8.
+
+advisories:
+  - plan_documents table dropped vs the Project Brief's named table list. Operator-approved
+    during the creative phase; documented in creative doc + systemPatterns. Non-blocking, but
+    it is a deviation from the brief's literal scope and is recorded here for visibility.

@@ -29,6 +29,20 @@ Milestone 1 of the `p1-data-backbone` L4 project: **Schema field enumeration + l
     - `plan_documents` has no distinct on-disk record in either harness — its populating source is the weakest-grounded part of the brief's table list (open question Q3).
     - DDL deliberately NOT locked; awaiting operator review before authoring `migrations/0001` test-first.
 
+## 2026-06-24 - PREFLIGHT - PASS (with advisories)
+
+* Work completed
+    - Validated the plan against codebase reality (TDD encoding, conventions, dependency impact, conflicts, completeness). Wrote `memory-bank/active/.preflight-status`.
+    - Confirmed `REUSE.toml` is **path-based**: `skills/**/*.sql` + `skills/**/tests/**` already assert AGPL (covers the migration SQL and `.jsonl`/snapshot fixtures) — no inline SPDX headers needed. Confirmed no pre-existing `.sql`/migration code (no conflict).
+* Amendments made to `tasks.md`
+    - Hardened per-unit test-first ordering in implementation steps 3–8 (TDD-encoding check).
+    - Corrected the licensing step (path-based REUSE; dropped the wrong "add SPDX headers" instruction).
+    - **Radical-innovation finding (in-scope, applied):** added a golden **locked-schema snapshot** test (introspect `duckdb_columns`/`duckdb_constraints` → compare to committed `0001_snapshot.json`) — makes "locked DDL" literally enforced and gives m2 a regression guard.
+* Advisory (non-blocking)
+    - `plan_documents` dropped vs the Project Brief's named table list — operator-approved in creative, documented; recorded for visibility.
+* Next
+    - 🧑‍💻 Operator-gated **Build** (`/niko-build`). Preflight PASS → Build requires operator initiation per the L3 workflow.
+
 ## 2026-06-24 - PLAN - COMPLETE
 
 * Work completed

@@ -116,6 +116,7 @@ None unresolved — implementation approach is clear.
 
 Structure:
 - Apply `0001` to a fresh DuckDB → the five tables (`sessions`, `messages`, `tool_calls`, `embeddings`, `_sync_state`) exist with the expected columns + declared types.
+- **Locked-schema snapshot**: the introspected schema (tables → columns → types → nullability → PK) matches the committed golden snapshot `tests/fixtures/schema/0001_snapshot.json`.
 - Each composite PK enforces uniqueness: duplicate insert → `ConstraintException`.
 - NOT NULL columns reject NULL (`harness`, `session_id`, `ordinal`, `role`, `tool_name`, `tool_input`, `_sync_state.updated_at`, etc.).
 
@@ -153,17 +154,19 @@ Edge / pathological:
     - Files: `skills/sr-search/tests/conftest.py` (add `schema_con`), `skills/sr-search/tests/test_schema_0001.py` (assert five tables exist).
     - Changes: fixture locates `stockroom/migrations/0001_initial_schema.sql`, executes it on an in-memory `duckdb.connect()`. Fails (no SQL yet) — expected RED.
 2. **Author the DDL (GREEN structural).**
-    - Files: `skills/sr-search/src/stockroom/migrations/0001_initial_schema.sql` (NEW) + `src/stockroom/migrations/__init__.py` (empty, packaging) + SPDX AGPL header in the `.sql`.
-    - Changes: `CREATE TABLE` for `sessions`, `messages`, `tool_calls`, `embeddings`, `_sync_state` exactly per creative §4 DDL (typed token columns, `models VARCHAR[]`, `tool_input JSON`, `vector FLOAT[384]`, composite PKs; no FKs, no harness CHECK, no HNSW index).
+    - Files: `skills/sr-search/src/stockroom/migrations/0001_initial_schema.sql` (NEW) + `src/stockroom/migrations/__init__.py` (empty, makes the packaged SQL locatable).
+    - Changes: the minimal `CREATE TABLE`s to green step 1's structural assertions — `sessions`, `messages`, `tool_calls`, `embeddings`, `_sync_state` per creative §4 DDL (typed token columns, `models VARCHAR[]`, `tool_input JSON`, `vector FLOAT[384]`, composite PKs; no FKs, no harness CHECK, no HNSW index).
+    - Licensing is automatic: `REUSE.toml`'s `skills/**/*.sql` path rule asserts AGPL — **no inline header needed** (the project uses path-based REUSE, not inline SPDX).
     - Creative ref: `creative/creative-schema-enumeration.md` §4–§5.
-3. **Constraint tests (PK uniqueness, NOT NULL).** Files: `test_schema_0001.py`. Confirm DDL satisfies; adjust column nullability in the SQL if a test reveals a mismatch.
-4. **Reconstruction + threading + subagent tests.** Files: `test_schema_0001.py` (insert helpers building a faithful mini-conversation per harness). Assert ordering, tool attachment, parent chain, subagent link.
-5. **Model-grain "no faking" tests.** Files: `test_schema_0001.py`. Assert Cursor→`sessions.models` set & `messages.model` NULL; Claude→`messages.model` set & `sessions.models` NULL.
-6. **Typed-token + JSON + LIST + faithful-capture tests.** Files: `test_schema_0001.py`. `SUM` tokens; `->>'$.key'`; `list_contains`; multi-KB round-trip equality.
-7. **Pathological-case tests.** Files: `test_schema_0001.py`. Empty text, zero-tool turn, many-tool turn, duplicate content, unicode/large JSON.
-8. **Curate & commit durable transcript fixtures.** Files: `tests/fixtures/transcripts/cursor/*.jsonl`, `tests/fixtures/transcripts/claude/*.jsonl` (small real excerpts, scrubbed) + crafted pathological cases (turn_ended/error record, sidechain+tool_result-to-be-dropped, empty content, multi-model conv, huge tool_input). Durable artifacts for m3; not parsed by m1 tests. Add a short `tests/fixtures/transcripts/README.md` describing provenance + scrubbing.
-9. **Docs.** Update `memory-bank/techContext.md` with a pointer to `skills/sr-search/src/stockroom/migrations/0001_initial_schema.sql`. Confirm `systemPatterns.md` (already updated) and the creative doc match the final DDL.
-10. **Green gate + licensing.** Add SPDX AGPL headers to new `.sql`/`.py`. Run `make ci` (sync, lock-check, lint, format-check, test, reuse) from repo root until green.
+3. **Constraint tests, test-first (PK uniqueness, NOT NULL).** Files: `test_schema_0001.py`. Write the tests first (RED against any missing constraint) → set NOT NULL / PK composition in the SQL to green them.
+4. **Reconstruction + threading + subagent tests, test-first.** Files: `test_schema_0001.py` (insert helpers building a faithful mini-conversation per harness). Write tests first (assert ordering, tool attachment, parent chain, subagent link) → adjust the SQL only if a test fails.
+5. **Model-grain "no faking" tests, test-first.** Files: `test_schema_0001.py`. Write first → assert Cursor→`sessions.models` set & `messages.model` NULL; Claude→`messages.model` set & `sessions.models` NULL.
+6. **Typed-token + JSON + LIST + faithful-capture tests, test-first.** Files: `test_schema_0001.py`. Write first → `SUM` tokens; `->>'$.key'`; `list_contains`; multi-KB round-trip equality.
+7. **Pathological-case tests, test-first.** Files: `test_schema_0001.py`. Write first → empty text, zero-tool turn, many-tool turn, duplicate content, unicode/large JSON.
+8. **Golden locked-schema snapshot test, test-first** *(preflight radical-innovation finding, in-scope).* Files: `test_schema_0001.py::test_schema_matches_snapshot`, `tests/fixtures/schema/0001_snapshot.json`. Write a test that introspects the applied schema (`duckdb_columns()` / `duckdb_constraints()`) into a normalized structure and compares it to a committed golden snapshot; generate the snapshot from the DDL. Thereafter any DDL change must *consciously* regenerate the snapshot — this enforces "locked DDL" literally and hands milestone 2 a regression guard.
+9. **Curate & commit durable transcript fixtures.** Files: `tests/fixtures/transcripts/cursor/*.jsonl`, `tests/fixtures/transcripts/claude/*.jsonl` (small real excerpts, scrubbed) + crafted pathological cases (turn_ended/error record, sidechain+tool_result-to-be-dropped, empty content, multi-model conv, huge tool_input) + a `README.md` (provenance + scrubbing). Durable artifacts for m3; not parsed by m1 tests. (Covered by `REUSE.toml`'s `skills/**/tests/**` AGPL rule — no per-file license action.)
+10. **Docs.** Update `memory-bank/techContext.md` with a pointer to `skills/sr-search/src/stockroom/migrations/0001_initial_schema.sql`. Confirm `systemPatterns.md` (already updated) and the creative doc match the final DDL.
+11. **Green gate.** Run `make ci` (sync, lock-check, lint, format-check, test, reuse) from repo root until green. No inline SPDX headers — `REUSE.toml` is path-based and already covers `skills/**/*.sql` and `skills/**/tests/**`.
 
 ## Technology Validation
 
@@ -175,7 +178,7 @@ Edge / pathological:
 - **DuckDB FK enforcement is limited & complicates bulk ETL** → no DB-level FKs in `0001`; document logical refs, enforce in m3 ingest, assert via reconstruction tests.
 - **VSS/HNSW is Phase 2** → `0001` defines the `embeddings` table only (no index); avoids leaking a Phase-2 dependency into m1.
 - **Pre-empting milestone 2** → no migration runner/`schema_version`/lock in m1; schema-apply is test-only via the `schema_con` fixture.
-- **REUSE licensing gate** → add SPDX AGPL headers to new `.sql`/`.py` so `make reuse` stays green.
+- **REUSE licensing gate** → no action needed: `REUSE.toml` is path-based and already asserts AGPL for `skills/**/*.sql` and everything under `skills/**/tests/**` (incl. `.jsonl` fixtures + the schema snapshot). No inline headers; just keep `make reuse` green.
 - **`message_id` format is not DDL-enforceable** (it's a TEXT column) → m1 tests assert the schema *supports* the convention (composite PK + `ordinal`); the `{session_id}#{ordinal}` minting is an ingest-layer (m3) responsibility — documented, not over-claimed here.
 
 ## Status
