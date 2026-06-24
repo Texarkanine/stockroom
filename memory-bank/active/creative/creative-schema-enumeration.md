@@ -134,6 +134,67 @@ Cursor has **no `tool_result` blocks at all** — the harness itself stores inpu
 
 > Six table families per the brief: **sessions, messages, tool_calls (inputs-only), plan_documents, embeddings, _sync_state.** Every content row carries a `harness` column. DDL below is an **illustrative sketch for review**, not the locked `0001` text.
 
+### Entity relationships
+
+```mermaid
+erDiagram
+    sessions   ||--o{ messages    : "has (harness, session_id)"
+    sessions   ||--o{ sessions    : "parent_session_id (subagent)"
+    messages   ||--o{ tool_calls  : "emits (message_id)"
+    messages   ||--o{ embeddings  : "owner (polymorphic)"
+    tool_calls ||--o{ embeddings  : "owner (polymorphic)"
+
+    sessions {
+        text harness PK
+        text session_id PK
+        text parent_session_id FK
+        bool is_subagent
+        text agent_id
+        timestamp started_at
+    }
+    messages {
+        text harness PK
+        text session_id PK
+        text message_id PK
+        text parent_id "threading"
+        int ordinal "message # within session"
+        text role
+        text text
+        text thinking "claude-only"
+        text model
+        bool is_meta
+    }
+    tool_calls {
+        text harness PK
+        text session_id PK
+        text message_id PK
+        int ordinal PK "block # within message"
+        text tool_name
+        json tool_input "inputs only"
+    }
+    embeddings {
+        text owner_table
+        text owner_id
+        int chunk_index
+        text embed_model
+    }
+    sync_state {
+        text harness PK
+        text source_root PK
+        timestamp last_mtime
+    }
+    plan_documents {
+        text TBD "see Q3"
+    }
+```
+
+### How reconstruction works (ordinals)
+
+- **Two ordinals, two scopes.** `messages.ordinal` is the message's position **within the session** (source line index, monotonic — gaps are allowed where non-content records are dropped). `tool_calls.ordinal` is the tool_use block's position **within its parent message's content array**.
+- **Tool calls are children of a message, not peer rows.** One assistant turn commonly emits several tool calls (observed 2–6 content blocks per Cursor message). Reconstruct a session with `messages ORDER BY ordinal`, attaching `tool_calls WHERE message_id = … ORDER BY ordinal` to each assistant message.
+- **Threading:** `parent_id` is the precise parent link (Claude's `parentUuid` DAG, incl. sidechains); for Cursor it's the prior message (linear). `ordinal` is the linear reading order; `parent_id` is the logical thread.
+- **Interleaving caveat (see Q8):** within one turn, text and tool_use blocks can interleave. We preserve tool order and message order, but concatenate text into `messages.text` — so the exact text-vs-tool position *inside a single turn* is not separately recorded.
+
 ```sql
 -- one row per conversation; subagents are their own session rows linked to a parent
 CREATE TABLE sessions (
@@ -168,7 +229,7 @@ CREATE TABLE messages (
     thinking       TEXT,               -- claude thinking blocks; cursor: folded reasoning text
     model          TEXT,               -- claude message.model; cursor NULL/enrich  (model-per-chain)
     ts             TIMESTAMP,          -- claude timestamp; cursor NULL/enrich
-    is_meta        BOOLEAN DEFAULT FALSE,
+    is_meta        BOOLEAN DEFAULT FALSE,  -- claude isMeta: synthetic/injected user turn (command caveat, skill ctx) — not real human input
     PRIMARY KEY (harness, session_id, message_id)
 );
 
@@ -181,7 +242,7 @@ CREATE TABLE tool_calls (
     tool_use_id  TEXT,                 -- claude: tool_use.id ('toolu_…' token); cursor: synthesized
     tool_name    TEXT NOT NULL,
     tool_input   JSON NOT NULL,        -- stored whole, untruncated
-    caller_type  TEXT,                 -- claude: caller.type
+    -- caller_type TEXT,               -- claude caller.type: only 'direct' ever observed (407/407) — DROP candidate, see Q9
     PRIMARY KEY (harness, session_id, message_id, ordinal)
 );
 
@@ -235,12 +296,14 @@ The format/provenance is documented per column; the suffix promises only *unique
 ## 6. Open questions for operator review
 
 1. **Token usage / cost (Claude `message.usage.*`)** — recommend **DROP** (v1 explicitly excludes token/cost). It is rich and *only* Claude has it. Confirm dropping, or keep a minimal `usage` stash now to avoid a later migration?
-2. **`thinking` content** — recommend **KEEP** the text, **DROP** the `signature` blob. Keep thinking in the same `messages.text` or a separate `thinking` column (sketch uses a separate column)? Note Cursor's "assistant text" blocks are *already* reasoning summaries, so the two harnesses won't be symmetric here.
+2. **`thinking` content (Claude-only).** Claude has separate `thinking` blocks (553) distinct from `text` (618); **Cursor has no `thinking` block type** — only `text` + `tool_use`. So a `thinking` column is populated for Claude and always NULL for Cursor. Recommend **KEEP** the thinking text, **DROP** the opaque `signature` blob. Separate `thinking` column (sketch) vs. fold into `messages.text`?
 3. **`plan_documents` source** — this table is named by the brief, but **neither harness emits a distinct "plan document" record** on disk. Candidate sources: (a) `TodoWrite` todo lists (both harnesses), (b) plan-mode assistant messages / Claude `ExitPlanMode`, (c) defer it as forward-declared like `embeddings` until ingest. Need a decision on what populates it.
 4. **How much of `ai-code-tracking.db` to ingest?** The roadmap limits Cursor enrichment to "model/labeling fields." Concretely I recommend: **KEEP `model`** (conversation-grained, ~86% coverage) and use `ai_code_hashes.timestamp` to refine session times; **DROP** `scored_commits`, `ai_deleted_files`, `tracked_file_content` (these are the roadmap's explicit v1 exclusions: AI attribution, source-file purge, file-content capture). `conversation_summaries` (title/tldr/mode) is **empty** in your DB — so no Cursor `title` for now; treat the column as enrich-when-available. Confirm this boundary.
 5. **Model granularity mismatch** — Claude gives true per-message model; Cursor gives model **per conversation** (and only for code-producing ones). Is conversation-grained `messages.model` acceptable for Cursor (every message inherits the conversation's model), or do you want a `model` only on `sessions` for Cursor and per-message only for Claude?
 6. **Cursor CLI `store.db`** — a separate SQLite format under `~/.cursor/chats/`. Out of scope for this transcript-based enumeration. Confirm it's a milestone-3 ingest concern (or out of v1)?
 7. **Non-content Claude records** (`file-history-snapshot`, `attachment`, `system`, `queue-operation`, `mode`, `permission-mode`) — recommend **DROP** entirely. Confirm none are wanted.
+8. **Within-turn text/tool interleaving** — we concatenate a turn's text into `messages.text` and keep tool_use as ordered child rows, so tool order + message order survive but the exact text-vs-tool position *inside one turn* is lost. Accept this (search-faithful, replay-lossy), or model every content block as a row (a `content_blocks` table) for byte-faithful replay?
+9. **`caller_type`** — Claude's `caller.type` is `'direct'` for all 407 calls in your corpus. Recommend **DROP** unless you know of meaningful non-`direct` values. Confirm.
 
 ## 7. Remaining work before lock
 
