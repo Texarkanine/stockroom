@@ -24,7 +24,19 @@ Kept content (prompts, responses, tool inputs) is stored in full. Output truncat
 
 ## Harness-labeled schema, designed empirically
 
-One shared set of tables (sessions, messages, tool_calls inputs-only, plan_documents, embeddings, `_sync_state`), every row carrying a `harness` column — never per-harness tables. Conversation reconstruction is first-class (conversation id, parent/child, ordering, subagent↔parent edge, model-per-chain) atop a stable message-identity contract. Concrete DDL is derived test-first from real Cursor + Claude Code logs (the first Phase 1 task).
+One shared set of tables (sessions, messages, tool_calls inputs-only, embeddings, `_sync_state`), every row carrying a `harness` column — never per-harness tables. Conversation reconstruction is first-class (conversation id, parent/child, ordering, subagent↔parent edge, model grain) atop a stable message-identity contract. Concrete DDL is derived test-first from real Cursor + Claude Code logs (the first Phase 1 task). (`plan_documents`, named in the original brief, was **dropped** during milestone-1 enumeration — no harness emits a plan-document record; `TodoWrite` lists already live in `tool_calls.tool_input`.)
+
+## One meaning per field (cross-harness semantic uniformity)
+
+**Every column means exactly one thing, independent of harness.** Only the *extraction* may differ per harness, and extraction MUST yield that one meaning. Never "`ordinal` is X for Cursor but Y for Claude" — that rots the moment a 3rd/4th harness lands. If a value cannot be made to mean the same thing everywhere, it does **not** get a shared column: it goes to a clearly-labeled `source_*` provenance column or is dropped. Identity is uniform by construction (`message_id = {session_id}#{ordinal}` for all harnesses, a deterministic surrogate; native ids like Claude's `uuid` are demoted to provenance, never joined on). Where a value is genuinely only available at a different grain per harness (e.g. model — per-message for Claude, per-conversation for Cursor), use **separate grain-specific columns** (`messages.model` vs `sessions.models`) and let each harness populate only the grain it actually has — the other is honestly NULL. We never fabricate or back-fill a grain we don't have.
+
+## Typed columns for queryable data; JSON only for irreducible heterogeneity
+
+DuckDB queries JSON (`->`, `->>`, `json_extract`) but **stores it as text (parsed per access) and has no JSON-path indexing** — it's a columnar engine that leans on full-scan + zonemaps, not indexes. So **never JSON-blob a value you want to filter, aggregate, or index.** First-class metrics get real typed columns (columnar, compressed, zonemapped, self-documenting): token usage is four `BIGINT` columns on `messages`, not a `usage` blob. Small sets use a native DuckDB `LIST` (`sessions.models` is `VARCHAR[]`), not JSON. JSON is reserved for the *one* irreducibly heterogeneous fidelity payload — `tool_calls.tool_input` (shape varies per tool, stored whole, never aggregated on internal keys).
+
+## Thinking is not captured (by design)
+
+We deliberately do **not** store model reasoning/"thinking". Rule: *if a harness lets us separate thinking from the response, we separate it and drop it; if it doesn't, we accept whatever is folded into `text`.* Claude emits explicit `thinking` blocks → dropped (we keep only `text`). Cursor has no separate thinking block → its single `text` channel is kept as-is. There is no `thinking` column, and there should never be one.
 
 ## Dual-manifest plugin, no build step, engine inside the `sr-search` skill
 
