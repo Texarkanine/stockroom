@@ -2,19 +2,17 @@
 
 ## Current Task
 
-Phase 1 — Schema, Database, Ingest, and Migrations (L4 project)
+Schema field enumeration + locked DDL (milestone 1 of `p1-data-backbone`, Level 3 sub-run)
 
 ## Phase
 
-PREFLIGHT - COMPLETE (PASS with advisories)
+COMPLEXITY-ANALYSIS - COMPLETE → entering PLAN
 
 ## What Was Done
 
-- Verified Phase 0 (Foundations) genuinely complete: `make ci` fully green. Phase 0 archived; roadmap boxes checked.
-- Classified Phase 1 as **Level 4**; operator confirmed one L4 project starting with milestone 1.
-- **L4 Plan:** generated `milestones.md` (task-id `p1-data-backbone`) — 4 sequential milestones (schema L3 → migration framework L3 → ingest L3 → `sr-query` L2) + cross-milestone invariants.
-- **L4 Preflight:** PASS with advisories (`.preflight-status`). Applied two in-scope amendments to milestone 1 (DDL authored as `0001`; durable fixtures + enumeration record). Advisories logged in `tasks.md` for milestone 2's sub-run.
+- Re-entered the L4 project in the "Not started" state; classified milestone 1 as **Level 3**.
+- Wrote the sub-run determination (`progress.md`, `tasks.md`, this file); preserved the L4 `projectbrief.md` and `milestones.md`.
 
 ## Next Step
 
-🧑‍💻 **Operator review of the milestone plan.** Per the L4 workflow, milestone execution begins when the operator re-invokes `/niko`, which will classify milestone 1 (schema enumeration + locked DDL) as its own sub-run and start it.
+- PLAN: the schema design is the open question; do the empirical field enumeration across real Cursor + Claude Code on-disk data (the creative work), then **STOP** per operator instruction to present all fields + the recommended kept subset for review before any DDL is locked.
