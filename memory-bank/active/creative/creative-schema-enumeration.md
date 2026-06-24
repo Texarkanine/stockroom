@@ -2,7 +2,7 @@
 
 **Task:** `p1-data-backbone` milestone 1 (Schema field enumeration + locked DDL), L3 sub-run.
 **Status:** DRAFT — stopped for operator review per explicit instruction, *before* any DDL is locked.
-**Evidence:** raw machine-generated enumerations in `./evidence/` (`cursor-field-enumeration.txt`, `claude-field-enumeration.txt`, `enumerator.py`). Derived empirically from the harnesses' own on-disk formats — clean-room compliant (no `claude-warehouse`; `cursor-warehouse.duckdb` deliberately *not* read as a schema source).
+**Evidence:** raw machine-generated enumerations in `./evidence/` (`cursor-field-enumeration.txt`, `claude-field-enumeration.txt`, `cursor-ai-code-tracking-db.txt`, `enumerator.py`). Derived empirically from the harnesses' own on-disk formats — clean-room compliant (no `claude-warehouse`; `cursor-warehouse.duckdb` not read as a schema source — only its ingest *logic* reviewed under operator direction to confirm sourcing).
 
 ## 1. Where the data lives (on-disk, this machine)
 
@@ -13,17 +13,44 @@
 
 Corpus enumerated: **Cursor** 713 files / 25,065 records; **Claude** 39 files / 4,158 records. Both are JSONL event streams (one JSON object per line); line order *is* the ordering signal.
 
-**Secondary / not-a-transcript sources (noted, not the schema basis):**
+**Correction (post-review):** an earlier draft of this doc called the Cursor transcript "bare" and implied its model/timestamps were effectively unrecoverable. That undersold it. The transcript is **content-faithful** (full text + full tool inputs); it is only **metadata-sparse**. The missing metadata lives in a real, separate Cursor on-disk store — **`ai-code-tracking.db`** — which is well-populated and recoverable. See §1a.
+
+**Secondary sources (real Cursor on-disk data, not the primary message stream):**
+- **`ai-code-tracking.db`** — the important one. Found at `~/.cursor/ai-tracking/ai-code-tracking.db` natively, or on the WSL Windows mount (here: `/mnt/s/Users/Austin/.cursor/ai-tracking/ai-code-tracking.db`). Full enumeration in §1a + `evidence/cursor-ai-code-tracking-db.txt`. This is the roadmap's named "model/labeling enrichment" source and is the empirical basis for the "WSL/Windows-mount-aware path resolution" requirement.
 - `~/.cursor/chats/<hash>/<id>/store.db` — the Cursor **CLI** agent (SQLite), a *different* format from the IDE `agent-transcripts`. Out of scope for this enumeration; flag for ingest.
-- `~/.cursor/cursor-warehouse.duckdb` — operator's *derived* warehouse (provenance-sensitive). Not read.
-- Cursor's `ai-code-tracking.db` (model/labeling enrichment named by the roadmap) is **not present in the WSL home** — it lives on the Windows side. This is the empirical confirmation of the roadmap's "WSL/Windows-mount-aware path resolution" and "*optional* model/labeling enrichment" caveats: **Cursor's model + timestamps are simply absent from the on-disk transcript** and must be enriched (or left NULL) at ingest.
+- `~/.cursor/cursor-warehouse.duckdb` — operator's *derived* warehouse (provenance-sensitive). Not read as a schema source; its ingest *logic* (`scripts/sync.py`) was reviewed under operator direction to confirm sourcing (see §1b).
+
+## 1a. `ai-code-tracking.db` — the Cursor metadata side-store (ALL fields)
+
+A SQLite DB Cursor writes to track AI-authored code. Tables (row counts from the operator's live DB):
+
+| Table | Rows | Fields | Relevance |
+|---|---|---|---|
+| **`ai_code_hashes`** | 18,113 | `hash`, `source` (`composer`/`tab`), `fileExtension`, `fileName` (abs path), `requestId`, **`conversationId`** (= our `session_id`), **`timestamp`** (epoch ms), `createdAt` (epoch ms), **`model`** | The join that recovers Cursor's `model` *and* real timestamps — but **only for conversations that produced code** (`composer` 17,920 / `tab` 193), and keyed by `requestId`, **not** by transcript message. |
+| `scored_commits` | 760 | `commitHash`, `branchName`, `scoredAt`, `lines{Added,Deleted}`, `tab/composer/human/blankLines*`, `commitMessage`, `commitDate`, `v1AiPercentage`, `v2AiPercentage` | **AI-code attribution** — an explicit **v1 exclusion** (roadmap "Future"). DROP. |
+| `conversation_summaries` | **0** | `conversationId`, `title`, `tldr`, `overview`, `summaryBullets`, `model`, `mode`, `updatedAt` | Cursor's *would-be* session title/summary/mode. **Schema exists but unpopulated** here — so no reliable Cursor `title` source today. |
+| `tracked_file_content` | **0** | `gitPath`, `content`, `conversationId`, `model`, `fileExtension`, `createdAt` | AI-authored file snapshots. Empty; source-file/content capture is a v1 exclusion. DROP. |
+| `ai_deleted_files` | 72 | `gitPath`, `composerId`, `conversationId`, `model`, `deletedAt` | File-purge provenance — v1 exclusion. DROP. |
+| `tracking_state` | 1 | `key`, `value` | Bookkeeping (`trackingStartTime`). DROP. |
+
+**What this genuinely buys us (empirically, against the live warehouse):**
+- **`model`: recoverable and well-populated.** After enrichment, **21,248 / 24,736 Cursor messages (86%) carry a model**, across 18 distinct models. Caveat: it's applied at **conversation granularity** (every message in a code-producing conversation inherits that conversation's model) — only **68 conversations** have code hashes at all, so read-only conversations get no model. **58/68 are single-model**, 9 are two-model, 1 is three-model.
+- **`timestamp`: partial.** Real epoch-ms timestamps exist, but only for code-producing turns and only joinable at `conversationId`/`requestId` grain — **not mappable to an individual transcript message**. Usable to refine session `started_at`/`ended_at` for code-producing conversations; otherwise file mtime remains the fallback.
+
+## 1b. cursor-warehouse ingest confirms the contract (provenance-vetted)
+
+Reviewed `cursor-warehouse/scripts/sync.py` under operator direction (to confirm *sourcing*, not to lift schema). It independently arrives at the same reconstruction this doc proposes, which is strong corroboration that the empirical contract is right:
+- Mints `msg_uuid = f"{session_id}:{line_idx}"` — identical to our synthesized message-identity rule for Cursor.
+- Inserts message `timestamp` as **`None`** (confirmed: 0 of 24,736 live rows have one); session `created_at`/`modified_at` come from **file mtime**.
+- Derives subagent→parent **structurally** from the `subagents/` directory parent name (no in-record id) — matching our finding.
+- Enriches `model` from `ai-code-tracking.db` (`ai_code_hashes` join on `conversationId`), exactly as §1a describes.
 
 ## 2. The headline finding: the two formats are wildly asymmetric
 
 - **Claude Code is self-describing.** Every content record carries `uuid`, `parentUuid` (threading), `sessionId`, `timestamp`, `message.model`, `message.usage.*`, `cwd`, `gitBranch`, `version`, plus subagent identity (`agentId`, `isSidechain`) and explicit tool-call ids.
-- **Cursor's transcript is a bare message list.** The *only* top-level keys are `role` and `message` (plus a `turn_ended` status marker). **No ids, no parent pointers, no timestamps, no model, no token usage.** Identity and ordering must be **synthesized** from `(conversation-id-from-path, line-ordinal)`.
+- **Cursor's transcript is content-faithful but metadata-sparse.** The message stream's *only* top-level keys are `role` and `message` (plus a `turn_ended` marker): full text and full tool inputs are present, but the stream carries **no ids, parent pointers, timestamps, model, or token usage**. That metadata is not lost — it lives in `ai-code-tracking.db` (§1a), recoverable at **conversation** grain (model for ~86% of messages; timestamps partially). Per-message identity/ordering is still **synthesized** from `(conversation-id-from-path, line-ordinal)`.
 
-This asymmetry is the central schema design force: the shared, harness-labeled tables must treat the *Claude-native* columns (uuid, parent, model, time, usage) as **nullable / synthesized** for Cursor. The "stable message-identity contract" the brief demands is, concretely, *the rule for minting deterministic surrogate ids for Cursor and adopting native uuids for Claude.*
+This asymmetry is the central schema design force: the shared, harness-labeled tables treat Claude's *per-message* columns (uuid, parent, per-message model, time) as **synthesized or conversation-grained** for Cursor. The "stable message-identity contract" the brief demands is, concretely, *mint deterministic surrogate ids for Cursor, adopt native uuids for Claude.* The **"model-per-chain" key is genuinely asymmetric**: Claude has true per-message model; Cursor has model(s) **per conversation** (side-DB), not attributable to an individual message.
 
 ### Subagent ↔ parent linkage is also asymmetric
 
@@ -54,8 +81,8 @@ Legend: **KEEP** = goes in the locked schema · **DERIVE** = synthesized (not li
 | *(no message id)* | DERIVE | `messages.message_uid` (synthesized) |
 | *(no parent)* | DERIVE | `messages.parent_uid` = prior line |
 | *(no ordinal)* | DERIVE | `messages.ordinal` = line index |
-| *(no model)* | ENRICH | `messages.model` (NULL on disk) |
-| *(no timestamp)* | ENRICH | `messages.ts` (NULL; file mtime as coarse fallback) |
+| *(no model in stream)* | ENRICH (conversation-grained) | `messages.model` ← `ai-code-tracking.db.ai_code_hashes` join on `conversationId`; ~86% coverage, NULL for non-code conversations |
+| *(no timestamp in stream)* | ENRICH (partial) / mtime | `messages.ts` NULL; session `started_at`/`ended_at` from file mtime, refinable from `ai_code_hashes.timestamp` for code-producing convs |
 | *(no tool_use id)* | DERIVE | `tool_calls.tool_use_id` (synthesized) |
 
 **`role:turn_ended`** — `{type:"turn_ended", status, error}`. Turn boundary / abort marker. Disposition: **DROP** as content; optionally surface `error`/`status` onto the preceding assistant message if we want abort visibility (open question, low priority).
@@ -203,9 +230,10 @@ CREATE TABLE _sync_state (
 1. **Token usage / cost (Claude `message.usage.*`)** — recommend **DROP** (v1 explicitly excludes token/cost). It is rich and *only* Claude has it. Confirm dropping, or keep a minimal `usage` stash now to avoid a later migration?
 2. **`thinking` content** — recommend **KEEP** the text, **DROP** the `signature` blob. Keep thinking in the same `messages.text` or a separate `thinking` column (sketch uses a separate column)? Note Cursor's "assistant text" blocks are *already* reasoning summaries, so the two harnesses won't be symmetric here.
 3. **`plan_documents` source** — this table is named by the brief, but **neither harness emits a distinct "plan document" record** on disk. Candidate sources: (a) `TodoWrite` todo lists (both harnesses), (b) plan-mode assistant messages / Claude `ExitPlanMode`, (c) defer it as forward-declared like `embeddings` until ingest. Need a decision on what populates it.
-4. **Cursor model/timestamp enrichment** — confirmed *not* in the transcript and the enrichment DB is on the Windows mount. For the schema this just means `model`/`ts` are NULLable for Cursor. OK to lock that, with enrichment deferred to milestone 3 (ingest)?
-5. **Cursor CLI `store.db`** — a separate SQLite format under `~/.cursor/chats/`. Out of scope for this transcript-based enumeration. Confirm it's a milestone-3 ingest concern (or out of v1)?
-6. **Non-content Claude records** (`file-history-snapshot`, `attachment`, `system`, `queue-operation`, `mode`, `permission-mode`) — recommend **DROP** entirely. Confirm none are wanted.
+4. **How much of `ai-code-tracking.db` to ingest?** The roadmap limits Cursor enrichment to "model/labeling fields." Concretely I recommend: **KEEP `model`** (conversation-grained, ~86% coverage) and use `ai_code_hashes.timestamp` to refine session times; **DROP** `scored_commits`, `ai_deleted_files`, `tracked_file_content` (these are the roadmap's explicit v1 exclusions: AI attribution, source-file purge, file-content capture). `conversation_summaries` (title/tldr/mode) is **empty** in your DB — so no Cursor `title` for now; treat the column as enrich-when-available. Confirm this boundary.
+5. **Model granularity mismatch** — Claude gives true per-message model; Cursor gives model **per conversation** (and only for code-producing ones). Is conversation-grained `messages.model` acceptable for Cursor (every message inherits the conversation's model), or do you want a `model` only on `sessions` for Cursor and per-message only for Claude?
+6. **Cursor CLI `store.db`** — a separate SQLite format under `~/.cursor/chats/`. Out of scope for this transcript-based enumeration. Confirm it's a milestone-3 ingest concern (or out of v1)?
+7. **Non-content Claude records** (`file-history-snapshot`, `attachment`, `system`, `queue-operation`, `mode`, `permission-mode`) — recommend **DROP** entirely. Confirm none are wanted.
 
 ## 7. What is NOT done yet (post-review)
 

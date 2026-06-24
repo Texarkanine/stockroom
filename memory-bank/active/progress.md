@@ -28,3 +28,16 @@ Milestone 1 of the `p1-data-backbone` L4 project: **Schema field enumeration + l
     - The two on-disk formats are radically asymmetric: Claude is self-describing; Cursor's transcript is a bare `role`/`message` list. The shared harness-labeled schema absorbs this by making Claude-native columns nullable/synthesized for Cursor.
     - `plan_documents` has no distinct on-disk record in either harness — its populating source is the weakest-grounded part of the brief's table list (open question Q3).
     - DDL deliberately NOT locked; awaiting operator review before authoring `migrations/0001` test-first.
+
+## 2026-06-24 - PLAN/CREATIVE (correction) - Cursor side-store enumerated
+
+* Work completed
+    - Operator flagged that the Cursor enumeration undersold the data. Located `ai-code-tracking.db` on the Windows mount (`/mnt/s/Users/Austin/.cursor/ai-tracking/`), enumerated all 6 tables (evidence: `creative/evidence/cursor-ai-code-tracking-db.txt`), and verified against the live `cursor-warehouse.duckdb` via `/cw-query`.
+    - Reviewed `cursor-warehouse/scripts/sync.py` under operator direction (sourcing only, not schema lift); revised `creative-schema-enumeration.md` §1a/§1b/§2/§3a and the open questions.
+* Decisions made (provisional)
+    - Cursor `model` IS recoverable — conversation-grained via `ai_code_hashes.conversationId` join (~86% of messages, 18 models), only for code-producing conversations. Per-message timestamps remain NULL; session times from file mtime, refinable from `ai_code_hashes.timestamp`.
+    - `ai-code-tracking.db` enrichment recommended limited to `model` (+ session-time refinement); `scored_commits`/`ai_deleted_files`/`tracked_file_content` map to roadmap v1 exclusions → DROP. `conversation_summaries` is empty → no Cursor title today.
+* Insights
+    - cursor-warehouse independently mints `{session_id}:{line_idx}` ids, nulls message timestamps, and derives subagent parents structurally — strong corroboration of the empirical contract.
+    - "model-per-chain" is genuinely asymmetric: true per-message for Claude, conversation-grained for Cursor.
+    - Process note: an earlier `cp` used relative paths under a `/tmp` cwd, so the first evidence files never entered the repo; re-created with absolute paths.
