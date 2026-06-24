@@ -68,8 +68,8 @@ Legend: **KEEP** = goes in the locked schema · **DERIVE** = synthesized (not li
 | `message.content[tool_use].input` (+ all `…input.*` leaves: `command`, `path`, `pattern`, `glob`, `old_string`/`new_string`, `contents`, `todos[]`, `questions[]`, `prompt`, `subagent_type`, `resume`, `url`, `query`, `target_directories[]`, … — full list in evidence) | KEEP (stored **whole** as JSON, untruncated, **inputs only**) | `tool_calls.tool_input` |
 | `message.content[tool_use].type` (`"tool_use"`) | DROP (discriminator) | — |
 | `message.content[tool_use].input.todos[]` (TodoWrite) | KEEP — candidate `plan_documents` source (see Q3) | `plan_documents`? |
-| *(no message id)* | DERIVE | `messages.message_uid` (synthesized) |
-| *(no parent)* | DERIVE | `messages.parent_uid` = prior line |
+| *(no message id)* | DERIVE | `messages.message_id` (synthesized) |
+| *(no parent)* | DERIVE | `messages.parent_id` = prior line |
 | *(no ordinal)* | DERIVE | `messages.ordinal` = line index |
 | *(no model in stream)* | ENRICH (conversation-grained) | `messages.model` ← `ai-code-tracking.db.ai_code_hashes` join on `conversationId`; ~86% coverage, NULL for non-code conversations |
 | *(no timestamp in stream)* | ENRICH (partial) / mtime | `messages.ts` NULL; session `started_at`/`ended_at` from file mtime, refinable from `ai_code_hashes.timestamp` for code-producing convs |
@@ -85,7 +85,7 @@ Cursor has **no `tool_result` blocks at all** — the harness itself stores inpu
 
 | Field group | On-disk fields | Disposition → target |
 |---|---|---|
-| Identity | `uuid`, `parentUuid`, `sessionId`, `type` | KEEP → `messages.message_uid` / `parent_uid` / `session_id` / role |
+| Identity | `uuid`, `parentUuid`, `sessionId`, `type` | KEEP → `messages.message_id` / `parent_id` / `session_id` / role |
 | Threading/agent | `agentId`, `isSidechain`, `attributionAgent` | KEEP → sessions/subagent linkage |
 | Attribution | `attributionSkill`, `attributionMcpServer`, `attributionMcpTool` | KEEP (modest) → `messages.attribution_*` (NULLable) |
 | Context | `cwd`, `gitBranch`, `version`, `entrypoint`, `userType` | KEEP `cwd`,`gitBranch`,`version` → sessions; DROP `entrypoint`,`userType` (low value) |
@@ -160,8 +160,8 @@ CREATE TABLE sessions (
 CREATE TABLE messages (
     harness        TEXT    NOT NULL,
     session_id     TEXT    NOT NULL,
-    message_uid    TEXT    NOT NULL,   -- claude: uuid; cursor: DERIVED det. surrogate (stable across re-ingest)
-    parent_uid     TEXT,               -- claude: parentUuid; cursor: prior message_uid (linear chain)
+    message_id     TEXT    NOT NULL,   -- opaque id. claude: native uuid; cursor: synthesized '{session_id}:{ordinal}'
+    parent_id      TEXT,               -- claude: parentUuid; cursor: prior message_id (linear chain)
     ordinal        INTEGER NOT NULL,   -- line index in file: ordering key (authoritative for cursor)
     role           TEXT    NOT NULL,   -- 'user' | 'assistant'
     text           TEXT,               -- concatenated text content (stored whole)
@@ -169,31 +169,31 @@ CREATE TABLE messages (
     model          TEXT,               -- claude message.model; cursor NULL/enrich  (model-per-chain)
     ts             TIMESTAMP,          -- claude timestamp; cursor NULL/enrich
     is_meta        BOOLEAN DEFAULT FALSE,
-    PRIMARY KEY (harness, session_id, message_uid)
+    PRIMARY KEY (harness, session_id, message_id)
 );
 
 -- tool INPUTS only — never outputs
 CREATE TABLE tool_calls (
     harness      TEXT NOT NULL,
     session_id   TEXT NOT NULL,
-    message_uid  TEXT NOT NULL,        -- FK → messages (the assistant turn that emitted it)
+    message_id   TEXT NOT NULL,        -- FK → messages.message_id (the assistant turn that emitted it)
     ordinal      INTEGER NOT NULL,     -- order within the message
-    tool_use_id  TEXT,                 -- claude: tool_use.id; cursor: DERIVED surrogate
+    tool_use_id  TEXT,                 -- claude: tool_use.id ('toolu_…' token); cursor: synthesized
     tool_name    TEXT NOT NULL,
     tool_input   JSON NOT NULL,        -- stored whole, untruncated
     caller_type  TEXT,                 -- claude: caller.type
-    PRIMARY KEY (harness, session_id, message_uid, ordinal)
+    PRIMARY KEY (harness, session_id, message_id, ordinal)
 );
 
 -- forward-declared; populated in Phase 2 (embeddings + search)
 CREATE TABLE embeddings (
     harness     TEXT NOT NULL,
     owner_table TEXT NOT NULL,         -- 'messages' | 'tool_calls' | 'plan_documents'
-    owner_uid   TEXT NOT NULL,
+    owner_id    TEXT NOT NULL,         -- references the owner row's id
     chunk_index INTEGER NOT NULL,
     embed_model TEXT NOT NULL,
     vector      FLOAT[384],            -- VSS/HNSW in Phase 2
-    PRIMARY KEY (harness, owner_table, owner_uid, chunk_index)
+    PRIMARY KEY (harness, owner_table, owner_id, chunk_index)
 );
 
 -- incremental ingest watermark (per source root)
@@ -211,9 +211,26 @@ CREATE TABLE _sync_state (
 
 ## 5. The message-identity contract (the crux)
 
-- **Claude:** `message_uid = uuid` (native, stable); `parent_uid = parentUuid`; `ordinal` = line index (tiebreaker).
-- **Cursor:** no native ids. Mint `message_uid` deterministically from `(harness, session_id, ordinal[, role])` so re-ingest of an unchanged file reproduces identical ids (idempotency). `parent_uid` = previous content message's `message_uid` (Cursor is a linear chain; no branching observed). `tool_use_id` similarly synthesized from `(message_uid, ordinal-within-message)`.
-- **Reconstruction keys satisfied:** conversation id = `(harness, session_id)`; parent/child = `parent_uid`; ordering = `ordinal`; subagent↔parent = `sessions.parent_session_id` (+ `spawning_tool_use_id` where available); model-per-chain = `messages.model`.
+### Identifier naming convention
+
+Every identifier column is named `*_id`, typed `TEXT`, and treated as an **opaque token of unspecified format** — never `_uid` or `_uuid`. The harnesses' ids are heterogeneous and only *some* are RFC-4122 UUIDs, so a `uuid`-flavored name would be a lie for most of them:
+
+| Column | Cursor | Claude | UUID? |
+|---|---|---|---|
+| `session_id` | conversation UUID (dir/file stem) | `sessionId` UUID | both |
+| `message_id` | synthesized `{session_id}:{ordinal}` | native `uuid` | Claude only |
+| `parent_id` | prior `message_id` | `parentUuid` | Claude only |
+| `tool_use_id` | synthesized `{message_id}:{block-idx}` | `toolu_…` token | neither |
+| `agent_id` | subagent conversation UUID | `agentId` (16-hex) | Cursor only |
+| `spawning_tool_use_id` | — (structural) | `toolu_…` token | neither |
+
+The format/provenance is documented per column; the suffix promises only *uniqueness within its scope*, not a wire format. (Contrast cursor-warehouse, which names the column `uuid` but stores `{session_id}:{line_idx}` — a name we deliberately reject.)
+
+### Derivation
+
+- **Claude:** `message_id = uuid` (native, stable); `parent_id = parentUuid`; `ordinal` = line index (tiebreaker).
+- **Cursor:** no native ids. Mint `message_id` deterministically from `(harness, session_id, ordinal[, role])` so re-ingest of an unchanged file reproduces identical ids (idempotency). `parent_id` = previous content message's `message_id` (Cursor is a linear chain; no branching observed). `tool_use_id` similarly synthesized from `(message_id, block-index)`.
+- **Reconstruction keys satisfied:** conversation id = `(harness, session_id)`; parent/child = `parent_id`; ordering = `ordinal`; subagent↔parent = `sessions.parent_session_id` (+ `spawning_tool_use_id` where available); model-per-chain = `messages.model`.
 
 ## 6. Open questions for operator review
 
