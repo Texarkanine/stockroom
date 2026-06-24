@@ -1,7 +1,7 @@
 # Creative — Schema Field Enumeration + Draft DDL
 
 **Task:** `p1-data-backbone` milestone 1 (Schema field enumeration + locked DDL), L3 sub-run.
-**Status:** DRAFT — stopped for operator review per explicit instruction, *before* any DDL is locked.
+**Status:** REVIEWED — all open questions resolved (§6). Ready to lock the DDL pending operator green-light.
 **Evidence:** raw machine-generated enumerations in `./evidence/` (`cursor-field-enumeration.txt`, `claude-field-enumeration.txt`, `cursor-ai-code-tracking-db.txt`, `enumerator.py`). Derived empirically from the harnesses' own on-disk formats — clean-room compliant (no `claude-warehouse`; `cursor-warehouse.duckdb` not read as a schema source — only its ingest *logic* reviewed under operator direction to confirm sourcing).
 
 ## 1. Where the data lives (on-disk, this machine)
@@ -15,7 +15,7 @@ Corpus enumerated: **Cursor** 713 files / 25,065 records; **Claude** 39 files / 
 
 **Secondary sources (real Cursor on-disk data, not the primary message stream):**
 - **`ai-code-tracking.db`** — the important one. Found at `~/.cursor/ai-tracking/ai-code-tracking.db` natively, or on the WSL Windows mount (here: `/mnt/s/Users/Austin/.cursor/ai-tracking/ai-code-tracking.db`). Full enumeration in §1a + `evidence/cursor-ai-code-tracking-db.txt`. This is the roadmap's named "model/labeling enrichment" source and the empirical basis for the "WSL/Windows-mount-aware path resolution" requirement.
-- `~/.cursor/chats/<hash>/<id>/store.db` — the Cursor **CLI** agent (SQLite), a *different* format from the IDE `agent-transcripts`. Out of scope for this enumeration; flag for ingest.
+- `~/.cursor/chats/<hash>/<id>/store.db` — the Cursor **CLI** agent (SQLite). Investigated and **deferred out of v1** (§6): it's a content-addressed blob DAG (mixed JSON + protobuf) that embeds tool outputs and reasoning — a separate ingestion adapter, not a JSONL variant.
 - `~/.cursor/cursor-warehouse.duckdb` — operator's *derived* warehouse (provenance-sensitive). Not read as a schema source.
 
 ## 1a. `ai-code-tracking.db` — the Cursor metadata side-store (ALL fields)
@@ -40,7 +40,7 @@ A SQLite DB Cursor writes to track AI-authored code. Tables (row counts from the
 - **Claude Code is self-describing.** Every content record carries `uuid`, `parentUuid` (threading), `sessionId`, `timestamp`, `message.model`, `message.usage.*`, `cwd`, `gitBranch`, `version`, plus subagent identity (`agentId`, `isSidechain`) and explicit tool-call ids.
 - **Cursor's transcript is content-faithful but metadata-sparse.** The message stream's *only* top-level keys are `role` and `message` (plus a `turn_ended` marker): full text and full tool inputs are present, but the stream carries **no ids, parent pointers, timestamps, model, or token usage**. That metadata lives in `ai-code-tracking.db` (§1a), recoverable at **conversation** grain (model for ~86% of messages; timestamps partially). Per-message identity/ordering is still **synthesized** from `(conversation-id-from-path, line-ordinal)`.
 
-This asymmetry is the central schema design force. The response is **not** to let columns mean different things per harness, but to mint **uniform deterministic identities** (`message_id = {session_id}#{ordinal}`) for *both* harnesses and demote each harness's native ids to clearly-labeled `source_*` provenance columns (§5). The one place uniformity is genuinely strained is **`model`**: Claude has a true per-message model; Cursor has model(s) only **per conversation** (side-DB), not attributable to an individual message — called out explicitly in Q5 rather than hidden behind a column comment.
+This asymmetry is the central schema design force. The response is **not** to let columns mean different things per harness, but to mint **uniform deterministic identities** (`message_id = {session_id}#{ordinal}`) for *both* harnesses and demote each harness's native ids to clearly-labeled `source_*` provenance columns (§5). The one place uniformity is genuinely strained is **`model`**: Claude has a true per-message model; Cursor has model(s) only **per conversation** (side-DB), not attributable to an individual message. Resolved by splitting model across two grain-specific columns (`messages.model` Claude-side, `sessions.models` Cursor-side) so neither harness fabricates a grain it lacks (§4, §6).
 
 ### Subagent ↔ parent linkage is also asymmetric
 
@@ -71,7 +71,7 @@ Legend: **KEEP** = goes in the locked schema · **DERIVE** = synthesized (not li
 | *(no message id)* | DERIVE | `messages.message_id` = `{session_id}#{ordinal}` (uniform) |
 | *(no parent)* | DERIVE | `messages.parent_id` = prior message's `message_id` (linear) |
 | *(no ordinal)* | DERIVE | `messages.ordinal` = position in conversation order (byte order) |
-| *(no model in stream)* | ENRICH (conversation-grained) | `messages.model` ← `ai-code-tracking.db.ai_code_hashes` join on `conversationId`; ~86% coverage, NULL for non-code conversations |
+| *(no model in stream)* | ENRICH (conversation-grained) | `sessions.models` ← distinct models from `ai-code-tracking.db.ai_code_hashes` on `conversationId` (1–3 per conv; NULL for non-code convs). `messages.model` stays NULL for Cursor (no per-message grain) |
 | *(no timestamp in stream)* | ENRICH (partial) / mtime | `messages.ts` NULL; session `started_at`/`ended_at` from file mtime, refinable from `ai_code_hashes.timestamp` for code-producing convs |
 | *(no tool_use id)* | DROP | native id absent; `tool_calls` identity is `(message_id, ordinal)`; `source_tool_use_id` NULL |
 
@@ -97,7 +97,8 @@ Cursor has **no `tool_result` blocks at all** — the harness itself stores inpu
 | Model | `message.model` | KEEP → `messages.model` (the "model-per-chain" key) |
 | Message meta | `message.id`, `message.type`, `message.role` | KEEP `role`; DROP `message.id` (use `uuid`), `message.type` |
 | Stop info | `message.stop_reason`, `stop_details`, `stop_sequence` | DROP (not needed for reconstruction/search) |
-| **Token usage** | `message.usage.*` (input/output/cache_*, `iterations[]`, `server_tool_use`, `service_tier`, `speed`, `inference_geo`), `requestId`, `message.diagnostics.*` | **DROP** — token/cost is an explicit **v1 exclusion** (roadmap "Future"). Enumerated, not stored. |
+| **Token usage** | `message.usage.*` (input/output/cache_*, `iterations[]`, `server_tool_use`, `service_tier`, `speed`, `inference_geo`) | **KEEP** → `messages.usage` (stored **whole** as JSON, untruncated). Claude-only; Cursor NULL (no token data on disk). |
+| | `requestId`, `message.diagnostics.*` | DROP (operational; not token accounting) |
 
 **`user`** (909 recs):
 
@@ -142,7 +143,7 @@ Cursor has **no `tool_result` blocks at all** — the harness itself stores inpu
 Worked examples:
 - `ordinal` **means** "0-based position of this message within its session, in conversation order." Cursor and Claude both *extract* it from JSONL byte order; the meaning is identical.
 - `message_id` **means** "stable identity of this message within `(harness, session_id)`," and is uniformly **`{session_id}#{ordinal}`** for *all* harnesses (deterministic, not random, not a hash). Claude's native `uuid` is not the identity — it's kept in `source_uuid` (provenance only).
-- `model` **means** "the model that produced this message." This one is honestly asymmetric (Claude: per-message; Cursor: only conversation-grained, side-DB) — see Q5; it is the one place uniformity is genuinely strained, called out explicitly rather than papered over.
+- **model is split by grain, and we never fake the grain we don't have.** Two distinct columns, each with one meaning: `messages.model` = "model that produced this *message*" (Claude has it; Cursor NULL); `sessions.models` = "model(s) attributed to this *conversation*" (Cursor has it from the side-DB; Claude NULL — it's queryable from messages). Cursor genuinely lacks per-message model and Claude isn't rolled up to the session, so each harness populates exactly the grain it actually has. No inheritance, no fabrication.
 
 ### Entity relationships
 
@@ -160,6 +161,7 @@ erDiagram
         text parent_session_id FK
         bool is_subagent
         text agent_id
+        json models "conversation-grain (cursor)"
         timestamp started_at
     }
     messages {
@@ -170,7 +172,8 @@ erDiagram
         int ordinal "position in session"
         text role
         text text
-        text model
+        text model "message-grain (claude)"
+        json usage "tokens (claude)"
         text source_uuid "native id, provenance"
     }
     tool_calls {
@@ -217,6 +220,7 @@ CREATE TABLE sessions (
     agent_type         TEXT,                      -- claude: agentType/attributionAgent; cursor: Task.subagent_type
     spawning_tool_use_id TEXT,                    -- claude: meta.json toolUseId; cursor: NULL (structural only)
     agent_name         TEXT,                      -- claude agent-name
+    models             JSON,                      -- conversation-grained model(s). cursor: distinct set from ai_code_hashes (1–3 observed); claude: NULL (per-message, see messages.model)
     title              TEXT,                      -- claude ai/custom title; cursor NULL (enrich)
     harness_version    TEXT,                      -- claude version; cursor NULL
     started_at         TIMESTAMP,                 -- claude min(ts); cursor NULL/mtime
@@ -234,8 +238,9 @@ CREATE TABLE messages (
     ordinal     INTEGER NOT NULL,   -- position in session, conversation order, 0-based. Extracted from JSONL byte order for both.
     role        TEXT    NOT NULL,   -- 'user' | 'assistant'
     text        TEXT,               -- the turn's text, stored whole (thinking deliberately NOT captured — see §5 design note)
-    model       TEXT,               -- model that produced this message. claude: message.model; cursor: conversation-grained enrich (Q5)
+    model       TEXT,               -- model that produced THIS MESSAGE. claude: message.model; cursor: NULL (model lives at session grain — see sessions.models)
     ts          TIMESTAMP,          -- wall-clock time of this message. claude: timestamp; cursor: NULL (no per-message time on disk)
+    usage       JSON,               -- token usage subtree, stored whole. claude: message.usage.*; cursor: NULL
     source_uuid TEXT,               -- provenance only: harness-native record id if any (claude uuid; cursor NULL). NOT a join key.
     PRIMARY KEY (harness, session_id, message_id)
 );
@@ -305,24 +310,19 @@ No `_uid`/`_uuid` names: identity is a deterministic surrogate, not a wire-forma
 - **The one failure mode** is the source log being *rewritten* (lines reordered/removed), which would shift ordinals. We **detect** it rather than silently re-id: `_sync_state` tracks each file's size+mtime (and may keep a prefix hash); a shrink/rewrite raises a flag for the operator instead of corrupting identities. (Optional hardening: a per-row content `digest` tripwire.)
 - **Reconstruction keys satisfied:** conversation = `(harness, session_id)`; ordering = `ordinal`; parent/child = `parent_id`; subagent↔parent = `sessions.parent_session_id` (+ `spawning_tool_use_id`→`tool_calls.source_tool_use_id` where available).
 
-## 6. Decisions & open questions
-
-### Decided (operator, this round)
+## 6. Decisions (all open questions resolved)
 
 - **`is_meta` — DROP.** No Cursor equivalent; not worth a non-uniform column.
 - **`caller_type` — DROP.** Only `'direct'` observed (407/407); no signal.
 - **`thinking` — DROP** (by design; see §5 note). Separable → dropped for Claude; Cursor has none.
 - **`plan_documents` table — DROP.** No harness emits plan-document records; `TodoWrite` lists are already captured in `tool_calls.tool_input`. Schema is now five tables.
-- **Within-turn interleaving (was Q8) — RESOLVED, no loss.** Verified 0/5,646 tool-bearing turns have text after a tool; the turn contract makes concatenated-text + block-indexed tools lossless. Ingest adds an assertion that fails loudly if a future harness violates it.
-
-### Still open
-
-1. **Token usage / cost (Claude `message.usage.*`)** — recommend **DROP** (v1 explicitly excludes token/cost). Rich, and *only* Claude has it. Confirm dropping, or keep a minimal `usage` stash now to avoid a later migration?
-4. **How much of `ai-code-tracking.db` to ingest?** The roadmap limits Cursor enrichment to "model/labeling fields." Recommend: **KEEP `model`** (conversation-grained, ~86% coverage) and use `ai_code_hashes.timestamp` to refine session times; **DROP** `scored_commits`, `ai_deleted_files`, `tracked_file_content` (the roadmap's explicit v1 exclusions). `conversation_summaries` is **empty** in your DB → no Cursor `title` for now; treat as enrich-when-available. Confirm this boundary.
-5. **Model granularity mismatch** (the one acknowledged non-uniformity) — Claude gives true per-message model; Cursor gives model **per conversation** (code-producing convs only). Options: (a) `messages.model` for both, Cursor inheriting the conversation's model; (b) `messages.model` Claude-only + a `sessions.model` for Cursor; (c) both. Which?
-6. **Cursor CLI `store.db`** (`~/.cursor/chats/`, separate SQLite) — confirm it's a milestone-3 ingest concern (or out of v1)?
-7. **Non-content Claude records** (`file-history-snapshot`, `attachment`, `system`, `queue-operation`, `mode`, `permission-mode`) — recommend **DROP** entirely. Confirm none are wanted.
+- **Within-turn interleaving — RESOLVED, no loss.** Verified 0/5,646 tool-bearing turns have text after a tool; the turn contract makes concatenated-text + block-indexed tools lossless. Ingest asserts this and fails loudly if a future harness violates it.
+- **Token usage — KEEP.** `messages.usage JSON` (whole `message.usage.*` subtree, untruncated). Claude-only; Cursor NULL. (`requestId`/`diagnostics` still dropped — operational, not token accounting.)
+- **`ai-code-tracking.db` scope — ACCEPTED as recommended.** KEEP `model` (→ `sessions.models`) + use `ai_code_hashes.timestamp` to refine session times; DROP `scored_commits`, `ai_deleted_files`, `tracked_file_content` (roadmap v1 exclusions); `conversation_summaries` empty → no Cursor `title` yet (enrich-when-available).
+- **Model granularity — split by grain, no faking.** Add `sessions.models` (conversation grain, Cursor-populated) and keep `messages.model` (message grain, Claude-populated); each harness fills only the grain it actually has, the other is honestly NULL. (See §4 contract.)
+- **Non-content Claude records — DROP** (`file-history-snapshot`, `attachment`, `system`, `queue-operation`, `mode`, `permission-mode`).
+- **Cursor CLI `store.db` (`~/.cursor/chats/`) — OUT of v1 (deferred to a future milestone).** Investigated (86 agents on this machine): it is **not** a JSONL variant but a **content-addressed blob DAG** — `blobs(id=sha256, data)` + a `meta` head pointer (`latestRootBlobId`), reconstructed by DAG traversal. Serialization is **mixed**: ~72/305 blobs are JSON messages (`system`/`user`/`assistant`/`tool`), ~233 are **protobuf-encoded** intermediate/chunk nodes. It also **embeds full tool OUTPUTS** (`role:"tool"` blobs with stdout, `highLevelToolCallResult`) and explicit `type:"reasoning"` blocks — both of which v1 deliberately excludes. It maps to the *same* conceptual model later, but needs a separate ingestion adapter (protobuf decode + DAG walk + output/thinking filtering) and its own enumeration. Deferred.
 
 ## 7. Remaining work before lock
 
-Locking the DDL, writing it as `migrations/0001`, the TDD test suite, and committing the durable enumeration record + shared real/pathological fixtures — all wait until the kept-subset is reviewed and approved.
+All review questions are resolved. Next (pending operator green-light): lock the DDL, write it as `migrations/0001`, build the TDD test suite, and commit the durable enumeration record + shared real/pathological fixtures.
