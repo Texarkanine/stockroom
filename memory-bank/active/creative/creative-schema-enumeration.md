@@ -97,7 +97,8 @@ Cursor has **no `tool_result` blocks at all** — the harness itself stores inpu
 | Model | `message.model` | KEEP → `messages.model` (the "model-per-chain" key) |
 | Message meta | `message.id`, `message.type`, `message.role` | KEEP `role`; DROP `message.id` (use `uuid`), `message.type` |
 | Stop info | `message.stop_reason`, `stop_details`, `stop_sequence` | DROP (not needed for reconstruction/search) |
-| **Token usage** | `message.usage.*` (input/output/cache_*, `iterations[]`, `server_tool_use`, `service_tier`, `speed`, `inference_geo`) | **KEEP** → `messages.usage` (stored **whole** as JSON, untruncated). Claude-only; Cursor NULL (no token data on disk). |
+| **Token usage (core)** | `message.usage.{input_tokens, output_tokens, cache_creation_input_tokens, cache_read_input_tokens}` | **KEEP** → four typed `BIGINT` columns on `messages` (not a JSON blob — see storage policy §4). Claude-only; Cursor NULL. |
+| Token usage (extras) | `message.usage.{server_tool_use, service_tier, cache_creation(1h/5m), inference_geo, iterations[], speed}` | DROP — not core cost accounting (promote later if wanted) |
 | | `requestId`, `message.diagnostics.*` | DROP (operational; not token accounting) |
 
 **`user`** (909 recs):
@@ -145,6 +146,14 @@ Worked examples:
 - `message_id` **means** "stable identity of this message within `(harness, session_id)`," and is uniformly **`{session_id}#{ordinal}`** for *all* harnesses (deterministic, not random, not a hash). Claude's native `uuid` is not the identity — it's kept in `source_uuid` (provenance only).
 - **model is split by grain, and we never fake the grain we don't have.** Two distinct columns, each with one meaning: `messages.model` = "model that produced this *message*" (Claude has it; Cursor NULL); `sessions.models` = "model(s) attributed to this *conversation*" (Cursor has it from the side-DB; Claude NULL — it's queryable from messages). Cursor genuinely lacks per-message model and Claude isn't rolled up to the session, so each harness populates exactly the grain it actually has. No inheritance, no fabrication.
 
+### Storage policy: typed columns vs JSON (DuckDB)
+
+DuckDB queries JSON well (`->`, `->>`, `json_extract`), **but stores it as text (parsed per access) and has no JSON path indexing** — it's a columnar engine that leans on full-scan + zonemaps, not indexes. So:
+
+- **First-class metrics → typed columns.** Anything we filter/aggregate (token counts) gets a real typed column (columnar, compressed, zonemapped, self-documenting). Token usage is therefore four `BIGINT` columns on `messages`, not a `usage` JSON blob. The non-cost remainder of `message.usage` (`service_tier`, `speed`, `inference_geo`, `server_tool_use`, `iterations[]`, ephemeral 1h/5m split) is **dropped** (promote later if wanted).
+- **Small sets → native `LIST`.** `sessions.models` is `VARCHAR[]` (queryable via `list_contains`/`unnest`), not JSON.
+- **Irreducibly heterogeneous fidelity payloads → `JSON`.** Only `tool_calls.tool_input` (shape varies per tool; stored whole; never aggregated on internal keys) stays JSON.
+
 ### Entity relationships
 
 ```mermaid
@@ -161,7 +170,7 @@ erDiagram
         text parent_session_id FK
         bool is_subagent
         text agent_id
-        json models "conversation-grain (cursor)"
+        list models "model set, LIST (cursor)"
         timestamp started_at
     }
     messages {
@@ -173,7 +182,8 @@ erDiagram
         text role
         text text
         text model "message-grain (claude)"
-        json usage "tokens (claude)"
+        bigint input_tokens "typed tokens (claude)"
+        bigint output_tokens
         text source_uuid "native id, provenance"
     }
     tool_calls {
@@ -220,7 +230,7 @@ CREATE TABLE sessions (
     agent_type         TEXT,                      -- claude: agentType/attributionAgent; cursor: Task.subagent_type
     spawning_tool_use_id TEXT,                    -- claude: meta.json toolUseId; cursor: NULL (structural only)
     agent_name         TEXT,                      -- claude agent-name
-    models             JSON,                      -- conversation-grained model(s). cursor: distinct set from ai_code_hashes (1–3 observed); claude: NULL (per-message, see messages.model)
+    models             VARCHAR[],                 -- DuckDB LIST (native, not JSON). conversation-grained model set. cursor: distinct from ai_code_hashes (1–3 observed); claude: NULL (per-message, see messages.model)
     title              TEXT,                      -- claude ai/custom title; cursor NULL (enrich)
     harness_version    TEXT,                      -- claude version; cursor NULL
     started_at         TIMESTAMP,                 -- claude min(ts); cursor NULL/mtime
@@ -240,7 +250,11 @@ CREATE TABLE messages (
     text        TEXT,               -- the turn's text, stored whole (thinking deliberately NOT captured — see §5 design note)
     model       TEXT,               -- model that produced THIS MESSAGE. claude: message.model; cursor: NULL (model lives at session grain — see sessions.models)
     ts          TIMESTAMP,          -- wall-clock time of this message. claude: timestamp; cursor: NULL (no per-message time on disk)
-    usage       JSON,               -- token usage subtree, stored whole. claude: message.usage.*; cursor: NULL
+    -- token usage: TYPED columns (not a JSON blob), so they aggregate first-class. claude only; cursor NULL.
+    input_tokens          BIGINT,   -- message.usage.input_tokens
+    output_tokens         BIGINT,   -- message.usage.output_tokens
+    cache_creation_tokens BIGINT,   -- message.usage.cache_creation_input_tokens
+    cache_read_tokens     BIGINT,   -- message.usage.cache_read_input_tokens
     source_uuid TEXT,               -- provenance only: harness-native record id if any (claude uuid; cursor NULL). NOT a join key.
     PRIMARY KEY (harness, session_id, message_id)
 );
@@ -317,7 +331,7 @@ No `_uid`/`_uuid` names: identity is a deterministic surrogate, not a wire-forma
 - **`thinking` — DROP** (by design; see §5 note). Separable → dropped for Claude; Cursor has none.
 - **`plan_documents` table — DROP.** No harness emits plan-document records; `TodoWrite` lists are already captured in `tool_calls.tool_input`. Schema is now five tables.
 - **Within-turn interleaving — RESOLVED, no loss.** Verified 0/5,646 tool-bearing turns have text after a tool; the turn contract makes concatenated-text + block-indexed tools lossless. Ingest asserts this and fails loudly if a future harness violates it.
-- **Token usage — KEEP.** `messages.usage JSON` (whole `message.usage.*` subtree, untruncated). Claude-only; Cursor NULL. (`requestId`/`diagnostics` still dropped — operational, not token accounting.)
+- **Token usage — KEEP, as typed columns.** Four `BIGINT` columns on `messages` (`input_tokens`, `output_tokens`, `cache_creation_tokens`, `cache_read_tokens`), not a JSON blob — DuckDB has no JSON indexing and these are first-class aggregation metrics (storage policy §4). Claude-only; Cursor NULL. Non-cost `usage` extras dropped.
 - **`ai-code-tracking.db` scope — ACCEPTED as recommended.** KEEP `model` (→ `sessions.models`) + use `ai_code_hashes.timestamp` to refine session times; DROP `scored_commits`, `ai_deleted_files`, `tracked_file_content` (roadmap v1 exclusions); `conversation_summaries` empty → no Cursor `title` yet (enrich-when-available).
 - **Model granularity — split by grain, no faking.** Add `sessions.models` (conversation grain, Cursor-populated) and keep `messages.model` (message grain, Claude-populated); each harness fills only the grain it actually has, the other is honestly NULL. (See §4 contract.)
 - **Non-content Claude records — DROP** (`file-history-snapshot`, `attachment`, `system`, `queue-operation`, `mode`, `permission-mode`).
