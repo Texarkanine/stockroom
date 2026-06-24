@@ -40,7 +40,7 @@ A SQLite DB Cursor writes to track AI-authored code. Tables (row counts from the
 - **Claude Code is self-describing.** Every content record carries `uuid`, `parentUuid` (threading), `sessionId`, `timestamp`, `message.model`, `message.usage.*`, `cwd`, `gitBranch`, `version`, plus subagent identity (`agentId`, `isSidechain`) and explicit tool-call ids.
 - **Cursor's transcript is content-faithful but metadata-sparse.** The message stream's *only* top-level keys are `role` and `message` (plus a `turn_ended` marker): full text and full tool inputs are present, but the stream carries **no ids, parent pointers, timestamps, model, or token usage**. That metadata lives in `ai-code-tracking.db` (§1a), recoverable at **conversation** grain (model for ~86% of messages; timestamps partially). Per-message identity/ordering is still **synthesized** from `(conversation-id-from-path, line-ordinal)`.
 
-This asymmetry is the central schema design force: the shared, harness-labeled tables treat Claude's *per-message* columns (uuid, parent, per-message model, time) as **synthesized or conversation-grained** for Cursor. The "stable message-identity contract" the brief demands is, concretely, *mint deterministic surrogate ids for Cursor, adopt native uuids for Claude.* The **"model-per-chain" key is genuinely asymmetric**: Claude has true per-message model; Cursor has model(s) **per conversation** (side-DB), not attributable to an individual message.
+This asymmetry is the central schema design force. The response is **not** to let columns mean different things per harness, but to mint **uniform deterministic identities** (`message_id = {session_id}#{ordinal}`) for *both* harnesses and demote each harness's native ids to clearly-labeled `source_*` provenance columns (§5). The one place uniformity is genuinely strained is **`model`**: Claude has a true per-message model; Cursor has model(s) only **per conversation** (side-DB), not attributable to an individual message — called out explicitly in Q5 rather than hidden behind a column comment.
 
 ### Subagent ↔ parent linkage is also asymmetric
 
@@ -67,13 +67,13 @@ Legend: **KEEP** = goes in the locked schema · **DERIVE** = synthesized (not li
 | `message.content[tool_use].name` | KEEP | `tool_calls.tool_name` |
 | `message.content[tool_use].input` (+ all `…input.*` leaves: `command`, `path`, `pattern`, `glob`, `old_string`/`new_string`, `contents`, `todos[]`, `questions[]`, `prompt`, `subagent_type`, `resume`, `url`, `query`, `target_directories[]`, … — full list in evidence) | KEEP (stored **whole** as JSON, untruncated, **inputs only**) | `tool_calls.tool_input` |
 | `message.content[tool_use].type` (`"tool_use"`) | DROP (discriminator) | — |
-| `message.content[tool_use].input.todos[]` (TodoWrite) | KEEP — candidate `plan_documents` source (see Q3) | `plan_documents`? |
-| *(no message id)* | DERIVE | `messages.message_id` (synthesized) |
-| *(no parent)* | DERIVE | `messages.parent_id` = prior line |
-| *(no ordinal)* | DERIVE | `messages.ordinal` = line index |
+| `message.content[tool_use].input.todos[]` (TodoWrite) | KEEP (as ordinary tool input; no separate plan_documents table) | `tool_calls.tool_input` |
+| *(no message id)* | DERIVE | `messages.message_id` = `{session_id}#{ordinal}` (uniform) |
+| *(no parent)* | DERIVE | `messages.parent_id` = prior message's `message_id` (linear) |
+| *(no ordinal)* | DERIVE | `messages.ordinal` = position in conversation order (byte order) |
 | *(no model in stream)* | ENRICH (conversation-grained) | `messages.model` ← `ai-code-tracking.db.ai_code_hashes` join on `conversationId`; ~86% coverage, NULL for non-code conversations |
 | *(no timestamp in stream)* | ENRICH (partial) / mtime | `messages.ts` NULL; session `started_at`/`ended_at` from file mtime, refinable from `ai_code_hashes.timestamp` for code-producing convs |
-| *(no tool_use id)* | DERIVE | `tool_calls.tool_use_id` (synthesized) |
+| *(no tool_use id)* | DROP | native id absent; `tool_calls` identity is `(message_id, ordinal)`; `source_tool_use_id` NULL |
 
 **`role:turn_ended`** — `{type:"turn_ended", status, error}`. Turn boundary / abort marker. Disposition: **DROP** as content; optionally surface `error`/`status` onto the preceding assistant message if we want abort visibility (open question, low priority).
 
@@ -91,8 +91,9 @@ Cursor has **no `tool_result` blocks at all** — the harness itself stores inpu
 | Context | `cwd`, `gitBranch`, `version`, `entrypoint`, `userType` | KEEP `cwd`,`gitBranch`,`version` → sessions; DROP `entrypoint`,`userType` (low value) |
 | Time | `timestamp` | KEEP → `messages.ts` |
 | Content | `message.content[text].text` | KEEP → text |
-| | `message.content[thinking].thinking` + `.signature` | KEEP `thinking`; **DROP `signature`** (opaque crypto blob) |
-| | `message.content[tool_use].{id,name,input,caller.type}` | KEEP → `tool_calls` (inputs only) |
+| | `message.content[thinking].thinking` + `.signature` | **DROP both** — thinking is deliberately not captured (separable → dropped; see §5 design note) |
+| | `message.content[tool_use].{id,name,input}` | KEEP → `tool_calls` (inputs only); `id` → `source_tool_use_id` (provenance) |
+| | `message.content[tool_use].caller.type` | **DROP** — only `'direct'` ever observed (407/407); no signal |
 | Model | `message.model` | KEEP → `messages.model` (the "model-per-chain" key) |
 | Message meta | `message.id`, `message.type`, `message.role` | KEEP `role`; DROP `message.id` (use `uuid`), `message.type` |
 | Stop info | `message.stop_reason`, `stop_details`, `stop_sequence` | DROP (not needed for reconstruction/search) |
@@ -106,7 +107,7 @@ Cursor has **no `tool_result` blocks at all** — the harness itself stores inpu
 | `message.content` (string) **or** `message.content[text].text` | KEEP → text (both shapes occur) |
 | `message.content[tool_result].*` (`content`, `is_error`, `tool_use_id`, nested text/tool_reference) | **DROP** — tool **outputs** (inputs-only invariant) |
 | `toolUseResult.*` (huge subtree: `stdout`, `stderr`, `file.*`, `structuredPatch[]`, `results[]`, `resolvedModel`, …) | **DROP** — tool **outputs** |
-| `agentId`, `isSidechain`, `isMeta` | KEEP `agentId`/`isSidechain`; `isMeta` → flag synthetic/meta user turns (KEEP small) |
+| `agentId`, `isSidechain`, `isMeta` | KEEP `agentId`/`isSidechain`; **DROP `isMeta`** (Cursor has no equivalent; not worth a non-uniform column) |
 | `cwd`, `gitBranch`, `entrypoint`, `userType`, `version` | as assistant (KEEP cwd/gitBranch/version) |
 | `promptId`, `promptSource`, `permissionMode`, `queuePriority` | DROP (operational noise) |
 | `sourceToolUseID`, `sourceToolAssistantUUID`, `origin.kind` | KEEP — links task-notification user turns back to the spawning tool_use (subagent reconstruction) |
@@ -132,7 +133,16 @@ Cursor has **no `tool_result` blocks at all** — the harness itself stores inpu
 
 ## 4. Recommended kept subset → draft schema (harness-labeled, one shared set)
 
-> Six table families per the brief: **sessions, messages, tool_calls (inputs-only), plan_documents, embeddings, _sync_state.** Every content row carries a `harness` column. DDL below is an **illustrative sketch for review**, not the locked `0001` text.
+> Five tables: **sessions, messages, tool_calls (inputs-only), embeddings, _sync_state.** (The brief named a sixth, `plan_documents`; **dropped by operator decision** — no harness emits a distinct plan-document record, and the only candidate content, `TodoWrite` lists, is already captured verbatim in `tool_calls.tool_input`.) Every content row carries a `harness` column. DDL below is an **illustrative sketch for review**, not the locked `0001` text.
+
+### The cross-harness semantic contract (governs every column)
+
+**Every column means exactly one thing, independent of harness.** Only the *extraction* may differ per harness, and extraction MUST yield that one meaning. We never say "`ordinal` is X for Cursor but Y for Claude" — that design rots the moment a 3rd/4th harness appears. If a value cannot be made to mean the same thing everywhere, it does not get a shared column (it goes to a provenance column or is dropped).
+
+Worked examples:
+- `ordinal` **means** "0-based position of this message within its session, in conversation order." Cursor and Claude both *extract* it from JSONL byte order; the meaning is identical.
+- `message_id` **means** "stable identity of this message within `(harness, session_id)`," and is uniformly **`{session_id}#{ordinal}`** for *all* harnesses (deterministic, not random, not a hash). Claude's native `uuid` is not the identity — it's kept in `source_uuid` (provenance only).
+- `model` **means** "the model that produced this message." This one is honestly asymmetric (Claude: per-message; Cursor: only conversation-grained, side-DB) — see Q5; it is the one place uniformity is genuinely strained, called out explicitly rather than papered over.
 
 ### Entity relationships
 
@@ -155,22 +165,22 @@ erDiagram
     messages {
         text harness PK
         text session_id PK
-        text message_id PK
-        text parent_id "threading"
-        int ordinal "message # within session"
+        text message_id PK "= session_id#ordinal (uniform)"
+        text parent_id "message_id of parent"
+        int ordinal "position in session"
         text role
         text text
-        text thinking "claude-only"
         text model
-        bool is_meta
+        text source_uuid "native id, provenance"
     }
     tool_calls {
         text harness PK
         text session_id PK
         text message_id PK
-        int ordinal PK "block # within message"
+        int ordinal PK "block index within turn"
         text tool_name
         json tool_input "inputs only"
+        text source_tool_use_id "native id, provenance"
     }
     embeddings {
         text owner_table
@@ -183,17 +193,14 @@ erDiagram
         text source_root PK
         timestamp last_mtime
     }
-    plan_documents {
-        text TBD "see Q3"
-    }
 ```
 
 ### How reconstruction works (ordinals)
 
-- **Two ordinals, two scopes.** `messages.ordinal` is the message's position **within the session** (source line index, monotonic — gaps are allowed where non-content records are dropped). `tool_calls.ordinal` is the tool_use block's position **within its parent message's content array**.
-- **Tool calls are children of a message, not peer rows.** One assistant turn commonly emits several tool calls (observed 2–6 content blocks per Cursor message). Reconstruct a session with `messages ORDER BY ordinal`, attaching `tool_calls WHERE message_id = … ORDER BY ordinal` to each assistant message.
-- **Threading:** `parent_id` is the precise parent link (Claude's `parentUuid` DAG, incl. sidechains); for Cursor it's the prior message (linear). `ordinal` is the linear reading order; `parent_id` is the logical thread.
-- **Interleaving caveat (see Q8):** within one turn, text and tool_use blocks can interleave. We preserve tool order and message order, but concatenate text into `messages.text` — so the exact text-vs-tool position *inside a single turn* is not separately recorded.
+- **`messages.ordinal`** — uniform meaning: position of the message within its session, in conversation order (0-based, contiguous over kept content messages). This is the session-reconstruction key: `messages ORDER BY ordinal`.
+- **`tool_calls.ordinal`** — uniform meaning: the tool_use block's index within its emitting turn's content array. **Tool calls are children of a message, not peer rows**: one assistant turn commonly emits several (observed 2–6 content blocks/turn). Attach them with `tool_calls WHERE message_id = … ORDER BY ordinal`.
+- **Threading:** `parent_id` = the `message_id` of the parent message (uniform). Claude extracts it by resolving `parentUuid`→parent's ordinal at ingest (handles the sidechain DAG); Cursor's chain is linear so it's the previous message. `ordinal` is reading order; `parent_id` is the logical thread.
+- **Interleaving is preserved, not lost.** Empirically, **text never follows a tool call within a turn (0 / 5,646 tool-bearing turns across both harnesses)**: every turn is `[thinking?, text?, tool_use*]`, then yields. So a turn's text always precedes its tools, and concatenated-text + block-indexed tool children is **lossless by construction**. Guard: ingest asserts no record has text-after-tool; if a future harness violates the turn contract, it fails loudly and we revisit (see §6 Decided).
 
 ```sql
 -- one row per conversation; subagents are their own session rows linked to a parent
@@ -217,47 +224,46 @@ CREATE TABLE sessions (
     PRIMARY KEY (harness, session_id)
 );
 
--- the message-identity contract + reconstruction keys
+-- the message-identity contract + reconstruction keys.
+-- column meanings are harness-independent; per-harness extraction notes follow each.
 CREATE TABLE messages (
-    harness        TEXT    NOT NULL,
-    session_id     TEXT    NOT NULL,
-    message_id     TEXT    NOT NULL,   -- opaque id. claude: native uuid; cursor: synthesized '{session_id}:{ordinal}'
-    parent_id      TEXT,               -- claude: parentUuid; cursor: prior message_id (linear chain)
-    ordinal        INTEGER NOT NULL,   -- line index in file: ordering key (authoritative for cursor)
-    role           TEXT    NOT NULL,   -- 'user' | 'assistant'
-    text           TEXT,               -- concatenated text content (stored whole)
-    thinking       TEXT,               -- claude thinking blocks; cursor: folded reasoning text
-    model          TEXT,               -- claude message.model; cursor NULL/enrich  (model-per-chain)
-    ts             TIMESTAMP,          -- claude timestamp; cursor NULL/enrich
-    is_meta        BOOLEAN DEFAULT FALSE,  -- claude isMeta: synthetic/injected user turn (command caveat, skill ctx) — not real human input
+    harness     TEXT    NOT NULL,
+    session_id  TEXT    NOT NULL,
+    message_id  TEXT    NOT NULL,   -- identity within (harness, session). UNIFORM format '{session_id}#{ordinal}', deterministic.
+    parent_id   TEXT,               -- message_id of the parent (claude: resolve parentUuid→ordinal; cursor: previous message). NULL for roots.
+    ordinal     INTEGER NOT NULL,   -- position in session, conversation order, 0-based. Extracted from JSONL byte order for both.
+    role        TEXT    NOT NULL,   -- 'user' | 'assistant'
+    text        TEXT,               -- the turn's text, stored whole (thinking deliberately NOT captured — see §5 design note)
+    model       TEXT,               -- model that produced this message. claude: message.model; cursor: conversation-grained enrich (Q5)
+    ts          TIMESTAMP,          -- wall-clock time of this message. claude: timestamp; cursor: NULL (no per-message time on disk)
+    source_uuid TEXT,               -- provenance only: harness-native record id if any (claude uuid; cursor NULL). NOT a join key.
     PRIMARY KEY (harness, session_id, message_id)
 );
 
 -- tool INPUTS only — never outputs
 CREATE TABLE tool_calls (
-    harness      TEXT NOT NULL,
-    session_id   TEXT NOT NULL,
-    message_id   TEXT NOT NULL,        -- FK → messages.message_id (the assistant turn that emitted it)
-    ordinal      INTEGER NOT NULL,     -- order within the message
-    tool_use_id  TEXT,                 -- claude: tool_use.id ('toolu_…' token); cursor: synthesized
-    tool_name    TEXT NOT NULL,
-    tool_input   JSON NOT NULL,        -- stored whole, untruncated
-    -- caller_type TEXT,               -- claude caller.type: only 'direct' ever observed (407/407) — DROP candidate, see Q9
+    harness           TEXT NOT NULL,
+    session_id        TEXT NOT NULL,
+    message_id        TEXT NOT NULL,   -- FK → messages.message_id (the turn that emitted it)
+    ordinal           INTEGER NOT NULL,-- block index of this tool_use within its turn's content array (uniform)
+    tool_name         TEXT NOT NULL,
+    tool_input        JSON NOT NULL,   -- stored whole, untruncated
+    source_tool_use_id TEXT,           -- provenance: claude 'toolu_…' id (used to resolve subagent-spawn linkage); cursor NULL
     PRIMARY KEY (harness, session_id, message_id, ordinal)
 );
 
 -- forward-declared; populated in Phase 2 (embeddings + search)
 CREATE TABLE embeddings (
     harness     TEXT NOT NULL,
-    owner_table TEXT NOT NULL,         -- 'messages' | 'tool_calls' | 'plan_documents'
-    owner_id    TEXT NOT NULL,         -- references the owner row's id
+    owner_table TEXT NOT NULL,         -- 'messages' | 'tool_calls'
+    owner_id    TEXT NOT NULL,         -- references the owner row's message_id
     chunk_index INTEGER NOT NULL,
     embed_model TEXT NOT NULL,
     vector      FLOAT[384],            -- VSS/HNSW in Phase 2
     PRIMARY KEY (harness, owner_table, owner_id, chunk_index)
 );
 
--- incremental ingest watermark (per source root)
+-- incremental ingest watermark + non-append mutation detector (per source root)
 CREATE TABLE _sync_state (
     harness     TEXT NOT NULL,
     source_root TEXT NOT NULL,
@@ -266,44 +272,56 @@ CREATE TABLE _sync_state (
     updated_at  TIMESTAMP NOT NULL,
     PRIMARY KEY (harness, source_root)
 );
-
--- plan_documents: SEE OPEN QUESTION Q3 — populating source is the weakest-grounded part.
 ```
 
 ## 5. The message-identity contract (the crux)
 
-### Identifier naming convention
+### Design note: thinking is dropped on purpose
 
-Every identifier column is named `*_id`, typed `TEXT`, and treated as an **opaque token of unspecified format** — never `_uid` or `_uuid`. The harnesses' ids are heterogeneous and only *some* are RFC-4122 UUIDs, so a `uuid`-flavored name would be a lie for most of them:
+We **do not capture model "thinking"/reasoning** as a stored field. Rule: *if a harness lets us separate thinking from response, we separate it and drop it; if it doesn't, we accept whatever is folded into `text`.* Claude emits explicit `thinking` blocks → we drop them (keep only `text`). Cursor has no separate thinking block → its `text` is its single channel and we keep it as-is. There is no `thinking` column.
 
-| Column | Cursor | Claude | UUID? |
-|---|---|---|---|
-| `session_id` | conversation UUID (dir/file stem) | `sessionId` UUID | both |
-| `message_id` | synthesized `{session_id}:{ordinal}` | native `uuid` | Claude only |
-| `parent_id` | prior `message_id` | `parentUuid` | Claude only |
-| `tool_use_id` | synthesized `{message_id}:{block-idx}` | `toolu_…` token | neither |
-| `agent_id` | subagent conversation UUID | `agentId` (16-hex) | Cursor only |
-| `spawning_tool_use_id` | — (structural) | `toolu_…` token | neither |
+### Identifier naming + format
 
-The format/provenance is documented per column; the suffix promises only *uniqueness within its scope*, not a wire format. (Contrast cursor-warehouse, which names the column `uuid` but stores `{session_id}:{line_idx}` — a name we deliberately reject.)
+Every identifier column is named `*_id`, typed `TEXT`. The two *identity* columns are **uniform across harnesses by construction**, so the name carries a real, harness-independent promise:
 
-### Derivation
+| Column | Uniform value | Meaning |
+|---|---|---|
+| `session_id` | the conversation/session UUID (path-derived for Cursor, `sessionId` for Claude) | identity of a session |
+| `message_id` | **`{session_id}#{ordinal}`** for *all* harnesses | identity of a message within a session |
+| `parent_id` | a `message_id` (or NULL) | the parent message in the thread |
+| `agent_id` | harness subagent id | identity of a subagent |
+| `source_uuid` (messages) | native record id **or NULL** | provenance only — never joined on |
+| `source_tool_use_id` (tool_calls) | native `toolu_…` id **or NULL** | provenance + subagent-spawn resolution |
 
-- **Claude:** `message_id = uuid` (native, stable); `parent_id = parentUuid`; `ordinal` = line index (tiebreaker).
-- **Cursor:** no native ids. Mint `message_id` deterministically from `(harness, session_id, ordinal[, role])` so re-ingest of an unchanged file reproduces identical ids (idempotency). `parent_id` = previous content message's `message_id` (Cursor is a linear chain; no branching observed). `tool_use_id` similarly synthesized from `(message_id, block-index)`.
-- **Reconstruction keys satisfied:** conversation id = `(harness, session_id)`; parent/child = `parent_id`; ordering = `ordinal`; subagent↔parent = `sessions.parent_session_id` (+ `spawning_tool_use_id` where available); model-per-chain = `messages.model`.
+No `_uid`/`_uuid` names: identity is a deterministic surrogate, not a wire-format UUID. Native harness ids live only in the clearly-labeled `source_*` provenance columns. (Contrast cursor-warehouse, which names its column `uuid` but stores `{session_id}:{line_idx}` — the misnomer we reject.)
 
-## 6. Open questions for operator review
+### Derivation + stability (why re-ingest is idempotent)
 
-1. **Token usage / cost (Claude `message.usage.*`)** — recommend **DROP** (v1 explicitly excludes token/cost). It is rich and *only* Claude has it. Confirm dropping, or keep a minimal `usage` stash now to avoid a later migration?
-2. **`thinking` content (Claude-only).** Claude has separate `thinking` blocks (553) distinct from `text` (618); **Cursor has no `thinking` block type** — only `text` + `tool_use`. So a `thinking` column is populated for Claude and always NULL for Cursor. Recommend **KEEP** the thinking text, **DROP** the opaque `signature` blob. Separate `thinking` column (sketch) vs. fold into `messages.text`?
-3. **`plan_documents` source** — this table is named by the brief, but **neither harness emits a distinct "plan document" record** on disk. Candidate sources: (a) `TodoWrite` todo lists (both harnesses), (b) plan-mode assistant messages / Claude `ExitPlanMode`, (c) defer it as forward-declared like `embeddings` until ingest. Need a decision on what populates it.
-4. **How much of `ai-code-tracking.db` to ingest?** The roadmap limits Cursor enrichment to "model/labeling fields." Concretely I recommend: **KEEP `model`** (conversation-grained, ~86% coverage) and use `ai_code_hashes.timestamp` to refine session times; **DROP** `scored_commits`, `ai_deleted_files`, `tracked_file_content` (these are the roadmap's explicit v1 exclusions: AI attribution, source-file purge, file-content capture). `conversation_summaries` (title/tldr/mode) is **empty** in your DB — so no Cursor `title` for now; treat the column as enrich-when-available. Confirm this boundary.
-5. **Model granularity mismatch** — Claude gives true per-message model; Cursor gives model **per conversation** (and only for code-producing ones). Is conversation-grained `messages.model` acceptable for Cursor (every message inherits the conversation's model), or do you want a `model` only on `sessions` for Cursor and per-message only for Claude?
-6. **Cursor CLI `store.db`** — a separate SQLite format under `~/.cursor/chats/`. Out of scope for this transcript-based enumeration. Confirm it's a milestone-3 ingest concern (or out of v1)?
+`message_id` is a **pure function** `f(session_id, ordinal)` for *both* harnesses, and `ordinal` is a pure function of the record's position in an **append-only** JSONL log. Therefore re-ingesting the same bytes always reproduces identical ids — no randomness, no content hashing.
+
+- **Claude:** `ordinal` from record order; `parent_id` by resolving native `parentUuid`→the parent's ordinal at ingest (dangling/dropped parents → nearest kept ancestor or NULL); native `uuid` retained in `source_uuid` for traceability and parent resolution.
+- **Cursor:** `ordinal` from record order; `parent_id` = previous content message (linear chain; no branching observed); `source_uuid` = NULL (none on disk).
+- **Why not content-hash ids?** They collide for identical messages (`"ok"`, `"yes"`) and change identity whenever content changes — strictly worse than position-derived ids under an append-only source.
+- **The one failure mode** is the source log being *rewritten* (lines reordered/removed), which would shift ordinals. We **detect** it rather than silently re-id: `_sync_state` tracks each file's size+mtime (and may keep a prefix hash); a shrink/rewrite raises a flag for the operator instead of corrupting identities. (Optional hardening: a per-row content `digest` tripwire.)
+- **Reconstruction keys satisfied:** conversation = `(harness, session_id)`; ordering = `ordinal`; parent/child = `parent_id`; subagent↔parent = `sessions.parent_session_id` (+ `spawning_tool_use_id`→`tool_calls.source_tool_use_id` where available).
+
+## 6. Decisions & open questions
+
+### Decided (operator, this round)
+
+- **`is_meta` — DROP.** No Cursor equivalent; not worth a non-uniform column.
+- **`caller_type` — DROP.** Only `'direct'` observed (407/407); no signal.
+- **`thinking` — DROP** (by design; see §5 note). Separable → dropped for Claude; Cursor has none.
+- **`plan_documents` table — DROP.** No harness emits plan-document records; `TodoWrite` lists are already captured in `tool_calls.tool_input`. Schema is now five tables.
+- **Within-turn interleaving (was Q8) — RESOLVED, no loss.** Verified 0/5,646 tool-bearing turns have text after a tool; the turn contract makes concatenated-text + block-indexed tools lossless. Ingest adds an assertion that fails loudly if a future harness violates it.
+
+### Still open
+
+1. **Token usage / cost (Claude `message.usage.*`)** — recommend **DROP** (v1 explicitly excludes token/cost). Rich, and *only* Claude has it. Confirm dropping, or keep a minimal `usage` stash now to avoid a later migration?
+4. **How much of `ai-code-tracking.db` to ingest?** The roadmap limits Cursor enrichment to "model/labeling fields." Recommend: **KEEP `model`** (conversation-grained, ~86% coverage) and use `ai_code_hashes.timestamp` to refine session times; **DROP** `scored_commits`, `ai_deleted_files`, `tracked_file_content` (the roadmap's explicit v1 exclusions). `conversation_summaries` is **empty** in your DB → no Cursor `title` for now; treat as enrich-when-available. Confirm this boundary.
+5. **Model granularity mismatch** (the one acknowledged non-uniformity) — Claude gives true per-message model; Cursor gives model **per conversation** (code-producing convs only). Options: (a) `messages.model` for both, Cursor inheriting the conversation's model; (b) `messages.model` Claude-only + a `sessions.model` for Cursor; (c) both. Which?
+6. **Cursor CLI `store.db`** (`~/.cursor/chats/`, separate SQLite) — confirm it's a milestone-3 ingest concern (or out of v1)?
 7. **Non-content Claude records** (`file-history-snapshot`, `attachment`, `system`, `queue-operation`, `mode`, `permission-mode`) — recommend **DROP** entirely. Confirm none are wanted.
-8. **Within-turn text/tool interleaving** — we concatenate a turn's text into `messages.text` and keep tool_use as ordered child rows, so tool order + message order survive but the exact text-vs-tool position *inside one turn* is lost. Accept this (search-faithful, replay-lossy), or model every content block as a row (a `content_blocks` table) for byte-faithful replay?
-9. **`caller_type`** — Claude's `caller.type` is `'direct'` for all 407 calls in your corpus. Recommend **DROP** unless you know of meaningful non-`direct` values. Confirm.
 
 ## 7. Remaining work before lock
 
