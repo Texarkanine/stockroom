@@ -103,6 +103,17 @@ Milestone 1 of the `p1-data-backbone` L4 project: **Schema field enumeration + l
 * Insights
     - The only semantic debris was a parametrized test argument that drifted from its body — caught precisely because QA reads intent, not just green checks.
 
+## 2026-06-24 - REFLECT - COMPLETE
+
+* Work completed
+    - Reviewed the full plan→creative→preflight→build→QA lifecycle; wrote `reflection/reflection-p1-data-backbone-m1-schema-ddl.md`.
+    - Reconciled persistent files: no changes needed (systemPatterns schema principles + techContext schema pointer already accurate; productContext unaffected).
+* Decisions made
+    - Milestone 1 is complete and verified; reflection is terminal for this sub-run. Next is operator-initiated `/niko` to advance the L4 project.
+* Insights
+    - Technical: DuckDB `duckdb_columns()` surfaces internal catalog tables in `main` — introspection must filter `internal = false`; a golden snapshot generated via the test's own introspection function is a self-consistent, high-leverage DDL lock; JSON array length needs `json_array_length`, not `len()`.
+    - Process: a planning-time POC against the real engine version is the highest-ROI step for a data-contract task; parametrized tests are a quiet home for unused-argument debris — verify every param is consumed.
+
 ## 2026-06-24 - PLAN/CREATIVE (correction) - Cursor side-store enumerated
 
 * Work completed

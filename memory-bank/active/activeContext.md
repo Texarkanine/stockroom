@@ -6,7 +6,7 @@ Schema field enumeration + locked DDL (milestone 1 of `p1-data-backbone`, Level 
 
 ## Phase
 
-BUILD - COMPLETE. All 11 implementation steps executed test-first; `make ci` green. Ready for QA (runs automatically per the L3 workflow).
+REFLECT - COMPLETE. Build + QA passed; reflection written to `reflection/reflection-p1-data-backbone-m1-schema-ddl.md`. Reflection is terminal — awaiting operator to continue the L4 project.
 
 ## What Was Done
 
@@ -38,4 +38,4 @@ BUILD - COMPLETE. All 11 implementation steps executed test-first; `make ci` gre
 
 ## Next Step
 
-- 🐱 QA (`niko-qa`) — semantic post-implementation review (runs automatically; no operator gate on Build→QA).
+- 🧑‍💻 Run `/niko` to continue to the next milestone of the `p1-data-backbone` L4 project (milestone 1 is complete through reflect; archive of this sub-run happens within the next `/niko` flow / capstone).
