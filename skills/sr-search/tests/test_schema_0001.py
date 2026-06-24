@@ -34,8 +34,7 @@ EXPECTED_TABLES = {
 
 def _table_names(con: duckdb.DuckDBPyConnection) -> set[str]:
     rows = con.execute(
-        "SELECT table_name FROM information_schema.tables "
-        "WHERE table_schema = 'main'"
+        "SELECT table_name FROM information_schema.tables WHERE table_schema = 'main'"
     ).fetchall()
     return {r[0] for r in rows}
 
@@ -206,7 +205,9 @@ def test_not_null_columns_reject_null(
 # --- Reconstruction, threading, subagent linkage ----------------------------
 
 
-def _seed_conversation(con: duckdb.DuckDBPyConnection, session_id: str = "sess-A") -> None:
+def _seed_conversation(
+    con: duckdb.DuckDBPyConnection, session_id: str = "sess-A"
+) -> None:
     """Populate a faithful mini-conversation: user -> assistant(2 tools) -> user.
 
     Mirrors the empirically-observed turn shape (text precedes tools within a
@@ -430,7 +431,9 @@ def test_token_columns_are_typed_and_aggregatable(
     schema_con: duckdb.DuckDBPyConnection,
 ) -> None:
     """Token columns are typed BIGINT (SUM-aggregatable); Cursor rows are NULL."""
-    _insert(schema_con, "sessions", _valid_session(harness="claude", session_id="cla-1"))
+    _insert(
+        schema_con, "sessions", _valid_session(harness="claude", session_id="cla-1")
+    )
     _insert(
         schema_con,
         "messages",
@@ -462,7 +465,9 @@ def test_token_columns_are_typed_and_aggregatable(
         ),
     )
     # Cursor message carries no token grain.
-    _insert(schema_con, "sessions", _valid_session(harness="cursor", session_id="cur-1"))
+    _insert(
+        schema_con, "sessions", _valid_session(harness="cursor", session_id="cur-1")
+    )
     _insert(
         schema_con,
         "messages",
@@ -813,9 +818,7 @@ def test_schema_matches_locked_snapshot(
     regenerate ``tests/fixtures/schema/0001_snapshot.json``; an accidental one
     fails here, and hands milestone 2 a ready-made regression guard.
     """
-    assert SNAPSHOT_PATH.is_file(), (
-        f"golden schema snapshot missing: {SNAPSHOT_PATH}"
-    )
+    assert SNAPSHOT_PATH.is_file(), f"golden schema snapshot missing: {SNAPSHOT_PATH}"
     expected = json.loads(SNAPSHOT_PATH.read_text(encoding="utf-8"))
     actual = _introspect_schema(schema_con)
     assert actual == expected

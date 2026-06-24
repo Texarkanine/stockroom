@@ -6,15 +6,36 @@ Schema field enumeration + locked DDL (milestone 1 of `p1-data-backbone`, Level 
 
 ## Phase
 
-PLAN - COMPLETE (Creative resolved at high confidence). Plan written to `tasks.md`; ready for Preflight.
+BUILD - COMPLETE. All 11 implementation steps executed test-first; `make ci` green. Ready for QA (runs automatically per the L3 workflow).
 
 ## What Was Done
 
-- Creative phase resolved across operator-review rounds: all open questions answered, schema locked to **five tables**, doc status REVIEWED.
-- Canonized three durable principles in `systemPatterns.md` (one-meaning-per-field; typed-columns-not-JSON; thinking-not-captured).
-- Wrote the L3 implementation plan to `memory-bank/active/tasks.md`: component analysis, TDD test plan, ordered implementation steps, challenges, and a Technology-Validation POC.
-- **Technology Validation POC passed:** ran the representative DDL on DuckDB 1.5.4 in-memory — `VARCHAR[]`, `JSON`, `FLOAT[384]`, composite PKs parse; reconstruction / `json_extract` / `list_contains` / token `SUM` / subagent link all work; composite PK enforced. No new dependency (duckdb already locked).
+- Authored the locked five-table schema as `skills/sr-search/src/stockroom/migrations/0001_initial_schema.sql` (+ `migrations/__init__.py`), test-first, matching creative §4.
+- Added the `schema_con` + `schema_sql_path` fixtures to `tests/conftest.py` (read + execute the DDL on in-memory DuckDB; no migration runner — that is m2; located via `stockroom.__file__` so the file's packaged location is pinned).
+- Wrote `tests/test_schema_0001.py` (46 tests): structural; composite-PK uniqueness; NOT NULL; reconstruction/threading/subagent; model-grain no-faking; typed-token aggregation; JSON path extraction; native LIST; no-truncation round-trip; fixed-size FLOAT[384]; harness-neutral (no CHECK); pathological cases; **golden locked-schema snapshot** vs committed `tests/fixtures/schema/0001_snapshot.json`.
+- Curated durable native-format transcript fixtures under `tests/fixtures/transcripts/{cursor,claude}/` (+ README) — scrubbed, real-shaped, with crafted pathological cases (turn_ended/error, many-tool turn, empty text, multi-model, huge tool_input, sidechain+tool_result-to-drop, subagent meta.json linkage). Durable artifacts for m3; not parsed by m1 tests.
+- Added a `techContext.md` pointer to the migration SQL + snapshot + fixtures (accrete-a-pointer cut-gate strategy).
+
+## Files Created / Modified
+
+- NEW `skills/sr-search/src/stockroom/migrations/0001_initial_schema.sql`
+- NEW `skills/sr-search/src/stockroom/migrations/__init__.py`
+- NEW `skills/sr-search/tests/test_schema_0001.py`
+- NEW `skills/sr-search/tests/fixtures/schema/0001_snapshot.json`
+- NEW `skills/sr-search/tests/fixtures/transcripts/**` (12 files: README + cursor/claude jsonl + claude subagent meta.json)
+- MOD `skills/sr-search/tests/conftest.py` (schema fixtures)
+- MOD `memory-bank/techContext.md` (schema pointer)
+
+## Build-Time Decisions (not in creative)
+
+- Step 2 deferred non-PK NOT NULL declarations until step 3's test-first cycle (composite PKs give implicit NOT NULL on key columns); all required NOT NULLs landed test-first.
+- Snapshot introspection filters `duckdb_columns()` to `internal = false` so only the five product tables are captured (DuckDB exposes system catalog tables in `main`).
+- Transcript fixtures are **scrubbed/synthetic-content, real-shape** (no real bytes) to avoid committing secrets/PII while staying faithful for m3; documented in the fixtures README.
+
+## Integration / Test Results
+
+- `make ci` green: 63 passed (46 new + 17 existing); ruff lint+format clean; `uv.lock` verified; REUSE 117/117 compliant (path-based rules cover the new `.sql`, `.jsonl`, `.json`, `.meta.json`).
 
 ## Next Step
 
-- 🐱 **Preflight** — validate the plan (`niko-preflight`) before the operator-gated Build. The single product artifact is `skills/sr-search/src/stockroom/migrations/0001_initial_schema.sql`, authored test-first with the `schema_con` fixture.
+- 🐱 QA (`niko-qa`) — semantic post-implementation review (runs automatically; no operator gate on Build→QA).

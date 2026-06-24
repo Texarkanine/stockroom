@@ -1,0 +1,3 @@
+{"role":"user","message":{"content":[{"type":"text","text":"<user_query>\nrun the build\n</user_query>"}]}}
+{"role":"assistant","message":{"content":[{"type":"text","text":"Running the build now."},{"type":"tool_use","name":"Shell","input":{"command":"make build","description":"Build the project"}}]}}
+{"role":"turn_ended","status":"error","error":"aborted by user"}

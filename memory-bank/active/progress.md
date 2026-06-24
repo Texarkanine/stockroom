@@ -76,6 +76,22 @@ Milestone 1 of the `p1-data-backbone` L4 project: **Schema field enumeration + l
     - The hard design forces were cross-harness *meaning* uniformity and ID *stability* — both now have explicit, defensible answers backed by data, not assertion.
     - Next: PLAN the test-first build of `migrations/0001` (DDL) + fixtures.
 
+## 2026-06-24 - BUILD - COMPLETE
+
+* Work completed
+    - Executed all 11 implementation steps test-first. Authored the locked five-table DDL `skills/sr-search/src/stockroom/migrations/0001_initial_schema.sql` (+ `migrations/__init__.py`) and the `schema_con`/`schema_sql_path` fixtures (read+execute DDL on in-memory DuckDB; located via `stockroom.__file__`; no migration runner — that is m2).
+    - Wrote 46 schema-contract tests in `tests/test_schema_0001.py`: structure, composite-PK uniqueness, NOT NULL, reconstruction/threading/subagent linkage, model-grain no-faking, typed-token aggregation, JSON path extraction, native LIST, no-truncation round-trip, fixed-size FLOAT[384], harness-neutrality, pathological cases, and a golden locked-schema snapshot vs committed `tests/fixtures/schema/0001_snapshot.json`.
+    - Curated durable native-format transcript fixtures (`tests/fixtures/transcripts/{cursor,claude}/` + README): scrubbed real-shaped samples + crafted pathological cases. Artifacts for m3; not parsed by m1 tests.
+    - Added a `techContext.md` pointer to the migration SQL, snapshot, and fixtures.
+    - `make ci` green: 63 passed (46 new + 17 existing); ruff lint+format clean; lock verified; REUSE 117/117 compliant.
+* Decisions made
+    - Step 2 deferred non-PK NOT NULLs to step 3's test-first cycle; all required NOT NULLs landed RED→GREEN.
+    - Snapshot introspection filters `duckdb_columns()` to `internal = false` (DuckDB surfaces system catalog tables in `main`).
+    - Transcript fixtures are scrubbed/synthetic-content but real-shape — no real transcript bytes committed (secrets/PII safety), documented in the fixtures README.
+* Insights
+    - The schema supported every reconstruction/threading/grain/fidelity behavior with no DDL change beyond the planned columns + constraints — the empirical enumeration held up.
+    - The golden snapshot makes "locked DDL" literal and hands m2 a ready-made regression guard.
+
 ## 2026-06-24 - PLAN/CREATIVE (correction) - Cursor side-store enumerated
 
 * Work completed

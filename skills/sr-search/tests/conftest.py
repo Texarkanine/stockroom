@@ -43,11 +43,7 @@ def schema_sql_path() -> Path:
     milestone 2's framework will consume in place. If the file moves, this
     fixture (and every schema test) fails loudly.
     """
-    path = (
-        Path(stockroom.__file__).parent
-        / "migrations"
-        / "0001_initial_schema.sql"
-    )
+    path = Path(stockroom.__file__).parent / "migrations" / "0001_initial_schema.sql"
     assert path.is_file(), f"migration SQL missing: {path}"
     return path
 
