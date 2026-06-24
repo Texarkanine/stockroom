@@ -92,6 +92,17 @@ Milestone 1 of the `p1-data-backbone` L4 project: **Schema field enumeration + l
     - The schema supported every reconstruction/threading/grain/fidelity behavior with no DDL change beyond the planned columns + constraints — the empirical enumeration held up.
     - The golden snapshot makes "locked DDL" literal and hands m2 a ready-made regression guard.
 
+## 2026-06-24 - QA - PASS
+
+* Work completed
+    - Semantic review of the build against the plan (KISS/DRY/YAGNI/completeness/regression/integrity/documentation). Verified the DDL matches creative §4 column-for-column, all 11 steps + every test-plan behavior are implemented, conventions hold, and docs are updated. Wrote `memory-bank/active/.qa-validation-status`.
+    - Applied one trivial fix in `test_composite_pk_rejects_duplicate`: removed an unused `pk_cols` parametrize argument and made the second insert vary a non-PK column, so the test proves PK-only collision (matching its docstring) rather than carrying a dead param + misleading comment.
+    - Re-ran `make ci`: green — 63 passed, lint/format clean, lock verified, REUSE 117/117.
+* Decisions made
+    - PASS (clean; the single finding was trivial and fixed in-phase, no route-back).
+* Insights
+    - The only semantic debris was a parametrized test argument that drifted from its body — caught precisely because QA reads intent, not just green checks.
+
 ## 2026-06-24 - PLAN/CREATIVE (correction) - Cursor side-store enumerated
 
 * Work completed

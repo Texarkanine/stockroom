@@ -132,30 +132,31 @@ def test_all_five_tables_exist(schema_con: duckdb.DuckDBPyConnection) -> None:
 
 # --- Constraints: composite PK uniqueness -----------------------------------
 
-# (table, primary-key columns) for each of the five tables. A second insert
-# that duplicates these columns must raise a ConstraintException.
+# (table, non-PK tweak) for each of the five tables. The second insert keeps
+# the same composite PK but changes a non-PK column, so the rejection proves it
+# is the PK colliding, not a whole-row duplicate.
 _PK_CASES = [
-    ("sessions", ["harness", "session_id"]),
-    ("messages", ["harness", "session_id", "message_id"]),
-    ("tool_calls", ["harness", "session_id", "message_id", "ordinal"]),
-    ("embeddings", ["harness", "owner_table", "owner_id", "chunk_index"]),
-    ("_sync_state", ["harness", "source_root"]),
+    ("sessions", {"source_path": "/p/other.jsonl"}),
+    ("messages", {"role": "assistant"}),
+    ("tool_calls", {"tool_name": "Grep"}),
+    ("embeddings", {"embed_model": "other-model"}),
+    ("_sync_state", {"last_path": "/other"}),
 ]
 
 
-@pytest.mark.parametrize("table, pk_cols", _PK_CASES)
+@pytest.mark.parametrize("table, non_pk_tweak", _PK_CASES)
 def test_composite_pk_rejects_duplicate(
     schema_con: duckdb.DuckDBPyConnection,
     table: str,
-    pk_cols: list[str],
+    non_pk_tweak: dict,
 ) -> None:
-    """Inserting a row whose composite PK duplicates an existing row fails."""
+    """A second row sharing the composite PK is rejected, even when a non-PK
+    column differs (so it is the PK — not the whole row — that collides).
+    """
     build = _VALID_ROW_BUILDERS[table]
     _insert(schema_con, table, build())
-    # Same PK, but vary a non-PK detail where one exists, to prove it is the
-    # PK (not the whole row) that collides.
     with pytest.raises(duckdb.ConstraintException):
-        _insert(schema_con, table, build())
+        _insert(schema_con, table, build(**non_pk_tweak))
 
 
 # --- Constraints: NOT NULL --------------------------------------------------
