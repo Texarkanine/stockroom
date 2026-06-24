@@ -41,7 +41,7 @@ uv sync --inexact
 Regenerate the lock **hermetically** so ambient user config can't leak in:
 
 ```bash
-uv lock --no-config
+make lock          # or: uv lock --no-config  (from skills/sr-search/)
 ```
 
 The full rationale and the reproducible proof live in
@@ -49,20 +49,24 @@ The full rationale and the reproducible proof live in
 
 ## Development
 
-The engine's harness runs from `skills/sr-search/`:
+From the **repo root**, the [`Makefile`](Makefile) is the dev entrypoint — it handles the `skills/sr-search/` cd'ing and the `--no-config` / `--no-sync` flags:
 
 ```bash
-cd skills/sr-search
-uv sync --frozen --no-config        # set up the locked, torch-free env
-uv run --no-sync pytest             # tests
-uv run --no-sync ruff check         # lint
-uv run --no-sync ruff format        # format
+make help          # list targets
+make sync          # install from the committed lock (torch-free)
+make lock          # regenerate uv.lock hermetically
+make lock-check    # fail if the lock is stale vs pyproject.toml
+make test          # pytest
+make lint          # ruff check
+make format        # ruff format
+make reuse         # whole-tree reuse lint
+make ci            # full gate (matches CI)
 ```
 
-REUSE licensing compliance is checked from the repo root:
+The torch-safe run contract (`--no-sync` on runs; never an exact sync after torch is installed) is baked into the Makefile's run targets. For ad-hoc engine invocations:
 
 ```bash
-uv run --project skills/sr-search --no-sync reuse lint
+uv run --project skills/sr-search --no-sync --no-config python -m stockroom.<entrypoint>
 ```
 
 ## License

@@ -16,7 +16,7 @@ Memory-bank strategy: the rich `planning/` docs are authoritative during the bui
 
 ## Locked uv project, torch held out of the lock
 
-The load-bearing packaging pattern. Lock everything hermetically with `uv lock --no-config`; exclude torch via an impossible environment-marker override (`override-dependencies = ["torch; python_full_version < '3'"]`) so it never enters the lock, then provision it per-machine out of band (`uv pip install torch --no-config --index <wheel-url>`). **After torch is installed, never run an exact sync** (`uv run --no-sync`, or `--inexact` when a sync is genuinely needed) — a bare sync deletes it. Proven end-to-end in `planning/spikes/o9-torch/`; full rationale in tech-brief → "The Torch Exception".
+The load-bearing packaging pattern. Lock everything hermetically with `uv lock --no-config`; exclude torch via an impossible environment-marker override (`override-dependencies = ["torch; python_full_version < '3'"]`) so it never enters the lock, then provision it per-machine out of band (`uv pip install torch --no-config --index <wheel-url>`). **After torch is installed, never run an exact sync** (`uv run --no-sync`, or `--inexact` when a sync is genuinely needed) — a bare sync deletes it. Local dev iteration (`make sync`, `make lock`, `make test`, etc.) is via the root [`Makefile`](../Makefile). Proven end-to-end in `planning/spikes/o9-torch/`; full rationale in tech-brief → "The Torch Exception".
 
 ## No truncation at rest; truncation is a read-time feature
 
