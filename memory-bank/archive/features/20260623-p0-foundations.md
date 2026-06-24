@@ -163,16 +163,3 @@ No creative phase was executed. All design decisions were resolved during planni
 | uv shape | `package = false` + `src/` | No build backend; honors no-build-step |
 | Licensing | Layered REUSE (AGPL + PPL-S) | Operator intentional; mirrors `slobac` |
 | Live release | Config-valid now; live flip post-merge | Not fully exercisable until GitHub App token provisioned |
-
-## REFLECTION INSIGHTS (inlined)
-
-Full lifecycle review (plan → preflight → build → QA → reflect) confirmed every requirement delivered with two in-scope surprises (`.gitignore` ordering; lock TDD bootstrap paradox). Build was friction-free due to reference materials. QA caught one documentation-accretion gap mechanical checks cannot detect. Cross-phase: preflight advisories became first-class tested artifacts; planning omission (persistent doc pointers) caused the only QA finding.
-
-## EPHEMERAL PROGRESS LOG (inlined)
-
-- **Complexity analysis:** L3; each roadmap phase = standalone L3 task; O9 spike resolves hardest question.
-- **Plan:** Full TDD plan in tasks.md; studied `slobac` template; initially recommended `skills/stockroom/` — revised to `sr-search` during operator review.
-- **Preflight:** PASS with advisories; operator review pause before build.
-- **Build:** 6 steps, 5 feat commits + checkpoints; 17 tests; integration gate green.
-- **QA:** PASS; techContext pointer fix.
-- **Reflect:** PASS; persistent files reconciled.

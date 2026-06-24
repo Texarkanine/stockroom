@@ -51,10 +51,10 @@ Nothing stockroom does can be trusted until the ground it stands on is trustwort
 
 **Milestones**
 
-- [ ] **Dual-manifest plugin scaffold** — `.cursor-plugin/plugin.json` and `.claude-plugin/plugin.json` over a shared `skills/` tree, AGPLv3 confirmed in place, committed-layout-equals-install-layout (no build step); both manifests ship from the start.
-- [ ] **release-please wired** — `release-please-config.json` and its manifest configured to version stockroom and sync that version into both plugin manifests in lockstep.
-- [ ] **Locked uv project skeleton** inside the app-bearing skill directory — `pyproject.toml` (with `requires-python` and the torch-exclusion override) plus a hermetic `uv.lock` produced by `uv lock --no-config`; the torch-safe run contract (`uv run --no-sync` / `--inexact`, never an exact sync) documented as the project's standard invocation.
-- [ ] **Test, lint, and format harness** — the test framework configured in `pyproject.toml` with one trivial green test, plus formatter and linter, so every later phase is test-first from line one.
+- [x] **Dual-manifest plugin scaffold** — `.cursor-plugin/plugin.json` and `.claude-plugin/plugin.json` over a shared `skills/` tree, AGPLv3 confirmed in place, committed-layout-equals-install-layout (no build step); both manifests ship from the start.
+- [x] **release-please wired** — `release-please-config.json` and its manifest configured to version stockroom and sync that version into both plugin manifests in lockstep.
+- [x] **Locked uv project skeleton** inside the app-bearing skill directory — `pyproject.toml` (with `requires-python` and the torch-exclusion override) plus a hermetic `uv.lock` produced by `uv lock --no-config`; the torch-safe run contract (`uv run --no-sync` / `--inexact`, never an exact sync) documented as the project's standard invocation.
+- [x] **Test, lint, and format harness** — the test framework configured in `pyproject.toml` with one trivial green test, plus formatter and linter, so every later phase is test-first from line one.
 
 **Done when:** a fresh clone resolves the locked environment hermetically (entirely from PyPI, with hashes, no ambient-config leakage), the empty test suite runs green, both manifests validate, and release-please can cut a versioned release on demand — all with zero product code yet.
 
