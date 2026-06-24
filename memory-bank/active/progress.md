@@ -29,6 +29,21 @@ Milestone 1 of the `p1-data-backbone` L4 project: **Schema field enumeration + l
     - `plan_documents` has no distinct on-disk record in either harness — its populating source is the weakest-grounded part of the brief's table list (open question Q3).
     - DDL deliberately NOT locked; awaiting operator review before authoring `migrations/0001` test-first.
 
+## 2026-06-24 - PLAN - COMPLETE
+
+* Work completed
+    - Wrote the full L3 implementation plan to `tasks.md` (component analysis, TDD behaviors, 10 ordered implementation cycles, challenges, status).
+    - Grounded the plan in the real repo layout: engine `skills/sr-search/`, pkg `src/stockroom/`, pytest with `pythonpath=["src"]` + `repo_root` fixture; DDL lands at `src/stockroom/migrations/0001_initial_schema.sql` (m2 wraps it in place).
+    - Ran the Technology-Validation POC: representative DDL on DuckDB 1.5.4 — `VARCHAR[]`/`JSON`/`FLOAT[384]`/composite-PK parse; reconstruction, `json_extract`, `list_contains`, token `SUM`, subagent self-link all correct; dup PK → `ConstraintException`.
+* Decisions made (in-plan, no creative needed)
+    - No DB-level FK constraints in `0001` (DuckDB FK limits + ETL ordering); enforce logically in m3, assert via reconstruction tests.
+    - No `CHECK` on `harness` (future-harness extensibility).
+    - `embeddings` table defined without the HNSW index (VSS is Phase 2).
+    - Schema-apply is test-only (`schema_con` fixture); no migration runner (that is m2).
+* Insights
+    - The only product artifact is one `.sql` file; everything else is tests + durable fixtures. Tight, low-blast-radius milestone despite being the highest-leverage contract.
+    - No new dependency — duckdb already locked, POC green, so Technology Validation is satisfied.
+
 ## 2026-06-24 - CREATIVE - COMPLETE (operator review resolved, high confidence)
 
 * Work completed
