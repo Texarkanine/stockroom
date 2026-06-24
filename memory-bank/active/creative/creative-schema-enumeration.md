@@ -11,14 +11,12 @@
 | **Cursor** (IDE agent) | `~/.cursor/projects/<enc-path>/agent-transcripts/<conv-id>/<conv-id>.jsonl` | `…/<conv-id>/subagents/<subagent-conv-id>.jsonl` | **none** (only `role` + `message`) |
 | **Claude Code** | `~/.claude/projects/<enc-path>/<session-id>.jsonl` | `…/<session-id>/subagents/agent-<agentId>.jsonl` + `agent-<agentId>.meta.json` | rich (uuid, parentUuid, timestamp, model, usage, cwd, gitBranch, version…) |
 
-Corpus enumerated: **Cursor** 713 files / 25,065 records; **Claude** 39 files / 4,158 records. Both are JSONL event streams (one JSON object per line); line order *is* the ordering signal.
-
-**Correction (post-review):** an earlier draft of this doc called the Cursor transcript "bare" and implied its model/timestamps were effectively unrecoverable. That undersold it. The transcript is **content-faithful** (full text + full tool inputs); it is only **metadata-sparse**. The missing metadata lives in a real, separate Cursor on-disk store — **`ai-code-tracking.db`** — which is well-populated and recoverable. See §1a.
+Corpus enumerated: **Cursor** 713 files / 25,065 records; **Claude** 39 files / 4,158 records. Both are JSONL event streams (one JSON object per line); line order *is* the ordering signal. The Cursor message stream is **content-faithful** (full text + full tool inputs) but **metadata-sparse** (no ids, timestamps, model, or usage in-stream); that metadata lives in `ai-code-tracking.db` (§1a).
 
 **Secondary sources (real Cursor on-disk data, not the primary message stream):**
-- **`ai-code-tracking.db`** — the important one. Found at `~/.cursor/ai-tracking/ai-code-tracking.db` natively, or on the WSL Windows mount (here: `/mnt/s/Users/Austin/.cursor/ai-tracking/ai-code-tracking.db`). Full enumeration in §1a + `evidence/cursor-ai-code-tracking-db.txt`. This is the roadmap's named "model/labeling enrichment" source and is the empirical basis for the "WSL/Windows-mount-aware path resolution" requirement.
+- **`ai-code-tracking.db`** — the important one. Found at `~/.cursor/ai-tracking/ai-code-tracking.db` natively, or on the WSL Windows mount (here: `/mnt/s/Users/Austin/.cursor/ai-tracking/ai-code-tracking.db`). Full enumeration in §1a + `evidence/cursor-ai-code-tracking-db.txt`. This is the roadmap's named "model/labeling enrichment" source and the empirical basis for the "WSL/Windows-mount-aware path resolution" requirement.
 - `~/.cursor/chats/<hash>/<id>/store.db` — the Cursor **CLI** agent (SQLite), a *different* format from the IDE `agent-transcripts`. Out of scope for this enumeration; flag for ingest.
-- `~/.cursor/cursor-warehouse.duckdb` — operator's *derived* warehouse (provenance-sensitive). Not read as a schema source; its ingest *logic* (`scripts/sync.py`) was reviewed under operator direction to confirm sourcing (see §1b).
+- `~/.cursor/cursor-warehouse.duckdb` — operator's *derived* warehouse (provenance-sensitive). Not read as a schema source.
 
 ## 1a. `ai-code-tracking.db` — the Cursor metadata side-store (ALL fields)
 
@@ -37,18 +35,10 @@ A SQLite DB Cursor writes to track AI-authored code. Tables (row counts from the
 - **`model`: recoverable and well-populated.** After enrichment, **21,248 / 24,736 Cursor messages (86%) carry a model**, across 18 distinct models. Caveat: it's applied at **conversation granularity** (every message in a code-producing conversation inherits that conversation's model) — only **68 conversations** have code hashes at all, so read-only conversations get no model. **58/68 are single-model**, 9 are two-model, 1 is three-model.
 - **`timestamp`: partial.** Real epoch-ms timestamps exist, but only for code-producing turns and only joinable at `conversationId`/`requestId` grain — **not mappable to an individual transcript message**. Usable to refine session `started_at`/`ended_at` for code-producing conversations; otherwise file mtime remains the fallback.
 
-## 1b. cursor-warehouse ingest confirms the contract (provenance-vetted)
-
-Reviewed `cursor-warehouse/scripts/sync.py` under operator direction (to confirm *sourcing*, not to lift schema). It independently arrives at the same reconstruction this doc proposes, which is strong corroboration that the empirical contract is right:
-- Mints `msg_uuid = f"{session_id}:{line_idx}"` — identical to our synthesized message-identity rule for Cursor.
-- Inserts message `timestamp` as **`None`** (confirmed: 0 of 24,736 live rows have one); session `created_at`/`modified_at` come from **file mtime**.
-- Derives subagent→parent **structurally** from the `subagents/` directory parent name (no in-record id) — matching our finding.
-- Enriches `model` from `ai-code-tracking.db` (`ai_code_hashes` join on `conversationId`), exactly as §1a describes.
-
 ## 2. The headline finding: the two formats are wildly asymmetric
 
 - **Claude Code is self-describing.** Every content record carries `uuid`, `parentUuid` (threading), `sessionId`, `timestamp`, `message.model`, `message.usage.*`, `cwd`, `gitBranch`, `version`, plus subagent identity (`agentId`, `isSidechain`) and explicit tool-call ids.
-- **Cursor's transcript is content-faithful but metadata-sparse.** The message stream's *only* top-level keys are `role` and `message` (plus a `turn_ended` marker): full text and full tool inputs are present, but the stream carries **no ids, parent pointers, timestamps, model, or token usage**. That metadata is not lost — it lives in `ai-code-tracking.db` (§1a), recoverable at **conversation** grain (model for ~86% of messages; timestamps partially). Per-message identity/ordering is still **synthesized** from `(conversation-id-from-path, line-ordinal)`.
+- **Cursor's transcript is content-faithful but metadata-sparse.** The message stream's *only* top-level keys are `role` and `message` (plus a `turn_ended` marker): full text and full tool inputs are present, but the stream carries **no ids, parent pointers, timestamps, model, or token usage**. That metadata lives in `ai-code-tracking.db` (§1a), recoverable at **conversation** grain (model for ~86% of messages; timestamps partially). Per-message identity/ordering is still **synthesized** from `(conversation-id-from-path, line-ordinal)`.
 
 This asymmetry is the central schema design force: the shared, harness-labeled tables treat Claude's *per-message* columns (uuid, parent, per-message model, time) as **synthesized or conversation-grained** for Cursor. The "stable message-identity contract" the brief demands is, concretely, *mint deterministic surrogate ids for Cursor, adopt native uuids for Claude.* The **"model-per-chain" key is genuinely asymmetric**: Claude has true per-message model; Cursor has model(s) **per conversation** (side-DB), not attributable to an individual message.
 
@@ -235,6 +225,6 @@ CREATE TABLE _sync_state (
 6. **Cursor CLI `store.db`** — a separate SQLite format under `~/.cursor/chats/`. Out of scope for this transcript-based enumeration. Confirm it's a milestone-3 ingest concern (or out of v1)?
 7. **Non-content Claude records** (`file-history-snapshot`, `attachment`, `system`, `queue-operation`, `mode`, `permission-mode`) — recommend **DROP** entirely. Confirm none are wanted.
 
-## 7. What is NOT done yet (post-review)
+## 7. Remaining work before lock
 
-Locking the DDL, writing it as `migrations/0001`, the TDD test suite, and committing the durable enumeration record + shared real/pathological fixtures — all wait until the above is reviewed and the kept-subset is approved.
+Locking the DDL, writing it as `migrations/0001`, the TDD test suite, and committing the durable enumeration record + shared real/pathological fixtures — all wait until the kept-subset is reviewed and approved.
