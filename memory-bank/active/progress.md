@@ -27,3 +27,14 @@ Build the Phase 1 data backbone: an empirically-enumerated, harness-labeled Duck
     - Advisory level estimates: milestone 1 (schema) L3, milestone 2 (migration framework) L3, milestone 3 (ingest) L3, milestone 4 (`sr-query`) L2.
 * Insights
     - Milestone 2 (database migration framework) trends toward L4 in the generic decision tree; flagged for preflight to confirm it stays single-sub-run scoped.
+
+## 2026-06-24 - PREFLIGHT (L4) - COMPLETE
+
+* Work completed
+    - Validated `milestones.md` against systemPatterns/techContext and codebase reality. Result: **PASS** with advisories (`.preflight-status` written).
+    - Applied two in-scope plan amendments to milestone 1: (a) author DDL directly as `migrations/0001` to keep milestones 1–2 non-overlapping; (b) commit field-enumeration record + shared real/pathological fixtures as durable artifacts reused downstream.
+* Decisions made
+    - Held the migration-framework concurrency proof requirement as an advisory for milestone 2's sub-run: it needs a representative second migration (test-only OK) to actually prove a data-preserving upgrade.
+    - Confirmed L4-granularity TDD encoding is satisfied (per-unit ordering deferred to sub-run plans; every milestone test-first).
+* Insights
+    - Decomposition needed no structural change — the roadmap's Phase 1 breakdown was already milestone-grade.

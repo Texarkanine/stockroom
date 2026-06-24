@@ -1,0 +1,11 @@
+PASS
+task: p1-data-backbone (Phase 1 — Schema, Database, Ingest, Migrations) L4
+date: 2026-06-24
+phase: PLAN -> validated milestone list (milestones.md)
+result: PASS (with advisory findings)
+notes:
+  - TDD encoding deferred to each sub-run's own plan phase; every milestone is marked test-first and the test-first invariant is recorded. OK at L4 granularity.
+  - Convention amendment applied: milestone 1 authors DDL directly as migrations/0001 to avoid a file move in milestone 2.
+  - Radical-innovation enhancement applied (in-scope, L3): milestone 1 commits shared real+pathological fixtures and a field-enumeration record, reused by milestone 3.
+  - Advisory: milestone 2's concurrency/upgrade proof needs a representative second migration (test-only is fine) since 0001-on-empty-DB does not exercise a data-preserving upgrade.
+  - Advisory: milestone 2 (migration framework) trends toward L4 in the generic tree; confirm L3 scope at its sub-run classification, split if it balloons.
