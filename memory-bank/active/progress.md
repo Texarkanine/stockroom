@@ -29,6 +29,24 @@ Milestone 1 of the `p1-data-backbone` L4 project: **Schema field enumeration + l
     - `plan_documents` has no distinct on-disk record in either harness — its populating source is the weakest-grounded part of the brief's table list (open question Q3).
     - DDL deliberately NOT locked; awaiting operator review before authoring `migrations/0001` test-first.
 
+## 2026-06-24 - CREATIVE - COMPLETE (operator review resolved, high confidence)
+
+* Work completed
+    - Operator review of `creative/creative-schema-enumeration.md` completed across several rounds; **all open questions resolved**, doc status flipped to REVIEWED/ready-to-lock.
+    - Added a Mermaid ERD + an explicit "how reconstruction works" model; verified empirically that text never follows a tool within a turn (0/5,646), so concatenated-text + ordered-tool-children is lossless.
+    - Canonized three durable principles in `systemPatterns.md`: one-meaning-per-field (cross-harness semantic uniformity), typed-columns-not-JSON-blobs (DuckDB has no JSON-path index), and thinking-not-captured.
+* Decisions made (operator-confirmed, now binding for the DDL)
+    - **Schema is FIVE tables** — `plan_documents` dropped (no on-disk source; `TodoWrite` lives in `tool_calls.tool_input`).
+    - **Identity is uniform**: `message_id = {session_id}#{ordinal}` for both harnesses (deterministic surrogate); native ids demoted to `source_uuid`/`source_tool_use_id` provenance (never joined). `ordinal` = position-in-session, one meaning across harnesses. Stability rests on the append-only-log invariant, with `_sync_state` size/mtime detection of rewrites.
+    - **Dropped**: `is_meta`, `caller_type`, `thinking` (separable→dropped), the non-cost `usage` extras.
+    - **Token usage KEPT as four typed `BIGINT` columns** on `messages` (input/output/cache_creation/cache_read), not a JSON blob.
+    - **Model split by grain, no faking**: `messages.model` (Claude, per-message) + `sessions.models VARCHAR[]` (Cursor, per-conversation); each harness fills only the grain it has.
+    - **Cursor CLI `store.db` deferred out of v1**: investigated — a content-addressed blob DAG (mixed JSON+protobuf) embedding tool outputs + reasoning; needs its own ingestion adapter/milestone.
+    - **`ai-code-tracking.db` enrichment** limited to `model` (→ `sessions.models`) + session-time refinement; attribution/file tables dropped.
+* Insights
+    - The hard design forces were cross-harness *meaning* uniformity and ID *stability* — both now have explicit, defensible answers backed by data, not assertion.
+    - Next: PLAN the test-first build of `migrations/0001` (DDL) + fixtures.
+
 ## 2026-06-24 - PLAN/CREATIVE (correction) - Cursor side-store enumerated
 
 * Work completed
