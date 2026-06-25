@@ -6,8 +6,6 @@ The engine lives inside ``skills/sr-search/`` but several tests
 relative-path arithmetic.
 """
 
-from __future__ import annotations
-
 from collections.abc import Iterator
 from pathlib import Path
 

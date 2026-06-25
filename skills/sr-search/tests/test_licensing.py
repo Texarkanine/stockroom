@@ -6,8 +6,6 @@ all code, while prompt-shaped skill content (SKILL.md) is PPL-S — with
 code-shaped paths inside ``skills/**`` re-asserted back to AGPL.
 """
 
-from __future__ import annotations
-
 import subprocess
 from pathlib import Path
 

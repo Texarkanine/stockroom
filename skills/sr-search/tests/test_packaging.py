@@ -6,8 +6,6 @@ layout for both Cursor and Claude Code, that the engine-bearing skill is
 honestly present from Phase 0, and that all version sources agree.
 """
 
-from __future__ import annotations
-
 import json
 from pathlib import Path
 

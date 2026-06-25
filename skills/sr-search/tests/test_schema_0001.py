@@ -12,8 +12,6 @@ executes the DDL directly. The DDL itself is the single product artifact of
 this milestone.
 """
 
-from __future__ import annotations
-
 import json
 from datetime import datetime
 from pathlib import Path

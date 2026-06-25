@@ -4,8 +4,6 @@ These prove the test/lint/format harness is alive and that the locked
 environment can import the ``stockroom`` package and read its version.
 """
 
-from __future__ import annotations
-
 
 def test_harness_runs() -> None:
     """The pytest harness executes and a trivial assertion holds."""

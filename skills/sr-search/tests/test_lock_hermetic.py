@@ -7,8 +7,6 @@ entirely out of the cross-platform lock and the pyproject carrying the exact
 override that keeps it out.
 """
 
-from __future__ import annotations
-
 import shutil
 import subprocess
 import tomllib

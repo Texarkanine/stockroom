@@ -5,8 +5,6 @@ behavior lands in later roadmap phases. The version is kept in lockstep with
 the plugin manifests by release-please.
 """
 
-from __future__ import annotations
-
 __version__ = "0.0.0"
 
 __all__ = ["__version__"]
