@@ -21,8 +21,15 @@ Concurrency design rationale lives in
 ``memory-bank/active/creative/creative-warehouse-concurrency-locking.md``.
 """
 
+import fcntl
 import os
+import random
+import time
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from pathlib import Path
+
+import duckdb
 
 #: Env var that overrides the warehouse home (used by tests to redirect away
 #: from the operator's real ``~/.stockroom/``). Later milestones (ingest,
@@ -32,6 +39,13 @@ HOME_ENV_VAR = "STOCKROOM_HOME"
 #: Filenames placed inside the warehouse home.
 WAREHOUSE_FILENAME = "warehouse.duckdb"
 LOCK_FILENAME = ".warehouse.lock"
+
+# Bounded exponential-backoff defaults for opening DuckDB while a migrator may
+# hold the warehouse read-write. Injectable per-call for tests.
+_INITIAL_DELAY = 0.05  # seconds
+_BACKOFF_FACTOR = 2.0
+_MAX_DELAY = 1.0  # per-attempt cap
+_TOTAL_TIMEOUT = 30.0  # overall budget before WarehouseBusyError
 
 
 class WarehouseBusyError(RuntimeError):
@@ -65,3 +79,80 @@ def warehouse_path() -> Path:
 def lock_path() -> Path:
     """Return the absolute path to the sidecar coordination lock file."""
     return home_dir() / LOCK_FILENAME
+
+
+@contextmanager
+def _flock(path: Path, *, blocking: bool = True) -> Iterator[int]:
+    """Hold an exclusive ``fcntl.flock`` on ``path`` for the context body.
+
+    This is the single-writer / migrator coordination token: a process takes
+    it before opening DuckDB read-write. The lock is associated with the open
+    file description, so it is released when the file descriptor is closed and
+    — crucially — auto-released by the OS if the holding process dies, so a
+    crashed migrator can never permanently wedge the warehouse.
+
+    With ``blocking=False`` a contended acquire raises ``BlockingIOError``
+    (an ``OSError``) immediately instead of waiting.
+    """
+    fd = os.open(path, os.O_CREAT | os.O_RDWR, 0o644)
+    flags = fcntl.LOCK_EX | (fcntl.LOCK_NB if not blocking else 0)
+    try:
+        fcntl.flock(fd, flags)
+        try:
+            yield fd
+        finally:
+            fcntl.flock(fd, fcntl.LOCK_UN)
+    finally:
+        os.close(fd)
+
+
+def _is_lock_conflict(exc: duckdb.IOException) -> bool:
+    """True when a DuckDB ``IOException`` is the migration-time lock conflict.
+
+    DuckDB raises ``IOException`` for several reasons; only the "Could not set
+    lock" / "Conflicting lock" case means another process holds the warehouse.
+    Other IO errors (disk, permissions) must propagate immediately rather than
+    being retried as if transient.
+    """
+    message = str(exc).lower()
+    return "lock" in message
+
+
+def _open_with_backoff(
+    path: Path,
+    *,
+    read_only: bool,
+    initial_delay: float = _INITIAL_DELAY,
+    factor: float = _BACKOFF_FACTOR,
+    max_delay: float = _MAX_DELAY,
+    timeout: float = _TOTAL_TIMEOUT,
+    jitter: bool = True,
+    sleep: Callable[[float], None] = time.sleep,
+    monotonic: Callable[[], float] = time.monotonic,
+) -> duckdb.DuckDBPyConnection:
+    """Open a DuckDB connection, retrying around the migration-time lock.
+
+    Attempts ``duckdb.connect`` and, if it raises the lock-conflict
+    ``IOException`` (another process holds the warehouse), backs off with
+    bounded exponential delay + jitter and retries until ``timeout`` elapses,
+    then raises :class:`WarehouseBusyError`. Any other error propagates
+    immediately. The clock/sleep are injectable so tests are instant and
+    deterministic.
+    """
+    deadline = monotonic() + timeout
+    delay = initial_delay
+    while True:
+        try:
+            return duckdb.connect(str(path), read_only=read_only)
+        except duckdb.IOException as exc:
+            if not _is_lock_conflict(exc):
+                raise
+            now = monotonic()
+            if now >= deadline:
+                raise WarehouseBusyError(
+                    f"warehouse at {path} stayed locked for {timeout}s"
+                ) from exc
+            capped = min(delay, max_delay)
+            wait = capped * (0.5 + 0.5 * random.random()) if jitter else capped
+            sleep(min(wait, deadline - now))
+            delay = min(delay * factor, max_delay)
