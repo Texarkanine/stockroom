@@ -6,6 +6,10 @@ The engine lives inside ``skills/sr-search/`` but several tests
 relative-path arithmetic.
 """
 
+import os
+import subprocess
+import sys
+import time
 from collections.abc import Callable, Iterator
 from pathlib import Path
 
@@ -44,6 +48,59 @@ def schema_sql_path() -> Path:
     path = Path(stockroom.__file__).parent / "migrations" / "0001_initial_schema.sql"
     assert path.is_file(), f"migration SQL missing: {path}"
     return path
+
+
+@pytest.fixture
+def spawn_worker() -> Iterator[Callable[..., subprocess.Popen]]:
+    """Return a launcher for the warehouse concurrency worker subprocess.
+
+    Each spawned child runs ``tests/_warehouse_worker.py`` under the same
+    interpreter, with the engine ``src`` on ``PYTHONPATH`` and the current
+    environment inherited (so the test's ``STOCKROOM_HOME`` flows through). All
+    children are killed and reaped at teardown so a hung worker can never leak
+    past a test.
+    """
+    src_dir = str(Path(stockroom.__file__).parent.parent)
+    worker = Path(__file__).parent / "_warehouse_worker.py"
+    children: list[subprocess.Popen] = []
+
+    def _spawn(*args: object) -> subprocess.Popen:
+        env = os.environ.copy()
+        env["PYTHONPATH"] = os.pathsep.join(
+            [src_dir, env.get("PYTHONPATH", "")]
+        ).rstrip(os.pathsep)
+        proc = subprocess.Popen(
+            [sys.executable, str(worker), *[str(a) for a in args]], env=env
+        )
+        children.append(proc)
+        return proc
+
+    try:
+        yield _spawn
+    finally:
+        for proc in children:
+            if proc.poll() is None:
+                proc.kill()
+            proc.wait()
+
+
+@pytest.fixture
+def wait_for_sentinel() -> Callable[..., None]:
+    """Return a helper that blocks until a sentinel file appears.
+
+    Synchronizes a parent with a child that signals readiness by creating a
+    file — outcome-based coordination rather than fragile ``sleep`` guesses.
+    Raises ``TimeoutError`` if the sentinel never shows within the timeout.
+    """
+
+    def _wait(path: Path, timeout: float = 10.0) -> None:
+        deadline = time.monotonic() + timeout
+        while not path.exists():
+            if time.monotonic() >= deadline:
+                raise TimeoutError(f"sentinel never appeared: {path}")
+            time.sleep(0.02)
+
+    return _wait
 
 
 @pytest.fixture
