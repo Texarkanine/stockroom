@@ -10,7 +10,21 @@ one never re-runs the runner.
 
 from pathlib import Path
 
-from stockroom import warehouse
+import duckdb
+
+from stockroom import migrate, warehouse
+
+_PRODUCT_TABLES = {"sessions", "messages", "tool_calls", "embeddings", "_sync_state"}
+
+
+def _table_names(con: duckdb.DuckDBPyConnection) -> set[str]:
+    return {
+        r[0]
+        for r in con.execute(
+            "SELECT table_name FROM information_schema.tables "
+            "WHERE table_schema = 'main'"
+        ).fetchall()
+    }
 
 
 # --- path resolution + WarehouseBusyError (step 4) --------------------------
@@ -34,3 +48,53 @@ def test_home_dir_is_auto_created(warehouse_home: Path) -> None:
     resolved = warehouse.home_dir()
     assert resolved == warehouse_home
     assert resolved.is_dir()
+
+
+# --- open() lazy gate (step 6) ----------------------------------------------
+
+
+def test_open_writer_on_fresh_path_returns_migrated_connection(
+    warehouse_home: Path,
+) -> None:
+    """``open(read_only=False)`` on a brand-new path migrates and is ready."""
+    con = warehouse.open(read_only=False)
+    try:
+        assert migrate.current_version(con) == 1
+        assert _PRODUCT_TABLES <= _table_names(con)
+        # The warehouse file was created at the resolved path.
+        assert warehouse.warehouse_path().is_file()
+    finally:
+        con.close()
+
+
+def test_open_reader_on_current_warehouse_returns_working_connection(
+    warehouse_home: Path,
+) -> None:
+    """``open(read_only=True)`` on a current warehouse yields a usable RO conn."""
+    warehouse.open(read_only=False).close()  # create + migrate first
+
+    con = warehouse.open(read_only=True)
+    try:
+        assert migrate.current_version(con) == 1
+        # A plain read works against the migrated schema.
+        assert con.execute("SELECT count(*) FROM sessions").fetchone()[0] == 0
+    finally:
+        con.close()
+
+
+def test_open_reader_on_current_warehouse_does_not_invoke_runner(
+    warehouse_home: Path, monkeypatch
+) -> None:
+    """The double-checked gate skips the runner entirely when already current."""
+    warehouse.open(read_only=False).close()  # create + migrate first
+
+    def _must_not_run(*args, **kwargs):
+        raise AssertionError("apply_pending must not run on a current warehouse")
+
+    monkeypatch.setattr(warehouse, "apply_pending", _must_not_run)
+
+    con = warehouse.open(read_only=True)
+    try:
+        assert migrate.current_version(con) == 1
+    finally:
+        con.close()

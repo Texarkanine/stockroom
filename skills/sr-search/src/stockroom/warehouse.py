@@ -25,11 +25,15 @@ import fcntl
 import os
 import random
 import time
+import weakref
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
 import duckdb
+
+from stockroom.migrate import apply_pending, current_version
+from stockroom.migrations import discover
 
 #: Env var that overrides the warehouse home (used by tests to redirect away
 #: from the operator's real ``~/.stockroom/``). Later milestones (ingest,
@@ -156,3 +160,90 @@ def _open_with_backoff(
             wait = capped * (0.5 + 0.5 * random.random()) if jitter else capped
             sleep(min(wait, deadline - now))
             delay = min(delay * factor, max_delay)
+
+
+def _latest_version() -> int:
+    """Return the highest discovered migration version (``0`` if none exist)."""
+    migrations = discover()
+    return migrations[-1].version if migrations else 0
+
+
+def _release_flock(fd: int) -> None:
+    """Release and close a held flock file descriptor (idempotent-ish)."""
+    try:
+        fcntl.flock(fd, fcntl.LOCK_UN)
+    finally:
+        os.close(fd)
+
+
+def _migrate_under_lock(path: Path, target_version: int, **backoff) -> None:
+    """Apply pending migrations under the exclusive flock, double-checked.
+
+    Takes the coordination flock (blocking — the single-writer/migrator token),
+    re-reads the version inside the lock (another process may have just
+    migrated), and only applies pending migrations if still behind. The lock
+    and the temporary read-write connection are both released before returning,
+    so the subsequent reader open is lock-free.
+    """
+    fd = os.open(lock_path(), os.O_CREAT | os.O_RDWR, 0o644)
+    fcntl.flock(fd, fcntl.LOCK_EX)
+    try:
+        con = _open_with_backoff(path, read_only=False, **backoff)
+        try:
+            if current_version(con) < target_version:
+                apply_pending(con)
+        finally:
+            con.close()
+    finally:
+        _release_flock(fd)
+
+
+def open(  # noqa: A001 — the warehouse "open" verb is the intended public name
+    read_only: bool = False,
+    *,
+    migrate: bool = True,
+    **backoff,
+) -> duckdb.DuckDBPyConnection:
+    """Open the warehouse through the single chokepoint, migrating if needed.
+
+    This is the one entry every consumer uses; the lazy migration gate lives
+    here so no caller can reach an un-migrated database.
+
+    Readers (``read_only=True``) open a connection directly and, via the
+    double-checked gate, return immediately when the warehouse is already
+    current (the common, near-free path) — taking no flock at all. If the
+    warehouse is behind, the reader becomes the migrator (takes the flock,
+    re-checks, applies pending migrations, releases) and then reopens read-only.
+
+    Writers (``read_only=False``) take the exclusive flock — the single-writer
+    token — for the connection's lifetime (released when the returned
+    connection is finalized), open read-write under backoff (waiting for any
+    readers to drain), and migrate if behind.
+
+    Set ``migrate=False`` to skip the gate (open as-is). Extra keyword
+    arguments are forwarded as backoff parameters to the open helper.
+    """
+    path = warehouse_path()
+    target_version = _latest_version()
+
+    if read_only:
+        con = _open_with_backoff(path, read_only=True, **backoff)
+        if not migrate or current_version(con) >= target_version:
+            return con
+        # Behind: become the migrator, then reopen read-only for the caller.
+        con.close()
+        _migrate_under_lock(path, target_version, **backoff)
+        return _open_with_backoff(path, read_only=True, **backoff)
+
+    # Writer: hold the single-writer flock for the connection's lifetime.
+    fd = os.open(lock_path(), os.O_CREAT | os.O_RDWR, 0o644)
+    fcntl.flock(fd, fcntl.LOCK_EX)
+    try:
+        con = _open_with_backoff(path, read_only=False, **backoff)
+        if migrate and current_version(con) < target_version:
+            apply_pending(con)
+    except BaseException:
+        _release_flock(fd)
+        raise
+    weakref.finalize(con, _release_flock, fd)
+    return con
