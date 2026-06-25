@@ -14,3 +14,16 @@ Milestone 2 of the `p1-data-backbone` L4 project: **Migration framework**. Build
     - L3, not L4: a complete feature across multiple cooperating components (migration runner, `schema_version` record, lazy gate, exclusive write lock, reader degradation, connection helper), but the overarching architecture is already fixed by the L4 plan — this sub-run delivers one cohesive subsystem, not new architecture.
 * Insights
     - The milestone description carries an explicit preflight directive: confirm the migration-system shape stays single-sub-run scoped (it trends toward L4). Surface this in PLAN and resolve it at PREFLIGHT before BUILD.
+
+## 2026-06-25 - PLAN - OPEN QUESTIONS (handing to CREATIVE)
+
+* Work completed
+    - Read the authoritative design (tech-brief Migrations + Storage/Concurrency + Open Build-Time Questions; roadmap Phase 1) and surveyed the engine (`migrations/0001`, conftest `schema_con`, pyproject, Makefile, package layout).
+    - Ran a planning POC of DuckDB 1.5.4 cross-process locking: a RW connection takes an **exclusive** OS file lock (excludes all other-process opens, RW *and* RO, with `IOException: Could not set lock`); a RO connection takes a **shared** lock (excludes a RW). Pinned the model + a state diagram in `tasks.md`.
+    - Wrote component analysis to `tasks.md`: new `stockroom.warehouse` open helper (single chokepoint), migration runner + lazy gate, `migrations/` discovery, lock primitive, reader-degradation helper; mapped dependencies, boundary changes, and the invariants the build must preserve.
+    - Identified three open questions; Q1 (lock primitive) + Q2 (reader wait/backoff semantics) are genuine concurrency-architecture ambiguity the tech-brief explicitly defers to build → invoking the architecture creative phase. Q3 (`schema_version` bootstrap placement) is lower-ambiguity, likely resolved in-plan.
+* Decisions made
+    - The warehouse-open helper is the single contract every consumer goes through; the lazy gate lives inside it so no consumer can touch an un-migrated DB.
+    - Strong preference for a **stdlib-only** lock primitive so `uv.lock` stays untouched (locked-uv trust).
+* Insights
+    - DuckDB already guarantees migration exclusivity via its own RW file lock; the framework's real work is coordinating would-be migrators (anti-thrash), making the writer wait for readers to drain, and translating the raw open-time `IOException` into bounded, graceful reader backoff. That correctness-under-parallel-access surface is exactly what the tech-brief says must be *tested*.
