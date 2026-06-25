@@ -8,11 +8,13 @@ fresh warehouse returns a ready, migrated connection while opening a current
 one never re-runs the runner.
 """
 
+import json
 from pathlib import Path
 
 import duckdb
 
 from stockroom import migrate, warehouse
+from test_schema_0001 import SNAPSHOT_PATH, _introspect_schema
 
 _PRODUCT_TABLES = {"sessions", "messages", "tool_calls", "embeddings", "_sync_state"}
 
@@ -98,3 +100,26 @@ def test_open_reader_on_current_warehouse_does_not_invoke_runner(
         assert migrate.current_version(con) == 1
     finally:
         con.close()
+
+
+# --- radical-innovation guard: the framework yields exactly the locked DDL --
+
+
+def test_migrated_warehouse_matches_locked_snapshot(warehouse_home: Path) -> None:
+    """A freshly opened warehouse's product schema byte-matches m1's snapshot.
+
+    Reuses milestone 1's introspection helper. The runner-owned
+    ``schema_version`` bookkeeping table is excluded (it is not part of
+    ``0001``), proving the migration framework produces precisely the locked
+    product DDL — and handing milestone 3 the guarantee that "opening the
+    warehouse yields the locked schema."
+    """
+    con = warehouse.open(read_only=False)
+    try:
+        schema = _introspect_schema(con)
+    finally:
+        con.close()
+
+    schema.pop(migrate.SCHEMA_VERSION_TABLE, None)
+    expected = json.loads(SNAPSHOT_PATH.read_text(encoding="utf-8"))
+    assert schema == expected

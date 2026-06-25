@@ -26,8 +26,23 @@ pin it, and the introspected golden snapshot
 makes any DDL change a conscious, reviewed act. Durable native-format transcript
 samples for later ingest work live under
 [`skills/sr-search/tests/fixtures/transcripts/`](../skills/sr-search/tests/fixtures/transcripts/).
-The migration framework that applies this SQL (version record, lazy gate,
-exclusive write lock) lands in milestone 2.
+
+The forward-only migration framework that applies this SQL landed in
+milestone 2. Consumers never connect to DuckDB directly: they go through the
+single chokepoint [`stockroom.warehouse.open()`](../skills/sr-search/src/stockroom/warehouse.py),
+which resolves the harness-neutral home (`~/.stockroom/`, overridable via the
+`STOCKROOM_HOME` env var), runs a double-checked lazy migration gate, and
+returns a ready connection. The applied-state machinery — the runner-owned
+`schema_version` bookkeeping table, `current_version`, and forward-only
+`apply_pending` — lives in
+[`stockroom.migrate`](../skills/sr-search/src/stockroom/migrate.py); migration
+discovery (the ascending `NNNN_*.sql` list) lives in
+[`stockroom.migrations`](../skills/sr-search/src/stockroom/migrations/__init__.py).
+Cross-process safety is a two-layer lock: an `fcntl.flock` single-writer/
+migrator token over DuckDB's own RW-exclusive file lock, with bounded reader
+backoff that degrades to a typed `WarehouseBusyError` rather than blocking
+forever. `schema_version` is runner-created and deliberately absent from
+`0001`, so the locked product DDL and its golden snapshot stay untouched.
 
 ## Testing Process
 
