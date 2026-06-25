@@ -1,10 +1,5 @@
 -- stockroom warehouse — initial schema (migration 0001)
 --
--- The locked, harness-labeled data contract: five shared tables, each content
--- row carrying a `harness` column (never per-harness tables). Derived
--- empirically from real Cursor + Claude Code transcripts; full enumeration and
--- rationale in memory-bank creative-schema-enumeration.md (§4 governs this DDL).
---
 -- Design invariants encoded here:
 --   * Identity is uniform: message_id = '{session_id}#{ordinal}' for every
 --     harness (a deterministic surrogate). Native ids are demoted to
@@ -15,8 +10,8 @@
 --     fills only the grain it actually has.
 --   * Typed columns for anything queried/aggregated (token usage = four BIGINT
 --     columns; model sets = native VARCHAR[] LIST). JSON is reserved for the
---     one irreducibly heterogeneous payload, tool_calls.tool_input.
---   * Tool INPUTS only — never outputs. Thinking is not captured.
+--     irreducibly heterogeneous payloads such as tool_calls.tool_input.
+--   * Tool INPUTS only — never outputs. Thinking is also not captured.
 --
 -- Deliberately NOT here (by design, documented in the plan):
 --   * No DB-level FOREIGN KEY constraints — DuckDB FK enforcement is limited
