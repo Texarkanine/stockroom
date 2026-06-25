@@ -1,0 +1,53 @@
+status: PASS (with advisories)
+phase: preflight
+task: p1-data-backbone-m2-migration-framework
+date: 2026-06-25
+gate: /niko-build unblocked (operator-initiated per L3 workflow)
+
+checks:
+  prerequisites: PASS (tasks.md plan complete; creative doc present for the resolved concurrency question)
+  tdd_plan_encoding: PASS after amendment — each of the 9 steps now carries explicit
+    per-unit RED (write+fail named test) before GREEN (implement). Hardened from a
+    preamble-only disclaimer to per-step ordering (same fix class as m1).
+  convention_compliance: PASS — module layout (migrations/ discovery, migrate.py,
+    warehouse.py) and tests (tests/test_*.py, conftest fixtures, __future__ annotations,
+    docstrings) match established engine conventions; warehouse home is the harness-neutral
+    ~/.stockroom/ per systemPatterns.
+  dependency_impact: PASS — warehouse.open() is the new contract m3/m4 consume; no existing
+    consumers (greenfield). m1 schema_con fixture + golden snapshot independent and preserved.
+  conflict_detection: PASS — no pre-existing connection/migration/flock code (grep clean);
+    0001 shipped in place (not moved), matching the schema_sql_path fixture; the migrations
+    __init__ "no runtime behavior" docstring is updated by step 1. No public-contract break.
+  completeness: PASS — every milestone requirement maps to concrete files/steps:
+    numbered forward-only SQL (discover+runner), schema_version record (steps 2-3),
+    lazy gate (step 6), exclusive write lock (flock, steps 5-6), reader degradation
+    (steps 5-7), harness-neutral open helper (steps 4-6), ships 0001 as migration 0001
+    (discovery + step 8 guard), lock primitive + backoff chosen (creative).
+
+l4_creep_check: PASS — the milestone's explicit preflight directive ("confirm it stays
+  single-sub-run scoped"). Deliverable is ONE cohesive subsystem (a single open() chokepoint
+  module + a runner + discovery + a test suite), no independent workstreams, architecture
+  already fixed by the L4 plan. Confirmed Level 3, single sub-run.
+
+radical_innovation (applied, in-scope):
+  - Added a migrated-schema-equals-snapshot test (step 8): a fresh warehouse.open() must yield
+    a product-table schema byte-matching m1's committed 0001_snapshot.json. Reuses m1's
+    introspection helper; ties the framework to the locked DDL and hands m3 a guarantee that
+    "opening the warehouse yields the locked schema." Within L3 + Project Brief scope -> made
+    the change to the plan.
+
+advisories (non-blocking):
+  - New env convention STOCKROOM_HOME (warehouse-home override) will be relied on by ingest
+    (m3), sr-query (m4), and the dashboard (P3). Chosen deliberately now; documented for
+    visibility so later milestones adopt the same name.
+  - A durable "two-layer warehouse lock" systemPatterns entry is deferred to the reflect
+    phase (wording is clearer once built); recorded so it is not forgotten.
+
+verification:
+  - REUSE: path-based AGPL re-assertion (REUSE.toml lines 28-37) covers new .py + tests/** -
+    no inline SPDX headers needed.
+  - No new runtime dependency (stdlib fcntl/os + locked duckdb); make lock-check guards uv.lock.
+  - Mechanism de-risked by two planning POCs (DuckDB cross-process lock; fcntl.flock auto-release
+    on WSL-internal ext4).
+
+blocking_findings: none

@@ -128,17 +128,33 @@ All resolved in the architecture creative phase — see `memory-bank/active/crea
 
 ## Implementation Plan
 
-Ordered from fewest dependencies outward; each step is one TDD cycle (RED → GREEN → refactor).
+Ordered from fewest dependencies outward. **Every step is strictly test-first**: write the named test(s) and watch them fail (RED) *before* writing any production code, then implement the minimum to pass (GREEN), then refactor. A step's production code must not be written before its RED tests exist.
 
-1. **Migration discovery.** Files: `migrations/__init__.py`, `tests/test_migrations_discovery.py`. Add `migrations_dir()`/`discover()`/`Migration` and the filename parser; update docstring.
-2. **schema_version bootstrap + `current_version`.** Files: `migrate.py`, `tests/test_migrate_runner.py`. `ensure_schema_version_table` + `current_version` (0 when absent).
-3. **`apply_pending` runner.** Files: `migrate.py`, `tests/test_migrate_runner.py`. Per-migration transaction + `schema_version` insert; idempotent; ascending; atomic on failure; version-ahead no-op. Uses `tmp_migrations_dir` for synthetic multi/failing migrations.
-4. **Warehouse path resolution + `WarehouseBusyError`.** Files: `warehouse.py`, `tests/test_warehouse_open.py`, `conftest.py` (`warehouse_home`). `home_dir`/`warehouse_path`/`lock_path`, dir creation, `STOCKROOM_HOME` override.
-5. **flock ctx + backoff open helper.** Files: `warehouse.py`, `tests/test_warehouse_lock.py`. `_flock` ctx manager + `_open_with_backoff` (catch DuckDB `IOException`, exp backoff + jitter, injectable params, `WarehouseBusyError` on timeout).
-6. **`warehouse.open()` chokepoint (lazy gate).** Files: `warehouse.py`, `tests/test_warehouse_open.py`. Double-checked gate: RO version read → if behind, flock + re-check + RW `apply_pending` → reopen in requested mode; writers hold flock for the session.
-7. **Concurrency suite.** Files: `tests/test_warehouse_concurrency.py`, `conftest.py` (subprocess helper). Reader degradation, writer drain, migrator serialization, typed terminal error.
-8. **Docs + snapshot guard.** Files: `memory-bank/techContext.md` (point the Warehouse Schema note at the real runner/warehouse module), optionally a concise "two-layer warehouse lock" pattern in `memory-bank/systemPatterns.md` (defer wording to reflect if lighter). Confirm m1 `test_schema_0001.py` golden snapshot still green (schema_version is runner-created, absent from `0001`); add an explicit assertion only if the snapshot scope isn't already tight.
-9. **Green gate.** Run `make ci` (sync, lock-check, lint, format-check, test, reuse); fix anything; verify `uv.lock` untouched (no new dependency) and REUSE clean (path-based rules cover new `.py`).
+1. **Migration discovery.**
+   - RED: `tests/test_migrations_discovery.py` — assert `discover()` returns `[(1, …/0001_initial_schema.sql)]` ascending and ignores non-`NNNN_*.sql` names; run, see it fail (no `discover`).
+   - GREEN: add `migrations_dir()`, `Migration`, `discover()`, the filename parser to `migrations/__init__.py`; update the "no runtime behavior" docstring line.
+2. **schema_version bootstrap + `current_version`.**
+   - RED: add cases to `tests/test_migrate_runner.py` — `current_version()` on a DB lacking the bookkeeping table → `0`; `ensure_schema_version_table` is idempotent. Fail first (no `migrate` module).
+   - GREEN: create `migrate.py` with `SCHEMA_VERSION_TABLE`, `ensure_schema_version_table`, `current_version`.
+3. **`apply_pending` runner.**
+   - RED: extend `tests/test_migrate_runner.py` — applies `0001` (five product tables; version 1; row records version/filename/non-NULL applied_at); idempotent re-run returns `[]`; ascending apply over a synthetic `tmp_migrations_dir`; failing synthetic migration rolls back (version unchanged); version-ahead is a no-op. Fail first.
+   - GREEN: implement `apply_pending` (per-migration transaction wrapping DDL + `schema_version` insert).
+4. **Warehouse path resolution + `WarehouseBusyError`.**
+   - RED: `tests/test_warehouse_open.py` + `conftest.py` `warehouse_home` fixture — `STOCKROOM_HOME=tmp` → `warehouse_path()`/`lock_path()` under tmp; home dir auto-created; `WarehouseBusyError` importable. Fail first.
+   - GREEN: create `warehouse.py` with `home_dir`/`warehouse_path`/`lock_path`, dir creation, `WarehouseBusyError`.
+5. **flock ctx + backoff open helper.**
+   - RED: `tests/test_warehouse_lock.py` — `_flock` held → a non-blocking re-acquire fails and releases on exit; `_open_with_backoff` raises `WarehouseBusyError` when the path stays RW-locked past a short injected timeout. Fail first.
+   - GREEN: implement `_flock` ctx manager + `_open_with_backoff` (catch DuckDB `IOException`, exp backoff + jitter, injectable params).
+6. **`warehouse.open()` chokepoint (lazy gate).**
+   - RED: extend `tests/test_warehouse_open.py` — `open(read_only=False)` on a new path returns a ready, migrated connection (`current_version()==1`); `open(read_only=True)` on a current warehouse works and does not invoke the runner; double-checked gate skips migration when already current. Fail first.
+   - GREEN: implement `open()` wiring the gate (RO version read → if behind: flock + re-check + RW `apply_pending` → reopen in requested mode; writers hold the flock for the session).
+7. **Concurrency suite.**
+   - RED: `tests/test_warehouse_concurrency.py` + `conftest.py` subprocess helper — reader degradation (busy→`WarehouseBusyError` on short timeout; succeeds after release), writer drain, migrator serialization (no double-apply, both reach latest, DB intact), typed terminal error. Fail first.
+   - GREEN: reconcile any gaps in `warehouse.py` surfaced by the multi-process behaviors.
+8. **Radical-innovation guard + docs** *(applied in-scope, see Preflight findings).*
+   - RED: in `tests/test_warehouse_open.py`, assert that a freshly migrated warehouse's introspected product-table schema (reusing m1's `_introspect_schema` from `test_schema_0001.py`, filtered `internal = false` minus the runner's `schema_version` bookkeeping table) **byte-matches** the committed `tests/fixtures/schema/0001_snapshot.json` — proving the framework yields exactly the locked DDL. Confirm the existing m1 snapshot test stays green (schema_version is runner-created, absent from `0001`). Fail first if the equivalence/exclusion isn't yet wired.
+   - GREEN: make it pass (likely just the filter that excludes `schema_version`); then update `memory-bank/techContext.md` to point the Warehouse Schema note at the real runner/`warehouse` module. (A concise "two-layer warehouse lock" pattern for `systemPatterns.md` is deferred to reflect.)
+9. **Green gate.** Run `make ci` (sync, lock-check, lint, format-check, test, reuse); fix anything; verify `uv.lock` untouched (no new dependency) and REUSE clean (path-based rules at `REUSE.toml` lines 28–37 cover new `.py`/`tests/**`).
 
 ## Technology Validation
 
@@ -162,6 +178,6 @@ Ordered from fewest dependencies outward; each step is one TDD cycle (RED → GR
 - [x] Test planning complete (TDD)
 - [x] Implementation plan complete
 - [x] Technology validation complete
-- [ ] Preflight
+- [x] Preflight (PASS with advisories)
 - [ ] Build
 - [ ] QA

@@ -51,3 +51,18 @@ Milestone 2 of the `p1-data-backbone` L4 project: **Migration framework**. Build
     - Concurrency tests assert on outcomes (final version, typed error, no double-apply) with injectable timeouts/backoff to avoid timing flakiness.
 * Insights
     - The only genuine ambiguity was the concurrency design (now resolved); the rest of the milestone is standard forward-only-migration machinery. Confident it stays L3 (one cohesive subsystem, no independent workstreams) — to be confirmed at preflight per the milestone's L4-creep flag.
+
+## 2026-06-25 - PREFLIGHT - PASS (with advisories)
+
+* Work completed
+    - Validated the plan against codebase reality (TDD encoding, conventions, dependency impact, conflicts, completeness). Wrote `.preflight-status`.
+    - Confirmed REUSE is path-based (`REUSE.toml` lines 28-37 re-assert AGPL on `skills/**/*.py` + `tests/**`) → no inline SPDX headers for new modules/tests. Grep confirmed no pre-existing connection/migration/flock code (no conflict/duplication).
+    - **L4-creep check (milestone directive): PASS** — one cohesive subsystem (single `open()` chokepoint + runner + discovery + tests), no independent workstreams; stays Level 3, single sub-run.
+* Amendments made to `tasks.md`
+    - Hardened per-step TDD ordering: each of the 9 steps now carries explicit RED (write+fail named test) before GREEN (implement) — same fix class as m1's preflight.
+    - **Radical-innovation (in-scope, applied):** added a migrated-schema-equals-snapshot test (step 8) — a fresh `warehouse.open()` must yield a product-table schema byte-matching m1's `0001_snapshot.json`, reusing m1's introspection helper. Ties the framework to the locked DDL.
+* Advisories (non-blocking)
+    - `STOCKROOM_HOME` is a new env convention later milestones (m3/m4/dashboard) will adopt; chosen now, documented for visibility.
+    - A durable "two-layer warehouse lock" `systemPatterns.md` entry deferred to reflect.
+* Next
+    - 🧑‍💻 Operator-gated **Build** (`/niko-build`). Preflight PASS → Build requires operator initiation per the L3 workflow.
