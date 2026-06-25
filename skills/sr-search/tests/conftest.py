@@ -47,6 +47,19 @@ def schema_sql_path() -> Path:
 
 
 @pytest.fixture
+def warehouse_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """Point ``STOCKROOM_HOME`` at a fresh (not-yet-created) tmp directory.
+
+    Returns the intended home path *without* creating it, so tests can assert
+    the warehouse helper auto-creates it on first use. Isolates every test
+    from the operator's real ``~/.stockroom/`` warehouse.
+    """
+    home = tmp_path / "stockroom_home"
+    monkeypatch.setenv("STOCKROOM_HOME", str(home))
+    return home
+
+
+@pytest.fixture
 def tmp_migrations_dir(tmp_path: Path) -> Callable[..., Path]:
     """Return a factory that builds a synthetic migrations directory.
 
