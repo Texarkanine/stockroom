@@ -6,7 +6,7 @@ The engine lives inside ``skills/sr-search/`` but several tests
 relative-path arithmetic.
 """
 
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from pathlib import Path
 
 import duckdb
@@ -44,6 +44,43 @@ def schema_sql_path() -> Path:
     path = Path(stockroom.__file__).parent / "migrations" / "0001_initial_schema.sql"
     assert path.is_file(), f"migration SQL missing: {path}"
     return path
+
+
+@pytest.fixture
+def tmp_migrations_dir(tmp_path: Path) -> Callable[..., Path]:
+    """Return a factory that builds a synthetic migrations directory.
+
+    Given a ``{version: sql}`` mapping, the factory writes one
+    ``NNNN_m<version>.sql`` file per entry into a fresh ``migrations/``
+    subdirectory of the test's ``tmp_path`` and returns that directory — ready
+    to hand to :func:`stockroom.migrations.discover` /
+    :func:`stockroom.migrate.apply_pending`. Lets the ordering and atomicity
+    tests drive the runner with controlled, non-product migrations.
+    """
+
+    def _build(migrations: dict[int, str]) -> Path:
+        base = tmp_path / "migrations"
+        base.mkdir(exist_ok=True)
+        for version, sql in migrations.items():
+            (base / f"{version:04d}_m{version}.sql").write_text(sql, encoding="utf-8")
+        return base
+
+    return _build
+
+
+@pytest.fixture
+def mem_con() -> Iterator[duckdb.DuckDBPyConnection]:
+    """Yield a fresh, empty in-memory DuckDB connection.
+
+    Unlike ``schema_con`` (which pre-applies ``0001``), this gives the
+    migration-runner tests a blank database so they can exercise the runner's
+    own bootstrap path — including "no ``schema_version`` table yet".
+    """
+    con = duckdb.connect(":memory:")
+    try:
+        yield con
+    finally:
+        con.close()
 
 
 @pytest.fixture
