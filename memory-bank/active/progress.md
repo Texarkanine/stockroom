@@ -39,3 +39,15 @@ Milestone 2 of the `p1-data-backbone` L4 project: **Migration framework**. Build
     - **Q3 (consequence):** `schema_version` is a runner-owned `CREATE TABLE IF NOT EXISTS` bootstrap table, not in `0001` — keeps the locked `0001` contract + golden snapshot intact.
 * Insights
     - The right external lock complements DuckDB's guarantee instead of duplicating it: DuckDB gives data integrity (RW exclusive), flock gives orderly, herd-free, crash-safe *coordination* of would-be writers. An in-DB advisory lock can't do this because acquiring it already requires the exclusive RW connection it would be guarding.
+
+## 2026-06-25 - PLAN - COMPLETE
+
+* Work completed
+    - Finalized the L3 plan in `tasks.md`: proposed module layout (`migrations/` discovery, `migrate.py` runner, `warehouse.py` chokepoint), full TDD test plan (discovery, runner, warehouse-open, lock primitive, and a multi-process concurrency suite), 9 ordered implementation cycles, technology validation, and challenges/mitigations.
+    - Marked all plan status boxes complete except Preflight/Build/QA; updated `activeContext.md`.
+* Decisions made (in-plan, no further creative needed)
+    - Module split: discovery in `migrations/__init__.py`; runner in `migrate.py`; open/flock/backoff chokepoint in `warehouse.py`. Lazy gate lives inside `warehouse.open()` so no consumer can reach an un-migrated DB (and the future hook simply never calls it).
+    - No new dependency — `fcntl`/`os` stdlib + locked duckdb; `make lock-check` guards `uv.lock`.
+    - Concurrency tests assert on outcomes (final version, typed error, no double-apply) with injectable timeouts/backoff to avoid timing flakiness.
+* Insights
+    - The only genuine ambiguity was the concurrency design (now resolved); the rest of the milestone is standard forward-only-migration machinery. Confident it stays L3 (one cohesive subsystem, no independent workstreams) — to be confirmed at preflight per the milestone's L4-creep flag.

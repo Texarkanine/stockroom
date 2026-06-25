@@ -80,33 +80,88 @@ All resolved in the architecture creative phase — see `memory-bank/active/crea
 - [x] **Q2 — Reader wait/backoff semantics.** → **Resolved:** readers open RO under a bounded **exponential backoff + jitter** (initial ~50 ms, factor 2, per-attempt cap ~1 s, total ~30 s, all injectable) that catches DuckDB's migration-time `IOException("Could not set lock")`; on timeout raise a typed `WarehouseBusyError` (fail-soft-visible, never block forever). Writers/migrators use the **same** backoff to wait for readers to drain after taking the flock. Lazy gate is double-checked (re-read version after acquiring the flock).
 - [x] **Q3 — `schema_version` bootstrap placement.** → **Resolved:** a **runner-owned bootstrap table** created via `CREATE TABLE IF NOT EXISTS` *before* numbered migrations — **not** in `0001`. Keeps the locked `0001` data contract + golden snapshot untouched and lets the runner answer "has `0001` even been applied?". Records version number, filename, applied-at per migration.
 
+## Proposed Module Layout
+
+- **`src/stockroom/migrations/__init__.py`** (exists; docstring-only) → add lightweight, DB-free discovery: `migrations_dir() -> Path`, `discover() -> list[Migration]` parsing `NNNN_<slug>.sql` into `(version:int, path:Path)` sorted ascending. Update the "no runtime behavior" docstring line.
+- **`src/stockroom/migrate.py`** (NEW): the runner. `SCHEMA_VERSION_TABLE`, `ensure_schema_version_table(con)`, `current_version(con) -> int` (0 when the bookkeeping table is absent), `apply_pending(con) -> list[int]` (assumes a RW connection held by a flock-holding caller; applies each pending file in ascending order, each in its own transaction together with the `schema_version` insert).
+- **`src/stockroom/warehouse.py`** (NEW): the single chokepoint. `WarehouseBusyError`, `home_dir()`/`warehouse_path()`/`lock_path()` (resolve `~/.stockroom/`, override via `STOCKROOM_HOME` env for tests; create dir if absent), a `flock` context manager (`fcntl.flock`), `_open_with_backoff(...)` (catches DuckDB `IOException`, exponential backoff + jitter, raises `WarehouseBusyError` on timeout), and `open(read_only=False, *, migrate=True, **backoff)` wiring the double-checked lazy gate.
+
 ## Test Plan (TDD)
 
-> Pending creative resolution of Q1/Q2 — finalized in the post-creative plan pass.
+### Behaviors to Verify
+
+**Discovery (`tests/test_migrations_discovery.py`)**
+- `discover()` over the package dir → `[(1, …/0001_initial_schema.sql)]`, ascending by version.
+- Filenames not matching `NNNN_*.sql` → ignored; malformed numbers → not silently mis-ordered.
+
+**Runner (`tests/test_migrate_runner.py`)** — in-memory / tmp-file DuckDB
+- `current_version()` on a DB with no bookkeeping table → `0` (bootstrap path).
+- `apply_pending()` on a fresh DB → applies `0001`; the five product tables exist; `current_version()==1`; a `schema_version` row records version, filename, non-NULL `applied_at`.
+- Idempotency: a second `apply_pending()` → returns `[]`, version unchanged, no duplicate rows.
+- Ascending order: with a synthetic temp migrations dir (`0001`,`0002`), applied low→high; version becomes 2.
+- Atomicity: a deliberately-failing synthetic migration → its transaction rolls back; `current_version()` unchanged (no half-applied/half-recorded state).
+- Version ahead of code (DB version > max known) → no-op, no error (forward-compat read stance).
+
+**Warehouse open (`tests/test_warehouse_open.py`)**
+- `STOCKROOM_HOME=tmp` → `warehouse_path()` under tmp; the home dir is auto-created.
+- `open(read_only=False)` on a brand-new path → returns a ready connection, schema migrated, `current_version()==1`.
+- `open(read_only=True)` on an already-current warehouse → returns a working RO connection; no migration attempted.
+- Double-checked gate: when already current, no flock contention path is taken (migration runner not invoked).
+
+**Lock primitive (`tests/test_warehouse_lock.py`)**
+- `flock` ctx held → a non-blocking acquire from another fd/process fails; releases on exit.
+- (Crash auto-release is covered cross-process in the concurrency suite.)
+
+### Integration / Concurrency Tests (`tests/test_warehouse_concurrency.py`) — multi-process via `subprocess`
+
+- **Reader degradation:** child holds RW (simulated in-progress migration) for a bounded window; parent `open(read_only=True)` with a short timeout raises `WarehouseBusyError`; with a timeout exceeding the window it **succeeds after** the child releases.
+- **Writer drain:** child holds RO; parent `open(read_only=False)` backs off until the child closes, then succeeds (or raises `WarehouseBusyError` on a short timeout).
+- **Migrator serialization / no double-apply:** two child processes race to open-RW a behind warehouse; both end at the latest version, exactly one set of `schema_version` rows (flock serializes; double-checked gate prevents re-apply); the DB is intact.
+- **Typed terminal error:** timeout path raises `WarehouseBusyError`, not a raw `IOException`.
+
+### Test Infrastructure
+
+- Framework: `pytest`, configured in `skills/sr-search/pyproject.toml` (`pythonpath=["src"]`, `testpaths=["tests"]`).
+- Conventions: `from __future__ import annotations`, module docstrings, `test_*` names, fixtures in `conftest.py`.
+- New `conftest.py` fixtures: `warehouse_home` (tmp dir + `STOCKROOM_HOME` monkeypatch), `tmp_migrations_dir` (synthetic `NNNN_*.sql` for ordering/atomicity tests), and a small helper to spawn a worker subprocess in the engine env. The existing `schema_con`/`schema_sql_path` fixtures stay for the m1 schema-contract tests.
+- New test files: the five above. Concurrency workers run via `subprocess` using the same interpreter (`sys.executable`) with `src` on `PYTHONPATH`.
 
 ## Implementation Plan
 
-> Pending creative resolution of Q1/Q2 — finalized in the post-creative plan pass.
+Ordered from fewest dependencies outward; each step is one TDD cycle (RED → GREEN → refactor).
+
+1. **Migration discovery.** Files: `migrations/__init__.py`, `tests/test_migrations_discovery.py`. Add `migrations_dir()`/`discover()`/`Migration` and the filename parser; update docstring.
+2. **schema_version bootstrap + `current_version`.** Files: `migrate.py`, `tests/test_migrate_runner.py`. `ensure_schema_version_table` + `current_version` (0 when absent).
+3. **`apply_pending` runner.** Files: `migrate.py`, `tests/test_migrate_runner.py`. Per-migration transaction + `schema_version` insert; idempotent; ascending; atomic on failure; version-ahead no-op. Uses `tmp_migrations_dir` for synthetic multi/failing migrations.
+4. **Warehouse path resolution + `WarehouseBusyError`.** Files: `warehouse.py`, `tests/test_warehouse_open.py`, `conftest.py` (`warehouse_home`). `home_dir`/`warehouse_path`/`lock_path`, dir creation, `STOCKROOM_HOME` override.
+5. **flock ctx + backoff open helper.** Files: `warehouse.py`, `tests/test_warehouse_lock.py`. `_flock` ctx manager + `_open_with_backoff` (catch DuckDB `IOException`, exp backoff + jitter, injectable params, `WarehouseBusyError` on timeout).
+6. **`warehouse.open()` chokepoint (lazy gate).** Files: `warehouse.py`, `tests/test_warehouse_open.py`. Double-checked gate: RO version read → if behind, flock + re-check + RW `apply_pending` → reopen in requested mode; writers hold flock for the session.
+7. **Concurrency suite.** Files: `tests/test_warehouse_concurrency.py`, `conftest.py` (subprocess helper). Reader degradation, writer drain, migrator serialization, typed terminal error.
+8. **Docs + snapshot guard.** Files: `memory-bank/techContext.md` (point the Warehouse Schema note at the real runner/warehouse module), optionally a concise "two-layer warehouse lock" pattern in `memory-bank/systemPatterns.md` (defer wording to reflect if lighter). Confirm m1 `test_schema_0001.py` golden snapshot still green (schema_version is runner-created, absent from `0001`); add an explicit assertion only if the snapshot scope isn't already tight.
+9. **Green gate.** Run `make ci` (sync, lock-check, lint, format-check, test, reuse); fix anything; verify `uv.lock` untouched (no new dependency) and REUSE clean (path-based rules cover new `.py`).
 
 ## Technology Validation
 
-- DuckDB cross-process locking model verified (planning POC above) on the locked DuckDB 1.5.4 — no new dependency for that.
-- Lock-primitive dependency question folded into Q1; strong preference for **stdlib-only** (`fcntl`/`os`) so `uv.lock` is untouched. If any new dependency is proposed, it must pass `make lock` hermetically — validated in the creative/preflight pass.
+**No new technology — validation not required for dependencies** (the lock primitive is stdlib `fcntl`/`os`; DuckDB is already locked). `uv.lock` must remain unchanged — a guard at preflight/CI (`make lock-check`). Two planning POCs already de-risk the mechanism on the real engine version (DuckDB 1.5.4) and target filesystem (WSL-internal ext4):
+- DuckDB cross-process lock model: RW exclusive (excludes all opens), RO shared; migration-time conflict surfaces as `IOException("Could not set lock")` (pinned diagram above).
+- `fcntl.flock`: `LOCK_EX`/`LOCK_NB` semantics and **auto-release on process death** confirmed; `HOME` is on ext4, not a `/mnt` mount.
 
 ## Challenges & Mitigations
 
-> Finalized post-creative. Known so far:
-- **WSL/Windows-mount `flock` semantics** (if Q1 picks a file lock): `flock` on a `drvfs`/9p mount can be unreliable. Mitigation: the warehouse home is `~/.stockroom/` (WSL-internal ext4, not a Windows mount) — keep the lockfile there, and POC `flock` on that path during creative.
-- **Stale/crashed lock holder wedging the warehouse**: a crashed migrator must not permanently block. Mitigation: prefer an advisory lock that the OS releases on process death (`flock` auto-releases on fd close/exit) over a manually-deleted lockfile.
-- **Snapshot regression** from adding `schema_version`: verify the m1 golden-snapshot introspection deliberately scopes to the five product tables.
+- **WSL/Windows-mount `flock` unreliability** → warehouse home is `~/.stockroom/` on WSL-internal ext4 (POC-confirmed not under `/mnt`); the lockfile lives there. Documented as a constraint of the warehouse home.
+- **Stale/crashed lock holder wedging the warehouse** → `fcntl.flock` auto-releases on process death (POC-confirmed); no TTL/heartbeat/reaper needed.
+- **Flaky multi-process timing tests** → assert on *outcomes* (final version, error type, no double-apply), not exact timings; use generous + injectable timeouts and short injectable backoff; synchronize via the lock/sentinel files rather than `sleep` guesses.
+- **`fcntl` is POSIX-only (no native Windows)** → accepted; v1 runs under WSL/macOS (POSIX), Windows-native is out of v1. Primitive isolated behind `warehouse.open()` for a contained future swap.
+- **Snapshot regression** from `schema_version` → it is runner-created and absent from `0001`, so the m1 `schema_con`/snapshot path is untouched; verified in step 8.
+- **L4-creep (preflight directive)** → the deliverable is one cohesive subsystem (one chokepoint module + a runner + discovery) with no independent workstreams; confirm single-sub-run scope at preflight.
 
 ## Status
 
 - [x] Component analysis complete
 - [x] Open questions resolved
-- [ ] Test planning complete (TDD)
-- [ ] Implementation plan complete
-- [ ] Technology validation complete
+- [x] Test planning complete (TDD)
+- [x] Implementation plan complete
+- [x] Technology validation complete
 - [ ] Preflight
 - [ ] Build
 - [ ] QA
