@@ -83,3 +83,16 @@ Milestone 2 of the `p1-data-backbone` L4 project: **Migration framework**. Build
     - `make ci` green: sync, `lock --locked` (uv.lock **untouched** — stdlib `fcntl`/`os`, no new dependency), ruff lint + format-check clean, **89 tests passed** (26 new for m2), REUSE compliant (122/122). Concurrency suite stable across repeated runs.
 * Insights
     - The concurrency tests needed zero production fixes — the units (flock + DuckDB native lock + backoff) composed exactly as the creative phase predicted. DuckDB's transactional DDL made `apply_pending` atomicity a clean property to assert (the failing-migration rollback "just works").
+
+## 2026-06-25 - QA - PASS
+
+* Work completed
+    - Semantic review of the built subsystem against the plan + creative doc across KISS/DRY/YAGNI/Completeness/Regression/Integrity/Documentation. Wrote `.qa-validation-status`.
+    - Applied three trivial fixes (no substantive/blocking findings): (1) removed stale "(added in a later build step)" parentheticals from `warehouse.py`'s module docstring now that flock + backoff exist; (2) refactored `_migrate_under_lock` to reuse the `_flock` context manager instead of hand-rolling `os.open`+`flock`+release (DRY — `_flock` is now production-used, not test-only); (3) added `test_open_with_migrate_false_skips_the_gate` to cover the planned-but-untested `migrate=False` public branch.
+* Decisions made
+    - Kept `migrate=False` (it is in the plan's `open()` signature) and closed its coverage gap rather than pruning it.
+    - Left small test-local `_table_names`/`_PRODUCT_TABLES` repetition intentionally (keeps each test file standalone; not worth the coupling).
+* Verification
+    - `make ci` green: sync, `lock --locked` (uv.lock untouched), ruff lint + format-check clean, **90 tests passed**, REUSE compliant (122/122).
+* Insights
+    - The only debris from an incremental, step-numbered build was *documentation* drift (a docstring written for a future step) and a helper that landed before its production caller. Both are characteristic QA catches that lint/test can't see.

@@ -11,11 +11,10 @@ This module owns:
 * **Path resolution** — the harness-neutral warehouse home (``~/.stockroom/``,
   overridable via the ``STOCKROOM_HOME`` env var for tests), auto-created on
   first use; the warehouse file and the sidecar lock file beside it.
-* **The coordination lock** — an ``fcntl.flock`` single-writer/migrator token
-  (added in a later build step).
+* **The coordination lock** — an ``fcntl.flock`` single-writer/migrator token.
 * **Reader/writer backoff** — bounded retry around DuckDB's open-time
   "Could not set lock" ``IOException``, terminating in a typed
-  :class:`WarehouseBusyError` (added in a later build step).
+  :class:`WarehouseBusyError`.
 
 Concurrency design rationale lives in
 ``memory-bank/active/creative/creative-warehouse-concurrency-locking.md``.
@@ -185,17 +184,13 @@ def _migrate_under_lock(path: Path, target_version: int, **backoff) -> None:
     and the temporary read-write connection are both released before returning,
     so the subsequent reader open is lock-free.
     """
-    fd = os.open(lock_path(), os.O_CREAT | os.O_RDWR, 0o644)
-    fcntl.flock(fd, fcntl.LOCK_EX)
-    try:
+    with _flock(lock_path()):
         con = _open_with_backoff(path, read_only=False, **backoff)
         try:
             if current_version(con) < target_version:
                 apply_pending(con)
         finally:
             con.close()
-    finally:
-        _release_flock(fd)
 
 
 def open(  # noqa: A001 — the warehouse "open" verb is the intended public name

@@ -102,6 +102,24 @@ def test_open_reader_on_current_warehouse_does_not_invoke_runner(
         con.close()
 
 
+def test_open_with_migrate_false_skips_the_gate(
+    warehouse_home: Path, monkeypatch
+) -> None:
+    """``migrate=False`` opens the warehouse as-is, bypassing the runner entirely."""
+    warehouse.open(read_only=False).close()  # create + migrate first
+
+    def _must_not_run(*args, **kwargs):
+        raise AssertionError("the runner must not run when migrate=False")
+
+    monkeypatch.setattr(warehouse, "apply_pending", _must_not_run)
+
+    con = warehouse.open(read_only=True, migrate=False)
+    try:
+        assert con.execute("SELECT count(*) FROM sessions").fetchone()[0] == 0
+    finally:
+        con.close()
+
+
 # --- radical-innovation guard: the framework yields exactly the locked DDL --
 
 

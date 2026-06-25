@@ -181,7 +181,7 @@ Ordered from fewest dependencies outward. **Every step is strictly test-first**:
 - [x] Technology validation complete
 - [x] Preflight (PASS with advisories)
 - [x] Build (all 10 steps 0–9 complete; `make ci` green — 89 tests, `uv.lock` untouched, REUSE 122/122)
-- [ ] QA
+- [x] QA (PASS — 3 trivial fixes applied: stale docstring, `_flock` DRY, `migrate=False` test; `make ci` green, 90 tests)
 
 ## Build Notes
 

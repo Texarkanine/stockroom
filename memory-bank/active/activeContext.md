@@ -2,7 +2,7 @@
 
 ## Current Task: Migration framework (milestone 2 of `p1-data-backbone`, Level 3 sub-run)
 
-**Phase:** BUILD - COMPLETE (all steps 0–9 green; ready for QA)
+**Phase:** QA - COMPLETE (PASS; ready for Reflect)
 
 ## What Was Done
 
@@ -23,6 +23,10 @@
 
 - `make ci` green: sync, `lock --locked` (uv.lock **untouched** — stdlib-only, no new dependency), ruff lint + format-check clean, **89 tests passed** (26 new for m2), REUSE compliant (122/122). Concurrency suite stable across repeated runs.
 
+## QA Outcome
+
+- **PASS** with three trivial fixes (stale docstring removed; `_migrate_under_lock` refactored onto the `_flock` ctx manager for DRY; `migrate=False` branch test added). No substantive/blocking findings. `make ci` green — 90 tests, `uv.lock` untouched, REUSE 122/122.
+
 ## Next Step
 
-- 🐱 **QA** (`/niko-qa`) runs next automatically per the L3 workflow (Build PASS → QA).
+- 🐱 **Reflect** (`/niko-reflect`) runs next automatically per the L3 workflow (QA PASS → Reflect). Reflect → Archive is operator-gated.
