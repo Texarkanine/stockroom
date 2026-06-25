@@ -122,7 +122,7 @@ All resolved in the architecture creative phase — see `memory-bank/active/crea
 ### Test Infrastructure
 
 - Framework: `pytest`, configured in `skills/sr-search/pyproject.toml` (`pythonpath=["src"]`, `testpaths=["tests"]`).
-- Conventions: `from __future__ import annotations`, module docstrings, `test_*` names, fixtures in `conftest.py`.
+- Conventions: module docstrings, `test_*` names, fixtures in `conftest.py`. **No `from __future__ import annotations`** — operator decision (2026-06-25) to drop it project-wide: not needed on `>=3.11` (builtin generics since 3.9, `X | Y` since 3.10), not linter-enforced. New modules omit it; a precursor sweep (step 0) removes it from the existing ~6 files so the codebase stays uniform.
 - New `conftest.py` fixtures: `warehouse_home` (tmp dir + `STOCKROOM_HOME` monkeypatch), `tmp_migrations_dir` (synthetic `NNNN_*.sql` for ordering/atomicity tests), and a small helper to spawn a worker subprocess in the engine env. The existing `schema_con`/`schema_sql_path` fixtures stay for the m1 schema-contract tests.
 - New test files: the five above. Concurrency workers run via `subprocess` using the same interpreter (`sys.executable`) with `src` on `PYTHONPATH`.
 
@@ -130,6 +130,7 @@ All resolved in the architecture creative phase — see `memory-bank/active/crea
 
 Ordered from fewest dependencies outward. **Every step is strictly test-first**: write the named test(s) and watch them fail (RED) *before* writing any production code, then implement the minimum to pass (GREEN), then refactor. A step's production code must not be written before its RED tests exist.
 
+0. **Convention sweep (precursor, no behavior change).** Remove `from __future__ import annotations` from the existing ~6 files (`tests/conftest.py`, `tests/test_*.py`, `src/stockroom/__init__.py`, `src/stockroom/migrations/__init__.py`). New m2 modules are authored without it. Verify by running the suite green (pure refactor); commit separately before TDD cycles begin. No new files use the import.
 1. **Migration discovery.**
    - RED: `tests/test_migrations_discovery.py` — assert `discover()` returns `[(1, …/0001_initial_schema.sql)]` ascending and ignores non-`NNNN_*.sql` names; run, see it fail (no `discover`).
    - GREEN: add `migrations_dir()`, `Migration`, `discover()`, the filename parser to `migrations/__init__.py`; update the "no runtime behavior" docstring line.
@@ -164,10 +165,10 @@ Ordered from fewest dependencies outward. **Every step is strictly test-first**:
 
 ## Challenges & Mitigations
 
-- **WSL/Windows-mount `flock` unreliability** → warehouse home is `~/.stockroom/` on WSL-internal ext4 (POC-confirmed not under `/mnt`); the lockfile lives there. Documented as a constraint of the warehouse home.
+- **Portability boundary is the *filesystem*, not the OS.** `fcntl.flock` + DuckDB's own lock are correct on any single host with the warehouse on a **local POSIX filesystem** — vanilla Linux (ext4/xfs/btrfs/tmpfs/overlayfs), macOS (APFS), and Linux containers (incl. Docker Desktop's LinuxKit VM, where the container runs on real Linux). Every failure mode collapses to one cause: the DB/lockfile on a **network or VM-shared FS** (NFS, virtiofs/gRPC-FUSE/osxfs) — an anti-pattern for *any* embedded single-file DB (DuckDB-on-NFS is discouraged; DuckDB's own lock breaks there before ours). Mitigation: the default home `~/.stockroom/` is local on every target; the realistic footguns are a deliberate Docker-for-Mac host bind-mount of the warehouse dir, or a network-mounted `$HOME` (NFS). WSL2 ext4 is POC-confirmed (home is not under `/mnt`). m2 never touches torch, so the macOS torch-wheel uncertainty does not apply to the migration framework.
 - **Stale/crashed lock holder wedging the warehouse** → `fcntl.flock` auto-releases on process death (POC-confirmed); no TTL/heartbeat/reaper needed.
 - **Flaky multi-process timing tests** → assert on *outcomes* (final version, error type, no double-apply), not exact timings; use generous + injectable timeouts and short injectable backoff; synchronize via the lock/sentinel files rather than `sleep` guesses.
-- **`fcntl` is POSIX-only (no native Windows)** → accepted; v1 runs under WSL/macOS (POSIX), Windows-native is out of v1. Primitive isolated behind `warehouse.open()` for a contained future swap.
+- **`fcntl` is POSIX-only (no native Windows)** → on native Windows, `import fcntl` raises `ModuleNotFoundError` the first time `stockroom.warehouse` is imported — a hard, immediate, *loud* failure that happens **long before** any `flock()` call (and the bash-style skill launcher may fail even earlier). So flock's Windows-filesystem unreliability never comes into play and the warehouse is never silently corrupted: native Windows fails fast, not corrupt. Accepted — v1 runs under WSL/macOS (POSIX); Windows-native is out of v1. Primitive isolated behind `warehouse.open()` for a contained future swap (e.g. `msvcrt.locking`). *Operator decision (2026-06-25): leave the raw `ModuleNotFoundError` — it is already loud and Windows-native is out of v1 (no friendly-guard YAGNI).*
 - **Snapshot regression** from `schema_version` → it is runner-created and absent from `0001`, so the m1 `schema_con`/snapshot path is untouched; verified in step 8.
 - **L4-creep (preflight directive)** → the deliverable is one cohesive subsystem (one chokepoint module + a runner + discovery) with no independent workstreams; confirm single-sub-run scope at preflight.
 
