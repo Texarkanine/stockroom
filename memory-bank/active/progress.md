@@ -96,3 +96,16 @@ Milestone 2 of the `p1-data-backbone` L4 project: **Migration framework**. Build
     - `make ci` green: sync, `lock --locked` (uv.lock untouched), ruff lint + format-check clean, **90 tests passed**, REUSE compliant (122/122).
 * Insights
     - The only debris from an incremental, step-numbered build was *documentation* drift (a docstring written for a future step) and a helper that landed before its production caller. Both are characteristic QA catches that lint/test can't see.
+
+## 2026-06-25 - REFLECT - COMPLETE
+
+* Work completed
+    - Reviewed the full plan→creative→build→QA lifecycle; wrote `reflection/reflection-p1-data-backbone-m2-migration-framework.md`.
+    - Reconciled persistent files: added the **"Two-layer warehouse lock behind a single open() chokepoint"** pattern to `systemPatterns.md` (the entry the preflight advisory deferred to reflect). `techContext.md` was already repointed at the real modules during build step 8; `productContext.md` unaffected.
+* Decisions made
+    - Recorded the `weakref.finalize` flock-lifetime realization as a faithful (non-deviating) implementation of the creative doc's "flock held for the connection's lifetime," noting its GC-timing dependence as a resolved micro-unknown.
+* Insights
+    - **Process:** the two pre-plan POCs (DuckDB lock model; `fcntl` auto-release) are the single clearest cause of a first-try-green concurrency suite — spike load-bearing OS/DB primitives *before* designing on them. Incremental step-numbered builds predictably leave forward-looking docstrings + helpers-before-callers for QA to sweep.
+    - **Technical:** DuckDB transactional DDL makes migration atomicity free; `duckdb` connections reject `setattr` but support `weakref`; `flock` conflicts per open-file-description (basic exclusivity is unit-testable in-process, but the real conflict path needs a subprocess).
+* Next
+    - 🧑‍💻 Reflect is terminal. This is an L4 sub-run (milestone 2 of `p1-data-backbone`); run `/niko` to continue to the next milestone — the L4 capstone archive handles ephemeral cleanup. Awaiting operator.

@@ -2,7 +2,7 @@
 
 ## Current Task: Migration framework (milestone 2 of `p1-data-backbone`, Level 3 sub-run)
 
-**Phase:** QA - COMPLETE (PASS; ready for Reflect)
+**Phase:** REFLECT - COMPLETE (ready for operator-gated Archive)
 
 ## What Was Done
 
@@ -27,6 +27,11 @@
 
 - **PASS** with three trivial fixes (stale docstring removed; `_migrate_under_lock` refactored onto the `_flock` ctx manager for DRY; `migrate=False` branch test added). No substantive/blocking findings. `make ci` green — 90 tests, `uv.lock` untouched, REUSE 122/122.
 
+## Reflection Outcome
+
+- Wrote `reflection/reflection-p1-data-backbone-m2-migration-framework.md`. Plan was highly accurate (10-step order held exactly); creative Option A held with zero production changes in the concurrency suite. Key insights: the two planning POCs bought a first-try-green concurrency suite; DuckDB has transactional DDL (atomic `apply_pending` for free); `weakref.finalize` ties the flock to a `duckdb` connection's lifetime (no `setattr` on the C type).
+- Reconciled persistent files: added the deferred **"Two-layer warehouse lock behind a single open() chokepoint"** pattern to `systemPatterns.md`. `techContext.md` was already repointed during build; `productContext.md` unaffected.
+
 ## Next Step
 
-- 🐱 **Reflect** (`/niko-reflect`) runs next automatically per the L3 workflow (QA PASS → Reflect). Reflect → Archive is operator-gated.
+- 🧑‍💻 **Archive is operator-gated.** This is an L4 sub-run (milestone 2 of `p1-data-backbone`); milestone 1 was archived inline by the L4 capstone flow. Next: run `/niko` to continue to the next milestone (the capstone archive handles ephemeral cleanup). Reflect is a terminal node — stopping here for operator input.

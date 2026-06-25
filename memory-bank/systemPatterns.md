@@ -62,6 +62,16 @@ uv run --project "$APP_DIR" --no-sync python -m stockroom.<entrypoint> ...
 
 Intentional and load-bearing (mirrors `../slobac/REUSE.toml`). A root `REUSE.toml` + `LICENSES/*.txt`, enforced by `reuse lint` in CI/tests (not advisory). AGPLv3 is the **battle-tested explicit base on all code**; the experimental **PPL-S is layered over prompt-shaped content** (`skills/**` — `SKILL.md`, references), and code-shaped paths within `skills/**` (`*.py`, `*.sql`, `pyproject.toml`, `uv.lock`, `tests/**`) are **re-asserted AGPL**. Worst case prompts are still AGPL; best case they are PPL-S-clarified too. Relies on REUSE's last-matching-annotation-wins ordering: base AGPL → `skills/**` PPL-S → code-within-skills AGPL → vendored `.cursor/**` NOASSERTION.
 
+## Two-layer warehouse lock behind a single open() chokepoint
+
+Every consumer reaches the DuckDB warehouse through one function —
+[`stockroom.warehouse.open(read_only=…)`](../skills/sr-search/src/stockroom/warehouse.py) — never by connecting directly. The lazy migration gate lives *inside* `open()`, so no consumer can touch an un-migrated DB and the session-start hook stays migration-free simply by never calling it. Concurrency is two cooperating locks, each with one job:
+
+- **Coordination layer** — an `fcntl.flock(LOCK_EX)` on a sidecar `~/.stockroom/.warehouse.lock`. The single-writer/migrator token; a process takes it before opening DuckDB read-write. Readers never take it. OS auto-releases it on process death, so a crashed migrator can't wedge the warehouse (no TTL/reaper needed).
+- **Data layer** — DuckDB's own file lock (RW exclusive, RO shared). The real data-integrity guarantee; the flock exists only to approach it in an orderly, herd-free way.
+
+Readers are lock-free at the coordination layer: they open RO and degrade against the data layer via bounded exponential backoff that catches DuckDB's open-time `IOException("Could not set lock")` and terminates in a typed `WarehouseBusyError` rather than blocking forever. Writers hold the flock for the connection's lifetime (released via `weakref.finalize` — `duckdb` connections reject attribute assignment but support weakrefs). Migration bookkeeping (`schema_version`) is runner-owned and created *outside* `0001`, keeping the locked initial DDL + golden snapshot untouched. The primitive is POSIX-only (`fcntl`); v1 targets WSL/macOS, native Windows is out of scope (fails fast at `import fcntl`). Full rationale: `memory-bank/active/creative/creative-warehouse-concurrency-locking.md` (until archived).
+
 ## Clean-room boundary, with a build-time provenance procedure
 
 - **`claude-warehouse`** (third-party MIT): no code, no schema DDL, no unique ideas — ever. Claude Code support is reverse-engineered from the *harness's own* public on-disk format. Keeping `claude-warehouse` out of view is the *correct* posture, not a limitation.
