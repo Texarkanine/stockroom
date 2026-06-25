@@ -27,3 +27,15 @@ Milestone 2 of the `p1-data-backbone` L4 project: **Migration framework**. Build
     - Strong preference for a **stdlib-only** lock primitive so `uv.lock` stays untouched (locked-uv trust).
 * Insights
     - DuckDB already guarantees migration exclusivity via its own RW file lock; the framework's real work is coordinating would-be migrators (anti-thrash), making the writer wait for readers to drain, and translating the raw open-time `IOException` into bounded, graceful reader backoff. That correctness-under-parallel-access surface is exactly what the tech-brief says must be *tested*.
+
+## 2026-06-25 - CREATIVE (warehouse concurrency & migration-lock) - COMPLETE (high confidence)
+
+* Work completed
+    - Ran the architecture creative phase on the coupled Q1/Q2 concurrency question; wrote `creative/creative-warehouse-concurrency-locking.md` (requirements, 3 options, comparison table, decision, implementation notes).
+    - POC-verified `fcntl.flock` on WSL-internal ext4: `LOCK_EX`/`LOCK_NB` semantics and **auto-release on process death** (parent acquired 1.52s in after the holder exited without unlocking). Confirmed `HOME` is `/home/mobaxterm` (not a `/mnt` mount), so the lockfile dodges the Windows-mount `flock` hazard.
+* Decisions made (high confidence)
+    - **Q1:** `fcntl.flock(LOCK_EX)` sidecar lock = single-writer/migrator token; readers never take it. In-DB lock rejected as structurally circular; DuckDB-lock-only rejected as herd-prone.
+    - **Q2:** bounded exponential backoff + jitter catching DuckDB's open-time `IOException`; typed `WarehouseBusyError` on timeout; writers use the same backoff to wait for readers to drain; double-checked lazy gate.
+    - **Q3 (consequence):** `schema_version` is a runner-owned `CREATE TABLE IF NOT EXISTS` bootstrap table, not in `0001` — keeps the locked `0001` contract + golden snapshot intact.
+* Insights
+    - The right external lock complements DuckDB's guarantee instead of duplicating it: DuckDB gives data integrity (RW exclusive), flock gives orderly, herd-free, crash-safe *coordination* of would-be writers. An in-DB advisory lock can't do this because acquiring it already requires the exclusive RW connection it would be guarding.

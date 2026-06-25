@@ -74,9 +74,11 @@ stateDiagram-v2
 
 ## Open Questions
 
-- [ ] **Q1 — Migration lock primitive.** What cross-process primitive serializes would-be migrators and anchors reader backoff? Candidates: (a) an OS advisory **file lock** (`fcntl.flock` / `os.open` + `flock`) on a sidecar `~/.stockroom/.migrate.lock`; (b) an **in-DB advisory lock** (a `schema_version`/lock row updated under a DuckDB transaction); (c) lean **solely on DuckDB's own RW file lock** with no external primitive. Tradeoffs: cross-process correctness, WSL/Windows-mount filesystem `flock` reliability (the tech-brief repeatedly flags the Windows-mount hazard), staleness/crash-recovery (a dead holder must not wedge the warehouse forever), and avoiding thundering-herd on the DuckDB RW lock. Tech-brief explicitly defers this ("advisory lock table vs file lock on DuckDB") → **architecture creative**.
-- [ ] **Q2 — Reader wait/backoff semantics.** When a reader hits the migration `IOException` (or detects a migration in progress), how long does it wait, on what backoff curve, and what is the terminal behavior (raise a typed error vs block indefinitely)? Also: must a *writer* wait for readers to drain before taking the RW lock, and with what timeout? This is the "graceful reader degradation … under simulated parallel access" the tech-brief says must be *tested*. Coupled to Q1 → resolve in the same **architecture creative**.
-- [ ] **Q3 — `schema_version` bootstrap placement.** Does the version record live inside `0001` (making it part of the locked initial schema + snapshot) or is it a runner-owned bootstrap table created before numbered migrations apply? Lower ambiguity (standard patterns exist); will resolve in-plan unless the creative exploration reframes it. Constraint: must not silently break the `0001` golden snapshot.
+All resolved in the architecture creative phase — see `memory-bank/active/creative/creative-warehouse-concurrency-locking.md`.
+
+- [x] **Q1 — Migration lock primitive.** → **Resolved:** an OS advisory **`fcntl.flock(LOCK_EX)`** on a sidecar `~/.stockroom/.warehouse.lock`, taken by any process before opening DuckDB **read-write** (the single-writer/migrator token). Readers never take it. Chosen over an in-DB lock (structurally circular — needs a RW connection to coordinate RW access) and over DuckDB-lock-only (herd-prone). Crash-safe via OS auto-release on process death (POC-verified); lockfile on WSL-internal ext4 sidesteps the Windows-mount `flock` hazard. stdlib-only → `uv.lock` untouched.
+- [x] **Q2 — Reader wait/backoff semantics.** → **Resolved:** readers open RO under a bounded **exponential backoff + jitter** (initial ~50 ms, factor 2, per-attempt cap ~1 s, total ~30 s, all injectable) that catches DuckDB's migration-time `IOException("Could not set lock")`; on timeout raise a typed `WarehouseBusyError` (fail-soft-visible, never block forever). Writers/migrators use the **same** backoff to wait for readers to drain after taking the flock. Lazy gate is double-checked (re-read version after acquiring the flock).
+- [x] **Q3 — `schema_version` bootstrap placement.** → **Resolved:** a **runner-owned bootstrap table** created via `CREATE TABLE IF NOT EXISTS` *before* numbered migrations — **not** in `0001`. Keeps the locked `0001` data contract + golden snapshot untouched and lets the runner answer "has `0001` even been applied?". Records version number, filename, applied-at per migration.
 
 ## Test Plan (TDD)
 
@@ -101,7 +103,7 @@ stateDiagram-v2
 ## Status
 
 - [x] Component analysis complete
-- [ ] Open questions resolved
+- [x] Open questions resolved
 - [ ] Test planning complete (TDD)
 - [ ] Implementation plan complete
 - [ ] Technology validation complete
