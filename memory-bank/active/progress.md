@@ -66,3 +66,20 @@ Milestone 2 of the `p1-data-backbone` L4 project: **Migration framework**. Build
     - A durable "two-layer warehouse lock" `systemPatterns.md` entry deferred to reflect.
 * Next
     - 🧑‍💻 Operator-gated **Build** (`/niko-build`). Preflight PASS → Build requires operator initiation per the L3 workflow.
+
+## 2026-06-25 - BUILD - COMPLETE
+
+* Work completed
+    - Built the forward-only migration subsystem test-first through all 10 ordered plan steps (0–9), committing per step (RED→GREEN each).
+    - Step 0: convention sweep — removed `from __future__ import annotations` from the existing 8 engine/test files (pure refactor, suite green).
+    - `stockroom.migrations`: `Migration` NamedTuple, `migrations_dir()`, `discover()` (ascending `NNNN_*.sql`, numeric ordering, non-conforming names ignored).
+    - `stockroom.migrate`: runner-owned `schema_version` bootstrap table, `current_version()` (0 pre-bootstrap), forward-only `apply_pending()` (per-migration transaction wrapping DDL + bookkeeping insert → atomic rollback; idempotent; no-op when current/ahead).
+    - `stockroom.warehouse`: the single `open()` chokepoint — harness-neutral home (`STOCKROOM_HOME`-overridable, auto-created), `_flock` single-writer/migrator token, `_open_with_backoff` (bounded exp backoff + jitter → typed `WarehouseBusyError`; non-lock IOExceptions propagate), double-checked lazy gate (reader can become migrator; writer holds flock for the connection lifetime).
+    - Multi-process concurrency suite (`subprocess` workers): reader degradation (busy→`WarehouseBusyError`; succeeds after release), writer drain (typed error on short timeout), racing-migrator serialization (both reach v1, one bookkeeping row, schema intact). Validated the built chokepoint with no production changes.
+    - Radical-innovation guard: a freshly opened warehouse's product schema byte-matches m1's `0001_snapshot.json` (excluding runner-owned `schema_version`). Repointed `techContext.md` Warehouse Schema note at the real modules + two-layer lock.
+* Decisions made (build-time)
+    - **Writer flock lifetime via `weakref.finalize`**: `duckdb` connections reject `setattr` (C type, no `__dict__`) but support weakrefs, so the writer flock releases when the connection object is finalized — honoring the creative doc's "flock held for the connection's lifetime" without a wrapper type. No architectural deviation.
+* Verification
+    - `make ci` green: sync, `lock --locked` (uv.lock **untouched** — stdlib `fcntl`/`os`, no new dependency), ruff lint + format-check clean, **89 tests passed** (26 new for m2), REUSE compliant (122/122). Concurrency suite stable across repeated runs.
+* Insights
+    - The concurrency tests needed zero production fixes — the units (flock + DuckDB native lock + backoff) composed exactly as the creative phase predicted. DuckDB's transactional DDL made `apply_pending` atomicity a clean property to assert (the failing-migration rollback "just works").

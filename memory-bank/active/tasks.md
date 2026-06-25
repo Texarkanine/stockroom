@@ -180,5 +180,23 @@ Ordered from fewest dependencies outward. **Every step is strictly test-first**:
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Preflight (PASS with advisories)
-- [ ] Build
+- [x] Build (all 10 steps 0–9 complete; `make ci` green — 89 tests, `uv.lock` untouched, REUSE 122/122)
 - [ ] QA
+
+## Build Notes
+
+Built test-first through all ordered steps; one commit per step (step 0 the
+convention sweep; steps 2+3 the runner together; warehouse built up across
+steps 4→6). Final gate: `make ci` green — 89 passed (26 new for m2), lint +
+format clean, `uv.lock` byte-identical (stdlib-only `fcntl`/`os`), REUSE
+compliant.
+
+**Implementation decision worth flagging (creative-doc nuance):** the creative
+doc says writers hold the flock "for the connection's lifetime." A `duckdb`
+connection rejects attribute assignment (C type, no `__dict__`) but *does*
+support `weakref`, so the writer flock is released via `weakref.finalize(con,
+…)` when the connection object is finalized — honoring "held for the
+connection's lifetime" without a wrapper type or fragile API change. Readers
+remain lock-free at the coordination layer (degrade only against DuckDB's own
+lock). The concurrency suite validated the built chokepoint with **no**
+production changes needed.
