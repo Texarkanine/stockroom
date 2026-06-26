@@ -60,6 +60,8 @@ transcripts/
                                                 user tool_result (DROP — inputs only); assistant(end_turn); ai-title
       pathological-multi-model.jsonl            one conversation whose assistant turns use two different models
       pathological-huge-tool-input.jsonl        an assistant turn with a large tool_input (no-truncation case)
+      pathological-user-content-shapes.jsonl    user content as a list of text blocks (KEPT, joined) vs a list
+                                                of only tool_result (DROPPED); parent resolves past the drop
       robustness-record-types.jsonl             real-log diversity: mode/system/attachment/file-history-snapshot/
                                                 permission-mode/last-prompt/queue-operation (all IGNORED) interleaved
                                                 with a real user->assistant turn; custom-title + agent-name (FOLDED)
