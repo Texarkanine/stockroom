@@ -223,4 +223,4 @@ Ordered so each step builds on the last, starting with the dependency-free core 
 - [x] Technology validation complete
 - [x] Preflight — PASS (with advisories); golden ingest-snapshot added
 - [x] Build — COMPLETE (steps 1-11; `make ci` green: 152 passed, ruff clean, REUSE compliant)
-- [ ] QA
+- [x] QA — PASS (semantic review clean; `make ci` re-confirmed green: 152 passed, ruff clean, REUSE 142/142). One non-blocking advisory deferred to REFLECT: `_iter_records` duplicated across the two clean-room parsers (defensible under self-contained-parser design).
