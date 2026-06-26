@@ -34,27 +34,51 @@ The token-usage *numbers* are illustrative (small, plausible), not real.
 
 ## Layout
 
+The fixtures are laid out as two faithful **harness roots** — `cursor/` mirrors
+`~/.cursor/projects` and `claude/` mirrors `~/.claude/projects` — so the ingest
+discovery/parse/orchestrator tests scan them exactly as the live ingest scans
+the operator's real history. The encoded project-dir names decode to
+`/home/user/project` (Cursor drops the leading slash; Claude keeps it as a
+leading dash).
+
 ```
 transcripts/
-  cursor/                         bare role/message JSONL (metadata-sparse)
-    simple-conversation.jsonl       user -> assistant(text+tool) -> assistant; ends turn_ended
-    pathological-turn-ended-error.jsonl   a turn_ended abort with status:"error"
-    pathological-many-tools.jsonl   one assistant turn emitting many tool_use blocks; empty text block
-    with-subagent/
-      00000000-0000-4000-8000-000000000001.jsonl   parent: a Task tool_use (no child id — structural link only)
-      subagents/
-        00000000-0000-4000-8000-0000000000a1.jsonl  child: bare message list under the parent's subagents/ dir
-  claude/                         self-describing JSONL (rich per-record metadata)
-    simple-conversation.jsonl       mode singleton; user; assistant(thinking+text+tool_use+usage+model);
-                                    user tool_result (DROP — inputs only); assistant(end_turn); ai-title
-    pathological-multi-model.jsonl  one conversation whose assistant turns use two different models
-    pathological-huge-tool-input.jsonl  an assistant turn with a large tool_input (no-truncation case)
-    with-subagent/
-      22222222-2222-4222-8222-222222222222.jsonl   parent: assistant Task tool_use id toolu_task1
-      subagents/
-        agent-aaa111.jsonl          child: isSidechain=true, agentId; includes a tool_result (DROP)
-        agent-aaa111.meta.json      explicit parent link: toolUseId -> parent's tool_use.id
+  cursor/                                     root == ~/.cursor/projects
+    home-user-project/                          encoded project dir -> /home/user/project
+      agent-transcripts/
+        simple-conversation/simple-conversation.jsonl   conv dir holds <conv>.jsonl;
+                                                         user -> assistant(text+tool) -> assistant; ends turn_ended
+        pathological-many-tools/...jsonl        one assistant turn emitting many tool_use blocks; empty text block
+        pathological-turn-ended-error/...jsonl  a turn_ended abort with status:"error"
+        00000000-0000-4000-8000-000000000001/
+          00000000-0000-4000-8000-000000000001.jsonl   parent: a Task tool_use (no child id — structural link only)
+          subagents/
+            00000000-0000-4000-8000-0000000000a1.jsonl  child: bare message list under the parent's subagents/ dir
+  claude/                                     root == ~/.claude/projects
+    -home-user-project/                         encoded cwd dir -> /home/user/project
+      simple-conversation.jsonl                 mode singleton; user; assistant(thinking+text+tool_use+usage+model);
+                                                user tool_result (DROP — inputs only); assistant(end_turn); ai-title
+      pathological-multi-model.jsonl            one conversation whose assistant turns use two different models
+      pathological-huge-tool-input.jsonl        an assistant turn with a large tool_input (no-truncation case)
+      robustness-record-types.jsonl             real-log diversity: mode/system/attachment/file-history-snapshot/
+                                                permission-mode/last-prompt/queue-operation (all IGNORED) interleaved
+                                                with a real user->assistant turn; custom-title + agent-name (FOLDED)
+      22222222-2222-4222-8222-222222222222.jsonl        parent: assistant Task tool_use id toolu_task1
+      22222222-2222-4222-8222-222222222222/
+        subagents/
+          agent-aaa111.jsonl        child: isSidechain=true, agentId, agent-name record; includes a tool_result (DROP)
+          agent-aaa111.meta.json    explicit parent link {agentType, description, toolUseId}; toolUseId -> parent tool_use.id
 ```
+
+### Synthetic enrichment DB
+
+The optional Cursor `ai-code-tracking.db` model-enrichment source is **absent**
+on the operator's current machine. Its happy path is exercised against a
+synthetic, clean-room sqlite DB built at test time by the `ai_tracking_db`
+pytest fixture (in `tests/conftest.py`) from documented SQL — reviewable, with
+no opaque binary committed. It carries a single `conversation_model_usage`
+table keyed by Cursor conversation id, overlapping the committed Cursor
+transcript fixtures so the orchestrator can apply enrichment to real rows.
 
 ## What Each Pathological Case Guards
 
@@ -72,3 +96,8 @@ transcripts/
 - **subagents** — Claude links child→parent explicitly via
   `meta.json.toolUseId`; Cursor links only structurally (child file living in
   the parent's `subagents/` directory).
+- **record-type diversity** (`claude/robustness-record-types`) — real logs
+  interleave many record types the m1 fixtures omitted; the parser folds
+  metadata records (`custom-title`→title, `agent-name`→agent_name) and ignores
+  the rest (`system`, `attachment`, `file-history-snapshot`, `permission-mode`,
+  `last-prompt`, `queue-operation`) without crashing or emitting rows.

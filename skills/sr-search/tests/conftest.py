@@ -7,6 +7,7 @@ relative-path arithmetic.
 """
 
 import os
+import sqlite3
 import subprocess
 import sys
 import time
@@ -151,6 +152,89 @@ def mem_con() -> Iterator[duckdb.DuckDBPyConnection]:
         yield con
     finally:
         con.close()
+
+
+@pytest.fixture(scope="session")
+def transcripts_dir() -> Path:
+    """Return the committed native-format transcript fixtures directory.
+
+    These fixtures are laid out as two faithful *harness roots* (mirroring
+    ``~/.cursor/projects`` and ``~/.claude/projects`` on real disk) so the
+    ingest discovery/parse/orchestrator tests can scan them exactly as the
+    live ingest scans the operator's history.
+    """
+    path = Path(__file__).parent / "fixtures" / "transcripts"
+    assert path.is_dir(), f"transcript fixtures missing: {path}"
+    return path
+
+
+@pytest.fixture(scope="session")
+def cursor_root(transcripts_dir: Path) -> Path:
+    """Return the Cursor fixture root (stands in for ``~/.cursor/projects``).
+
+    Under it: ``<encoded-project>/agent-transcripts/<conv>/<conv>.jsonl`` with
+    subagents at ``<conv>/subagents/<child>.jsonl`` — the real Cursor layout.
+    """
+    return transcripts_dir / "cursor"
+
+
+@pytest.fixture(scope="session")
+def claude_root(transcripts_dir: Path) -> Path:
+    """Return the Claude fixture root (stands in for ``~/.claude/projects``).
+
+    Under it: ``<encoded-cwd>/<sessionId>.jsonl`` with subagents at
+    ``<encoded-cwd>/<sessionId>/subagents/agent-*.jsonl`` (+ ``.meta.json``) —
+    the real Claude Code layout.
+    """
+    return transcripts_dir / "claude"
+
+
+#: Synthetic Cursor ``ai-code-tracking.db`` schema (model-enrichment subset).
+#:
+#: The real DB is absent on the operator's current machine, so the enrichment
+#: happy-path is exercised against this synthetic, clean-room fixture built at
+#: test time from documented SQL (reviewable; no opaque binary committed). It
+#: is intentionally limited to the model-enrichment grain ingest consumes —
+#: attribution tables are out of scope for milestone 3.
+_AI_TRACKING_SCHEMA = (
+    "CREATE TABLE conversation_model_usage ("
+    "  conversation_id TEXT NOT NULL,"
+    "  model           TEXT NOT NULL"
+    ")"
+)
+
+#: Seed rows keyed by Cursor conversation id (== the session_id ingest derives
+#: from the conversation directory/file stem). Chosen to overlap the committed
+#: Cursor transcript fixtures so the orchestrator can apply enrichment.
+_AI_TRACKING_SEED = [
+    ("simple-conversation", "gpt-5"),
+    ("simple-conversation", "claude-4.6-sonnet"),
+    ("00000000-0000-4000-8000-000000000001", "gpt-5"),
+]
+
+
+@pytest.fixture
+def ai_tracking_db(tmp_path: Path) -> Path:
+    """Build a synthetic Cursor ``ai-code-tracking.db`` and return its path.
+
+    Materializes :data:`_AI_TRACKING_SCHEMA` seeded with
+    :data:`_AI_TRACKING_SEED` into a fresh sqlite file under ``tmp_path``. Lets
+    the enrichment tests exercise the present-DB read path deterministically
+    without committing an opaque binary or depending on the operator's machine.
+    """
+    db_path = tmp_path / "ai-code-tracking.db"
+    con = sqlite3.connect(db_path)
+    try:
+        con.execute(_AI_TRACKING_SCHEMA)
+        con.executemany(
+            "INSERT INTO conversation_model_usage (conversation_id, model) "
+            "VALUES (?, ?)",
+            _AI_TRACKING_SEED,
+        )
+        con.commit()
+    finally:
+        con.close()
+    return db_path
 
 
 @pytest.fixture
