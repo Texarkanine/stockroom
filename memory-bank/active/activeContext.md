@@ -2,9 +2,14 @@
 
 ## Current Task: Trace ingest (ETL) (milestone 3 of `p1-data-backbone`, Level 3 sub-run)
 
-**Phase:** PLAN - COMPLETE (open questions resolved in-plan; no creative phase)
+**Phase:** BUILD - COMPLETE (all 11 steps; `make ci` green)
 
 ## What Was Done
+
+- **BUILD:** implemented the whole `stockroom.ingest` package TDD, one RED→GREEN commit per step (1-11). Modules: `model` (harness-neutral dataclasses), clean-room parsers `cursor`/`claude`, `sources` (discovery + decode + watermark), `enrich` (optional `ai-code-tracking.db`, graceful no-op), `writer` (delete-then-insert + watermark upsert), `ingest()` orchestrator, and the `python -m stockroom.ingest` CLI. Reconstruction is locked by a byte-for-byte golden snapshot (`tests/fixtures/ingest/expected_rows.json`). Docs reconciled in `techContext.md`. Final gate: `make ci` = 152 passed, ruff clean, REUSE compliant.
+- Carried the durable clean-room-parser/golden-snapshot pattern entry to REFLECT (per preflight advisory).
+
+## What Was Done (plan/preflight)
 
 - Advanced the L4 project past milestone 2; classified milestone 3 (Trace ingest / ETL) as **Level 3** (Step 2a + complexity analysis).
 - **PLAN:** wrote the full L3 plan to `tasks.md` — component analysis (new `stockroom.ingest` package: `model`/`cursor`/`claude`/`sources`/`enrich`/`writer`/orchestrator/CLI), the source→schema mapping, the identity/reconstruction algorithm, a TDD test plan, a 11-step ordered implementation plan, and challenges.
@@ -18,4 +23,4 @@
 
 ## Next Step
 
-- PLAN → PREFLIGHT is autonomous. Run `/niko-preflight` to validate the plan; PREFLIGHT → BUILD is operator-gated (stop there).
+- BUILD → QA is autonomous. Run `/niko-qa` for the post-implementation semantic review (Level 3 gate before REFLECT).

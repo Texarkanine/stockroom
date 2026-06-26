@@ -46,3 +46,27 @@ Milestone 3 of the `p1-data-backbone` L4 project: **Trace ingest (ETL)**. Build 
     - Durable `systemPatterns.md` ETL/clean-room-parser entry deferred to reflect.
 * Next
     - 🧑‍💻 Operator-gated **Build** (`/niko-build`). Preflight PASS → Build requires operator initiation per the L3 workflow.
+
+## 2026-06-25 - BUILD - COMPLETE
+
+* Work completed
+    - Implemented the full `stockroom.ingest` package TDD, one RED→GREEN commit per plan step (1-11):
+        1. Fixtures corrected to faithful per-harness roots (encoded project dirs, real subagent nesting + trimmed `meta.json` + `agent-name`), added robustness/pathological Claude fixtures and a synthetic `ai-code-tracking.db` pytest builder; parser-agnostic fixture-integrity test.
+        2. `model.py` — `NormalizedSession`/`Message`/`ToolCall` dataclasses (schema-mapped, one-meaning-per-field).
+        3. `cursor.py` — linear clean-room parser (dense ordinals, previous-kept parents, `turn_ended` boundary, empty-text kept, subagent `agent_type` from parent Task input).
+        4. `claude.py` — allowlist parser: `parentUuid`-tree → nearest-kept-ancestor parents, per-message model/usage, `thinking`/`tool_result` drops, metadata folding (`ai-title`/`custom-title`/`agent-name`), ignore-unknown-types, subagent linkage via `meta.json`.
+        5. `sources.py` — discovery + encoded-project-dir decode + `(mtime, path)` watermark filter (env-overridable roots).
+        6. `enrich.py` — optional `ai-code-tracking.db` reader; graceful no-op when absent/malformed.
+        7. `writer.py` — idempotent delete-then-insert per `(harness, session_id)` + `_sync_state` upsert; untruncated JSON `tool_input`.
+        8. `ingest()` orchestrator wiring discover→parse→enrich→write→watermark; **golden ingest-output snapshot** (`expected_rows.json`) asserted byte-for-byte.
+        9. `python -m stockroom.ingest` CLI (`--full`, `--harness`) with subprocess smoke tests exercising the real `warehouse.open()` RW path.
+        10. Docs reconciled — `techContext.md` gained an Ingest (ETL) section pointing at the package, env conventions, golden snapshot, and fixtures.
+        11. Green gate: `make ci` = **152 passed**, ruff lint+format clean, REUSE compliant (path-based AGPL, 142/142).
+* Decisions / notes
+    - Claude timestamps normalized to naive UTC for the timezone-naive `TIMESTAMP` column.
+    - Golden snapshot normalizes machine-specific data (relative `source_path`, ISO datetimes, parsed `tool_input`, `_sync_state` excluded) so it tests reconstruction logic, not environment.
+* Deferred to REFLECT
+    - Durable `systemPatterns.md` entry for the clean-room-allowlist-parser + positional-identity + golden-ingest-snapshot pattern.
+    - Real-data enrichment validation (`ai-code-tracking.db` absent on this machine).
+* Next
+    - BUILD → QA (autonomous). Run `/niko-qa` for the L3 post-implementation semantic review.

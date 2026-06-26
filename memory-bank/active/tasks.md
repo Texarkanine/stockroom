@@ -222,5 +222,5 @@ Ordered so each step builds on the last, starting with the dependency-free core 
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Preflight — PASS (with advisories); golden ingest-snapshot added
-- [ ] Build (operator-gated)
+- [x] Build — COMPLETE (steps 1-11; `make ci` green: 152 passed, ruff clean, REUSE compliant)
 - [ ] QA
