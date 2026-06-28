@@ -5,11 +5,11 @@
 * Type: feature (new subsystem)
 
 Land the deferred VSS/HNSW vector index as forward-only migration `0003`, and a
-local `sentence-transformers` (`all-MiniLM-L6-v2`, 384-dim) embedding pipeline:
-chunk-and-mean-pool of long text into one `FLOAT[384]` vector per message,
-written through the `warehouse.open()` chokepoint, re-embedding only
-un-embedded/changed content. Runs on the Phase 0 torch contract; built test-first
-under torch-free CI.
+local `sentence-transformers` (`BAAI/bge-small-en-v1.5`, 384-dim, 512-token
+window) embedding pipeline: chunk long text and store **one `FLOAT[384]` vector
+per chunk** (per-chunk rows, max-sim dedup deferred to m2), written through the
+`warehouse.open()` chokepoint, re-embedding only un-embedded/changed content.
+Runs on the Phase 0 torch contract; built test-first under torch-free CI.
 
 ## Pinned Info
 
@@ -22,12 +22,11 @@ flowchart LR
         GATE["lazy migration gate<br/>apply_pending → 0003 CREATE INDEX HNSW"]
     end
     SEL["embed_pending(con, encoder, embed_model):<br/>select messages w/ text & no current-model vector"]
-    CHUNK["chunk_text(~800/~100)"]
-    ENC["Encoder.encode(chunks)<br/>(MiniLMEncoder: torch, cuda-or-cpu)"]
-    POOL["mean-pool → FLOAT[384]"]
-    WRITE["INSERT embeddings<br/>(harness,'messages',message_id,0,model,vector)"]
+    CHUNK["chunk_text(~1200/~150, ≤512-token window)"]
+    ENC["Encoder.encode(chunks)<br/>(BgeEncoder: bge-small-en-v1.5, torch, cuda-or-cpu)"]
+    WRITE["INSERT embeddings — one row PER CHUNK<br/>(harness,'messages',message_id,chunk_index,model,vector)"]
 
-    EV --> GATE --> SEL --> CHUNK --> ENC --> POOL --> WRITE
+    EV --> GATE --> SEL --> CHUNK --> ENC --> WRITE
 ```
 
 ### Torch-free testability seam
@@ -37,7 +36,7 @@ flowchart TD
     P["chunk_text() — pure stdlib"] -->|unit test, no torch| T1["test_embed_chunking"]
     FAKE["FakeEncoder (deterministic vectors)"] --> EP["embed_pending(con, encoder)"]
     EP -->|injected encoder, migrated_con, no torch| T2["test_embed_pipeline"]
-    REAL["MiniLMEncoder (lazy-imports sentence_transformers)"] -->|importorskip('torch')| T3["test_embed_real_model (skipped in CI)"]
+    REAL["BgeEncoder (lazy-imports sentence_transformers)"] -->|"importorskip('torch')"| T3["test_embed_real_model (skipped in CI)"]
 ```
 
 ## Component Analysis
@@ -46,7 +45,7 @@ flowchart TD
 
 - **`stockroom.migrations` (`0003_embeddings_hnsw_index.sql`)** — new file. Current: ships `0001`+`0002`. Change: add `0003` = `SET hnsw_enable_experimental_persistence=true; CREATE INDEX embeddings_vector_hnsw ON embeddings USING HNSW (vector) WITH (metric='cosine')`. No `INSTALL`/`LOAD` in the file (precondition: vss loaded by caller). Discovery is automatic.
 - **`stockroom.warehouse`** — add `ensure_vss(con)` (LOAD; INSTALL-if-missing; SET persistence). `open()` calls it on the migrator RW connection (before `apply_pending`) and on every returned connection. Boundary change (see below).
-- **`stockroom.embed` (new module)** — `chunk_text()`, `Encoder` protocol, `MiniLMEncoder` (lazy torch import, device select), `embed_text()`, `embed_pending(con, encoder, *, embed_model)`, `EMBED_MODEL`/`EMBED_DIM` constants, and a `__main__`-style CLI entry (`python -m stockroom.embed`) mirroring `stockroom.query`'s single-module shape.
+- **`stockroom.embed` (new module)** — `chunk_text()`, `Encoder` protocol, `BgeEncoder` (lazy torch import, `BAAI/bge-small-en-v1.5`, device select), `embed_chunks(text, encoder) -> list[vector]` (one 384-vector **per chunk**, no mean-pool), `embed_pending(con, encoder, *, embed_model)`, `EMBED_MODEL`/`EMBED_DIM` constants, and a `__main__`-style CLI entry (`python -m stockroom.embed`) mirroring `stockroom.query`'s single-module shape.
 - **`stockroom.ingest.writer`** — cascade-delete a session's `embeddings` in the existing per-`(harness, session_id)` delete-then-insert, so re-ingested (possibly changed) content is re-embedded next run.
 - **Test infra (ripple from new migration head = 3)** — `test_migrate_runner.py` (two `==2`/`[1,2]` assertions → `3`/`[1,2,3]`, + `ensure_vss` on real-chain applies), `test_warehouse_open.py` (three `current_version == 2` → `3`; repoint head snapshot), `conftest.py::migrated_con` (call `ensure_vss` before `apply_pending`), new `test_schema_0003.py` + `fixtures/schema/0003_snapshot.json`. `test_migrations_discovery.py` is robust (uses `len(found)` / `>= {1,2}`).
 
@@ -70,19 +69,21 @@ No truncation at rest (only bounded chunks reach the model; full `text` untouche
 ## Open Questions
 
 - [x] **VSS extension provisioning + where the HNSW index lives** → Resolved: thin `0003` migration (index only, no `INSTALL`/`LOAD`); chokepoint `ensure_vss(con)` loads `vss` + sets persistence on every open and centralizes the (provisioning-time) `INSTALL`; test fixtures call `ensure_vss` before applying the real chain. (`memory-bank/active/creative/creative-vss-provisioning-and-index.md`)
-- [x] **Embedding owner grain (what gets embedded)** → Resolved: **messages only** for m1 (`owner_table='messages'`, `owner_id=message_id`, `chunk_index=0`); `tool_calls` embedding deferred (additive later via the existing `owner_table` column). (`creative-embedding-owner-grain.md`)
+- [x] **Embedding owner grain (what gets embedded)** → Resolved: **messages only** for m1 (`owner_table='messages'`, `owner_id=message_id`); `tool_calls` embedding deferred (additive later via the existing `owner_table` column). (`creative-embedding-owner-grain.md`)
 - [x] **Incremental re-embed — new & changed detection** → Resolved: **A+B** — select owners lacking a current-`embed_model` vector (new + model change), plus session-grained embedding cascade-delete in `ingest.writer` (catches edits); no schema column added. (`creative-incremental-reembed-detection.md`)
+- [x] **Chunk storage grain (per-chunk vs mean-pool)** → Resolved (operator-directed, grounded in the measured corpus): **per-chunk rows** (`chunk_index = 0..N-1`), max-sim dedup-to-owner deferred to m2. Lossless, best long-tail recall, no schema change; supersedes the tech-brief's "one vector per source item." (`creative-chunk-storage-grain.md`)
+- [x] **Embedding model at 384-dim** → Resolved (operator-directed): **`BAAI/bge-small-en-v1.5`** over `all-MiniLM-L6-v2` — +9 MTEB retrieval, 512-token window (2×), no `trust_remote_code`, MIT; passages need no prefix (m1), query prefix optional (m2). Stays 384-dim ⇒ no schema/migration change. (`creative-embedding-model-selection.md`)
 
 ## Test Plan (TDD)
 
 ### Behaviors to Verify
 
 - **Chunking — short text** → single chunk equal to the input (no splitting under the size threshold).
-- **Chunking — long text** → multiple chunks of ~800 chars with ~100-char overlap; concatenated coverage is complete; deterministic.
+- **Chunking — long text** → multiple chunks of ~1200 chars with ~150-char overlap; concatenated coverage is complete; deterministic; chunk size stays within the model's 512-token window (verify against the tokenizer to avoid silent within-chunk truncation).
 - **Chunking — empty/whitespace** → no chunks (caller skips embedding).
-- **embed_text(text, encoder)** → returns a single length-384 vector = mean-pool of the per-chunk vectors (verified against a deterministic `FakeEncoder`).
-- **embed_pending — fresh DB** → embeds every non-empty message exactly once; writes `(harness,'messages',message_id,0,EMBED_MODEL,vector)` with a 384-vector; tool_calls untouched.
-- **embed_pending — incremental** → a second run with no new content is a no-op (no duplicate rows); after inserting a new message, only that message is embedded.
+- **embed_chunks(text, encoder)** → returns **one length-384 vector per chunk** (N chunks → N vectors), in chunk order (verified against a deterministic `FakeEncoder`).
+- **embed_pending — per-chunk rows** → a single-chunk message writes exactly 1 `embeddings` row (`chunk_index=0`); a multi-chunk message writes N rows with `chunk_index` ascending `0..N-1`, each a 384-vector; `owner_table='messages'`, `owner_id=message_id`; tool_calls untouched.
+- **embed_pending — incremental** → a second run with no new content is a no-op (no duplicate rows); after inserting a new message, only that message's chunks are embedded.
 - **embed_pending — skips empty text** → messages with NULL/whitespace `text` get no embedding row.
 - **embed_pending — model-aware** → a row embedded under a different `embed_model` does not satisfy the current model's selection (re-embedded under the current model).
 - **ingest.writer cascade** → re-ingesting (delete-then-insert) a `(harness, session_id)` removes that session's `embeddings`, so they re-embed next run; other sessions' embeddings are untouched.
@@ -90,7 +91,7 @@ No truncation at rest (only bounded chunks reach the model; full `text` untouche
 - **`0003` schema golden** → cumulative post-`0003` schema (columns + PKs + the new index) byte-matches `0003_snapshot.json`; `0001`/`0002` snapshots stay frozen.
 - **chokepoint `ensure_vss`** → an opened warehouse has `vss` loaded and can run a vector query / live-index delete; `open()` on a fresh path migrates to head version 3.
 - **Edge — KNN correctness** → with deterministic vectors, the nearest neighbor by cosine is the expected row (sanity that metric + index wiring are right).
-- **Real-model integration (torch-gated)** → `MiniLMEncoder` encodes a string to a 384-vector on CPU; `pytest.importorskip("torch")` so CI (torch-free) skips it.
+- **Real-model integration (torch-gated)** → `BgeEncoder` loads `BAAI/bge-small-en-v1.5` and encodes a string to a 384-vector on CPU; `pytest.importorskip("torch")` so CI (torch-free) skips it.
 
 ### Test Infrastructure
 
@@ -108,13 +109,13 @@ No truncation at rest (only bounded chunks reach the model; full `text` untouche
 
 Ordered, dependency-led (fewest deps first → chokepoint/migration ripple). **Each step is a strict TDD cycle**: write the named test(s) and run them to confirm they FAIL for the right reason, *then* write the production code to turn them green, *then* re-run the step's tests (and the suite at boundaries). Within every step the (a) test substep precedes the (b) implementation substep — never code-first.
 
-1. **Chunker** — `stockroom.embed.chunk_text(text, *, size=800, overlap=100)`.
+1. **Chunker** — `stockroom.embed.chunk_text(text, *, size=1200, overlap=150)`.
     - (a) Test first: add `tests/test_embed.py` with `test_chunk_short_text_single_chunk`, `test_chunk_long_text_overlapping`, `test_chunk_empty_is_no_chunks`; run → they fail (no `embed` module).
-    - (b) Implement: create `src/stockroom/embed.py` with the pure stdlib sliding-window chunker (+ `EMBED_MODEL`/`EMBED_DIM` constants and the `Encoder` protocol stub); run → green.
-2. **Pool + injected-encoder pipeline** — `embed_text()`, `embed_pending(con, encoder, *, embed_model=EMBED_MODEL)`.
-    - (a) Test first: extend `tests/test_embed.py` with a deterministic `FakeEncoder` and `test_embed_text_mean_pools_to_384`, `test_embed_pending_fresh_embeds_all_messages`, `test_embed_pending_incremental_is_no_op_then_embeds_new`, `test_embed_pending_skips_empty_text`, `test_embed_pending_is_model_aware`, `test_embed_pending_knn_nearest_is_expected` (against `migrated_con`); run → fail. **No torch.**
-    - (b) Implement: `embed_text` (chunk → encode → mean-pool → length-384) and `embed_pending` (selection query: non-empty `text`, `NOT EXISTS` current-model embedding; insert `(harness,'messages',message_id,0,model,vector)`); run → green.
-    - Creative ref: `creative-embedding-owner-grain.md`, `creative-incremental-reembed-detection.md` (selection A).
+    - (b) Implement: create `src/stockroom/embed.py` with the pure stdlib sliding-window chunker (+ `EMBED_MODEL`/`EMBED_DIM` constants and the `Encoder` protocol stub); run → green. (Chunk size is a conservative char proxy for the 512-token window; if step 6 finds dense-code chunks exceed 512 tokens, tighten to token-aware chunking.)
+2. **Per-chunk + injected-encoder pipeline** — `embed_chunks()`, `embed_pending(con, encoder, *, embed_model=EMBED_MODEL)`.
+    - (a) Test first: extend `tests/test_embed.py` with a deterministic `FakeEncoder` and `test_embed_chunks_one_vector_per_chunk`, `test_embed_pending_writes_per_chunk_rows` (single-chunk → 1 row; multi-chunk → N rows, `chunk_index` 0..N-1), `test_embed_pending_incremental_is_no_op_then_embeds_new`, `test_embed_pending_skips_empty_text`, `test_embed_pending_is_model_aware`, `test_embed_pending_knn_nearest_chunk_is_expected` (against `migrated_con`); run → fail. **No torch.**
+    - (b) Implement: `embed_chunks` (chunk → encode → **one 384-vector per chunk**, no pool) and `embed_pending` (selection: non-empty `text`, `NOT EXISTS` current-model embedding *for the owner*; insert one row per chunk `(harness,'messages',message_id,chunk_index,model,vector)`); run → green.
+    - Creative ref: `creative-embedding-owner-grain.md`, `creative-chunk-storage-grain.md`, `creative-incremental-reembed-detection.md` (selection A).
 3. **`ensure_vss` + `0003` migration** — index DDL + chokepoint extension loading.
     - (a) Test first: add `tests/test_schema_0003.py` — `test_0003_creates_hnsw_cosine_index` (assert via `duckdb_indexes()` after `ensure_vss`+chain), `test_0003_index_supports_knn_and_live_delete`, and `test_migrated_schema_matches_0003_snapshot` (cumulative columns+PKs **and** an index section, written with `STOCKROOM_UPDATE_SCHEMA_GOLDEN=1`); run → fail. Update `tests/conftest.py::migrated_con` to call `ensure_vss` before `apply_pending` (its absence makes step-3 tests fail until implemented).
     - (b) Implement: `src/stockroom/migrations/0003_embeddings_hnsw_index.sql` (thin: `SET …persistence=true; CREATE INDEX embeddings_vector_hnsw … USING HNSW (vector) WITH (metric='cosine')`); `ensure_vss(con)` in `warehouse.py` (LOAD → INSTALL-if-missing → LOAD → SET persistence) wired into `open()` (migrator RW conn + every returned conn); generate `tests/fixtures/schema/0003_snapshot.json`; run → green.
@@ -126,16 +127,16 @@ Ordered, dependency-led (fewest deps first → chokepoint/migration ripple). **E
     - (a) Test first: add to `tests/test_ingest_writer.py` `test_rewriting_session_cascades_embedding_delete` (seed a session + an embedding row, re-write the session, assert its embeddings are gone and another session's remain); run → fail.
     - (b) Implement: in the per-`(harness, session_id)` delete-then-insert, delete that session's `embeddings` owner rows; run → green.
     - Creative ref: `creative-incremental-reembed-detection.md` (B).
-6. **Real-model encoder + CLI** — `MiniLMEncoder`, `python -m stockroom.embed` (with `--full`).
-    - (a) Test first: add `test_minilm_encoder_encodes_to_384_on_cpu` to `tests/test_embed.py`, guarded by `pytest.importorskip("torch")` (skips in torch-free CI); run → skip (or fail where torch present).
-    - (b) Implement: `MiniLMEncoder` (lazy `sentence_transformers` import; `cuda` if `torch.cuda.is_available()` else `cpu`; `all-MiniLM-L6-v2`) and the `if __name__ == "__main__"` CLI (open RW via chokepoint, build encoder, `embed_pending`, print count; `--full` flag re-embeds all by ignoring existing rows — mirrors ingest `--full`); run → green/skip.
+6. **Real-model encoder + CLI** — `BgeEncoder`, `python -m stockroom.embed` (with `--full`).
+    - (a) Test first: add `test_bge_encoder_encodes_to_384_on_cpu` to `tests/test_embed.py`, guarded by `pytest.importorskip("torch")` (skips in torch-free CI); run → skip (or fail where torch present). Also assert the model loads **without** `trust_remote_code` and that an over-long chunk does not silently exceed 512 tokens (token-window guard).
+    - (b) Implement: `BgeEncoder` (lazy `sentence_transformers` import; `cuda` if `torch.cuda.is_available()` else `cpu`; `BAAI/bge-small-en-v1.5`; **no passage prefix**, no `trust_remote_code`) and the `if __name__ == "__main__"` CLI (open RW via chokepoint, build encoder, `embed_pending`, print count; `--full` flag re-embeds all by ignoring existing rows — mirrors ingest `--full`); run → green/skip.
 7. **Docs** — accrete memory-bank tech context + skill stub note (no test; reviewed prose).
     - Files: `memory-bank/techContext.md` (new "Embeddings (`stockroom.embed`)" + `0003`/VSS note), `memory-bank/systemPatterns.md` (VSS-loaded-at-chokepoint + embed-is-second-writer pattern), `skills/sr-search/SKILL.md` (embedding pipeline landed; search behavior still m2/m3).
     - Boundary gate: run `make ci` green before reflect.
 
 ## Technology Validation
 
-**No new dependency.** `duckdb`, `sentence-transformers`, `numpy` are already declared and locked (`pyproject.toml` / `uv.lock`); `vss` is a DuckDB *extension* provisioned at runtime, not a Python package — so **`uv.lock` is not touched** (locked-uv trust invariant preserved). Torch remains out of the lock (Phase 0 contract).
+**No new dependency.** `duckdb`, `sentence-transformers`, `numpy` are already declared and locked (`pyproject.toml` / `uv.lock`); `vss` is a DuckDB *extension* provisioned at runtime, not a Python package — so **`uv.lock` is not touched** (locked-uv trust invariant preserved). Torch remains out of the lock (Phase 0 contract). The chosen model, `BAAI/bge-small-en-v1.5`, is a `sentence_transformers` weight name resolved at runtime (a ~130 MB one-time HF download, cached like the torch/vss assets; loads with a **plain BERT arch — no `trust_remote_code`**) — also not a `uv.lock` entry. Model evaluation: see `creative-embedding-model-selection.md` (current MTEB: bge-small-en-v1.5 retrieval 51.68 vs MiniLM 42.35, both 384-dim; 512 vs 256 window).
 
 Spike (2026-06-28, DuckDB 1.5.4, this machine) validated the load-bearing primitives:
 - `INSTALL vss` + `LOAD vss` succeed; extension caches to `~/.duckdb/extensions/.../vss.duckdb_extension` (`REPOSITORY` install mode → confirms `INSTALL` is the network op, `LOAD` is offline-safe).
@@ -154,6 +155,8 @@ Spike (2026-06-28, DuckDB 1.5.4, this machine) validated the load-bearing primit
 - **Second writer to `embeddings`** → both ingest and embed go through `warehouse.open(read_only=False)`; the single-writer flock contract is preserved (no concurrent writers by construction).
 - **`ensure_vss` on a read-only connection** (preflight advisory) → `open(read_only=True)` will now call `ensure_vss`, which runs `LOAD vss` and `SET hnsw_enable_experimental_persistence=true` on an RO connection (m2 readers need `vss` for vector ops). `LOAD`/`SET` are session-level, not DB writes, so they should succeed on RO — but this must be **verified in step 3** (a `test_open_reader_has_vss_loaded` against `warehouse_home`). If a SET is rejected on RO, scope it to the writer/migrator path and have readers only `LOAD`.
 - **`ensure_vss` cost in concurrency/lock tests** → every `open()` now does a `LOAD` (and a one-time `INSTALL` per machine/runner). This adds startup cost but no behavior change; `test_warehouse_concurrency`/`test_warehouse_lock` should stay green. Watch for first-`INSTALL` latency in CI (cached after first).
+- **Per-chunk storage → m2 forward dependency** → storing N rows per message means `sr-semantic` (m2) must dedup chunk hits to one per `(harness, owner_table, owner_id)` by min cosine distance before ranking. Recorded in `creative-chunk-storage-grain.md`; m1 is unaffected (it only writes), but m2's plan must honor it. Row count rises ~2.2× (≈48 K vs 22 K) — trivial.
+- **Model weights provisioning** → `bge-small-en-v1.5` must be cached (one-time ~130 MB HF download) for offline runtime; `sr-initialize` (Phase 4) warm-up should fetch it (update the o9-torch smoke's model name). The torch-gated real-model test will trigger the download on a torch-equipped machine; CI skips it.
 
 ## Preflight — Radical Innovation (advisory, applied)
 
@@ -162,7 +165,7 @@ Folded a small, in-scope, precedent-aligned improvement into the plan: the embed
 ## Status
 
 - [x] Component analysis complete
-- [x] Open questions resolved (3/3, high confidence)
+- [x] Open questions resolved (5/5, high confidence — incl. operator-directed per-chunk storage + bge-small-en-v1.5 model)
 - [x] Test planning complete (TDD)
 - [x] Implementation plan complete
 - [x] Technology validation complete (no lock change; spike green)

@@ -56,3 +56,16 @@ migration-head ripple, and a mandatory load-bearing-primitive spike).
     - Recorded two build-time advisories: verify `ensure_vss`'s `SET`/`LOAD` succeed on read-only connections (m2 readers need vss); make the `0003` golden capture an index section since columns are unchanged from `0002`.
 * Insights
     - The lone blocking risk was plan *encoding*, not design — the spike + creative had already de-risked the substance, so preflight's value here was forcing per-unit test-first rigor before the build gate.
+
+## 2026-06-28 - PLAN AMENDMENT (operator-directed, at build gate) - COMPLETE
+
+* Work completed
+    - Queried the operator's real warehouse to ground two design questions: 27,282 messages (21,849 non-empty), median 167 chars, p95 4,811, **max 202,255**; ~75% single-chunk, 25% multi-chunk, ~48 K chunks total.
+    - Added two creative docs and amended the plan per operator decisions: **per-chunk storage** (`creative-chunk-storage-grain.md`) and **`BAAI/bge-small-en-v1.5`** as the embedding model (`creative-embedding-model-selection.md`, grounded in current 2026 MTEB).
+* Decisions made
+    - **Per-chunk rows** (`chunk_index = 0..N-1`), max-sim dedup deferred to m2 — lossless, best long-tail recall, no schema change; supersedes the tech-brief's "one vector per source item." Updated `creative-embedding-owner-grain.md` accordingly.
+    - **Model = bge-small-en-v1.5** over all-MiniLM-L6-v2: same 384-dim (no migration), +9 MTEB retrieval, 512-token window (2×, helps the long tail), no `trust_remote_code`, MIT; m1 passages need no prefix.
+    - Chunk size raised to ~1200/150 (conservative proxy for the 512-token window); flagged token-aware tightening if dense-code chunks exceed 512 tokens.
+* Insights
+    - The "why 384?" question surfaced the real lever: 384 is a *model property*, not a knob; staying at 384 preserves model-upgrade freedom without a migration. And "are all chunks embedded?" correctly exposed mean-pool's dilution on the long tail — per-chunk storage is strictly more information (you can pool at read time; never the reverse).
+    - The amendment changed *design*, not scope or complexity (still L3, still messages-only, still the same components) — so it re-validates against preflight without a re-architecture.

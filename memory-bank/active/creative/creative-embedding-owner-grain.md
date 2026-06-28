@@ -13,7 +13,7 @@ Constraints from the schema (`0001`):
 - `messages` PK is `(harness, session_id, message_id)`; `message_id = '{session_id}#{ordinal}'` is the uniform identity. Clean single key.
 - `tool_calls` PK is `(harness, session_id, message_id, ordinal)` — `message_id` **alone is ambiguous** (multiple tool calls per turn).
 - `embeddings.owner_table` is `'messages' | 'tool_calls'` — the table already anticipates both kinds.
-- Chunk-and-mean-pool yields **one vector per owner** (tech brief), i.e. `chunk_index = 0`.
+- The *per-owner storage grain* (mean-pool vs per-chunk) is decided separately in `creative-chunk-storage-grain.md` (resolved: **per-chunk rows**). This doc only fixes *which owner kind* is embedded.
 
 ## Components
 
@@ -46,5 +46,5 @@ Key insight: the schema was deliberately built to *allow* both grains precisely 
 ## Implementation Notes
 
 - Embed `messages` rows where `text IS NOT NULL AND length(trim(text)) > 0` (empty/whitespace turns produce no vector).
-- Write one row per message: `(harness, 'messages', message_id, 0, embed_model, vector)`.
+- Write rows as `(harness, 'messages', message_id, chunk_index, embed_model, vector)` — **per-chunk**, `chunk_index` ascending from 0 (see `creative-chunk-storage-grain.md`).
 - Selection and writer must be written so adding `tool_calls` later is additive (don't hardcode assumptions that there is only ever one `owner_table`).
