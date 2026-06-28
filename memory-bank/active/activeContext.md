@@ -2,14 +2,14 @@
 
 **Current Task:** Phase 2 · Milestone 1 — Embedding pipeline (`p2-embeddings-search`, sub-run m1)
 
-**Phase:** `COMPLEXITY-ANALYSIS - COMPLETE`
+**Phase:** `PLAN - COMPLETE` (creative resolved 3/3; ready for preflight)
 
 ## What Was Done
 
-Classified the first unchecked milestone (m1 — embedding pipeline) as **Level 3 (Intermediate Feature)**. It is a complete feature spanning multiple cooperating components (the `0003` VSS/HNSW migration, the embedder, chunker/mean-pool, the embed writer, and incremental selection) whose system-level architecture is already settled by the Phase 2 L4 plan, leaving design unknowns (VSS provisioning, index persistence, `owner_id` grain) for a creative/spike phase — the L3 hallmark. Consistent with the preflight bound (each milestone ≤ L3).
+Classified m1 (embedding pipeline) as **Level 3**, ran the mandated load-bearing-primitive spike (vss/HNSW/persistence all green; CPU encode already proven in `o9-torch`), resolved all 3 open questions in the creative phase (high confidence — `memory-bank/active/creative/`), and wrote the full L3 implementation plan to `tasks.md`.
 
-Wrote a fresh sub-run `progress.md` (Complexity: Level 3) and a `tasks.md` stub; preserved the L4 `projectbrief.md` and `milestones.md`.
+Key decisions: thin `0003` index migration + chokepoint `ensure_vss` (keeps network `INSTALL` off the runtime hot path); **messages-only** embedding for m1; incremental selection (new + current-model) **plus** a session-grained embedding cascade-delete in `ingest.writer` (changed detection, no schema column). No `uv.lock` change; CI stays torch-free via a pure chunker + injected `FakeEncoder`, with the real model `importorskip`-gated.
 
 ## Next Step
 
-Load the **Level 3 workflow** (`.cursor/skills/shared/niko/references/level3/level3-workflow.md`) and execute its next phase (PLAN). The binding preflight findings in `milestones.md` are inputs to the m1 plan/creative phase, including the mandatory load-bearing-primitive spike.
+**Preflight** (`niko-preflight` skill) to validate the plan against codebase reality. On PASS, STOP at the manual gate — the operator reviews and runs `/niko-build` to begin implementation.
