@@ -65,3 +65,16 @@ Milestone 4 of the `p1-data-backbone` L4 project: **Workspace identity vs. real 
     - `0002` is the first real schema-changing, data-preserving migration through the m2 framework — the Phase-1 "Done When" proof, dogfooded.
 * Next
     - QA (`/niko-qa`) gates REFLECT for L2.
+
+## 2026-06-28 - QA - PASS
+
+* Work completed
+    - Semantic review of the build against the `tasks.md` plan across all seven QA constraints (KISS / DRY / YAGNI / Completeness / Regression / Integrity / Documentation). All PASS; no trivial fixes needed (code shipped clean).
+    - Ran the step-8 residual sweep: every surviving `project_path` reference is intentional (the `0002` migration that drops it, `test_schema_0002`'s pre-migration seed row, and the frozen `0001` DDL + snapshot). No production ingest reference to `project_path`/`decode_project_dir` remains.
+    - Wrote `.qa-validation-status` (PASS) and checked off QA in `tasks.md`.
+* Decisions made
+    - `resolve_cwd`'s `record_cwd` short-circuit is **not** a YAGNI violation: it is an explicit plan behavior with a dedicated `test_ingest_paths` case (the resolver's harness-neutral contract), even though the Claude path currently sets `cwd` in the parser and bypasses it.
+* Insights
+    - The mechanical gate (`make ci`) and the semantic gate agree: the change integrates as a natural extension (forward migration + honest columns), not an accretion layer. The only carry-forward is the REFLECT note on preflight's missed migration-count assumption.
+* Next
+    - QA PASS → REFLECT (autonomous) per the L2 workflow.

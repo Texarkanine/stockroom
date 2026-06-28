@@ -104,4 +104,4 @@ Each step is one RED→GREEN TDD cycle (failing test(s) first, then implementati
 - [x] Technology validation complete
 - [x] Preflight — PASS (no blocking findings; round-trip no-fabrication invariant added; parser-docstring sweep named)
 - [x] Build — COMPLETE (green `make ci`: 168 passed; `0002` + writer rename landed as one atomic commit due to migration-head coupling)
-- [ ] QA
+- [x] QA — PASS (semantic review clean; no rework; `.qa-validation-status` written)
