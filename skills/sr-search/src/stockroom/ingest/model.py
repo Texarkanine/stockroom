@@ -73,7 +73,12 @@ class NormalizedSession:
 
     ``harness`` and ``session_id`` form the destination ``(harness, session_id)``
     primary-key grain; ``source_path`` is the absolute path to the ``.jsonl``
-    (provenance + the watermark key). Subagent sessions set ``is_subagent`` and
+    (provenance + the watermark key). Workspace identity is two single-meaning
+    fields: ``project_id`` is the harness's encoded project-dir slug stored
+    *verbatim* (always present, the grouping key), while ``cwd`` is the real
+    project-root path — best-effort and honestly ``None`` when it cannot be
+    recovered (never fabricated from the lossy slug). Subagent sessions set
+    ``is_subagent`` and
     their parent-linkage fields (``parent_session_id`` and, for Claude,
     ``spawning_tool_use_id``). Grain-specific fields follow the schema's
     no-faking rule: ``models`` (session-grain, Cursor via enrichment) vs each
@@ -85,7 +90,7 @@ class NormalizedSession:
     session_id: str
     source_path: str
     is_subagent: bool = False
-    project_path: str | None = None
+    project_id: str | None = None
     cwd: str | None = None
     git_branch: str | None = None
     parent_session_id: str | None = None

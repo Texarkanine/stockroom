@@ -23,9 +23,10 @@ Parsing rules (the milestone-1 schema contract, Cursor side):
 
 This module depends only on :mod:`stockroom.ingest.model` and the stdlib — it
 performs no I/O beyond reading the file handed to it, so it is pure and
-unit-testable. ``project_path``/``cwd`` are not in the file (they are decoded
-from the directory layout by :mod:`stockroom.ingest.sources`) and are left
-unset here.
+unit-testable. ``project_id`` and ``cwd`` are not in the file: the orchestrator
+stamps ``project_id`` (the verbatim project-dir slug from discovery) and
+resolves ``cwd`` by re-encode-and-match over in-band paths
+(:mod:`stockroom.ingest.paths`); both are left unset here.
 """
 
 import json

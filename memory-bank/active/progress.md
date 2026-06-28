@@ -46,3 +46,22 @@ Milestone 4 of the `p1-data-backbone` L4 project: **Workspace identity vs. real 
     - Durable `systemPatterns.md` cwd-recovery pattern entry deferred to REFLECT.
 * Next
     - PREFLIGHT PASS → BUILD is autonomous (solid edge) in the L2 workflow. Proceed to `/niko-build`.
+
+## 2026-06-28 - BUILD - COMPLETE
+
+* Work completed (TDD, RED→GREEN throughout; final `make ci` green: 168 passed, ruff clean, `uv.lock` locked, REUSE 152/152)
+    - **`paths.py`** resolver + `test_ingest_paths.py` (committed as the first step): `encode`, harness-aware `encode_for`, `resolve_cwd(harness, slug, *, record_cwd, texts)` (in-band absolute-path regex + ancestor walk; FS-free).
+    - **`0002_workspace_identity.sql`** (`ALTER TABLE sessions ADD COLUMN project_id TEXT; DROP COLUMN project_path`), `test_schema_0002.py` (data-preserving + column shape + cumulative golden), `0002_snapshot.json`, and the `migrated_con` fixture.
+    - **Atomic source rename** `model`/`sources`/`writer`/orchestrator: verbatim `project_id = project_dir.name`; Cursor `cwd = resolve_cwd("cursor", slug, texts=<message text + tool inputs>)`; Claude keeps the authoritative record `cwd`; subagents inherit parent `project_id`+`cwd`; deleted `decode_project_dir`; refreshed `cursor.py`/`claude.py` docstrings.
+    - **Fixtures + golden:** `recover-inband` (hyphen-leaf `/home/user/lite-rpg` recovery) and `ambiguous-nopath` (honest NULL); regenerated `expected_rows.json`; updated transcripts README + `techContext.md`.
+    - **Framework tests** moved to head version 2 (migrate_runner, migrations_discovery, warehouse_open, warehouse_concurrency).
+* Decisions made
+    - **Single atomic commit, not per-step** (see surprise below): every intermediate commit must stay green, and the `0002`↔writer-rename coupling made the planned per-step boundaries non-green. Approach and TDD discipline unchanged.
+    - **Existing Cursor sessions resolve `cwd = NULL`**: their fixtures use only relative paths, so nothing re-encodes to the slug — the honest, correct outcome (the round-trip invariant holds vacuously for NULL).
+* Surprise (recoverable)
+    - Adding `0002` advanced the migration head to v2, breaking framework tests that assumed "only 0001 / version 1" **and** the CLI integration tests (real warehouse at v2 + un-renamed writer → `project_path` BinderError). Preflight's dependency sweep enumerated `project_path` consumers but not migration-count/version assumptions. Diagnosed as recoverable (mechanical "a second migration now exists" updates + the already-planned rename), so folded into one green change. → REFLECT note.
+* Insights
+    - The no-fabrication round-trip invariant (`encode_for(harness, cwd) == project_id` for every non-NULL `cwd`) now holds corpus-wide as a general property test — the structural guarantee that a fabricated path cannot be stored.
+    - `0002` is the first real schema-changing, data-preserving migration through the m2 framework — the Phase-1 "Done When" proof, dogfooded.
+* Next
+    - QA (`/niko-qa`) gates REFLECT for L2.

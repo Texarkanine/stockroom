@@ -55,7 +55,7 @@ def test_reader_succeeds_after_migration_releases(
 
     con = warehouse.open(read_only=True, timeout=15.0, initial_delay=0.02)
     try:
-        assert migrate.current_version(con) == 1
+        assert migrate.current_version(con) == 2
     finally:
         con.close()
 
@@ -85,11 +85,12 @@ def test_racing_migrators_serialize_without_double_apply(
     spawn_worker: Callable[..., subprocess.Popen],
     tmp_path: Path,
 ) -> None:
-    """Two processes racing to migrate a fresh warehouse both land at v1, once.
+    """Two processes racing to migrate a fresh warehouse both land at head, once.
 
     The flock serializes the would-be migrators and the double-checked gate
-    stops the loser from re-applying: both observe version 1, exactly one
-    bookkeeping row exists, and the product schema is intact.
+    stops the loser from re-applying: both observe the head version, exactly one
+    bookkeeping row exists *per applied migration* (no double-apply), and the
+    product schema is intact.
     """
     out_a = tmp_path / "a.txt"
     out_b = tmp_path / "b.txt"
@@ -98,15 +99,15 @@ def test_racing_migrators_serialize_without_double_apply(
     assert proc_a.wait(timeout=30) == 0
     assert proc_b.wait(timeout=30) == 0
 
-    assert out_a.read_text(encoding="utf-8") == "1"
-    assert out_b.read_text(encoding="utf-8") == "1"
+    assert out_a.read_text(encoding="utf-8") == "2"
+    assert out_b.read_text(encoding="utf-8") == "2"
 
     con = warehouse.open(read_only=True)
     try:
         row_count = con.execute(
             f"SELECT count(*) FROM {migrate.SCHEMA_VERSION_TABLE}"
         ).fetchone()[0]
-        assert row_count == 1
+        assert row_count == 2
         tables = {
             r[0]
             for r in con.execute(

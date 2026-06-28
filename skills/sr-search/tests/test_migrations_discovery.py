@@ -18,9 +18,17 @@ def test_migrations_dir_holds_packaged_0001(schema_sql_path: Path) -> None:
     assert (migrations_dir() / "0001_initial_schema.sql").is_file()
 
 
-def test_discover_returns_0001_ascending(schema_sql_path: Path) -> None:
-    """Default discovery over the package dir yields exactly migration 1."""
-    assert discover() == [Migration(1, schema_sql_path)]
+def test_discover_returns_packaged_migrations_ascending(schema_sql_path: Path) -> None:
+    """Default discovery over the package dir yields the shipped chain in order.
+
+    ``0001`` is discovered in place (asserted by exact path); the chain then
+    continues with ``0002`` (workspace identity) and any later migration, in
+    ascending version order with no gaps from 1.
+    """
+    found = discover()
+    assert found[0] == Migration(1, schema_sql_path)
+    assert [m.version for m in found] == list(range(1, len(found) + 1))
+    assert {m.version for m in found} >= {1, 2}
 
 
 def test_discover_ignores_non_conforming_filenames(tmp_path: Path) -> None:

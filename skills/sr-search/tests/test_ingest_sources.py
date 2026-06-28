@@ -1,11 +1,11 @@
 """Discovery / path-resolution / watermark tests for ``stockroom.ingest.sources``.
 
 Discovery walks each harness's real on-disk layout under an (env-overridable)
-root, enumerating ``(session_file, [subagent_files], project_path, mtime)`` so
+root, enumerating ``(session_file, [subagent_files], project_id, mtime)`` so
 the orchestrator can parse and the watermark can skip unchanged files. The
-encoded project-dir name decodes (lossily) to a plausible absolute path. The
-incremental watermark keeps only files newer than ``(last_mtime, last_path)``;
-``--full`` ignores it.
+encoded project-dir name is carried *verbatim* as ``project_id`` (no decode —
+the real ``cwd`` is recovered downstream). The incremental watermark keeps only
+files newer than ``(last_mtime, last_path)``; ``--full`` ignores it.
 """
 
 from datetime import datetime
@@ -32,35 +32,25 @@ def test_default_roots_when_env_absent(monkeypatch: pytest.MonkeyPatch) -> None:
     assert sources.claude_root() == Path.home() / ".claude" / "projects"
 
 
-def test_decode_project_dir() -> None:
-    """Encoded project-dir names decode to plausible absolute paths.
-
-    Cursor drops the leading slash in its encoding; Claude keeps it as a leading
-    dash. Both map interior dashes to slashes (lossy, best-effort).
-    """
-    assert sources.decode_project_dir("home-user-project") == "/home/user/project"
-    assert sources.decode_project_dir("-home-user-project") == "/home/user/project"
-    assert (
-        sources.decode_project_dir("-mnt-v-users-Austin-git-app")
-        == "/mnt/v/users/Austin/git/app"
-    )
-
-
 def test_discover_cursor_enumerates_sessions_and_subagents(cursor_root: Path) -> None:
     """Cursor discovery finds every ``<conv>/<conv>.jsonl`` plus its subagents,
-    decoding the project path and stamping each with its file mtime.
+    carrying the verbatim project-dir slug and stamping each with its file mtime.
     """
     found = sources.discover("cursor", cursor_root)
     by_stem = {d.session_path.stem: d for d in found}
-    assert set(by_stem) == {
-        "simple-conversation",
-        "pathological-many-tools",
-        "pathological-turn-ended-error",
-        "00000000-0000-4000-8000-000000000001",
+    # The project-id of each session is the *verbatim* slug of its project dir.
+    expected_project_id = {
+        "simple-conversation": "home-user-project",
+        "pathological-many-tools": "home-user-project",
+        "pathological-turn-ended-error": "home-user-project",
+        "00000000-0000-4000-8000-000000000001": "home-user-project",
+        "recover-inband": "home-user-lite-rpg",
+        "ambiguous-nopath": "home-user-cursor-rules",
     }
-    for d in found:
+    assert set(by_stem) == set(expected_project_id)
+    for stem, d in by_stem.items():
         assert d.harness == "cursor"
-        assert d.project_path == "/home/user/project"
+        assert d.project_id == expected_project_id[stem]
         assert isinstance(d.mtime, datetime)
     # Only the subagent-parent conversation has a child transcript.
     parent = by_stem["00000000-0000-4000-8000-000000000001"]
@@ -86,7 +76,7 @@ def test_discover_claude_enumerates_sessions_and_subagents(claude_root: Path) ->
     }
     for d in found:
         assert d.harness == "claude"
-        assert d.project_path == "/home/user/project"
+        assert d.project_id == "-home-user-project"
     parent = by_stem["22222222-2222-4222-8222-222222222222"]
     assert [p.name for p in parent.subagent_paths] == ["agent-aaa111.jsonl"]
 
@@ -103,7 +93,7 @@ def _disc(mtime: datetime, path: str) -> sources.DiscoveredSession:
         harness="cursor",
         session_path=Path(path),
         subagent_paths=[],
-        project_path=None,
+        project_id=None,
         mtime=mtime,
     )
 

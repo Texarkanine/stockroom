@@ -17,13 +17,14 @@ counts. When no connection is injected it opens the warehouse read-write through
 the milestone-2 ``warehouse.open()`` chokepoint.
 """
 
+import json
 from dataclasses import dataclass, field
 from pathlib import Path
 
 import duckdb
 
 from stockroom import warehouse
-from stockroom.ingest import claude, cursor, enrich, sources, writer
+from stockroom.ingest import claude, cursor, enrich, paths, sources, writer
 from stockroom.ingest.model import NormalizedSession
 
 #: The harnesses ingested by default (in deterministic order).
@@ -81,6 +82,23 @@ def _read_watermark(
     return row[0], row[1]
 
 
+def _cursor_texts(session: NormalizedSession) -> list[str]:
+    """In-band strings to mine for the real ``cwd`` (message text + tool inputs).
+
+    Cursor transcripts carry no ``cwd`` field, so recovery scans the only
+    in-band evidence: each kept turn's text and the serialized JSON of every
+    tool input (file paths, cwds, etc.). The serialized form is enough for the
+    resolver's absolute-path regex.
+    """
+    texts: list[str] = []
+    for message in session.messages:
+        if message.text is not None:
+            texts.append(message.text)
+        for call in message.tool_calls:
+            texts.append(json.dumps(call.tool_input, ensure_ascii=False))
+    return texts
+
+
 def _parse_discovered(
     harness: str,
     discovered: sources.DiscoveredSession,
@@ -88,32 +106,37 @@ def _parse_discovered(
 ) -> list[NormalizedSession]:
     """Parse one discovered conversation into its session + subagent sessions.
 
-    The parsers leave ``project_path`` unset (it is decoded from the directory
-    layout by discovery), so the orchestrator stamps it here; for Cursor the
-    ``cwd`` is derived from it, and the optional model enrichment is applied to
-    the matching conversation.
+    The parsers leave ``project_id`` unset (it is the verbatim project-dir slug
+    from discovery), so the orchestrator stamps it here. ``cwd`` is resolved
+    honestly: for Cursor by re-encode-and-match over the conversation's in-band
+    paths (``None`` when none re-encodes to the slug); for Claude it is the
+    authoritative record ``cwd`` set by the parser (left untouched). Subagents
+    inherit the parent's ``project_id`` and ``cwd``. Optional model enrichment is
+    applied to the matching Cursor conversation.
     """
     if harness == "cursor":
         main = cursor.parse_session(discovered.session_path)
-        main.project_path = discovered.project_path
-        main.cwd = discovered.project_path
+        main.project_id = discovered.project_id
+        main.cwd = paths.resolve_cwd(
+            "cursor", discovered.project_id, texts=_cursor_texts(main)
+        )
         if main.session_id in enrichment:
             main.models = enrichment[main.session_id]
         result = [main]
         for index, sub_path in enumerate(discovered.subagent_paths):
             sub = cursor.parse_subagent(sub_path, parent=main, index=index)
-            sub.project_path = discovered.project_path
-            sub.cwd = discovered.project_path
+            sub.project_id = discovered.project_id
+            sub.cwd = main.cwd
             result.append(sub)
         return result
 
     main = claude.parse_session(discovered.session_path)
-    main.project_path = discovered.project_path
+    main.project_id = discovered.project_id
     result = [main]
     for sub_path in discovered.subagent_paths:
         meta_path = sub_path.with_suffix(".meta.json")
         sub = claude.parse_subagent(sub_path, meta_path=meta_path)
-        sub.project_path = discovered.project_path
+        sub.project_id = discovered.project_id
         result.append(sub)
     return result
 

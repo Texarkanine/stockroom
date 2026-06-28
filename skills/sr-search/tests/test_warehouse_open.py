@@ -14,7 +14,7 @@ from pathlib import Path
 import duckdb
 
 from stockroom import migrate, warehouse
-from test_schema_0001 import SNAPSHOT_PATH, _introspect_schema
+from test_schema_0002 import SNAPSHOT_PATH, _introspect_schema
 
 _PRODUCT_TABLES = {"sessions", "messages", "tool_calls", "embeddings", "_sync_state"}
 
@@ -61,7 +61,7 @@ def test_open_writer_on_fresh_path_returns_migrated_connection(
     """``open(read_only=False)`` on a brand-new path migrates and is ready."""
     con = warehouse.open(read_only=False)
     try:
-        assert migrate.current_version(con) == 1
+        assert migrate.current_version(con) == 2
         assert _PRODUCT_TABLES <= _table_names(con)
         # The warehouse file was created at the resolved path.
         assert warehouse.warehouse_path().is_file()
@@ -77,7 +77,7 @@ def test_open_reader_on_current_warehouse_returns_working_connection(
 
     con = warehouse.open(read_only=True)
     try:
-        assert migrate.current_version(con) == 1
+        assert migrate.current_version(con) == 2
         # A plain read works against the migrated schema.
         assert con.execute("SELECT count(*) FROM sessions").fetchone()[0] == 0
     finally:
@@ -97,7 +97,7 @@ def test_open_reader_on_current_warehouse_does_not_invoke_runner(
 
     con = warehouse.open(read_only=True)
     try:
-        assert migrate.current_version(con) == 1
+        assert migrate.current_version(con) == 2
     finally:
         con.close()
 
@@ -124,13 +124,13 @@ def test_open_with_migrate_false_skips_the_gate(
 
 
 def test_migrated_warehouse_matches_locked_snapshot(warehouse_home: Path) -> None:
-    """A freshly opened warehouse's product schema byte-matches m1's snapshot.
+    """A freshly opened warehouse's product schema byte-matches the head snapshot.
 
-    Reuses milestone 1's introspection helper. The runner-owned
-    ``schema_version`` bookkeeping table is excluded (it is not part of
-    ``0001``), proving the migration framework produces precisely the locked
-    product DDL — and handing milestone 3 the guarantee that "opening the
-    warehouse yields the locked schema."
+    Reuses the schema-introspection helper against the *cumulative* post-``0002``
+    golden (``0002_snapshot.json``). The runner-owned ``schema_version``
+    bookkeeping table is excluded (it is not part of any product migration),
+    proving the migration framework produces precisely the locked product DDL at
+    the chain head — opening the warehouse yields the current locked schema.
     """
     con = warehouse.open(read_only=False)
     try:

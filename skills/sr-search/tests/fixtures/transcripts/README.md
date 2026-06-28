@@ -37,25 +37,36 @@ The token-usage *numbers* are illustrative (small, plausible), not real.
 The fixtures are laid out as two faithful **harness roots** — `cursor/` mirrors
 `~/.cursor/projects` and `claude/` mirrors `~/.claude/projects` — so the ingest
 discovery/parse/orchestrator tests scan them exactly as the live ingest scans
-the operator's real history. The encoded project-dir names decode to
-`/home/user/project` (Cursor drops the leading slash; Claude keeps it as a
-leading dash).
+the operator's real history. The encoded project-dir name is the session's
+**`project_id`**, carried *verbatim* (Cursor drops the leading separator, e.g.
+`home-user-project`; Claude keeps it as a leading dash, e.g. `-home-user-project`).
+The real **`cwd`** is recovered separately — from the records for Claude, and by
+re-encode-and-match over in-band paths for Cursor — and is honestly `NULL` when
+no evidence is present (never the old lossy decode).
 
 ```
 transcripts/
   cursor/                                     root == ~/.cursor/projects
-    home-user-project/                          encoded project dir -> /home/user/project
+    home-user-project/                          project_id "home-user-project"
       agent-transcripts/
         simple-conversation/simple-conversation.jsonl   conv dir holds <conv>.jsonl;
                                                          user -> assistant(text+tool) -> assistant; ends turn_ended
+                                                         (relative paths only -> cwd resolves to NULL)
         pathological-many-tools/...jsonl        one assistant turn emitting many tool_use blocks; empty text block
         pathological-turn-ended-error/...jsonl  a turn_ended abort with status:"error"
         00000000-0000-4000-8000-000000000001/
           00000000-0000-4000-8000-000000000001.jsonl   parent: a Task tool_use (no child id — structural link only)
           subagents/
             00000000-0000-4000-8000-0000000000a1.jsonl  child: bare message list under the parent's subagents/ dir
+    home-user-lite-rpg/                         project_id "home-user-lite-rpg"
+      agent-transcripts/
+        recover-inband/recover-inband.jsonl     in-band /home/user/lite-rpg/src/main.py -> cwd recovers to
+                                                /home/user/lite-rpg (hyphenated leaf the naive decode would mangle)
+    home-user-cursor-rules/                     project_id "home-user-cursor-rules"
+      agent-transcripts/
+        ambiguous-nopath/ambiguous-nopath.jsonl no in-band absolute path -> honest cwd = NULL
   claude/                                     root == ~/.claude/projects
-    -home-user-project/                         encoded cwd dir -> /home/user/project
+    -home-user-project/                         project_id "-home-user-project"; record cwd -> /home/user/project
       simple-conversation.jsonl                 mode singleton; user; assistant(thinking+text+tool_use+usage+model);
                                                 user tool_result (DROP — inputs only); assistant(end_turn); ai-title
       pathological-multi-model.jsonl            one conversation whose assistant turns use two different models
@@ -103,3 +114,10 @@ transcript fixtures so the orchestrator can apply enrichment to real rows.
   metadata records (`custom-title`→title, `agent-name`→agent_name) and ignores
   the rest (`system`, `attachment`, `file-history-snapshot`, `permission-mode`,
   `last-prompt`, `queue-operation`) without crashing or emitting rows.
+- **cwd recovery** (`cursor/home-user-lite-rpg/recover-inband`) — Cursor carries
+  no `cwd`; the real path is recovered by re-encode-and-match over an in-band
+  absolute path, correctly handling a hyphenated leaf (`/home/user/lite-rpg`,
+  not the naive `/home/user/lite/rpg`).
+- **honest NULL cwd** (`cursor/home-user-cursor-rules/ambiguous-nopath`) — when
+  no in-band path re-encodes to the slug, `cwd` stays `NULL`; the lossy old
+  decode is never used to fabricate one.

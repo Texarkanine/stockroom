@@ -4,7 +4,7 @@ This is the "extract" front of the ETL: given a harness root (the operator's
 ``~/.cursor/projects`` / ``~/.claude/projects``, overridable via env vars for
 tests), it walks the real on-disk layout and yields one
 :class:`DiscoveredSession` per conversation — the session file, its subagent
-transcripts, the decoded project path, and the file mtime that drives the
+transcripts, the verbatim project-dir slug, and the file mtime that drives the
 incremental watermark.
 
 On-disk layouts (reverse-engineered, clean-room):
@@ -16,10 +16,12 @@ On-disk layouts (reverse-engineered, clean-room):
   ``<sessionId>/subagents/agent-*.jsonl`` (each beside a ``.meta.json``). The
   nested ``<sessionId>/`` directory is *not* itself a session.
 
-The encoded project-dir name decodes to a plausible absolute path (lossy —
-dashes that were really hyphens in the path can't be recovered). For Claude the
-authoritative ``cwd`` comes from the records (the parser's job); this decode is
-the only ``project_path`` source for Cursor.
+The encoded project-dir name is carried *verbatim* as ``project_id`` — it is an
+id, not a path: always present, lossless, the correct grouping key. The real
+``cwd`` is recovered later (best-effort, honestly ``None`` when unknown): from
+the records for Claude, and by re-encode-and-match over in-band transcript paths
+for Cursor (see :mod:`stockroom.ingest.paths`). Discovery deliberately does *not*
+decode the slug back to a path — that decode was lossy and fabricated cwds.
 """
 
 import os
@@ -38,14 +40,16 @@ class DiscoveredSession:
 
     ``subagent_paths`` holds the child transcript ``.jsonl`` files (Claude's
     ``.meta.json`` sidecar is derived from each path by the orchestrator).
-    ``mtime`` is the session file's modification time and, with
-    ``session_path``, forms the ``(mtime, path)`` watermark key.
+    ``project_id`` is the encoded project-dir name carried verbatim (the
+    grouping identity; the real ``cwd`` is resolved downstream). ``mtime`` is the
+    session file's modification time and, with ``session_path``, forms the
+    ``(mtime, path)`` watermark key.
     """
 
     harness: str
     session_path: Path
     subagent_paths: list[Path] = field(default_factory=list)
-    project_path: str | None = None
+    project_id: str | None = None
     mtime: datetime | None = None
 
     @property
@@ -69,21 +73,6 @@ def claude_root() -> Path:
     return _resolve_root(CLAUDE_ROOT_ENV_VAR, Path.home() / ".claude" / "projects")
 
 
-def decode_project_dir(name: str) -> str:
-    """Decode an encoded project-dir name to a plausible absolute path.
-
-    Both harnesses map path separators to dashes; Cursor additionally drops the
-    leading slash while Claude keeps it as a leading dash. The decode is
-    therefore ``'-' -> '/'`` with a leading slash ensured. It is lossy by
-    construction (a literal hyphen in a real directory name is indistinguishable
-    from a separator) and best-effort — never a join key.
-    """
-    decoded = name.replace("-", "/")
-    if not decoded.startswith("/"):
-        decoded = "/" + decoded
-    return decoded
-
-
 def _mtime(path: Path) -> datetime:
     """Return a file's modification time as a naive-local datetime."""
     return datetime.fromtimestamp(path.stat().st_mtime)
@@ -96,7 +85,7 @@ def _discover_cursor(root: Path) -> list[DiscoveredSession]:
     for project_dir in root.iterdir():
         if not project_dir.is_dir():
             continue
-        project_path = decode_project_dir(project_dir.name)
+        project_id = project_dir.name
         transcripts = project_dir / "agent-transcripts"
         if not transcripts.is_dir():
             continue
@@ -115,7 +104,7 @@ def _discover_cursor(root: Path) -> list[DiscoveredSession]:
                     harness="cursor",
                     session_path=session_file,
                     subagent_paths=subagents,
-                    project_path=project_path,
+                    project_id=project_id,
                     mtime=_mtime(session_file),
                 )
             )
@@ -129,7 +118,7 @@ def _discover_claude(root: Path) -> list[DiscoveredSession]:
     for project_dir in root.iterdir():
         if not project_dir.is_dir():
             continue
-        project_path = decode_project_dir(project_dir.name)
+        project_id = project_dir.name
         for session_file in project_dir.glob("*.jsonl"):
             if not session_file.is_file():
                 continue
@@ -144,7 +133,7 @@ def _discover_claude(root: Path) -> list[DiscoveredSession]:
                     harness="claude",
                     session_path=session_file,
                     subagent_paths=subagents,
-                    project_path=project_path,
+                    project_id=project_id,
                     mtime=_mtime(session_file),
                 )
             )

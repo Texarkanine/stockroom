@@ -271,8 +271,8 @@ def parse_session(path: Path) -> NormalizedSession:
 
     The session id is the ``sessionId`` carried by the records (falling back to
     the file stem). ``models`` stays ``None`` — Claude's model grain is
-    per-message, not per-session. ``project_path`` is decoded from the directory
-    layout by :mod:`stockroom.ingest.sources`; the authoritative ``cwd`` here
+    per-message, not per-session. ``project_id`` (the verbatim project-dir slug)
+    is stamped by the orchestrator from discovery; the authoritative ``cwd`` here
     comes straight from the records.
     """
     path = Path(path)

@@ -18,6 +18,7 @@ import duckdb
 import pytest
 
 import stockroom
+from stockroom.migrate import apply_pending
 
 
 @pytest.fixture(scope="session")
@@ -244,10 +245,29 @@ def schema_con(schema_sql_path: Path) -> Iterator[duckdb.DuckDBPyConnection]:
     This is deliberately *not* a migration runner (that is milestone 2): the
     fixture simply reads the DDL text and ``execute()``s it against a clean
     in-memory connection, giving each test an isolated database whose shape
-    is exactly what ``0001`` declares.
+    is exactly what ``0001`` declares. Use it for the frozen ``0001`` contract
+    tests; ingest tests that write the *current* schema use ``migrated_con``.
     """
     con = duckdb.connect(":memory:")
     con.execute(schema_sql_path.read_text(encoding="utf-8"))
+    try:
+        yield con
+    finally:
+        con.close()
+
+
+@pytest.fixture
+def migrated_con() -> Iterator[duckdb.DuckDBPyConnection]:
+    """Yield an in-memory DuckDB with the full migration chain applied.
+
+    Unlike ``schema_con`` (which executes only the ``0001`` DDL directly), this
+    runs the real packaged migrations (``0001`` + ``0002`` + …) through
+    :func:`stockroom.migrate.apply_pending` — i.e. the post-migration schema the
+    ingest writer and orchestrator actually target. Each test gets an isolated,
+    up-to-date database.
+    """
+    con = duckdb.connect(":memory:")
+    apply_pending(con)
     try:
         yield con
     finally:

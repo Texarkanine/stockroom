@@ -66,15 +66,20 @@ def test_ensure_schema_version_table_is_idempotent(
 # --- apply_pending: forward-only application (step 3) -----------------------
 
 
-def test_apply_pending_applies_0001_on_fresh_db(
+def test_apply_pending_applies_all_packaged_on_fresh_db(
     mem_con: duckdb.DuckDBPyConnection,
 ) -> None:
-    """A fresh DB gets ``0001``: five product tables, version 1, recorded row."""
+    """A fresh DB gets every packaged migration in order, landing at the head.
+
+    The product tables come from ``0001``; ``0002`` (workspace identity) is a
+    structural follow-on, so a fresh apply returns ``[1, 2]`` and stamps a
+    bookkeeping row per migration — including ``0001``'s, asserted explicitly.
+    """
     applied = migrate.apply_pending(mem_con)
 
-    assert applied == [1]
+    assert applied == [1, 2]
     assert _PRODUCT_TABLES <= _table_names(mem_con)
-    assert migrate.current_version(mem_con) == 1
+    assert migrate.current_version(mem_con) == 2
 
     version, filename, applied_at = mem_con.execute(
         f"SELECT version, filename, applied_at FROM {migrate.SCHEMA_VERSION_TABLE} "
@@ -89,15 +94,15 @@ def test_apply_pending_is_idempotent(
     mem_con: duckdb.DuckDBPyConnection,
 ) -> None:
     """Re-running on a current DB is a no-op: ``[]``, same version, no dup rows."""
-    migrate.apply_pending(mem_con)
+    applied = migrate.apply_pending(mem_con)
     second = migrate.apply_pending(mem_con)
 
     assert second == []
-    assert migrate.current_version(mem_con) == 1
+    assert migrate.current_version(mem_con) == 2
     row_count = mem_con.execute(
         f"SELECT count(*) FROM {migrate.SCHEMA_VERSION_TABLE}"
     ).fetchone()[0]
-    assert row_count == 1
+    assert row_count == len(applied)
 
 
 def test_apply_pending_applies_in_ascending_order(

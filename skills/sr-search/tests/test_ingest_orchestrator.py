@@ -1,12 +1,15 @@
 """Integration tests for the ingest orchestrator (``stockroom.ingest.ingest``).
 
 These wire the whole ETL together over the committed fixture corpus, through an
-injected in-memory ``0001`` connection (no real warehouse needed), with the two
-harness roots pointed at the fixtures and the synthetic enrichment DB supplied.
-They assert the cross-table / cross-file invariants the milestone promises —
-subagent<->parent linkage, inputs-only, no truncation, dense ordinals, harness
-labels, idempotent incremental no-op — and lock the entire reconstruction
-output against a committed golden snapshot.
+injected in-memory ``migrated_con`` connection (the full migration chain, i.e.
+the current ``project_id``/``cwd`` schema; no real warehouse needed), with the
+two harness roots pointed at the fixtures and the synthetic enrichment DB
+supplied. They assert the cross-table / cross-file invariants the milestone
+promises — subagent<->parent linkage, inputs-only, no truncation, dense
+ordinals, harness labels, idempotent incremental no-op, and the workspace
+``project_id``/``cwd`` contract (verbatim slug; honest cwd recovery or NULL with
+no fabrication) — and lock the entire reconstruction output against a committed
+golden snapshot.
 
 The golden file is produced by this test's *own* dump helper (set
 ``STOCKROOM_UPDATE_INGEST_GOLDEN=1`` to regenerate), so the generator and the
@@ -23,6 +26,7 @@ import duckdb
 import pytest
 
 from stockroom import ingest
+from stockroom.ingest.paths import encode_for
 
 GOLDEN_PATH = Path(__file__).parent / "fixtures" / "ingest" / "expected_rows.json"
 
@@ -47,63 +51,67 @@ def _full_ingest(
 
 
 def test_full_ingest_summary_matches_table_counts(
-    schema_con: duckdb.DuckDBPyConnection,
+    migrated_con: duckdb.DuckDBPyConnection,
     fixture_roots: None,
     ai_tracking_db: Path,
 ) -> None:
     """A full fixture ingest populates all tables and the summary counts equal
     the actual table row counts.
     """
-    summary = _full_ingest(schema_con, ai_tracking_db)
-    assert summary.sessions == _count(schema_con, "sessions")
-    assert summary.messages == _count(schema_con, "messages")
-    assert summary.tool_calls == _count(schema_con, "tool_calls")
+    summary = _full_ingest(migrated_con, ai_tracking_db)
+    assert summary.sessions == _count(migrated_con, "sessions")
+    assert summary.messages == _count(migrated_con, "messages")
+    assert summary.tool_calls == _count(migrated_con, "tool_calls")
     # Both harnesses contributed.
     assert summary.by_harness["cursor"].sessions > 0
     assert summary.by_harness["claude"].sessions > 0
 
 
 def test_harness_filter_writes_only_selected(
-    schema_con: duckdb.DuckDBPyConnection,
+    migrated_con: duckdb.DuckDBPyConnection,
     fixture_roots: None,
     ai_tracking_db: Path,
 ) -> None:
     """``harness='claude'`` ingests only Claude rows."""
     ingest.ingest(
-        full=True, con=schema_con, harness="claude", ai_tracking_db=ai_tracking_db
+        full=True, con=migrated_con, harness="claude", ai_tracking_db=ai_tracking_db
     )
     harnesses = {
         r[0]
-        for r in schema_con.execute("SELECT DISTINCT harness FROM sessions").fetchall()
+        for r in migrated_con.execute(
+            "SELECT DISTINCT harness FROM sessions"
+        ).fetchall()
     }
     assert harnesses == {"claude"}
 
 
 def test_second_incremental_ingest_is_noop(
-    schema_con: duckdb.DuckDBPyConnection,
+    migrated_con: duckdb.DuckDBPyConnection,
     fixture_roots: None,
     ai_tracking_db: Path,
 ) -> None:
     """After a full ingest, an incremental run writes no new rows (watermark)."""
-    _full_ingest(schema_con, ai_tracking_db)
-    before = {t: _count(schema_con, t) for t in ("sessions", "messages", "tool_calls")}
-    summary = ingest.ingest(full=False, con=schema_con, ai_tracking_db=ai_tracking_db)
-    after = {t: _count(schema_con, t) for t in ("sessions", "messages", "tool_calls")}
+    _full_ingest(migrated_con, ai_tracking_db)
+    before = {
+        t: _count(migrated_con, t) for t in ("sessions", "messages", "tool_calls")
+    }
+    summary = ingest.ingest(full=False, con=migrated_con, ai_tracking_db=ai_tracking_db)
+    after = {t: _count(migrated_con, t) for t in ("sessions", "messages", "tool_calls")}
     assert after == before
     assert summary.sessions == 0
 
 
 def test_subagents_link_to_parents_across_the_run(
-    schema_con: duckdb.DuckDBPyConnection,
+    migrated_con: duckdb.DuckDBPyConnection,
     fixture_roots: None,
     ai_tracking_db: Path,
 ) -> None:
     """Every subagent session resolves to an existing parent session row, and
     each Claude subagent's spawn id joins a parent tool-call provenance id.
     """
-    _full_ingest(schema_con, ai_tracking_db)
+    _full_ingest(migrated_con, ai_tracking_db)
     # Subagent -> parent session join holds for both harnesses.
-    orphans = schema_con.execute(
+    orphans = migrated_con.execute(
         "SELECT c.session_id FROM sessions c "
         "LEFT JOIN sessions p "
         "  ON p.harness = c.harness AND p.session_id = c.parent_session_id "
@@ -111,7 +119,7 @@ def test_subagents_link_to_parents_across_the_run(
     ).fetchall()
     assert orphans == []
     # The Claude subagent's spawning_tool_use_id joins its parent's Task call.
-    joined = schema_con.execute(
+    joined = migrated_con.execute(
         "SELECT c.session_id FROM sessions c "
         "JOIN tool_calls t "
         "  ON t.harness = c.harness "
@@ -123,26 +131,26 @@ def test_subagents_link_to_parents_across_the_run(
 
 
 def test_inputs_only_no_tool_result_text_stored(
-    schema_con: duckdb.DuckDBPyConnection,
+    migrated_con: duckdb.DuckDBPyConnection,
     fixture_roots: None,
     ai_tracking_db: Path,
 ) -> None:
     """No dropped tool_result output text leaks into messages (inputs only)."""
-    _full_ingest(schema_con, ai_tracking_db)
-    leaked = schema_con.execute(
+    _full_ingest(migrated_con, ai_tracking_db)
+    leaked = migrated_con.execute(
         "SELECT count(*) FROM messages WHERE text LIKE '%auth/middleware.py%'"
     ).fetchone()[0]
     assert leaked == 0
 
 
 def test_ordinals_are_dense_per_session(
-    schema_con: duckdb.DuckDBPyConnection,
+    migrated_con: duckdb.DuckDBPyConnection,
     fixture_roots: None,
     ai_tracking_db: Path,
 ) -> None:
     """Each session's message ordinals are a dense 0..n-1 run."""
-    _full_ingest(schema_con, ai_tracking_db)
-    rows = schema_con.execute(
+    _full_ingest(migrated_con, ai_tracking_db)
+    rows = migrated_con.execute(
         "SELECT harness, session_id, list_sort(array_agg(ordinal)) "
         "FROM messages GROUP BY harness, session_id"
     ).fetchall()
@@ -151,17 +159,96 @@ def test_ordinals_are_dense_per_session(
 
 
 def test_cursor_enrichment_applied_to_models(
-    schema_con: duckdb.DuckDBPyConnection,
+    migrated_con: duckdb.DuckDBPyConnection,
     fixture_roots: None,
     ai_tracking_db: Path,
 ) -> None:
     """The synthetic ai-code-tracking models land on the matching Cursor session."""
-    _full_ingest(schema_con, ai_tracking_db)
-    models = schema_con.execute(
+    _full_ingest(migrated_con, ai_tracking_db)
+    models = migrated_con.execute(
         "SELECT models FROM sessions "
         "WHERE harness = 'cursor' AND session_id = 'simple-conversation'"
     ).fetchone()[0]
     assert models == ["gpt-5", "claude-4.6-sonnet"]
+
+
+# --- Workspace identity: project_id (verbatim) + cwd (honest recovery) ------
+
+
+def test_project_id_is_the_verbatim_slug(
+    migrated_con: duckdb.DuckDBPyConnection,
+    fixture_roots: None,
+    ai_tracking_db: Path,
+) -> None:
+    """Each session's ``project_id`` is the project dir's verbatim slug — the
+    grouping identity, stored exactly as the harness encodes it (Cursor drops
+    the leading separator; Claude keeps it as a leading dash).
+    """
+    _full_ingest(migrated_con, ai_tracking_db)
+    cursor_pid = migrated_con.execute(
+        "SELECT project_id FROM sessions "
+        "WHERE harness = 'cursor' AND session_id = 'simple-conversation'"
+    ).fetchone()[0]
+    claude_pid = migrated_con.execute(
+        "SELECT project_id FROM sessions "
+        "WHERE harness = 'claude' AND session_id = '11111111-1111-4111-8111-111111111111'"
+    ).fetchone()[0]
+    assert cursor_pid == "home-user-project"
+    assert claude_pid == "-home-user-project"
+
+
+def test_cursor_cwd_recovered_from_inband_path(
+    migrated_con: duckdb.DuckDBPyConnection,
+    fixture_roots: None,
+    ai_tracking_db: Path,
+) -> None:
+    """A Cursor conversation with an in-band absolute path recovers the real
+    ``cwd`` by re-encode-and-match — including a hyphenated leaf the naive
+    dash->slash decode would have mangled (``/home/user/lite-rpg``, not
+    ``/home/user/lite/rpg``).
+    """
+    _full_ingest(migrated_con, ai_tracking_db)
+    cwd = migrated_con.execute(
+        "SELECT cwd FROM sessions "
+        "WHERE harness = 'cursor' AND session_id = 'recover-inband'"
+    ).fetchone()[0]
+    assert cwd == "/home/user/lite-rpg"
+
+
+def test_cursor_cwd_is_null_without_evidence(
+    migrated_con: duckdb.DuckDBPyConnection,
+    fixture_roots: None,
+    ai_tracking_db: Path,
+) -> None:
+    """A Cursor conversation with no in-band path that re-encodes to its slug
+    gets an honest ``cwd = NULL`` (never a fabricated decode).
+    """
+    _full_ingest(migrated_con, ai_tracking_db)
+    cwd = migrated_con.execute(
+        "SELECT cwd FROM sessions "
+        "WHERE harness = 'cursor' AND session_id = 'ambiguous-nopath'"
+    ).fetchone()[0]
+    assert cwd is None
+
+
+def test_no_fabrication_roundtrip_invariant(
+    migrated_con: duckdb.DuckDBPyConnection,
+    fixture_roots: None,
+    ai_tracking_db: Path,
+) -> None:
+    """Corpus-wide: a populated ``cwd`` always re-encodes back to its own
+    ``project_id``. This is the core correctness claim — a fabricated path is
+    structurally impossible to store, since the only way ``cwd`` is non-NULL is
+    that it matched the slug on the way in (Claude's record cwd round-trips too).
+    """
+    _full_ingest(migrated_con, ai_tracking_db)
+    rows = migrated_con.execute(
+        "SELECT harness, project_id, cwd FROM sessions"
+    ).fetchall()
+    assert rows  # the corpus is non-empty
+    for harness, project_id, cwd in rows:
+        if cwd is not None:
+            assert encode_for(harness, cwd) == project_id
 
 
 # --- Golden ingest-output snapshot ------------------------------------------
@@ -211,7 +298,7 @@ def _dump_ingest(con: duckdb.DuckDBPyConnection, transcripts_dir: Path) -> dict:
             [
                 "harness",
                 "session_id",
-                "project_path",
+                "project_id",
                 "cwd",
                 "git_branch",
                 "source_path",
@@ -271,19 +358,20 @@ def _dump_ingest(con: duckdb.DuckDBPyConnection, transcripts_dir: Path) -> dict:
 
 
 def test_ingest_output_matches_golden_snapshot(
-    schema_con: duckdb.DuckDBPyConnection,
+    migrated_con: duckdb.DuckDBPyConnection,
     fixture_roots: None,
     ai_tracking_db: Path,
     transcripts_dir: Path,
 ) -> None:
     """A full fixture ingest byte-matches the committed golden reconstruction.
 
-    This locks every ordinal, parent_id, drop, token value, model, and subagent
-    edge. A deliberate parser change must regenerate the golden
-    (``STOCKROOM_UPDATE_INGEST_GOLDEN=1``); an accidental drift fails here.
+    This locks every ordinal, parent_id, drop, token value, model, subagent
+    edge, and the ``project_id``/``cwd`` of every session. A deliberate parser
+    change must regenerate the golden (``STOCKROOM_UPDATE_INGEST_GOLDEN=1``); an
+    accidental drift fails here.
     """
-    _full_ingest(schema_con, ai_tracking_db)
-    actual = _dump_ingest(schema_con, transcripts_dir)
+    _full_ingest(migrated_con, ai_tracking_db)
+    actual = _dump_ingest(migrated_con, transcripts_dir)
 
     if os.environ.get("STOCKROOM_UPDATE_INGEST_GOLDEN"):
         GOLDEN_PATH.parent.mkdir(parents=True, exist_ok=True)

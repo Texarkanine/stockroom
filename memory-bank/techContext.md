@@ -44,6 +44,21 @@ backoff that degrades to a typed `WarehouseBusyError` rather than blocking
 forever. `schema_version` is runner-created and deliberately absent from
 `0001`, so the locked product DDL and its golden snapshot stay untouched.
 
+The first real schema-changing, data-preserving upgrade is
+[`0002_workspace_identity.sql`](../skills/sr-search/src/stockroom/migrations/0002_workspace_identity.sql):
+it replaces the lossy `sessions.project_path` with two single-meaning columns —
+`project_id` (the harness's encoded project-dir slug, stored *verbatim*: the
+always-present grouping identity) and a re-semantic `cwd` (the real project-root
+path, best-effort, `NULL` when unknown). It is structural (no backfill — the
+verbatim slug is unrecoverable from the old lossy value, so pre-existing rows
+carry `project_id = NULL` until a `--full` re-ingest). `0001` and its snapshot
+stay frozen (forward-only); the cumulative post-`0002` shape is pinned by
+[`test_schema_0002.py`](../skills/sr-search/tests/test_schema_0002.py) against
+[`0002_snapshot.json`](../skills/sr-search/tests/fixtures/schema/0002_snapshot.json).
+Schema-changing ingest/writer tests run against the `migrated_con` fixture (the
+full chain via `apply_pending`); the frozen `0001` contract tests keep using
+`schema_con`.
+
 ## Ingest (ETL)
 
 The incremental, per-source-watermarked ETL that fills the schema from the
@@ -52,12 +67,19 @@ operator's own history lives in the
 via `python -m stockroom.ingest [--full] [--harness cursor|claude]`. It is a
 clean pipeline of single-responsibility modules: `model` (harness-neutral
 `NormalizedSession`/`Message`/`ToolCall` records), the two clean-room parsers
-`cursor` and `claude`, `sources` (discovery + encoded-project-dir decode +
-`_sync_state` watermark), `enrich` (optional Cursor `ai-code-tracking.db` model
-fill, a graceful no-op when absent), `writer` (delete-then-insert by
-`(harness, session_id)` + watermark upsert), and the `ingest()` orchestrator in
-`__init__`. Parsers depend only on `model` + stdlib (pure, unit-testable); the
-writer is the only new DB writer and goes through `warehouse.open(read_only=False)`.
+`cursor` and `claude`, `sources` (discovery carrying the verbatim project-dir
+slug as `project_id` + `_sync_state` watermark), `paths` (the `encode` transform
+and `resolve_cwd` re-encode-and-match recovery), `enrich` (optional Cursor
+`ai-code-tracking.db` model fill, a graceful no-op when absent), `writer`
+(delete-then-insert by `(harness, session_id)` + watermark upsert), and the
+`ingest()` orchestrator in `__init__`. Parsers depend only on `model` + stdlib
+(pure, unit-testable); the writer is the only new DB writer and goes through
+`warehouse.open(read_only=False)`. Workspace identity is honest: `project_id` is
+the slug verbatim, while `cwd` is recovered from the records (Claude) or by
+matching in-band transcript paths back to the slug (Cursor) and is `NULL` rather
+than fabricated when nothing matches — an invariant locked corpus-wide by a
+round-trip property test (`encode_for(harness, cwd) == project_id` whenever `cwd`
+is non-NULL).
 
 Discovery roots default to `~/.cursor/projects` / `~/.claude/projects`,
 **overridable via `STOCKROOM_CURSOR_ROOT` / `STOCKROOM_CLAUDE_ROOT`** (mirroring

@@ -1,0 +1,3 @@
+{"role":"user","message":{"content":[{"type":"text","text":"<user_query>\ntighten the style rule wording\n</user_query>"}]}}
+{"role":"assistant","message":{"content":[{"type":"text","text":"Editing the rule in place."},{"type":"tool_use","name":"StrReplace","input":{"path":"rules/style.md","old_string":"avoid","new_string":"never use"}}]}}
+{"role":"turn_ended","status":"completed"}

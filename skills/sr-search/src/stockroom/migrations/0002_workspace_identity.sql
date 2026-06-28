@@ -1,0 +1,25 @@
+-- stockroom warehouse — workspace identity vs. real path (migration 0002)
+--
+-- Replaces the lossy, fabricating `sessions.project_path` with two
+-- single-meaning columns, per the one-meaning-per-column / honestly-NULL
+-- doctrine:
+--
+--   * project_id (NEW) — the harness's encoded project-dir slug, stored
+--     VERBATIM. It is an id, not a path: always present, never fabricated,
+--     lossless — the correct grouping key ("group my conversations by
+--     project"). Matches the schema's `_id` naming convention.
+--   * cwd (already present in 0001, re-semantic) — the absolute filesystem path
+--     of the project root, best-effort, NULL when unknown. One uniform meaning
+--     across harnesses (Claude: record cwd; Cursor: re-encode-and-match
+--     recovery). A NULL cwd costs nothing because grouping rides on project_id.
+--
+-- project_path is dropped: for Cursor it held a fabricated path (the lossy
+-- `'-' -> '/'` decode), and it is redundant with `cwd` as populated.
+--
+-- Structural only — NO backfill. The verbatim slug is not recoverable from the
+-- lossy project_path value, so pre-existing rows get project_id = NULL until a
+-- `--full` re-ingest repopulates them (the warehouse is derived ETL output,
+-- reconstructable from source logs). Forward-only: this never mutates 0001, and
+-- 0001's locked DDL + golden snapshot stay untouched.
+ALTER TABLE sessions ADD COLUMN project_id TEXT;
+ALTER TABLE sessions DROP COLUMN project_path;

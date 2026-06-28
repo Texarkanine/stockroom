@@ -6,7 +6,8 @@ SQL schema. It persists a :class:`NormalizedSession` via delete-then-insert by
 positional identity into ``message_id = '{session_id}#{ordinal}'`` and the
 matching ``parent_id``, serializes ``tool_input`` whole (no truncation), and
 upserts the per-source ``_sync_state`` watermark. These tests run against the
-in-memory ``schema_con`` (a fresh ``0001`` database).
+in-memory ``migrated_con`` (the full migration chain, i.e. the current
+``project_id``/``cwd`` schema the writer targets).
 """
 
 from datetime import datetime
@@ -65,20 +66,22 @@ def _count(con: duckdb.DuckDBPyConnection, table: str) -> int:
     return con.execute(f"SELECT count(*) FROM {table}").fetchone()[0]
 
 
-def test_write_session_inserts_all_rows(schema_con: duckdb.DuckDBPyConnection) -> None:
+def test_write_session_inserts_all_rows(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
     """Writing a session inserts its sessions/messages/tool_calls rows."""
-    writer.write_session(schema_con, _session())
-    assert _count(schema_con, "sessions") == 1
-    assert _count(schema_con, "messages") == 2
-    assert _count(schema_con, "tool_calls") == 1
+    writer.write_session(migrated_con, _session())
+    assert _count(migrated_con, "sessions") == 1
+    assert _count(migrated_con, "messages") == 2
+    assert _count(migrated_con, "tool_calls") == 1
 
 
 def test_write_session_expands_message_identity(
-    schema_con: duckdb.DuckDBPyConnection,
+    migrated_con: duckdb.DuckDBPyConnection,
 ) -> None:
     """Positional ordinals expand to ``{session_id}#{ordinal}`` ids + parents."""
-    writer.write_session(schema_con, _session())
-    rows = schema_con.execute(
+    writer.write_session(migrated_con, _session())
+    rows = migrated_con.execute(
         "SELECT message_id, parent_id, ordinal, role "
         "FROM messages WHERE session_id = 's1' ORDER BY ordinal"
     ).fetchall()
@@ -87,43 +90,45 @@ def test_write_session_expands_message_identity(
 
 
 def test_write_session_tool_call_links_and_inputs(
-    schema_con: duckdb.DuckDBPyConnection,
+    migrated_con: duckdb.DuckDBPyConnection,
 ) -> None:
     """A tool call attaches to its turn, keeps its block-index ordinal, JSON
     input, and provenance id.
     """
-    writer.write_session(schema_con, _session())
-    row = schema_con.execute(
+    writer.write_session(migrated_con, _session())
+    row = migrated_con.execute(
         "SELECT message_id, ordinal, tool_name, tool_input->>'$.file_path', "
         "source_tool_use_id FROM tool_calls WHERE session_id = 's1'"
     ).fetchone()
     assert row == ("s1#1", 2, "Read", "/a", "toolu_1")
 
 
-def test_write_session_is_idempotent(schema_con: duckdb.DuckDBPyConnection) -> None:
+def test_write_session_is_idempotent(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
     """Re-writing the same session is delete-then-insert: stable counts, no PK
     violation.
     """
-    writer.write_session(schema_con, _session())
-    writer.write_session(schema_con, _session())  # must not raise
-    assert _count(schema_con, "sessions") == 1
-    assert _count(schema_con, "messages") == 2
-    assert _count(schema_con, "tool_calls") == 1
+    writer.write_session(migrated_con, _session())
+    writer.write_session(migrated_con, _session())  # must not raise
+    assert _count(migrated_con, "sessions") == 1
+    assert _count(migrated_con, "messages") == 2
+    assert _count(migrated_con, "tool_calls") == 1
 
 
 def test_write_session_reingest_reflects_new_content(
-    schema_con: duckdb.DuckDBPyConnection,
+    migrated_con: duckdb.DuckDBPyConnection,
 ) -> None:
     """A re-ingest of a grown session replaces the old rows with the new set."""
-    writer.write_session(schema_con, _session())
+    writer.write_session(migrated_con, _session())
     grown = _session()
     grown.messages.append(NormalizedMessage(ordinal=2, role="user", text="more"))
-    writer.write_session(schema_con, grown)
-    assert _count(schema_con, "messages") == 3
+    writer.write_session(migrated_con, grown)
+    assert _count(migrated_con, "messages") == 3
 
 
 def test_write_session_persists_cursor_models_list(
-    schema_con: duckdb.DuckDBPyConnection,
+    migrated_con: duckdb.DuckDBPyConnection,
 ) -> None:
     """A Cursor session's enriched ``models`` LIST persists natively."""
     cur = NormalizedSession(
@@ -133,15 +138,15 @@ def test_write_session_persists_cursor_models_list(
         models=["gpt-5", "claude-4.6-sonnet"],
         messages=[NormalizedMessage(ordinal=0, role="user", text="hi")],
     )
-    writer.write_session(schema_con, cur)
-    models = schema_con.execute(
+    writer.write_session(migrated_con, cur)
+    models = migrated_con.execute(
         "SELECT models FROM sessions WHERE session_id = 'c1'"
     ).fetchone()[0]
     assert models == ["gpt-5", "claude-4.6-sonnet"]
 
 
 def test_write_session_no_truncation_at_rest(
-    schema_con: duckdb.DuckDBPyConnection,
+    migrated_con: duckdb.DuckDBPyConnection,
 ) -> None:
     """A large ``tool_input`` round-trips whole through the writer."""
     big = "y" * 20000
@@ -163,36 +168,36 @@ def test_write_session_no_truncation_at_rest(
             )
         ],
     )
-    writer.write_session(schema_con, sess)
-    stored = schema_con.execute(
+    writer.write_session(migrated_con, sess)
+    stored = migrated_con.execute(
         "SELECT tool_input->>'$.contents' FROM tool_calls WHERE session_id = 'c1'"
     ).fetchone()[0]
     assert stored == big
 
 
 def test_update_watermark_upserts_one_row_per_source(
-    schema_con: duckdb.DuckDBPyConnection,
+    migrated_con: duckdb.DuckDBPyConnection,
 ) -> None:
     """``update_watermark`` inserts then updates a single ``_sync_state`` row."""
     writer.update_watermark(
-        schema_con,
+        migrated_con,
         harness="claude",
         source_root="/root",
         last_mtime=datetime(2026, 1, 1, 0, 0, 0),
         last_path="/root/a.jsonl",
     )
     writer.update_watermark(
-        schema_con,
+        migrated_con,
         harness="claude",
         source_root="/root",
         last_mtime=datetime(2026, 1, 2, 0, 0, 0),
         last_path="/root/b.jsonl",
     )
-    rows = schema_con.execute(
+    rows = migrated_con.execute(
         "SELECT last_mtime, last_path FROM _sync_state "
         "WHERE harness = 'claude' AND source_root = '/root'"
     ).fetchall()
     assert len(rows) == 1
     assert rows[0][0] == datetime(2026, 1, 2, 0, 0, 0)
     assert rows[0][1] == "/root/b.jsonl"
-    assert schema_con.execute("SELECT count(*) FROM _sync_state").fetchone()[0] == 1
+    assert migrated_con.execute("SELECT count(*) FROM _sync_state").fetchone()[0] == 1

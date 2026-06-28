@@ -2,10 +2,10 @@
 
 The writer is the only new database writer in milestone 3 and the single place
 ingest touches the SQL schema. It assumes a read-write ``duckdb`` connection
-already positioned on the locked ``0001`` schema — the orchestrator obtains one
+already positioned on the current migrated schema — the orchestrator obtains one
 through the milestone-2 ``warehouse.open(read_only=False)`` chokepoint (whose
 flock enforces the single-writer invariant), or a test injects an in-memory
-``schema_con``.
+``migrated_con``.
 
 Two operations:
 
@@ -57,7 +57,7 @@ def write_session(con: duckdb.DuckDBPyConnection, session: NormalizedSession) ->
     _delete_session(con, session.harness, session.session_id)
 
     con.execute(
-        "INSERT INTO sessions (harness, session_id, project_path, cwd, git_branch, "
+        "INSERT INTO sessions (harness, session_id, project_id, cwd, git_branch, "
         "source_path, is_subagent, parent_session_id, agent_id, agent_type, "
         "spawning_tool_use_id, agent_name, models, title, harness_version, "
         "started_at, ended_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
@@ -65,7 +65,7 @@ def write_session(con: duckdb.DuckDBPyConnection, session: NormalizedSession) ->
         [
             session.harness,
             session.session_id,
-            session.project_path,
+            session.project_id,
             session.cwd,
             session.git_branch,
             session.source_path,
