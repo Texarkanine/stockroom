@@ -20,3 +20,15 @@ independently deliverable L1/L2/L3 sub-runs.
     - Task ID: `p2-embeddings-search`.
 * Insights
     - The `embeddings` table is already forward-declared in `0001`; Phase 2's schema work is the deferred VSS/HNSW index, which lands as a new forward-only migration.
+
+## 2026-06-28 - PLAN - COMPLETE
+
+* Work completed
+    - Generated `memory-bank/active/milestones.md`: 3 milestones (embedding pipeline, `sr-semantic`, `sr-search`), strictly sequential.
+    - Recorded cross-milestone invariants and advisory L-estimates (L3/L2/L3) with rationale, plus open questions for sub-run creative phases.
+* Decisions made
+    - Followed the roadmap's 3-milestone decomposition rather than splitting (e.g., the VSS index migration stays bundled into the embedding-pipeline milestone, per the roadmap; flagged as a preflight consideration).
+    - No dependency flowchart: all milestones are sequential.
+* Insights
+    - Surface packaging (engine module vs. polished skill wrapper) should follow the Phase 1 `sr-query` precedent — wrapper deferred to Phase 5.
+
