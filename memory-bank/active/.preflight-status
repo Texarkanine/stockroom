@@ -1,0 +1,73 @@
+status: PASS
+phase: preflight
+task: p1-data-backbone-m4-cwd-recovery
+date: 2026-06-28
+gate: L2 workflow — Preflight PASS -> Build is autonomous (solid edge)
+
+prerequisites:
+  - tasks.md plan complete (test plan, 9-step TDD impl plan, technology
+    validation all checked). No creative phase: the lone ambiguous item (the
+    encode transform) was resolved in PLAN via a structural probe of real data.
+
+tdd_plan_encoding: PASS
+  - Every implementable code unit (steps 1-5, 7) explicitly orders RED (named
+    failing test file + behaviors) before GREEN. Step 6 (fixtures) and step 8
+    (sweep/docs) are non-production and correctly carry no RED-first
+    requirement; step 9 is the green gate.
+
+convention_compliance: PASS
+  - New paths.py under src/stockroom/ingest/ fits the package layout;
+    0002_workspace_identity.sql matches the NNNN_<slug>.sql discovery regex;
+    test_ingest_paths.py / test_schema_0002.py match test_*.py; the migrated_con
+    fixture mirrors existing conftest fixture style. No `from __future__ import
+    annotations` (m2 sweep; requires-python >=3.11 makes X | None valid).
+  - Honors one-meaning-per-column (project_id identity vs cwd path) and the
+    forward-only / 0001-frozen invariants.
+
+dependency_impact: PASS
+  - Sweep of project_path / decode_project_dir confirms the plan accounts for
+    every consumer: orchestrator __init__ (step 7), writer (5), sources (3),
+    model (2), and tests test_ingest_{orchestrator,sources,model} + golden
+    expected_rows.json. The two parser docstrings (claude.py, cursor.py) are the
+    only additional references — folded into the step-8 sweep. __main__ (CLI) has
+    NO reference. 0001 SQL + 0001_snapshot.json correctly stay frozen.
+  - schema_con is 0001-only: ingest writer/orchestrator tests move to a new
+    migrated_con (0001+0002 via apply_pending); the 0001 contract tests stay on
+    schema_con. Accounted for in step 4.
+
+conflict_detection: PASS
+  - No existing paths.py / encode utility — no duplication-in-waiting. The
+    project_path column change is a pre-release, forward-migration schema change
+    (sanctioned by the milestones line-10 invariant), not a broken public
+    contract. decode_project_dir and DiscoveredSession are internal (no external
+    consumer).
+
+completeness_precheck: PASS
+  - Every milestone requirement maps to a concrete step: project_id/cwd split
+    (2,4,5,7), drop decode_project_dir (3), re-encode-match cursor + record cwd
+    claude (1,7), forward 0002 migration (4), 0001 frozen (invariant),
+    golden-snapshot regen schema+ingest (4,7). Test coverage planned for all new
+    behavior, including a deletion-proof/no-FS resolver guard.
+
+radical_innovation (applied, in-scope/in-complexity):
+  - Added a NO-FABRICATION ROUND-TRIP INVARIANT to the orchestrator test: over
+    the whole corpus, every sessions row satisfies
+    `cwd IS NULL OR encode_for(harness, cwd) == project_id`. A general property
+    (not per-fixture) that locks the core claim — a populated cwd always
+    re-encodes to its slug, so storing a fabricated path is structurally
+    impossible. Cheap, additive, no new architecture; folded into impl step 7.
+
+l4_creep_check: PASS
+  - One cohesive change over the existing ingest + migration subsystem; no new
+    architecture, no independent workstreams; design fully pre-resolved in the
+    spike. Stays Level 2.
+
+advisories (non-blocking):
+  - Cursor cwd coverage is intentionally partial: chats with no in-band absolute
+    path keep cwd = NULL (the designed, correct outcome). The probe found 4/6
+    real Claude projects also lack a top-level record cwd -> NULL there too; this
+    is data reality, not a defect.
+  - Durable systemPatterns.md cwd-recovery / re-encode-match pattern entry
+    deferred to REFLECT pending what the build reveals.
+
+blocking_findings: none

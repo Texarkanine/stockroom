@@ -30,3 +30,19 @@ Milestone 4 of the `p1-data-backbone` L4 project: **Workspace identity vs. real 
     - **v1 `cwd` resolver is deterministic**: Claude record `cwd` + Cursor in-band-path re-encode-match only; no live-FS walk (keeps the golden machine-independent and honors the survive-deletion invariant).
 * Insights
     - The structural probe (the project's recurring highest-leverage planning act) turned the one open unknown into a locked, evidence-backed rule and even tightened it (`[/.]` → all non-alphanumerics) — a strictly safer transform discovered only by looking at real data.
+
+## 2026-06-28 - PREFLIGHT - PASS
+
+* Work completed
+    - Validated the plan against codebase reality (TDD per-unit encoding, convention compliance, dependency impact, conflict detection, completeness). Wrote `.preflight-status`.
+    - Swept `project_path`/`decode_project_dir` across the engine: every consumer is accounted for by the plan (orchestrator/writer/sources/model + the three ingest tests + golden). The only additions are two stale parser **docstrings** (`claude.py`, `cursor.py`) — folded into the step-8 sweep; the CLI has no reference; `0001` SQL + snapshot correctly stay frozen.
+    - Confirmed the `schema_con` (0001-only) → `migrated_con` (0001+0002) fixture split is necessary and planned.
+    - **L4-creep check: PASS** — one cohesive change over the existing ingest + migration subsystem; stays Level 2.
+* Amendments made to `tasks.md`
+    - **Radical-innovation (in-scope, applied):** a no-fabrication round-trip invariant in the orchestrator test — `cwd IS NULL OR encode_for(harness, cwd) == project_id` over the whole corpus — generally locks "a populated cwd always re-encodes to its slug."
+    - Named the two parser docstrings explicitly in the step-8 sweep.
+* Advisories (non-blocking)
+    - Cursor `cwd` coverage is intentionally partial (NULL when no in-band path); 4/6 real Claude projects also lack a top-level record `cwd` → NULL. Data reality, not a defect.
+    - Durable `systemPatterns.md` cwd-recovery pattern entry deferred to REFLECT.
+* Next
+    - PREFLIGHT PASS → BUILD is autonomous (solid edge) in the L2 workflow. Proceed to `/niko-build`.

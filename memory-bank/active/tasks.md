@@ -44,6 +44,7 @@ Empirically locked via `planning/spikes/cwd-recovery/probe_encode.py` against th
 - Cursor session: `project_id` = verbatim slug; `cwd` recovered from in-band path or NULL; subagents inherit parent `project_id` + `cwd`.
 - Claude session: `project_id` = verbatim slug; `cwd` = record cwd (authoritative); latent bug fixed (no lossy decode stamped).
 - Golden `expected_rows.json` regenerated: every row carries `project_id` (not `project_path`) and the resolved/NULL `cwd`.
+- **No-fabrication round-trip invariant (preflight radical-innovation, applied):** over the whole ingested corpus, every `sessions` row satisfies `cwd IS NULL OR encode_for(harness, cwd) == project_id`. A general property assertion (not per-fixture) that locks the core correctness claim — a populated `cwd` always re-encodes to its own slug, so a fabricated path is structurally impossible to store.
 
 ### Test Infrastructure
 
@@ -72,8 +73,8 @@ Each step is one RED→GREEN TDD cycle (failing test(s) first, then implementati
    - Files: `tests/fixtures/transcripts/cursor/**`, `tests/fixtures/transcripts/README.md`, `tests/test_ingest_sources.py`.
 7. **Orchestrator: stamp `project_id` + resolve `cwd`** — RED: `test_ingest_orchestrator.py` on `migrated_con`; dump helper `project_path`→`project_id`; add cwd-recovery (non-NULL) + NULL assertions; regenerate `expected_rows.json` (`STOCKROOM_UPDATE_INGEST_GOLDEN=1`). GREEN: in `_parse_discovered`, stamp `project_id = discovered.project_id` for both harnesses; for Cursor set `cwd = paths.resolve_cwd("cursor", project_id, record_cwd=None, texts=<message texts + tool inputs>)` and have subagents inherit the parent's `project_id`+`cwd`; for Claude keep the record `cwd` and remove the lossy-decode stamping (latent-bug fix).
    - Files: `src/stockroom/ingest/__init__.py`, `tests/test_ingest_orchestrator.py`, `tests/fixtures/ingest/expected_rows.json`.
-8. **Sweep + docs** — grep-sweep residual `project_path` / `decode_project_dir` (CLI `__main__`, docstrings); update `techContext.md` Warehouse Schema note (project_id/cwd, the `0002` migration) and `tests/fixtures/transcripts/README.md`. Defer the durable `systemPatterns.md` cwd-recovery/re-encode-match pattern entry to REFLECT unless it firms up here.
-   - Files: `memory-bank/techContext.md`, fixtures README (+ `systemPatterns.md` if warranted).
+8. **Sweep + docs** — grep-sweep residual `project_path` / `decode_project_dir`; specifically refresh the now-stale parser docstrings `claude.py` (line ~274) and `cursor.py` (line ~26) that describe the old `project_path` decode, and confirm `__main__` carries no reference (verified at preflight: none). Update `techContext.md` Warehouse Schema note (project_id/cwd, the `0002` migration) and `tests/fixtures/transcripts/README.md`. Defer the durable `systemPatterns.md` cwd-recovery/re-encode-match pattern entry to REFLECT unless it firms up here.
+   - Files: `src/stockroom/ingest/{claude,cursor}.py` (docstrings), `memory-bank/techContext.md`, fixtures README (+ `systemPatterns.md` if warranted).
 9. **Green gate** — `make ci`: sync, `lock --locked` (uv.lock untouched), ruff lint + format-check, full `pytest`, `reuse lint` (path-based AGPL on new `*.py`/`*.sql`/fixtures — no inline SPDX).
 
 ## Technology Validation
@@ -101,6 +102,6 @@ Each step is one RED→GREEN TDD cycle (failing test(s) first, then implementati
 - [x] Test planning complete (TDD)
 - [x] Implementation plan complete
 - [x] Technology validation complete
-- [ ] Preflight
+- [x] Preflight — PASS (no blocking findings; round-trip no-fabrication invariant added; parser-docstring sweep named)
 - [ ] Build
 - [ ] QA
