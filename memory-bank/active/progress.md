@@ -27,3 +27,17 @@ Milestone 5 of the `p1-data-backbone` L4 project: **`sr-query`** — raw SQL aga
     - **No new technology** — `duckdb`/`argparse`/`dataclasses` only; no `uv.lock` change.
 * Insights
     - The CLI's "DISTINCT harness over a freshly-ingested warehouse names both cursor and claude" test *is* the Phase-1 "Done When" proof expressed at the query layer — the loop closes here.
+
+## 2026-06-28 - PREFLIGHT - PASS
+
+* Work completed
+    - Validated the plan against codebase reality (TDD per-unit encoding, convention compliance, dependency impact, conflict detection, completeness). Wrote `.preflight-status`.
+    - Verified two load-bearing assumptions empirically: `REUSE.toml` annotation #3 globs `skills/**/*.py` + `skills/**/tests/**` to AGPL (no per-file header), and no existing read-only-open-on-missing-file path exists (`test_warehouse_open.py` only opens RO on a created warehouse) — confirming the missing-warehouse edge is new behavior the plan owns via a `warehouse_path().is_file()` pre-check.
+* Amendments made to `tasks.md`
+    - **A1 (TDD encoding):** rewrote all 10 steps with explicit per-step RED→GREEN ordering (was concentrated in the preamble); step 1 lands a signature-only stub so tests fail on behavior, not `ImportError`.
+    - **A2 (radical innovation, in-scope, applied):** `_format_table` always emits a `(N rows)` trailer → self-describing query output, serving the milestone's "prove it's queryable" intent at trivial cost.
+* Advisories (non-blocking)
+    - `--format {csv,json}` and a `skills/sr-query/` SKILL.md wrapper + per-harness `/sr-query` invocation are Phase 5 distribution scope; deliberately not built here (would broaden beyond L2).
+    - Querying a behind warehouse migrates it forward (reader-turned-migrator, m2 design) — intended lazy-gate behavior.
+* Next
+    - PREFLIGHT PASS → BUILD is autonomous (solid edge) in the L2 workflow. Proceed to `/niko-build`.

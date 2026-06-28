@@ -1,0 +1,34 @@
+PASS
+
+Task: p1-data-backbone-m5-sr-query (Level 2)
+Date: 2026-06-28
+Gate: pre-build plan validation against codebase reality.
+
+TDD plan encoding (blocking): PASS (after amendment A1).
+- Each of the 10 implementation steps now carries an explicit RED→GREEN substructure (test authored failing first, then production code). Ordering is per-unit, not preamble-only. Step 1 lands a signature-only stub so tests fail on behavior, not ImportError.
+
+Convention compliance: PASS.
+- New `src/stockroom/query.py` single runnable module (python -m stockroom.query, no __main__.py — unlike the ingest package); read-only via the warehouse.open() chokepoint; con-injection / owns-connection mirrors ingest.ingest; tests in tests/ named test_query.py + test_query_cli.py mirror test_ingest_* / test_ingest_cli.py.
+- REUSE.toml annotation #3 (skills/**/*.py, skills/**/tests/**) re-asserts AGPL → no per-file SPDX header needed (verified against REUSE.toml).
+
+Dependency impact: PASS.
+- Consumes warehouse.open(read_only=True) (lazy migration gate + reader backoff), the migrated schema (0001+0002), and the m3 ingest CLI (to populate throwaway warehouses in end-to-end tests). No module is modified — query is purely additive.
+- Missing-warehouse: warehouse.open(read_only=True) on a fresh path raises a non-lock duckdb.IOException (no existing test covers RO-open-on-missing-file). Plan owns it via a warehouse_path().is_file() pre-check + defensive catch.
+
+Conflict detection: PASS.
+- No existing query module or table formatter; no public contract broken (new module). No duplication-in-waiting.
+
+Completeness precheck: PASS.
+- Roadmap/tech-brief sr-query requirements (raw SQL against the warehouse; first user-facing surface; proves the DB is real and queryable end to end) all map to concrete steps + tests, incl. the CLI "DISTINCT harness names both cursor and claude over a freshly-ingested warehouse" Phase-1 "Done When" proof at the query layer.
+
+Amendments applied to tasks.md:
+- A1 (TDD encoding): explicit per-step RED→GREEN.
+- A2 (radical innovation, in-scope): _format_table always emits a (N rows) trailer → self-describing output, serving the "prove it's queryable" intent at trivial cost.
+
+Advisories (non-blocking, deferred):
+- --format {csv,json} and a skills/sr-query/ SKILL.md prompt wrapper + per-harness /sr-query invocation are Phase 5 distribution scope; not built here (would broaden beyond L2).
+- Querying a behind warehouse migrates it forward (reader-turned-migrator, m2 design) — intended lazy-gate behavior, noted so it isn't surprising.
+
+L4-creep check: PASS — one additive module + two test files + doc edits over already-built, already-populated infrastructure. Stays Level 2.
+
+Findings requiring rework: none.

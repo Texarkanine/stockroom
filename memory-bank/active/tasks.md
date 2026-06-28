@@ -16,8 +16,9 @@ Milestone 5 of the `p1-data-backbone` L4 project, and the closing milestone of P
 
 ### Behaviors to Verify
 
-- **Render non-empty result**: `_format_table(["n"], [(1,)])` → a string with a header row naming `n` and a data row containing `1`.
-- **Render empty result**: `_format_table(["n"], [])` → header present, no data rows (and a discernible "0 rows" signal).
+- **Render non-empty result**: `_format_table(["n"], [(1,)])` → a string with a header row naming `n`, a data row containing `1`, and a trailing `(1 row)` line.
+- **Render empty result**: `_format_table(["n"], [])` → header present, no data rows, trailing `(0 rows)` line.
+- **Row-count trailer (amendment A2)**: `_format_table` always ends with a `(N rows)` / `(1 row)` trailer so the proof-of-queryability output is self-describing for any N.
 - **`run_query` returns columns + rows (injected con)**: `run_query("SELECT 1 AS n", con=migrated_con)` → `columns == ["n"]`, `rows == [(1,)]`.
 - **`run_query` over the real schema (injected con)**: after inserting a `sessions` row into `migrated_con`, `run_query("SELECT harness, project_id FROM sessions", con=...)` returns that row — proves queryability over the actual migrated schema.
 - **`run_query` empty result set (injected con)**: `run_query("SELECT * FROM sessions WHERE 1=0", con=...)` → column names present, `rows == []`.
@@ -39,32 +40,39 @@ Milestone 5 of the `p1-data-backbone` L4 project, and the closing milestone of P
 
 ## Implementation Plan
 
-Each step is one RED→GREEN TDD cycle. Steps 1–2 are pure/unit (no DB); 3 adds the open path; 4–8 are the CLI; 9 docs; 10 the green gate.
+Every step below is one **RED→GREEN** TDD cycle and is written test-first: the named test assertions (from the Test Plan above) are authored and run **failing first** (RED), then the production code is written to turn them green (GREEN). No step writes production code before its test exists. Steps 1–2 are pure/unit (no DB); 3 adds the open path; 4–8 are the CLI; 9 docs; 10 the green gate. (Step 1 first lands a signature-only stub of `query.py` so the tests can import it and fail on behavior, not `ImportError` — the stub carries no logic.)
 
 1. **`_format_table(columns, rows) -> str` renderer**
    - Files: `tests/test_query.py` (new), `src/stockroom/query.py` (new).
-   - Changes: stub `query.py` with module docstring + signatures (`run_query`, `_format_table`, `_build_parser`, `main`) and empty bodies; write + implement `_format_table` (header line + separator + one line per row; values `str()`-coerced, `NULL` for `None`; 0-row case prints header + a `(0 rows)` trailer). Deterministic, dependency-free.
+   - RED: write `test_format_table_*` for the render-non-empty, render-empty, and row-count-trailer behaviors.
+   - GREEN: stub `query.py` with module docstring + signatures (`run_query`, `_format_table`, `_build_parser`, `main`) and empty bodies, then implement `_format_table` (header line + separator + one line per row; values `str()`-coerced, `NULL` for `None`; **always** ends with a `(N rows)` trailer — see amendment A2). Deterministic, dependency-free.
 2. **`run_query(sql, *, con=None)` over an injected connection**
    - Files: `tests/test_query.py`, `src/stockroom/query.py`.
-   - Changes: implement the injected-con branch — `cur = con.execute(sql)`; `columns = [d[0] for d in cur.description] if cur.description else []`; `rows = cur.fetchall()`; return a small result (a `QueryResult` dataclass holding `columns: list[str]`, `rows: list[tuple]`, or a `(columns, rows)` tuple — pick the dataclass for self-documentation). Mirror the ingest `con is None` / `owns_connection` shape but defer the open path to step 3.
+   - RED: write `test_run_query_*` for returns-columns+rows, over-the-real-schema (insert a `sessions` row into `migrated_con` then SELECT), and empty-result behaviors.
+   - GREEN: implement the injected-con branch — `cur = con.execute(sql)`; `columns = [d[0] for d in cur.description] if cur.description else []`; `rows = cur.fetchall()`; return a `QueryResult` dataclass (`columns: list[str]`, `rows: list[tuple]`) for self-documentation. Mirror the ingest `con is None` / `owns_connection` shape but defer the open path to step 3.
 3. **`run_query` open-read-only path when `con is None`**
    - Files: `tests/test_query.py`, `src/stockroom/query.py`.
-   - Changes: when `con is None`, `connection = warehouse.open(read_only=True)`, run, and `connection.close()` in `finally` (owns-connection pattern from `ingest.ingest`). Test against an ingested `warehouse_home`.
+   - RED: write a test that ingests into `warehouse_home`, then calls `run_query("SELECT count(*) AS c FROM sessions")` (no con) and asserts the count.
+   - GREEN: when `con is None`, `connection = warehouse.open(read_only=True)`, run, and `connection.close()` in `finally` (owns-connection pattern from `ingest.ingest`).
 4. **CLI argument parser + happy path (`main`)**
-   - Files: `tests/test_query_cli.py` (new), `src/stockroom/query.py`, `src/stockroom/query/__main__`? — **no**: a single module `stockroom/query.py` is directly runnable via `python -m stockroom.query` (no package/`__main__.py` needed, unlike the multi-module `ingest` package). Keep it one file.
-   - Changes: implement `_build_parser` (positional `sql`; `prog="python -m stockroom.query"`) and `main(argv)` (parse → `run_query` → `print(_format_table(...))` → return 0); add `if __name__ == "__main__": raise SystemExit(main())`. First CLI subprocess test asserts exit 0 + rendered output.
+   - Files: `tests/test_query_cli.py` (new), `src/stockroom/query.py`. A single module `stockroom/query.py` is directly runnable via `python -m stockroom.query` — **no** `__main__.py` (unlike the multi-module `ingest` package). Keep it one file.
+   - RED: write the CLI happy-path subprocess test (`"SELECT 1 AS n"` against an ingested warehouse → exit 0, output contains `n` and `1`).
+   - GREEN: implement `_build_parser` (positional `sql`; `prog="python -m stockroom.query"`) and `main(argv)` (parse → `run_query` → `print(_format_table(...))` → return 0); add `if __name__ == "__main__": raise SystemExit(main())`.
 5. **CLI SQL-error handling**
    - Files: `tests/test_query_cli.py`, `src/stockroom/query.py`.
-   - Changes: wrap execution in `try/except duckdb.Error as exc:` → `print(f"query failed: {exc}", file=sys.stderr); return 1`. No traceback escapes.
+   - RED: write the invalid-SQL test (nonzero exit, stderr message, no traceback).
+   - GREEN: wrap execution in `try/except duckdb.Error as exc:` → `print(f"query failed: {exc}", file=sys.stderr); return 1`. No traceback escapes.
 6. **CLI read-only write rejection**
    - Files: `tests/test_query_cli.py`.
-   - Changes: assert a `CREATE TABLE`/`INSERT` exits nonzero with a read-only error (behavior falls out of step-3 read-only open + step-5 error handling; this test pins it as a guarantee). Ingest a warehouse first so the connection opens.
+   - RED: write the test asserting `CREATE TABLE`/`INSERT` exits nonzero with a read-only error and leaves the warehouse unchanged (ingest a warehouse first so the connection opens). Behavior falls out of step-3 read-only open + step-5 error handling; this test pins it as a guarantee.
 7. **CLI missing-warehouse + empty-SQL edges**
    - Files: `tests/test_query_cli.py`, `src/stockroom/query.py`.
-   - Changes: detect absent `warehouse.duckdb` (or catch the open-time `duckdb.IOException` whose message is *not* a lock conflict) → friendly "no warehouse found — run `python -m stockroom.ingest` first" on stderr, nonzero exit; reject empty/whitespace `sql` before opening with a usage message + nonzero exit.
+   - RED: write the missing-warehouse test (`STOCKROOM_HOME` with no `warehouse.duckdb`) and the empty/whitespace-SQL test.
+   - GREEN: pre-check `warehouse.warehouse_path().is_file()` before opening → friendly "no warehouse found — run `python -m stockroom.ingest` first" on stderr + nonzero exit (defense-in-depth: also catch the open-time non-lock `duckdb.IOException`); reject empty/whitespace `sql` before opening with a usage message + nonzero exit.
 8. **CLI stdin (`-`) SQL source**
    - Files: `tests/test_query_cli.py`, `src/stockroom/query.py`.
-   - Changes: when `sql == "-"`, read the statement from `sys.stdin.read()`. Subprocess test pipes SQL via `input=`.
+   - RED: write the stdin test (`echo "SELECT 1 AS n" | … -` → exit 0, prints result).
+   - GREEN: when `sql == "-"`, read the statement from `sys.stdin.read()`.
 9. **Documentation**
    - Files: `memory-bank/techContext.md`, `README.md`.
    - Changes: add a "Query (`sr-query`)" subsection to `techContext.md` pointing at `stockroom.query` and the read-only/lazy-migrate behavior (sibling to the Ingest section); add a `python -m stockroom.query "<SQL>"` example to the README's ad-hoc-invocation block. (No `skills/` change — see Scope & Boundaries.)
@@ -90,12 +98,28 @@ No new technology — validation not required. `duckdb`, `argparse`, `sys`, `dat
 - **Output format bikeshed**: a single deterministic text-table format is shipped (no `--format` flag) to honor YAGNI; richer formats are a later concern. *Mitigation*: `_format_table` is isolated and unit-tested, so adding a format later is a contained change.
 - **Not a hidden L3**: one new module + two test files + doc edits, over already-built, already-populated infrastructure; no new architecture, no cross-cutting schema/ingest change. Stays L2. If preflight finds the surface must grow a skill wrapper or multiple output modes to be "done," re-level.
 
+## Preflight Amendments
+
+- **A1 (TDD encoding):** rewrote the Implementation Plan so every step carries an explicit RED→GREEN substructure (test authored failing first, then production code) — the ordering now lives per-unit, not only in the preamble. Step 1 lands a signature-only stub so tests fail on behavior, not `ImportError`.
+- **A2 (radical innovation, in-scope, applied):** `_format_table` always emits a `(N rows)` trailer (not only the empty case), making the query surface's output self-describing — directly serving the milestone's "prove the database is real and queryable" intent at trivial cost.
+
+### Advisories (non-blocking, deferred — would broaden scope beyond L2 / into Phase 5)
+
+- A `--format {csv,json}` option and a `skills/sr-query/SKILL.md` prompt wrapper + per-harness `/sr-query` invocation are deliberately **not** built here; they are Phase 5 distribution scope. Flagged for operator awareness, not applied.
+- `warehouse.open(read_only=True)` on a current-but-behind warehouse will *migrate it forward as the reader-turned-migrator* (m2 design). For a pure query surface this is the intended lazy-gate behavior, not a defect; noted so it isn't surprising.
+
+## Verified Assumptions (preflight)
+
+- `REUSE.toml` annotation #3 globs `skills/**/*.py` and `skills/**/tests/**` to AGPL → new `query.py` + test files need **no** per-file SPDX header (matches existing `src/`/`tests/`).
+- No existing read-only-open-on-missing-file path exists (`test_warehouse_open.py` only opens RO on an already-created warehouse), confirming the missing-warehouse edge is new behavior the plan must own.
+- `python -m stockroom.query` resolves a single-file module directly (no `__main__.py`), unlike the `ingest` *package*.
+
 ## Status
 
 - [x] Initialization complete
 - [x] Test planning complete (TDD)
 - [x] Implementation plan complete
 - [x] Technology validation complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
 - [ ] QA
