@@ -1,17 +1,21 @@
-# Task: Phase 2 — Embeddings and Search (`p2-embeddings-search`)
+# Current Task: Phase 2 · Milestone 1 — Embedding pipeline (`p2-embeddings-search`, sub-run m1)
 
-**Complexity:** Level 4 (Complex System)
+**Complexity:** Level 3
 
-This is an L4 project. The work is decomposed into milestone sub-runs tracked in
-`memory-bank/active/milestones.md`. Each milestone is classified and executed as
-its own L1/L2/L3 sub-run; there is no L4-level checklist here — the milestone
-list is the plan.
+The task checklist is populated by the Level 3 PLAN phase. The deliverable is the
+first milestone of the Phase 2 L4 project, per `memory-bank/active/milestones.md`:
 
-## Preflight
+> **Embedding pipeline** — VSS/HNSW index migration (`0003`, cosine, experimental
+> persistence on) plus a `sentence-transformers` (`all-MiniLM-L6-v2`, 384-dim)
+> embedder with chunk-and-mean-pool, GPU-or-CPU device selection, `FLOAT[384]`
+> writes through the chokepoint, and incremental re-embed of only
+> un-embedded/changed content.
 
-Status: **PASS (with advisory)** — see `memory-bank/active/.preflight-status` and
-the "Preflight findings" section of `memory-bank/active/milestones.md`. The
-milestone list is validated and cleared; the recorded findings are binding inputs
-to the milestone-1 sub-run's plan/creative phase (torch-free embedder testability,
-offline VSS provisioning, `embeddings.owner_id` grain, the `0003` migration-head
-ripple, and a mandatory load-bearing-primitive spike).
+Binding sub-run findings (from `milestones.md` "Preflight findings") that the
+plan/creative phase must resolve:
+
+- Embedder must be unit-testable **without torch** (CI is torch-free) — favor an injected-encoder pattern.
+- VSS extension provisioning must respect the **offline/supply-chain posture** (no implicit network `INSTALL`).
+- `embeddings.owner_id` **grain** is ambiguous for `tool_calls` — decide keying before writing vectors.
+- New migration `0003` is a **test-suite-wide event** — budget migration-head + golden-snapshot updates.
+- **Open with a load-bearing-primitive spike**: offline `vss`, HNSW cosine + live-delete persistence, CPU `all-MiniLM-L6-v2` encode.
