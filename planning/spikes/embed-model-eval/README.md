@@ -40,21 +40,44 @@ signal. (2) Single-vector + truncation under-represents long messages; the
 shipped design embeds **per-chunk**, which lifts all models on the long tail
 (orthogonal to model choice). (3) Numbers are this-corpus-specific by design.
 
-## Reproduce
+## Reproduce / run on another machine + corpus
+
+The scripts are **self-contained and portable** — no `uv`/project import, and the
+device auto-selects **CUDA → Apple-Silicon MPS → CPU**. To validate whether the
+ranking generalizes to a *different* corpus (e.g. a second laptop's Claude/Cursor
+history), run it there and share only the metrics file:
 
 ```bash
-# 1. export the dataset (sr-search venv, duckdb 1.5.4, reads the warehouse RO)
-cd skills/sr-search && PYTHONPATH=src uv run --no-sync --no-config \
-    python ../../planning/spikes/embed-model-eval/export_dataset.py
+# one-time: install deps into any interpreter / venv
+python3 -m pip install -r requirements-bench.txt
 
-# 2. run the benchmark (the torch-equipped interpreter)
-cd ../../planning/spikes/embed-model-eval && python3 benchmark.py
+# one shot — export from the local warehouse, then benchmark
+./run.sh macbook-m4
+#   …or point at an explicit warehouse file / non-default $STOCKROOM_HOME:
+#   ./run.sh macbook-m4 ~/.stockroom/warehouse.duckdb
 ```
 
-The `*.parquet` exports contain raw private message text and are **gitignored**.
-`results.json` (metrics only) is safe to commit.
+…or the two steps by hand:
 
-## Results (GTX 1070, CUDA 12.6, torch 2.11.0)
+```bash
+python3 export_dataset.py [--db ~/.stockroom/warehouse.duckdb]
+python3 benchmark.py --label macbook-m4
+```
+
+**Privacy / exfiltration.** The `*.parquet` exports contain raw private message
+text and are **gitignored** — they never leave the machine. The benchmark writes
+only `results-<label>.json` (metrics + machine/corpus *counts*, **no message
+text**); that is the only artifact meant to be shared. (Reading the script
+confirms it: nothing but aggregate numbers is serialized.)
+
+Prereqs on the other machine: a Stockroom warehouse exists there (you've run
+ingest), and the four models download once from HuggingFace (~400 MB, needs net).
+
+## Results — corpus A: Linux PC (GTX 1070, CUDA 12.6, torch 2.11.0)
+
+> 14,472-passage pool / 2,110 query pairs. A second corpus (e.g. macOS/MPS) can
+> be validated with the same scripts; append its table below as "corpus B" to
+> check whether the ordering generalizes.
 
 | model | win | MRR@10 | R@1 | R@5 | R@10 | medRank | GPU/s | CPU/s |
 |-------|----:|-------:|----:|----:|-----:|--------:|------:|------:|
