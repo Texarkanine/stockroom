@@ -1,99 +1,18 @@
 # Progress
 
-Milestone 3 of the `p1-data-backbone` L4 project: **Trace ingest (ETL)**. Build the incremental, per-source watermarked extract-transform-load that fills the migrated DuckDB warehouse from the operator's own history. Both harnesses: Cursor and Claude Code (Claude Code parsed clean-room from its native on-disk format). Watermarked per source (`last_mtime` / `last_path`) with a `--full` reset; subagents included and linked to their parent; kept content stored untruncated; tool inputs only (no outputs, no raw layer); WSL/Windows-mount-aware path resolution; optional model/labeling enrichment from Cursor's `ai-code-tracking.db` limited to model/labeling fields. Written test-first against real and pathological fixtures, through the milestone-2 `warehouse.open()` chokepoint and the milestone-1 locked schema, preserving the L4 cross-milestone invariants (no truncation at rest, harness-labeled single schema, tool-inputs-only, forward-only migrations, harness-neutral `~/.stockroom/` warehouse home, locked-uv trust, green `make ci` gate).
+Milestone 4 of the `p1-data-backbone` L4 project: **Workspace identity vs. real path (`project_id` + `cwd` recovery)**. Fix the ingest path model surfaced post-m3: the encoded project-dir slug is lossily decoded into a *fabricated* path. Split `sessions` into `project_id` (verbatim slug — the always-present grouping identity, replacing `project_path`) and a best-effort, NULL-when-unknown `cwd` (the real project-root path) — populated by re-encode-and-match over in-band transcript paths for Cursor and the authoritative record `cwd` for Claude. Drop the lossy `decode_project_dir`; ship as a forward `0002` migration through the already-built m2 framework. Full design + evidence in `planning/spikes/cwd-recovery/README.md`. Preserves the L4 cross-milestone invariants (forward-only numbered migrations, harness-labeled single schema, one-meaning-per-column / honestly-NULL, no fabrication, golden-snapshot regression guard, green `make ci`).
 
-**Complexity:** Level 3
+**Complexity:** Level 2
 
-## 2026-06-25 - COMPLEXITY-ANALYSIS - COMPLETE
+## 2026-06-28 - COMPLEXITY-ANALYSIS - COMPLETE
 
 * Work completed
-    - Re-entered `/niko` on the `p1-data-backbone` L4 project. Milestone 2 (Migration framework) was `REFLECT - COMPLETE`; checked it off in `milestones.md` and cleared its sub-run ephemeral files (`tasks.md`, `activeContext.md`, `progress.md`, `creative/`, `.qa-validation-status`, `.preflight-status`) per Step 2a.
-    - Classified the next unchecked milestone (Trace ingest / ETL) as **Level 3**, matching the L4 plan/preflight advisory estimate.
-    - Created fresh sub-run ephemeral files (this `progress.md`, stubbed `tasks.md`, refreshed `activeContext.md`); preserved the L4 `projectbrief.md`, `milestones.md`, and prior `reflection/` docs.
+    - Re-entered `/niko` on the `p1-data-backbone` L4 project. Milestone 3 (Trace ingest / ETL) was `REFLECT - COMPLETE`; checked it off in `milestones.md` and cleared its sub-run ephemeral files per Step 2a (`tasks.md`, `activeContext.md`, `progress.md`, `creative/`, `.qa-validation-status`, `.preflight-status`). Preserved `milestones.md`, the L4 `projectbrief.md`, and prior `reflection/` docs.
+    - Verified the ephemeral creative doc `creative-cursor-workspace-path-recovery.md` was safe to reap: its full design is durably preserved in `planning/spikes/cwd-recovery/README.md` (which explicitly supersedes it and is referenced by the milestone-4 line).
+    - Classified the next unchecked milestone (Workspace identity vs. real path) as **Level 2**, matching the L4 plan/spike estimate.
+    - Created fresh sub-run ephemeral files (this `progress.md`, stubbed `tasks.md`, refreshed `activeContext.md`).
 * Decisions made
-    - L3, not L4: a complete feature across multiple cooperating components (two clean-room parsers, watermark state, WSL/mount-aware path resolution, subagent→parent linkage, optional enrichment) — but the overarching architecture is already fixed by the L4 plan and the now-built schema (m1) + migration framework (m2). This sub-run fills the existing warehouse through the existing `open()` chokepoint; it introduces no new architecture.
+    - **L2, not L3:** a cohesive data-model refinement over already-built infrastructure (m2 migration framework + m3 ingest), not a new architecture. Design is fully pre-resolved in the spike (data model, `cwd` algorithm, and the `0002`-migration route all decided), so no creative phase is needed; the lone open item is an empirical confirmation of the `encode` transform's escaped-character set, handled as the plan's first step. The "flag L3 if the resolver + dual-snapshot churn proves broad" condition is not triggered — one focused `cwd` resolver plus a standard forward migration and snapshot regen.
 * Insights
-    - The hard correctness claims (faithful untruncated capture, subagent linkage, harness generality) are exactly what the milestone says must be proven test-first against *real and pathological* fixtures — fixtures milestone 1 was tasked to commit as durable artifacts and that this milestone's ingest tests reuse.
-
-## 2026-06-25 - PLAN - COMPLETE (no creative phase)
-
-* Work completed
-    - Wrote the full L3 plan to `tasks.md`: new `stockroom.ingest` package decomposition (`model`, `cursor`, `claude`, `sources`, `enrich`, `writer`, orchestrator `__init__`, `__main__` CLI), pinned ETL pipeline + source→schema mapping + identity/reconstruction-algorithm diagrams, TDD test plan (7 new test modules + fixture extensions), 11-step ordered implementation plan, technology validation (no new deps), and challenges/mitigations.
-    - Surveyed the engine (m1 schema `0001`, m2 `warehouse`/`migrate`/`migrations`, conftest fixtures, pyproject/Makefile/REUSE) and the planning authorities (roadmap Phase 1, tech-brief Faithful-Capture/Ingest/Migrations/Storage-Concurrency).
-    - Ran **structural-only** probes (no transcript content) of the operator's real Cursor + Claude logs to resolve the one genuinely ambiguous design point empirically.
-* Decisions made (in-plan; the L4-plan/preflight "rest is standard ETL" prediction held — no creative needed)
-    - **Reconstruction:** dense 0-based ordinals over *kept* messages; `message_id = {session_id}#{ordinal}`. Cursor parent = previous-kept (linear append); Claude parent = follow `parentUuid` tree to the nearest *kept* ancestor (native `uuid` demoted to `source_uuid`).
-    - **Drops:** Claude `thinking`, `tool_result`/`toolUseResult` (outputs), and Cursor `turn_ended` are consumed but never stored (no schema column for turn_ended → not persisted in v1).
-    - **Subagents:** Claude subagent `session_id` = subagent file stem (records carry the *parent's* `sessionId`); `parent_session_id`/`agent_id`/`agent_type`/`spawning_tool_use_id` from records + meta.json. Cursor subagent linked structurally by `subagents/` dir location.
-    - **Incremental:** `_sync_state` per `(harness, source_root=scanned root)`; select `mtime > last_mtime` (tie-break `path > last_path`); idempotent delete-then-insert per `(harness, session_id)`; `--full` bypasses the watermark.
-    - **No boundary risk:** no schema change / no new migration; stdlib `json`/`sqlite3` + locked `duckdb` only (`uv.lock` untouched). New env conventions `STOCKROOM_CURSOR_ROOT`/`STOCKROOM_CLAUDE_ROOT` (flag at preflight, as m2 did for `STOCKROOM_HOME`).
-* Insights
-    - The structural probe was the highest-leverage planning act (mirrors m1/m2's pre-build POCs): it converted "how do I reconstruct the thread?" from a guess into an evidence-backed decision (branching is real and common → the uuid tree is mandatory) and exposed that the committed fixtures **undercount** real Claude record-type diversity — a concrete, build-shaping risk that a fixtures-only plan would have missed.
-
-## 2026-06-25 - PREFLIGHT - PASS (with advisories)
-
-* Work completed
-    - Validated the plan against codebase reality (TDD per-unit encoding, convention compliance, dependency impact, conflict detection, completeness). Wrote `.preflight-status`.
-    - Confirmed no existing ingest code (grep hits were docstring/comment/README mentions only — no conflict/duplication), and that `test_packaging.py` asserts manifests/versions, not package contents, so a new `stockroom.ingest` subpackage cannot break it.
-    - Confirmed REUSE is path-based (`skills/**/*.py` + `skills/**/tests/**` re-asserted AGPL) → no inline SPDX for the new modules, fixtures (`.jsonl`/`.json`/synthetic `.db`), or tests.
-    - **L4-creep check: PASS** — one cohesive ETL subsystem, no independent workstreams, no new architecture; stays Level 3.
-* Amendments made to `tasks.md`
-    - **Radical-innovation (in-scope, applied):** added a **golden ingest-output snapshot** (`tests/fixtures/ingest/expected_rows.json`) asserted in impl step 8 and generated by the test's own query helper — locks the full reconstruction output (ordinals, parent_ids, drops, tokens, subagent edges). Mirrors m1's `0001_snapshot.json` and m2's snapshot guard.
-* Advisories (non-blocking)
-    - New env conventions `STOCKROOM_CURSOR_ROOT`/`STOCKROOM_CLAUDE_ROOT` (as m2 did with `STOCKROOM_HOME`).
-    - m1 fixtures undercount real Claude record-type diversity → m3 extends fixtures + adds an "ignore unknown types" robustness test (doesn't re-open m1).
-    - `ai-code-tracking.db` absent on this machine → enrichment happy-path tested via synthetic sqlite fixture; real-data validation deferred.
-    - Durable `systemPatterns.md` ETL/clean-room-parser entry deferred to reflect.
-* Next
-    - 🧑‍💻 Operator-gated **Build** (`/niko-build`). Preflight PASS → Build requires operator initiation per the L3 workflow.
-
-## 2026-06-25 - BUILD - COMPLETE
-
-* Work completed
-    - Implemented the full `stockroom.ingest` package TDD, one RED→GREEN commit per plan step (1-11):
-        1. Fixtures corrected to faithful per-harness roots (encoded project dirs, real subagent nesting + trimmed `meta.json` + `agent-name`), added robustness/pathological Claude fixtures and a synthetic `ai-code-tracking.db` pytest builder; parser-agnostic fixture-integrity test.
-        2. `model.py` — `NormalizedSession`/`Message`/`ToolCall` dataclasses (schema-mapped, one-meaning-per-field).
-        3. `cursor.py` — linear clean-room parser (dense ordinals, previous-kept parents, `turn_ended` boundary, empty-text kept, subagent `agent_type` from parent Task input).
-        4. `claude.py` — allowlist parser: `parentUuid`-tree → nearest-kept-ancestor parents, per-message model/usage, `thinking`/`tool_result` drops, metadata folding (`ai-title`/`custom-title`/`agent-name`), ignore-unknown-types, subagent linkage via `meta.json`.
-        5. `sources.py` — discovery + encoded-project-dir decode + `(mtime, path)` watermark filter (env-overridable roots).
-        6. `enrich.py` — optional `ai-code-tracking.db` reader; graceful no-op when absent/malformed.
-        7. `writer.py` — idempotent delete-then-insert per `(harness, session_id)` + `_sync_state` upsert; untruncated JSON `tool_input`.
-        8. `ingest()` orchestrator wiring discover→parse→enrich→write→watermark; **golden ingest-output snapshot** (`expected_rows.json`) asserted byte-for-byte.
-        9. `python -m stockroom.ingest` CLI (`--full`, `--harness`) with subprocess smoke tests exercising the real `warehouse.open()` RW path.
-        10. Docs reconciled — `techContext.md` gained an Ingest (ETL) section pointing at the package, env conventions, golden snapshot, and fixtures.
-        11. Green gate: `make ci` = **152 passed**, ruff lint+format clean, REUSE compliant (path-based AGPL, 142/142).
-* Decisions / notes
-    - Claude timestamps normalized to naive UTC for the timezone-naive `TIMESTAMP` column.
-    - Golden snapshot normalizes machine-specific data (relative `source_path`, ISO datetimes, parsed `tool_input`, `_sync_state` excluded) so it tests reconstruction logic, not environment.
-* Deferred to REFLECT
-    - Durable `systemPatterns.md` entry for the clean-room-allowlist-parser + positional-identity + golden-ingest-snapshot pattern.
-    - Real-data enrichment validation (`ai-code-tracking.db` absent on this machine).
-* Next
-    - BUILD → QA (autonomous). Run `/niko-qa` for the L3 post-implementation semantic review.
-
-## 2026-06-26 - QA - PASS
-
-* Work completed
-    - Semantic review of the whole `stockroom.ingest` package against the original L3 plan (KISS / DRY / YAGNI / Completeness / Regression / Integrity / Documentation).
-    - Re-confirmed the green gate: `make ci` = **152 passed**, ruff lint+format clean, REUSE compliant (142/142).
-    - Verified writer INSERT column lists match the locked `0001` schema exactly; no debug artifacts (the CLI `print()` is intended output), no TODOs/stubs/placeholders, no magic numbers; `tool_input` serialized whole (no truncation at rest).
-    - Confirmed docs reconciliation landed: `techContext.md` Ingest (ETL) section + `STOCKROOM_CURSOR_ROOT`/`STOCKROOM_CLAUDE_ROOT` conventions + golden-snapshot note; fixtures README updated.
-* Findings
-    - **PASS** — no blocking semantic issues; nothing required fixing.
-    - Advisory (non-blocking, → REFLECT): `_iter_records` is byte-identical in `cursor.py` and `claude.py`. Defensible under the clean-room "self-contained parser" design (each documented as depending only on `model` + stdlib); consolidate-vs-keep-independent is a design call, so deferred rather than fixed in QA.
-    - Durable `systemPatterns.md` clean-room-parser/positional-identity/golden-snapshot entry remains intentionally deferred to REFLECT (preflight advisory).
-* Next
-    - QA PASS → REFLECT is an autonomous transition (solid edge) in the L3 workflow. Proceed to `/niko-reflect`.
-
-## 2026-06-26 - REFLECT - COMPLETE
-
-* Work completed
-    - Wrote `reflection/reflection-p1-data-backbone-m3-trace-ingest.md` — full lifecycle review (requirements vs outcome, plan accuracy, no-creative-phase review, build/QA observations, cross-phase causal analysis, insights).
-    - Reconciled persistent files: added a durable `systemPatterns.md` pattern entry for the ingest ETL (per-harness clean-room parsers → harness-neutral normalized `model`; uniform positional identity over the *kept* set; allowlist-driven Claude parsing; golden-output-snapshot discipline now spanning m1/m2/m3). `techContext.md` already current from build step 10; `productContext.md` unaffected.
-* Decisions made
-    - Resolved the deferred durable-pattern entry here (preflight had deferred it to reflect). Left the `_iter_records` duplication as intended clean-room self-containment rather than consolidating — recorded as design intent in the new pattern.
-* Insights
-    - A read-only structural probe of *real* data during planning is disproportionately high-leverage for parser/ETL work: it closed the one true unknown (thread topology — branching `parentUuid`) with evidence, which is why the build was clean and QA found nothing substantive.
-    - The "golden output generated by the test's own query helper" pattern is the project's most reliable correctness lever and now recurs at three layers; generator/assertion share a code path so they cannot silently diverge.
-* Next
-    - REFLECT is terminal. Run `/niko` to advance the `p1-data-backbone` L4 project (check off m3, classify the next milestone: `sr-query`, est. L2).
+    - This milestone *dogfoods* the m2 migration framework on its first real schema-changing, data-preserving upgrade (`ALTER TABLE` + backfill) — exactly the Phase-1 "Done When" proof — at low risk (the warehouse is derived ETL output, rebuildable via `--full`).
+    - Correctness is cheap by construction: `project_id` is copied verbatim (can't be wrong) and `cwd` is verified by forward-encoding (`encode(candidate) == slug`), so its only failure mode is a clean NULL — never a fabricated path.
