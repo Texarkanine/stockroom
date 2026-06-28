@@ -2,7 +2,7 @@
 
 ## Current Task: Workspace identity vs. real path (`project_id` + `cwd` recovery) (milestone 4 of `p1-data-backbone`, Level 2 sub-run)
 
-**Phase:** BUILD - COMPLETE
+**Phase:** REFLECT COMPLETE
 
 ## What Was Done
 
@@ -20,4 +20,4 @@
 
 ## Next Step
 
-- BUILD complete → **QA** (`/niko-qa`) gates REFLECT for L2. Run QA next.
+- QA PASS → REFLECT complete (`reflection/reflection-p1-data-backbone-m4-cwd-recovery.md`; `systemPatterns.md` gained the verify-don't-invert cwd-recovery pattern). Milestone 4 of the `p1-data-backbone` L4 project is done. **Run `/niko` to advance to the next milestone.**

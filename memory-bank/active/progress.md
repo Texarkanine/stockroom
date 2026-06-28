@@ -78,3 +78,15 @@ Milestone 4 of the `p1-data-backbone` L4 project: **Workspace identity vs. real 
     - The mechanical gate (`make ci`) and the semantic gate agree: the change integrates as a natural extension (forward migration + honest columns), not an accretion layer. The only carry-forward is the REFLECT note on preflight's missed migration-count assumption.
 * Next
     - QA PASS → REFLECT (autonomous) per the L2 workflow.
+
+## 2026-06-28 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `reflection/reflection-p1-data-backbone-m4-cwd-recovery.md` (requirements vs outcome, plan accuracy, build/QA observations, insights, million-dollar question).
+    - Reconciled persistent files: added the **"Workspace identity vs. real path: verify-don't-invert cwd recovery"** pattern to `systemPatterns.md` (the durable generalization deferred from preflight). `techContext.md` was already current (updated in BUILD); `productContext.md` unaffected.
+* Key lessons (carried to the archive)
+    - **A new migration is a suite-wide event:** any test asserting head version / migration count, or that opens the real warehouse, couples to the migration head — budget those updates into the migration's own change, and add this to the preflight dependency sweep.
+    - **"Every commit green" can override "one commit per plan step"** when steps are coupled through a shared global (the migration head); the TDD discipline lives in the RED→GREEN iteration, not the commit count.
+    - **Verify-don't-invert** is the durable shape for any lossy harness encoding (recompute forward + check; clean NULL on miss).
+* Next
+    - L4 sub-run complete. Run `/niko` to advance to the next milestone of `p1-data-backbone`.
