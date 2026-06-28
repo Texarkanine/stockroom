@@ -69,6 +69,13 @@ The torch-safe run contract (`--no-sync` on runs; never an exact sync after torc
 uv run --project skills/sr-search --no-sync --no-config python -m stockroom.<entrypoint>
 ```
 
+For example, ingest your history and then run raw read-only SQL against the warehouse:
+
+```bash
+uv run --project skills/sr-search --no-sync --no-config python -m stockroom.ingest --full
+uv run --project skills/sr-search --no-sync --no-config python -m stockroom.query "SELECT DISTINCT harness FROM sessions"
+```
+
 ## License
 
 Layered, and enforced by `reuse lint` (see [`REUSE.toml`](REUSE.toml)): code is

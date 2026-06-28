@@ -2,7 +2,7 @@
 
 ## Current Task: `sr-query` — raw SQL query surface over the warehouse (milestone 5 of `p1-data-backbone`, Level 2 sub-run)
 
-**Phase:** PLAN - COMPLETE
+**Phase:** BUILD - COMPLETE
 
 ## What Was Done
 
@@ -17,6 +17,14 @@
 - **Single module, no package:** `stockroom/query.py` is directly runnable via `python -m stockroom.query` — no `__main__.py` (unlike the multi-module `ingest` package). KISS.
 - **One output format (no `--format` flag):** a deterministic text table via an isolated, unit-tested `_format_table` — YAGNI on richer formats.
 
+## Build Outcome
+
+- **BUILD (complete, green `make ci` — 184 passed, ruff clean, lock current, REUSE 156/156):**
+    - `src/stockroom/query.py` — `QueryResult` dataclass, `_format_table` (aligned table + always-on `(N rows)` trailer), `run_query(sql, *, con=None)` (read-only open via `warehouse.open` / con-injection), `_build_parser` + `main` (`python -m stockroom.query`, single runnable module, no `__main__.py`).
+    - `tests/test_query.py` (9 unit: renderer + `run_query` injected-con + owns-connection read-only) and `tests/test_query_cli.py` (7 subprocess: happy path, end-to-end DISTINCT-harness proof, invalid-SQL, read-only write rejection, missing-warehouse, empty-SQL, stdin).
+    - Docs: `techContext.md` gained a "Query (`sr-query`)" section; README gained an ingest→query example.
+- **Built to plan, no deviations.** All 10 steps shipped in order; the only false-positive in RED (empty-SQL test passing because `main` raised `NotImplementedError`) resolved correctly once `main` was implemented.
+
 ## Next Step
 
-- PLAN → PREFLIGHT is autonomous (solid edge) in the L2 workflow. Proceed to PREFLIGHT (`niko-preflight` skill).
+- BUILD → QA gates REFLECT for L2. Proceed to QA (`niko-qa` skill).

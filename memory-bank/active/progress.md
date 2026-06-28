@@ -41,3 +41,19 @@ Milestone 5 of the `p1-data-backbone` L4 project: **`sr-query`** — raw SQL aga
     - Querying a behind warehouse migrates it forward (reader-turned-migrator, m2 design) — intended lazy-gate behavior.
 * Next
     - PREFLIGHT PASS → BUILD is autonomous (solid edge) in the L2 workflow. Proceed to `/niko-build`.
+
+## 2026-06-28 - BUILD - COMPLETE
+
+* Work completed (TDD, RED→GREEN per step; final `make ci` green: 184 passed (16 new), ruff clean, `uv.lock --locked`, REUSE 156/156)
+    - **`src/stockroom/query.py`**: `QueryResult` dataclass; `_format_table` (column-aligned text table, `NULL` for `None`, always-on `(N rows)`/`(1 row)` trailer — amendment A2); `run_query(sql, *, con=None)` (injected-con fast path + owns-connection `warehouse.open(read_only=True)` path, mirroring `ingest.ingest`); `_build_parser` + `main` (`python -m stockroom.query`, a single runnable module — no `__main__.py`, unlike the `ingest` package).
+    - **`tests/test_query.py`** (9 unit): renderer behaviors, `run_query` over injected `migrated_con` (incl. real-schema seeded `sessions` row + empty result), and the owns-connection read-only path (returns results; rejects writes).
+    - **`tests/test_query_cli.py`** (7 subprocess): happy path, the end-to-end DISTINCT-harness proof (ingest→query names both cursor & claude), invalid-SQL clean error (no traceback), read-only write rejection, friendly missing-warehouse hint, empty-SQL rejection, stdin (`-`).
+    - **Docs**: `techContext.md` "Query (`sr-query`)" section; README ingest→query example.
+* Decisions made
+    - **Read-only enforcement is the open mode, not app logic**: `run_query`/`main` open `read_only=True` and let DuckDB reject writes; the CLI just wraps `duckdb.Error` into a clean message. No allow/deny-list of statement types (KISS/YAGNI).
+    - **Missing-warehouse via pre-check**: `warehouse.warehouse_path().is_file()` before opening (avoids depending on the exact non-lock `IOException` text), with the `duckdb.Error` catch as defense-in-depth.
+    - **Built to plan, zero deviations.** The one RED false-positive (empty-SQL test passing on `NotImplementedError`) became a genuine pass once `main` shipped.
+* Insights
+    - The end-to-end CLI test (ingest a throwaway warehouse, then `SELECT DISTINCT harness` names both harnesses) closes the Phase-1 loop at the query layer — the milestone's whole reason for existing, demonstrated rather than asserted.
+* Next
+    - QA (`/niko-qa`) gates REFLECT for L2.

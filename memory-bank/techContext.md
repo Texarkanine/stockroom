@@ -93,6 +93,24 @@ live under
 [`tests/fixtures/transcripts/`](../skills/sr-search/tests/fixtures/transcripts/),
 laid out as faithful per-harness roots.
 
+## Query (`sr-query`)
+
+The first user-facing read surface lives in
+[`stockroom.query`](../skills/sr-search/src/stockroom/query.py) and runs via
+`python -m stockroom.query "<SQL>"` (or `… -` to read the statement from stdin).
+It is a single runnable module (no `__main__.py`, unlike the `ingest` *package*):
+it opens the warehouse **read-only** through the same `warehouse.open()`
+chokepoint, executes arbitrary SQL, and prints a column-aligned text table with a
+trailing `(N rows)` line. Read-only is the contract — the warehouse is
+rebuildable ETL output and this surface only interrogates it, so DuckDB rejects
+writes through it; the lazy migration gate still runs (a reader behind the schema
+head transparently becomes the migrator). Errors are surfaced as clean stderr
+messages (invalid SQL → `query failed: …`; absent warehouse → a "run
+`python -m stockroom.ingest` first" hint) with no traceback. The library entry
+`run_query(sql, *, con=None)` mirrors the ingest `con`-injection shape so it is
+unit-testable against an injected connection. The polished `/sr-query` skill
+wrapper and per-harness invocation forms are Phase 5 distribution work.
+
 ## Testing Process
 
 All work is **test-first** per the workspace TDD rule (`.cursor/rules/shared/always-tdd.mdc`); test-running discipline in `.cursor/rules/shared/test-running-practices.mdc`. Tests run under `pytest`, configured in [`skills/sr-search/pyproject.toml`](../skills/sr-search/pyproject.toml) (`[tool.pytest.ini_options]`). **Day-to-day:** `make test` / `make lint` / `make format` / `make ci` from the repo root ([`Makefile`](../Makefile)); lint/format is `ruff`, whole-tree licensing is `make reuse`. The full gate also runs in [`.github/workflows/ci.yml`](../.github/workflows/ci.yml).
