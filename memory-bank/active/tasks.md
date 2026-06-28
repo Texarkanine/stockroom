@@ -122,4 +122,4 @@ No new technology — validation not required. `duckdb`, `argparse`, `sys`, `dat
 - [x] Technology validation complete
 - [x] Preflight
 - [x] Build
-- [ ] QA
+- [x] QA

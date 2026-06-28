@@ -57,3 +57,16 @@ Milestone 5 of the `p1-data-backbone` L4 project: **`sr-query`** — raw SQL aga
     - The end-to-end CLI test (ingest a throwaway warehouse, then `SELECT DISTINCT harness` names both harnesses) closes the Phase-1 loop at the query layer — the milestone's whole reason for existing, demonstrated rather than asserted.
 * Next
     - QA (`/niko-qa`) gates REFLECT for L2.
+
+## 2026-06-28 - QA - PASS
+
+* Work completed
+    - Semantic review of the build against the `tasks.md` plan across all seven QA constraints (KISS / DRY / YAGNI / Completeness / Regression / Integrity / Documentation). All PASS; no trivial fixes needed (code shipped clean — debris sweep for TODO/print("HERE")/breakpoint clean).
+    - Wrote `.qa-validation-status` (PASS) and checked off QA in `tasks.md`.
+* Decisions made
+    - The `con` parameter on `run_query` is **not** a YAGNI violation: it is the documented injected-connection test contract (exercised across the unit suite), mirroring `ingest.ingest`.
+    - Read-only enforcement living in the open mode (DuckDB rejects writes) rather than an app-level statement allow/deny-list is the correct KISS posture — no validation layer to maintain or get wrong.
+* Insights
+    - Mechanical gate (`make ci`) and semantic gate agree: the surface integrates as a natural extension of the `warehouse.open()` chokepoint, not an accretion layer. The only carry-forward is a possible durable `systemPatterns` generalization, deferred to REFLECT.
+* Next
+    - QA PASS → REFLECT (autonomous) per the L2 workflow.
