@@ -2,7 +2,7 @@
 
 ## Current Task: `sr-query` — raw SQL query surface over the warehouse (milestone 5 of `p1-data-backbone`, Level 2 sub-run)
 
-**Phase:** BUILD - COMPLETE
+**Phase:** REFLECT COMPLETE
 
 ## What Was Done
 
@@ -25,6 +25,11 @@
     - Docs: `techContext.md` gained a "Query (`sr-query`)" section; README gained an ingest→query example.
 - **Built to plan, no deviations.** All 10 steps shipped in order; the only false-positive in RED (empty-SQL test passing because `main` raised `NotImplementedError`) resolved correctly once `main` was implemented.
 
+## Reflect Outcome
+
+- QA PASS → REFLECT complete (`reflection/reflection-p1-data-backbone-m5-sr-query.md`). `systemPatterns.md` gained the "read surfaces open read-only; DuckDB enforces immutability" note on the chokepoint pattern; `techContext.md` was already current (BUILD); `productContext.md` unaffected.
+- Milestone 5 of the `p1-data-backbone` L4 project is done — and it is the **final** Phase-1 milestone.
+
 ## Next Step
 
-- BUILD → QA gates REFLECT for L2. Proceed to QA (`niko-qa` skill).
+- L4 sub-run complete. **Run `/niko` to advance** — all five milestones are now complete, so `/niko` will route to the capstone `/niko-archive`.

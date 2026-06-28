@@ -70,3 +70,15 @@ Milestone 5 of the `p1-data-backbone` L4 project: **`sr-query`** — raw SQL aga
     - Mechanical gate (`make ci`) and semantic gate agree: the surface integrates as a natural extension of the `warehouse.open()` chokepoint, not an accretion layer. The only carry-forward is a possible durable `systemPatterns` generalization, deferred to REFLECT.
 * Next
     - QA PASS → REFLECT (autonomous) per the L2 workflow.
+
+## 2026-06-28 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `reflection/reflection-p1-data-backbone-m5-sr-query.md` (requirements vs outcome, plan accuracy, build/QA observations, insights, million-dollar question).
+    - Reconciled persistent files: added the **"read surfaces open read-only; DuckDB enforces immutability (no app-level statement allow/deny-list)"** note to the `systemPatterns.md` chokepoint pattern (durable for the upcoming Phase-2 read surfaces). `techContext.md` already current (BUILD); `productContext.md` unaffected.
+* Key lessons (carried to the archive)
+    - **Read-only is enforcement-for-free:** any pure read surface should open `read_only=True` and lean on the engine to reject writes — no validation layer to build or get wrong.
+    - **`python -m` module-vs-package is a design lever:** a single-file module for a cohesive one-surface tool (no `__main__.py`); reserve the package + `__main__.py` form for genuinely multi-module subsystems.
+    - **Scope risk lives in shared mutable globals, not line count:** a purely additive milestone (no migration head, no cross-module rename) is the cheap case — recognizing that up front justified L2 and predicted the clean build (contrast m4's migration-head coupling).
+* Next
+    - L4 sub-run complete — and the **final** Phase-1 milestone. Run `/niko` to advance; all five milestones complete → routes to the capstone `/niko-archive`.
