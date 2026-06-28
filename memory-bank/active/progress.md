@@ -69,3 +69,17 @@ migration-head ripple, and a mandatory load-bearing-primitive spike).
 * Insights
     - The "why 384?" question surfaced the real lever: 384 is a *model property*, not a knob; staying at 384 preserves model-upgrade freedom without a migration. And "are all chunks embedded?" correctly exposed mean-pool's dilution on the long tail — per-chunk storage is strictly more information (you can pool at read time; never the reverse).
     - The amendment changed *design*, not scope or complexity (still L3, still messages-only, still the same components) — so it re-validates against preflight without a re-architecture.
+
+## 2026-06-28 - SPIKE: empirical embedding-model eval - COMPLETE (decision open)
+
+* Work completed
+    - Operator has torch provisioned locally (GTX 1070, CUDA 12.6). Built a real known-item retrieval benchmark on the operator's own corpus: query=user turn, gold=the assistant reply (`parent_id` edge), pool=14,472 assistant messages; 2,110 labeled pairs. Metrics: MRR@10, Recall@{1,5,10}, mean/median rank, + GPU/CPU throughput. Spike at `planning/spikes/embed-model-eval/` (README + export_dataset.py + benchmark.py + results.json; parquet gitignored — private text).
+    - Provisioned `sentence-transformers` into the torch interpreter (reused existing torch). Fixed a gte-small hang (no native max_seq_length → tried to encode a 202k-char query); capped every model to its native window.
+* Results (MRR@10 / R@1 / CPU-per-s): e5-small-v2 0.266 / 0.216 / 10; gte-small 0.245 / 0.174 / **1**; bge+prefix 0.239 / 0.178 / 11; bge no-prefix 0.204 / 0.151 / 8; MiniLM 0.192 / 0.137 / 23.
+* Findings
+    - **MiniLM is clearly weakest on quality** (last on every metric, large consistent gap) — switching off it is empirically confirmed.
+    - **bge query prefix is worth +0.035 MRR** (0.204→0.239) — m2 should use it if bge is chosen.
+    - **gte-small disqualified** by CPU throughput (1/s ≈ 13 h cold-embed) despite best median rank.
+    - **Empirical winner ≠ MTEB desk pick:** e5-small-v2 (lowest MTEB of the set) tops R@1/MRR here — the "evaluate on your own corpus" lesson. Its cost is the mandatory dual `passage:`/`query:` prefix (footgun across m1/m2).
+* Decision (OPEN — operator's call)
+    - Narrowed to **e5-small-v2** (best top-1, fast, dual-prefix contract burden) vs **bge-small-en-v1.5+prefix** (simpler/lower-footgun contract, MIT, no passage prefix, a hair less R@1). Both decisively beat MiniLM. Plan currently encodes bge; flip to e5 is a one-line EMBED_MODEL + prefixes, no schema change (still 384-dim).

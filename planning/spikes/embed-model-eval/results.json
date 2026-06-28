@@ -1,0 +1,90 @@
+{
+  "dataset": {
+    "corpus": 14472,
+    "queries": 2110
+  },
+  "device": "cuda",
+  "gpu": "NVIDIA GeForce GTX 1070",
+  "results": [
+    {
+      "label": "e5-small-v2",
+      "model_id": "intfloat/e5-small-v2",
+      "dim": 384,
+      "max_seq_len": 512,
+      "mrr10": 0.2655239599789363,
+      "recall": {
+        "1": 0.2156398104265403,
+        "5": 0.3345971563981043,
+        "10": 0.37156398104265403
+      },
+      "mean_rank": 1419.6165876777252,
+      "median_rank": 91.0,
+      "gpu_passages_per_s": 220.51245984205985,
+      "cpu_passages_per_s": 10.39099714493144
+    },
+    {
+      "label": "gte-small",
+      "model_id": "thenlper/gte-small",
+      "dim": 384,
+      "max_seq_len": 512,
+      "mrr10": 0.2453953208455578,
+      "recall": {
+        "1": 0.17440758293838862,
+        "5": 0.34360189573459715,
+        "10": 0.4
+      },
+      "mean_rank": 919.242654028436,
+      "median_rank": 34.0,
+      "gpu_passages_per_s": 47.04924694794366,
+      "cpu_passages_per_s": 1.3496659752258815
+    },
+    {
+      "label": "bge-small-en-v1.5 (query prefix)",
+      "model_id": "BAAI/bge-small-en-v1.5",
+      "dim": 384,
+      "max_seq_len": 512,
+      "mrr10": 0.23913093357406154,
+      "recall": {
+        "1": 0.17772511848341233,
+        "5": 0.32085308056872036,
+        "10": 0.3748815165876777
+      },
+      "mean_rank": 1133.667298578199,
+      "median_rank": 58.0,
+      "gpu_passages_per_s": 110.88397238355576,
+      "cpu_passages_per_s": 10.63645017919265
+    },
+    {
+      "label": "bge-small-en-v1.5 (no prefix)",
+      "model_id": "BAAI/bge-small-en-v1.5",
+      "dim": 384,
+      "max_seq_len": 512,
+      "mrr10": 0.20442206424433912,
+      "recall": {
+        "1": 0.15118483412322276,
+        "5": 0.27582938388625594,
+        "10": 0.33222748815165876
+      },
+      "mean_rank": 1202.1469194312797,
+      "median_rank": 82.0,
+      "gpu_passages_per_s": 110.88397238355576,
+      "cpu_passages_per_s": 8.38902721030647
+    },
+    {
+      "label": "all-MiniLM-L6-v2 (incumbent)",
+      "model_id": "sentence-transformers/all-MiniLM-L6-v2",
+      "dim": 384,
+      "max_seq_len": 256,
+      "mrr10": 0.1921505679681035,
+      "recall": {
+        "1": 0.13696682464454976,
+        "5": 0.26492890995260665,
+        "10": 0.33127962085308055
+      },
+      "mean_rank": 1185.9336492890995,
+      "median_rank": 71.0,
+      "gpu_passages_per_s": 581.696827541322,
+      "cpu_passages_per_s": 23.22164095775407
+    }
+  ]
+}

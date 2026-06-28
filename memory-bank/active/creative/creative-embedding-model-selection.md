@@ -42,6 +42,28 @@ Key insights:
 
 **Tradeoff**: ~50% more parameters than MiniLM (still tiny) and a different one-time model download (~130 MB) to provision/cache (same mechanism as the torch/vss provisioning the project already accepts). Accepted.
 
+## Empirical Update (2026-06-28 spike — `planning/spikes/embed-model-eval/`)
+
+The desk pick was tested on the operator's real corpus (known-item retrieval:
+user turn → its assistant reply, 2,110 pairs vs 14,472 distractors; torch
+provisioned locally on a GTX 1070). Headline (MRR@10 / R@1 / CPU-per-s):
+
+| model | MRR@10 | R@1 | CPU/s | note |
+|-------|-------:|----:|------:|------|
+| e5-small-v2 | **0.266** | **0.216** | 10 | best top-1; mandatory dual `passage:`/`query:` prefix |
+| gte-small | 0.245 | 0.174 | **1** | best median rank but **disqualified** by CPU throughput |
+| bge-small-en-v1.5 (query prefix) | 0.239 | 0.178 | 11 | desk pick; no passage prefix; MIT |
+| bge-small-en-v1.5 (no prefix) | 0.204 | 0.151 | 8 | prefix is worth +0.035 MRR |
+| all-MiniLM-L6-v2 | 0.192 | 0.137 | 23 | incumbent — clearly weakest quality |
+
+Confirmations: switching off MiniLM is justified; the bge **query prefix matters**
+(use it in m2). Surprise: **e5-small-v2 beats the MTEB ordering on this corpus**
+(top R@1/MRR) — so the live decision is now **e5-small-v2** (peak top-1 accuracy,
+fast, but a dual-prefix contract spanning m1+m2) vs **bge-small-en-v1.5+prefix**
+(simpler/lower-footgun contract for a hair less R@1). **DECISION PENDING operator
+input.** Either is a one-line `EMBED_MODEL` change (+ prefixes); both stay 384-dim
+(no schema change). See the spike README for full method, caveats, and table.
+
 ## Implementation Notes
 
 - `EMBED_MODEL = "BAAI/bge-small-en-v1.5"`, `EMBED_DIM = 384` (unchanged). `embed_model` is recorded per row, so a future model swap is incremental (re-embed selects rows lacking the *current* model).
