@@ -2,7 +2,7 @@
 
 **Current Task:** Phase 2 · Milestone 1 — Embedding pipeline (`p2-embeddings-search`, sub-run m1)
 
-**Phase:** `PLAN - COMPLETE` (creative resolved 3/3; ready for preflight)
+**Phase:** `PREFLIGHT - COMPLETE` — PASS (with advisory). Awaiting operator review → `/niko-build`.
 
 ## What Was Done
 
@@ -12,4 +12,4 @@ Key decisions: thin `0003` index migration + chokepoint `ensure_vss` (keeps netw
 
 ## Next Step
 
-**Preflight** (`niko-preflight` skill) to validate the plan against codebase reality. On PASS, STOP at the manual gate — the operator reviews and runs `/niko-build` to begin implementation.
+🧑‍💻 **Manual gate.** Preflight passed (with advisory). The operator reviews the plan (`tasks.md`) and the 3 creative docs, then runs **`/niko-build`** to begin implementation at step 1 (the pure chunker). Two build-time advisories to honor: verify `ensure_vss` SET/LOAD on read-only connections, and capture an index section in the `0003` golden.

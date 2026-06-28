@@ -106,31 +106,32 @@ No truncation at rest (only bounded chunks reach the model; full `text` untouche
 
 ## Implementation Plan
 
-Ordered; each step is one TDD cycle (failing test → implement → green). Start at the component with fewest dependencies (chunker) and work outward to the chokepoint/migration ripple.
+Ordered, dependency-led (fewest deps first → chokepoint/migration ripple). **Each step is a strict TDD cycle**: write the named test(s) and run them to confirm they FAIL for the right reason, *then* write the production code to turn them green, *then* re-run the step's tests (and the suite at boundaries). Within every step the (a) test substep precedes the (b) implementation substep — never code-first.
 
 1. **Chunker** — `stockroom.embed.chunk_text(text, *, size=800, overlap=100)`.
-    - Files: `src/stockroom/embed.py` (new, chunker + `EMBED_MODEL`/`EMBED_DIM` constants + `Encoder` protocol stub); `tests/test_embed.py`.
-    - Changes: pure stdlib sliding-window chunker; empty/whitespace → `[]`.
+    - (a) Test first: add `tests/test_embed.py` with `test_chunk_short_text_single_chunk`, `test_chunk_long_text_overlapping`, `test_chunk_empty_is_no_chunks`; run → they fail (no `embed` module).
+    - (b) Implement: create `src/stockroom/embed.py` with the pure stdlib sliding-window chunker (+ `EMBED_MODEL`/`EMBED_DIM` constants and the `Encoder` protocol stub); run → green.
 2. **Pool + injected-encoder pipeline** — `embed_text()`, `embed_pending(con, encoder, *, embed_model=EMBED_MODEL)`.
-    - Files: `src/stockroom/embed.py`; `tests/test_embed.py` (FakeEncoder).
-    - Changes: chunk → encode → mean-pool → length-384; selection query (new + current-model, non-empty text); insert `(harness,'messages',message_id,0,model,vector)`. Tested against `migrated_con` with a deterministic FakeEncoder — **no torch**.
+    - (a) Test first: extend `tests/test_embed.py` with a deterministic `FakeEncoder` and `test_embed_text_mean_pools_to_384`, `test_embed_pending_fresh_embeds_all_messages`, `test_embed_pending_incremental_is_no_op_then_embeds_new`, `test_embed_pending_skips_empty_text`, `test_embed_pending_is_model_aware`, `test_embed_pending_knn_nearest_is_expected` (against `migrated_con`); run → fail. **No torch.**
+    - (b) Implement: `embed_text` (chunk → encode → mean-pool → length-384) and `embed_pending` (selection query: non-empty `text`, `NOT EXISTS` current-model embedding; insert `(harness,'messages',message_id,0,model,vector)`); run → green.
     - Creative ref: `creative-embedding-owner-grain.md`, `creative-incremental-reembed-detection.md` (selection A).
 3. **`ensure_vss` + `0003` migration** — index DDL + chokepoint extension loading.
-    - Files: `src/stockroom/migrations/0003_embeddings_hnsw_index.sql` (new); `src/stockroom/warehouse.py` (`ensure_vss`, wired into `open()`); `tests/test_schema_0003.py` + `tests/fixtures/schema/0003_snapshot.json` (new); `tests/conftest.py` (`migrated_con` calls `ensure_vss`).
-    - Changes: thin migration (SET persistence + CREATE HNSW INDEX); `ensure_vss` (LOAD/INSTALL-if-missing/SET); `open()` ensures vss on migrator + returned connections; schema golden captures the index.
+    - (a) Test first: add `tests/test_schema_0003.py` — `test_0003_creates_hnsw_cosine_index` (assert via `duckdb_indexes()` after `ensure_vss`+chain), `test_0003_index_supports_knn_and_live_delete`, and `test_migrated_schema_matches_0003_snapshot` (cumulative columns+PKs **and** an index section, written with `STOCKROOM_UPDATE_SCHEMA_GOLDEN=1`); run → fail. Update `tests/conftest.py::migrated_con` to call `ensure_vss` before `apply_pending` (its absence makes step-3 tests fail until implemented).
+    - (b) Implement: `src/stockroom/migrations/0003_embeddings_hnsw_index.sql` (thin: `SET …persistence=true; CREATE INDEX embeddings_vector_hnsw … USING HNSW (vector) WITH (metric='cosine')`); `ensure_vss(con)` in `warehouse.py` (LOAD → INSTALL-if-missing → LOAD → SET persistence) wired into `open()` (migrator RW conn + every returned conn); generate `tests/fixtures/schema/0003_snapshot.json`; run → green.
     - Creative ref: `creative-vss-provisioning-and-index.md`.
 4. **Migration-head ripple** — update assertions coupled to "head == 2".
-    - Files: `tests/test_migrate_runner.py` (`[1,2]`→`[1,2,3]`, `==2`→`==3`, `ensure_vss` before real-chain applies), `tests/test_warehouse_open.py` (three `==2`→`==3`; repoint head snapshot ref to `0003_snapshot.json`).
-    - Changes: assertion + fixture updates only; no behavior change to the runner.
+    - (a) Test first: this step *is* test edits — update `tests/test_migrate_runner.py` (`[1,2]`→`[1,2,3]`, `==2`→`==3`; `ensure_vss(mem_con)` before the two real-chain applies) and `tests/test_warehouse_open.py` (three `current_version == 2`→`==3`; repoint the head-snapshot import/ref to `test_schema_0003`'s snapshot + introspection); run → confirm they now encode head 3.
+    - (b) Implement: no production change — green follows from step 3's migration. (If red, the failure is a real integration gap to fix here.)
 5. **Incremental cascade (changed detection)** — `ingest.writer` drops a session's embeddings on rewrite.
-    - Files: `src/stockroom/ingest/writer.py`; `tests/test_ingest_writer.py`.
-    - Changes: in the per-`(harness, session_id)` delete-then-insert, also delete that session's `embeddings` rows.
+    - (a) Test first: add to `tests/test_ingest_writer.py` `test_rewriting_session_cascades_embedding_delete` (seed a session + an embedding row, re-write the session, assert its embeddings are gone and another session's remain); run → fail.
+    - (b) Implement: in the per-`(harness, session_id)` delete-then-insert, delete that session's `embeddings` owner rows; run → green.
     - Creative ref: `creative-incremental-reembed-detection.md` (B).
-6. **Real-model encoder + CLI** — `MiniLMEncoder`, `python -m stockroom.embed`.
-    - Files: `src/stockroom/embed.py`; `tests/test_embed.py` (torch-gated real-model test).
-    - Changes: lazy `sentence_transformers` import, `cuda` if `torch.cuda.is_available()` else `cpu`, model `all-MiniLM-L6-v2`; CLI opens warehouse RW via chokepoint, builds the encoder, runs `embed_pending`, prints a count. `importorskip("torch")` gates the real encode test.
-7. **Docs** — accrete memory-bank tech context + skill stub note.
-    - Files: `memory-bank/techContext.md` (new "Embeddings (`stockroom.embed`)" + `0003`/VSS note), `memory-bank/systemPatterns.md` (VSS-loaded-at-chokepoint + embed-writer-is-second-writer pattern), `skills/sr-search/SKILL.md` (note embedding pipeline landed; search behavior still m2/m3). Update at the end of build, reviewed.
+6. **Real-model encoder + CLI** — `MiniLMEncoder`, `python -m stockroom.embed` (with `--full`).
+    - (a) Test first: add `test_minilm_encoder_encodes_to_384_on_cpu` to `tests/test_embed.py`, guarded by `pytest.importorskip("torch")` (skips in torch-free CI); run → skip (or fail where torch present).
+    - (b) Implement: `MiniLMEncoder` (lazy `sentence_transformers` import; `cuda` if `torch.cuda.is_available()` else `cpu`; `all-MiniLM-L6-v2`) and the `if __name__ == "__main__"` CLI (open RW via chokepoint, build encoder, `embed_pending`, print count; `--full` flag re-embeds all by ignoring existing rows — mirrors ingest `--full`); run → green/skip.
+7. **Docs** — accrete memory-bank tech context + skill stub note (no test; reviewed prose).
+    - Files: `memory-bank/techContext.md` (new "Embeddings (`stockroom.embed`)" + `0003`/VSS note), `memory-bank/systemPatterns.md` (VSS-loaded-at-chokepoint + embed-is-second-writer pattern), `skills/sr-search/SKILL.md` (embedding pipeline landed; search behavior still m2/m3).
+    - Boundary gate: run `make ci` green before reflect.
 
 ## Technology Validation
 
@@ -151,6 +152,12 @@ Spike (2026-06-28, DuckDB 1.5.4, this machine) validated the load-bearing primit
 - **`0003` head-version ripple** → enumerated, bounded set of assertion/fixture updates (Step 4) + a new `0003_snapshot.json`; `0001`/`0002` goldens stay frozen (forward-only).
 - **Widening into `ingest.writer` (Phase-1 code)** → the cascade is ~a few lines in the one place that already rewrites sessions, directly tested; chosen over a heavier `source_hash` schema column.
 - **Second writer to `embeddings`** → both ingest and embed go through `warehouse.open(read_only=False)`; the single-writer flock contract is preserved (no concurrent writers by construction).
+- **`ensure_vss` on a read-only connection** (preflight advisory) → `open(read_only=True)` will now call `ensure_vss`, which runs `LOAD vss` and `SET hnsw_enable_experimental_persistence=true` on an RO connection (m2 readers need `vss` for vector ops). `LOAD`/`SET` are session-level, not DB writes, so they should succeed on RO — but this must be **verified in step 3** (a `test_open_reader_has_vss_loaded` against `warehouse_home`). If a SET is rejected on RO, scope it to the writer/migrator path and have readers only `LOAD`.
+- **`ensure_vss` cost in concurrency/lock tests** → every `open()` now does a `LOAD` (and a one-time `INSTALL` per machine/runner). This adds startup cost but no behavior change; `test_warehouse_concurrency`/`test_warehouse_lock` should stay green. Watch for first-`INSTALL` latency in CI (cached after first).
+
+## Preflight — Radical Innovation (advisory, applied)
+
+Folded a small, in-scope, precedent-aligned improvement into the plan: the embed CLI gains a **`--full`** flag (step 6) that forces a complete re-embed by ignoring existing rows — mirroring `ingest`'s established `--full` reset and giving an operational escape hatch (e.g., after a model change) without touching the incremental selection's default behavior. Trivial surface, no complexity-level or scope change.
 
 ## Status
 
@@ -159,6 +166,6 @@ Spike (2026-06-28, DuckDB 1.5.4, this machine) validated the load-bearing primit
 - [x] Test planning complete (TDD)
 - [x] Implementation plan complete
 - [x] Technology validation complete (no lock change; spike green)
-- [ ] Preflight
+- [x] Preflight — PASS (with advisory); TDD per-unit ordering encoded, ripple verified, `--full` folded in
 - [ ] Build
 - [ ] QA

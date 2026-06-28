@@ -44,3 +44,15 @@ migration-head ripple, and a mandatory load-bearing-primitive spike).
     - No `uv.lock` change (vss is a DuckDB extension, not a Python dep); torch stays out of the lock; CI stays torch-free.
 * Insights
     - The migration-head bump is the one test-suite-wide event; the coupled assertions are a small, enumerated set (`test_migrate_runner`, `test_warehouse_open`) plus a new `0003_snapshot.json` — exactly as the Phase-1 reflection predicted.
+
+## 2026-06-28 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated the implementation plan against codebase reality: **PASS (with advisory)**; wrote `.preflight-status`.
+    - Caught and fixed a blocking **TDD-plan-encoding** gap: the test-first cycle was stated only in the plan preamble. Restructured all 7 steps with explicit (a) test-first / (b) implement substeps so the plan cannot be followed code-first.
+    - Verified convention compliance (module/migration/snapshot precedents), the enumerated migration-head ripple, no conflicts, and requirement completeness.
+* Decisions made
+    - Folded the radical-innovation finding (an `--full` re-embed flag mirroring `ingest --full`) into step 6 — small, in-scope, precedent-aligned.
+    - Recorded two build-time advisories: verify `ensure_vss`'s `SET`/`LOAD` succeed on read-only connections (m2 readers need vss); make the `0003` golden capture an index section since columns are unchanged from `0002`.
+* Insights
+    - The lone blocking risk was plan *encoding*, not design — the spike + creative had already de-risked the substance, so preflight's value here was forcing per-unit test-first rigor before the build gate.
