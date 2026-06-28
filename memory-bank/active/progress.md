@@ -32,3 +32,16 @@ independently deliverable L1/L2/L3 sub-runs.
 * Insights
     - Surface packaging (engine module vs. polished skill wrapper) should follow the Phase 1 `sr-query` precedent — wrapper deferred to Phase 5.
 
+## 2026-06-28 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated the milestone list against codebase reality: PASS (with advisory).
+    - Confirmed three findings against the repo: CI is torch-free (`ci.yml`), no existing VSS/embedding code, and existing tests are coupled to the migration head/snapshot.
+    - Recorded binding sub-run findings + a load-bearing-primitive spike directive in `milestones.md`; wrote `.preflight-status`.
+* Decisions made
+    - Folded one in-scope improvement into the plan (the m1 spike directive); flagged the rest as advisories for the m1 sub-run rather than rearchitecting.
+    - No FAIL: per-unit TDD ordering correctly lives in each sub-run, not the L4 milestone list.
+* Insights
+    - The dominant Phase-2 risks are torch-in-CI testability and VSS-extension provisioning under the offline posture — both belong to m1 and both are de-risked cheaply by an upfront probe (the Phase-1 "spike the primitive" lesson).
+
+

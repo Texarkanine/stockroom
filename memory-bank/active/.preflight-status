@@ -1,0 +1,18 @@
+PASS (with advisory)
+
+Task: p2-embeddings-search (Level 4)
+Phase: L4 Preflight (milestone-list validation)
+Date: 2026-06-28
+
+Milestone decomposition validated: 3 milestones (embedding pipeline L3 → sr-semantic L2 → sr-search L3),
+complete against the "Done When" criteria, non-overlapping, strictly dependency-ordered, each <= L3.
+
+Advisory findings recorded in memory-bank/active/milestones.md ("Preflight findings"):
+  - [m1 high] Embedder must be unit-testable without torch (CI is torch-free); use injected-encoder pattern.
+  - [m1 high] VSS extension provisioning must respect the offline/supply-chain posture (no implicit network INSTALL).
+  - [m1 medium] embeddings.owner_id grain is ambiguous for tool_calls; decide keying before writing vectors.
+  - [m1 medium] New migration 0003 is a test-suite-wide event; budget head-version + golden-snapshot updates.
+  - [m1 directive] Open m1 with a load-bearing-primitive spike (vss offline, HNSW cosine + live-delete persistence, CPU encode).
+
+No FAIL conditions: no TDD-encoding violation (per-unit TDD lives in each sub-run), no convention conflict,
+no rearchitecture required. Cleared to proceed to milestone sub-runs.
