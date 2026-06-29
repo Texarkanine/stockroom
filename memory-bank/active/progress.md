@@ -33,3 +33,13 @@ default, torch-safe contract, clean-room boundary, test-first + green `make ci`)
     - **Display-preview-only output**; context-aware read-time truncation stays m3's headline feature (no-truncation-at-rest invariant untouched). Promote `FakeEncoder` to `conftest.py` (DRY); in-process CLI tests per the `embed` precedent (no subprocess file).
 * Insights
     - The two flagged unknowns (owner-row join, HNSW query ergonomics) both resolved without new architecture: the join is ordinary SQL on `owner_id == message_id`, and the index is preserved by over-fetching before the dedup. The only genuine design lever — the query prefix — was already settled by the m1 cross-corpus spike, so m2 stays a contained L2.
+
+## 2026-06-29 - PREFLIGHT - COMPLETE (PASS)
+
+* Work completed
+    - Validated the L2 plan against codebase reality: **PASS** (no blocking findings); wrote `.preflight-status`. TDD encoding (per-unit test-first), convention compliance (mirrors `query.py`/`embed.py`), dependency impact (imports-not-mutates `embed.py`; **no migration/schema ripple** unlike m1), conflict detection, and completeness all clear.
+* Decisions made
+    - **Folded in** a relevance-**score** display column (cosine similarity `1 - distance`) — friendlier than raw distance, display-only, no query cost (Step 4 amended + a test added).
+    - **Advisory, not changed**: deferred an optional `--harness` per-harness filter to m3 (avoid scope creep on a pure vector-search engine module — the invariant's "per-harness by filtering" fits m3's user surface); deferred extracting a shared table renderer (`_format_hits` vs `query._format_table`) until a third need exists (YAGNI).
+* Insights
+    - The single biggest contrast with m1 is the **absence of a migration**: no `000N` snapshot, no head-version assertions, no test-suite-wide ripple — m2 is purely additive engine + test code, which is exactly why it classified and validated cleanly as L2.

@@ -78,7 +78,8 @@ the embed pipeline without a subprocess CLI file:
 4. **CLI `main` + `_format_hits`** (the runnable surface).
    - (a) tests: CLI happy path (`encoder_factory=FakeEncoder`), `-k/--limit`, missing-warehouse friendly (encoder not built), empty/whitespace query guard, `limit <= 0` guard.
    - Files: `src/stockroom/semantic.py`, `tests/test_semantic.py`.
-   - Changes: `_build_parser()` (positional `query`; `-k/--limit` int, default `DEFAULT_LIMIT`); `_format_hits(hits) -> str` renders a column-aligned ranked table (`rank | distance | harness | role | preview`) with `text` previewed to a fixed `PREVIEW_CHARS` width — a *display* preview only, **not** m3's context-aware read-time truncation (the no-truncation-at-rest invariant is untouched); `main(argv=None, *, encoder_factory=BgeEncoder) -> int` mirrors `embed.main`: validate args, friendly missing-warehouse check **before** building the encoder (keeps the friendly path torch-free), build via `encoder_factory`, run read-only, print, return `0`/`1`/`2`. `if __name__ == "__main__": raise SystemExit(main())`.
+   - Changes: `_build_parser()` (positional `query`; `-k/--limit` int, default `DEFAULT_LIMIT`); `_format_hits(hits) -> str` renders a column-aligned ranked table (`rank | score | harness | role | preview`) where **`score` is cosine similarity = `1 - distance`** (rounded) — friendlier than raw distance for a search surface, computed at display time from the canonical `SemanticHit.distance` (no extra query cost); `text` is previewed to a fixed `PREVIEW_CHARS` width — a *display* preview only, **not** m3's context-aware read-time truncation (the no-truncation-at-rest invariant is untouched); `main(argv=None, *, encoder_factory=BgeEncoder) -> int` mirrors `embed.main`: validate args, friendly missing-warehouse check **before** building the encoder (keeps the friendly path torch-free), build via `encoder_factory`, run read-only, print, return `0`/`1`/`2`. `if __name__ == "__main__": raise SystemExit(main())`.
+   - (a) add a test asserting the rendered table shows a `score` ≈ `1 - distance` (e.g. an exact-match hit with `query_prefix=""` shows `score` ≈ `1.0`).
 
 5. **(torch-gated) real-model end-to-end** (the lone CI-skipped edge).
    - (a) test: `importorskip("torch")`; embed a few real messages with `BgeEncoder`, search a paraphrase → expected message ranks first.
@@ -106,6 +107,14 @@ No new technology — validation not required. `sentence-transformers`/torch ent
 - **Query-prefix testability**: bge's asymmetric prefix means a real query vector lands *near* (not equal to) a no-prefix passage vector, but `FakeEncoder` has no such geometry. *Mitigation*: thread `query_prefix` through `run_semantic_search`; correctness tests pass `query_prefix=""` (exact fake match), a dedicated spy test asserts the default prefix is applied, and the real asymmetric behavior is covered by the torch-gated test.
 - **Display preview vs. the no-truncation invariant**: m2 must not flood the caller with a 200 KB message, but read-time truncation is m3's headline feature. *Mitigation*: a fixed-width *display* preview only (full text stays in the store and in the returned `SemanticHit.text`); the context-aware truncation levels are explicitly left to m3.
 - **Re-level guard**: none of the above introduces a new component or an open design question (the prefix and per-chunk/dedup grain were settled by the m1 spike + creative docs). If dedup or index ergonomics unexpectedly demand a design decision, STOP and re-level to L3 — not expected.
+
+## Preflight Findings (2026-06-29)
+
+PASS. Validated against codebase reality; no blocking findings.
+
+- **[folded in] Relevance score column.** `_format_hits` now displays cosine *similarity* (`1 - distance`) rather than raw distance — friendlier for a search surface, display-only, no query-cost (Step 4 amended).
+- **[advisory · not changed] Optional `--harness` filter.** The cross-milestone invariant frames per-harness search as "by filtering the `harness` column." m2 satisfies "cross-harness by default" simply by *not* filtering; adding an optional `--harness cursor|claude` arg is the natural completion of that invariant but is deferred — it fits more naturally with m3's user-facing routing surface, and adding it now would be mild scope creep on a "pure vector search" engine module (the `sr-query` precedent shipped raw and deferred polish to Phase 5). Revisit in m3.
+- **[advisory · not changed] `_format_hits` vs `query._format_table` duplication.** Both render column-aligned text tables. They are *not* merged now: `query._format_table` is private and renders generic columns/rows, while `_format_hits` has search-specific shape (rank/score/preview). If m3 needs a third tabular renderer, extract a shared helper then — premature now (YAGNI).
 
 ## Status
 

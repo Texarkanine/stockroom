@@ -1,0 +1,36 @@
+PASS
+
+Task: p2-embeddings-search — sub-run m2 (sr-semantic)
+Complexity: Level 2
+Phase: L2 Preflight (pre-build plan validation)
+Date: 2026-06-29
+
+Validated the implementation plan against codebase reality. PASS (with two
+advisories; one in-scope improvement folded into the plan).
+
+Checks:
+  - TDD plan encoding (blocking): PASS. All 6 steps carry explicit per-unit
+    (a) test-first / (b) implement substeps; the lone refactor step (FakeEncoder
+    -> conftest) re-runs test_embed.py to prove no regression.
+  - Convention compliance: PASS. semantic.py as a single runnable module +
+    run_semantic_search/SemanticHit mirrors query.py; encoder/con injection
+    mirrors embed.py; conftest hosts the shared FakeEncoder; in-process CLI
+    tests per the embed precedent.
+  - Dependency impact: PASS. Imports from (never mutates) embed.py; NO migration
+    / schema change, so no snapshot or migration-head ripple (contrast m1). Only
+    cross-file touch is test_embed.py's FakeEncoder import (Step 1).
+  - Conflict detection: PASS. No existing semantic surface; array_cosine_distance
+    matches m1's KNN test. _format_hits vs query._format_table duplication noted
+    advisory (not merged — YAGNI).
+  - Completeness: PASS. Every milestone requirement (embed query, cosine KNN over
+    the 0003 HNSW index, owner-row join, ranked read-only output) + the
+    m1-deferred max-sim owner dedup maps to a concrete step/file with planned tests.
+  - Radical innovation (advisory): fold a relevance-score (cosine similarity =
+    1 - distance) display column into Step 4 — done.
+
+Advisories (documented in tasks.md "Preflight Findings"):
+  - Optional --harness filter deferred to m3 (avoid scope creep on a pure
+    vector-search engine module).
+  - Defer extracting a shared table renderer until m3 proves a third need.
+
+No FAIL conditions. Cleared to /niko-build.
