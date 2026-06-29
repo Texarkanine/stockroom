@@ -13,10 +13,12 @@ contract):
 """
 
 import hashlib
+from pathlib import Path
 
 import duckdb
+import pytest
 
-from stockroom import embed
+from stockroom import embed, warehouse
 
 
 class FakeEncoder:
@@ -239,3 +241,88 @@ def test_embed_pending_knn_nearest_chunk_is_expected(
         [query],
     ).fetchone()[0]
     assert nearest == target_id
+
+
+# --- Step 6: real-model encoder (torch-gated) + CLI -------------------------
+
+
+def _seed_warehouse_message(text: str = "hi there", ordinal: int = 0) -> None:
+    """Open the env-pointed warehouse read-write and insert one message row."""
+    con = warehouse.open(read_only=False)
+    try:
+        con.execute(
+            "INSERT INTO messages "
+            "(harness, session_id, message_id, ordinal, role, text) "
+            "VALUES ('claude', 's1', ?, ?, 'user', ?)",
+            [f"s1#{ordinal}", ordinal, text],
+        )
+    finally:
+        con.close()
+
+
+def test_embed_cli_missing_warehouse_is_friendly(warehouse_home: Path, capsys) -> None:
+    """With no warehouse present, the CLI exits nonzero with a 'run ingest' hint
+    (and never constructs the torch-backed encoder)."""
+    code = embed.main([])
+    assert code == 1
+    err = capsys.readouterr().err
+    assert "ingest" in err.lower()
+
+
+def test_embed_cli_embeds_pending_and_reports_count(
+    warehouse_home: Path, capsys
+) -> None:
+    """The CLI embeds pending messages with the injected encoder and prints a count."""
+    _seed_warehouse_message("hello world")
+
+    code = embed.main([], encoder_factory=FakeEncoder)
+
+    assert code == 0
+    assert "embedded 1" in capsys.readouterr().out
+    con = warehouse.open(read_only=True)
+    try:
+        assert con.execute("SELECT count(*) FROM embeddings").fetchone()[0] == 1
+    finally:
+        con.close()
+
+
+def test_embed_cli_full_reembeds(warehouse_home: Path, capsys) -> None:
+    """``--full`` re-embeds already-embedded content (incremental would be a no-op)."""
+    _seed_warehouse_message("hello world")
+    embed.main([], encoder_factory=FakeEncoder)
+    capsys.readouterr()  # discard first run's output
+
+    incremental = embed.main([], encoder_factory=FakeEncoder)
+    assert incremental == 0
+    assert "embedded 0" in capsys.readouterr().out
+
+    full = embed.main(["--full"], encoder_factory=FakeEncoder)
+    assert full == 0
+    assert "embedded 1" in capsys.readouterr().out
+    con = warehouse.open(read_only=True)
+    try:
+        assert con.execute("SELECT count(*) FROM embeddings").fetchone()[0] == 1
+    finally:
+        con.close()
+
+
+def test_bge_encoder_encodes_to_384_on_cpu() -> None:
+    """``BgeEncoder`` loads ``bge-small-en-v1.5`` (no ``trust_remote_code``) and
+    encodes to 384-dim; a default chunk stays within the 512-token window.
+
+    Torch-gated: skipped under torch-free CI (the Phase-0 contract). A successful
+    construction proves the plain BERT arch loads with ``trust_remote_code=False``.
+    """
+    pytest.importorskip("torch")
+
+    encoder = embed.BgeEncoder()
+    vectors = encoder.encode(["a sample sentence to embed"])
+    assert len(vectors) == 1
+    assert len(vectors[0]) == embed.EMBED_DIM
+
+    # Token-window guard: bge's window is 512 tokens; a worst-case dense-code
+    # chunk at the default char size must not silently overflow it.
+    assert encoder.model.max_seq_length <= 512
+    dense_chunk = embed.chunk_text("def f(x):\n    return x + 1\n" * 200)[0]
+    token_ids = encoder.model.tokenizer(dense_chunk)["input_ids"]
+    assert len(token_ids) <= 512

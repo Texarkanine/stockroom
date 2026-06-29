@@ -175,6 +175,42 @@ def test_write_session_no_truncation_at_rest(
     assert stored == big
 
 
+def test_rewriting_session_cascades_embedding_delete(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Re-writing a session drops *its* embeddings (so edits re-embed) but leaves
+    other sessions' embeddings intact.
+
+    Embeddings are derived from a session's messages; the writer's
+    delete-then-insert invalidates this session's vectors in the same operation
+    that rewrites its rows, so changed content is re-embedded on the next embed
+    run (see ``creative-incremental-reembed-detection.md``, option B). Other
+    sessions are untouched.
+    """
+    writer.write_session(migrated_con, _session())  # session s1: s1#0, s1#1
+
+    def _add_embedding(owner_id: str) -> None:
+        migrated_con.execute(
+            "INSERT INTO embeddings "
+            "(harness, owner_table, owner_id, chunk_index, embed_model, vector) "
+            "VALUES ('claude', 'messages', ?, 0, 'm', ?)",
+            [owner_id, [0.0] * 384],
+        )
+
+    _add_embedding("s1#0")  # belongs to the rewritten session
+    _add_embedding("s2#0")  # belongs to a different session (must survive)
+
+    writer.write_session(migrated_con, _session())  # rewrite s1
+
+    remaining = {
+        r[0]
+        for r in migrated_con.execute(
+            "SELECT owner_id FROM embeddings ORDER BY owner_id"
+        ).fetchall()
+    }
+    assert remaining == {"s2#0"}
+
+
 def test_update_watermark_upserts_one_row_per_source(
     migrated_con: duckdb.DuckDBPyConnection,
 ) -> None:

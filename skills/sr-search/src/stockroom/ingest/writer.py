@@ -39,8 +39,23 @@ def _delete_session(
 
     Deleting children first keeps the operation clean even though ``0001``
     declares no DB-level foreign keys (logical integrity is ingest-enforced).
+
+    Embeddings are derived data: this session's message-owned vectors are
+    cascaded too, so re-ingested (hence possibly *changed*) content is
+    re-embedded on the next embed run — the "changed-content" half of incremental
+    re-embedding (see ``creative-incremental-reembed-detection.md``, option B).
+    The cascade runs *before* the ``messages`` rows are deleted, since an
+    embedding's ``owner_id`` is resolved against those message rows. The delete
+    hits the live HNSW index (the chokepoint enables experimental persistence).
     """
     key = [harness, session_id]
+    con.execute(
+        "DELETE FROM embeddings WHERE harness = ? AND owner_table = 'messages' "
+        "AND owner_id IN ("
+        "  SELECT message_id FROM messages WHERE harness = ? AND session_id = ?"
+        ")",
+        [harness, harness, session_id],
+    )
     con.execute("DELETE FROM tool_calls WHERE harness = ? AND session_id = ?", key)
     con.execute("DELETE FROM messages WHERE harness = ? AND session_id = ?", key)
     con.execute("DELETE FROM sessions WHERE harness = ? AND session_id = ?", key)

@@ -21,9 +21,14 @@ detection, the VSS/HNSW index, and the model choice are documented in
 ``memory-bank/active/creative/creative-*.md``.
 """
 
+import argparse
+import sys
+from collections.abc import Callable
 from typing import Protocol, runtime_checkable
 
 import duckdb
+
+from stockroom import warehouse
 
 #: The local sentence-transformers model used for message embeddings. Recorded
 #: per ``embeddings`` row (``embed_model``) so a future model swap re-embeds only
@@ -159,3 +164,87 @@ def embed_pending(
             )
             written += 1
     return written
+
+
+class BgeEncoder:
+    """A ``sentence-transformers`` encoder for ``BAAI/bge-small-en-v1.5`` (384-dim).
+
+    The only torch-dependent surface in the pipeline. ``sentence_transformers``
+    (and thus torch) is imported lazily on construction, so importing
+    :mod:`stockroom.embed` never pulls torch — the chunker and the injected-encoder
+    pipeline stay importable and testable under torch-free CI. The device is
+    selected at construction (CUDA when available, else CPU). m1 embeds passages
+    with **no prefix** and loads the plain BERT arch with **no**
+    ``trust_remote_code`` (see ``creative-embedding-model-selection.md``).
+    """
+
+    def __init__(self, model_name: str = EMBED_MODEL) -> None:
+        import torch  # noqa: PLC0415 — lazy: keep torch off the module import path
+        from sentence_transformers import SentenceTransformer  # noqa: PLC0415
+
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.model = SentenceTransformer(
+            model_name, device=device, trust_remote_code=False
+        )
+
+    def encode(self, texts: list[str]) -> list[list[float]]:
+        """Encode ``texts`` into 384-dim vectors (no passage prefix for m1)."""
+        vectors = self.model.encode(texts, convert_to_numpy=True)
+        return [vector.tolist() for vector in vectors]
+
+
+def _build_parser() -> argparse.ArgumentParser:
+    """Build the argument parser for ``python -m stockroom.embed``."""
+    parser = argparse.ArgumentParser(
+        prog="python -m stockroom.embed",
+        description=(
+            "Embed warehouse message text into the embeddings table "
+            "(incremental by default)."
+        ),
+    )
+    parser.add_argument(
+        "--full",
+        action="store_true",
+        help="Re-embed all messages, ignoring existing rows (mirrors ingest --full).",
+    )
+    return parser
+
+
+def main(
+    argv: list[str] | None = None,
+    *,
+    encoder_factory: Callable[[], Encoder] = BgeEncoder,
+) -> int:
+    """Parse args, embed pending message text read-write, print the count.
+
+    Returns ``0`` on success, ``1`` when no warehouse exists yet (with a clean
+    "run ingest first" hint and no traceback — checked *before* the encoder is
+    built, so the friendly path needs no torch). Opens the warehouse read-write
+    through ``warehouse.open()`` (so ``vss`` is loaded and the schema is current)
+    and constructs the encoder via ``encoder_factory`` (default
+    :class:`BgeEncoder`, which loads torch out of band; tests inject a fake).
+    """
+    args = _build_parser().parse_args(argv)
+
+    warehouse_file = warehouse.warehouse_path()
+    if not warehouse_file.is_file():
+        print(
+            f"error: no warehouse found at {warehouse_file} — "
+            "run `python -m stockroom.ingest` first",
+            file=sys.stderr,
+        )
+        return 1
+
+    encoder = encoder_factory()
+    con = warehouse.open(read_only=False)
+    try:
+        written = embed_pending(con, encoder, full=args.full)
+    finally:
+        con.close()
+
+    print(f"embedded {written} chunk vector{'' if written == 1 else 's'}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
