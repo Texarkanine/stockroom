@@ -132,6 +132,38 @@ def test_query_empty_sql_is_rejected(tmp_path: Path) -> None:
     assert result.stderr.strip() != ""
 
 
+def test_query_detail_controls_truncation(
+    tmp_path: Path, cursor_root: Path, claude_root: Path, ai_tracking_db: Path
+) -> None:
+    """The default elides a wide cell with a marker; ``--detail full`` prints it
+    whole; ``--detail compact`` is terser than the default."""
+    home = tmp_path / "home"
+    _ingest(home, cursor_root, claude_root, ai_tracking_db)
+    sql = "SELECT repeat('x', 500) AS big"
+
+    default = _run_query(sql, home=home)
+    assert default.returncode == 0, default.stderr
+    assert "x" * 500 not in default.stdout
+    assert "…" in default.stdout
+
+    full = _run_query("--detail", "full", sql, home=home)
+    assert full.returncode == 0, full.stderr
+    assert "x" * 500 in full.stdout
+
+    compact = _run_query("--detail", "compact", sql, home=home)
+    assert compact.returncode == 0, compact.stderr
+    # The terser level keeps fewer 'x' content characters before its marker.
+    assert compact.stdout.count("x") < default.stdout.count("x")
+
+
+def test_query_invalid_detail_is_rejected(tmp_path: Path) -> None:
+    """An unknown ``--detail`` value is rejected by argparse (exit 2) before any
+    warehouse access."""
+    result = _run_query("--detail", "bogus", "SELECT 1", home=tmp_path / "home")
+    assert result.returncode == 2
+    assert result.stderr.strip() != ""
+
+
 def test_query_reads_sql_from_stdin(
     tmp_path: Path, cursor_root: Path, claude_root: Path, ai_tracking_db: Path
 ) -> None:

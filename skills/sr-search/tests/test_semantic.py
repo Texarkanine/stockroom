@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 
 from conftest import FakeEncoder
-from stockroom import embed, semantic, warehouse
+from stockroom import embed, semantic, truncate, warehouse
 
 
 class SpyEncoder:
@@ -235,6 +235,22 @@ def test_format_hits_previews_text_single_line() -> None:
     assert "z" * 500 not in out  # truncated
 
 
+def test_format_hits_full_detail_keeps_whole_text() -> None:
+    """``detail="full"`` renders the entire message text (no elision marker)."""
+    hit = semantic.SemanticHit(
+        rank=1,
+        distance=0.1,
+        harness="claude",
+        session_id="s1",
+        message_id="s1#0",
+        role="user",
+        text="z" * 500,
+    )
+    out = semantic._format_hits([hit], detail="full")
+    assert "z" * 500 in out
+    assert truncate.ELISION not in out
+
+
 def test_format_hits_empty_is_zero_results() -> None:
     """No hits renders a ``(0 results)`` trailer rather than an empty string."""
     assert "0 results" in semantic._format_hits([])
@@ -271,6 +287,32 @@ def test_cli_limit_flag_caps_results(warehouse_home: Path, capsys) -> None:
 
     assert code == 0
     assert "(2 results)" in capsys.readouterr().out
+
+
+def test_cli_detail_full_prints_whole_text(warehouse_home: Path, capsys) -> None:
+    """``--detail full`` renders the entire (long) message text; the default elides it."""
+    long_text = "the unique findable phrase " + "w" * 400
+    writer = warehouse.open(read_only=False)
+    try:
+        _insert_message(writer, ordinal=0, text=long_text)
+        embed.embed_pending(writer, FakeEncoder())
+    finally:
+        writer.close()
+
+    code = semantic.main(
+        ["--detail", "full", "the unique findable phrase"], encoder_factory=FakeEncoder
+    )
+    assert code == 0
+    full_out = capsys.readouterr().out
+    assert "w" * 400 in full_out
+
+    default_code = semantic.main(
+        ["the unique findable phrase"], encoder_factory=FakeEncoder
+    )
+    assert default_code == 0
+    default_out = capsys.readouterr().out
+    assert "w" * 400 not in default_out
+    assert truncate.ELISION in default_out
 
 
 def test_cli_missing_warehouse_is_friendly(warehouse_home: Path, capsys) -> None:

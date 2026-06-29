@@ -11,6 +11,7 @@ import duckdb
 
 from stockroom import warehouse
 from stockroom.query import QueryResult, _format_table, run_query
+from stockroom.truncate import ELISION
 
 # --- _format_table ----------------------------------------------------------
 
@@ -41,6 +42,21 @@ def test_format_table_renders_none_as_null() -> None:
     """A ``None`` cell renders as the literal ``NULL``."""
     out = _format_table(["c"], [(None,)])
     assert "NULL" in out
+
+
+def test_format_table_truncates_wide_cell_by_default() -> None:
+    """A cell wider than the default (snippet) budget is elided with a marker,
+    and the full value does not appear in the rendered table."""
+    out = _format_table(["c"], [("x" * 600,)])
+    assert ELISION in out
+    assert "x" * 600 not in out
+
+
+def test_format_table_full_detail_keeps_whole_cell() -> None:
+    """``detail="full"`` renders the entire cell verbatim — no marker, full value."""
+    out = _format_table(["c"], [("x" * 600,)], detail="full")
+    assert "x" * 600 in out
+    assert ELISION not in out
 
 
 # --- run_query (injected connection) ----------------------------------------

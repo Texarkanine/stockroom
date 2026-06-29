@@ -29,3 +29,15 @@ Sub-run m3 of the `p2-embeddings-search` L4 project: build a shared, tested read
     - Validated the plan against codebase reality: TDD encoding (per-unit test-before-code), convention compliance (module/test naming, keyword-only seams, argparse choices), dependency impact (defaulted kwargs; `_preview`/`PREVIEW_CHARS` removal confirmed safe by grep), conflict detection (no public contract broken; consolidates rather than duplicates), and completeness (every requirement mapped). Result: PASS.
 * Decisions made
     - Folded in one in-scope/in-level radical-innovation amendment: the elision marker reports the hidden char count (`…(+482)`) instead of a bare `…`, making truncation an actionable "more exists" signal for the downstream skills. Kept content == level width; marker appended beyond it.
+
+## 2026-06-29 - BUILD - COMPLETE
+
+* Work completed
+    - Implemented `stockroom.truncate` (TDD: stub → 8 failing behavior tests red → green) and wired it into `query._format_table` and `semantic._format_hits`, adding a `--detail {compact,snippet,full}` flag to both CLIs and removing `semantic`'s superseded `PREVIEW_CHARS`/`_preview`.
+    - New `tests/test_truncate.py` (11) + extensions to `test_query.py`, `test_semantic.py`, `test_query_cli.py` (renderer + subprocess/in-process CLI coverage, incl. invalid-`--detail` exit 2).
+    - Full `make ci` green: 237 passed, 2 skipped (torch-gated), ruff lint+format clean, lock-check clean, reuse compliant.
+* Decisions made
+    - Updated `query.py`/`semantic.py` module docstrings to document `--detail` and drop the "truncation is m3's feature" deferral.
+* Insights
+    - `make ci`'s `sync --frozen` strips out-of-lock torch (torch-free CI parity by design); the two real-model tests skip accordingly. Operator can reinstall torch out of band for the local real-model path.
+    - The two `_format_*` renderers still duplicate column-alignment logic; consolidating that is a possible future improvement, deliberately out of scope for this milestone.

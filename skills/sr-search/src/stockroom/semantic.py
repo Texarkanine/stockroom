@@ -8,8 +8,13 @@ the ``0003`` HNSW index**, dedups multi-chunk hits to one row per owner message
 ``warehouse.open()`` chokepoint.
 
 Named ``semantic`` (not ``search``) so a keyword-search seeker doesn't grab it by
-mistake: this is *pure* vector search. The blended keyword + semantic entrypoint
-with context-aware read-time truncation is the separate m3 ``sr-search`` surface.
+mistake: this is *pure* vector search. The blended, LLM-routed keyword + semantic
+entrypoint is the separate ``sr-search`` skill.
+
+The ranked table's ``preview`` column is truncated at read time via the shared
+:mod:`stockroom.truncate` mechanism (``--detail compact|snippet|full``, default
+``snippet``) — a *display* bound only: the full text stays whole in the store and
+in ``SemanticHit.text``, and ``--detail full`` renders it untruncated.
 
 It mirrors ``stockroom.query``'s shape — a single runnable module (no
 ``__main__.py``) with a ``run_*`` library entry and a ``con``/encoder injection
@@ -18,6 +23,7 @@ so no embedding logic is duplicated::
 
     python -m stockroom.semantic "how does the warehouse lock work"
     python -m stockroom.semantic -k 5 "incremental re-embed"
+    python -m stockroom.semantic --detail full "incremental re-embed"
 """
 
 import argparse
@@ -29,11 +35,7 @@ import duckdb
 
 from stockroom import warehouse
 from stockroom.embed import EMBED_DIM, BgeEncoder, Encoder
-
-#: Width (chars) of the single-line ``text`` preview in the rendered table. A
-#: *display* preview only — the full text stays whole in the store and in
-#: ``SemanticHit.text``. Context-aware read-time truncation is m3's feature.
-PREVIEW_CHARS = 80
+from stockroom.truncate import DEFAULT_DETAIL, DETAIL_LEVELS, DetailLevel, truncate_cell
 
 #: bge-small-en-v1.5 is an *asymmetric* retrieval model: passages are embedded
 #: with no prefix (m1), but the **query** carries this instruction prefix. The
@@ -154,25 +156,21 @@ def run_semantic_search(
             connection.close()
 
 
-def _preview(text: str | None) -> str:
-    """Collapse ``text`` to a single line and truncate to :data:`PREVIEW_CHARS`."""
-    if text is None:
-        return ""
-    single_line = " ".join(text.split())
-    if len(single_line) <= PREVIEW_CHARS:
-        return single_line
-    return single_line[: PREVIEW_CHARS - 1] + "…"
-
-
-def _format_hits(hits: list[SemanticHit]) -> str:
+def _format_hits(
+    hits: list[SemanticHit], *, detail: DetailLevel = DEFAULT_DETAIL
+) -> str:
     """Render ranked hits as a column-aligned table with a similarity score.
 
     ``score`` is cosine *similarity* (``1 - distance``, rounded) — friendlier
     than raw distance for a search surface, computed at display time from the
-    canonical :attr:`SemanticHit.distance`. ``preview`` is a single-line,
-    truncated view of the message text (display only — see :data:`PREVIEW_CHARS`).
-    Always ends with a ``(N results)`` / ``(1 result)`` trailer so the output is
-    self-describing, including the empty case.
+    canonical :attr:`SemanticHit.distance`. ``preview`` is the message text passed
+    through the shared :func:`stockroom.truncate.truncate_cell` at ``detail``
+    (default :data:`~stockroom.truncate.DEFAULT_DETAIL`): collapsed to a single
+    line and bounded to a context-safe width with an elision marker — a *display*
+    bound only, the full text staying whole in :attr:`SemanticHit.text`
+    (``detail="full"`` renders it untruncated). Always ends with a
+    ``(N results)`` / ``(1 result)`` trailer so the output is self-describing,
+    including the empty case.
     """
     columns = ["rank", "score", "harness", "role", "preview"]
     rows = [
@@ -181,7 +179,7 @@ def _format_hits(hits: list[SemanticHit]) -> str:
             f"{1.0 - hit.distance:.3f}",
             hit.harness,
             hit.role,
-            _preview(hit.text),
+            truncate_cell(hit.text or "", detail),
         ]
         for hit in hits
     ]
@@ -214,6 +212,17 @@ def _build_parser() -> argparse.ArgumentParser:
         type=int,
         default=DEFAULT_LIMIT,
         help=f"Maximum ranked results to return (default {DEFAULT_LIMIT}).",
+    )
+    parser.add_argument(
+        "--detail",
+        choices=DETAIL_LEVELS,
+        default=DEFAULT_DETAIL,
+        help=(
+            "Read-time preview detail: 'compact' (terse), 'snippet' (default, "
+            "context-safe), or 'full' (untruncated). The preview is elided with a "
+            "marker reporting how many characters were hidden; full text always "
+            "stays whole in the warehouse."
+        ),
     )
     return parser
 
@@ -256,7 +265,7 @@ def main(
 
     encoder = encoder_factory()
     hits = run_semantic_search(args.query, encoder, limit=args.limit)
-    print(_format_hits(hits))
+    print(_format_hits(hits, detail=args.detail))
     return 0
 
 
