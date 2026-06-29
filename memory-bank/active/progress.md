@@ -94,3 +94,17 @@ migration-head ripple, and a mandatory load-bearing-primitive spike).
     - bge query-prefix lift reproduces (+0.037 MRR on B vs +0.035 on A). MiniLM last on both. gte's faster Mac CPU number is just a faster host CPU — still ~8× slower than peers, so the commodity-Linux-CI disqualification stands.
 * Decision (RESOLVED — operator)
     - **`bge-small-en-v1.5`** confirmed for m1 (the plan already encodes it). e5's small, consistent top-1 edge doesn't outweigh bge's simpler/robust prefix contract (no passage prefix; m2 query-prefix optional, gain captured). Escape hatch unchanged: switching to e5 later is a one-line `EMBED_MODEL` + dual prefixes, no schema change. **Embedding-model exploration is closed.**
+
+## 2026-06-29 - BUILD - COMPLETE
+
+* Work completed
+    - Implemented all 7 plan steps strictly test-first, dependency-ordered, in three feature commits + a docs commit. New `stockroom.embed` (chunker, `Encoder` protocol, `embed_chunks`, `embed_pending`, `BgeEncoder`, `python -m stockroom.embed [--full]` CLI); `warehouse.ensure_vss` wired into `open()`; thin migration `0003` (cosine HNSW index) + cumulative `0003_snapshot.json` with an indexes section; embedding cascade-delete in `ingest.writer`.
+    - Migration-head ripple 2→3 across `test_migrate_runner`, `test_warehouse_open` (repointed to 0003 snapshot + `{tables,indexes}` introspection), and `test_warehouse_concurrency` (a plan under-enumeration, fixed in scope). Added `test_open_reader_has_vss_loaded`.
+    - `make ci` green: **202 passed, 1 torch-gated skip**; lock-check clean (**no `uv.lock` change**); ruff + REUSE clean. Verified an end-to-end ingest→embed→KNN→re-ingest-cascade→re-embed smoke on the real fixture corpus (40 msgs → 38 chunk vectors; nearest == queried; cascade to 0 then back to 38).
+* Decisions made
+    - **Owner-replacement on (re)embed:** the `embeddings` PK excludes `embed_model`, so coexisting models would collide at the same `chunk_index`; `embed_pending` deletes a selected owner's prior rows before inserting (incremental selection unchanged). Corrected a test that wrongly expected two models to coexist.
+    - **`ensure_vss` runs on every connection (RW + RO):** probe + `test_open_reader_has_vss_loaded` confirmed `LOAD`/`SET …persistence` succeed on read-only handles — the read-only advisory is resolved without writer-only scoping.
+    - **0003 golden locks name/table/`expressions`;** the cosine metric (not introspectable via `duckdb_indexes()`) is verified functionally by the KNN test.
+    - **CLI testability seam:** `main(..., encoder_factory=BgeEncoder)` keeps the CLI testable torch-free; `BgeEncoder` is the lone `importorskip`-gated edge.
+* Insights
+    - The single load-bearing surprise was a schema fact, not a design gap: the `embeddings` PK's exclusion of `embed_model` makes "replace on re-embed" the only consistent behavior — exactly the kind of thing the test-first pass surfaces before it becomes a latent dup-key bug. Everything else (vss, HNSW persistence, RO load, head ripple) had been pre-de-risked by the spike + preflight, so the build was friction-light.

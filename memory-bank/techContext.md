@@ -44,6 +44,25 @@ backoff that degrades to a typed `WarehouseBusyError` rather than blocking
 forever. `schema_version` is runner-created and deliberately absent from
 `0001`, so the locked product DDL and its golden snapshot stay untouched.
 
+The Phase-2 milestone-1 upgrade is
+[`0003_embeddings_hnsw_index.sql`](../skills/sr-search/src/stockroom/migrations/0003_embeddings_hnsw_index.sql):
+it lands the deferred VSS/HNSW vector index — a cosine HNSW index over
+`embeddings(vector)` with experimental persistence enabled (so deletes/inserts
+work against the live index). It is *thin* — the index DDL only; it never
+`INSTALL`s/`LOAD`s the `vss` extension. Loading is the chokepoint's job:
+[`warehouse.ensure_vss(con)`](../skills/sr-search/src/stockroom/warehouse.py)
+runs `LOAD vss` (install-on-missing) + the per-connection
+`SET hnsw_enable_experimental_persistence` on **every** connection `open()`
+returns (read-write *and* read-only — both verified to succeed on RO), so the
+network `INSTALL` stays off the shipped DDL and the runtime read path. The
+cumulative post-`0003` shape (columns + PKs **and** an `indexes` section — the
+cosine metric is not introspectable via `duckdb_indexes()`, so it is verified
+functionally) is pinned by
+[`test_schema_0003.py`](../skills/sr-search/tests/test_schema_0003.py) against
+[`0003_snapshot.json`](../skills/sr-search/tests/fixtures/schema/0003_snapshot.json);
+`0001`/`0002` snapshots stay frozen. Schema-aware fixtures (`migrated_con`, the
+real-chain runner tests) call `ensure_vss` before applying the chain.
+
 The first real schema-changing, data-preserving upgrade is
 [`0002_workspace_identity.sql`](../skills/sr-search/src/stockroom/migrations/0002_workspace_identity.sql):
 it replaces the lossy `sessions.project_path` with two single-meaning columns —
@@ -110,6 +129,36 @@ messages (invalid SQL → `query failed: …`; absent warehouse → a "run
 `run_query(sql, *, con=None)` mirrors the ingest `con`-injection shape so it is
 unit-testable against an injected connection. The polished `/sr-query` skill
 wrapper and per-harness invocation forms are Phase 5 distribution work.
+
+## Embeddings (`stockroom.embed`)
+
+The Phase-2 milestone-1 embedding pipeline lives in
+[`stockroom.embed`](../skills/sr-search/src/stockroom/embed.py) and runs via
+`python -m stockroom.embed [--full]`. It reads message text through the
+`warehouse.open(read_only=False)` chokepoint, splits long text into bounded
+overlapping chunks (`chunk_text`, pure stdlib), encodes each chunk to a 384-dim
+vector, and writes **one `embeddings` row per chunk** (`chunk_index = 0..N-1`) —
+the lossless per-chunk storage grain (max-sim dedup-to-owner is deferred to m2).
+m1 embeds **messages only** (`owner_table='messages'`, `owner_id=message_id`).
+
+Incremental by default: `embed_pending` selects non-empty messages lacking an
+`embeddings` row for the *current* model (so new content and a model change both
+re-embed) and replaces a selected owner's prior vectors (the `embeddings` PK
+excludes `embed_model`, so models can't coexist at the same `chunk_index`);
+`--full` re-embeds everything. The "changed-content" half is caught by a
+cascade-delete in [`stockroom.ingest.writer`](../skills/sr-search/src/stockroom/ingest/writer.py)
+(re-ingesting a session drops its message embeddings).
+
+The model is `BAAI/bge-small-en-v1.5` (384-dim, 512-token window, MIT, no
+`trust_remote_code`), chosen by an empirical, cross-corpus known-item retrieval
+benchmark ([`planning/spikes/embed-model-eval/`](../planning/spikes/embed-model-eval/)).
+Torch testability follows the `con`-injection precedent: `embed_chunks` /
+`embed_pending` / the CLI take an injected `Encoder` (the CLI via an
+`encoder_factory`), so the pipeline is unit-tested torch-free against a
+deterministic `FakeEncoder`; the only torch-dependent surface, `BgeEncoder`
+(lazy-imports `sentence_transformers`), has an `importorskip("torch")`-gated test
+that CI skips. `EMBED_MODEL`/`EMBED_DIM` are module constants; `embed_model` is
+recorded per row so a model swap is incremental.
 
 ## Testing Process
 

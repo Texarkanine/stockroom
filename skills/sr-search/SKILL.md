@@ -12,15 +12,26 @@ torch-free uv project (`pyproject.toml`, `uv.lock`, `src/stockroom/`, `tests/`)
 that every other `sr-*` skill invokes. It lives inside `sr-search` because
 search is stockroom's core entrypoint.
 
-## Status: skeleton (Phase 0)
+## Status: engine landing, search not yet wired
 
-This is an honest placeholder, not a dummy. Phase 0 ("Foundations") ships the
-engine, the dual-manifest plugin scaffold, the hermetic lock, release-please
-versioning, and the test/lint/format harness. **No product behavior ships yet.**
+This is an honest placeholder for the *search skill*, not a dummy. The shared
+engine has grown through Phase 1 (the DuckDB warehouse, migrations, ingest, and
+`sr-query`) and Phase 2 milestone 1 (the **embedding pipeline**).
 
-The actual semantic-search behavior — querying the DuckDB warehouse and
-returning read-time-truncated results — is built in **Phase 2**. Until then,
-this skill performs no action.
+What exists today as runnable engine entrypoints:
+
+- `python -m stockroom.ingest [--full]` — fill the warehouse from local Cursor /
+  Claude Code history.
+- `python -m stockroom.query "<SQL>"` — read-only SQL over the warehouse.
+- `python -m stockroom.embed [--full]` — embed message text into the
+  `embeddings` table (per-chunk `FLOAT[384]` vectors via a local
+  `sentence-transformers` model, behind the DuckDB VSS/HNSW cosine index;
+  incremental by default).
+
+The headline **semantic / blended search** behavior this skill is named for —
+querying the HNSW index and returning read-time-truncated results — lands in
+Phase 2 milestones 2 (`sr-semantic`) and 3 (`sr-search`). Until then, this skill
+itself performs no action.
 
 ## How sibling skills will use the engine
 

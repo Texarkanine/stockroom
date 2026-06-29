@@ -130,7 +130,7 @@ Ordered, dependency-led (fewest deps first → chokepoint/migration ripple). **E
 6. **[x] Real-model encoder + CLI** — `BgeEncoder`, `python -m stockroom.embed` (with `--full`). *(Build note: `main()` gained a keyword-only `encoder_factory=BgeEncoder` injection seam so the CLI logic is tested torch-free with a `FakeEncoder` — mirrors the `con`-injection precedent — while the real-model `BgeEncoder` test stays `importorskip`-gated/CI-skipped.)*
     - (a) Test first: add `test_bge_encoder_encodes_to_384_on_cpu` to `tests/test_embed.py`, guarded by `pytest.importorskip("torch")` (skips in torch-free CI); run → skip (or fail where torch present). Also assert the model loads **without** `trust_remote_code` and that an over-long chunk does not silently exceed 512 tokens (token-window guard).
     - (b) Implement: `BgeEncoder` (lazy `sentence_transformers` import; `cuda` if `torch.cuda.is_available()` else `cpu`; `BAAI/bge-small-en-v1.5`; **no passage prefix**, no `trust_remote_code`) and the `if __name__ == "__main__"` CLI (open RW via chokepoint, build encoder, `embed_pending`, print count; `--full` flag re-embeds all by ignoring existing rows — mirrors ingest `--full`); run → green/skip.
-7. **Docs** — accrete memory-bank tech context + skill stub note (no test; reviewed prose).
+7. **[x] Docs** — accrete memory-bank tech context + skill stub note (no test; reviewed prose).
     - Files: `memory-bank/techContext.md` (new "Embeddings (`stockroom.embed`)" + `0003`/VSS note), `memory-bank/systemPatterns.md` (VSS-loaded-at-chokepoint + embed-is-second-writer pattern), `skills/sr-search/SKILL.md` (embedding pipeline landed; search behavior still m2/m3).
     - Boundary gate: run `make ci` green before reflect.
 
@@ -170,5 +170,5 @@ Folded a small, in-scope, precedent-aligned improvement into the plan: the embed
 - [x] Implementation plan complete
 - [x] Technology validation complete (no lock change; spike green)
 - [x] Preflight — PASS (with advisory); TDD per-unit ordering encoded, ripple verified, `--full` folded in
-- [ ] Build
+- [x] Build — all 7 steps complete (TDD); 202 passed + 1 torch-gated skip; `make ci` green; e2e smoke green
 - [ ] QA
