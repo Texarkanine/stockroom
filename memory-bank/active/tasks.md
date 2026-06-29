@@ -102,4 +102,4 @@ No new technology — validation not required. The mechanism is pure stdlib; `re
 - [x] Technology validation complete
 - [x] Preflight
 - [x] Build
-- [ ] QA
+- [x] QA

@@ -61,7 +61,7 @@ def truncate_cell(value: str, detail: DetailLevel = DEFAULT_DETAIL) -> str:
     * Over budget → the first ``width`` characters of content, followed by the
       hidden-count marker ``f"{ELISION}(+{hidden})"`` where ``hidden`` is the
       number of characters dropped. The marker is appended **beyond** the width,
-        so a truncated cell's rendered width is ``width`` plus the short marker.
+      so a truncated cell's rendered width is ``width`` plus the short marker.
     """
     single_line = " ".join(value.split())
     width = LEVEL_WIDTHS[detail]
