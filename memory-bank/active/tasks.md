@@ -171,4 +171,4 @@ Folded a small, in-scope, precedent-aligned improvement into the plan: the embed
 - [x] Technology validation complete (no lock change; spike green)
 - [x] Preflight — PASS (with advisory); TDD per-unit ordering encoded, ripple verified, `--full` folded in
 - [x] Build — all 7 steps complete (TDD); 202 passed + 1 torch-gated skip; `make ci` green; e2e smoke green
-- [ ] QA
+- [x] QA — PASS; semantic review clean (2 trivial fixes: drop unused `@runtime_checkable`, correct `--full` docstring); `make ci` re-verified green

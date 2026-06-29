@@ -108,3 +108,14 @@ migration-head ripple, and a mandatory load-bearing-primitive spike).
     - **CLI testability seam:** `main(..., encoder_factory=BgeEncoder)` keeps the CLI testable torch-free; `BgeEncoder` is the lone `importorskip`-gated edge.
 * Insights
     - The single load-bearing surprise was a schema fact, not a design gap: the `embeddings` PK's exclusion of `embed_model` makes "replace on re-embed" the only consistent behavior — exactly the kind of thing the test-first pass surfaces before it becomes a latent dup-key bug. Everything else (vss, HNSW persistence, RO load, head ripple) had been pre-de-risked by the spike + preflight, so the build was friction-light.
+
+## 2026-06-29 - QA - COMPLETE (PASS)
+
+* Work completed
+    - Semantic review of the built code against the plan + 5 creative docs across KISS / DRY / YAGNI / Completeness / Regression / Integrity / Documentation. No substantive findings; two trivial fixes applied directly and re-verified.
+    - Fixes: (1) **YAGNI** — removed an unused `@runtime_checkable` decorator (no `isinstance` use) and its import; (2) **Documentation** — corrected `embed_pending`'s `--full` docstring (it deletes *all* of an owner's message rows, not just current-model). Re-ran `make ci`: green (202 passed, 1 torch-gated skip; ruff + REUSE clean; no lock change). Status file at `memory-bank/active/.qa-validation-status`.
+* Decisions made
+    - Kept the `Encoder` `Protocol` (the lone abstraction) — it's a documented torch-free testability seam, not gratuitous indirection, so it survives YAGNI.
+    - Left the unconditional per-owner `DELETE` in `embed_pending`'s loop (a harmless no-op for brand-new messages) rather than special-casing — KISS over a micro-optimization on a write path.
+* Insights
+    - The build was clean enough that QA reduced to a lint-grade pass: the only two findings were a dead decorator and a one-clause doc drift. Test-first + preflight front-loaded the substantive risk, leaving QA to confirm rather than repair.

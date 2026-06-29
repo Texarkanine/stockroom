@@ -24,7 +24,7 @@ detection, the VSS/HNSW index, and the model choice are documented in
 import argparse
 import sys
 from collections.abc import Callable
-from typing import Protocol, runtime_checkable
+from typing import Protocol
 
 import duckdb
 
@@ -49,7 +49,6 @@ CHUNK_SIZE = 1200
 CHUNK_OVERLAP = 150
 
 
-@runtime_checkable
 class Encoder(Protocol):
     """Encodes a batch of strings into embedding vectors.
 
@@ -118,8 +117,7 @@ def embed_pending(
     edits are caught by the ingest-writer cascade — see
     ``creative-incremental-reembed-detection.md``). With ``full=True`` the
     "already embedded" filter is dropped and every non-empty message is
-    re-embedded (its existing current-model rows are deleted first), mirroring
-    ``ingest --full``.
+    re-embedded (its existing rows are deleted first), mirroring ``ingest --full``.
 
     Each selected message has its existing ``messages`` embedding rows deleted
     (the ``embeddings`` PK excludes ``embed_model``, so a model change *replaces*
