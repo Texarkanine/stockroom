@@ -1,7 +1,12 @@
 # Active Context
 
 ## Current Task: Read-time output truncation (p2-embeddings-search m3)
-**Phase:** BUILD - COMPLETE
+**Phase:** REFLECT COMPLETE
+
+## Reflection Outcome
+- Reflection written to `reflection/reflection-p2-embeddings-search-m3.md`. Clean execution; plan accurate end-to-end; the only addition (informative `…(+N)` marker) came from preflight.
+- Reconciled persistent files: updated the stale "truncation is m3's / chiefly in `sr-search`" forward-references and the dropped `PREVIEW_CHARS` in `systemPatterns.md` (2 patterns) and `techContext.md` (Query + Semantic sections), and added a short `stockroom.truncate` section to `techContext.md`.
+- Standing insight for the next sub-run: the two `_format_*` renderers now share *truncation* but still duplicate column-alignment; a shared `render_table(columns, rows, *, detail)` is the obvious next consolidation (deliberately out of scope here).
 
 ## Build Outcome
 - New module `skills/sr-search/src/stockroom/truncate.py` (`DetailLevel`, `DETAIL_LEVELS`, `LEVEL_WIDTHS` `40/120/None`, `DEFAULT_DETAIL="snippet"`, `ELISION`, `truncate_cell`). Marker reports hidden count, e.g. `…(+482)`.

@@ -20,7 +20,7 @@ The load-bearing packaging pattern. Lock everything hermetically with `uv lock -
 
 ## No truncation at rest; truncation is a read-time feature
 
-Kept content (prompts, responses, tool inputs) is stored in full. Output truncation is applied only at read time (chiefly in `sr-search`), sized to answer without flooding the caller's context window. Storage-time caps are the failure mode stockroom exists to correct — do not reintroduce them.
+Kept content (prompts, responses, tool inputs) is stored in full. Output truncation is applied only at read time by the shared [`stockroom.truncate`](../skills/sr-search/src/stockroom/truncate.py) mechanism — `truncate_cell` plus the `compact | snippet | full` detail levels — wired into the `query` and `semantic` renderers behind a `--detail` flag and sized to answer without flooding the caller's context window. Full content always stays whole in the warehouse and in the returned data objects (`QueryResult.rows`, `SemanticHit.text`); `--detail full` is the unbounded escape, and an over-budget cell is elided with a marker reporting the hidden character count (`…(+482)`) so a downstream surface knows more exists. Storage-time caps are the failure mode stockroom exists to correct — do not reintroduce them.
 
 ## Harness-labeled schema, designed empirically
 
@@ -87,7 +87,7 @@ The read counterpart to per-chunk storage. [`stockroom.semantic`](../skills/sr-s
 - **Over-fetch then dedup, not `GROUP BY MIN`.** Because m1 stores **one vector per chunk**, a single owner message can occupy several of the nearest chunk hits. A `GROUP BY owner MIN(distance)` would dedup perfectly but defeat the HNSW top-k acceleration. Instead the surface keeps the index-accelerated `ORDER BY array_cosine_distance(…) LIMIT (limit * OVERFETCH)` and dedups **in Python** to the nearest chunk per `(harness, owner_id)` (the hits arrive ascending, so first-seen = best) — uses the index *and* discharges the max-sim owner grain m1 deferred. `OVERFETCH` is a tunable, not an architectural seam.
 - **Asymmetric query prefix.** bge-small-en-v1.5 is an asymmetric retriever: passages are embedded with **no** prefix (m1), but the **query** is prepended with bge's instruction prefix (`QUERY_PREFIX`) — the cross-corpus spike measured ~+0.037 MRR@10 for it. A query is embedded as a **single** vector (never chunked — chunking is a storage concern; a query is one point). The prefix is threadable (`query_prefix=""`) so the deterministic `FakeEncoder` can land a query exactly on a stored chunk for unit tests.
 
-Output is a ranked table whose `score` is cosine **similarity** (`1 - distance`) and whose `text` is a fixed-width single-line **display** preview only — this is *not* the no-truncation-at-rest violation: the full text stays whole in the store and in the returned `SemanticHit`. Context-aware read-time truncation is the separate m3 (`sr-search`) feature; `semantic` is named so a keyword-search seeker doesn't grab it by mistake.
+Output is a ranked table whose `score` is cosine **similarity** (`1 - distance`) and whose `preview` column is the message text run through the shared `stockroom.truncate` mechanism (`--detail`, default `snippet`) — a *display* bound only, not a no-truncation-at-rest violation: the full text stays whole in the store and in the returned `SemanticHit`. `semantic` is named so a keyword-search seeker doesn't grab it by mistake; the blended, LLM-routed keyword + semantic entrypoint is the separate `sr-search` skill.
 
 ## Ingest is per-harness clean-room parsers feeding a harness-neutral normalized model
 

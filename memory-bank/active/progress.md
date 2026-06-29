@@ -51,3 +51,13 @@ Sub-run m3 of the `p2-embeddings-search` L4 project: build a shared, tested read
     - Confirmed the persistent-doc updates (stale "truncation is m3's / chiefly in sr-search" forward-references in `systemPatterns.md` and `techContext.md`) are a non-blocking finding routed to REFLECT per the preflight-validated plan's explicit schedule — not a build deficiency. In-code module docstrings were updated alongside the code.
 * Insights
     - No over-engineering or YAGNI debris; the mechanism consolidated `semantic`'s ad-hoc `_preview` rather than adding a parallel one.
+
+## 2026-06-29 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `reflection/reflection-p2-embeddings-search-m3.md` (requirements vs outcome, plan accuracy, build/QA observations, insights, million-dollar question).
+    - Reconciled persistent files: surgical updates to `systemPatterns.md` (the "No truncation at rest" + "Semantic search" patterns) and `techContext.md` (Query + Semantic sections), plus a new `stockroom.truncate` section — clearing the now-stale "truncation is m3's feature" / `PREVIEW_CHARS` forward-references the build invalidated.
+* Insights
+    - Million-dollar question: had "every read surface truncates at read time" been foundational, the elegant shape is a single shared `render_table(columns, rows, *, detail)` owning both truncation and column alignment. We landed the truncation half; hoisting the table renderer alongside `truncate_cell` is the next consolidation.
+* Status
+    - m3 (Read-time output truncation) sub-run complete. Next: `/niko` to advance to the next milestone (`sr-query` skill).
