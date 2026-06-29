@@ -73,7 +73,7 @@ def embed_query(
     A query is encoded as **one** vector (never chunked — chunking is a
     storage-grain concern for long stored documents; a search query is a single
     point in the embedding space). ``prefix`` defaults to :data:`QUERY_PREFIX`
-    (bge's asymmetric query instruction); tests pass     ``prefix=""`` so a query
+    (bge's asymmetric query instruction); tests pass ``prefix=""`` so a query
     equal to a stored chunk encodes identically under the deterministic fake.
     """
     return encoder.encode([prefix + query])[0]

@@ -1,0 +1,40 @@
+PASS
+
+Task: p2-embeddings-search — sub-run m2 (sr-semantic)
+Complexity: Level 2
+Phase: L2 QA (post-implementation semantic review)
+Date: 2026-06-29
+
+Reviewed the built code against the plan + preflight findings. Clean — one
+trivial doc fix applied directly; no substantive (build- or plan-routing) findings.
+
+Constraint checks:
+  - KISS: PASS. Flat, direct functions; the two-query shape (index KNN then
+    owner-row join) is the clearest correct form. No gratuitous abstraction.
+  - DRY: PASS (deferral noted). All embedding logic is reused from
+    stockroom.embed (Encoder/BgeEncoder/EMBED_*) — no duplication. _format_hits
+    shares ~6 lines of table-alignment mechanics with query._format_table; per
+    the preflight YAGNI advisory it is deliberately NOT consolidated now —
+    extraction is a design decision best made when m3 introduces a third
+    renderer (and would touch the stable Phase-1 query.py). Not blocking.
+  - YAGNI: PASS. No speculative params: query_prefix (threaded + tested),
+    --limit, and the WHERE owner_table='messages' filter (documented forward-
+    correctness for when tool_calls embeddings land) are all used/justified.
+  - Completeness: PASS. All 6 plan steps implemented (grep-clean — no TODO/stub/
+    pseudocode); every planned behavior has a passing test, incl. the
+    importorskip-gated real-model end-to-end (ran green locally).
+  - Regression: PASS. Mirrors query.py/embed.py shape (run_* entry,
+    con/encoder injection, _build_parser, main+encoder_factory, exit-code
+    contract, if __name__). ensure_vss/chokepoint untouched; no migration.
+  - Integrity: PASS. Named constants (PREVIEW_CHARS/DEFAULT_LIMIT/OVERFETCH/
+    QUERY_PREFIX) — no magic numbers; no debug artifacts. SQL interpolation is
+    int-only (EMBED_DIM, fetch_n); the query vector is parameterized.
+  - Documentation: FIXED — removed a stray double-space in embed_query's
+    docstring. techContext.md, systemPatterns.md, and SKILL.md were updated in
+    the build (Step 6).
+
+Verification: ruff check + ruff format --check clean; lock-check clean (no
+uv.lock change); REUSE compliant (168/168); 222 passed / 0 skipped (torch
+present locally, so both importorskip-gated tests ran).
+
+No FAIL conditions. Cleared to /niko-reflect.

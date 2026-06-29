@@ -54,3 +54,14 @@ default, torch-safe contract, clean-room boundary, test-first + green `make ci`)
     - **`EMBED_DIM` in the distance cast** (DRY with the schema width; removes an unused import). `_format_hits` kept as a small dedicated renderer (not merged with `query._format_table` — the preflight YAGNI advisory).
 * Insights
     - Every preflight prediction held: no migration ripple, the row-value `(harness, message_id) IN (…)` owner join worked first try, and the over-fetch-then-dedup design used the index while discharging m1's deferred max-sim obligation. The one genuinely *validating* moment was the torch-gated end-to-end actually running locally — confirming m1's prefix-free passages and m2's prefixed query land in the same space, which the deterministic fake can't prove.
+
+## 2026-06-29 - QA - COMPLETE (PASS)
+
+* Work completed
+    - Semantic review against the plan + preflight findings across KISS / DRY / YAGNI / Completeness / Regression / Integrity / Documentation. No substantive findings; one trivial fix applied (a stray double-space in `embed_query`'s docstring) and re-verified. Wrote `.qa-validation-status`.
+    - Re-ran the gate: ruff check + format-check clean, lock-check clean (no `uv.lock` change), REUSE 168/168, **222 passed / 0 skipped**.
+* Decisions made
+    - Upheld the preflight YAGNI deferral: `_format_hits` shares ~6 lines of table-alignment mechanics with `query._format_table` but is **not** consolidated now — extraction is a design decision better made when m3 adds a third renderer (and would touch the stable Phase-1 `query.py`).
+    - Kept the int-only SQL interpolation (`EMBED_DIM`, `fetch_n`) and the unconditional `WHERE owner_table='messages'` filter (documented forward-correctness) — both reviewed as safe/justified, not debris.
+* Insights
+    - Like m1, the build was clean enough that QA reduced to a lint-grade pass: test-first + preflight had front-loaded the substantive risk, leaving only a one-character doc artifact to fix.
