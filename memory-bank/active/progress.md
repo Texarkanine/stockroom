@@ -65,3 +65,16 @@ default, torch-safe contract, clean-room boundary, test-first + green `make ci`)
     - Kept the int-only SQL interpolation (`EMBED_DIM`, `fetch_n`) and the unconditional `WHERE owner_table='messages'` filter (documented forward-correctness) — both reviewed as safe/justified, not debris.
 * Insights
     - Like m1, the build was clean enough that QA reduced to a lint-grade pass: test-first + preflight had front-loaded the substantive risk, leaving only a one-character doc artifact to fix.
+
+## 2026-06-29 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `memory-bank/active/reflection/reflection-p2-embeddings-search-m2.md` — full L2 lifecycle review (requirements vs outcome, plan accuracy, build/QA, insights, million-dollar question).
+    - Reconciled persistent files: `systemPatterns.md` + `techContext.md` already captured the semantic surface (the index-KNN→over-fetch→max-sim-dedup pattern + the asymmetric query prefix) in build Step 6; `productContext.md` unaffected; QA's docstring fix invalidated nothing system-level. **No further changes needed.**
+* Decisions made
+    - Recorded the `make ci` ⟂ torch-contract tension as a candidate process fix for a later phase (document the `--no-sync` local gate, or add a torch-preserving `make ci` variant) rather than acting on it in this sub-run (out of m2 scope).
+* Insights (see reflection for full treatment)
+    - **Technical**: per-chunk storage (m1) + read-time max-sim dedup (m2) are two halves of one design; a deterministic fake proves mechanics but not an asymmetric model's prefix geometry (the torch-gated e2e is load-bearing).
+    - **Process**: `make ci` → `uv sync --frozen` strips out-of-band torch; `--no-sync` is the torch-safe gate and runs the gated tests instead of skipping.
+* Next step
+    - 🧑‍💻 Reflection is terminal — stop and await operator. This is an L4 sub-run (`milestones.md` exists), so the next step is `Run /niko to continue to the next milestone` (m3 · `sr-search`); the `/niko` continuation handles m2's milestone bookkeeping.
