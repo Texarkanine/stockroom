@@ -43,3 +43,14 @@ default, torch-safe contract, clean-room boundary, test-first + green `make ci`)
     - **Advisory, not changed**: deferred an optional `--harness` per-harness filter to m3 (avoid scope creep on a pure vector-search engine module — the invariant's "per-harness by filtering" fits m3's user surface); deferred extracting a shared table renderer (`_format_hits` vs `query._format_table`) until a third need exists (YAGNI).
 * Insights
     - The single biggest contrast with m1 is the **absence of a migration**: no `000N` snapshot, no head-version assertions, no test-suite-wide ripple — m2 is purely additive engine + test code, which is exactly why it classified and validated cleanly as L2.
+
+## 2026-06-29 - BUILD - COMPLETE
+
+* Work completed
+    - Built `stockroom.semantic` strictly test-first across all 6 plan steps: shared `FakeEncoder` → `conftest.py`; `embed_query`/`QUERY_PREFIX`; `SemanticHit` + `run_semantic_search` (index KNN → `limit*OVERFETCH` over-fetch → Python max-sim owner dedup → owner-row join, read-only owns-connection path); `_format_hits` (similarity score + single-line preview + `(N results)` trailer) and `main` (`-k/--limit`, empty/limit/missing-warehouse guards before the encoder is built); a torch-gated real-model end-to-end; and docs (`techContext`, `systemPatterns`, `SKILL.md`).
+    - Full gate green: lock-check clean (**no `uv.lock` change**), `ruff check` + `ruff format --check` clean, REUSE compliant (168/168), **222 passed / 0 skipped** (torch present locally, so the two `importorskip`-gated tests ran instead of skipping — the real-model paraphrase search ranked its message first).
+* Decisions made
+    - **Torch-safe gate**: ran the `make ci` steps with `--no-sync` rather than `make ci`, because `make ci` → `make sync` (`uv sync --frozen`) would strip the operator's out-of-band torch. Identical checks, preserves torch, and exercises the gated tests.
+    - **`EMBED_DIM` in the distance cast** (DRY with the schema width; removes an unused import). `_format_hits` kept as a small dedicated renderer (not merged with `query._format_table` — the preflight YAGNI advisory).
+* Insights
+    - Every preflight prediction held: no migration ripple, the row-value `(harness, message_id) IN (…)` owner join worked first try, and the over-fetch-then-dedup design used the index while discharging m1's deferred max-sim obligation. The one genuinely *validating* moment was the torch-gated end-to-end actually running locally — confirming m1's prefix-free passages and m2's prefixed query land in the same space, which the deterministic fake can't prove.

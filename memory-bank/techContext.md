@@ -155,10 +155,38 @@ benchmark ([`planning/spikes/embed-model-eval/`](../planning/spikes/embed-model-
 Torch testability follows the `con`-injection precedent: `embed_chunks` /
 `embed_pending` / the CLI take an injected `Encoder` (the CLI via an
 `encoder_factory`), so the pipeline is unit-tested torch-free against a
-deterministic `FakeEncoder`; the only torch-dependent surface, `BgeEncoder`
-(lazy-imports `sentence_transformers`), has an `importorskip("torch")`-gated test
-that CI skips. `EMBED_MODEL`/`EMBED_DIM` are module constants; `embed_model` is
-recorded per row so a model swap is incremental.
+deterministic `FakeEncoder` (shared from `tests/conftest.py`); the only
+torch-dependent surface, `BgeEncoder` (lazy-imports `sentence_transformers`), has
+an `importorskip("torch")`-gated test that CI skips. `EMBED_MODEL`/`EMBED_DIM`
+are module constants; `embed_model` is recorded per row so a model swap is
+incremental.
+
+## Semantic search (`stockroom.semantic`)
+
+The Phase-2 milestone-2 read surface lives in
+[`stockroom.semantic`](../skills/sr-search/src/stockroom/semantic.py) and runs
+via `python -m stockroom.semantic "<query>" [-k N]`. Like `sr-query` it is a
+single runnable module that opens the warehouse **read-only** through the
+`warehouse.open()` chokepoint, with a `run_semantic_search(query, encoder, *,
+con=None, limit=…, query_prefix=…)` library entry mirroring the `con`/encoder
+injection shape (so it is unit-tested torch-free against the shared
+`FakeEncoder`). It reuses `stockroom.embed`'s `Encoder` / `BgeEncoder` /
+`EMBED_*` — no embedding logic is duplicated.
+
+Flow: embed the query to a **single** vector (`embed_query`, never chunked) with
+bge's asymmetric **query** instruction prefix (`QUERY_PREFIX`, the spike's
+measured +0.037 MRR win; passages stay prefix-free); run a cosine KNN
+(`array_cosine_distance`) over the `0003` HNSW index for the nearest
+`limit * OVERFETCH` chunk rows; **dedup to the nearest chunk per owner** (the
+max-sim grain m1 deferred — m1 stores one vector per chunk); join the top
+`limit` owners back to their `messages` rows; and print a ranked table whose
+`score` is cosine similarity (`1 - distance`) and whose `text` is a fixed-width
+single-line **display** preview only (`PREVIEW_CHARS`) — *not* the no-truncation
+violation: full text stays whole in the store and in `SemanticHit.text`.
+Context-aware read-time truncation remains m3's (`sr-search`) feature. The
+real-model path is covered by one `importorskip("torch")`-gated end-to-end test;
+the polished `/sr-semantic` skill wrapper + per-harness invocation are Phase-5
+distribution work (the `sr-query` precedent).
 
 ## Testing Process
 

@@ -12,32 +12,13 @@ contract):
   ``pytest.importorskip("torch")``-gated and skipped in CI.
 """
 
-import hashlib
 from pathlib import Path
 
 import duckdb
 import pytest
 
+from conftest import FakeEncoder
 from stockroom import embed, warehouse
-
-
-class FakeEncoder:
-    """A deterministic, torch-free :class:`embed.Encoder` for unit tests.
-
-    Maps each input string to a fixed 384-dim vector derived from its SHA-256
-    digest, so identical text always encodes to an identical vector (a query
-    equal to a stored chunk has cosine distance 0) and distinct text encodes
-    distinctly. No model, no torch — the pipeline logic is exercised in full.
-    """
-
-    def encode(self, texts: list[str]) -> list[list[float]]:
-        return [self._vector(text) for text in texts]
-
-    @staticmethod
-    def _vector(text: str) -> list[float]:
-        digest = hashlib.sha256(text.encode("utf-8")).digest()  # 32 bytes
-        raw = (digest * (embed.EMBED_DIM // len(digest) + 1))[: embed.EMBED_DIM]
-        return [byte / 255.0 for byte in raw]
 
 
 def _insert_message(

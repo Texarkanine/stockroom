@@ -122,6 +122,15 @@ PASS. Validated against codebase reality; no blocking findings.
 - [x] Test planning complete (TDD)
 - [x] Implementation plan complete
 - [x] Technology validation complete
-- [ ] Preflight
-- [ ] Build
+- [x] Preflight (PASS)
+- [x] Build (all 6 steps; 222 passed, 0 skips with torch present)
 - [ ] QA
+
+### Build step completion
+
+- [x] Step 1 — `FakeEncoder` → `conftest.py`; `test_embed.py` imports it (14 passed, no regression).
+- [x] Step 2 — `embed_query` + `QUERY_PREFIX`.
+- [x] Step 3 — `SemanticHit` + `run_semantic_search` (index KNN + over-fetch + max-sim dedup + owner join).
+- [x] Step 4 — `_format_hits` (similarity `score`, single-line preview) + `main` (`-k/--limit`, friendly/empty/limit guards).
+- [x] Step 5 — torch-gated real-model end-to-end (ran green locally; CI-skipped).
+- [x] Step 6 — docs (`techContext.md`, `systemPatterns.md`, `SKILL.md`).

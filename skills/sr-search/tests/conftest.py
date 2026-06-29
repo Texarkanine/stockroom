@@ -6,6 +6,7 @@ The engine lives inside ``skills/sr-search/`` but several tests
 relative-path arithmetic.
 """
 
+import hashlib
 import os
 import sqlite3
 import subprocess
@@ -18,8 +19,28 @@ import duckdb
 import pytest
 
 import stockroom
-from stockroom import warehouse
+from stockroom import embed, warehouse
 from stockroom.migrate import apply_pending
+
+
+class FakeEncoder:
+    """A deterministic, torch-free :class:`embed.Encoder` for unit tests.
+
+    Maps each input string to a fixed 384-dim vector derived from its SHA-256
+    digest, so identical text always encodes to an identical vector (a query
+    equal to a stored chunk has cosine distance 0) and distinct text encodes
+    distinctly. No model, no torch — the embedding/search logic is exercised in
+    full. Shared by ``test_embed`` (the pipeline) and ``test_semantic`` (search).
+    """
+
+    def encode(self, texts: list[str]) -> list[list[float]]:
+        return [self._vector(text) for text in texts]
+
+    @staticmethod
+    def _vector(text: str) -> list[float]:
+        digest = hashlib.sha256(text.encode("utf-8")).digest()  # 32 bytes
+        raw = (digest * (embed.EMBED_DIM // len(digest) + 1))[: embed.EMBED_DIM]
+        return [byte / 255.0 for byte in raw]
 
 
 @pytest.fixture(scope="session")

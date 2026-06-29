@@ -16,7 +16,8 @@ search is stockroom's core entrypoint.
 
 This is an honest placeholder for the *search skill*, not a dummy. The shared
 engine has grown through Phase 1 (the DuckDB warehouse, migrations, ingest, and
-`sr-query`) and Phase 2 milestone 1 (the **embedding pipeline**).
+`sr-query`) and Phase 2 milestones 1 (the **embedding pipeline**) and 2
+(**`sr-semantic`** pure vector search).
 
 What exists today as runnable engine entrypoints:
 
@@ -27,11 +28,14 @@ What exists today as runnable engine entrypoints:
   `embeddings` table (per-chunk `FLOAT[384]` vectors via a local
   `sentence-transformers` model, behind the DuckDB VSS/HNSW cosine index;
   incremental by default).
+- `python -m stockroom.semantic "<query>" [-k N]` — read-only **pure vector
+  search**: embeds the query (with the bge query prefix), runs cosine KNN over
+  the HNSW index, dedups to one row per owner message, and prints a ranked,
+  similarity-scored table.
 
-The headline **semantic / blended search** behavior this skill is named for —
-querying the HNSW index and returning read-time-truncated results — lands in
-Phase 2 milestones 2 (`sr-semantic`) and 3 (`sr-search`). Until then, this skill
-itself performs no action.
+The headline **blended keyword + semantic search** with context-aware read-time
+truncation — the behavior this skill is ultimately named for — lands in Phase 2
+milestone 3 (`sr-search`). Until then, this skill itself performs no action.
 
 ## How sibling skills will use the engine
 
