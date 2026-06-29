@@ -2,7 +2,11 @@
 
 **Current Task:** Phase 2 · Milestone 1 — Embedding pipeline (`p2-embeddings-search`, sub-run m1)
 
-**Phase:** `BUILD - COMPLETE` — all 7 plan steps built test-first; `make ci` green (202 passed, 1 torch-gated skip); e2e smoke green. Proceeding to autonomous `/niko-qa`.
+**Phase:** `REFLECT - COMPLETE` — build (7 steps, test-first) + QA (PASS, 2 trivial fixes) + reflection all done; `make ci` green (202 passed, 1 torch-gated skip); e2e smoke green. **Reflection is a terminal node — awaiting operator `/niko` to continue to m2.**
+
+## Reflection Outcome
+
+Full lifecycle reviewed in [`reflection/reflection-p2-embeddings-search-m1.md`](reflection/reflection-p2-embeddings-search-m1.md). Build was friction-light (spike + preflight front-loaded the VSS/persistence risk); QA was lint-grade (no substantive findings). The one genuine surprise — the `embeddings` PK excludes `embed_model`, forcing replace-on-re-embed — originated in the Phase-1 schema and was caught by the test-first pass, not by any Phase-2 design doc. Key insights: (1) re-read a table's PK against your *actual* write pattern before writing derived data; (2) `duckdb_indexes()` can't introspect the HNSW `metric` (verify cosine functionally); (3) a designed-in DI seam (`Encoder`/`FakeEncoder`) is what keeps a torch-heavy feature under torch-free CI. Persistent files (`systemPatterns`, `techContext`) needed no reconciliation beyond the build's Step-7 updates.
 
 ## What Was Done
 
@@ -32,4 +36,4 @@ Implemented the m1 embedding pipeline strictly test-first, in the planned depend
 
 ## Next Step
 
-🐱 Autonomous **`/niko-qa`** (post-implementation semantic review). On QA PASS → `/niko-reflect`.
+🧑‍💻 Operator runs **`/niko`** to continue to the next milestone — this is an L4 sub-run (`milestones.md` exists), so m1's bookkeeping/archival and the m2 (`sr-semantic`) kickoff are handled by the `/niko` continuation, not a standalone `/niko-archive`.

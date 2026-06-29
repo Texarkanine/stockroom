@@ -119,3 +119,16 @@ migration-head ripple, and a mandatory load-bearing-primitive spike).
     - Left the unconditional per-owner `DELETE` in `embed_pending`'s loop (a harmless no-op for brand-new messages) rather than special-casing — KISS over a micro-optimization on a write path.
 * Insights
     - The build was clean enough that QA reduced to a lint-grade pass: the only two findings were a dead decorator and a one-clause doc drift. Test-first + preflight front-loaded the substantive risk, leaving QA to confirm rather than repair.
+
+## 2026-06-29 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `memory-bank/active/reflection/reflection-p2-embeddings-search-m1.md` — full L3 lifecycle review (requirements vs outcome, plan accuracy, all 5 creative decisions, build/QA, cross-phase causal chains, insights).
+    - Reconciled persistent files: `systemPatterns.md` + `techContext.md` already captured the VSS-at-chokepoint pattern, the per-chunk/incremental embed writer, the replace-on-re-embed PK fact, and the bge model choice (build Step 7); QA's trivial fixes invalidated nothing system-level. `productContext.md` unaffected. **No further changes needed.**
+* Decisions made
+    - Recorded the cross-doc creative inconsistency (cascade `owner_table` scope: incremental-doc said `IN ('messages','tool_calls')`, owner-grain said messages-only) as resolved-in-build toward messages-only, with a forward note for when m-future adds tool_calls embeddings.
+* Insights (see reflection for full treatment)
+    - **Technical**: re-read a table's PK against your *actual* write pattern before writing derived data (the `embed_model`-excluding PK was the one real surprise, invisible to every Phase-2 design doc); `duckdb_indexes()` can't introspect HNSW `metric` (verify cosine functionally); KNN tests need orthogonal fixtures.
+    - **Process**: a designed-in DI seam (`Encoder`/`FakeEncoder`) is what keeps a torch-heavy feature under torch-free CI; a cross-doc consistency pass after a multi-doc creative phase would catch contradictions at design time.
+* Next step
+    - 🧑‍💻 Reflection is terminal — stop and await operator. This is an L4 sub-run (`milestones.md` exists), so per the reflect phase's Step 8 the next step is `Run /niko to continue to the next milestone` (m2 · `sr-semantic`); the `/niko` continuation handles m1's milestone bookkeeping.
