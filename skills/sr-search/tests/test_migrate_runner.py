@@ -18,7 +18,7 @@ from pathlib import Path
 import duckdb
 import pytest
 
-from stockroom import migrate
+from stockroom import migrate, warehouse
 
 # Product tables declared by the real ``0001`` migration.
 _PRODUCT_TABLES = {"sessions", "messages", "tool_calls", "embeddings", "_sync_state"}
@@ -71,15 +71,19 @@ def test_apply_pending_applies_all_packaged_on_fresh_db(
 ) -> None:
     """A fresh DB gets every packaged migration in order, landing at the head.
 
-    The product tables come from ``0001``; ``0002`` (workspace identity) is a
-    structural follow-on, so a fresh apply returns ``[1, 2]`` and stamps a
-    bookkeeping row per migration — including ``0001``'s, asserted explicitly.
+    The product tables come from ``0001``; ``0002`` (workspace identity) and
+    ``0003`` (the VSS/HNSW embeddings index) are structural follow-ons, so a
+    fresh apply returns ``[1, 2, 3]`` and stamps a bookkeeping row per migration
+    — including ``0001``'s, asserted explicitly. ``ensure_vss`` is the
+    precondition ``0003`` assumes (it creates the HNSW index but does not load
+    ``vss``); the chokepoint runs it in production, so the test does too.
     """
+    warehouse.ensure_vss(mem_con)
     applied = migrate.apply_pending(mem_con)
 
-    assert applied == [1, 2]
+    assert applied == [1, 2, 3]
     assert _PRODUCT_TABLES <= _table_names(mem_con)
-    assert migrate.current_version(mem_con) == 2
+    assert migrate.current_version(mem_con) == 3
 
     version, filename, applied_at = mem_con.execute(
         f"SELECT version, filename, applied_at FROM {migrate.SCHEMA_VERSION_TABLE} "
@@ -94,11 +98,12 @@ def test_apply_pending_is_idempotent(
     mem_con: duckdb.DuckDBPyConnection,
 ) -> None:
     """Re-running on a current DB is a no-op: ``[]``, same version, no dup rows."""
+    warehouse.ensure_vss(mem_con)
     applied = migrate.apply_pending(mem_con)
     second = migrate.apply_pending(mem_con)
 
     assert second == []
-    assert migrate.current_version(mem_con) == 2
+    assert migrate.current_version(mem_con) == 3
     row_count = mem_con.execute(
         f"SELECT count(*) FROM {migrate.SCHEMA_VERSION_TABLE}"
     ).fetchone()[0]

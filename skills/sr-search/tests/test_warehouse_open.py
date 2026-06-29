@@ -14,7 +14,7 @@ from pathlib import Path
 import duckdb
 
 from stockroom import migrate, warehouse
-from test_schema_0002 import SNAPSHOT_PATH, _introspect_schema
+from test_schema_0003 import SNAPSHOT_PATH, _introspect_schema
 
 _PRODUCT_TABLES = {"sessions", "messages", "tool_calls", "embeddings", "_sync_state"}
 
@@ -61,7 +61,7 @@ def test_open_writer_on_fresh_path_returns_migrated_connection(
     """``open(read_only=False)`` on a brand-new path migrates and is ready."""
     con = warehouse.open(read_only=False)
     try:
-        assert migrate.current_version(con) == 2
+        assert migrate.current_version(con) == 3
         assert _PRODUCT_TABLES <= _table_names(con)
         # The warehouse file was created at the resolved path.
         assert warehouse.warehouse_path().is_file()
@@ -77,7 +77,7 @@ def test_open_reader_on_current_warehouse_returns_working_connection(
 
     con = warehouse.open(read_only=True)
     try:
-        assert migrate.current_version(con) == 2
+        assert migrate.current_version(con) == 3
         # A plain read works against the migrated schema.
         assert con.execute("SELECT count(*) FROM sessions").fetchone()[0] == 0
     finally:
@@ -97,7 +97,33 @@ def test_open_reader_on_current_warehouse_does_not_invoke_runner(
 
     con = warehouse.open(read_only=True)
     try:
-        assert migrate.current_version(con) == 2
+        assert migrate.current_version(con) == 3
+    finally:
+        con.close()
+
+
+def test_open_reader_has_vss_loaded(warehouse_home: Path) -> None:
+    """An opened reader has ``vss`` loaded and its persistence ``SET`` applied.
+
+    Resolves the preflight advisory: ``ensure_vss`` runs ``LOAD vss`` + the
+    per-connection ``SET hnsw_enable_experimental_persistence`` on read-only
+    connections too (m2 readers need ``vss`` for vector ops), and both are
+    session-level — not DB writes — so they succeed against a read-only DuckDB
+    handle. The setting only *exists* once ``vss`` is loaded, so reading it as
+    ``true`` proves both halves ran on the reader.
+    """
+    warehouse.open(read_only=False).close()  # create + migrate first
+
+    con = warehouse.open(read_only=True)
+    try:
+        loaded = con.execute(
+            "SELECT loaded FROM duckdb_extensions() WHERE extension_name = 'vss'"
+        ).fetchone()[0]
+        assert loaded is True
+        setting = con.execute(
+            "SELECT current_setting('hnsw_enable_experimental_persistence')"
+        ).fetchone()[0]
+        assert setting is True
     finally:
         con.close()
 
@@ -126,11 +152,12 @@ def test_open_with_migrate_false_skips_the_gate(
 def test_migrated_warehouse_matches_locked_snapshot(warehouse_home: Path) -> None:
     """A freshly opened warehouse's product schema byte-matches the head snapshot.
 
-    Reuses the schema-introspection helper against the *cumulative* post-``0002``
-    golden (``0002_snapshot.json``). The runner-owned ``schema_version``
-    bookkeeping table is excluded (it is not part of any product migration),
-    proving the migration framework produces precisely the locked product DDL at
-    the chain head — opening the warehouse yields the current locked schema.
+    Reuses the schema-introspection helper against the *cumulative* post-``0003``
+    golden (``0003_snapshot.json``: columns + PKs + the HNSW index). The
+    runner-owned ``schema_version`` bookkeeping table is excluded by the helper
+    (it is not part of any product migration), proving the migration framework
+    produces precisely the locked product DDL — including the VSS index — at the
+    chain head: opening the warehouse yields the current locked schema.
     """
     con = warehouse.open(read_only=False)
     try:
@@ -138,6 +165,5 @@ def test_migrated_warehouse_matches_locked_snapshot(warehouse_home: Path) -> Non
     finally:
         con.close()
 
-    schema.pop(migrate.SCHEMA_VERSION_TABLE, None)
     expected = json.loads(SNAPSHOT_PATH.read_text(encoding="utf-8"))
     assert schema == expected

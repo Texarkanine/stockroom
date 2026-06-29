@@ -55,7 +55,7 @@ def test_reader_succeeds_after_migration_releases(
 
     con = warehouse.open(read_only=True, timeout=15.0, initial_delay=0.02)
     try:
-        assert migrate.current_version(con) == 2
+        assert migrate.current_version(con) == 3
     finally:
         con.close()
 
@@ -99,15 +99,15 @@ def test_racing_migrators_serialize_without_double_apply(
     assert proc_a.wait(timeout=30) == 0
     assert proc_b.wait(timeout=30) == 0
 
-    assert out_a.read_text(encoding="utf-8") == "2"
-    assert out_b.read_text(encoding="utf-8") == "2"
+    assert out_a.read_text(encoding="utf-8") == "3"
+    assert out_b.read_text(encoding="utf-8") == "3"
 
     con = warehouse.open(read_only=True)
     try:
         row_count = con.execute(
             f"SELECT count(*) FROM {migrate.SCHEMA_VERSION_TABLE}"
         ).fetchone()[0]
-        assert row_count == 2
+        assert row_count == 3
         tables = {
             r[0]
             for r in con.execute(
