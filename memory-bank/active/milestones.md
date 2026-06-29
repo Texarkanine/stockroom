@@ -19,7 +19,7 @@ Properties every sub-run must preserve, regardless of which milestone it impleme
 
 Strictly sequential: each milestone builds on verified artifacts from the prior one (m2's vector search needs m1's index + embedder; m3's blend reuses m2's semantic search and m1's embedder). No parallelization, so no dependency flowchart is needed.
 
-- [ ] **Embedding pipeline** — VSS/HNSW index migration (`0003`, cosine, experimental persistence on) plus a `sentence-transformers` (`all-MiniLM-L6-v2`, 384-dim) embedder with chunk-and-mean-pool, GPU-or-CPU device selection, `FLOAT[384]` writes through the chokepoint, and incremental re-embed of only un-embedded/changed content.
+- [x] **Embedding pipeline** — VSS/HNSW index migration (`0003`, cosine, experimental persistence on) plus a `sentence-transformers` (`all-MiniLM-L6-v2`, 384-dim) embedder with chunk-and-mean-pool, GPU-or-CPU device selection, `FLOAT[384]` writes through the chokepoint, and incremental re-embed of only un-embedded/changed content.
 - [ ] **`sr-semantic`** — a pure vector-search read surface: embed the query, run cosine KNN over the HNSW index, join back to the owner rows, and print ranked results read-only through the chokepoint.
 - [ ] **`sr-search`** — the blended keyword + semantic entrypoint: route a question to SQL / vector / blend, run keyword and semantic search, merge and rank, and apply a context-aware **read-time truncation** level so a huge field never floods the caller's context.
 
