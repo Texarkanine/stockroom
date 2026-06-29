@@ -83,3 +83,14 @@ migration-head ripple, and a mandatory load-bearing-primitive spike).
     - **Empirical winner ≠ MTEB desk pick:** e5-small-v2 (lowest MTEB of the set) tops R@1/MRR here — the "evaluate on your own corpus" lesson. Its cost is the mandatory dual `passage:`/`query:` prefix (footgun across m1/m2).
 * Decision (OPEN — operator's call)
     - Narrowed to **e5-small-v2** (best top-1, fast, dual-prefix contract burden) vs **bge-small-en-v1.5+prefix** (simpler/lower-footgun contract, MIT, no passage prefix, a hair less R@1). Both decisively beat MiniLM. Plan currently encodes bge; flip to e5 is a one-line EMBED_MODEL + prefixes, no schema change (still 384-dim).
+
+## 2026-06-29 - SPIKE: cross-corpus generalization check - COMPLETE (decision RESOLVED → bge)
+
+* Work completed
+    - Made the benchmark portable (CUDA→MPS→CPU, single-env, direct DB open, `--label`); pushed to branch `spike/embed-model-eval` and cherry-picked onto `initialdev`. Operator ran it on a **second, independent corpus** — their MacBook's Cursor/Claude history (Apple-Silicon MPS) — to test whether the ranking generalizes beyond the Linux corpus.
+* Results — corpus B (MacBook), 15,775 passages / 2,185 pairs (MRR@10 / R@1): e5 0.252 / 0.196; gte 0.235 / 0.168; bge+prefix 0.223 / 0.161; bge no-prefix 0.186 / 0.131; MiniLM 0.177 / 0.125.
+* Findings
+    - **Model ordering is IDENTICAL across both corpora** (`e5 > gte > bge+prefix > bge no-prefix > MiniLM` on MRR@10 and R@1). Absolute scores ~0.01–0.015 lower on B, but every relative gap holds. The operator's "is my corpus representative?" worry is answered: **the ranking is not a one-corpus artifact.**
+    - bge query-prefix lift reproduces (+0.037 MRR on B vs +0.035 on A). MiniLM last on both. gte's faster Mac CPU number is just a faster host CPU — still ~8× slower than peers, so the commodity-Linux-CI disqualification stands.
+* Decision (RESOLVED — operator)
+    - **`bge-small-en-v1.5`** confirmed for m1 (the plan already encodes it). e5's small, consistent top-1 edge doesn't outweigh bge's simpler/robust prefix contract (no passage prefix; m2 query-prefix optional, gain captured). Escape hatch unchanged: switching to e5 later is a one-line `EMBED_MODEL` + dual prefixes, no schema change. **Embedding-model exploration is closed.**

@@ -91,6 +91,32 @@ Approx. cold-embed time for the full ~48k-chunk corpus (one-time; incremental
 after): CPU — MiniLM ~35 min, bge ~73 min, e5 ~80 min, **gte ~13 h**; GPU (1070)
 — MiniLM ~1.5 min, e5 ~3.6 min, bge ~7 min, gte ~17 min.
 
+## Results — corpus B: MacBook (Apple-Silicon MPS), independent history
+
+> 15,775-passage pool / 2,185 query pairs — a *different* machine's Cursor/Claude
+> history, never co-mingled with corpus A. Same scripts, MPS accelerator.
+> (Note: the Apple CPU is far faster than corpus A's host, so the CPU/s column is
+> not comparable across corpora — but the *relative* model ordering is.)
+
+| model | win | MRR@10 | R@1 | R@5 | R@10 | medRank | accel/s | CPU/s |
+|-------|----:|-------:|----:|----:|-----:|--------:|--------:|------:|
+| **e5-small-v2** (`query:`/`passage:`) | 512 | **0.252** | **0.196** | 0.328 | 0.371 | 83 | 201 | 164 |
+| gte-small | 512 | 0.235 | 0.168 | 0.319 | **0.387** | **34** | 124 | 21 |
+| **bge-small-en-v1.5** (query prefix) | 512 | 0.223 | 0.161 | 0.307 | 0.366 | 43 | 229 | 171 |
+| bge-small-en-v1.5 (no prefix) | 512 | 0.186 | 0.131 | 0.261 | 0.316 | 76 | 229 | 171 |
+| all-MiniLM-L6-v2 (incumbent) | 256 | 0.177 | 0.125 | 0.247 | 0.298 | 78 | 715 | 521 |
+
+**The model ranking is identical to corpus A** — `e5 > gte > bge+prefix >
+bge no-prefix > MiniLM` on MRR@10 and R@1, on both machines. The absolute scores
+sit ~0.01–0.015 lower on corpus B (a slightly harder/noisier query mix) but every
+relative gap holds: e5 leads, the bge query-prefix is worth +0.037 MRR
+(0.186→0.223, ≈ the +0.035 seen on A), gte keeps the best median rank but trails
+on top-1, and MiniLM is last by a clear margin. This is the generalization check
+the operator asked for: **the ordering is not an artifact of one corpus.** (gte's
+CPU number is healthier here only because the Apple CPU is much faster — relative
+to its peers it is still ~8× slower, so the CPU-floor disqualification stands for
+a commodity Linux CI host.)
+
 ## Findings
 
 1. **The incumbent (MiniLM) is clearly the weakest** on quality — last on every
@@ -121,23 +147,28 @@ after): CPU — MiniLM ~35 min, bge ~73 min, e5 ~80 min, **gte ~13 h**; GPU (107
    query) — the most error-prone contract (a missing/wrong prefix silently
    degrades quality), spanning both m1 (passages) and m2 (queries).
 
-## Recommendation (decision deferred to operator)
+## Decision (RESOLVED — operator, validated on two corpora)
 
-The decision narrows to two, with a genuine engineering tradeoff:
+The choice was always between two finalists, both of which decisively beat the
+incumbent on *both* corpora:
 
-- **e5-small-v2** — best top-of-list precision (R@1 0.216, MRR 0.266), fast
-  (GPU 221/s, CPU 10/s), MIT, no `trust_remote_code`. **Cost:** mandatory
-  `passage:`/`query:` prefixes on both sides — a cross-milestone contract the
-  m1 writer and m2 reader must both honor exactly.
+- **e5-small-v2** — best top-of-list precision (R@1 0.196–0.216, MRR 0.252–0.266),
+  fast, MIT, no `trust_remote_code`. **Cost:** mandatory `passage:`/`query:`
+  prefixes on *both* sides — a cross-milestone contract the m1 writer and m2
+  reader must each honor exactly, where a missing/wrong prefix silently degrades
+  quality.
 
-- **bge-small-en-v1.5 + query prefix** — strong (R@1 0.178, MRR 0.239), MIT,
-  no `trust_remote_code`, **no passage prefix** (m1 stays prefix-free; only m2's
-  query is prefixed, and even that is optional with slight degradation). Simpler,
-  lower-footgun contract for a hair less top-1 accuracy.
+- **bge-small-en-v1.5 + query prefix** ✅ **CHOSEN** — strong (R@1 0.161–0.178,
+  MRR 0.223–0.239), MIT, no `trust_remote_code`, **no passage prefix** (m1 stays
+  prefix-free; only m2's query is prefixed, and even that is optional with slight
+  degradation). Simpler, lower-footgun cross-milestone contract for a hair less
+  top-1 accuracy.
 
-Both decisively beat the incumbent. `gte-small` and `all-MiniLM-L6-v2` are out
-(throughput and quality, respectively). The choice is **peak R@1 (e5)** vs
-**contract simplicity / robustness (bge)** — a product call, not a technical
-blocker. The plan currently encodes bge-small-en-v1.5; flipping to e5 is a
-one-line `EMBED_MODEL` change plus the passage-prefix in the m1 writer and the
-query-prefix in m2 (no schema change — still 384-dim).
+**Resolved to `bge-small-en-v1.5`** — the small, consistent top-1 edge e5 holds
+on both corpora does not outweigh bge's simpler/more-robust prefix contract for
+v1 (and the query-prefix gain, +~0.036 MRR on both corpora, is captured in m2).
+`gte-small` and `all-MiniLM-L6-v2` are out (CPU throughput and quality,
+respectively). The generalization check (corpus A Linux ≈ corpus B macOS,
+identical ordering) means this is a confident pick, not a one-corpus artifact.
+Should v1 retrieval ever disappoint, switching to e5 is a one-line `EMBED_MODEL`
+change plus the dual prefixes — no schema change, still 384-dim.

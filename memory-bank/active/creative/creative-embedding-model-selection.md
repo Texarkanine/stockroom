@@ -58,11 +58,21 @@ provisioned locally on a GTX 1070). Headline (MRR@10 / R@1 / CPU-per-s):
 
 Confirmations: switching off MiniLM is justified; the bge **query prefix matters**
 (use it in m2). Surprise: **e5-small-v2 beats the MTEB ordering on this corpus**
-(top R@1/MRR) — so the live decision is now **e5-small-v2** (peak top-1 accuracy,
-fast, but a dual-prefix contract spanning m1+m2) vs **bge-small-en-v1.5+prefix**
-(simpler/lower-footgun contract for a hair less R@1). **DECISION PENDING operator
-input.** Either is a one-line `EMBED_MODEL` change (+ prefixes); both stay 384-dim
-(no schema change). See the spike README for full method, caveats, and table.
+(top R@1/MRR) — so the finalists were **e5-small-v2** (peak top-1, fast, dual-prefix
+contract spanning m1+m2) vs **bge-small-en-v1.5+prefix** (simpler/lower-footgun
+contract for a hair less R@1).
+
+**Cross-corpus validation (2026-06-29):** the benchmark was re-run on a second,
+independent corpus — a MacBook's Cursor/Claude history (15,775 passages / 2,185
+pairs, Apple-Silicon MPS). **The model ordering came out identical**
+(`e5 > gte > bge+prefix > bge no-prefix > MiniLM`), confirming the ranking is not
+a one-corpus artifact.
+
+**DECISION (RESOLVED — operator): `bge-small-en-v1.5`** stays the m1 model — e5's
+small, consistent top-1 edge doesn't outweigh bge's simpler/robust prefix contract
+(no passage prefix; m2 query-prefix optional, its gain captured). Escape hatch:
+switching to e5 later is a one-line `EMBED_MODEL` + dual prefixes, no schema change
+(still 384-dim). See the spike README for both corpora's tables, method, caveats.
 
 ## Implementation Notes
 
