@@ -13,6 +13,7 @@ Build a **shared, tested read-time output-truncation mechanism** and wire it int
 - **Single-line collapse applies at every level, including `full`.** Table cells must be single-line or column alignment breaks; this matches `semantic`'s current behavior. "Full content" fidelity is preserved by the data layer (`QueryResult.rows` / `SemanticHit.text`), not by the rendered table. `full` removes the *width* cap only.
 - **Data cells only; column headers are not truncated** (they are short identifiers; widths are computed post-truncation so alignment stays correct regardless).
 - **Levels are named, tunable module constants.** Starting widths: `compact=40`, `snippet=120`, `full=None` (unbounded). `semantic`'s preview default thus moves 80→120; acceptable and centralizes the single source of truth.
+- **The elision marker reports how much was hidden** (e.g. `…(+482)`), not a bare `…` (preflight amendment). This turns truncation into an actionable signal for the downstream `sr-query`/`sr-semantic`/`sr-search` surfaces — the agent can see content was elided and roughly how much, and decide whether to re-fetch with `--detail full` or narrow the SQL (the creative doc's "guardrails against wasted tool calls"). The marker is appended **beyond** the level width (kept content == level width), so a truncated cell's rendered width is the level width plus a short, bounded marker.
 
 ## Test Plan (TDD)
 
@@ -21,11 +22,12 @@ Build a **shared, tested read-time output-truncation mechanism** and wire it int
 `stockroom.truncate.truncate_cell` (new):
 
 - Short value, any level: `truncate_cell("hi", "snippet")` → `"hi"` (single-lined, unchanged, no marker).
-- Over-width value: `truncate_cell("x"*500, "snippet")` → length == 120, ends with `…`, original not fully present.
-- `full` level: `truncate_cell("x"*5000, "full")` → no `…`, full content length preserved (still single-lined).
+- Over-width value: `truncate_cell("x"*602, "snippet")` → keeps 120 content chars then the hidden-count marker `…(+482)`; the full 602-char run is not present.
+- Hidden-count is accurate: the marker's reported number equals `len(single_line) - width` (482 above), so it is an actionable "more exists" signal rather than a bare ellipsis.
+- `full` level: `truncate_cell("x"*5000, "full")` → no marker, full content length preserved (still single-lined).
 - Whitespace/newline collapse: `truncate_cell("a\n\nb  c", level)` → `"a b c"` for every level (incl. `full`).
-- Level ordering: `len(truncate_cell(long, "compact")) < len(truncate_cell(long, "snippet")) < len(truncate_cell(long, "full"))` for a sufficiently long input.
-- Exact-width boundary: a value exactly `LEVEL_WIDTHS["snippet"]` chars → unchanged, no marker.
+- Level ordering: `compact` keeps fewer content chars than `snippet`, and `full` is unbounded — for a sufficiently long input the kept-content lengths satisfy `compact < snippet < full`.
+- Exact-width boundary: a value exactly `LEVEL_WIDTHS["snippet"]` chars → unchanged, no marker; one char over → `width` content chars + `…(+1)`.
 - Empty string → `""`.
 - `LEVEL_WIDTHS` keys == `DETAIL_LEVELS`; `DEFAULT_DETAIL == "snippet"`.
 
@@ -59,10 +61,10 @@ CLI:
 
 1. **Stub the shared mechanism + its tests.**
    - Files: `skills/sr-search/src/stockroom/truncate.py` (new), `skills/sr-search/tests/test_truncate.py` (new).
-   - Changes: define `DetailLevel = Literal["compact","snippet","full"]`, `DETAIL_LEVELS: tuple[str,...]`, `LEVEL_WIDTHS: dict[str,int|None]` (`40 / 120 / None`), `DEFAULT_DETAIL = "snippet"`, `ELISION = "…"`, and `truncate_cell(value: str, detail: DetailLevel = DEFAULT_DETAIL) -> str` — empty body + full docstring. Stub all `test_truncate.py` cases empty, then implement them (they fail).
+   - Changes: define `DetailLevel = Literal["compact","snippet","full"]`, `DETAIL_LEVELS: tuple[str,...]`, `LEVEL_WIDTHS: dict[str,int|None]` (`40 / 120 / None`), `DEFAULT_DETAIL = "snippet"`, `ELISION = "…"` (the marker glyph), and `truncate_cell(value: str, detail: DetailLevel = DEFAULT_DETAIL) -> str` — empty body + full docstring. Stub all `test_truncate.py` cases empty, then implement them (they fail).
 2. **Implement `truncate_cell`.**
    - Files: `truncate.py`.
-   - Changes: single-line collapse (`" ".join(value.split())`), look up width, return as-is when `width is None` or within budget, else `single_line[: width - len(ELISION)] + ELISION`. Make `test_truncate.py` green.
+   - Changes: single-line collapse (`" ".join(value.split())`), look up width, return as-is when `width is None` or `len(single_line) <= width`, else keep `single_line[:width]` and append the hidden-count marker `f"{ELISION}(+{len(single_line) - width})"`. Make `test_truncate.py` green.
 3. **Wire truncation into the query renderer (test-first).**
    - Files: `test_query.py` (add `_format_table` truncation cases), then `query.py`.
    - Changes: `_format_table(columns, rows, *, detail: DetailLevel = DEFAULT_DETAIL)`; apply `truncate_cell(cell, detail)` to each stringified data cell before width computation; `main` gains `--detail` (`choices=DETAIL_LEVELS`, `default=DEFAULT_DETAIL`) passed through to `_format_table`. Update the module docstring (drop "truncation is m3's feature" framing; document the `--detail` flag).

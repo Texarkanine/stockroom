@@ -22,3 +22,10 @@ Sub-run m3 of the `p2-embeddings-search` L4 project: build a shared, tested read
     - Resolved the milestone open question: truncation **on-by-default at `snippet`**, `--detail full` escape, `compact` terser.
     - Per-cell width cap only (no global budget — that would be L3); single-line collapse at all levels incl. `full`; data cells truncated, headers not; widths `40/120/None`, tunable constants.
     - No new dependency (pure stdlib); `semantic` preview default moves 80→120 to centralize on the shared mechanism.
+
+## 2026-06-29 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated the plan against codebase reality: TDD encoding (per-unit test-before-code), convention compliance (module/test naming, keyword-only seams, argparse choices), dependency impact (defaulted kwargs; `_preview`/`PREVIEW_CHARS` removal confirmed safe by grep), conflict detection (no public contract broken; consolidates rather than duplicates), and completeness (every requirement mapped). Result: PASS.
+* Decisions made
+    - Folded in one in-scope/in-level radical-innovation amendment: the elision marker reports the hidden char count (`…(+482)`) instead of a bare `…`, making truncation an actionable "more exists" signal for the downstream skills. Kept content == level width; marker appended beyond it.
