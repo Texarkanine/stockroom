@@ -23,3 +23,13 @@ Sub-run m3.5 of the `p2-embeddings-search` L4 project: introduce a shared `stock
     - `render` *moves* the two table renderers, it does not merge them into a shared `render_table()` (explicit non-goal; the standing m3 consolidation insight stays out of scope).
     - Truncation is uniform/format-agnostic; JSON keeps SQL `NULL` → `null` and a numeric semantic `score`, otherwise stringifies cells via `truncate_cell` (documented tradeoff — library is the full-fidelity surface).
     - The `(N rows)`/`(N results)` trailer is a `table`-only human affordance, omitted from `tsv`/`json`; the `tsv` default flip is itself tested and the two semantic trailer-asserting CLI tests are updated.
+
+## 2026-06-29 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated the plan against codebase reality: TDD encoding (per-unit test-before-code), convention compliance (`render.py` location, `OUTPUT_FORMATS`/`DEFAULT_FORMAT` mirroring the `truncate` constants, `--format` mirroring `--detail`, keyword-only seams, `test_<module>.py`), dependency impact (grep-confirmed the two private renderers have no external consumers; persistent-doc references routed to REFLECT), conflict detection (public contract untouched; CLI default-shape flip is an accepted in-development change, not a published-interface break), and completeness (every PFW requirement mapped). Result: PASS.
+* Decisions made
+    - Folded one TDD amendment into the plan: the query CLI `--format` subprocess tests move into step 3 (written before the `query.py` wiring) so that unit is itself test-first; old step 5 merged in, renumbering to 6 steps.
+    - Recorded a positive correctness finding: TSV structural safety is free because `truncate_cell` collapses all whitespace (incl. tabs/newlines) at every detail level — no extra tsv escaping needed.
+* Insights
+    - Advisory (not applied): a stderr row/result count for tsv, and a dict-based format dispatch registry for a future `ndjson`, were both considered and declined — the first contradicts the settled "omit for tsv" PFW decision; the second is YAGNI for three formats (`ndjson` is a named non-goal). Flagged for operator awareness only.

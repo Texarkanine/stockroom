@@ -20,6 +20,7 @@ The existing `--detail {compact,snippet,full}` (default `snippet`) governs per-s
 - **JSON type handling.** SQL `NULL` → JSON `null`; every non-null query cell is the `truncate_cell(str(v))` string (uniform with tsv/table — numeric columns serialize as strings, the documented tradeoff). Semantic `score` stays a JSON number (`round(1 - distance, 3)`); `rank` an int; `text` the `truncate_cell`'d string. `json.dumps(..., ensure_ascii=False)` so the `…` marker stays readable.
 - **Counts are a table-only human affordance.** The `(N rows)`/`(N results)` trailer is kept **only** in `table`; omitted from `tsv` and `json` (derivable; honors the "no trailer in tsv" constraint). Not emitted to stderr.
 - **`NULL` literal** still renders as `NULL` in `tsv` and `table` (preserves the existing table contract / tests); `json` uses native `null`.
+- **TSV structural safety is free** (preflight finding). `truncate_cell` single-lines via `" ".join(value.split())`, and `str.split()` with no args splits on **all** whitespace including `\t` and `\n`. So no raw tab/newline can leak into a tsv field and corrupt the column structure — at **every** detail level, including `full`. The tsv renderer therefore needs no extra escaping; it relies on the existing truncation policy's whitespace collapse.
 
 ## Test Plan (TDD)
 
@@ -73,18 +74,15 @@ CLI — semantic (in-process `main(...)`, `test_semantic.py`):
 2. **Implement `render`.**
    - Files: `render.py`.
    - Changes: move the body of `query._format_table` into a private `_query_table(columns, rows, *, detail)` and `semantic._format_hits` into `_semantic_table(hits, *, detail)` (verbatim — incl. their `(N rows)`/`(N results)` trailers); add `_query_tsv` / `_query_json` and `_semantic_tsv` / `_semantic_json` helpers (or inline) applying `truncate_cell`; the two public functions dispatch on `fmt` (`tsv`/`json`/`table`). `json.dumps(..., ensure_ascii=False)`; SQL `None` → JSON `null`; semantic `score` numeric. Make `test_render.py` green.
-3. **Wire the query CLI (test-first).**
-   - Files: `test_query.py` (delete the `_format_table` block + its import of `_format_table`; the `run_query` tests stay), then `query.py`.
-   - Changes: `query.py` imports `render` (+ `OUTPUT_FORMATS`, `DEFAULT_FORMAT`); **remove** `_format_table`; add `--format` (`choices=OUTPUT_FORMATS`, `default=DEFAULT_FORMAT`); `main` prints `render.format_query(result.columns, result.rows, fmt=args.format, detail=args.detail)`. Update the module docstring (default `tsv`; `--format` usage examples).
+3. **Wire the query CLI (test-first).** *(preflight amendment: the query CLI `--format` tests are written **before** the `query.py` wiring, so this unit is itself test-first rather than validated two steps later.)*
+   - Files: `test_query.py` (delete the `_format_table` block + its import of `_format_table`; the `run_query` tests stay) and `test_query_cli.py` (add the `--format` subprocess assertions — default-is-tsv: no `" | "`, no `(N rows)`; `--format table` restores both; `--format json` parses; invalid `--format` → exit 2), **then** `query.py`.
+   - Changes: `query.py` imports `render` (+ `OUTPUT_FORMATS`, `DEFAULT_FORMAT`); **remove** `_format_table`; add `--format` (`choices=OUTPUT_FORMATS`, `default=DEFAULT_FORMAT`); `main` prints `render.format_query(result.columns, result.rows, fmt=args.format, detail=args.detail)`. Update the module docstring (default `tsv`; `--format` usage examples). The new subprocess tests go red, then green.
 4. **Wire the semantic CLI (test-first).**
-   - Files: `test_semantic.py` (delete the `_format_hits` block; fix `test_cli_prints_ranked_results` + `test_cli_limit_flag_caps_results` for the tsv default; add `--format` CLI cases), then `semantic.py`.
+   - Files: `test_semantic.py` (delete the `_format_hits` block; fix `test_cli_prints_ranked_results` + `test_cli_limit_flag_caps_results` for the tsv default; add `--format` CLI cases — default-is-tsv / `--format table` trailer / `--format json` parse / invalid → exit 2), **then** `semantic.py`.
    - Changes: `semantic.py` imports `render` (+ `OUTPUT_FORMATS`, `DEFAULT_FORMAT`); **remove** `_format_hits`; add `--format`; `main` prints `render.format_semantic(hits, fmt=args.format, detail=args.detail)`. Update the module docstring.
-5. **Query CLI end-to-end coverage.**
-   - Files: `test_query_cli.py`.
-   - Changes: add subprocess assertions — default-is-tsv (no `" | "`, no `(N rows)`), `--format table` restores both, `--format json` parses, invalid `--format` exits 2.
-6. **Documentation.**
+5. **Documentation.**
    - Files: `render.py`/`query.py`/`semantic.py` docstrings (done in steps 1–4); update `truncate.py`'s module docstring reference from `stockroom.query._format_table` / `stockroom.semantic._format_hits` to `stockroom.render` (the renderers moved). Memory-bank persistent-doc updates (`systemPatterns.md` "No truncation at rest" / `techContext.md` "Query"/"Semantic search"/"Read-time truncation" sections, which mention `_format_table`/`_format_hits`, `(N rows)`, and "column-aligned text table") are folded into the REFLECT phase per the Niko lifecycle, not the build.
-7. **Full gate.** Run `make ci` from repo root; all tests green, `ruff` lint+format clean, `reuse` clean.
+6. **Full gate.** Run `make ci` from repo root; all tests green, `ruff` lint+format clean, `reuse` clean.
 
 ## Technology Validation
 
