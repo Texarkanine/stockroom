@@ -22,3 +22,12 @@ Sub-run m4 of the `p2-embeddings-search` L4 project: author the **`sr-query` ski
     - Prose-only — no helper `scripts/` this sub-run (resolves the milestone's "where helper scripts live" open question: future home `skills/<skill>/scripts/`, not exercised here); a bash resolver re-introduces the resolution problem and Python would drag in the TDD obligation for no gain.
     - Front-matter `enable-model-invocation: true` (live skill vs. the `sr-search` skeleton's `false`); no `plugin.json` edit (auto-discovery), no `REUSE.toml` edit (glob-covered).
     - Verification is artisanal per the project invariant (TDD binds Python only; none written here); automated gate is `make ci` green + `make reuse`.
+
+## 2026-06-30 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated the plan against codebase reality: TDD-encoding (passes by exemption — prose deliverable, no Python, artisanal verification per the project invariant), convention compliance (`skills/sr-query/SKILL.md` layout, front-matter mirroring `sr-search` with `enable-model-invocation: true`, glob-covered REUSE, plugin auto-discovery), dependency impact, conflict detection (no duplication; wraps not reimplements), completeness (every milestone requirement mapped). Result: PASS.
+* Decisions made
+    - Applied one in-scope amendment: step 6 leads with a live schema-introspection query and labels the static column map "as of migrations 0001–0003", making the skill self-maintaining across future migrations and structurally discharging the example-drift challenge.
+* Insights
+    - Advisory routed to REFLECT (m3.5 precedent, not a build task): `techContext.md` "Query (`sr-query`)" Phase-5 wording goes partly stale once the wrapper ships; the identical "Semantic search" Phase-5 line is reconciled when `sr-semantic` lands next.

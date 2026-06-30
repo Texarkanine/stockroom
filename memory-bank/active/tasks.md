@@ -62,7 +62,7 @@ This deliverable is **prose** (`SKILL.md`). The project invariant (`milestones.m
 
 6. **Write the schema-orientation section + worked examples.**
    - Files: `skills/sr-query/SKILL.md`.
-   - Changes: A compact map of the queryable tables and their load-bearing columns (`sessions`: `harness`, `session_id`, `project_id`, `cwd`, `models`; `messages`: `message_id = {session_id}#{ordinal}`, `harness`, `text`, `model`, the four token `BIGINT`s; `tool_calls`: inputs-only, `tool_input` JSON queried via `->`/`->>`; `embeddings`; `_sync_state`) — grounded in `systemPatterns.md` "Harness-labeled schema" + `techContext.md` "Warehouse Schema". 2–3 copy-paste example invocations showing the default tsv call, a `--detail full` re-fetch, and a `--format table`/`json` variant. **Verify the example SQL against the live schema** before finalizing (run the queries through the engine if a warehouse exists, else against the `0001`/`0002`/`0003` migration DDL) so no example ships a non-existent column.
+   - Changes: **Lead with introspection, not a hard-coded map** (preflight radical-innovation amendment — keeps the skill self-maintaining across future migrations `0004+` and directly discharges the "example SQL drifts from schema" challenge): teach the agent to discover the live schema first via a copy-paste query, e.g. `python -m stockroom.query "SELECT table_name, column_name, data_type FROM information_schema.columns ORDER BY table_name, ordinal_position"`. **Then** give a compact quick-reference map of the load-bearing tables/columns explicitly labelled *"as of migrations 0001–0003 — confirm with the introspection query above"* (`sessions`: `harness`, `session_id`, `project_id`, `cwd`, `models`; `messages`: `message_id = {session_id}#{ordinal}`, `harness`, `text`, `model`, the four token `BIGINT`s; `tool_calls`: inputs-only, `tool_input` JSON via `->`/`->>`; `embeddings`; `_sync_state`) — grounded in `systemPatterns.md` "Harness-labeled schema" + `techContext.md` "Warehouse Schema". 2–3 copy-paste example invocations: the default tsv call, a `--detail full` re-fetch, and a `--format table`/`json` variant. **Verify every example's SQL against the live schema** before finalizing (run them through the engine if a warehouse exists, else against the `0001`/`0002`/`0003` migration DDL) so no example ships a non-existent column.
 
 7. **Documentation cross-references + skeleton-skill note.**
    - Files: `skills/sr-search/SKILL.md` (small edit), `skills/sr-query/SKILL.md`.
@@ -86,12 +86,18 @@ No new technology — validation not required. No new runtime dependency, no sch
 - **Duplicating judgement that belongs to `sr-search`.** *Mitigation:* keep routing guidance thin — "is this an exact/structured lookup?" — and leave the keyword-vs-semantic-vs-both *decision* to the future `sr-search` skill; `sr-query` only owns its own surface's safe use.
 - **Helper-script temptation / scope creep toward L3.** *Mitigation:* explicitly prose-only this sub-run (decision above); if a shared resolver proves warranted it is a deliberate later choice by `sr-semantic`/`sr-search`, not smuggled in here.
 
+## Preflight Findings (2026-06-30)
+
+- **PASS.** TDD-encoding check passes by exemption: prose deliverable, no Python, artisanal verification per the project invariant — not the "implementation-without-tests" anti-pattern. Convention/conflict/completeness all clean.
+- **Amendment applied** (radical-innovation, in scope): step 6 now leads with a live schema-introspection query and labels the static column map "as of migrations 0001–0003", so the skill stays correct across future migrations without edits and the example-drift challenge is structurally mitigated.
+- **Advisory → routed to REFLECT (not a build task):** `techContext.md` "Query (`sr-query`)" says "The polished `/sr-query` skill wrapper and per-harness invocation forms are Phase 5 distribution work." Once this skill ships, the *wrapper* half of that sentence is stale (per-harness invocation forms remain Phase 5). Per the niko lifecycle (m3.5 precedent), persistent-doc reconciliation happens at REFLECT, not BUILD — flagged here so REFLECT catches it. The `semantic.py`/techContext "Semantic search" section carries the identical Phase-5 line and should be reconciled when `sr-semantic` lands (next milestone), not now.
+
 ## Status
 
 - [x] Initialization complete
 - [x] Test planning complete (TDD)
 - [x] Implementation plan complete
 - [x] Technology validation complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
 - [ ] QA
