@@ -119,10 +119,13 @@ The first user-facing read surface lives in
 `python -m stockroom.query "<SQL>"` (or `… -` to read the statement from stdin).
 It is a single runnable module (no `__main__.py`, unlike the `ingest` *package*):
 it opens the warehouse **read-only** through the same `warehouse.open()`
-chokepoint, executes arbitrary SQL, and prints a column-aligned text table with a
-trailing `(N rows)` line — each data cell truncated at read time via the shared
-`stockroom.truncate` mechanism (`--detail compact|snippet|full`, default `snippet`)
-so a wide `text` column cannot flood the caller. Read-only is the contract — the warehouse is
+chokepoint, executes arbitrary SQL, and renders the result through the shared
+[`stockroom.render`](../skills/sr-search/src/stockroom/render.py) layer in a
+selectable `--format` (**`tsv`** default — header + tab-separated rows, no count
+trailer; `json`; `table` for the human pretty-print). Each string field is
+truncated at read time via the shared `stockroom.truncate` mechanism
+(`--detail compact|snippet|full`, default `snippet`) so a wide `text` column
+cannot flood the caller. Read-only is the contract — the warehouse is
 rebuildable ETL output and this surface only interrogates it, so DuckDB rejects
 writes through it; the lazy migration gate still runs (a reader behind the schema
 head transparently becomes the migrator). Errors are surfaced as clean stderr
@@ -181,9 +184,10 @@ measured +0.037 MRR win; passages stay prefix-free); run a cosine KNN
 (`array_cosine_distance`) over the `0003` HNSW index for the nearest
 `limit * OVERFETCH` chunk rows; **dedup to the nearest chunk per owner** (the
 max-sim grain m1 deferred — m1 stores one vector per chunk); join the top
-`limit` owners back to their `messages` rows; and print a ranked table whose
-`score` is cosine similarity (`1 - distance`) and whose `preview` column is the
-message text run through the shared `stockroom.truncate` mechanism (`--detail`,
+`limit` owners back to their `messages` rows; and render the ranked results
+through the shared `stockroom.render` layer in a selectable `--format` (default
+`tsv`). `score` is cosine similarity (`1 - distance`) and the `preview`/`text`
+field is run through the shared `stockroom.truncate` mechanism (`--detail`,
 default `snippet`) — a *display* bound only, *not* the no-truncation violation:
 full text stays whole in the store and in `SemanticHit.text`. The
 real-model path is covered by one `importorskip("torch")`-gated end-to-end test;
@@ -198,13 +202,29 @@ stdlib-only `truncate_cell(value, detail)` plus the `compact | snippet | full`
 detail levels (`LEVEL_WIDTHS` `40 / 120 / None`, `DEFAULT_DETAIL = "snippet"`). It
 collapses a cell to a single line and bounds it to the level's character budget,
 appending a marker that reports the hidden character count (`…(+482)`); `full` is
-the unbounded escape. Both read surfaces consume it: `query._format_table` and
-`semantic._format_hits` each take a keyword-only `detail` and expose it as a
-`--detail` CLI flag. Truncation is strictly read-time — full content stays whole at
-rest and in the returned `QueryResult.rows` / `SemanticHit.text`. Unit-tested in
+the unbounded escape. The shared
+[`stockroom.render`](../skills/sr-search/src/stockroom/render.py) layer consumes it
+for both read surfaces in every `--format`; each CLI exposes the `--detail` flag
+(alongside `--format`). Truncation is strictly read-time — full content stays whole
+at rest and in the returned `QueryResult.rows` / `SemanticHit.text`. Unit-tested in
 [`tests/test_truncate.py`](../skills/sr-search/tests/test_truncate.py); the
 upcoming `sr-query` / `sr-semantic` wrapper skills are the single home for the
 operational advice on *when* to reach for each level.
+
+## Output rendering (`stockroom.render`)
+
+The Phase-2 milestone-3.5 presentation chokepoint
+[`stockroom.render`](../skills/sr-search/src/stockroom/render.py) is the single
+home for how the read surfaces print: `format_query(columns, rows, *, fmt, detail)`
+and `format_semantic(hits, *, fmt, detail)` dispatch on `--format` —
+**`tsv`** (default, header + tab-separated rows, no count trailer), `json`
+(a single `{columns, rows}` / `{results: [...]}` object), or `table` (the
+column-aligned human pretty-print, with the `(N rows)`/`(N results)` trailer). The
+former private renderers `query._format_table` / `semantic._format_hits` were moved
+here. `--detail` truncation is applied in every format via `stockroom.truncate`;
+the library return types are unchanged (rendering is strictly the print boundary).
+Decision record: [`planning/brainstorm/print-for-who.md`](../planning/brainstorm/print-for-who.md);
+unit-tested in [`tests/test_render.py`](../skills/sr-search/tests/test_render.py).
 
 ## Testing Process
 

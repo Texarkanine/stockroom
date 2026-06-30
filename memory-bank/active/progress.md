@@ -54,3 +54,13 @@ Sub-run m3.5 of the `p2-embeddings-search` L4 project: introduce a shared `stock
     - Confirmed the stale persistent-doc references (`systemPatterns.md`/`techContext.md`: `_format_table`/`_format_hits`/`(N rows)`/"column-aligned text table") are routed to REFLECT per the lifecycle, not a build deficiency.
 * Insights
     - No over-engineering or YAGNI debris; `render` consolidated the print boundary rather than adding a parallel one. The defensive `raise ValueError` on an unknown `fmt` is a justified library-level guard (the CLI is already protected by argparse `choices`).
+
+## 2026-06-29 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `reflection/reflection-p2-embeddings-search-m3.5.md` (requirements vs outcome, plan accuracy, build/QA observations, insights, million-dollar question).
+    - Reconciled persistent files: surgical updates to `systemPatterns.md` (the "No truncation at rest" + "Semantic search" patterns) and `techContext.md` (Query + Semantic + Read-time-truncation sections), clearing the now-stale `_format_table`/`_format_hits`/`(N rows)`/"column-aligned text table" references the build invalidated; added a new "Read output renders through one chokepoint, machine-first by default" pattern and a `stockroom.render` techContext subsection.
+* Insights
+    - Million-dollar question: had "every read surface renders through one chokepoint, in a selectable format" been foundational, the surfaces would never have grown private `_format_*` renderers — a single `stockroom.render` with one `render_table(columns, rows, *, detail)` plus the tsv/json serializers would have existed from the first read surface. We've landed ~90% of that shape; folding the two table bodies into one `render_table` is the next clean step.
+* Status
+    - m3.5 (Output format defaults) sub-run complete. Next: `/niko` to advance to the next milestone (`sr-query` skill).

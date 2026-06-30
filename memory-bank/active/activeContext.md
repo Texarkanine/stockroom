@@ -1,7 +1,12 @@
 # Active Context
 
 ## Current Task: Output format defaults (`--format`) (p2-embeddings-search m3.5)
-**Phase:** QA - COMPLETE (PASS)
+**Phase:** REFLECT COMPLETE
+
+## Reflection Outcome
+- Reflection written to `reflection/reflection-p2-embeddings-search-m3.5.md`. Clean execution; plan accurate end-to-end; the only build addition was the preflight TDD-ordering amendment.
+- Reconciled persistent files: updated the now-stale `_format_table`/`_format_hits`/`(N rows)`/"column-aligned text table" references in `systemPatterns.md` (truncation + semantic patterns) and `techContext.md` (Query + Semantic + Read-time-truncation sections); added a new "Read output renders through one chokepoint" pattern and a `stockroom.render` techContext subsection.
+- Standing insight for the next sub-run: `_query_table`/`_semantic_table` now sit together in `render` and still duplicate column alignment — a single `render_table(columns, rows, *, detail)` is the next clean consolidation (deliberately out of scope here).
 
 ## Build Outcome
 - New module `skills/sr-search/src/stockroom/render.py`: `OutputFormat`/`OUTPUT_FORMATS`/`DEFAULT_FORMAT="tsv"`, public `format_query(columns, rows, *, fmt, detail)` + `format_semantic(hits, *, fmt, detail)` dispatching `tsv|json|table`, with the two relocated table renderers (`_query_table`, `_semantic_table`) as the `table` branch. `truncate_cell` applied in every format; `json.dumps(..., ensure_ascii=False)`; SQL `NULL` → JSON `null`; semantic `score` numeric; tsv/json carry no count trailer.
