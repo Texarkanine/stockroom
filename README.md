@@ -63,7 +63,16 @@ make reuse         # whole-tree reuse lint
 make ci            # full gate (matches CI)
 ```
 
-The torch-safe run contract (`--no-sync` on runs; never an exact sync after torch is installed) is baked into the Makefile's run targets. For ad-hoc engine invocations:
+**Torch** is held out of the lock on purpose — `make sync` (and anything that depends on it, like `make test`) will remove a previously installed torch. After sync, reinstall with:
+
+```bash
+make torch                                    # CPU wheels (default)
+make torch TORCH_INDEX=https://download.pytorch.org/whl/cu126   # CUDA example
+```
+
+See [`planning/spikes/o9-torch/`](planning/spikes/o9-torch/) for index choices and the full contract.
+
+For ad-hoc engine invocations:
 
 ```bash
 uv run --project skills/sr-search --no-sync --no-config python -m stockroom.<entrypoint>
