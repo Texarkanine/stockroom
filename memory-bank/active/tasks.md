@@ -100,4 +100,12 @@ No new technology — validation not required. No new runtime dependency, no sch
 - [x] Technology validation complete
 - [x] Preflight
 - [x] Build
-- [ ] QA
+- [x] QA
+
+## QA Findings (2026-06-30)
+
+- **PASS** — no trivial fixes required, no blocking issues.
+- **Accuracy:** every claim verified against ground truth — `--detail` budgets (40/120/unbounded vs `truncate.LEVEL_WIDTHS`), the three exact stderr forms + exit codes (vs `query.py`), the `{columns, rows}` JSON shape, the `…(+N)` elision marker, and the schema map (vs `0001`–`0003` DDL). All worked examples + the introspection + JSON-extract guardrail were executed against the live warehouse during build.
+- **KISS/DRY/YAGNI:** appropriately scoped; the repeated invocation prefix across copy-paste blocks is intentional ergonomics, not a DRY defect; no helper scripts (correctly deferred); no speculative content.
+- **Regression/Integrity:** front-matter + style match the `sr-search` sibling; no debug artifacts, TODOs, or placeholder values (the `<id-from-the-scan>` is a clear example template).
+- **Documentation:** the deliverable docs (`sr-query/SKILL.md`, `sr-search/SKILL.md`) are updated alongside the change; reconciliation of the persistent/root docs that carry the now-incomplete invocation contract (`systemPatterns.md`, root `README.md`) + the stale `techContext.md` Query Phase-5 wording is routed to REFLECT per the niko lifecycle (m3.5 precedent), not a QA deficiency.

@@ -42,3 +42,11 @@ Sub-run m4 of the `p2-embeddings-search` L4 project: author the **`sr-query` ski
     - Earned a JSON guardrail from testing: naive `tool_input->>'key'` cast-errors across heterogeneous tool shapes → teach `json_extract_string` over a `tool_name`-filtered subquery.
 * Insights
     - REFLECT must reconcile the incomplete invocation contract in `systemPatterns.md` ("Cross-skill resource resolution") and the root `README.md`, plus the partly-stale `techContext.md` Query Phase-5 wording. The build edit was scoped to the shipped skill payloads; persistent/root-doc reconciliation is REFLECT work per the lifecycle.
+
+## 2026-06-30 - QA - COMPLETE
+
+* Work completed
+    - Semantic review (KISS/DRY/YAGNI/completeness/regression/integrity/documentation) of `sr-query/SKILL.md` + the `sr-search/SKILL.md` edit against the plan. Result: PASS, no trivial fixes required.
+* Decisions made
+    - Confirmed the deliverable's accuracy against ground truth (truncate budgets, stderr forms/exit codes, JSON shape, schema DDL) — all examples were executed live during build. The repeated invocation prefix is intentional copy-paste ergonomics, not a DRY defect.
+    - Confirmed the persistent/root-doc reconciliation (the incomplete invocation contract in `systemPatterns.md`/README; stale `techContext.md` Query Phase-5 wording) is a REFLECT responsibility per the lifecycle (m3.5 precedent), not a QA-blocking documentation gap — the shipped skill payloads themselves are correct and updated.
