@@ -48,5 +48,9 @@ APP_DIR="${CURSOR_PLUGIN_ROOT:+$CURSOR_PLUGIN_ROOT/skills/sr-search}"
 if [ -z "$APP_DIR" ] || [ ! -d "$APP_DIR" ]; then
   APP_DIR="$(dirname "$(find -L ~/.cursor/plugins -path '*/stockroom/*/skills/sr-search/pyproject.toml' 2>/dev/null | head -1)")"
 fi
-uv run --project "$APP_DIR" --no-sync python -m stockroom.<entrypoint> ...
+PYTHONPATH="$APP_DIR/src" uv run --project "$APP_DIR" --no-sync --no-config python -m stockroom.<entrypoint> ...
 ```
+
+`PYTHONPATH="$APP_DIR/src"` is required because the engine is a run-in-place
+project (`[tool.uv] package = false`), so `stockroom` is not installed on
+`sys.path`; `--no-config` keeps ambient `uv.toml` out of resolution.

@@ -31,3 +31,14 @@ Sub-run m4 of the `p2-embeddings-search` L4 project: author the **`sr-query` ski
     - Applied one in-scope amendment: step 6 leads with a live schema-introspection query and labels the static column map "as of migrations 0001–0003", making the skill self-maintaining across future migrations and structurally discharging the example-drift challenge.
 * Insights
     - Advisory routed to REFLECT (m3.5 precedent, not a build task): `techContext.md` "Query (`sr-query`)" Phase-5 wording goes partly stale once the wrapper ships; the identical "Semantic search" Phase-5 line is reconciled when `sr-semantic` lands next.
+
+## 2026-06-30 - BUILD - COMPLETE
+
+* Work completed
+    - Authored `skills/sr-query/SKILL.md` (the wrapper deliverable) and fixed the engine-invocation block in the sibling `skills/sr-search/SKILL.md`. Verified every shipped example query + the introspection query against the live warehouse before writing them in.
+    - Full `make ci` green: 266 passed, 2 skipped (torch-gated), ruff lint+format clean, lock-check clean, REUSE 178/178 (new SKILL.md covered by the `skills/**` glob). Restored out-of-band torch via `make torch` after the CI sync stripped it.
+* Decisions made
+    - Corrected a real, repo-wide doc bug: the engine invocation contract (in `sr-search/SKILL.md`, `systemPatterns.md`, README) omits `PYTHONPATH="$APP_DIR/src"`, so a bare `python -m stockroom.query` fails (`package = false` ⇒ not on `sys.path`). The skill ships the verified working form (`PYTHONPATH` + `--no-config`); fixed the sibling SKILL.md too.
+    - Earned a JSON guardrail from testing: naive `tool_input->>'key'` cast-errors across heterogeneous tool shapes → teach `json_extract_string` over a `tool_name`-filtered subquery.
+* Insights
+    - REFLECT must reconcile the incomplete invocation contract in `systemPatterns.md` ("Cross-skill resource resolution") and the root `README.md`, plus the partly-stale `techContext.md` Query Phase-5 wording. The build edit was scoped to the shipped skill payloads; persistent/root-doc reconciliation is REFLECT work per the lifecycle.
