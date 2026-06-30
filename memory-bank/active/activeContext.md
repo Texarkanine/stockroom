@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: Output format defaults (`--format`) (p2-embeddings-search m3.5)
-**Phase:** BUILD - COMPLETE
+**Phase:** QA - COMPLETE (PASS)
 
 ## Build Outcome
 - New module `skills/sr-search/src/stockroom/render.py`: `OutputFormat`/`OUTPUT_FORMATS`/`DEFAULT_FORMAT="tsv"`, public `format_query(columns, rows, *, fmt, detail)` + `format_semantic(hits, *, fmt, detail)` dispatching `tsv|json|table`, with the two relocated table renderers (`_query_table`, `_semantic_table`) as the `table` branch. `truncate_cell` applied in every format; `json.dumps(..., ensure_ascii=False)`; SQL `NULL` → JSON `null`; semantic `score` numeric; tsv/json carry no count trailer.
@@ -22,4 +22,4 @@
 - **`(N rows)`/`(N results)` trailer is a `table`-only human affordance**; omitted from `tsv`/`json`.
 
 ## Next Step
-- QA review (`niko-qa`) runs next per the Level 2 workflow.
+- Reflect (`niko-reflect`) runs next per the Level 2 workflow; then STOP for the operator to run `/niko-archive`.

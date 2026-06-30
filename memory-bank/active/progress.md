@@ -44,3 +44,13 @@ Sub-run m3.5 of the `p2-embeddings-search` L4 project: introduce a shared `stock
     - Built to plan; the only deviation was cosmetic `ruff format` line-wrapping in the two new files.
 * Insights
     - The relocation confirmed the standing consolidation insight: `_query_table` and `_semantic_table` now sit side-by-side in `render` and still duplicate column-alignment — the obvious next DRY (`render_table(columns, rows, *, detail)`) is now a one-module refactor, deliberately out of scope here.
+
+## 2026-06-29 - QA - COMPLETE
+
+* Work completed
+    - Semantic review (KISS/DRY/YAGNI/completeness/regression/integrity/documentation) of the build vs. the plan. Result: PASS, no trivial fixes required.
+* Decisions made
+    - Confirmed the duplicated table layout + semantic row projection + score computation are the plan-sanctioned deferred consolidation (a future single `render_table`), not a defect — a piecemeal DRY now would be reworked by that consolidation; deferring whole is the better call (m3 precedent).
+    - Confirmed the stale persistent-doc references (`systemPatterns.md`/`techContext.md`: `_format_table`/`_format_hits`/`(N rows)`/"column-aligned text table") are routed to REFLECT per the lifecycle, not a build deficiency.
+* Insights
+    - No over-engineering or YAGNI debris; `render` consolidated the print boundary rather than adding a parallel one. The defensive `raise ValueError` on an unknown `fmt` is a justified library-level guard (the CLI is already protected by argparse `choices`).
