@@ -50,3 +50,13 @@ Sub-run m4 of the `p2-embeddings-search` L4 project: author the **`sr-query` ski
 * Decisions made
     - Confirmed the deliverable's accuracy against ground truth (truncate budgets, stderr forms/exit codes, JSON shape, schema DDL) — all examples were executed live during build. The repeated invocation prefix is intentional copy-paste ergonomics, not a DRY defect.
     - Confirmed the persistent/root-doc reconciliation (the incomplete invocation contract in `systemPatterns.md`/README; stale `techContext.md` Query Phase-5 wording) is a REFLECT responsibility per the lifecycle (m3.5 precedent), not a QA-blocking documentation gap — the shipped skill payloads themselves are correct and updated.
+
+## 2026-06-30 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `reflection/reflection-p2-embeddings-search-m4.md` (requirements vs outcome, plan accuracy, build/QA observations, insights, million-dollar question).
+    - Reconciled persistent/root docs: fixed the incomplete engine-invocation contract in `systemPatterns.md` ("Cross-skill resource resolution") and the root `README.md` (added `PYTHONPATH="$APP_DIR/src"` + `--no-config` + a load-bearing note); updated `techContext.md` "Query (`sr-query`)" to record that the wrapper skill now exists (Phase-2 m4), leaving only per-harness invocation-form verification for Phase 5. `productContext.md` unaffected (no product-context change).
+* Insights
+    - Million-dollar question: had "the engine is invoked by external callers, not just pytest" been foundational, the project would have had a single canonical entrypoint (a shared launcher resolving `APP_DIR` + `PYTHONPATH` once, or `[project.scripts]`) instead of a run incantation copy-pasted across N docs — which is exactly how it drifted into being wrong in N places. `sr-semantic`/`sr-search` will re-paste the same preamble; the shared launcher is the obvious next consolidation, and `sr-search` (delegating to siblings) is where to force the question.
+* Status
+    - m4 (`sr-query` skill) sub-run complete. Next: `/niko` to advance to the next milestone (`sr-semantic` skill).

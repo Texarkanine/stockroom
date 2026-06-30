@@ -1,7 +1,12 @@
 # Active Context
 
 ## Current Task: `sr-query` skill (p2-embeddings-search m4)
-**Phase:** BUILD - COMPLETE
+**Phase:** REFLECT COMPLETE
+
+## Reflection Outcome
+- Reflection written to `reflection/reflection-p2-embeddings-search-m4.md`. Clean execution; the 7-step plan was accurate and the preflight introspection-first amendment paid off. The one real surprise was a repo-wide broken invocation contract, caught by the plan's own "verify examples live" mitigation.
+- Reconciled persistent/root docs (the cluster QA routed here): fixed the incomplete invocation contract in `systemPatterns.md` ("Cross-skill resource resolution" — added `PYTHONPATH="$APP_DIR/src"` + `--no-config` and a load-bearing note) and the root `README.md` (all three ad-hoc invocations); updated `techContext.md` "Query (`sr-query`)" — the wrapper skill now exists (Phase-2 m4), only per-harness invocation-form verification remains Phase 5. `productContext.md` unaffected.
+- Standing insight for `sr-semantic`/`sr-search`: the run incantation is copy-pasted prose in N places (which is how it drifted into being wrong in N places); a single shared launcher (or `[project.scripts]`) is the obvious consolidation, and `sr-search` (which delegates to siblings) is the natural place to force it.
 
 ## Build Outcome
 - Authored `skills/sr-query/SKILL.md` (new): front-matter `name: sr-query`, model-invocable (`enable-model-invocation: true`), license mirrors `sr-search`. Sections: when-to-use (routing vs. `sr-semantic`/`sr-search`), the verified invocation contract, `--format`/`--detail` output discipline, guardrails (context-blowout, read-only, heterogeneous `tool_input` JSON, error handling without thrashing), introspection-first schema map (labelled "as of migrations 0001–0003"), and verified worked examples.
@@ -19,4 +24,4 @@
 - **REFLECT items (persistent/root docs carrying the stale/incomplete contract):** `systemPatterns.md` "Cross-skill resource resolution" block and the root `README.md` ad-hoc invocation both omit `PYTHONPATH`; and `techContext.md` "Query (`sr-query`)" Phase-5 wording is now partly stale. Reconcile at REFLECT (lifecycle), not BUILD.
 
 ## Next Step
-- QA review (`niko-qa`) runs next per the Level 2 workflow.
+- m4 (`sr-query` skill) sub-run complete. Next: `/niko` to advance to the next milestone (`sr-semantic` skill); then STOP for the operator to run `/niko-archive` at project end.

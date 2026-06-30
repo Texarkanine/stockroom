@@ -132,8 +132,13 @@ head transparently becomes the migrator). Errors are surfaced as clean stderr
 messages (invalid SQL → `query failed: …`; absent warehouse → a "run
 `python -m stockroom.ingest` first" hint) with no traceback. The library entry
 `run_query(sql, *, con=None)` mirrors the ingest `con`-injection shape so it is
-unit-testable against an injected connection. The polished `/sr-query` skill
-wrapper and per-harness invocation forms are Phase 5 distribution work.
+unit-testable against an injected connection. The model-invocable wrapper skill
+[`skills/sr-query/SKILL.md`](../skills/sr-query/SKILL.md) (Phase-2 milestone 4)
+encodes the safe LLM-ergonomic use of this surface — routing, the engine-invocation
+contract (note: external callers must set `PYTHONPATH=<engine>/src`, since the
+engine is `package = false`), `--format`/`--detail` discipline, guardrails, and a
+schema map; only the empirical per-harness invocation-form verification remains
+Phase 5.
 
 ## Embeddings (`stockroom.embed`)
 
