@@ -18,6 +18,7 @@ The brain dump is split by which downstream document each idea feeds:
 | `tech.md` | Tech Brief (TB) | Stack, packaging, storage, ingest, embeddings, migrations, scheduling, distribution |
 | `roadmap.md` | Roadmap | Rough phasing of the build |
 | `implementation-details.md` | TB + build | Concrete reference facts: what to reuse, fix, and avoid; open technical questions |
+| `print-for-who.md` | Phase 2 m3.5 + `sr-*` skills | Read-surface stdout audience; `--format` / `--detail` defaults and skill contract |
 
 ## Decision Log
 
