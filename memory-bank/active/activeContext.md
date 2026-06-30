@@ -1,12 +1,17 @@
 # Active Context
 
 ## Current Task: `sr-query` skill (p2-embeddings-search m4)
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Detected L4 re-entry; advanced past the completed m3.5 (Output format defaults `--format`) sub-run — checked it off in `milestones.md` and cleared its ephemerals (`tasks.md`, `activeContext.md`, `progress.md`, `.qa-validation-status`, `.preflight-status`).
-- Preserved `creative/creative-search-surface-architecture.md`: it is the project-level decision record (referenced by `milestones.md` and `print-for-who.md`), not a sub-run artifact — consistent with the m3→m3.5 advance precedent.
-- Classified the **`sr-query` skill** milestone as **Level 2**: a self-contained, additive enhancement — author one new `sr-query` SKILL.md (+ optional helper `scripts/`) wrapping the already-built `python -m stockroom.query`. Design is settled by `creative-search-surface-architecture.md` + `print-for-who.md`, so no creative phase. Prose-skill behavior is verified artisanally by the operator per the project invariant; the TDD rule binds only any Python helper scripts.
+- Surveyed the wrapped surface (`stockroom.query` CLI: positional `sql`/`-`, `--format {tsv,json,table}` default `tsv`, `--detail {compact,snippet,full}` default `snippet`; exit codes 0/1/2; the three exact stderr forms), the existing `sr-search` SKILL.md front-matter + inline invocation contract, the architecture decision record, `print-for-who.md`, `REUSE.toml`, and both plugin manifests.
+- Wrote the full Level 2 plan to `tasks.md`: author `skills/sr-query/SKILL.md` as the safe LLM wrapper over `python -m stockroom.query`, in 7 ordered steps (front-matter → routing/when-to-use → invocation contract → `--format`/`--detail` discipline → guardrails → schema map + verified examples → cross-ref edit to `sr-search` SKILL.md).
+
+## Key Decisions (this session)
+- **Prose-only — no helper `scripts/`** this sub-run (a bash resolver re-introduces the resolution problem; adding Python would drag in the TDD obligation for no gain). Recorded the future home as `skills/<skill>/scripts/`. Resolves the milestone's "where helper scripts live" open question.
+- **Front-matter `enable-model-invocation: true`** (live skill, unlike the `sr-search` skeleton's `false`).
+- **No `plugin.json` edit** (both manifests auto-discover `./skills/`) and **no `REUSE.toml` edit** (new file covered by the `skills/**` → PPL-S glob; `make reuse` must still confirm).
+- **Verification is artisanal** (project invariant): prompt-skill behavior exercised by the operator; TDD binds Python only and this sub-run writes none. Automated gate = `make ci` green + `make reuse`.
 
 ## Next Step
-- Load the Level 2 workflow and proceed to PLAN.
+- Preflight validation (`niko-preflight`) runs next per the Level 2 workflow.

@@ -12,3 +12,13 @@ Sub-run m4 of the `p2-embeddings-search` L4 project: author the **`sr-query` ski
 * Decisions made
     - Level 2: a self-contained, additive enhancement — author one new `sr-query` SKILL.md (+ optional helper `scripts/`) wrapping an existing module, contained to the new skill. Design is fully settled by the search-surface architecture creative doc and `print-for-who.md`, so no creative phase (which would tip it toward L3). Advisory estimate was L1/L2; the bug-fix-only L1 branch does not fit authoring a new prose skill with guardrails.
     - Preserved `creative/creative-search-surface-architecture.md` through the m3.5→m4 advance: it is the project-level decision record (referenced by `milestones.md` and `print-for-who.md`), not a sub-run artifact — consistent with the m3→m3.5 precedent.
+
+## 2026-06-30 - PLAN - COMPLETE
+
+* Work completed
+    - Surveyed the wrapped surface (`stockroom.query` CLI flags/exit-codes/stderr forms), the `sr-search` SKILL.md front-matter + inline invocation contract, `creative-search-surface-architecture.md`, `print-for-who.md`, `REUSE.toml`, and both plugin manifests.
+    - Wrote the full Level 2 plan to `tasks.md`: author `skills/sr-query/SKILL.md` as the safe LLM wrapper over `python -m stockroom.query` in 7 ordered steps (front-matter → routing → invocation contract → `--format`/`--detail` discipline → guardrails → schema map + verified examples → `sr-search` cross-ref edit).
+* Decisions made
+    - Prose-only — no helper `scripts/` this sub-run (resolves the milestone's "where helper scripts live" open question: future home `skills/<skill>/scripts/`, not exercised here); a bash resolver re-introduces the resolution problem and Python would drag in the TDD obligation for no gain.
+    - Front-matter `enable-model-invocation: true` (live skill vs. the `sr-search` skeleton's `false`); no `plugin.json` edit (auto-discovery), no `REUSE.toml` edit (glob-covered).
+    - Verification is artisanal per the project invariant (TDD binds Python only; none written here); automated gate is `make ci` green + `make reuse`.
