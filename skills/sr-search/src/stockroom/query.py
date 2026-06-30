@@ -16,11 +16,16 @@ Invoke as a single runnable module (no ``__main__.py`` — unlike the multi-modu
 
     python -m stockroom.query "SELECT DISTINCT harness FROM sessions"
     echo "SELECT count(*) FROM messages" | python -m stockroom.query -
-    python -m stockroom.query --detail full "SELECT text FROM messages LIMIT 1"
+    python -m stockroom.query --format table "SELECT text FROM messages LIMIT 1"
+    python -m stockroom.query --format json --detail full "SELECT * FROM sessions"
 
-Wide output is truncated at read time (``--detail compact|snippet|full``, default
-``snippet``) so a long ``text`` column can't flood the caller's context; the full
-content always stays whole in the warehouse (see :mod:`stockroom.truncate`).
+Output shape is selectable with ``--format`` (``tsv`` default — a header row plus
+tab-separated data rows, no count trailer, stream-friendly for LLMs and unix
+pipes; ``json``; ``table`` for a human pretty-print). Wide fields are truncated at
+read time in every format (``--detail compact|snippet|full``, default ``snippet``)
+so a long ``text`` column can't flood the caller's context; the full content
+always stays whole in the warehouse (see :mod:`stockroom.render` and
+:mod:`stockroom.truncate`).
 """
 
 import argparse
@@ -29,8 +34,9 @@ from dataclasses import dataclass
 
 import duckdb
 
-from stockroom import warehouse
-from stockroom.truncate import DEFAULT_DETAIL, DETAIL_LEVELS, DetailLevel, truncate_cell
+from stockroom import render, warehouse
+from stockroom.render import DEFAULT_FORMAT, OUTPUT_FORMATS
+from stockroom.truncate import DEFAULT_DETAIL, DETAIL_LEVELS
 
 
 @dataclass
@@ -39,44 +45,6 @@ class QueryResult:
 
     columns: list[str]
     rows: list[tuple]
-
-
-def _format_table(
-    columns: list[str], rows: list[tuple], *, detail: DetailLevel = DEFAULT_DETAIL
-) -> str:
-    """Render a result as a deterministic, column-aligned text table.
-
-    Columns are left-aligned to their widest cell; ``None`` renders as ``NULL``.
-    Each data cell is passed through :func:`stockroom.truncate.truncate_cell` at
-    ``detail`` (default :data:`~stockroom.truncate.DEFAULT_DETAIL`) so a wide
-    column (e.g. a long ``text`` field) cannot blow out the caller's context —
-    full content stays whole in ``QueryResult.rows``; ``detail="full"`` renders it
-    verbatim. Column headers are not truncated (they are short identifiers). The
-    output always ends with a ``(N rows)`` / ``(1 row)`` trailer so the query
-    surface is self-describing for any result size (including the empty case,
-    and statements with no result columns).
-    """
-    str_rows = [
-        [truncate_cell("NULL" if v is None else str(v), detail) for v in row]
-        for row in rows
-    ]
-    widths = [len(name) for name in columns]
-    for str_row in str_rows:
-        for index, cell in enumerate(str_row):
-            widths[index] = max(widths[index], len(cell))
-
-    def _line(cells: list[str]) -> str:
-        return " | ".join(cell.ljust(widths[index]) for index, cell in enumerate(cells))
-
-    lines: list[str] = []
-    if columns:
-        lines.append(_line(columns))
-        lines.append("-+-".join("-" * width for width in widths))
-    lines.extend(_line(str_row) for str_row in str_rows)
-
-    count = len(rows)
-    lines.append(f"({count} row{'' if count == 1 else 's'})")
-    return "\n".join(lines)
 
 
 def run_query(sql: str, *, con: duckdb.DuckDBPyConnection | None = None) -> QueryResult:
@@ -112,6 +80,16 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "sql",
         help="The SQL statement to run. Use '-' to read it from stdin.",
+    )
+    parser.add_argument(
+        "--format",
+        choices=OUTPUT_FORMATS,
+        default=DEFAULT_FORMAT,
+        help=(
+            "Output shape: 'tsv' (default, header + tab-separated rows, no count "
+            "trailer — stream-friendly for LLMs and unix pipes), 'json' (a single "
+            "{columns, rows} object), or 'table' (human-readable pretty-print)."
+        ),
     )
     parser.add_argument(
         "--detail",
@@ -159,7 +137,11 @@ def main(argv: list[str] | None = None) -> int:
         print(f"query failed: {exc}", file=sys.stderr)
         return 1
 
-    print(_format_table(result.columns, result.rows, detail=args.detail))
+    print(
+        render.format_query(
+            result.columns, result.rows, fmt=args.format, detail=args.detail
+        )
+    )
     return 0
 
 

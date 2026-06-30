@@ -33,3 +33,14 @@ Sub-run m3.5 of the `p2-embeddings-search` L4 project: introduce a shared `stock
     - Recorded a positive correctness finding: TSV structural safety is free because `truncate_cell` collapses all whitespace (incl. tabs/newlines) at every detail level — no extra tsv escaping needed.
 * Insights
     - Advisory (not applied): a stderr row/result count for tsv, and a dict-based format dispatch registry for a future `ndjson`, were both considered and declined — the first contradicts the settled "omit for tsv" PFW decision; the second is YAGNI for three formats (`ndjson` is a named non-goal). Flagged for operator awareness only.
+
+## 2026-06-29 - BUILD - COMPLETE
+
+* Work completed
+    - Implemented `stockroom.render` (TDD: stub → 31 failing `test_render.py` red → green) as the presentation chokepoint; relocated `query._format_table` / `semantic._format_hits` into it as the `table` branch and added `tsv`/`json`.
+    - Wired both CLIs to `render` with a new `--format {tsv,json,table}` flag (default `tsv`); query CLI tests written before the wiring (preflight amendment); fixed the two semantic trailer-asserting CLI tests for the tsv default; updated `truncate.py`'s docstring reference.
+    - Full `make ci` green: 266 passed, 2 skipped (torch-gated), ruff lint+format clean, lock-check clean, reuse compliant.
+* Decisions made
+    - Built to plan; the only deviation was cosmetic `ruff format` line-wrapping in the two new files.
+* Insights
+    - The relocation confirmed the standing consolidation insight: `_query_table` and `_semantic_table` now sit side-by-side in `render` and still duplicate column-alignment — the obvious next DRY (`render_table(columns, rows, *, detail)`) is now a one-module refactor, deliberately out of scope here.

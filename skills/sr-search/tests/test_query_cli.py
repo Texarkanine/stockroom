@@ -7,6 +7,7 @@ fixture roots — exercising the full Phase-1 loop (ingest → query) the way a 
 user would, and proving the database is genuinely queryable end to end.
 """
 
+import json
 import os
 import subprocess
 import sys
@@ -174,3 +175,51 @@ def test_query_reads_sql_from_stdin(
     result = _run_query("-", home=home, stdin="SELECT 1 AS n")
     assert result.returncode == 0, result.stderr
     assert "1" in result.stdout
+
+
+def test_query_default_output_is_tsv(
+    tmp_path: Path, cursor_root: Path, claude_root: Path, ai_tracking_db: Path
+) -> None:
+    """With no ``--format`` the output is tsv: a tab-separated header + data line,
+    no ``" | "`` table art and no ``(N rows)`` trailer."""
+    home = tmp_path / "home"
+    _ingest(home, cursor_root, claude_root, ai_tracking_db)
+
+    result = _run_query("SELECT 1 AS a, 2 AS b", home=home)
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.splitlines() == ["a\tb", "1\t2"]
+    assert " | " not in result.stdout
+    assert "(1 row)" not in result.stdout
+
+
+def test_query_format_table_restores_table(
+    tmp_path: Path, cursor_root: Path, claude_root: Path, ai_tracking_db: Path
+) -> None:
+    """``--format table`` restores the column-aligned table and its trailer."""
+    home = tmp_path / "home"
+    _ingest(home, cursor_root, claude_root, ai_tracking_db)
+
+    result = _run_query("--format", "table", "SELECT 1 AS a, 2 AS b", home=home)
+    assert result.returncode == 0, result.stderr
+    assert " | " in result.stdout
+    assert result.stdout.rstrip().endswith("(1 row)")
+
+
+def test_query_format_json_parses(
+    tmp_path: Path, cursor_root: Path, claude_root: Path, ai_tracking_db: Path
+) -> None:
+    """``--format json`` emits a single parseable ``{"columns", "rows"}`` object."""
+    home = tmp_path / "home"
+    _ingest(home, cursor_root, claude_root, ai_tracking_db)
+
+    result = _run_query("--format", "json", "SELECT 1 AS a, 2 AS b", home=home)
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout) == {"columns": ["a", "b"], "rows": [["1", "2"]]}
+
+
+def test_query_invalid_format_is_rejected(tmp_path: Path) -> None:
+    """An unknown ``--format`` value is rejected by argparse (exit 2) before any
+    warehouse access."""
+    result = _run_query("--format", "bogus", "SELECT 1", home=tmp_path / "home")
+    assert result.returncode == 2
+    assert result.stderr.strip() != ""

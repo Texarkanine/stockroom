@@ -1,8 +1,9 @@
 """Unit tests for the ``stockroom.query`` library surface.
 
-Covers the pure renderer (``_format_table``) and ``run_query`` against both an
-injected connection (the common, fast path) and the owns-connection
-open-read-only path. CLI / subprocess behavior lives in ``test_query_cli.py``.
+Covers ``run_query`` against both an injected connection (the common, fast path)
+and the owns-connection open-read-only path. The pure rendering now lives in
+``stockroom.render`` (tested in ``test_render.py``); CLI / subprocess behavior
+lives in ``test_query_cli.py``.
 """
 
 from pathlib import Path
@@ -10,54 +11,7 @@ from pathlib import Path
 import duckdb
 
 from stockroom import warehouse
-from stockroom.query import QueryResult, _format_table, run_query
-from stockroom.truncate import ELISION
-
-# --- _format_table ----------------------------------------------------------
-
-
-def test_format_table_renders_header_and_row() -> None:
-    """A single-row result shows the column name, the value, and a ``(1 row)``
-    trailer."""
-    out = _format_table(["n"], [(1,)])
-    assert "n" in out
-    assert "1" in out
-    assert out.rstrip().endswith("(1 row)")
-
-
-def test_format_table_empty_keeps_header_and_zero_trailer() -> None:
-    """An empty result still names its column and ends with ``(0 rows)``."""
-    out = _format_table(["n"], [])
-    assert "n" in out
-    assert out.rstrip().endswith("(0 rows)")
-
-
-def test_format_table_row_count_trailer_pluralizes() -> None:
-    """The trailer pluralizes: ``(2 rows)`` for a two-row result."""
-    out = _format_table(["n"], [(1,), (2,)])
-    assert out.rstrip().endswith("(2 rows)")
-
-
-def test_format_table_renders_none_as_null() -> None:
-    """A ``None`` cell renders as the literal ``NULL``."""
-    out = _format_table(["c"], [(None,)])
-    assert "NULL" in out
-
-
-def test_format_table_truncates_wide_cell_by_default() -> None:
-    """A cell wider than the default (snippet) budget is elided with a marker,
-    and the full value does not appear in the rendered table."""
-    out = _format_table(["c"], [("x" * 600,)])
-    assert ELISION in out
-    assert "x" * 600 not in out
-
-
-def test_format_table_full_detail_keeps_whole_cell() -> None:
-    """``detail="full"`` renders the entire cell verbatim — no marker, full value."""
-    out = _format_table(["c"], [("x" * 600,)], detail="full")
-    assert "x" * 600 in out
-    assert ELISION not in out
-
+from stockroom.query import QueryResult, run_query
 
 # --- run_query (injected connection) ----------------------------------------
 

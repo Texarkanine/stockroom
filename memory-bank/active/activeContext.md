@@ -1,7 +1,14 @@
 # Active Context
 
 ## Current Task: Output format defaults (`--format`) (p2-embeddings-search m3.5)
-**Phase:** PREFLIGHT - COMPLETE (PASS)
+**Phase:** BUILD - COMPLETE
+
+## Build Outcome
+- New module `skills/sr-search/src/stockroom/render.py`: `OutputFormat`/`OUTPUT_FORMATS`/`DEFAULT_FORMAT="tsv"`, public `format_query(columns, rows, *, fmt, detail)` + `format_semantic(hits, *, fmt, detail)` dispatching `tsv|json|table`, with the two relocated table renderers (`_query_table`, `_semantic_table`) as the `table` branch. `truncate_cell` applied in every format; `json.dumps(..., ensure_ascii=False)`; SQL `NULL` → JSON `null`; semantic `score` numeric; tsv/json carry no count trailer.
+- `query.py`: removed `_format_table`; imports `render` + `OUTPUT_FORMATS`/`DEFAULT_FORMAT`; added `--format`; `main` prints `render.format_query(...)`; docstring updated. `semantic.py`: same shape (removed `_format_hits`, `--format`, `render.format_semantic(...)`, docstring). `truncate.py` docstring now points at `stockroom.render`.
+- Tests: new `tests/test_render.py` (31); `test_query.py` (relocated 6 `_format_table` tests out); `test_query_cli.py` (+5 `--format` subprocess); `test_semantic.py` (relocated 4 `_format_hits` tests out, fixed 2 trailer-asserting CLI tests for the tsv default, +5 `--format` CLI).
+- Full gate (`make ci`) green: **266 passed, 2 skipped** (torch-gated real-model), ruff lint+format clean, lock-check clean, reuse compliant.
+- Deviation: only cosmetic — `ruff format` wrapped two long lines in the new `render.py` / `test_render.py`. No plan-deficiency deviations; built to plan (incl. the preflight TDD amendment ordering query CLI tests before the wiring).
 
 ## What Was Done
 - Detected L4 re-entry; advanced past the completed m3 (read-time output truncation) sub-run — checked it off, cleared its ephemerals, and committed the operator's m3.5 brainstorm decision record (`planning/brainstorm/print-for-who.md`).
@@ -15,4 +22,4 @@
 - **`(N rows)`/`(N results)` trailer is a `table`-only human affordance**; omitted from `tsv`/`json`.
 
 ## Next Step
-- Build (`niko-build`) runs next per the Level 2 workflow. Preflight PASS; one TDD amendment folded in (query CLI tests moved ahead of `query.py` wiring); TSV structural-safety property recorded.
+- QA review (`niko-qa`) runs next per the Level 2 workflow.

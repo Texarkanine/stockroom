@@ -2,10 +2,10 @@
 
 The Phase-2 milestone-3 mechanism: a single, tested helper that bounds a wide
 output cell to a context-safe width with a **visible, informative elision
-marker**, selectable via discrete detail levels. It is wired into both read-surface
-renderers (:func:`stockroom.query._format_table` and
-:func:`stockroom.semantic._format_hits`) so the two surfaces share one truncation
-policy rather than each rolling their own.
+marker**, selectable via discrete detail levels. It is consumed by the shared
+:mod:`stockroom.render` presentation chokepoint (which renders both read surfaces'
+output in every ``--format``) so the two surfaces share one truncation policy
+rather than each rolling their own.
 
 Truncation is strictly a **read-time** concern — it shapes *rendered* output only.
 Full content always stays whole at rest (in the warehouse) and in the returned

@@ -8,6 +8,7 @@ deterministic ``FakeEncoder`` (shared from ``conftest``) and the in-memory
 a subprocess.
 """
 
+import json
 from pathlib import Path
 
 import pytest
@@ -194,7 +195,7 @@ def test_search_owns_connection_opens_read_only(warehouse_home: Path) -> None:
     assert hits[0].text == "seeded for the owns-connection path"
 
 
-# --- Step 4: _format_hits + CLI ---------------------------------------------
+# --- Step 4: CLI (rendering now lives in stockroom.render) ------------------
 
 
 def _never_built() -> FakeEncoder:
@@ -202,62 +203,8 @@ def _never_built() -> FakeEncoder:
     raise AssertionError("encoder must not be constructed on this path")
 
 
-def test_format_hits_shows_similarity_score() -> None:
-    """The rendered table reports a similarity ``score`` = ``1 - distance``."""
-    hit = semantic.SemanticHit(
-        rank=1,
-        distance=0.0,
-        harness="claude",
-        session_id="s1",
-        message_id="s1#0",
-        role="user",
-        text="hello",
-    )
-    out = semantic._format_hits([hit])
-    assert "score" in out.lower()
-    assert "1.0" in out  # 1 - 0.0
-
-
-def test_format_hits_previews_text_single_line() -> None:
-    """A long, multi-line ``text`` is previewed truncated onto a single line."""
-    hit = semantic.SemanticHit(
-        rank=1,
-        distance=0.1,
-        harness="claude",
-        session_id="s1",
-        message_id="s1#0",
-        role="user",
-        text="first line\nsecond line " + "z" * 500,
-    )
-    out = semantic._format_hits([hit])
-    # The preview row is a single physical line (no embedded newline from text).
-    assert "first line second line" in out
-    assert "z" * 500 not in out  # truncated
-
-
-def test_format_hits_full_detail_keeps_whole_text() -> None:
-    """``detail="full"`` renders the entire message text (no elision marker)."""
-    hit = semantic.SemanticHit(
-        rank=1,
-        distance=0.1,
-        harness="claude",
-        session_id="s1",
-        message_id="s1#0",
-        role="user",
-        text="z" * 500,
-    )
-    out = semantic._format_hits([hit], detail="full")
-    assert "z" * 500 in out
-    assert truncate.ELISION not in out
-
-
-def test_format_hits_empty_is_zero_results() -> None:
-    """No hits renders a ``(0 results)`` trailer rather than an empty string."""
-    assert "0 results" in semantic._format_hits([])
-
-
 def test_cli_prints_ranked_results(warehouse_home: Path, capsys) -> None:
-    """The CLI embeds the query with the injected fake and prints the match."""
+    """The CLI embeds the query with the injected fake and prints the match (tsv)."""
     writer = warehouse.open(read_only=False)
     try:
         _insert_message(writer, ordinal=0, text="the unique findable phrase")
@@ -270,11 +217,12 @@ def test_cli_prints_ranked_results(warehouse_home: Path, capsys) -> None:
     assert code == 0
     out = capsys.readouterr().out
     assert "the unique findable phrase" in out
-    assert "(1 result)" in out
+    assert out.splitlines()[0] == "rank\tscore\tharness\trole\tpreview"
+    assert "(1 result)" not in out  # tsv default carries no count trailer
 
 
 def test_cli_limit_flag_caps_results(warehouse_home: Path, capsys) -> None:
-    """``-k N`` caps the number of printed result rows."""
+    """``-k N`` caps the number of printed result rows (counted as tsv data lines)."""
     writer = warehouse.open(read_only=False)
     try:
         for ordinal in range(5):
@@ -286,7 +234,69 @@ def test_cli_limit_flag_caps_results(warehouse_home: Path, capsys) -> None:
     code = semantic.main(["-k", "2", "findable message"], encoder_factory=FakeEncoder)
 
     assert code == 0
-    assert "(2 results)" in capsys.readouterr().out
+    out = capsys.readouterr().out
+    # tsv: one header line + one line per result, no count trailer.
+    assert len(out.splitlines()) == 1 + 2
+
+
+def test_cli_default_output_is_tsv(warehouse_home: Path, capsys) -> None:
+    """With no ``--format`` the CLI prints tsv: tab-separated header, no pipes/trailer."""
+    writer = warehouse.open(read_only=False)
+    try:
+        _insert_message(writer, ordinal=0, text="the unique findable phrase")
+        embed.embed_pending(writer, FakeEncoder())
+    finally:
+        writer.close()
+
+    code = semantic.main(["the unique findable phrase"], encoder_factory=FakeEncoder)
+    assert code == 0
+    out = capsys.readouterr().out
+    assert out.splitlines()[0] == "rank\tscore\tharness\trole\tpreview"
+    assert " | " not in out
+    assert "(1 result)" not in out
+
+
+def test_cli_format_table_shows_trailer(warehouse_home: Path, capsys) -> None:
+    """``--format table`` restores the human table and its ``(1 result)`` trailer."""
+    writer = warehouse.open(read_only=False)
+    try:
+        _insert_message(writer, ordinal=0, text="the unique findable phrase")
+        embed.embed_pending(writer, FakeEncoder())
+    finally:
+        writer.close()
+
+    code = semantic.main(
+        ["--format", "table", "the unique findable phrase"], encoder_factory=FakeEncoder
+    )
+    assert code == 0
+    out = capsys.readouterr().out
+    assert " | " in out
+    assert "(1 result)" in out
+
+
+def test_cli_format_json_parses(warehouse_home: Path, capsys) -> None:
+    """``--format json`` emits a parseable ``{results: [...]}`` object with the match."""
+    writer = warehouse.open(read_only=False)
+    try:
+        _insert_message(writer, ordinal=0, text="the unique findable phrase")
+        embed.embed_pending(writer, FakeEncoder())
+    finally:
+        writer.close()
+
+    code = semantic.main(
+        ["--format", "json", "the unique findable phrase"], encoder_factory=FakeEncoder
+    )
+    assert code == 0
+    parsed = json.loads(capsys.readouterr().out)
+    assert parsed["results"][0]["text"] == "the unique findable phrase"
+    assert isinstance(parsed["results"][0]["score"], float)
+
+
+def test_cli_invalid_format_rejected(warehouse_home: Path) -> None:
+    """An unknown ``--format`` value exits 2 (argparse) before the encoder is built."""
+    with pytest.raises(SystemExit) as exc:
+        semantic.main(["--format", "bogus", "a query"], encoder_factory=_never_built)
+    assert exc.value.code == 2
 
 
 def test_cli_detail_full_prints_whole_text(warehouse_home: Path, capsys) -> None:
