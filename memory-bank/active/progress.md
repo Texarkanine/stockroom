@@ -58,3 +58,16 @@ Sub-run m6 (final milestone) of the `p2-embeddings-search` L4 project: author th
     - Rejected as out of scope: creating the litter audit's shared reference doc now (it belongs to the Phase-4 trimming pass, and a doc holding only `sr-search` rationale would be premature).
 * Insights
     - `test_packaging.py`'s docstring/test-name still says "skeleton skill" — cosmetically stale after this build; a rename candidate only if a future milestone touches that file (do not expand this sub-run for it).
+
+## 2026-07-07 - BUILD - COMPLETE
+
+* Work completed
+    - Rewrote `skills/sr-search/SKILL.md` in full (skeleton → judgement skill): model-invocable front-matter with the routing contract; a routing table carrying the four desk-check cases as shipped examples; six actionable synthesis/presentation lines; delegation by sibling name with the single relative-path fallback; one-line engine-home breadcrumb. The skeleton's entrypoint inventory and invocation block were deleted, not relocated.
+    - Litter pass: Category A–C sweep at authoring time; grep confirmed zero invocation tokens (`APP_DIR`/`PYTHONPATH`/`uv run`/`--no-sync`/`--no-config`/`python -m`) anywhere in the file.
+    - Live end-to-end verification against the real warehouse: exact ask (session counts per harness), meaning ask (warehouse-locking debug recall), both-surfaces ask (REUSE licensing via `ILIKE` + semantic JSON with ids for dedup) — the skill's instructions sufficed without improvisation.
+    - Gates: `make localdev` refreshed (3 skills symlinked); `make ci` fully green (266 passed, 2 skipped; ruff lint+format, lock-check, REUSE all pass; `test_skeleton_skill_front_matter` stayed green through the front-matter flip); torch restored via `make torch` after the CI sync stripped it (anticipated, m4/m5 precedent) and smoke-checked live; sibling cross-references verified correct with no edits.
+* Decisions made
+    - One line beyond the plan's letter: "if the routed surface comes back empty or thin, try the other surface before concluding the content isn't there" — a guardrail-as-action consistent with `sr-semantic`'s existing switch-strategy advice; passes the litter test.
+    - No edits to siblings, manifests, or `REUSE.toml` (as planned).
+* Insights
+    - The delegation-mode design held up in practice: the finished skill is 36 lines with zero plumbing — the leanest of the three wrapper skills, despite being the orchestrator.

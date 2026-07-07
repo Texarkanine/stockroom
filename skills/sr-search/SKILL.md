@@ -1,55 +1,35 @@
 ---
 name: sr-search
-description: Search your local warehouse of agentic-coding history. (Search behavior lands in Phase 2; this directory currently hosts the shared stockroom engine.)
-enable-model-invocation: false
+description: Search your local warehouse of agentic-coding history — the friendly default entrypoint. Reach for this when you are unsure whether the question is an exact/structured lookup (sr-query) or meaning-based recall (sr-semantic), or when it needs both — it routes the question, runs the right surface(s), and synthesizes one answer.
+enable-model-invocation: true
 ---
 
 # sr-search
 
-This directory is the home of the **shared stockroom engine** — the locked,
-torch-free uv project (`pyproject.toml`, `uv.lock`, `src/stockroom/`, `tests/`)
-that every other `sr-*` skill invokes. It lives inside `sr-search` because
-search is stockroom's core entrypoint.
+`sr-search` answers a question about your captured Cursor + Claude Code history by judging what kind of lookup it is, delegating to the right sibling skill(s), and synthesizing the results into one answer.
 
-## Status: engine landing, search not yet wired
+## Route the question
 
-This is an honest placeholder for the *search skill*, not a dummy. The shared
-engine has grown through Phase 1 (the DuckDB warehouse, migrations, ingest, and
-`sr-query`) and Phase 2 milestones 1 (the **embedding pipeline**) and 2
-(**`sr-semantic`** pure vector search).
+Classify the ask, then **follow the chosen sibling skill** for how to run the search. The siblings live beside this file — `../sr-query/SKILL.md`, `../sr-semantic/SKILL.md` — read one directly if your harness doesn't surface it by name.
 
-What exists today as runnable engine entrypoints:
+| The ask | Route |
+|---------|-------|
+| Exact or structured — fields you can name: ids, filters, counts, `GROUP BY`, joins ("how many sessions per harness?") | `sr-query` alone |
+| Meaning-based — content you can describe but not name exactly ("where did we debug the warehouse deadlock?") | `sr-semantic` alone |
+| Known id in hand ("show me message `<id>` in full") | `sr-query` alone |
+| Broad or ambiguous — both a nameable shape and a describable concept ("find everything about REUSE licensing") | Both surfaces, then synthesize |
 
-- `python -m stockroom.ingest [--full]` — fill the warehouse from local Cursor /
-  Claude Code history.
-- `python -m stockroom.query "<SQL>"` — read-only SQL over the warehouse.
-- `python -m stockroom.embed [--full]` — embed message text into the
-  `embeddings` table (per-chunk `FLOAT[384]` vectors via a local
-  `sentence-transformers` model, behind the DuckDB VSS/HNSW cosine index;
-  incremental by default).
-- `python -m stockroom.semantic "<query>" [-k N]` — read-only **pure vector
-  search**: embeds the query (with the bge query prefix), runs cosine KNN over
-  the HNSW index, dedups to one row per owner message, and prints a ranked,
-  similarity-scored table.
+If the routed surface comes back empty or thin, try the other surface before concluding the content isn't there.
 
-The headline **blended keyword + semantic search** with context-aware read-time
-truncation — the behavior this skill is ultimately named for — lands in Phase 2
-milestone 3 (`sr-search`). Until then, this skill itself performs no action.
+## Synthesize and present
 
-## How sibling skills will use the engine
+- Default grain: answer in prose, citing the supporting hits (session/message ids) as evidence.
+- List-shaped asks ("show me the sessions about X"): present one merged list, ordered by your relevance judgement.
+- Dedup across surfaces by `message_id` / `(harness, session_id)`. A hit found by both routes is a strong relevance signal — surface it prominently.
+- Never blend or compare scores across surfaces: semantic similarity is relative within one query, and SQL rows carry no score.
+- Scan at the siblings' default detail; when the answer needs a whole message, fetch it via the full-text handoff the siblings document.
+- You are the operator, not the display: answer the user in natural language, and hand raw output only when they ask for it.
 
-The engine is invoked through the plugin-root-relative resolution contract
-(resolved once on startup) and the torch-safe run contract (never an exact
-sync), both documented in `memory-bank/systemPatterns.md`:
+## Engine home
 
-```bash
-APP_DIR="${CURSOR_PLUGIN_ROOT:+$CURSOR_PLUGIN_ROOT/skills/sr-search}"
-if [ -z "$APP_DIR" ] || [ ! -d "$APP_DIR" ]; then
-  APP_DIR="$(dirname "$(find -L ~/.cursor/plugins -path '*/stockroom/*/skills/sr-search/pyproject.toml' 2>/dev/null | head -1)")"
-fi
-PYTHONPATH="$APP_DIR/src" uv run --project "$APP_DIR" --no-sync --no-config python -m stockroom.<entrypoint> ...
-```
-
-`PYTHONPATH="$APP_DIR/src"` is required because the engine is a run-in-place
-project (`[tool.uv] package = false`), so `stockroom` is not installed on
-`sys.path`; `--no-config` keeps ambient `uv.toml` out of resolution.
+This directory also hosts the shared stockroom engine (`src/stockroom/`) that every `sr-*` skill invokes — developers, see the repo README and `memory-bank/systemPatterns.md`.

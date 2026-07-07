@@ -1,23 +1,17 @@
 # Active Context
 
 ## Current Task: `sr-search` skill (p2-embeddings-search m6)
-**Phase:** PREFLIGHT - COMPLETE (PASS)
+**Phase:** BUILD - COMPLETE
 
 ## What Was Done
-- Surveyed the deliverable's surroundings: the current `skills/sr-search/SKILL.md` skeleton, both sibling skills (structural template + cross-references), `systemPatterns.md` (search-surface architecture, invocation contract), `techContext.md`, the architecture creative, and the two brainstorm docs (`skill-litter-audit.md`, `stockroom-on-path-cli.md`).
-- Resolved both deferred open questions via autonomous creative phases (high confidence):
-    - **Delegation mode** (`creative/creative-sr-search-delegation-mode.md`): delegate by sibling skill *name* + one relative-path fallback note; `sr-search` carries **no invocation section** (no `$APP_DIR`/`PYTHONPATH`/uv flags) — mooting the litter audit's "m6 inherits invocation litter" concession.
-    - **Synthesis grain** (`creative/creative-sr-search-synthesis-grain.md`): narrated answer citing evidence by default; merged judgement-ordered list when the ask is list-shaped; dedup by `message_id`/`session_id`; never blend scores across surfaces.
-- Wrote the full Level 3 plan to `tasks.md`: 6 ordered steps (front-matter → judge/route → synthesize/present → engine-home note → litter pass → live verification + `make localdev` + `make ci`), an artisanal test plan (routing desk-checks, grep-verifiable no-invocation-token check, live end-to-end passes, litter category sweep), challenges, and tech validation (none needed).
+- Full rewrite of `skills/sr-search/SKILL.md` (36 lines, skeleton → judgement skill): front-matter flipped to `enable-model-invocation: true` with the routing-bearing description; routing table shipping the four desk-check cases as the skill's own examples (preflight amendment); synthesis rules as six actionable lines (narrated default, list-on-request, id dedup with found-both-ways signal, no cross-surface score math, truncation-by-delegation, relaying posture); one-line engine-home breadcrumb.
+- Delegation per the creative: sibling skills named, one relative-path fallback (`../sr-query/SKILL.md`, `../sr-semantic/SKILL.md`), **no invocation section** — grep-verified zero forbidden tokens (`APP_DIR`, `PYTHONPATH`, `uv run`, `--no-sync`, `--no-config`, `python -m`).
+- Live end-to-end passes against the real warehouse: exact ask (sessions per harness → 731 cursor / 39 claude via `sr-query`), meaning ask (warehouse-locking debug via `sr-semantic`, relevant ranked hits), both-surfaces ask (REUSE licensing: `ILIKE` scan + semantic `--format json`, ids in hand for dedup).
+- Gates: `make localdev` (3 skills symlinked), `make ci` fully green (266 passed, 2 skipped; ruff, lock-check, REUSE all pass; `test_skeleton_skill_front_matter` green through the flip), torch restored after CI sync stripped it (`make torch`, smoke-checked), sibling cross-references verified — no edits needed.
 
-## Key Plan Decisions
-- Full rewrite of the skeleton `SKILL.md`; front-matter flips to model-invocable with a routing-bearing description.
-- Operator litter constraint is binding: task knowledge only; siblings' content referenced, never restated; copy the m4/m5 template's *structure*, not its sentences (it carries known Category A–C litter).
-- One-line engine-home breadcrumb survives the rewrite; the skeleton's entrypoint inventory and invocation block are deleted (siblings + README own that content).
-- No edits expected: sibling skills, plugin manifests, `REUSE.toml`. `systemPatterns.md`/`techContext.md` reconciliation is REFLECT work.
-
-## Preflight Outcome
-- PASS. One in-scope amendment applied: the four routing desk-check cases ship as the skill's own routing examples (verification and content unified). Confirmed `test_packaging.py` front-matter assertions stay green through the flip; README and sibling skills owe no edits; the relative-path delegation fallback holds in both shipped and localdev layouts.
+## Key Build Decisions
+- One addition beyond the plan's letter: a fallback line ("if the routed surface comes back empty or thin, try the other surface") — actionable guardrail consistent with `sr-semantic`'s switch-strategy advice.
+- No deviations otherwise: no sibling, manifest, or `REUSE.toml` edits (as planned).
 
 ## Next Step
-- Awaiting operator: run `/niko-build` to implement (L3 workflow — Preflight PASS → Build requires operator input).
+- QA phase (runs automatically per L3 workflow).

@@ -82,20 +82,20 @@ Litter audit (operator constraint):
 
 ## Implementation Plan
 
-1. **Rewrite front-matter** — `skills/sr-search/SKILL.md`
+1. ✅ **Rewrite front-matter** — `skills/sr-search/SKILL.md`
     - `enable-model-invocation: false → true`; description becomes the routing contract: the friendly default search over agentic-coding history; use it when unsure whether the question is exact/structured (`sr-query`) or meaning-based (`sr-semantic`), or when it needs both. Mirrors the siblings' routing-bearing description style.
-2. **Body: judge → route** — same file
+2. ✅ **Body: judge → route** — same file
     - Replace the skeleton body. Open with what the skill does (one line), then the routing judgement: the exact/structured vs. meaning-based discriminators (reusing the siblings' own "when to use" cues by reference, not restatement), the both-surfaces case, and the known-id case.
     - Creative ref: `creative-sr-search-delegation-mode.md` — delegation is by sibling name with the single relative-path note; **no invocation section**.
     - *Preflight amendment:* the four routing desk-check cases from the test plan ship as the skill's own routing examples, so the verification cases and the shipped content are one artifact (the m4/m5 "every shipped example is verified" discipline, applied to routing).
-3. **Body: synthesize → present** — same file
+3. ✅ **Body: synthesize → present** — same file
     - The four synthesis rules as actionable lines (default narrated grain; list-on-request; id-based dedup with found-both-ways signal; no cross-surface score math), plus truncation-by-delegation (scan at sibling defaults; full text via the siblings' documented handoff) and the relaying-to-a-human posture consistent with the siblings.
     - Creative ref: `creative-sr-search-synthesis-grain.md`.
-4. **Engine-home note** — same file
+4. ✅ **Engine-home note** — same file
     - One short line preserving the fact that this directory hosts the shared engine (developers: see the README / `systemPatterns.md`). The skeleton's entrypoint inventory and invocation block are deleted, not relocated — the siblings and the README already own that content.
-5. **Litter pass** — same file
+5. ✅ **Litter pass** — same file
     - Category A–C sweep per the audit before verification; grep for the forbidden invocation tokens.
-6. **Verification** — live warehouse + repo gate
+6. ✅ **Verification** — live warehouse + repo gate
     - Execute the end-to-end behaviors above; run `make localdev`; run `make ci` (restore torch via `make torch` if the CI sync strips it — m4/m5 precedent); verify sibling cross-references.
 
 ## Technology Validation
@@ -118,5 +118,5 @@ No new technology — validation not required (prose-only change; no dependencie
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Preflight (PASS)
-- [ ] Build
+- [x] Build
 - [ ] QA
