@@ -1,7 +1,6 @@
 ---
 name: sr-query
 description: Run read-only SQL against your local warehouse of agentic-coding history (sessions, messages, tool calls, embeddings). Reach for this on exact or structured lookups — known ids, WHERE filters, counts, GROUP BY, joins, aggregations — not meaning-based search (that is sr-semantic).
-license: "Multiple — see LICENSES/ and REUSE.toml"
 enable-model-invocation: true
 ---
 
@@ -11,7 +10,7 @@ enable-model-invocation: true
 
 The warehouse is **read-only through this surface by construction**: it is rebuildable ETL output, and DuckDB rejects any write attempted through it. You cannot corrupt anything by querying.
 
-## When to use this
+## When to use sr-query
 
 Reach for `sr-query` when the question has a **known shape** and the answer is an exact or structured lookup over fields you can name:
 
@@ -54,7 +53,7 @@ echo "SELECT count(*) FROM messages" | PYTHONPATH="$APP_DIR/src" \
 
 Two independent axes control output. **The defaults are already safe for an agent** — a bare call gives bounded, parseable output — so reach for the flags only when a situation calls for it.
 
-### `--format` — output shape (default `tsv`)
+### `--format` — output shape, default `tsv`
 
 | Value | Shape | Use it when |
 |-------|-------|-------------|
@@ -64,7 +63,7 @@ Two independent axes control output. **The defaults are already safe for an agen
 
 Lead with the default `tsv`. Offer `--format table` or `--format json` **when the user asks** for human-readable or structured output — "these other shapes exist if you want them."
 
-### `--detail` — per-field width (default `snippet`)
+### `--detail` — per-field width, default `snippet`
 
 Wide string fields (notably `messages.text` and `tool_calls.tool_input`) are truncated **at read time** so one fat column can't flood your context. Full content always stays whole in the warehouse — this is a display bound only.
 

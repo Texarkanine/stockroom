@@ -1,17 +1,16 @@
 ---
 name: sr-semantic
 description: Meaning-based (vector) search over your local warehouse of agentic-coding history. Reach for this when the question is about content or concepts you can describe but not name exactly — "conversations about flaky tests", "where did we debug the deadlock" — not exact ids, filters, or counts (that is sr-query).
-license: "Multiple — see LICENSES/ and REUSE.toml"
 enable-model-invocation: true
 ---
 
 # sr-semantic
 
-`sr-semantic` runs **pure vector search** against the stockroom warehouse — the single-file DuckDB database of your captured Cursor + Claude Code history. It embeds your natural-language query with the same local model that embedded the stored messages, runs cosine KNN over the HNSW index, and returns a ranked list of the most semantically similar messages. This skill is the safe, ergonomic way for an agent to drive that surface without flooding its own context window or burning failed tool calls.
+`sr-semantic` runs **pure vector search** against the stockroom warehouse — the single-file DuckDB database of your captured agentic coding harness history. It embeds your natural-language query with the same local model that embedded the stored messages, runs cosine KNN over the HNSW index, and returns a ranked list of the most semantically similar messages. This skill is the safe, ergonomic way for an agent to drive that surface without flooding its own context window or burning failed tool calls.
 
 The warehouse is **read-only through this surface by construction**: DuckDB rejects any write attempted through it. You cannot corrupt anything by searching.
 
-## When to use this
+## When to use sr-semantic
 
 Reach for `sr-semantic` when the question is about **meaning** — content you can describe but not name exactly:
 
@@ -50,11 +49,11 @@ Two runtime notes: if torch is **missing** (`ModuleNotFoundError: No module name
 
 Three independent axes control output. **The defaults are already safe for an agent** — a bare call gives ≤10 ranked rows with bounded previews — so reach for the flags only when a situation calls for it.
 
-### `-k` / `--limit` — result count (default 10)
+### `-k` / `--limit` — result count, default 10
 
 Lower it (`-k 3`) when you expect one obvious winner; raise it when you're casting wide before narrowing. Must be a positive integer.
 
-### `--format` — output shape (default `tsv`)
+### `--format` — output shape, default `tsv`
 
 Shapes and columns as rendered by the shared `stockroom.render` layer (verify against a live call if they ever look different):
 
@@ -68,7 +67,7 @@ Lead with the default `tsv`. Offer `--format table` or `--format json` **when th
 
 `score` is cosine **similarity** (higher = closer, ~0–1). Scores are *relative* quality within this corpus and query — read the previews to judge relevance; don't threshold on an absolute score.
 
-### `--detail` — preview width (default `snippet`)
+### `--detail` — preview width, default `snippet`
 
 The `preview`/`text` field is truncated **at read time** so ranked previews can't flood your context. Full message text always stays whole in the warehouse — this is a display bound only.
 

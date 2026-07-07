@@ -1,7 +1,6 @@
 ---
 name: sr-search
 description: Search your local warehouse of agentic-coding history. (Search behavior lands in Phase 2; this directory currently hosts the shared stockroom engine.)
-license: "Multiple — see LICENSES/ and REUSE.toml"
 enable-model-invocation: false
 ---
 
