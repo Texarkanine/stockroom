@@ -14,3 +14,16 @@ Sub-run m5 of the `p2-embeddings-search` L4 project: author the **`sr-semantic` 
     - Preserved `creative/creative-search-surface-architecture.md` through the m4→m5 advance: it is the project-level decision record (referenced by `milestones.md` and `print-for-who.md`), not a sub-run artifact — consistent with the m3→m3.5 and m3.5→m4 precedents.
 * Insights
     - Standing insight from the m4 reflection to carry into this sub-run: the engine run incantation (`PYTHONPATH="$APP_DIR/src"` + `--no-config` + `uv run --project … --no-sync`) is copy-pasted prose in N places and drifted into being wrong before m4 fixed it repo-wide; this skill will re-paste the same preamble, and a shared launcher (or `[project.scripts]`) remains the obvious consolidation to force at the `sr-search` milestone.
+
+## 2026-07-07 - PLAN - COMPLETE
+
+* Work completed
+    - Surveyed the wrapped surface (`stockroom.semantic` CLI flags/exit-codes/stderr forms; `render.format_semantic` output columns per format), the m4 `sr-query` SKILL.md as structural template, `systemPatterns.md` (invocation contract, semantic-search pattern), and `techContext.md`.
+    - Wrote the full Level 2 plan to `tasks.md`: author `skills/sr-semantic/SKILL.md` as the safe LLM wrapper over `python -m stockroom.semantic` in 7 ordered steps (front-matter → routing/query-phrasing → invocation contract → output discipline → guardrails → verified examples → integration checks + gate).
+* Decisions made
+    - Prose-only — no helper `scripts/`, no Python (m4 precedent); TDD passes by project-invariant exemption; verification is artisanal (every shipped example executed live first) + `make ci` green.
+    - Canonical full-text fetch for a semantic hit is a handoff to `sr-query` by `message_id` (json carries the ids) — skill composability over duplicating a fetch surface.
+    - Surface-specific torch guardrail: `stockroom.semantic` needs torch at query time; torch-missing is an environment problem (`make torch`), never a retry loop.
+    - No `sr-search/SKILL.md` / `plugin.json` / `REUSE.toml` edits expected (m4-corrected invocation block already in place; skill auto-discovery; REUSE glob coverage).
+* Insights
+    - `techContext.md` "Semantic search" Phase-5 wording goes partly stale once this wrapper ships — route to REFLECT (m4 precedent), not a build task.
