@@ -35,3 +35,16 @@ Sub-run m6 (final milestone) of the `p2-embeddings-search` L4 project: author th
     - **Resolved (high confidence):** narrated answer citing its evidence by default; a single merged, judgement-ordered list when the ask is list-shaped. Dedup across surfaces by `message_id`/`session_id` (a hit found by both routes is a strong-relevance signal); never blend or compare scores across surfaces (semantic similarity is relative; SQL rows carry none).
 * Insights
     - A mechanical fused ranked list is the rejected RRF fusion module reborn as prose — the architecture creative's "wrong layer" finding applies to ranking, not just routing.
+
+## 2026-07-07 - PLAN - COMPLETE
+
+* Work completed
+    - Component analysis: full rewrite of `skills/sr-search/SKILL.md` (skeleton → judgement skill, front-matter flips model-invocable); no edits expected to siblings, manifests, or `REUSE.toml`; localdev mirror refresh; persistent-doc reconciliation routed to REFLECT.
+    - Both open questions resolved via autonomous creatives (delegation mode; synthesis grain) — see the two CREATIVE sections above.
+    - Wrote the full Level 3 plan to `tasks.md`: 6 ordered implementation steps, an artisanal verification plan (routing desk-checks against four behavior cases, a grep-verifiable no-invocation-token check, live end-to-end passes against the real warehouse, a litter category A–C sweep), challenges & mitigations, and technology validation (none required).
+* Decisions made
+    - TDD passes by project-invariant exemption (prose-only, no Python); verification is artisanal + `make ci` as a regression gate.
+    - The operator's litter constraint is encoded as plan structure: a dedicated litter-pass step, grep checks for forbidden invocation tokens, and "copy the m4/m5 template's structure, not its sentences."
+    - The skeleton's engine-home content collapses to a one-line breadcrumb; its entrypoint inventory and invocation block are deleted outright (siblings + README own that knowledge).
+* Insights
+    - The delegation-mode decision means m6 ships *ahead* of the litter audit's trimming plan rather than inheriting debt: the new skill never contains the invocation cluster that the Phase-4 CLI exists to remove from the siblings.
