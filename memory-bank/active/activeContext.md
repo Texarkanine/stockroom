@@ -1,7 +1,15 @@
 # Active Context
 
 ## Current Task: `sr-semantic` skill (p2-embeddings-search m5)
-**Phase:** BUILD - COMPLETE
+**Phase:** REFLECT COMPLETE
+
+## Reflection Outcome
+- Reflection written to `reflection/reflection-p2-embeddings-search-m5.md`. Cleanest sub-run of the project: the m4 template + already-corrected invocation contract meant iteration went only into what is genuinely different about this surface (torch-at-query-time, relative scores, silent-staleness). QA caught one trivial omission (the source label on the `--format` docs, per the plan's own drift mitigation).
+- Reconciled persistent docs: `techContext.md` "Semantic search" (the wrapper now exists, Phase-2 m5; only per-harness invocation-form verification remains Phase 5) and "Read-time truncation" ("upcoming" wrapper skills → shipped m4/m5). `productContext.md` and `systemPatterns.md` unaffected.
+- Standing insight: a caught `ModuleNotFoundError` in `semantic.main()` (clean "torch not provisioned" stderr + exit 1) would make the surface's error table uniform — a candidate small improvement if a future milestone touches that module.
+
+## Next Step
+- m5 (`sr-semantic` skill) sub-run complete. Next: `/niko` to advance to the final milestone (`sr-search` skill); then STOP for the operator to run `/niko-archive` at project end.
 
 ## Build Outcome
 - Authored `skills/sr-semantic/SKILL.md` (new): front-matter `name: sr-semantic`, model-invocable, routing-bearing description (meaning-based recall vs. `sr-query`'s exact/structured lookups). Sections: when-to-use + query phrasing (never hand-add the bge prefix), the verified invocation contract with the torch-at-query-time caveat, `-k`/`--format`/`--detail` output discipline (semantic columns, json carries ids + numeric score, similarity is relative), guardrails (context blowout via the `sr-query` full-text handoff by `message_id`, read-only, silent-staleness coverage check, re-phrase-don't-repeat, error table with torch-missing row), verified worked examples, relaying-to-a-human.

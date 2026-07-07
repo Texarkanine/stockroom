@@ -56,3 +56,15 @@ Sub-run m5 of the `p2-embeddings-search` L4 project: author the **`sr-semantic` 
     - Confirmed the deliverable's accuracy against ground truth: every example, error form, exit code, output shape, and the coverage query were executed live during build. The repeated invocation preamble across examples is intentional copy-paste ergonomics (m4 QA precedent), not a DRY defect; the twice-appearing `sr-query` handoff command (guardrail + example) is teach-then-demonstrate, also intentional.
     - Torch-missing row in the error table deliberately carries no clean exit code ("—"): the failure surfaces as an unhandled traceback (lazy import in `BgeEncoder`), and the dash honestly signals it is not a handled-error form.
     - Confirmed no README update owed (README documents the engine + dev entrypoints, not the skill roster); `techContext.md` "Semantic search" Phase-5 wording remains REFLECT work per the lifecycle (m4 precedent).
+
+## 2026-07-07 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `reflection/reflection-p2-embeddings-search-m5.md` (requirements vs outcome, plan accuracy, build/QA observations, insights, million-dollar question).
+    - Reconciled persistent docs: `techContext.md` "Semantic search" (wrapper now exists — Phase-2 m5 — leaving only per-harness invocation-form verification for Phase 5) and "Read-time truncation" ("upcoming" wrapper skills → shipped m4/m5). `productContext.md` / `systemPatterns.md` unaffected.
+* Insights
+    - Technical: the torch-missing failure surfaces as an unhandled traceback (lazy import in `BgeEncoder`); a caught `ModuleNotFoundError` → clean stderr in `semantic.main()` would make the error table uniform — a candidate if a future milestone touches that module.
+    - Process: authoring the second sibling wrapper against the m4 template collapsed the cost to only the surface-specific knowledge — confirming the milestone split (`sr-query` / `sr-semantic`) cost little either way.
+    - Million-dollar question: had "wrapper skills ship alongside their surfaces" been foundational, the skill would have *specified* the CLI contract and the CLI implemented to match — skill as source of truth rather than after-the-fact transcription. Materially the same result here (the m3/m3.5 CLI was already agent-first), but the ordering matters for future surfaces.
+* Status
+    - m5 (`sr-semantic` skill) sub-run complete. Next: `/niko` to advance to the final milestone (`sr-search` skill).

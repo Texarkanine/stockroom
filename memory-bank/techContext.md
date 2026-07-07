@@ -195,9 +195,11 @@ through the shared `stockroom.render` layer in a selectable `--format` (default
 field is run through the shared `stockroom.truncate` mechanism (`--detail`,
 default `snippet`) — a *display* bound only, *not* the no-truncation violation:
 full text stays whole in the store and in `SemanticHit.text`. The
-real-model path is covered by one `importorskip("torch")`-gated end-to-end test;
-the polished `/sr-semantic` skill wrapper + per-harness invocation are Phase-5
-distribution work (the `sr-query` precedent).
+real-model path is covered by one `importorskip("torch")`-gated end-to-end test.
+The safe LLM wrapper, [`skills/sr-semantic/SKILL.md`](../skills/sr-semantic/SKILL.md)
+(Phase-2 m5), is the single home for the surface's operational guidance (routing,
+query phrasing, `-k`/`--format`/`--detail` discipline, guardrails); only the
+empirical per-harness invocation-form verification remains Phase 5.
 
 ## Read-time truncation (`stockroom.truncate`)
 
@@ -213,8 +215,8 @@ for both read surfaces in every `--format`; each CLI exposes the `--detail` flag
 (alongside `--format`). Truncation is strictly read-time — full content stays whole
 at rest and in the returned `QueryResult.rows` / `SemanticHit.text`. Unit-tested in
 [`tests/test_truncate.py`](../skills/sr-search/tests/test_truncate.py); the
-upcoming `sr-query` / `sr-semantic` wrapper skills are the single home for the
-operational advice on *when* to reach for each level.
+`sr-query` / `sr-semantic` wrapper skills (shipped in Phase-2 m4/m5) are the
+single home for the operational advice on *when* to reach for each level.
 
 ## Output rendering (`stockroom.render`)
 
