@@ -15,7 +15,14 @@ UV_RUN := $(UV_DIR) run --no-sync
 # CPU-only (default): https://download.pytorch.org/whl/cpu
 TORCH_INDEX ?= https://download.pytorch.org/whl/cpu
 
-.PHONY: help sync lock lock-check test lint format format-check reuse ci torch
+.PHONY: help sync lock lock-check test lint format format-check reuse ci torch localdev
+
+# localdev: mirror skills/ into .cursor/skills/stockroom-local so a harness can
+# load them "normally", without ever letting the mirror land in a commit.
+LOCAL_SKILLS_DIR := .cursor/skills/stockroom-local
+PRE_COMMIT_HOOK := .git/hooks/pre-commit
+LOCALDEV_MARKER_BEGIN := \# BEGIN stockroom-local (managed by 'make localdev')
+LOCALDEV_MARKER_END := \# END stockroom-local
 
 help: ## List targets
 	@printf "stockroom dev targets (engine: %s)\n\n" "$(ENGINE)"
@@ -50,3 +57,28 @@ reuse: sync ## Run reuse lint on the whole repo (REUSE.toml at root)
 	$(UV) run --project $(ENGINE) --no-sync $(UV_NO_CFG) reuse lint
 
 ci: sync lock-check lint format-check test reuse ## Full gate (matches CI)
+
+localdev: ## Symlink skills/* into .cursor/skills/stockroom-local for in-harness testing (kept out of commits)
+	@mkdir -p $(LOCAL_SKILLS_DIR)
+	@for link in $(LOCAL_SKILLS_DIR)/*; do \
+		[ -L "$$link" ] || continue; \
+		name=$$(basename "$$link"); \
+		[ -d "skills/$$name" ] || rm -f "$$link"; \
+	done
+	@for d in skills/*/; do \
+		name=$$(basename "$$d"); \
+		ln -sfn "../../../skills/$$name" "$(LOCAL_SKILLS_DIR)/$$name"; \
+	done
+	@touch $(PRE_COMMIT_HOOK)
+	@head -1 $(PRE_COMMIT_HOOK) 2>/dev/null | grep -q '^#!' || \
+		{ printf '#!/bin/sh\n' | cat - $(PRE_COMMIT_HOOK) > $(PRE_COMMIT_HOOK).tmp && mv $(PRE_COMMIT_HOOK).tmp $(PRE_COMMIT_HOOK); }
+	@awk -v b="$(LOCALDEV_MARKER_BEGIN)" -v e="$(LOCALDEV_MARKER_END)" \
+		'$$0==b{skip=1} !skip{print} $$0==e{skip=0}' $(PRE_COMMIT_HOOK) > $(PRE_COMMIT_HOOK).tmp && \
+		mv $(PRE_COMMIT_HOOK).tmp $(PRE_COMMIT_HOOK)
+	@{ \
+		echo "$(LOCALDEV_MARKER_BEGIN)"; \
+		echo 'if git diff --cached --name-only -- $(LOCAL_SKILLS_DIR) | grep -q .; then git reset --quiet HEAD -- $(LOCAL_SKILLS_DIR); fi'; \
+		echo "$(LOCALDEV_MARKER_END)"; \
+	} >> $(PRE_COMMIT_HOOK)
+	@chmod +x $(PRE_COMMIT_HOOK)
+	@echo "localdev ready: $(LOCAL_SKILLS_DIR)/* -> skills/*, pre-commit hook installed at $(PRE_COMMIT_HOOK)"
