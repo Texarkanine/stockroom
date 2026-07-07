@@ -119,4 +119,4 @@ No new technology — validation not required (prose-only change; no dependencie
 - [x] Technology validation complete
 - [x] Preflight (PASS)
 - [x] Build
-- [ ] QA
+- [x] QA (PASS — no findings; litter constraint, preflight amendment, and both creative decisions verified in the shipped file)

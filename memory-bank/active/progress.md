@@ -71,3 +71,13 @@ Sub-run m6 (final milestone) of the `p2-embeddings-search` L4 project: author th
     - No edits to siblings, manifests, or `REUSE.toml` (as planned).
 * Insights
     - The delegation-mode design held up in practice: the finished skill is 36 lines with zero plumbing — the leanest of the three wrapper skills, despite being the orchestrator.
+
+## 2026-07-07 - QA - COMPLETE (PASS)
+
+* Work completed
+    - Semantic review of the rewritten `skills/sr-search/SKILL.md` against the plan, both m6 creatives, and the architecture creative: KISS/DRY/YAGNI/Completeness/Regression/Integrity/Documentation all clean. No trivial fixes needed; no substantive findings.
+* Decisions made
+    - The routing discriminators in the table are `sr-search`'s own task knowledge (a router cannot route without stating its criteria), not Category B duplication of the siblings' operational sections — the litter boundary holds.
+    - The build's one extra line (empty-result fallback) accepted: actionable recovery guidance consistent with `sr-semantic`'s switch-strategy advice.
+* Insights
+    - The grep-verifiable no-invocation-token check made the delegation-mode decision auditable in one command — worth repeating for the Phase-4 trimming pass across the siblings.
