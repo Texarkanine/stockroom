@@ -26,3 +26,12 @@ Sub-run m6 (final milestone) of the `p2-embeddings-search` L4 project: author th
     - **Resolved (high confidence):** delegate by sibling skill *name* ("follow the `sr-query` / `sr-semantic` skill"), with one relative-path fallback note (`../sr-query/SKILL.md`, `../sr-semantic/SKILL.md`) for an agent holding only this file. Rejected: resolved-path file reads (reintroduces the plumbing the litter audit flags) and inlined commands (the duplication the architecture creative already rejected).
 * Insights
     - The design moots the litter audit's "m6 temporarily inherits the invocation litter" concession: `sr-search` needs no invocation section at all — no `$APP_DIR`, no `PYTHONPATH`, no uv flags.
+
+## 2026-07-07 - CREATIVE (synthesis grain) - COMPLETE
+
+* Work completed
+    - Explored the second m6 open question (what `sr-search` produces) as a generic creative; wrote `creative/creative-sr-search-synthesis-grain.md`; marked the question resolved in `tasks.md`.
+* Decisions made
+    - **Resolved (high confidence):** narrated answer citing its evidence by default; a single merged, judgement-ordered list when the ask is list-shaped. Dedup across surfaces by `message_id`/`session_id` (a hit found by both routes is a strong-relevance signal); never blend or compare scores across surfaces (semantic similarity is relative; SQL rows carry none).
+* Insights
+    - A mechanical fused ranked list is the rejected RRF fusion module reborn as prose — the architecture creative's "wrong layer" finding applies to ranking, not just routing.

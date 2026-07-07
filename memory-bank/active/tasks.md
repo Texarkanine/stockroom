@@ -39,7 +39,7 @@ Rewrite `skills/sr-search/SKILL.md` from its Phase-0 skeleton into the real judg
 ## Open Questions
 
 - [x] **Delegation mode** → Resolved: delegate by sibling skill *name* with a single relative-path fallback note (`../sr-query/SKILL.md`, `../sr-semantic/SKILL.md`); no invocation section in `sr-search` at all (see `memory-bank/active/creative/creative-sr-search-delegation-mode.md`).
-- [ ] **Synthesis grain** — what does `sr-search` produce: a fused ranked list, a narrated answer citing hits, or both? Constraints: context-truncated presentation, "relaying to a human" posture consistent with the siblings, must handle the both-surfaces case (merge/rank across a SQL result set and a similarity-ranked hit list with incomparable scores). (From `milestones.md` open questions.)
+- [x] **Synthesis grain** → Resolved: narrated answer citing evidence by default; one merged judgement-ordered list when the ask is list-shaped; dedup by `message_id`/`session_id` (found-both-ways = strong relevance); never blend scores across surfaces (see `memory-bank/active/creative/creative-sr-search-synthesis-grain.md`).
 
 ## Test Plan (TDD)
 
