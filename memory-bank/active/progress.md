@@ -81,3 +81,14 @@ Sub-run m6 (final milestone) of the `p2-embeddings-search` L4 project: author th
     - The build's one extra line (empty-result fallback) accepted: actionable recovery guidance consistent with `sr-semantic`'s switch-strategy advice.
 * Insights
     - The grep-verifiable no-invocation-token check made the delegation-mode decision auditable in one command — worth repeating for the Phase-4 trimming pass across the siblings.
+
+## 2026-07-07 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `reflection/reflection-p2-embeddings-search-m6.md`: full lifecycle review (requirements met + one accepted addition; plan executed 6/6 in order with all predicted challenges and no surprises; all three creative decisions held without friction; QA clean).
+    - Reconciled persistent files: `systemPatterns.md` — skeleton-skill convention updated to past tense (no skeleton skills currently ship) and a new "Search-surface architecture" pattern added (superpowers/wrappers/judgement-router, no fusion module, no invocation plumbing in `sr-search`, no cross-surface score blending); `techContext.md` — added the "Search entrypoint (`sr-search` skill)" section. `productContext.md` unchanged.
+* Decisions made
+    - The search-surface architecture graduated from creative doc to a durable `systemPatterns.md` pattern — the creative will archive with the capstone, so the load-bearing absences (no `stockroom.search`, no invocation section) now live in the persistent record.
+* Insights
+    - For prose deliverables, front-loading design into autonomous creatives converts build into transcription (second consecutive sub-run with zero build rework).
+    - Litter-test boundary for orchestrator skills: criteria a skill needs to make its own decision are task knowledge even when they echo a sibling's topic; content the delegated-to skill needs is duplication.

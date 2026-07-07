@@ -1,17 +1,15 @@
 # Active Context
 
 ## Current Task: `sr-search` skill (p2-embeddings-search m6)
-**Phase:** BUILD - COMPLETE
+**Phase:** REFLECT COMPLETE
 
 ## What Was Done
-- Full rewrite of `skills/sr-search/SKILL.md` (36 lines, skeleton → judgement skill): front-matter flipped to `enable-model-invocation: true` with the routing-bearing description; routing table shipping the four desk-check cases as the skill's own examples (preflight amendment); synthesis rules as six actionable lines (narrated default, list-on-request, id dedup with found-both-ways signal, no cross-surface score math, truncation-by-delegation, relaying posture); one-line engine-home breadcrumb.
-- Delegation per the creative: sibling skills named, one relative-path fallback (`../sr-query/SKILL.md`, `../sr-semantic/SKILL.md`), **no invocation section** — grep-verified zero forbidden tokens (`APP_DIR`, `PYTHONPATH`, `uv run`, `--no-sync`, `--no-config`, `python -m`).
-- Live end-to-end passes against the real warehouse: exact ask (sessions per harness → 731 cursor / 39 claude via `sr-query`), meaning ask (warehouse-locking debug via `sr-semantic`, relevant ranked hits), both-surfaces ask (REUSE licensing: `ILIKE` scan + semantic `--format json`, ids in hand for dedup).
-- Gates: `make localdev` (3 skills symlinked), `make ci` fully green (266 passed, 2 skipped; ruff, lock-check, REUSE all pass; `test_skeleton_skill_front_matter` green through the flip), torch restored after CI sync stripped it (`make torch`, smoke-checked), sibling cross-references verified — no edits needed.
+- Full task lifecycle reflected in `reflection/reflection-p2-embeddings-search-m6.md`: built to plan (6/6 steps, one accepted addition), QA clean, all creative decisions held with zero friction — the front-loaded creatives + preflight amendment made build effectively transcription.
+- Persistent files reconciled: `systemPatterns.md` skeleton-skill sentence updated (no skeleton skills currently ship) and a new "Search-surface architecture" pattern added (engine superpowers / wrapper skills / judgement router, the two load-bearing absences); `techContext.md` gained a short "Search entrypoint (`sr-search` skill)" section. `productContext.md` untouched (nothing invalidated).
 
-## Key Build Decisions
-- One addition beyond the plan's letter: a fallback line ("if the routed surface comes back empty or thin, try the other surface") — actionable guardrail consistent with `sr-semantic`'s switch-strategy advice.
-- No deviations otherwise: no sibling, manifest, or `REUSE.toml` edits (as planned).
+## Key Insights
+- Delegation-by-name between sibling skills needs no plumbing (committed layout = install layout guarantees the relative path); the grep-verifiable no-invocation-token check is reusable for the Phase-4 trimming pass.
+- Routing discriminators are the router's own task knowledge, not Category B duplication — a litter-test boundary that will matter again for `sr-initialize`.
 
 ## Next Step
-- QA phase (runs automatically per L3 workflow).
+- m6 is the final milestone. Run `/niko` to advance the L4 milestone list (expected: all done → capstone `/niko-archive`).

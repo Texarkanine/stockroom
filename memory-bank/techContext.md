@@ -201,6 +201,16 @@ The safe LLM wrapper, [`skills/sr-semantic/SKILL.md`](../skills/sr-semantic/SKIL
 query phrasing, `-k`/`--format`/`--detail` discipline, guardrails); only the
 empirical per-harness invocation-form verification remains Phase 5.
 
+## Search entrypoint (`sr-search` skill)
+
+The friendly-default search surface is prose, not Python:
+[`skills/sr-search/SKILL.md`](../skills/sr-search/SKILL.md) (Phase-2 m6) is a
+model-invocable judgement skill that routes a question to the `sr-query` /
+`sr-semantic` wrapper skills (or both) and synthesizes one answer. There is no
+`stockroom.search` module and the skill carries no engine-invocation contract —
+delegation is by sibling skill name with a relative-path fallback (see
+`systemPatterns.md` → search-surface architecture).
+
 ## Read-time truncation (`stockroom.truncate`)
 
 The Phase-2 milestone-3 shared output-truncation mechanism lives in
