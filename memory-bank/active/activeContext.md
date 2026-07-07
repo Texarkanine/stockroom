@@ -1,7 +1,20 @@
 # Active Context
 
 ## Current Task: `sr-semantic` skill (p2-embeddings-search m5)
-**Phase:** PLAN - COMPLETE
+**Phase:** BUILD - COMPLETE
+
+## Build Outcome
+- Authored `skills/sr-semantic/SKILL.md` (new): front-matter `name: sr-semantic`, model-invocable, routing-bearing description (meaning-based recall vs. `sr-query`'s exact/structured lookups). Sections: when-to-use + query phrasing (never hand-add the bge prefix), the verified invocation contract with the torch-at-query-time caveat, `-k`/`--format`/`--detail` output discipline (semantic columns, json carries ids + numeric score, similarity is relative), guardrails (context blowout via the `sr-query` full-text handoff by `message_id`, read-only, silent-staleness coverage check, re-phrase-don't-repeat, error table with torch-missing row), verified worked examples, relaying-to-a-human.
+- Every shipped example executed live against the real warehouse first (default call, `-k 3`, `--format json -k 2`, `--format table --detail compact -k 3`, empty-query/bad-limit error paths, the `sr-query` handoff pair, the embeddings-coverage query). Warehouse had 37,755 embeddings / 22,132 embedded messages at verification time.
+- Integration checks: `sr-search/SKILL.md` needed no edit (entrypoint listed, invocation block m4-corrected); no `plugin.json`/`REUSE.toml` edits (auto-discovery, glob coverage); `make localdev` re-run mirrors the new skill.
+- Full gate `make ci` green: **266 passed, 2 skipped** (torch-gated), ruff lint+format clean, lock-check clean, REUSE compliant (180/180). Restored out-of-band torch with `make torch` after the CI sync stripped it, then re-verified a live semantic call.
+
+## Files Modified
+- `/home/mobaxterm/git/stockroom/skills/sr-semantic/SKILL.md` (new)
+
+## Key Decisions & Deviations (this session)
+- Built to plan — no deviations. The one discretionary addition (within plan step 3's scope): a note that the model loader prints HF-hub/progress noise to **stderr** while stdout stays pipe-clean — observed live, cheap to document, prevents an agent misreading the noise as an error.
+- Handoff example ships a real (elided) `message_id` from the live verification, keeping the pair honest while signalling the id is a placeholder.
 
 ## What Was Done
 - L4 re-entry (Step 2a): m4 checked off; ephemerals cleared; classified m5 (`sr-semantic` skill) as **Level 2** (self-contained prose-skill authoring, design settled by the search-surface architecture creative + `print-for-who.md`; m4 precedent).

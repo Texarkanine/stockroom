@@ -36,3 +36,14 @@ Sub-run m5 of the `p2-embeddings-search` L4 project: author the **`sr-semantic` 
     - Applied one in-scope amendment: plan step 5 gains guardrail (e) *silent-staleness* — semantic search only sees embedded content, so weak results for recent work signal an embeddings-coverage lag (check via the `sr-query` handoff; suggest incremental `python -m stockroom.embed`) rather than absence — closing the one failure mode the plan's guardrails didn't cover.
 * Insights
     - The shared-launcher consolidation from the m4 reflection remains deliberately deferred to the `sr-search` milestone (which delegates to both siblings and is the natural forcing point); pulling it forward would expand this sub-run's scope for no m5 payoff.
+
+## 2026-07-07 - BUILD - COMPLETE
+
+* Work completed
+    - Authored `skills/sr-semantic/SKILL.md` (the wrapper deliverable) per the 7-step plan: front-matter, routing/query-phrasing, invocation contract (with the torch-at-query-time caveat), `-k`/`--format`/`--detail` output discipline, guardrails (incl. the preflight-amended silent-staleness check and the `sr-query` full-text handoff), verified worked examples, relaying-to-a-human.
+    - Verified every shipped example live against the real warehouse before writing it in (default call, `-k`, json, table/compact, both exit-2 error paths, the handoff pair, the coverage query; 37,755 embeddings at verification time). Confirmed `sr-search/SKILL.md`, `plugin.json`, `REUSE.toml` need no edits; re-ran `make localdev`.
+    - Full `make ci` green: 266 passed, 2 skipped, ruff lint+format clean, lock-check clean, REUSE 180/180. Restored torch via `make torch` after the CI sync stripped it and re-verified a live semantic call (m4 precedent, anticipated by the plan).
+* Decisions made
+    - Built to plan, no deviations. One in-scope addition (plan step 3's territory): documented that model loading emits HF-hub/progress noise to stderr while stdout stays pipe-clean — observed live; prevents an agent misreading loader noise as an error.
+* Insights
+    - REFLECT must reconcile the `techContext.md` "Semantic search" Phase-5 wording (the wrapper now exists; only per-harness invocation-form verification remains Phase 5) — flagged since PLAN, m4 precedent.
