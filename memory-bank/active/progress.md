@@ -27,3 +27,12 @@ Sub-run m5 of the `p2-embeddings-search` L4 project: author the **`sr-semantic` 
     - No `sr-search/SKILL.md` / `plugin.json` / `REUSE.toml` edits expected (m4-corrected invocation block already in place; skill auto-discovery; REUSE glob coverage).
 * Insights
     - `techContext.md` "Semantic search" Phase-5 wording goes partly stale once this wrapper ships — route to REFLECT (m4 precedent), not a build task.
+
+## 2026-07-07 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated the plan against codebase reality: TDD-encoding (passes by exemption — prose deliverable, no Python, artisanal verification per the project invariant; each verified behavior enumerated per-unit in the test plan), convention compliance (`skills/sr-semantic/SKILL.md` layout beside `sr-query`; front-matter mirrors the m4 template with `enable-model-invocation: true`; REUSE covered by the `skills/**` glob; `.cursor-plugin/plugin.json` auto-discovers `./skills/`), dependency impact (no Python → no test surface; `sr-search/SKILL.md` already lists the `stockroom.semantic` entrypoint post-m4 fix; `make localdev` re-run planned in step 7), conflict detection (no existing `sr-semantic` skill; wraps, not reimplements), completeness (every milestone requirement — routing, query phrasing, `-k`, `--format`/`--detail`, guardrails, default-safe/full-detail/user-facing format guidance — mapped to a concrete plan step). Result: PASS.
+* Decisions made
+    - Applied one in-scope amendment: plan step 5 gains guardrail (e) *silent-staleness* — semantic search only sees embedded content, so weak results for recent work signal an embeddings-coverage lag (check via the `sr-query` handoff; suggest incremental `python -m stockroom.embed`) rather than absence — closing the one failure mode the plan's guardrails didn't cover.
+* Insights
+    - The shared-launcher consolidation from the m4 reflection remains deliberately deferred to the `sr-search` milestone (which delegates to both siblings and is the natural forcing point); pulling it forward would expand this sub-run's scope for no m5 payoff.
