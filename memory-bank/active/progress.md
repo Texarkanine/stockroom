@@ -17,3 +17,12 @@ Sub-run m6 (final milestone) of the `p2-embeddings-search` L4 project: author th
 * Insights
     - Standing insight carried from m4/m5 reflections: the engine run incantation is copy-pasted prose in N places; this milestone is the designated forcing point to *consider* a shared launcher — but the litter audit + `stockroom-on-path-cli.md` now route that fix to Phase 4 (`sr-initialize`), so m6 should inherit, not consolidate.
     - m5 reflection's standing insight (caught `ModuleNotFoundError` → clean stderr in `semantic.main()`) remains a candidate only if this milestone touches that module — it is not expected to.
+
+## 2026-07-07 - CREATIVE (delegation mode) - COMPLETE
+
+* Work completed
+    - Explored the first m6 open question (how `sr-search` mechanically delegates to the sibling skills) as an architecture creative; wrote `creative/creative-sr-search-delegation-mode.md`; marked the question resolved in `tasks.md`.
+* Decisions made
+    - **Resolved (high confidence):** delegate by sibling skill *name* ("follow the `sr-query` / `sr-semantic` skill"), with one relative-path fallback note (`../sr-query/SKILL.md`, `../sr-semantic/SKILL.md`) for an agent holding only this file. Rejected: resolved-path file reads (reintroduces the plumbing the litter audit flags) and inlined commands (the duplication the architecture creative already rejected).
+* Insights
+    - The design moots the litter audit's "m6 temporarily inherits the invocation litter" concession: `sr-search` needs no invocation section at all — no `$APP_DIR`, no `PYTHONPATH`, no uv flags.
