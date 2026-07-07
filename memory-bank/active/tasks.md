@@ -87,6 +87,7 @@ Litter audit (operator constraint):
 2. **Body: judge → route** — same file
     - Replace the skeleton body. Open with what the skill does (one line), then the routing judgement: the exact/structured vs. meaning-based discriminators (reusing the siblings' own "when to use" cues by reference, not restatement), the both-surfaces case, and the known-id case.
     - Creative ref: `creative-sr-search-delegation-mode.md` — delegation is by sibling name with the single relative-path note; **no invocation section**.
+    - *Preflight amendment:* the four routing desk-check cases from the test plan ship as the skill's own routing examples, so the verification cases and the shipped content are one artifact (the m4/m5 "every shipped example is verified" discipline, applied to routing).
 3. **Body: synthesize → present** — same file
     - The four synthesis rules as actionable lines (default narrated grain; list-on-request; id-based dedup with found-both-ways signal; no cross-surface score math), plus truncation-by-delegation (scan at sibling defaults; full text via the siblings' documented handoff) and the relaying-to-a-human posture consistent with the siblings.
     - Creative ref: `creative-sr-search-synthesis-grain.md`.
@@ -116,6 +117,6 @@ No new technology — validation not required (prose-only change; no dependencie
 - [x] Test planning complete (artisanal)
 - [x] Implementation plan complete
 - [x] Technology validation complete
-- [ ] Preflight
+- [x] Preflight (PASS)
 - [ ] Build
 - [ ] QA

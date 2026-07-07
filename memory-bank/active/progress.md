@@ -48,3 +48,13 @@ Sub-run m6 (final milestone) of the `p2-embeddings-search` L4 project: author th
     - The skeleton's engine-home content collapses to a one-line breadcrumb; its entrypoint inventory and invocation block are deleted outright (siblings + README own that knowledge).
 * Insights
     - The delegation-mode decision means m6 ships *ahead* of the litter audit's trimming plan rather than inheriting debt: the new skill never contains the invocation cluster that the Phase-4 CLI exists to remove from the siblings.
+
+## 2026-07-07 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated the plan against codebase reality: TDD-encoding (passes by project-invariant exemption — prose-only deliverable, no Python; each verified behavior mapped per-unit to a concrete check in the test plan; noted that any helper script added during build would re-bind the TDD rule), convention compliance (`skills/sr-search/SKILL.md` rewrite in place; front-matter mirrors the siblings; REUSE `skills/**` glob covers; manifests auto-discover), dependency impact (repo-wide `sr-search` reference sweep: nearly all references are to the engine *path*, untouched by a SKILL.md rewrite; `test_packaging.py::test_skeleton_skill_front_matter` asserts only name/description presence, so the front-matter flip stays green; README documents dev entrypoints only, no edit owed; sibling cross-references need no edits; `systemPatterns.md` skeleton-skill wording is REFLECT work), conflict detection (no overlapping routing skill; the relative-path fallback holds in both the shipped tree and the localdev mirror — siblings in both layouts), completeness (every milestone requirement + the operator litter constraint mapped to a concrete plan step). Result: PASS.
+* Decisions made
+    - Applied one in-scope amendment (radical-innovation check): the four routing desk-check cases ship as the skill's own routing examples, unifying verification cases and shipped content — the m4/m5 verified-example discipline applied to routing.
+    - Rejected as out of scope: creating the litter audit's shared reference doc now (it belongs to the Phase-4 trimming pass, and a doc holding only `sr-search` rationale would be premature).
+* Insights
+    - `test_packaging.py`'s docstring/test-name still says "skeleton skill" — cosmetically stale after this build; a rename candidate only if a future milestone touches that file (do not expand this sub-run for it).

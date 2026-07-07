@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: `sr-search` skill (p2-embeddings-search m6)
-**Phase:** PLAN - COMPLETE
+**Phase:** PREFLIGHT - COMPLETE (PASS)
 
 ## What Was Done
 - Surveyed the deliverable's surroundings: the current `skills/sr-search/SKILL.md` skeleton, both sibling skills (structural template + cross-references), `systemPatterns.md` (search-surface architecture, invocation contract), `techContext.md`, the architecture creative, and the two brainstorm docs (`skill-litter-audit.md`, `stockroom-on-path-cli.md`).
@@ -16,5 +16,8 @@
 - One-line engine-home breadcrumb survives the rewrite; the skeleton's entrypoint inventory and invocation block are deleted (siblings + README own that content).
 - No edits expected: sibling skills, plugin manifests, `REUSE.toml`. `systemPatterns.md`/`techContext.md` reconciliation is REFLECT work.
 
+## Preflight Outcome
+- PASS. One in-scope amendment applied: the four routing desk-check cases ship as the skill's own routing examples (verification and content unified). Confirmed `test_packaging.py` front-matter assertions stay green through the flip; README and sibling skills owe no edits; the relative-path delegation fallback holds in both shipped and localdev layouts.
+
 ## Next Step
-- Preflight validation (autonomous).
+- Awaiting operator: run `/niko-build` to implement (L3 workflow — Preflight PASS → Build requires operator input).
