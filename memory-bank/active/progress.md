@@ -47,3 +47,12 @@ Sub-run m5 of the `p2-embeddings-search` L4 project: author the **`sr-semantic` 
     - Built to plan, no deviations. One in-scope addition (plan step 3's territory): documented that model loading emits HF-hub/progress noise to stderr while stdout stays pipe-clean — observed live; prevents an agent misreading loader noise as an error.
 * Insights
     - REFLECT must reconcile the `techContext.md` "Semantic search" Phase-5 wording (the wrapper now exists; only per-harness invocation-form verification remains Phase 5) — flagged since PLAN, m4 precedent.
+
+## 2026-07-07 - QA - COMPLETE
+
+* Work completed
+    - Semantic review (KISS/DRY/YAGNI/completeness/regression/integrity/documentation) of `skills/sr-semantic/SKILL.md` against the plan. Result: PASS with one trivial fix applied directly: the plan's example-drift mitigation called for labeling the output-column documentation with its source (m4's "as of…" pattern), which the build omitted — added the `stockroom.render` source label to the `--format` section. `make ci` re-run green (266 passed, 2 skipped, REUSE 180/180); torch restored via `make torch`.
+* Decisions made
+    - Confirmed the deliverable's accuracy against ground truth: every example, error form, exit code, output shape, and the coverage query were executed live during build. The repeated invocation preamble across examples is intentional copy-paste ergonomics (m4 QA precedent), not a DRY defect; the twice-appearing `sr-query` handoff command (guardrail + example) is teach-then-demonstrate, also intentional.
+    - Torch-missing row in the error table deliberately carries no clean exit code ("—"): the failure surfaces as an unhandled traceback (lazy import in `BgeEncoder`), and the dash honestly signals it is not a handled-error form.
+    - Confirmed no README update owed (README documents the engine + dev entrypoints, not the skill roster); `techContext.md` "Semantic search" Phase-5 wording remains REFLECT work per the lifecycle (m4 precedent).

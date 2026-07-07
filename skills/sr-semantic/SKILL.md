@@ -56,6 +56,8 @@ Lower it (`-k 3`) when you expect one obvious winner; raise it when you're casti
 
 ### `--format` — output shape (default `tsv`)
 
+Shapes and columns as rendered by the shared `stockroom.render` layer (verify against a live call if they ever look different):
+
 | Value | Shape | Use it when |
 |-------|-------|-------------|
 | `tsv` *(default)* | Header `rank score harness role preview` + tab-separated rows, no count trailer | Default. Stream-friendly for you and for unix pipes. |

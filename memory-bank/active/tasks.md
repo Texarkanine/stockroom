@@ -69,4 +69,4 @@ No new technology — validation not required. (No new dependency, no schema/mig
 - [x] Technology validation complete
 - [x] Preflight
 - [x] Build
-- [ ] QA
+- [x] QA — PASS (one trivial fix: labeled the `--format` shapes/columns table with its source, the shared `stockroom.render` layer, per the plan's example-drift mitigation; `make ci` re-run green, torch restored)
