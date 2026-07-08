@@ -67,3 +67,16 @@ Milestone m3 of L4 project `p3-onboarding-cli-scheduling`: build the `sr-initial
     - **Engine resolution falls back sibling-relative** (`../sr-search` from the skill's own dir, the `sr-search` precedent) so `make localdev` trials work without `*_PLUGIN_ROOT`; unset plugin roots signal dev context (shim defers to `make shim`; a harness-owner install against the live dev shim is a correctly-relayed ownership refusal)
 * Insights
     - The probe/smoke split absorbed every operator scenario without structural change — verification-as-the-gate is what makes provisioning method-agnostic
+
+## 2026-07-08 - BUILD - COMPLETE
+
+* Work completed
+    - `stockroom.doctor` landed TDD red→green: `probe` (torch-free facts incl. `gpu-compute-cap` + `driver-cuda`, every nvidia-smi failure a reported fact) and `run_smoke` (ratcheted one-line failures through the real `BgeEncoder`); flat `probe|smoke` CLI; dispatcher's seventh `SUBCOMMANDS` row — 19 new tests (`test_doctor.py`, `test_doctor_cli.py`) + `test_dispatcher_cli.py` extension, all 16 behaviors covered
+    - `skills/sr-initialize/SKILL.md` written with every example executed live first: sibling-relative engine resolution, the guarded one-legitimate-exact-sync, probe → human-confirmed wheel → out-of-band cu126 install → smoke, self-managed-torch branch, shim binding with refusal/PATH relay, idempotent re-entry semantics
+    - Docs accreted (README subcommand list + onboarding pointer; techContext doctor/sr-initialize sections; systemPatterns onboarding split note); `make localdev` mirror refreshed to include `sr-initialize`
+    - Live validation on this machine: CUDA path (smoke exit 0, cuda True, B12 un-skipped), CPU path (`CUDA_VISIBLE_DEVICES=""` smoke exit 0), ownership-refusal relay, idempotent re-install, and the sync-strips-torch hazard all observed; `make ci` green (pytest, ruff, lock-check, REUSE)
+* Decisions made
+    - Smoke's torch-missing remedy prints `uv pip install … --directory <engine>` (not `--project`): `uv pip --project` fails without a cwd venv — verified live, asserted in B8
+    - B14 self-skips when torch is importable, making it the exact complement of the `importorskip` real-model smoke (each environment runs one of the pair)
+* Insights
+    - Live-verifying examples before writing them into prose caught two real bugs the unit suite could not: the `--project` remedy that would have been a dead command, and `make shim` baking relative paths into a dead shim (`uv --directory` moves the cwd)

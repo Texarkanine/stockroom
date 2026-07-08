@@ -1,15 +1,26 @@
 # Active Context
 
 ## Current Task: p3-m3-sr-initialize-torch-cli
-**Phase:** PREFLIGHT - COMPLETE (PASS)
+**Phase:** BUILD - COMPLETE
 
 ## What Was Done
-- Component analysis: new `stockroom.doctor` module (probe + smoke), dispatcher seventh row, new `skills/sr-initialize/SKILL.md`, docs accretion; m2's `stockroom.shim` and `stockroom.embed.BgeEncoder` reused unchanged
-- Creative phase resolved the one open question (Python/prose split): read-only `doctor` in tested Python; bootstrap, wheel-choice judgment + user confirmation, provisioning, and shim binding in skill prose (`creative-onboarding-logic-surface.md`); Q2 (detection/recommendation) collapsed into it
-- Test plan: 16 behaviors; two new test files (`test_doctor.py`, `test_doctor_cli.py`) + `test_dispatcher_cli.py` extension; torch-free via injection except one `importorskip("torch")` real-model smoke
-- Six-step ordered implementation plan written to `tasks.md` (steps 1–3 explicit red→green TDD cycles; step 4 prose with live-verified examples; step 6 live Linux/CUDA + CPU validation and full `make ci`)
+- All six plan steps executed in order, TDD red→green for every Python step:
+    - `skills/sr-search/src/stockroom/doctor.py` (new): `probe_facts`/`format_facts` (torch-free facts, injectable `smi_runner`/`torch_importer`, every nvidia-smi failure degrades to a fact) + `run_smoke` (ratcheted one-line failures, real `BgeEncoder` default) + flat `probe|smoke` CLI
+    - `stockroom.__main__.SUBCOMMANDS`: seventh row `doctor`
+    - New `tests/test_doctor.py` (16 tests, B1–B12) and `tests/test_doctor_cli.py` (3 tests, B13–B15); `tests/test_dispatcher_cli.py` extended (B16: tuple + `doctor`→`probe` fingerprint)
+    - `skills/sr-initialize/SKILL.md` (new): 7-step onboarding prose — every example executed live on this machine before being written in
+    - Docs: README (`doctor` in the subcommand list + `sr-initialize` onboarding pointer), techContext (doctor + sr-initialize sections), systemPatterns (onboarding application of the judgment-vs-mechanism split)
+- Live validation: Linux/CUDA path green (`stockroom doctor smoke` exit 0, cuda True, real encode; B12 un-skipped 16/16); CPU path green (`CUDA_VISIBLE_DEVICES="" … doctor smoke` exit 0, cuda False); shim ownership-refusal relay, idempotent re-install, guarded re-entry sync, and the torch-stripping sync hazard all observed live
+- `make ci` green end to end (pytest 329 passed/3 skipped torch-free shape, ruff check/format, lock-check, REUSE 194/194)
 
-- Preflight PASS (`.preflight-status` written): no blocking findings; README subcommand-list amendment folded into plan step 5; one advisory (probe shim-status fact rejected as YAGNI)
+## Key Implementation Decisions (build-time)
+- **Smoke remedy uses `--directory`, not `--project`**: `uv pip install --project` fails with "No virtual environment found" unless cwd is the project (verified live); the ratchet line and B8 assert `--directory <engine>` so the printed command actually works from anywhere
+- `probe` reports `gpu-compute-cap` (from `nvidia-smi --query-gpu=compute_cap` CSV) — the `sm_` generation fact the wheel-choice guidance needs — and `driver-cuda` parsed from the `nvidia-smi --version` banner (the CSV query set has no cuda_version field)
+- B14 (subprocess torch-free smoke) skips itself when torch is importable (complement of the `importorskip` real-model test, so both dev boxes and CI run exactly one of the pair)
+- `make shim` fixed to bake absolute paths (`$(CURDIR)`): `uv --directory` moves the cwd, so the previous relative `--app-dir`/`PYTHONPATH` rendered a dead shim — found live, fix committed with the build
+
+## Deviations from Plan
+- None structural. Two in-flight corrections: the `--project`→`--directory` remedy fix (plan assumed `--project` worked) and the pre-existing `make shim` relative-path bug (surfaced by live validation; fixing it was required to validate the dev-shim path)
 
 ## Next Step
-- Operator runs `/niko-build` (Preflight PASS → Build requires operator input per the L3 workflow)
+- QA phase (runs automatically per the L3 workflow)

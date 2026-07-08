@@ -137,10 +137,10 @@ Covered above by design: absent/broken `nvidia-smi` (B3/B4), absent torch (B5/B8
     - Files: `skills/sr-initialize/SKILL.md` (new)
     - Changes: frontmatter matching sibling conventions (operator-facing; model-invocable like siblings); the ordered flow — uv prerequisite check, harness/owner detection (`CURSOR_PLUGIN_ROOT` vs `CLAUDE_PLUGIN_ROOT`; **neither set → dev-checkout context**: the skill says so and defers the shim to `make shim` unless the user insists), engine-dir resolution (**plugin-root env var when set, else sibling-relative to the skill's own directory** — `../sr-search`, the `sr-search` delegation precedent; works identically for plugin installs and the `make localdev` symlink mirror since committed layout = install layout), initial `uv sync --frozen --no-config` (the one legitimate exact sync, ordering stated), `stockroom doctor probe` via the bootstrap incantation, the wheel-recommendation guidance (Linux+NVIDIA → matching `cu*` with the `sm_`-generation caveat; macOS / no GPU → `cpu`) + explicit user confirmation, **the self-managed-torch branch** (user knows their setup → state the requirement — torch importable inside the engine environment at `APP_DIR`, any build that passes smoke — let them install it their way, in-conversation or later; the smoke test is the gate, not the recipe), `uv pip install torch --no-config --index <chosen>` for the guided path, `doctor smoke` (loud-fail handling: wrong wheel → re-pick index, retry), `stockroom shim install --owner <harness>` (relay refusals — including the dev-shim ownership refusal a localdev tester will correctly hit; `--takeover` only on explicit consent; PATH warning relay), **idempotent re-run semantics stated** (probe-driven skip; the environment is the state — "come back later" resumes where the facts say), and the m4 forward-pointer (scheduling/first run land next milestone).
     - Creative ref: the skill is the sanctioned bootstrapper; every shipped example executed live before written in.
-5. **Docs**
+5. ✅ **Docs**
     - Files: `README.md`, `memory-bank/techContext.md`, `memory-bank/systemPatterns.md`
     - Changes: README — onboarding pointer to `sr-initialize` alongside the ad-hoc section, and add `doctor` to the enumerated subcommand list (README line ~78; preflight finding); techContext — `stockroom.doctor` + `sr-initialize` sections (accretion); systemPatterns — extend the search-surface judgment-vs-mechanism pattern with the onboarding application (short).
-6. **Live validation + full gate**
+6. ✅ **Live validation + full gate**
     - Files: none (verification)
     - Changes: execute every SKILL.md example live on this machine; validate the Linux/CUDA path (real `doctor smoke` with provisioned torch, B12 green un-skipped) and the CPU path (`CUDA_VISIBLE_DEVICES="" stockroom doctor smoke` — the o9 spike's CPU-fallback shape); `make ci` green end to end.
 
@@ -166,6 +166,6 @@ No new technology — `platform` and `subprocess` are stdlib; `nvidia-smi` is pr
 - [x] Test planning complete (TDD)
 - [x] Implementation plan complete
 - [x] Technology validation complete
-- [ ] Preflight
-- [ ] Build
+- [x] Preflight
+- [x] Build
 - [ ] QA

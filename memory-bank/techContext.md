@@ -258,6 +258,46 @@ baking the checkout; harness hooks never touch it. Decision records:
 `memory-bank/active/creative/creative-shim-{staleness-resolution,generation-surface}.md`
 (until archived).
 
+## Environment diagnostics (`stockroom.doctor`)
+
+The Phase-3 m3 read-only diagnostic surface lives in
+[`stockroom.doctor`](../skills/sr-search/src/stockroom/doctor.py) (the
+dispatcher's seventh subcommand) with two actions. `probe` reports torch-free
+environment facts as aligned `key: value` lines — OS/arch (`platform`), GPU
+name/driver/driver-CUDA ceiling/compute capability (`nvidia-smi` in its stable
+`--query-gpu=` CSV mode; absence or any failure degrades to a reported fact,
+never an error), torch import state, and the engine dir. It carries **no**
+wheel-recommendation logic — facts only; the mapping is judgment in the
+`sr-initialize` skill prose. `smoke` is the loud-failing verification: it
+prints `torch.__version__` and `torch.cuda.is_available()`, encodes one string
+through the production `BgeEncoder` path, and checks the vector width — exit 0
+with an `ok` summary, or exit 1 with exactly one stderr line that always
+carries the *next action* (the errmsg ratchet: torch-missing prints the
+literal `uv pip install torch --no-config --index … --directory <engine>`
+command — `--directory`, not `--project`, because `uv pip` only discovers the
+venv via the working directory). Injection mirrors the engine convention
+(`smi_runner`, `torch_importer`, `encoder_factory`), so everything but the one
+`importorskip("torch")`-gated real-model test runs torch-free
+([`test_doctor.py`](../skills/sr-search/tests/test_doctor.py) /
+[`test_doctor_cli.py`](../skills/sr-search/tests/test_doctor_cli.py)).
+
+## Onboarding (`sr-initialize` skill)
+
+Machine onboarding is prose orchestration over tested units:
+[`skills/sr-initialize/SKILL.md`](../skills/sr-initialize/SKILL.md) owns the
+irreducible bootstrap (the uv check, plugin-root/sibling-relative engine-dir
+resolution, and the **one legitimate exact sync** — `uv sync --frozen
+--no-config`, guarded to run only before torch exists), the human-confirmed
+torch wheel choice (probe facts → recommendation → explicit user confirmation;
+a self-managed-torch branch states the requirement and lets the smoke test be
+the gate), the documented out-of-band `uv pip install torch --no-config
+--directory … --index <chosen>` line, and shim binding via `stockroom shim
+install --owner <harness>` (dev checkouts defer to `make shim`). It is
+idempotent with no progress file — the environment is the state; a re-run
+re-probes and skips green steps. It carries the one sanctioned pre-shim
+invocation incantation; everything after the shim lands is `stockroom
+<subcommand>`. Scheduling and the first full ingest are the next milestone.
+
 ## Read-time truncation (`stockroom.truncate`)
 
 The Phase-2 milestone-3 shared output-truncation mechanism lives in
