@@ -1,12 +1,13 @@
 # Active Context
 
 ## Current Task: p3-m2-stockroom-shim
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- `/niko` re-entry advanced the L4 project: m1 (dispatcher) checked off in `milestones.md`, sub-run ephemeral state cleared
-- m2 classified as **Level 3**: a complete feature spanning multiple components (shim template, generation/installation logic, staleness healing, resolution ordering, dev-repo parity, README rewrite) with multiple open design decisions reserved to this milestone — creative-phase exploration warranted; no system-wide architectural implications
-- Fresh sub-run ephemeral state written: `activeContext.md`, stubbed `tasks.md`, new `progress.md`; `projectbrief.md` and `milestones.md` preserved
+- Component analysis: template (`src/stockroom/shim_template.sh`), generator (`stockroom.shim` module CLI), dispatcher row, `Makefile` `shim` target, README rewrite, `REUSE.toml` `.sh` re-assert
+- Two open questions resolved via creative phase (both high confidence): always-scan version-ranked staleness healing (`creative-shim-staleness-resolution.md`) and dispatcher-subcommand generation surface with in-package template (`creative-shim-generation-surface.md`)
+- Test plan: three new test files (`test_shim.py`, `test_shim_runtime.py`, `test_shim_cli.py`) plus `test_dispatcher_cli.py` / `test_licensing.py` extensions; runtime behaviors tested by executing the rendered shim against a fixture `HOME` with a stub `uv`
+- Six-step implementation plan written to `tasks.md`; key portability catch: `sort -V` is not POSIX — use numeric dot-field sort
 
 ## Next Step
-- Load the Level 3 workflow and proceed to the PLAN phase
+- Preflight phase (autonomous): validate the plan via the `niko-preflight` skill
