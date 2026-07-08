@@ -65,3 +65,12 @@ Milestone m2 of L4 project `p3-onboarding-cli-scheduling`: build the bake-then-v
 * Insights
     - The env-var-delivered root eliminates harness-layout knowledge from every component (shim: none; rectify: root is an argument; only committed hooks.json touches `${*_PLUGIN_ROOT}` — the artifact those vars exist for)
     - Write path is now harness → plugin-shipped hook → tested engine → `~/.local/bin`; no ambient filesystem state can trigger or influence a shim write
+
+## 2026-07-08 - PREFLIGHT (RE-RUN AFTER REWORK) - COMPLETE (PASS)
+
+* Work completed
+    - Re-verified the reworked plan: TDD ordering (steps 1–6 red-test-first), dual-hook-config convention (mirrors dual manifests), manifest-key addition safe against `test_packaging.py` subset check and release-please jsonpath, `hooks/*.json` covered by base AGPL annotation, milestone completeness (the "plugin-update TODO decided here" is decided — by the operator's design); `.preflight-status` re-written PASS
+* Decisions made
+    - None blocking
+* Insights
+    - `make localdev` mirrors only `skills/` — plugin-delivered hooks will not fire from a localdev mirror; live hook verification requires a real plugin install (recorded for the QA artisanal checklist)

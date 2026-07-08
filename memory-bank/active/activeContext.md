@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: p3-m2-stockroom-shim
-**Phase:** PLAN (REWORK) - COMPLETE, PREFLIGHT re-run in progress
+**Phase:** PREFLIGHT (RE-RUN) - COMPLETE (PASS)
 
 ## What Was Done
 - **Operator decisions (2026-07-08, at the preflight→build gate):**
@@ -12,4 +12,4 @@
 - Plan rebuilt in `tasks.md`: 8 implementation steps; new artifacts `hooks/cursor-hooks.json` + `hooks/claude-hooks.json` + manifest pointers; packaging-contract tests pin the hook wiring; live hook firing is operator-artisanal (flagged for QA)
 
 ## Next Step
-- Re-run preflight on the reworked plan, then stop at the build gate
+- Operator runs `/niko-build` to begin implementation

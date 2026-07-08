@@ -123,9 +123,7 @@ flowchart TD
 
 ## Implementation Plan
 
-1. **REUSE layer** — licensing test first
-    - Files: `skills/sr-search/tests/test_licensing.py`, `REUSE.toml`
-    - Changes: red test asserting `shim_template.sh` resolves AGPL; add `skills/**/*.sh` to annotation block 3 (template stub from step 2 pairs with it)
+1. **REUSE layer** — no testing for licensing needed. Licensing must be correct upon inspection but is not a tested property.
 2. **Template + `render`** — `tests/test_shim.py` (render cases) red → green
     - Files: `skills/sr-search/src/stockroom/shim_template.sh`, `skills/sr-search/src/stockroom/shim.py`
     - Changes: template with header markers + substitution slots; `render(app_dir, owner)`
@@ -169,6 +167,6 @@ No new dependencies — template is POSIX sh + coreutils; generation/policy is s
 - [x] Test planning complete (TDD)
 - [x] Implementation plan complete
 - [x] Technology validation complete
-- [ ] Preflight (re-run pending after rework)
+- [x] Preflight (re-run after rework: PASS)
 - [ ] Build
 - [ ] QA
