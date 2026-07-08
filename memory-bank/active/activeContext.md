@@ -1,12 +1,12 @@
 # Active Context
 
 ## Current Task: p3-onboarding-cli-scheduling
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Intent clarified and approved by operator: execute Phase 3 — Onboarding, CLI, and Scheduling of `planning/roadmap.md`
-- Complexity determined: **Level 4** — a complete multi-milestone system change (onboarding skill, torch provisioning, on-path CLI dispatcher + shim, cross-platform scheduling, wrapper-skill trimming) with architectural implications (establishes the invocation contract every downstream artifact builds on); same classification as the Phase 1 and Phase 2 roadmap phases
-- Ephemeral memory bank files created: `projectbrief.md`, `activeContext.md`, `tasks.md` (stub), `progress.md`
+- L4 milestone list generated (5 milestones) in `memory-bank/active/milestones.md`: m1 dispatcher (L2), m2 bake-then-verify shim (L3), m3 `sr-initialize` prereqs/torch/CLI (L3), m4 `sr-initialize` scheduling + first run (L3), m5 wrapper-skill trimming pass (L2)
+- The roadmap's milestone 1 ("prerequisites, torch, and the on-path CLI") was split into m1/m2/m3 — bundled it would exceed L3 scope; the dispatcher and shim are independently deliverable and are the dependency root for everything else
+- Cross-milestone invariants recorded (torch contract structural, no raw engine paths in rendered-out artifacts, dumb shim / tested dispatcher, no fallback incantations in skills, run-in-place packaging, TDD + artisanal skill verification, no Windows-native scheduling, chokepoints untouched)
 
 ## Next Step
-- Load the Level 4 workflow and execute the L4 Plan phase (generate `milestones.md`)
+- Preflight to validate the milestone list
