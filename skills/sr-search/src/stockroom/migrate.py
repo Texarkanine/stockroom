@@ -21,6 +21,8 @@ Key contract decisions (see
   moves the version up, and is a no-op when the DB is current or ahead.
 """
 
+import argparse
+import sys
 from pathlib import Path
 
 import duckdb
@@ -104,3 +106,49 @@ def apply_pending(
         con.execute("COMMIT")
         applied.append(migration.version)
     return applied
+
+
+def _build_parser() -> argparse.ArgumentParser:
+    """Build the argument parser for ``python -m stockroom.migrate``."""
+    return argparse.ArgumentParser(
+        prog="python -m stockroom.migrate",
+        description=(
+            "Migrate the stockroom warehouse to the schema head (creating it "
+            "if absent) and report the resulting schema version."
+        ),
+    )
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Migrate the warehouse to the schema head and report the version.
+
+    Opens the warehouse read-write through the ``stockroom.warehouse.open()``
+    chokepoint — whose lazy migration gate creates a missing warehouse and
+    applies any pending migrations — then prints the resulting schema version.
+    Idempotent: a current warehouse is a cheap no-op that still reports its
+    version. Returns ``0`` on success and ``1`` with a clean stderr message
+    (no traceback) when the warehouse stays locked past the backoff budget
+    (:class:`stockroom.warehouse.WarehouseBusyError`).
+    """
+    # Imported here, not at module top: stockroom.warehouse imports this
+    # module at load time, so a top-level import would be circular.
+    from stockroom import warehouse
+
+    _build_parser().parse_args(argv)
+
+    try:
+        con = warehouse.open(read_only=False)
+    except warehouse.WarehouseBusyError as exc:
+        print(f"migrate failed: {exc}", file=sys.stderr)
+        return 1
+    try:
+        version = current_version(con)
+    finally:
+        con.close()
+
+    print(f"warehouse at {warehouse.warehouse_path()} is at schema version {version}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

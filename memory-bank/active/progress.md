@@ -36,3 +36,16 @@ Milestone m1 of L4 project `p3-onboarding-cli-scheduling`: build the tested `pyt
     - Verified REUSE coverage: engine `.py` files carry no inline SPDX headers; `REUSE.toml` path annotations cover the new files
 * Decisions made
     - Amendment: dispatcher gains a top-level `--version` flag (prints `stockroom.__version__`) as a cheap identity probe for the m2 shim's staleness verification
+
+## 2026-07-08 - BUILD - COMPLETE
+
+* Work completed
+    - `stockroom/__main__.py` dispatcher implemented (first-token dispatch, lazy imports, verbatim forwarding, `--help`/`--version`, exit-code passthrough)
+    - `stockroom.migrate` CLI implemented (`_build_parser`/`main` over the `warehouse.open()` chokepoint; bootstrap-on-missing; clean `WarehouseBusyError` handling)
+    - 11 new subprocess tests (8 dispatcher, 3 migrate) written red-first, all green; README ad-hoc examples switched to `python -m stockroom <subcommand>`
+    - `make ci` fully green: lint, format, 277 passed / 2 torch-gated skips, REUSE compliant
+* Decisions made
+    - `warehouse` imported inside `migrate.main` to break the load-time circularity (`warehouse.py` imports `stockroom.migrate`)
+    - Help-forwarding tests fingerprint each module by a unique flag/phrase, keeping torch-heavy subcommands exercised torch-free
+* Insights
+    - The dispatcher needed zero changes to any module CLI — the uniform `main(argv) -> int` shape across modules made wrapping trivial

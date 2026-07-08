@@ -72,17 +72,17 @@ make torch TORCH_INDEX=https://download.pytorch.org/whl/cu126   # CUDA example
 
 See [`planning/spikes/o9-torch/`](planning/spikes/o9-torch/) for index choices and the full contract.
 
-For ad-hoc engine invocations (the engine is a run-in-place project — `[tool.uv] package = false` — so `stockroom` is not installed on `sys.path`; `PYTHONPATH` makes it importable):
+For ad-hoc engine invocations, the dispatcher `python -m stockroom <subcommand>` is the single entrypoint — it forwards to the module CLIs (`query`, `semantic`, `ingest`, `embed`, `migrate`); `python -m stockroom --help` lists them and `python -m stockroom <subcommand> --help` shows each one's own options. (The engine is a run-in-place project — `[tool.uv] package = false` — so `stockroom` is not installed on `sys.path`; `PYTHONPATH` makes it importable):
 
 ```bash
-PYTHONPATH=skills/sr-search/src uv run --project skills/sr-search --no-sync --no-config python -m stockroom.<entrypoint>
+PYTHONPATH=skills/sr-search/src uv run --project skills/sr-search --no-sync --no-config python -m stockroom <subcommand>
 ```
 
 For example, ingest your history and then run raw read-only SQL against the warehouse:
 
 ```bash
-PYTHONPATH=skills/sr-search/src uv run --project skills/sr-search --no-sync --no-config python -m stockroom.ingest --full
-PYTHONPATH=skills/sr-search/src uv run --project skills/sr-search --no-sync --no-config python -m stockroom.query "SELECT DISTINCT harness FROM sessions"
+PYTHONPATH=skills/sr-search/src uv run --project skills/sr-search --no-sync --no-config python -m stockroom ingest --full
+PYTHONPATH=skills/sr-search/src uv run --project skills/sr-search --no-sync --no-config python -m stockroom query "SELECT DISTINCT harness FROM sessions"
 ```
 
 ## License

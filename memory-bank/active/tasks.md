@@ -48,6 +48,8 @@ Edge cases covered: no args (empty state), unknown token (invalid input), `--hel
 
 ## Implementation Plan
 
+All steps completed 2026-07-08 (build phase).
+
 1. Stub the interface (TDD preparation)
    - Files: `skills/sr-search/src/stockroom/__main__.py` (new), `skills/sr-search/src/stockroom/migrate.py`
    - Changes: `__main__.py` with documented `main(argv: list[str] | None = None) -> int` stub, the subcommand table, and the `if __name__ == "__main__"` guard; `migrate.py` gains documented stubs for `_build_parser()` / `main(argv)` and the `__main__` guard. Stub `tests/test_dispatcher_cli.py` / `tests/test_migrate_cli.py` with empty, docstring-described test cases.
@@ -96,5 +98,5 @@ No new technology - validation not required (stdlib `argparse` + existing projec
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Preflight (PASS)
-- [ ] Build
+- [x] Build (all 5 steps; `make ci` green: 277 passed, 2 torch-gated skips, REUSE compliant)
 - [ ] QA
