@@ -23,6 +23,7 @@ Design input: `planning/brainstorm/stockroom-on-path-cli.md` → "The dispatcher
 Dispatcher (`tests/test_dispatcher_cli.py`, subprocess-based per existing CLI-test convention):
 
 - Top-level help: `python -m stockroom --help` → exit 0, stdout lists all five subcommands (`query`, `semantic`, `ingest`, `embed`, `migrate`)
+- Version: `python -m stockroom --version` → exit 0, prints `stockroom.__version__` (preflight amendment: gives the m2 shim and later `doctor` a cheap identity probe)
 - No args: `python -m stockroom` → exit 2, usage on stderr
 - Unknown subcommand: `python -m stockroom bogus` → exit 2, stderr names `bogus`, no traceback
 - Help forwarding: `python -m stockroom query --help` → exit 0, output shows `stockroom.query`'s own flags (e.g. `--format`, `--detail`); same for `semantic` / `ingest` / `embed` / `migrate` (each identified by a module-unique help string; `--help` exits before encoder construction, so the torch-dependent subcommands are exercised torch-free)
@@ -80,12 +81,20 @@ No new technology - validation not required (stdlib `argparse` + existing projec
 - `stockroom migrate` under a concurrently-held write lock: `warehouse.open` already degrades to `WarehouseBusyError`; the CLI translates it to a clean message (no traceback), matching the query CLI's error discipline
 - Dispatcher must not shadow `python -m stockroom.ingest`: adding `__main__.py` to the package does not affect `python -m stockroom.<module>` resolution (verified in L4 preflight)
 
+## Preflight Findings (2026-07-08, PASS)
+
+- TDD encoding verified: steps 1–3 order stub → failing tests → implementation per unit (migrate CLI, then dispatcher).
+- Convention compliance verified: `__main__.py` mirrors the `ingest` package precedent; the migrate CLI mirrors the `query.py` single-runnable-module shape; subprocess tests match the `test_query_cli.py` convention; new `.py` files are already AGPL-covered by `REUSE.toml` path annotations (no inline headers needed — no existing engine `.py` carries one).
+- Dependency impact verified: all existing `stockroom.migrate` consumers (`warehouse.py`, `conftest.py`, `_warehouse_worker.py`) import library functions only — adding `main()`/`_build_parser()` is purely additive.
+- Conflict check verified: no existing `stockroom/__main__.py`; the migrate CLI wraps the `warehouse.open()` chokepoint (whose lazy gate already migrates) rather than duplicating runner logic.
+- **Amendment**: top-level `--version` flag added to the dispatcher contract (prints `stockroom.__version__`, exit 0) — cheap identity probe for the m2 shim's staleness verification.
+
 ## Status
 
 - [x] Initialization complete
 - [x] Test planning complete (TDD)
 - [x] Implementation plan complete
 - [x] Technology validation complete
-- [ ] Preflight
+- [x] Preflight (PASS)
 - [ ] Build
 - [ ] QA

@@ -14,3 +14,25 @@ Milestone m1 of L4 project `p3-onboarding-cli-scheduling`: build the tested `pyt
     - Level 2 classification, matching the milestone's estimate and the L4 preflight's scope amendments (migrate CLI entrypoint + README dispatcher docs are in-scope for m1)
 * Insights
     - Dispatch shape is pre-specified in `planning/brainstorm/stockroom-on-path-cli.md`; the plan phase should treat it as the design input rather than re-deriving it
+
+## 2026-07-08 - PLAN - COMPLETE
+
+* Work completed
+    - Codebase survey: `query`/`semantic`/`embed` are single runnable modules with `main(argv) -> int`; `ingest` is a package with `__main__.py`; `migrate.py` is library-only
+    - Plan written to `tasks.md`: first-token dispatch in a new `stockroom/__main__.py` (lazy import, verbatim `argv[1:]` forwarding, exit-code passthrough); new migrate CLI opening through the `warehouse.open()` chokepoint; README examples switched to `python -m stockroom <sub>`
+    - Test plan: two new subprocess-based CLI test files following the `test_query_cli.py` convention
+* Decisions made
+    - First-token dispatch instead of argparse subparsers — modules keep sole ownership of their flags, `--help` forwarding is free
+    - Migrate CLI relies on the chokepoint's lazy gate (creates + migrates a missing warehouse) and reports `current_version`
+    - Forwarded `--help` keeps module `prog` names — accepted cosmetic wrinkle; naming story belongs to m2
+* Insights
+    - Torch-dependent subcommands are testable torch-free via `--help` forwarding (both validate/exit before encoder construction)
+
+## 2026-07-08 - PREFLIGHT - COMPLETE (PASS)
+
+* Work completed
+    - TDD encoding, convention compliance, dependency impact, conflict detection, and completeness verified against the codebase; `.preflight-status` written PASS
+    - Verified `stockroom.migrate` consumers (`warehouse.py`, `conftest.py`, `_warehouse_worker.py`) import library functions only — the new CLI is purely additive
+    - Verified REUSE coverage: engine `.py` files carry no inline SPDX headers; `REUSE.toml` path annotations cover the new files
+* Decisions made
+    - Amendment: dispatcher gains a top-level `--version` flag (prints `stockroom.__version__`) as a cheap identity probe for the m2 shim's staleness verification
