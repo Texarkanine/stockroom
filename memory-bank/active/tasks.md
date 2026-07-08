@@ -135,7 +135,7 @@ Covered above by design: absent/broken `nvidia-smi` (B3/B4), absent torch (B5/B8
     - Creative ref: the skill is the sanctioned bootstrapper; every shipped example executed live before written in.
 5. **Docs**
     - Files: `README.md`, `memory-bank/techContext.md`, `memory-bank/systemPatterns.md`
-    - Changes: README — onboarding pointer to `sr-initialize` alongside the ad-hoc section; techContext — `stockroom.doctor` + `sr-initialize` sections (accretion); systemPatterns — extend the search-surface judgment-vs-mechanism pattern with the onboarding application (short).
+    - Changes: README — onboarding pointer to `sr-initialize` alongside the ad-hoc section, and add `doctor` to the enumerated subcommand list (README line ~78; preflight finding); techContext — `stockroom.doctor` + `sr-initialize` sections (accretion); systemPatterns — extend the search-surface judgment-vs-mechanism pattern with the onboarding application (short).
 6. **Live validation + full gate**
     - Files: none (verification)
     - Changes: execute every SKILL.md example live on this machine; validate the Linux/CUDA path (real `doctor smoke` with provisioned torch, B12 green un-skipped) and the CPU path (`CUDA_VISIBLE_DEVICES="" stockroom doctor smoke` — the o9 spike's CPU-fallback shape); `make ci` green end to end.

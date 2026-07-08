@@ -43,3 +43,14 @@ Milestone m3 of L4 project `p3-onboarding-cli-scheduling`: build the `sr-initial
 * Insights
     - The m2 acceptance-spine analogue for m3 is B10: a wrong-width vector must fail the smoke — "encodes but corrupts" is the subtlest wrong-wheel failure mode
     - m4 will reuse `doctor probe`/`doctor smoke` to validate the environment before installing scheduler entries
+
+## 2026-07-08 - PREFLIGHT - COMPLETE (PASS)
+
+* Work completed
+    - TDD encoding, convention compliance, dependency impact, conflict detection, and completeness verified against the codebase; `.preflight-status` written PASS
+    - Verified: `doctor` name is unclaimed; `SUBCOMMANDS` is consumed only by `__main__` and `test_dispatcher_cli.py` (the `.cursor/skills/stockroom-local` hits are the localdev symlink mirror); `test_packaging.py` does not enumerate skill dirs so `skills/sr-initialize/` lands free; REUSE.toml globs (`skills/**` PPL-S, `skills/**/*.py` AGPL re-assert) cover every new path with no annotation change; importing `stockroom.embed` for `BgeEncoder` is torch-free (lazy torch import inside the constructor, documented + relied on by existing CI)
+    - One plan amendment (fixable in place): README line ~78 enumerates the dispatcher subcommands — step 5 now includes adding `doctor` to that list
+* Decisions made
+    - No blocking findings; one advisory recorded (a `shim`-status fact in `doctor probe` was considered for re-run idempotency and rejected — `command -v stockroom` in skill prose is simpler; revisit only if m4 needs it)
+* Insights
+    - `test_dispatcher_cli.py`'s fingerprint table makes the seventh-row extension mechanical: add `doctor` to the tuple and `"probe"` as its fingerprint
