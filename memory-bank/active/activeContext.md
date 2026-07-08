@@ -1,12 +1,12 @@
 # Active Context
 
 ## Current Task: p3-m1-stockroom-dispatcher
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- `/niko` re-entry detected L4 project `p3-onboarding-cli-scheduling` with plan + preflight complete and no sub-run started
-- Classification target: first unchecked milestone (m1 — `stockroom` dispatcher)
-- Complexity classified as **Level 2** via the decision tree: self-contained enhancement — one new module (`src/stockroom/__main__.py`) wrapping existing tested module CLIs, plus a small argparse `main()` for `stockroom.migrate` and README dispatcher docs; matches the milestone's own L2 estimate
+- Surveyed the four existing module CLIs: `query` / `semantic` / `embed` are single runnable modules with `main(argv) -> int`; `ingest` is a package with `__main__.py`; `migrate.py` is library-only (`ensure_schema_version_table` / `current_version` / `apply_pending`, no parser)
+- Plan written to `tasks.md`: first-token dispatch in a new `stockroom/__main__.py` (lazy import, verbatim `argv[1:]` forwarding, exit-code passthrough), a new `migrate` CLI that opens through the `warehouse.open()` chokepoint (lazy gate migrates; reports `current_version`), README ad-hoc examples switched to `python -m stockroom <sub>`
+- Test plan: two new subprocess-based CLI test files (`test_dispatcher_cli.py`, `test_migrate_cli.py`) following the `test_query_cli.py` convention; torch-dependent subcommands exercised via `--help` (exits before encoder construction)
 
 ## Next Step
-- Load the Level 2 workflow and execute the Plan phase
+- Preflight validation (runs automatically)
