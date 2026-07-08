@@ -2,6 +2,8 @@
 
 Rough phasing to seed the **Roadmap** document. This is a sketch, not the final plan — the real roadmap is authored after the Tech Brief is solid (and after the torch spike, O9, lands). Phases are roughly ordered by dependency, not committed to a schedule.
 
+> **Superseded (2026-07-08):** the authoritative `planning/roadmap.md` since **swapped Onboarding ahead of the Dashboard** (Phase 3 = Onboarding, CLI, and Scheduling; Phase 4 = Dashboard) so onboarding establishes the on-path `stockroom` invocation contract before the dashboard is built on it. The Phase 3/4 labels below reflect the *original* sketch order; defer to the authoritative roadmap and `memory-bank/active/creative/creative-roadmap-resequencing.md`.
+
 ## Guiding Shape
 
 The intended end-to-end user experience defines the spine: **install the plugin → run `sr-initialize` → it sets up overnight re-ingest/re-embed and performs a first ingest + embed → open the dashboard to see what you've been up to → thereafter use `search` / `semantic` / `query` to inspect history.** The phases below build toward that, bottom-up.

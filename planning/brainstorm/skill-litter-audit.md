@@ -2,7 +2,7 @@
 
 Audit record (2026-07-07): an inventory of "by the way" explanatory content in the shipped `sr-query` / `sr-semantic` SKILL.md files, a recommended understand-vs-do split, and where each finding should go. Recorded for later action — nothing here has been applied.
 
-Feeds: the `sr-search` skill milestone (m6, `memory-bank/active/milestones.md`), then Phase 4 (`sr-initialize`) via `stockroom-on-path-cli.md`, which supersedes the largest litter category outright.
+Feeds: the `sr-search` skill milestone (m6, `memory-bank/active/milestones.md`), then Phase 3 — Onboarding, CLI, and Scheduling (`sr-initialize`) via `stockroom-on-path-cli.md`, which supersedes the largest litter category outright. (The trimming pass was pulled ahead of the Dashboard by the 2026-07-08 roadmap resequencing, `memory-bank/active/creative/creative-roadmap-resequencing.md`.)
 
 ## Problem
 
@@ -57,5 +57,5 @@ The deepest fix for the invocation-litter cluster is not documentation at all: m
 Categories A–C are roughly a quarter to a third of each skill's prose, concentrated in the intro and invocation sections. The invocation cluster — the largest — is mooted by the on-path CLI, so the economic order is:
 
 1. Finish m6 (`sr-search`) against the current contract; accept that its invocation section inherits the same litter temporarily.
-2. Land the on-path `stockroom` CLI in Phase 4 (`sr-initialize`) per `stockroom-on-path-cli.md`.
+2. Land the on-path `stockroom` CLI in Phase 3 (`sr-initialize`) per `stockroom-on-path-cli.md`.
 3. One trimming pass across all three wrapper skills: swap incantations for `stockroom <subcommand>`, apply this inventory, add the shared-doc pointer.

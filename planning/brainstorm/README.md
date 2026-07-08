@@ -20,7 +20,7 @@ The brain dump is split by which downstream document each idea feeds:
 | `implementation-details.md` | TB + build | Concrete reference facts: what to reuse, fix, and avoid; open technical questions |
 | `print-for-who.md` | Phase 2 m3.5 + `sr-*` skills | Read-surface stdout audience; `--format` / `--detail` defaults and skill contract |
 | `skill-litter-audit.md` | `sr-*` skill trimming pass (post-m6) | Inventory of rationale/duplication litter in the wrapper skills; understand-vs-do split |
-| `stockroom-on-path-cli.md` | Phase 4 (`sr-initialize`) | On-path `stockroom` shim + dispatcher installed by onboarding; skills reduce to `stockroom <subcommand>` |
+| `stockroom-on-path-cli.md` | Phase 3 (`sr-initialize`) | On-path `stockroom` shim + dispatcher installed by onboarding; skills reduce to `stockroom <subcommand>` |
 
 ## Decision Log
 

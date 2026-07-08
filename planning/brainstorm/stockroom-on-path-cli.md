@@ -1,14 +1,14 @@
 # Brainstorm — An On-Path `stockroom` CLI, Installed by Onboarding
 
-Design sketch (2026-07-07): `sr-initialize` (already the Phase-4 onboarding skill, decision D9) additionally binds an on-path **`stockroom` command** that owns all invocation plumbing, so every skill's engine contract collapses to "run `stockroom <subcommand> …`". Recorded for later action — nothing here has been applied.
+Design sketch (2026-07-07): `sr-initialize` (the onboarding skill, decision D9) additionally binds an on-path **`stockroom` command** that owns all invocation plumbing, so every skill's engine contract collapses to "run `stockroom <subcommand> …`". Recorded for later action — nothing here has been applied.
 
-Feeds: Phase 4 (`sr-initialize`) in `planning/roadmap.md`; the wrapper-skill trimming pass in `skill-litter-audit.md`; the Phase-5 per-harness invocation verification.
+Feeds: Phase 3 — Onboarding, CLI, and Scheduling (`sr-initialize`) in `planning/roadmap.md` (this document was adopted into that phase by the 2026-07-08 roadmap resequencing, `memory-bank/active/creative/creative-roadmap-resequencing.md`); the wrapper-skill trimming pass in `skill-litter-audit.md`; the Phase-5 per-harness invocation verification.
 
 ## Problem
 
 Every skill that shells into the engine must today reproduce a four-part incantation: resolve `$APP_DIR` (plugin-root env var + `find -L` fallback), set `PYTHONPATH="$APP_DIR/src"`, and pass `--no-sync --no-config` to `uv run`. Each part is load-bearing; omitting any one fails the call or (worse, for `--no-sync`) silently strips torch. The incantation is copy-pasted prose across `sr-query`, `sr-semantic`, soon `sr-search`, `systemPatterns.md`, and the README — and it already drifted into being wrong in N places once (caught and fixed in the m4 sub-run). The m4/m5 reflections both flagged a shared launcher as the obvious consolidation; this document is that idea taken to its logical end.
 
-The insight that makes it an *onboarding* concern: the initializer is the one component that already must understand how the system works (torch provisioning, wheel selection, scheduling, first ingest/embed — Phase 4's existing scope). Let it also be the one place that understands how the system is *invoked*. Then skills need to know exactly one thing: `stockroom …` is on PATH, and `--help` explains the rest.
+The insight that makes it an *onboarding* concern: the initializer is the one component that already must understand how the system works (torch provisioning, wheel selection, scheduling, first ingest/embed — Phase 3's existing scope). Let it also be the one place that understands how the system is *invoked*. Then skills need to know exactly one thing: `stockroom …` is on PATH, and `--help` explains the rest.
 
 ## Shape
 
@@ -45,7 +45,7 @@ Two properties are the point:
 
 A pleasant side effect for Phase 5: the *engine* invocation form stops being per-harness at all (PATH is PATH in both Cursor and Claude Code), shrinking the empirical verification surface to the skill-invocation forms (`/sr-*` vs `<plugin>:<skill>`).
 
-## Open questions for the Phase-4 sub-run
+## Open questions for the Phase-3 sub-run
 
 - **Resolution order when both harness caches exist** (Cursor and Claude both have the plugin installed): pick deterministically — e.g. prefer the path the generating harness provided at install time, fall back to newest `pyproject.toml` mtime — and record the choice in the shim comment.
 - **Shim template location**: ship it as a file in the engine (`skills/sr-search/scripts/stockroom-shim.sh` or similar) that `sr-initialize` copies and parameterizes, so the template is reviewable and REUSE-covered rather than a heredoc buried in skill prose.
@@ -58,6 +58,6 @@ A pleasant side effect for Phase 5: the *engine* invocation form stops being per
 
 These are refinements **after the initial skills exist**, per the operator (2026-07-07):
 
-1. **m6 (`sr-search`)** is authored against the current invocation contract — last Phase-2 milestone, already the designated forcing point for the launcher *question*; this document is its answer, deferred to Phase 4 where onboarding already owns environment setup.
-2. **Phase 4 (`sr-initialize`)** grows the shim + dispatcher as part of its existing "prerequisites and torch" scope (roadmap amendment: a conscious edit to the Phase-4 milestone descriptions when that phase is planned).
+1. **m6 (`sr-search`)** was authored against the current invocation contract — last Phase-2 milestone, already the designated forcing point for the launcher *question*; this document is its answer, deferred to onboarding where it already owns environment setup.
+2. **Phase 3 (`sr-initialize`)** grows the shim + dispatcher as part of its "prerequisites, torch, and the on-path CLI" scope. (This is the roadmap amendment referenced here: applied 2026-07-08 when Onboarding was resequenced ahead of the Dashboard — see `memory-bank/active/creative/creative-roadmap-resequencing.md`.)
 3. **One trimming pass across the three wrapper skills** swaps incantations for `stockroom <subcommand>` and applies the litter-audit inventory — see `skill-litter-audit.md` for the ordered plan.

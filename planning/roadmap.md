@@ -4,7 +4,7 @@
 
 ## The Spine
 
-The intended end-to-end experience is a single unbroken motion, and that motion is what orders the build: **install the plugin → run `sr-initialize` → it provisions torch, schedules overnight re-ingest/re-embed, and performs a first ingest + embed → open the dashboard to see what you've been up to → thereafter reach for `sr-search`, `sr-semantic`, and `sr-query` to interrogate your own history.** The roadmap builds toward that spine from the bottom up. The earliest phases lay down the trustworthy substrate and the faithful data backbone; the middle phases layer on the search and dashboard surfaces; the final phases wrap the whole thing in a one-command onboarding and ship it. Each phase makes the *next* promise in the spine real, so that by the time onboarding is built it is orchestrating capabilities that already work rather than inventing new behavior under pressure.
+The intended end-to-end experience is a single unbroken motion: **install the plugin → run `sr-initialize` → it provisions torch, binds an on-path `stockroom` command, schedules overnight re-ingest/re-embed, and performs a first ingest + embed → open the dashboard to see what you've been up to → thereafter reach for `sr-search`, `sr-semantic`, and `sr-query` to interrogate your own history.** The build order tracks that motion from the bottom up, with one deliberate departure. The earliest phases lay down the trustworthy substrate and the faithful data backbone; the middle phase layers on the search surfaces; then onboarding wraps those proven parts into a one-command install — and because that same onboarding owns *how* the engine is invoked (the on-path CLI), it lands **before** the dashboard, which is then authored against that invocation contract rather than inventing its own. Release ships it. Each phase makes the *next* promise in the spine real, so that by the time onboarding is built it is orchestrating capabilities that already work rather than inventing new behavior under pressure.
 
 ## How to Read This Roadmap
 
@@ -27,23 +27,22 @@ graph TD
         P0["Phase 0 — Foundations<br/>plugin scaffold · locked uv project · torch held out of the lock"]:::foundation
         P1["Phase 1 — Schema · Database · Ingest · Migrations<br/>the conversation backbone + sr-query"]:::core
         P2["Phase 2 — Embeddings and Search<br/>embedding pipeline · sr-semantic · sr-search"]:::surface
-        P3["Phase 3 — Dashboard<br/>metrics + local server · sr-dashboard · session-start hook"]:::surface
-        P4["Phase 4 — Onboarding and Scheduling<br/>sr-initialize · nightly cron / launchd"]:::ship
+        P3["Phase 3 — Onboarding, CLI, and Scheduling<br/>sr-initialize · on-path stockroom CLI · nightly cron / launchd · skill trim"]:::ship
+        P4["Phase 4 — Dashboard<br/>metrics + local server · sr-dashboard · session-start hook"]:::surface
         P5["Phase 5 — Distribution and Release<br/>marketplace · release-please · end-to-end install test"]:::ship
     end
     FUT["Future (post-v1)<br/>recap as a time-series · more harnesses"]:::future
 
     P0 --> P1
     P1 --> P2
-    P1 --> P3
-    P2 --> P4
+    P2 --> P3
     P3 --> P4
     P4 --> P5
     P5 -.-> FUT
     P0 -. "⚠️ torch backend underpins embeddings" .-> P2
 ```
 
-The single non-linear edge is torch: the embedding work in Phase 2 stands on the torch contract established in Phase 0, even though torch itself is provisioned per-machine much later, in `sr-initialize`. Everything else is a clean progression — foundations, then the data backbone, then the search and dashboard surfaces (which are independent of each other), then onboarding that ties them together, then release.
+The single non-linear edge is torch: the embedding work in Phase 2 stands on the torch contract established in Phase 0, even though torch itself is provisioned per-machine later, in `sr-initialize`. Everything else is a clean linear progression — foundations, then the data backbone, then search, then the one-command onboarding that both wraps those proven parts and establishes the on-path invocation contract, then the dashboard built on that contract, then release. Onboarding precedes the dashboard deliberately: it owns the shim/CLI and the drift-safe scheduling substrate that the dashboard's launch paths, the nightly job, and the trimmed wrapper skills all build on — so the fragile invocation incantation is established correctly once rather than reproduced across artifacts.
 
 ## Phase 0 — Foundations
 
@@ -77,37 +76,38 @@ With faithful content in the warehouse, Phase 2 makes it findable by meaning. Th
 
 **Milestones**
 
-- [ ] **Embedding pipeline** — local `sentence-transformers` (`all-MiniLM-L6-v2`, 384-dim), chunk-and-mean-pool of long text, `FLOAT[384]` storage, DuckDB VSS/HNSW cosine index (experimental persistence enabled so deletes work against a live index), GPU-or-CPU, and incremental re-embed of new content only; runs on the Phase 0 torch contract.
-- [ ] **`sr-semantic`** — pure vector search over the HNSW index, named so a keyword-search-seeker won't grab it by mistake.
-- [ ] **`sr-search`** — the blended keyword + semantic entrypoint: picks SQL, vector, or a blend per the question, merges and ranks, and applies a context-aware read-time truncation level — enough to answer without flooding the context window.
+- [x] **Embedding pipeline** — local `sentence-transformers` (`all-MiniLM-L6-v2`, 384-dim), chunk-and-mean-pool of long text, `FLOAT[384]` storage, DuckDB VSS/HNSW cosine index (experimental persistence enabled so deletes work against a live index), GPU-or-CPU, and incremental re-embed of new content only; runs on the Phase 0 torch contract.
+- [x] **`sr-semantic`** — pure vector search over the HNSW index, named so a keyword-search-seeker won't grab it by mistake.
+- [x] **`sr-search`** — the blended keyword + semantic entrypoint: picks SQL, vector, or a blend per the question, merges and ranks, and applies a context-aware read-time truncation level — enough to answer without flooding the context window.
 
 **Done when:** semantic and blended search return relevant results over the real ingested history, new content re-embeds incrementally rather than from scratch, and read-time truncation is demonstrably a feature — full content preserved in the store, sensibly trimmed on output.
 
-## Phase 3 — Dashboard
+## Phase 3 — Onboarding, CLI, and Scheduling
 
-Phase 3 delivers the v1 headline UI, and with it the metric substrate that the future recap will be dragged through time. It is a light, standard-library-class local web server rendering an at-a-glance summary of usage and activity, with every front-end asset vendored into the repo — no CDN — to honor the offline and supply-chain posture, served on port 3143. The specific server and front-end stack are the build-time pick made here. There are two ways in: `sr-dashboard` launches it on demand and prints the local URL, and a single session-start hook launches it and nothing else — idempotent (probe the port, exit cleanly if it is already running), fire-and-forget (a detached background process), bounded by the hook timeout, and constitutionally unable to error. The hook never ingests and never migrates; that discipline is what keeps session start instant and safe.
+Phase 3 collapses everything built so far into the spine's one-command promise, and in the same motion establishes how the engine is *invoked* everywhere. `sr-initialize` checks prerequisites, detects the platform and accelerator, provisions the per-machine torch wheel using the proven out-of-band recipe, and smoke-tests it — printing the version, checking `cuda.is_available()`, and actually encoding one string — so a wrong-wheel mismatch is caught at setup rather than at first embed. It then binds an on-path `stockroom` command: a small tested `python -m stockroom` dispatcher over the existing modules, plus a generated `~/.local/bin/stockroom` shim that hard-codes the torch-safe run contract (`--no-sync --no-config`, `PYTHONPATH`, `APP_DIR`) in exactly one place, so no skill, cron entry, or hook ever reproduces the fragile four-part incantation again. The shim is **bake-then-verify** — a baked `APP_DIR` with a runtime re-resolution fallback — because harness plugin caches are versioned per release and a baked path goes stale on update; how that staleness is detected and healed is a decision made inside this phase (the open TODO in `planning/brainstorm/stockroom-on-path-cli.md`). `sr-initialize` then installs the nightly scheduler (cron on Linux, launchd on macOS) whose entries **invoke the shim** (`stockroom ingest`, `stockroom embed`), never a raw engine path — so no rendered-out artifact can bake a stale plugin-cache location (the operator's own box, with a legacy cron entry pinned to a slow Windows-mount path, is the standing cautionary tale). A first full ingest + embed leaves a populated, embedded, query-ready warehouse with no manual configuration. Finally, with the CLI in hand, a single trimming pass sweeps the three wrapper skills — swapping every invocation incantation for `stockroom <subcommand>`, applying the litter-audit inventory, and relocating the system-model rationale into a shared reference doc. This phase is also where the torch paths the spike only *reasoned* about — macOS/MPS and a cold, non-cached install — get validated on real target machines, folded into the smoke test.
+
+**Milestones**
+
+- [ ] **`sr-initialize` — prerequisites, torch, and the on-path CLI** — prerequisite checks (uv present and usable), platform/accelerator detection, per-machine torch provisioning via the proven out-of-band recipe, and a torch smoke test (version, `cuda.is_available()`, encode one string) that fails loudly at setup on a wrong wheel; plus the on-path `stockroom` command — a tested `python -m stockroom` dispatcher over the existing modules (`query`, `semantic`, `ingest`, `embed`, `migrate`) and a generated bake-then-verify shim on PATH that owns the torch-safe run contract. The plugin-update staleness question (how a baked `APP_DIR` is detected stale and re-resolved) is decided here.
+- [ ] **`sr-initialize` — scheduling and first run** — nightly ingest + embed installed via cron (Linux) or launchd (macOS), the entries **invoking the shim** (`stockroom ingest` / `stockroom embed`, no raw engine paths in any rendered-out artifact) with correct resolution for the machine, followed by a first full ingest + embed that leaves a populated, embedded warehouse; Windows-native scheduling stays out of v1.
+- [ ] **Wrapper-skill trimming pass** — across `sr-query` / `sr-semantic` / `sr-search`: swap every invocation incantation for `stockroom <subcommand>`, apply the litter-audit inventory (rationale → a shared reference doc; task knowledge stays in the skill), add the one shared-doc pointer per skill, and re-run the m6 grep-verifiable no-invocation-token check.
+
+**Done when:** a single `sr-initialize` run on a clean machine self-configures nightly freshness and produces a populated, embedded, query-ready warehouse with the torch smoke test green — validated on at least a Linux/CUDA path and a CPU-or-macOS path — the on-path `stockroom` command drives every engine call (skills, scheduler, and later the dashboard), and the three wrapper skills carry `stockroom <subcommand>` with zero invocation plumbing (grep-verified).
+
+## Phase 4 — Dashboard
+
+Phase 4 delivers the v1 headline UI, and with it the metric substrate that the future recap will be dragged through time. It is a light, standard-library-class local web server rendering an at-a-glance summary of usage and activity, with every front-end asset vendored into the repo — no CDN — to honor the offline and supply-chain posture, served on port 3143. The specific server and front-end stack are the build-time pick made here. There are two ways in: `sr-dashboard` launches it on demand and prints the local URL, and a single session-start hook launches it and nothing else — idempotent (probe the port, exit cleanly if it is already running), fire-and-forget (a detached background process), bounded by the hook timeout, and constitutionally unable to error. Both entry paths launch it through the on-path `stockroom` command established in Phase 3 (the dispatcher gains its `dashboard` subcommand here), so the hook body is a one-liner carrying no invocation plumbing. The hook never ingests and never migrates; that discipline is what keeps session start instant and safe.
 
 **Milestones**
 
 - [ ] **Metrics + local server + vendored front-end** — a light/stdlib web server (framework chosen here) computing at-a-glance usage and activity metrics over the warehouse, all front-end assets vendored (no CDN), served read-only on port 3143; metrics designed as the time-series substrate for the post-v1 recap.
-- [ ] **`sr-dashboard` + session-start hook** — on-demand launch that prints the local URL, plus the single session-start hook that launches the dashboard only: idempotent, fire-and-forget, bounded by the hook timeout, never erroring, and never ingesting or migrating.
+- [ ] **`sr-dashboard` + session-start hook** — on-demand launch that prints the local URL, plus the single session-start hook that launches the dashboard only, both invoking it via the on-path `stockroom dashboard` subcommand (added to the dispatcher here): idempotent, fire-and-forget, bounded by the hook timeout, never erroring, and never ingesting or migrating.
 
 **Done when:** the dashboard renders real metrics fully offline, `sr-dashboard` reliably surfaces the URL, and the session-start hook launches it exactly once regardless of how many sessions start — never erroring, never blocking session start, never touching the schema.
 
-## Phase 4 — Onboarding and Scheduling
-
-Phase 4 collapses everything built so far into the spine's one-command promise. `sr-initialize` checks prerequisites, detects the platform and accelerator, provisions the per-machine torch wheel using the proven out-of-band recipe, and smoke-tests it — printing the version, checking `cuda.is_available()`, and actually encoding one string — so a wrong-wheel mismatch is caught at setup rather than at first embed. It then installs the nightly scheduler (cron on Linux, launchd on macOS) with correct absolute-path resolution for the specific machine — the operator's own box, with a legacy cron entry pinned to a slow Windows-mount path, is the standing cautionary tale — and runs a first full ingest + embed, leaving a populated, embedded, query-ready warehouse with no manual configuration. This phase is also where the torch paths the spike only *reasoned* about — macOS/MPS and a cold, non-cached install — get validated on real target machines, folded into the smoke test.
-
-**Milestones**
-
-- [ ] **`sr-initialize` — prerequisites and torch** — prerequisite checks (uv present and usable), platform/accelerator detection, per-machine torch provisioning via the proven out-of-band recipe, and a torch smoke test (version, `cuda.is_available()`, encode one string) that fails loudly at setup on a wrong wheel.
-- [ ] **`sr-initialize` — scheduling and first run** — nightly ingest + embed installed via cron (Linux) or launchd (macOS) with correct absolute-path resolution for the machine, followed by a first full ingest + embed that leaves a populated, embedded warehouse; Windows-native scheduling stays out of v1.
-
-**Done when:** a single `sr-initialize` run on a clean machine self-configures nightly freshness and produces a populated, embedded, query-ready warehouse with the torch smoke test green — validated on at least a Linux/CUDA path and a CPU-or-macOS path.
-
 ## Phase 5 — Distribution and Release
 
-Phase 5 is the "clean enough to ship" gate. Stockroom is added to the separate `txrk9-agent-plugins` marketplace — both the Cursor and Claude marketplace entries, pointing at the source repo — with user-facing install and usage docs, and the exact per-harness invocation forms (`/sr-*` in Cursor versus the `<plugin>:<skill>` form in Claude) are verified empirically rather than assumed. Then the release-please release path is exercised end to end — the version syncing into both manifests — and the released plugin is installed from the marketplace on a clean machine to confirm the entire spine works for a real user: add the marketplace, install, run `sr-initialize`, and use all four surfaces against genuine Cursor and Claude Code history. That end-to-end install test *is* the v1 success criteria, demonstrated rather than asserted.
+Phase 5 is the "clean enough to ship" gate. Stockroom is added to the separate `txrk9-agent-plugins` marketplace — both the Cursor and Claude marketplace entries, pointing at the source repo — with user-facing install and usage docs, and the exact per-harness invocation forms (`/sr-*` in Cursor versus the `<plugin>:<skill>` form in Claude) are verified empirically rather than assumed. The empirical surface is smaller than it once was: since Phase 3 the *engine* is invoked uniformly through the on-path `stockroom` command (PATH is PATH in both harnesses), so only the skill-invocation forms remain harness-specific to verify. Then the release-please release path is exercised end to end — the version syncing into both manifests — and the released plugin is installed from the marketplace on a clean machine to confirm the entire spine works for a real user: add the marketplace, install, run `sr-initialize`, and use all four surfaces against genuine Cursor and Claude Code history. That end-to-end install test *is* the v1 success criteria, demonstrated rather than asserted.
 
 **Milestones**
 
@@ -131,7 +131,8 @@ The cross-cutting reasons the order is what it is:
 
 - **Schema first, literally.** The field enumeration and locked DDL are the first build task in Phase 1; every later phase reads or writes those tables, so nothing real can precede them.
 - **Migrations early, not bolted on.** "Never break your warehouse" is a core promise and retrofitting a migration system onto a live schema is painful, so the framework lands in Phase 1 with the initial schema shipping as its first migration.
-- **Torch settled before it can ambush anything.** The packaging question is already proven in the spike; Phase 0 bakes the recipe into the locked project and Phase 4 applies it per-machine, so the embedding work in Phase 2 never has to stop and solve it.
+- **Torch settled before it can ambush anything.** The packaging question is already proven in the spike; Phase 0 bakes the recipe into the locked project and Phase 3's `sr-initialize` applies it per-machine, so the embedding work in Phase 2 never has to stop and solve it.
 - **`sr-query` before the search skills.** A raw-SQL surface gives a working, inspectable database as early as possible, validating ingest end to end before embeddings are layered on top.
 - **Both harnesses from day one.** Cursor and Claude Code are ingested together so the schema and tooling are continuously exercised against both, never retrofitted for a neglected second harness.
-- **Onboarding wraps proven parts.** `sr-initialize` is built last among the functional phases because it should orchestrate capabilities that already work — torch, ingest, embed, schedule, dashboard — rather than be the place new behavior is invented under the pressure of a one-command promise.
+- **Onboarding wraps proven parts — and owns invocation.** `sr-initialize` is built after the search surfaces (not dead last) because it should orchestrate capabilities that already work — torch, ingest, embed, schedule — rather than invent behavior under a one-command promise; and because it owns *how* the engine is invoked (the on-path `stockroom` CLI), it lands **before** the dashboard, so the dashboard's launch paths, the nightly scheduler, and the trimmed wrapper skills all build on one drift-safe invocation contract instead of each reproducing a fragile incantation.
+- **Establish the invocation contract before rendering artifacts that depend on it.** The shim, the cron/launchd entries, the session-start hook, and the wrapper skills all invoke the engine; building the on-path `stockroom` CLI in Phase 3 means each is authored against one regenerable, self-healing entry point rather than baking a plugin-cache path that goes stale on the next update — the drift risk is closed at its source instead of cleaned up after the fact.
