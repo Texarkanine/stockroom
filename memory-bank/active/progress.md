@@ -57,3 +57,12 @@ Milestone m1 of L4 project `p3-onboarding-cli-scheduling`: build the tested `pyt
     - Two trivial documentation gaps fixed in QA: `migrate.py` module docstring now states the module is runnable; `memory-bank/techContext.md` gained a "CLI dispatcher" section (the persistent-doc counterpart of the README update)
     - `make ci` re-run after fixes: fully green (277 passed / 2 torch-gated skips, REUSE compliant)
     - `.qa-validation-status` written: PASS
+
+## 2026-07-08 - REFLECT - COMPLETE
+
+* Work completed
+    - Reflection document written (`reflection-p3-m1-stockroom-dispatcher.md`): delivered to plan, first-pass green through preflight/build/QA; one preflight-amended addition (`--version`)
+    - Persistent files reconciled — `techContext.md` dispatcher section landed in QA; no other persistent file invalidated
+* Insights
+    - Uniform `main(argv) -> int` module-CLI shape keeps dispatcher additions one-line table entries — preserve it for future modules (m3 `doctor` advisory)
+    - `warehouse.py` → `stockroom.migrate` load-time import means migrate-side CLI code imports `warehouse` lazily; same cycle awaits any warehouse-imported module that grows a CLI
