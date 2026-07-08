@@ -50,9 +50,12 @@ Key insights:
 
 ## Implementation Notes
 
-- New module `stockroom.shim`: `render(app_dir, *, pinned) -> str`, `install(dest, app_dir, *, pinned) -> report`, `main(argv) -> int` with `--app-dir` (default: auto-resolve own engine dir from `stockroom.__file__`), `--dest` (default `~/.local/bin/stockroom`), and the pinned mode implied by an explicit `--app-dir` pointing outside a plugin cache (or an explicit flag — decide at build with a test first).
+> **Revised 2026-07-08** after the operator superseded the Q1 staleness decision (see `creative-shim-staleness-resolution.md`): the shim is baked-only (no pinned/normal mode split — every shim is "pinned"), ownership is explicit, and healing moves to a sessionStart hook. The surface decision (S1 + T1) stands unchanged; the notes below reflect the revised shape.
+
+- New module `stockroom.shim`: `render(app_dir, owner) -> str`, `install(dest, app_dir, owner, *, takeover=False) -> report`, `rectify(dest, app_dir, owner) -> report`, `main(argv) -> int` with subactions `install` / `rectify`, `--app-dir` (default: auto-resolve own engine dir from `stockroom.__file__`), `--dest` (default `~/.local/bin/stockroom`), `--owner`, `--takeover`. Ownership/takeover/no-op policy per the Q1 decision — all in tested Python.
 - Dispatcher: add `"shim"` row to `SUBCOMMANDS` (lazy import as with the rest).
 - Install semantics: write mode `0o755`, atomic replace (temp file + `os.replace`) for idempotent re-runs; report PATH membership of the dest dir (warn, don't fail); then the `--version` verify through PATH when the dest dir is on PATH.
-- `Makefile`: `shim:` target delegating to the dispatcher with the checkout's engine dir.
+- Hook wiring (new artifacts): dual hook configs (Cursor and Claude schemas differ) each invoking `… python -m stockroom shim rectify --owner <harness> --app-dir ${<HARNESS>_PLUGIN_ROOT}/skills/sr-search`, silenced and non-blocking; manifest pointers added (`.cursor-plugin/plugin.json` `"hooks"` key; Claude default `hooks/hooks.json`).
+- `Makefile`: `shim:` target delegating to the dispatcher with the checkout's engine dir and `--owner dev`.
 - `REUSE.toml`: extend code-shaped override with `skills/**/*.sh`.
-- README: ad-hoc-invocation section rewritten around the installed `stockroom <subcommand>` with `stockroom shim` (or `make shim`) as the way to get it.
+- README: ad-hoc-invocation section rewritten around the installed `stockroom <subcommand>` with `stockroom shim install` (or `make shim`) as the way to get it.

@@ -29,3 +29,39 @@ Milestone m2 of L4 project `p3-onboarding-cli-scheduling`: build the bake-then-v
 * Insights
     - The engine `pyproject.toml` version is static (`0.0.0`); the release-please-synced plugin-manifest `"version"` is the only uniform, semantically-correct currency signal across all install shapes
     - All scan roots are `~`-relative, so the rendered shim is end-to-end testable as a subprocess with `HOME` pointed at a fixture tree
+
+## 2026-07-08 - PLAN - COMPLETE
+
+* Work completed
+    - Component analysis: template (`src/stockroom/shim_template.sh`), `stockroom.shim` module (render/install/CLI), dispatcher sixth row, `Makefile` `shim` target, README rewrite, `REUSE.toml` `.sh` re-assert, techContext section
+    - Test plan: 24 behaviors across four levels; three new test files (`test_shim.py`, `test_shim_runtime.py`, `test_shim_cli.py`) plus `test_dispatcher_cli.py` / `test_licensing.py` extensions; rendered-shim runtime behaviors exercised as a subprocess against a fixture `HOME` with a stub `uv`
+    - Six-step ordered implementation plan written to `tasks.md`, each Python step an explicit red→green TDD cycle
+* Decisions made
+    - `sort -V` rejected for the template (not POSIX/macOS-portable) — numeric dot-field sort with a ranking regression test instead
+    - Install-time `--version` verify is conditional on the dest dir being on `PATH` (m3 owns PATH remediation); runtime never pays a verify exec
+* Insights
+    - The m2 acceptance spine is one runtime test: baked dir *still exists* but a higher-versioned install exists elsewhere → the shim must pick the newer one
+
+## 2026-07-08 - PREFLIGHT - COMPLETE (PASS)
+
+* Work completed
+    - TDD encoding, convention compliance, dependency impact, conflict detection, and completeness verified against the codebase; `.preflight-status` written PASS
+    - Verified the dispatcher `_usage()` auto-sizes to a sixth subcommand row; `conftest.py` already provides `repo_root` for the licensing extension; nothing else consumes `SUBCOMMANDS`
+    - Verified plugin name `stockroom` (the scan-root path segment) is pinned by `test_packaging.py` against both manifests
+* Decisions made
+    - No blocking amendments; one advisory recorded (machine-readable `stockroom shim --json` report deferred to m3 — no consumer exists yet, YAGNI)
+
+## 2026-07-08 - PLAN (REWORK) - COMPLETE
+
+* Work completed
+    - Operator vetoed the always-scan runtime resolution at the preflight→build gate: hard constraint "the shim ALWAYS finds the right stockroom — succeed correctly or refuse, never guess"; also flagged layout-coupled root-list maintenance and supply-chain injection via version-string ranking
+    - Verified both harnesses hand plugin hooks the authoritative install root (`CURSOR_PLUGIN_ROOT` — docs + staff confirmation + cursor-warehouse's live hooks.json on this machine; `CLAUDE_PLUGIN_ROOT` — docs; Claude retains the previous cache dir ~7 days post-update)
+    - Q1 creative doc rewritten (supersedes scan design); Q2 notes revised; `tasks.md` plan rebuilt: 8 steps, hook artifacts in scope, packaging-contract tests for the hook wiring
+* Decisions made
+    - Baked-only succeed-or-refuse shim: uv check → baked-dir validity → exec; one-line owner-appropriate remedies; **no resolution logic anywhere in the shim**
+    - Staleness healing via sessionStart hook `shim rectify` using the harness-provided plugin root (dashboard-hook discipline amended, operator-sanctioned: launch dashboard *and* rectify shim; still never errors/blocks)
+    - Two-harness resolution via explicit ownership marker: single writer per shim; init declines against a live foreign shim; takeover only when the incumbent's baked dir is dead *and* `--takeover` is explicit; `make shim` owns `dev` shims that harness hooks never touch
+    - Pinned/normal mode split collapsed — every shim is baked-only
+* Insights
+    - The env-var-delivered root eliminates harness-layout knowledge from every component (shim: none; rectify: root is an argument; only committed hooks.json touches `${*_PLUGIN_ROOT}` — the artifact those vars exist for)
+    - Write path is now harness → plugin-shipped hook → tested engine → `~/.local/bin`; no ambient filesystem state can trigger or influence a shim write

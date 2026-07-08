@@ -1,13 +1,15 @@
 # Active Context
 
 ## Current Task: p3-m2-stockroom-shim
-**Phase:** PLAN - COMPLETE
+**Phase:** PLAN (REWORK) - COMPLETE, PREFLIGHT re-run in progress
 
 ## What Was Done
-- Component analysis: template (`src/stockroom/shim_template.sh`), generator (`stockroom.shim` module CLI), dispatcher row, `Makefile` `shim` target, README rewrite, `REUSE.toml` `.sh` re-assert
-- Two open questions resolved via creative phase (both high confidence): always-scan version-ranked staleness healing (`creative-shim-staleness-resolution.md`) and dispatcher-subcommand generation surface with in-package template (`creative-shim-generation-surface.md`)
-- Test plan: three new test files (`test_shim.py`, `test_shim_runtime.py`, `test_shim_cli.py`) plus `test_dispatcher_cli.py` / `test_licensing.py` extensions; runtime behaviors tested by executing the rendered shim against a fixture `HOME` with a stub `uv`
-- Six-step implementation plan written to `tasks.md`; key portability catch: `sort -V` is not POSIX — use numeric dot-field sort
+- **Operator decisions (2026-07-08, at the preflight→build gate):**
+  - HARD NO on any runtime self-resolution in the shim — succeed correctly or refuse; never guess
+  - Session-start hook rectifies the shim (feasibility confirmed: both harnesses export the plugin root to hook processes)
+  - Two-harness case: explicit ownership; init declines to manage a live foreign shim; takeover only against a dead incumbent
+- Q1 creative doc rewritten (baked-only shim + hook rectification + ownership supersedes always-scan); Q2 notes revised (pinned mode collapsed; `install`/`rectify` subactions)
+- Plan rebuilt in `tasks.md`: 8 implementation steps; new artifacts `hooks/cursor-hooks.json` + `hooks/claude-hooks.json` + manifest pointers; packaging-contract tests pin the hook wiring; live hook firing is operator-artisanal (flagged for QA)
 
 ## Next Step
-- Preflight phase (autonomous): validate the plan via the `niko-preflight` skill
+- Re-run preflight on the reworked plan, then stop at the build gate
