@@ -100,3 +100,15 @@ Milestone m2 of L4 project `p3-onboarding-cli-scheduling`: build the bake-then-v
     - The two `ShimReport` no-write construction sites (install vs refusal) are acceptable as-is — consolidating them would add indirection for no duplication payoff
 * Insights
     - Live in-harness hook firing remains the operator's artisanal check (needs a real plugin install; `make localdev` mirrors only `skills/`) — carried forward to reflect/archive
+
+## 2026-07-08 - REFLECT - COMPLETE
+
+* Work completed
+    - Full-lifecycle reflection written (`reflection-p3-m2-stockroom-shim.md`): requirements 100% delivered plus one unplanned licensing pin test; 8/8 plan steps executed in order (best plan fidelity yet); both creative decisions held with zero friction
+    - Persistent files reconciled: build-time updates to `systemPatterns.md`/`techContext.md` confirmed sufficient; one surgical techContext fix (dispatcher→shim cross-reference); `productContext.md` untouched
+* Decisions made
+    - None — reflection surfaced no course corrections for this milestone
+* Insights
+    - Rendered-into-shell text is an injection surface even first-party: keep substitution values shell-inert and pin output shape in tests
+    - Creative phases with security/trust flavor should ask "what must this component *never* do?" before ranking candidate algorithms — the m2 veto/rework was the cost of skipping that question
+    - Moving complexity out of untestable layers (sh) into tested ones (Python) converts build risk into ordinary TDD work — treat it as a design goal

@@ -226,7 +226,8 @@ help/error paths free of heavy imports. `stockroom.migrate` gained its CLI
 here (`python -m stockroom.migrate`): it migrates the warehouse to the schema
 head through the `warehouse.open()` chokepoint (creating a missing warehouse —
 the explicit schema bootstrap) and reports the resulting version. The on-path
-`stockroom` shim that execs into this dispatcher is Phase-3 m2.
+`stockroom` shim that execs into this dispatcher is the Phase-3 m2
+`stockroom.shim` (see the next section).
 
 ## On-path shim (`stockroom.shim`)
 
