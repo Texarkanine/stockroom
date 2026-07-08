@@ -80,3 +80,13 @@ Milestone m3 of L4 project `p3-onboarding-cli-scheduling`: build the `sr-initial
     - B14 self-skips when torch is importable, making it the exact complement of the `importorskip` real-model smoke (each environment runs one of the pair)
 * Insights
     - Live-verifying examples before writing them into prose caught two real bugs the unit suite could not: the `--project` remedy that would have been a dead command, and `make shim` baking relative paths into a dead shim (`uv --directory` moves the cwd)
+
+## 2026-07-08 - QA - COMPLETE (PASS)
+
+* Work completed
+    - Semantic review of the full build against the plan and creative decision: KISS/DRY (flat module mirroring `stockroom.shim`, no new abstraction layers), YAGNI (rejected advisories stayed rejected — no `--json`, no shim-status fact), completeness (all 16 behaviors implemented and asserted; every plan-step-4 SKILL.md item present), regression (dispatcher/test/licensing conventions all followed; REUSE 194/194), integrity (no debug artifacts or placeholders), documentation (README/techContext/systemPatterns updated with the change)
+    - `.qa-validation-status` written PASS; no fixes required
+* Decisions made
+    - New techContext/systemPatterns sections keep those files' existing hard-wrapped paragraph style (consistency with surrounding content over the no-hard-wrap preference) — recorded, not changed
+* Insights
+    - The B14/B12 complement (subprocess torch-free smoke self-skips when torch is importable; the real-model test skips when it is not) means every environment runs exactly one of the pair — the loud-failure contract is never untested anywhere
