@@ -54,3 +54,16 @@ Milestone m3 of L4 project `p3-onboarding-cli-scheduling`: build the `sr-initial
     - No blocking findings; one advisory recorded (a `shim`-status fact in `doctor probe` was considered for re-run idempotency and rejected — `command -v stockroom` in skill prose is simpler; revisit only if m4 needs it)
 * Insights
     - `test_dispatcher_cli.py`'s fingerprint table makes the seventh-row extension mechanical: add `doctor` to the tuple and `"probe"` as its fingerprint
+
+## 2026-07-08 - PLAN (AMENDED AT GATE) - COMPLETE
+
+* Work completed
+    - Operator review at the preflight→build gate raised four points; all answered and folded into `tasks.md` (no component/dependency changes — preflight PASS stands)
+    - Confirmed the operator's user-level `~/.config/uv/uv.toml` (pytorch-cu126 index) is unnecessary and unread under the planned path: provisioning carries the index explicitly with `--no-config`, and that config file is the canonical instance of the ambient state the o9 spike's hermetic rules defend against
+* Decisions made
+    - **Errmsg ratchet is now a stated invariant**: every init-path failure carries the next action; `doctor` prints exact commands (it knows `APP_DIR`); B8/B9/B10/B14 assert remedy content, not just failure — torch-missing must name the engine environment (the "I have torch globally" trap)
+    - **Self-managed-torch branch added to the skill**: state the requirement (torch importable in the engine env, any build that passes smoke), let the user install their way; the smoke test is the gate, not the recipe
+    - **Idempotent re-entry stated**: no progress file — the environment is the state; re-running `sr-initialize` re-probes and skips green steps, making "come back once you did that" a supported flow
+    - **Engine resolution falls back sibling-relative** (`../sr-search` from the skill's own dir, the `sr-search` precedent) so `make localdev` trials work without `*_PLUGIN_ROOT`; unset plugin roots signal dev context (shim defers to `make shim`; a harness-owner install against the live dev shim is a correctly-relayed ownership refusal)
+* Insights
+    - The probe/smoke split absorbed every operator scenario without structural change — verification-as-the-gate is what makes provisioning method-agnostic

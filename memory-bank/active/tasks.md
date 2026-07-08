@@ -64,6 +64,10 @@ Never-do list (from the creative exploration, asked first per the m2 reflection 
 
 Plus: all Python test-first; skill prose examples executed live before being written in (project invariant); `probe` must run torch-free; POSIX only; green `make ci` (incl. REUSE) at the milestone boundary.
 
+**Errmsg ratchet** (operator-set at the preflight→build gate): every init-path failure message must carry the *next action*, such that addressing it moves the user at least one step closer to a green setup. Naming the problem is not enough. `doctor` knows `APP_DIR`, so its remedies print exact commands (e.g. torch-missing names the engine environment and the literal `uv pip install torch --no-config --index <url>` line against it — the "I have torch globally" user must learn *where* torch has to live, or they loop). Tests assert remedy content, not just failure.
+
+**Idempotent re-entry — the environment is the state**: `sr-initialize` keeps no progress file; re-running it re-probes and skips whatever is already green (torch present → skip provisioning, go to smoke; shim owned and current → no-op rewrite). This is what makes "go install torch your way and come back" a supported flow rather than a dead end.
+
 ## Open Questions
 
 - [x] **Q1 — Onboarding logic surface (Python/prose split)** → Resolved: read-only `stockroom doctor` module (`probe` torch-free facts + `smoke` loud-failing real-encoder check) as the dispatcher's seventh subcommand, with skill prose owning bootstrap, the human-confirmed wheel choice, provisioning, and shim binding via `stockroom shim install` (see `memory-bank/active/creative/creative-onboarding-logic-surface.md`)
@@ -85,16 +89,16 @@ Plus: all Python test-first; skill prose examples executed live before being wri
 
 **`doctor smoke` — loud-failing verification** (`test_doctor.py`, unit with injection):
 
-- B8: torch missing (injected) → exactly one stderr line diagnosing "torch not installed — provision it first" (wording approximate), exit 1, no traceback.
-- B9: encoder construction/encode raises (injected factory) → one stderr line naming the failure, exit 1 (the wrong-wheel kernel-crash surface).
-- B10: encode returns a wrong-width vector (injected) → failure, exit 1 (dimension mismatch is a broken setup, not success).
+- B8: torch missing (injected) → exactly one stderr line, exit 1, no traceback — and the line is a **ratchet**: it names the engine environment (`APP_DIR`) and contains the literal provisioning command (`uv pip install torch --no-config --index`), asserted in the test.
+- B9: encoder construction/encode raises (injected factory) → one stderr line naming the failure **plus** the next action (wheel/GPU mismatch → re-run `sr-initialize` and pick a different index), exit 1 (the wrong-wheel kernel-crash surface).
+- B10: encode returns a wrong-width vector (injected) → failure with an actionable line (same re-pick remedy), exit 1 (dimension mismatch is a broken setup, not success).
 - B11: happy path (injected fake torch + fake encoder) → stdout carries torch version, `cuda.is_available()` result, and an `ok` summary; exit 0.
 - B12: real-model smoke — `importorskip("torch")`-gated: `run_smoke` with the real `BgeEncoder` encodes one string and exits 0 (the Linux/CUDA validation, machine-local).
 
 **CLI surface** (`test_doctor_cli.py`, subprocess convention):
 
 - B13: `python -m stockroom.doctor probe` exits 0 in a torch-free env and prints the expected fact keys.
-- B14: `python -m stockroom.doctor smoke` in a torch-free env exits 1 with the one-line diagnosis (the CI-testable loud-failure).
+- B14: `python -m stockroom.doctor smoke` in a torch-free env exits 1 with the one-line ratchet diagnosis (remedy command included — the CI-testable loud-failure).
 - B15: `python -m stockroom.doctor --help` exits 0 and documents both actions.
 
 **Dispatcher integration** (`test_dispatcher_cli.py` extensions):
@@ -124,14 +128,14 @@ Covered above by design: absent/broken `nvidia-smi` (B3/B4), absent torch (B5/B8
     - Creative ref: probe is facts-only — no index-recommendation logic in Python.
 2. **`stockroom.doctor` — smoke** (red→green)
     - Files: `doctor.py`, `test_doctor.py`
-    - Changes: `run_smoke(*, torch_importer=…, encoder_factory=BgeEncoder-by-default) -> int` printing version + CUDA availability, encoding one string, asserting `EMBED_DIM` width; one-stderr-line failures (B8–B11 first, then implement; B12 as the gated real-model test).
+    - Changes: `run_smoke(*, torch_importer=…, encoder_factory=BgeEncoder-by-default) -> int` printing version + CUDA availability, encoding one string, asserting `EMBED_DIM` width; one-stderr-line **ratchet** failures — each remedy carries the next action, torch-missing prints the exact engine-env install command (B8–B11 first, then implement; B12 as the gated real-model test).
     - Creative ref: smoke goes through the production `BgeEncoder` path, not a bare torch import.
 3. **doctor CLI + dispatcher row** (red→green)
     - Files: `doctor.py` (`_build_parser` flat argparse `probe|smoke`, `main(argv)`), `tests/test_doctor_cli.py` (new), `stockroom/__main__.py` (+1 `SUBCOMMANDS` row), `tests/test_dispatcher_cli.py` (tuple + `doctor` fingerprint)
     - Changes: B13–B16 red first; wire `main` and the dispatcher row to green.
 4. **`skills/sr-initialize/SKILL.md`** (prose)
     - Files: `skills/sr-initialize/SKILL.md` (new)
-    - Changes: frontmatter matching sibling conventions (operator-facing; model-invocable like siblings); the ordered flow — uv prerequisite check, harness/owner detection (`CURSOR_PLUGIN_ROOT` vs `CLAUDE_PLUGIN_ROOT`), engine-dir resolution, initial `uv sync --frozen --no-config` (the one legitimate exact sync, ordering stated), `stockroom doctor probe` via the bootstrap incantation, the wheel-recommendation guidance (Linux+NVIDIA → matching `cu*` with the `sm_`-generation caveat; macOS / no GPU → `cpu`) + explicit user confirmation, `uv pip install torch --no-config --index <chosen>`, `doctor smoke` (loud-fail handling: wrong wheel → re-pick index, retry), `stockroom shim install --owner <harness>` (relay refusals; `--takeover` only on explicit consent; PATH warning relay), and the m4 forward-pointer (scheduling/first run land next milestone).
+    - Changes: frontmatter matching sibling conventions (operator-facing; model-invocable like siblings); the ordered flow — uv prerequisite check, harness/owner detection (`CURSOR_PLUGIN_ROOT` vs `CLAUDE_PLUGIN_ROOT`; **neither set → dev-checkout context**: the skill says so and defers the shim to `make shim` unless the user insists), engine-dir resolution (**plugin-root env var when set, else sibling-relative to the skill's own directory** — `../sr-search`, the `sr-search` delegation precedent; works identically for plugin installs and the `make localdev` symlink mirror since committed layout = install layout), initial `uv sync --frozen --no-config` (the one legitimate exact sync, ordering stated), `stockroom doctor probe` via the bootstrap incantation, the wheel-recommendation guidance (Linux+NVIDIA → matching `cu*` with the `sm_`-generation caveat; macOS / no GPU → `cpu`) + explicit user confirmation, **the self-managed-torch branch** (user knows their setup → state the requirement — torch importable inside the engine environment at `APP_DIR`, any build that passes smoke — let them install it their way, in-conversation or later; the smoke test is the gate, not the recipe), `uv pip install torch --no-config --index <chosen>` for the guided path, `doctor smoke` (loud-fail handling: wrong wheel → re-pick index, retry), `stockroom shim install --owner <harness>` (relay refusals — including the dev-shim ownership refusal a localdev tester will correctly hit; `--takeover` only on explicit consent; PATH warning relay), **idempotent re-run semantics stated** (probe-driven skip; the environment is the state — "come back later" resumes where the facts say), and the m4 forward-pointer (scheduling/first run land next milestone).
     - Creative ref: the skill is the sanctioned bootstrapper; every shipped example executed live before written in.
 5. **Docs**
     - Files: `README.md`, `memory-bank/techContext.md`, `memory-bank/systemPatterns.md`
@@ -151,6 +155,8 @@ No new technology — `platform` and `subprocess` are stdlib; `nvidia-smi` is pr
 - **First `BgeEncoder` construction downloads the model**: on a cold machine `doctor smoke` needs network once; the skill prose says so (and the pre-warm is a feature — first embed won't pay it). The gated test is safe on this machine (model already cached).
 - **Wrong-wheel failures can be ugly (CUDA kernel errors deep in torch)**: `run_smoke` catches broad exceptions from the encode and compresses to one stderr line naming the exception class + message (B9) — loud, but clean.
 - **Skill prose drift risk**: mitigated by keeping prose steps to judgment/consent only; every mechanical step is a one-line tested-CLI call, and examples are live-verified before landing.
+- **"I already have torch" confusion (globally-installed torch is invisible to the engine venv)**: the smoke's torch-missing ratchet names the engine environment explicitly and prints the exact install command against it (B8/B14), so the self-managed user learns where torch must live on the first failure.
+- **Localdev trial run**: `make localdev` mirrors `skills/`, so `sr-initialize` is invocable in-harness from the checkout; sibling-relative engine resolution keeps it working with `CURSOR_PLUGIN_ROOT` unset, and the existing dev-owned shim exercises the ownership-refusal relay rather than being clobbered.
 - **Not L4**: single new module + one prose skill + doc accretion — comfortably one workstream.
 
 ## Status
