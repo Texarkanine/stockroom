@@ -1,12 +1,13 @@
 # Active Context
 
 ## Current Task: p3-m3-sr-initialize-torch-cli
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- L4 milestone advancement: m2 marked complete, m2 sub-run ephemeral state cleared
-- m3 classified as **Level 3** (complete feature, multiple components — prompt skill plus tested helpers for prerequisites, platform/accelerator detection, torch provisioning, smoke test, shim binding — no architectural implications)
-- Fresh sub-run ephemeral files created
+- Component analysis: new `stockroom.doctor` module (probe + smoke), dispatcher seventh row, new `skills/sr-initialize/SKILL.md`, docs accretion; m2's `stockroom.shim` and `stockroom.embed.BgeEncoder` reused unchanged
+- Creative phase resolved the one open question (Python/prose split): read-only `doctor` in tested Python; bootstrap, wheel-choice judgment + user confirmation, provisioning, and shim binding in skill prose (`creative-onboarding-logic-surface.md`); Q2 (detection/recommendation) collapsed into it
+- Test plan: 16 behaviors; two new test files (`test_doctor.py`, `test_doctor_cli.py`) + `test_dispatcher_cli.py` extension; torch-free via injection except one `importorskip("torch")` real-model smoke
+- Six-step ordered implementation plan written to `tasks.md` (steps 1–3 explicit red→green TDD cycles; step 4 prose with live-verified examples; step 6 live Linux/CUDA + CPU validation and full `make ci`)
 
 ## Next Step
-- Load the Level 3 workflow and execute its next phase (PLAN, with a CREATIVE phase expected for the Python-vs-prose split)
+- Preflight phase (`niko-preflight` skill) to validate the plan

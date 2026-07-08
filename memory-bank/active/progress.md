@@ -29,3 +29,17 @@ Milestone m3 of L4 project `p3-onboarding-cli-scheduling`: build the `sr-initial
     - The bootstrap boundary is irreducible: the uv check, engine-dir resolution, and initial exact sync cannot be engine Python because the engine only runs through uv — accepting that dissolves the Python/prose tension
     - This is the established judgment-vs-mechanism split (engine superpowers / wrapper skills) applied to onboarding, not a new pattern
     - The initial `uv sync --frozen --no-config` is the one legitimate exact sync (torch does not exist yet); ordering is load-bearing and the skill must state it
+
+## 2026-07-08 - PLAN - COMPLETE
+
+* Work completed
+    - Component analysis: `stockroom.doctor` (new read-only module, probe + smoke), dispatcher seventh `SUBCOMMANDS` row, `skills/sr-initialize/SKILL.md` (new prose skill), README/techContext/systemPatterns accretion; `stockroom.shim` and `BgeEncoder` reused unchanged; REUSE globs already cover the new paths
+    - Test plan: 16 behaviors — probe facts/graceful-degradation (B1–B7), smoke loud-failure shapes incl. wrong-width vectors (B8–B11), one `importorskip("torch")` real-model smoke (B12), CLI + dispatcher integration (B13–B16); new `test_doctor.py` / `test_doctor_cli.py`, extended `test_dispatcher_cli.py`
+    - Six-step ordered plan in `tasks.md`: probe → smoke → CLI/dispatcher (each red→green) → SKILL.md prose → docs → live validation (Linux/CUDA + CPU via `CUDA_VISIBLE_DEVICES=""`) + `make ci`
+* Decisions made
+    - The torch-absent smoke diagnosis (exit 1, one stderr line) is CI-testable torch-free by construction — the loud-failure contract does not hide behind the torch skip
+    - `nvidia-smi` probed via `--query-gpu=` CSV mode; every subprocess failure is a reportable fact, never an error
+    - Full-flow onboarding verification is live/artisanal (prose orchestration over tested units), not pytest — consistent with the project invariant
+* Insights
+    - The m2 acceptance-spine analogue for m3 is B10: a wrong-width vector must fail the smoke — "encodes but corrupts" is the subtlest wrong-wheel failure mode
+    - m4 will reuse `doctor probe`/`doctor smoke` to validate the environment before installing scheduler entries
