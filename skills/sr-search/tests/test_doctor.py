@@ -210,6 +210,9 @@ def test_smoke_torch_missing_is_ratcheted_diagnosis(capsys) -> None:
     line = _one_stderr_line(capsys)
     assert str(default_app_dir()) in line
     assert "uv pip install torch --no-config --index" in line
+    # --directory, not --project: uv pip only finds the engine venv via the
+    # working directory, so a --project remedy would be a dead command.
+    assert f"--directory {default_app_dir()}" in line
 
 
 def test_smoke_encoder_failure_names_error_and_next_action(capsys) -> None:

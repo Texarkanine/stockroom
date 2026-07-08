@@ -174,11 +174,14 @@ def run_smoke(
     try:
         torch = torch_importer("torch")
     except Exception:
+        # --directory (not --project): uv pip discovers the venv from the
+        # working directory, so --project alone fails with "No virtual
+        # environment found" (verified live).
         return fail(
             f"torch is not installed in the engine environment at {app_dir}",
             "provision it there with "
             f"`uv pip install torch --no-config --index {_TORCH_INDEX_BASE}/<build> "
-            f"--project {app_dir}` (or re-run sr-initialize)",
+            f"--directory {app_dir}` (or re-run sr-initialize)",
         )
 
     print(f"torch: {torch.__version__}")

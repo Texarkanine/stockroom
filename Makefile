@@ -53,8 +53,10 @@ format: sync ## Apply ruff format
 format-check: sync ## Check ruff format (no writes)
 	$(UV_RUN) ruff format --check
 
+# Absolute paths are load-bearing: `uv --directory` moves the cwd into the
+# engine dir, so relative PYTHONPATH/--app-dir values would resolve wrong.
 shim: ## Install the on-path stockroom shim baking this checkout (owner: dev)
-	PYTHONPATH=$(ENGINE)/src $(UV_RUN) python -m stockroom shim install --owner dev --app-dir $(ENGINE)
+	PYTHONPATH=$(CURDIR)/$(ENGINE)/src $(UV_RUN) python -m stockroom shim install --owner dev --app-dir $(CURDIR)/$(ENGINE)
 
 reuse: sync ## Run reuse lint on the whole repo (REUSE.toml at root)
 	$(UV) run --project $(ENGINE) --no-sync $(UV_NO_CFG) reuse lint
