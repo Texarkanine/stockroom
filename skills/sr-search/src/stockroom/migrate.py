@@ -4,7 +4,10 @@ This module is the *applied-state* half of the migration subsystem (discovery
 — "what migrations exist" — lives in :mod:`stockroom.migrations`). It owns a
 ``schema_version`` bookkeeping table and applies pending migrations in
 ascending version order, each in its own transaction together with its
-bookkeeping row.
+bookkeeping row. It is also runnable (``python -m stockroom.migrate``, or
+``stockroom migrate`` via the dispatcher): the CLI migrates the warehouse to
+the schema head through the :func:`stockroom.warehouse.open` chokepoint and
+reports the resulting version.
 
 Key contract decisions (see
 ``memory-bank/active/creative/creative-warehouse-concurrency-locking.md``):

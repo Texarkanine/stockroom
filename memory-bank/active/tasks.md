@@ -99,4 +99,4 @@ No new technology - validation not required (stdlib `argparse` + existing projec
 - [x] Technology validation complete
 - [x] Preflight (PASS)
 - [x] Build (all 5 steps; `make ci` green: 277 passed, 2 torch-gated skips, REUSE compliant)
-- [ ] QA
+- [x] QA (PASS — two doc gaps fixed in QA: `migrate.py` module docstring now mentions runnability; `techContext.md` gained the dispatcher section; `make ci` re-run green)

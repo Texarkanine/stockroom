@@ -211,6 +211,23 @@ model-invocable judgement skill that routes a question to the `sr-query` /
 delegation is by sibling skill name with a relative-path fallback (see
 `systemPatterns.md` → search-surface architecture).
 
+## CLI dispatcher (`python -m stockroom`)
+
+The Phase-3 m1 single CLI entrypoint lives in
+[`stockroom.__main__`](../skills/sr-search/src/stockroom/__main__.py):
+`python -m stockroom <subcommand>` dispatches the first token to the existing
+module CLIs (`query`, `semantic`, `ingest`, `embed`, `migrate`), forwarding
+everything after it verbatim to that module's own `main(argv)` and returning
+its exit code unchanged — modules keep sole ownership of their flags, so
+`<subcommand> --help` is the module's own help. Top-level `--help` lists the
+subcommands and `--version` prints `stockroom.__version__` (the m2 shim's
+identity probe). Dispatch imports the target module lazily, keeping the
+help/error paths free of heavy imports. `stockroom.migrate` gained its CLI
+here (`python -m stockroom.migrate`): it migrates the warehouse to the schema
+head through the `warehouse.open()` chokepoint (creating a missing warehouse —
+the explicit schema bootstrap) and reports the resulting version. The on-path
+`stockroom` shim that execs into this dispatcher is Phase-3 m2.
+
 ## Read-time truncation (`stockroom.truncate`)
 
 The Phase-2 milestone-3 shared output-truncation mechanism lives in

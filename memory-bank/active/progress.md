@@ -49,3 +49,11 @@ Milestone m1 of L4 project `p3-onboarding-cli-scheduling`: build the tested `pyt
     - Help-forwarding tests fingerprint each module by a unique flag/phrase, keeping torch-heavy subcommands exercised torch-free
 * Insights
     - The dispatcher needed zero changes to any module CLI — the uniform `main(argv) -> int` shape across modules made wrapping trivial
+
+## 2026-07-08 - QA - COMPLETE (PASS)
+
+* Work completed
+    - Semantic review against the plan: KISS/DRY/YAGNI/completeness/regression/integrity all clean — no over-engineering, no speculative code, no debris, every planned behavior implemented and tested
+    - Two trivial documentation gaps fixed in QA: `migrate.py` module docstring now states the module is runnable; `memory-bank/techContext.md` gained a "CLI dispatcher" section (the persistent-doc counterpart of the README update)
+    - `make ci` re-run after fixes: fully green (277 passed / 2 torch-gated skips, REUSE compliant)
+    - `.qa-validation-status` written: PASS
