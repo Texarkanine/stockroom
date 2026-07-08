@@ -171,4 +171,4 @@ No new dependencies — template is POSIX sh + coreutils; generation/policy is s
 - [x] Technology validation complete
 - [x] Preflight (re-run after rework: PASS)
 - [x] Build (all 8 steps; 311 passed / 2 torch-skips; `make ci` green)
-- [ ] QA
+- [x] QA (PASS — one trivial fix: `field(default="")` → plain default in `ShimReport`; live hook firing deferred to operator artisanal pass)

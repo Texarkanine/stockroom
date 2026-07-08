@@ -89,3 +89,14 @@ Milestone m2 of L4 project `p3-onboarding-cli-scheduling`: build the bake-then-v
 * Insights
     - The stub-`uv`-prints-argv fixture makes the entire exec contract (baked `--project`, `PYTHONPATH`, `--no-sync`, `--no-config`, verbatim arg forwarding) assertable without uv, torch, or a real engine run — the same trick should serve m4's scheduler-entry verification
     - Claude and Cursor hook schemas differ in timeout units too (seconds vs milliseconds), not just shape — one more reason the dual-config pattern beats a shared file
+
+## 2026-07-08 - QA - COMPLETE (PASS)
+
+* Work completed
+    - Semantic review of the full build diff against the plan (KISS/DRY/YAGNI/completeness/regression/integrity/documentation): every plan requirement present and tested; no stubs, TODOs, debug artifacts, or speculative code; new code follows the module-CLI, subprocess-test, and repo-root-fixture conventions
+    - One trivial fix applied: redundant `field(default="")` on `ShimReport.verify_detail` flattened to a plain default (KISS); `make ci` re-run green (311 passed / 2 torch-skips, ruff clean, reuse compliant)
+    - `.qa-validation-status` written PASS
+* Decisions made
+    - The two `ShimReport` no-write construction sites (install vs refusal) are acceptable as-is — consolidating them would add indirection for no duplication payoff
+* Insights
+    - Live in-harness hook firing remains the operator's artisanal check (needs a real plugin install; `make localdev` mirrors only `skills/`) — carried forward to reflect/archive

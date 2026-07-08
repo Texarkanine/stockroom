@@ -30,7 +30,7 @@ import shlex
 import subprocess
 import sys
 import tempfile
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
 from stockroom import __version__
@@ -70,7 +70,7 @@ class ShimReport:
     path_ok: bool | None = None
     verify_attempted: bool = False
     verify_ok: bool | None = None
-    verify_detail: str = field(default="")
+    verify_detail: str = ""
 
 
 def default_app_dir() -> Path:
