@@ -10,7 +10,7 @@ Stockroom is forward-looking — almost no product code exists yet, so this docu
 - Ingest is **ETL, not mirroring**: kept fields reshaped into stockroom's schema, **tool inputs only** (no outputs), no verbatim raw layer.
 - The schema is **harness-labeled** (one shared set of tables, a `harness` column per row) and is designed **empirically** from real logs, not transliterated from any reference.
 - **Migrations are first-class from Phase 1** (forward-only, `schema_version` record, lazy gate, exclusive write lock, concurrency-safe reader degradation). "Never break your warehouse" is a tested promise.
-- **Hook discipline**: the session-start hook *only* launches the dashboard — never ingests, never migrates, never errors.
+- **Hook discipline** (amended Phase-3 m2, operator-sanctioned): the session-start hook launches the dashboard *and* rectifies the on-path shim — never ingests, never migrates, never errors, never blocks.
 
 Memory-bank strategy: the rich `planning/` docs are authoritative during the build; durable knowledge accretes here, and the docs are distilled away and deleted at the final roadmap step (see `productContext.md` / `techContext.md` cut gates).
 
@@ -138,6 +138,10 @@ fabricated path structurally impossible to store. This shipped as migration
 `0002` (the framework's first real schema-changing, data-preserving upgrade;
 structural, no backfill — re-ingest repopulates), with `0001` and its snapshot
 frozen. **Verify-don't-invert generalizes to any future lossy harness encoding.**
+
+## Baked-only succeed-or-refuse shim, healed by owner-guarded hook rectification
+
+The on-path `stockroom` command (`~/.local/bin/stockroom`) is a generated POSIX-sh shim with a **baked** engine dir and zero resolution logic — an operator hard constraint: *the shim always finds the right stockroom — succeed correctly or refuse, never guess.* No scanning, no ranking, no fallback; a dead baked dir is a one-line refusal naming the owner-appropriate remedy. All policy (ownership, takeover, rectify no-op rules, atomic writes) lives in the tested Python layer [`stockroom.shim`](../skills/sr-search/src/stockroom/shim.py); the rendered script is environment plumbing only. Exactly three writers, all through that one module: `sr-initialize` (`shim install --owner <harness>`), each harness's sessionStart hook (`shim rectify --owner <harness> --app-dir ${*_PLUGIN_ROOT}/skills/sr-search` — the harness-provided root is what removes layout knowledge from every component), and `make shim` (`--owner dev`). **Single writer per shim**: the `# STOCKROOM_OWNER=` header marker gates every rewrite; a foreign shim is replaced only when its baked dir is dead *and* `--takeover` is explicit; `rectify` never creates and never touches a foreign shim. The write path is harness → plugin-shipped hook → tested engine → `~/.local/bin`; no ambient filesystem state can trigger or influence a shim write (supply-chain posture). Decision record: `memory-bank/active/creative/creative-shim-staleness-resolution.md` (until archived).
 
 ## Clean-room boundary, with a build-time provenance procedure
 

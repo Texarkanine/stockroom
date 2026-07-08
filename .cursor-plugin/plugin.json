@@ -17,5 +17,6 @@
     "embeddings"
   ],
   "category": "developer-tools",
-  "skills": "./skills/"
+  "skills": "./skills/",
+  "hooks": "./hooks/cursor-hooks.json"
 }

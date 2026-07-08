@@ -123,6 +123,8 @@ flowchart TD
 
 ## Implementation Plan
 
+> **Build status:** all 8 steps complete (2026-07-08). Licensing *did* gain a test (`test_shell_inside_skill_resolves_agpl` — cheap, pins the `.sh` re-assert).
+
 1. **REUSE layer** — no testing for licensing needed. Licensing must be correct upon inspection but is not a tested property.
 2. **Template + `render`** — `tests/test_shim.py` (render cases) red → green
     - Files: `skills/sr-search/src/stockroom/shim_template.sh`, `skills/sr-search/src/stockroom/shim.py`
@@ -168,5 +170,5 @@ No new dependencies — template is POSIX sh + coreutils; generation/policy is s
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Preflight (re-run after rework: PASS)
-- [ ] Build
+- [x] Build (all 8 steps; 311 passed / 2 torch-skips; `make ci` green)
 - [ ] QA

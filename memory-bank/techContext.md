@@ -228,6 +228,35 @@ head through the `warehouse.open()` chokepoint (creating a missing warehouse —
 the explicit schema bootstrap) and reports the resulting version. The on-path
 `stockroom` shim that execs into this dispatcher is Phase-3 m2.
 
+## On-path shim (`stockroom.shim`)
+
+The Phase-3 m2 on-path `stockroom` command is a generated POSIX-sh shim
+(default `~/.local/bin/stockroom`) rendered from the in-package template
+[`shim_template.sh`](../skills/sr-search/src/stockroom/shim_template.sh) by
+[`stockroom.shim`](../skills/sr-search/src/stockroom/shim.py) (the dispatcher's
+sixth subcommand: `stockroom shim install|rectify`). The shim is **baked-only
+and succeed-or-refuse**: it checks `uv` (one-line error, exit 127), checks the
+baked `APP_DIR/pyproject.toml` (one-line owner-appropriate remedy), then execs
+the dispatcher through the torch-safe contract (`PYTHONPATH="$APP_DIR/src"
+exec uv run --project "$APP_DIR" --no-sync --no-config python -m stockroom
+"$@"`). It carries **no resolution logic** — never scans, ranks, or guesses.
+
+All policy lives in the tested Python layer: ownership (a
+`# STOCKROOM_OWNER=<cursor|claude|dev>` header marker; only the owner may
+rewrite; takeover of a foreign shim requires a *dead* incumbent baked dir
+*and* the explicit `--takeover` flag), atomic 0o755 writes, PATH-membership
+reporting, and a conditional install-time `stockroom --version` verify.
+Staleness healing is hook-driven: each harness's sessionStart hook
+([`hooks/cursor-hooks.json`](../hooks/cursor-hooks.json) /
+[`hooks/claude-hooks.json`](../hooks/claude-hooks.json), pointed to by the
+`"hooks"` key in each plugin manifest) runs `stockroom shim rectify --owner
+<harness> --app-dir ${*_PLUGIN_ROOT}/skills/sr-search` — silenced, short
+timeout, failures swallowed. `rectify` rewrites only an owned, drifted shim
+and never creates one. Dev parity: `make shim` installs with owner `dev`
+baking the checkout; harness hooks never touch it. Decision records:
+`memory-bank/active/creative/creative-shim-{staleness-resolution,generation-surface}.md`
+(until archived).
+
 ## Read-time truncation (`stockroom.truncate`)
 
 The Phase-2 milestone-3 shared output-truncation mechanism lives in

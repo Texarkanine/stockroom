@@ -105,6 +105,70 @@ def test_all_version_sources_in_lockstep(
     assert claude_manifest["version"] == root_version
 
 
+@pytest.fixture(scope="module")
+def cursor_hooks(repo_root: Path) -> dict:
+    path = repo_root / "hooks" / "cursor-hooks.json"
+    assert path.is_file(), f"Cursor hook config missing: {path}"
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+@pytest.fixture(scope="module")
+def claude_hooks(repo_root: Path) -> dict:
+    path = repo_root / "hooks" / "claude-hooks.json"
+    assert path.is_file(), f"Claude hook config missing: {path}"
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def test_manifests_point_at_hook_configs(
+    cursor_manifest: dict, claude_manifest: dict
+) -> None:
+    """Both manifests carry a hooks pointer to their harness's config."""
+    assert cursor_manifest.get("hooks") == "./hooks/cursor-hooks.json"
+    assert claude_manifest.get("hooks") == "./hooks/claude-hooks.json"
+
+
+def _hook_command_entries(config: dict, harness: str) -> list[dict]:
+    """Extract the sessionStart command-hook entries per harness schema.
+
+    Cursor: ``{"version": 1, "hooks": {"sessionStart": [{"hooks": [entry]}]}}``.
+    Claude: ``{"hooks": {"SessionStart": [{"hooks": [entry]}]}}``.
+    """
+    key = "sessionStart" if harness == "cursor" else "SessionStart"
+    groups = config["hooks"][key]
+    return [entry for group in groups for entry in group["hooks"]]
+
+
+def test_cursor_hook_schema_and_rectify_command(cursor_hooks: dict) -> None:
+    """The Cursor config carries the version field and a silenced, timed-out
+    sessionStart command invoking shim rectify at the Cursor plugin root."""
+    assert cursor_hooks.get("version") == 1
+    entries = _hook_command_entries(cursor_hooks, "cursor")
+    assert entries, "no sessionStart command hooks"
+    for entry in entries:
+        assert entry["type"] == "command"
+        assert entry.get("timeout"), "hook must set a timeout"
+        cmd = entry["command"]
+        assert "${CURSOR_PLUGIN_ROOT}" in cmd
+        assert "shim rectify" in cmd
+        assert "--owner cursor" in cmd
+        assert ">/dev/null 2>&1" in cmd, "hook output must be silenced"
+
+
+def test_claude_hook_schema_and_rectify_command(claude_hooks: dict) -> None:
+    """The Claude config uses the SessionStart wrapper shape and a silenced,
+    timed-out command invoking shim rectify at the Claude plugin root."""
+    entries = _hook_command_entries(claude_hooks, "claude")
+    assert entries, "no SessionStart command hooks"
+    for entry in entries:
+        assert entry["type"] == "command"
+        assert entry.get("timeout"), "hook must set a timeout"
+        cmd = entry["command"]
+        assert "${CLAUDE_PLUGIN_ROOT}" in cmd
+        assert "shim rectify" in cmd
+        assert "--owner claude" in cmd
+        assert ">/dev/null 2>&1" in cmd, "hook output must be silenced"
+
+
 def test_release_config_syncs_both_manifests(release_config: dict) -> None:
     """release-please writes ``$.version`` into both plugin manifests."""
     extra_files = release_config["packages"]["."]["extra-files"]

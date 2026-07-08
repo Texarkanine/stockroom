@@ -74,3 +74,18 @@ Milestone m2 of L4 project `p3-onboarding-cli-scheduling`: build the bake-then-v
     - None blocking
 * Insights
     - `make localdev` mirrors only `skills/` — plugin-delivered hooks will not fire from a localdev mirror; live hook verification requires a real plugin install (recorded for the QA artisanal checklist)
+
+## 2026-07-08 - BUILD - COMPLETE
+
+* Work completed
+    - All 8 plan steps, each an explicit red→green TDD cycle: REUSE `.sh` re-assert; `shim_template.sh` + `render`; runtime behaviors (rendered script as subprocess, fixture `HOME`, stub `uv`); install/rectify ownership policy; `stockroom.shim` CLI + dispatcher sixth row; dual hook configs + manifest pointers; `make shim`; docs (README ad-hoc rewrite, techContext shim section, systemPatterns hook-discipline amendment + shim pattern)
+    - 30 new tests across `test_shim.py` / `test_shim_runtime.py` / `test_shim_cli.py`, plus extensions to `test_dispatcher_cli.py`, `test_licensing.py`, `test_packaging.py`; shared `stub_uv` fixture in `conftest.py`
+    - Full suite 311 passed / 2 torch-skips; `make ci` green end to end (lock-check, ruff, pytest, `reuse lint` 190/190)
+* Decisions made
+    - Remedy strings baked into the template must avoid shell-active characters (backticks in the dev remedy were command-substituted by the rendered script's double-quoted `echo`; the one-line-stderr runtime test caught it)
+    - Flat argparse (positional `install|rectify` + shared flags) instead of subparsers — single help page, preserves the module-owns-its-flags convention
+    - Licensing gained a cheap pin test (`test_shell_inside_skill_resolves_agpl`) despite the plan's inspection-only stance — zero-cost drift protection
+    - `make shim` deliberately has no `sync` dependency so installing the dev shim never strips out-of-band torch
+* Insights
+    - The stub-`uv`-prints-argv fixture makes the entire exec contract (baked `--project`, `PYTHONPATH`, `--no-sync`, `--no-config`, verbatim arg forwarding) assertable without uv, torch, or a real engine run — the same trick should serve m4's scheduler-entry verification
+    - Claude and Cursor hook schemas differ in timeout units too (seconds vs milliseconds), not just shape — one more reason the dual-config pattern beats a shared file

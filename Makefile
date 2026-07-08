@@ -15,7 +15,7 @@ UV_RUN := $(UV_DIR) run --no-sync
 # CPU-only (default): https://download.pytorch.org/whl/cpu
 TORCH_INDEX ?= https://download.pytorch.org/whl/cpu
 
-.PHONY: help sync lock lock-check test lint format format-check reuse ci torch localdev
+.PHONY: help sync lock lock-check test lint format format-check reuse ci torch localdev shim
 
 # localdev: mirror skills/ into .cursor/skills/stockroom-local so a harness can
 # load them "normally", without ever letting the mirror land in a commit.
@@ -52,6 +52,9 @@ format: sync ## Apply ruff format
 
 format-check: sync ## Check ruff format (no writes)
 	$(UV_RUN) ruff format --check
+
+shim: ## Install the on-path stockroom shim baking this checkout (owner: dev)
+	PYTHONPATH=$(ENGINE)/src $(UV_RUN) python -m stockroom shim install --owner dev --app-dir $(ENGINE)
 
 reuse: sync ## Run reuse lint on the whole repo (REUSE.toml at root)
 	$(UV) run --project $(ENGINE) --no-sync $(UV_NO_CFG) reuse lint

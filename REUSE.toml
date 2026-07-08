@@ -27,6 +27,7 @@ SPDX-License-Identifier = "LicenseRef-PPL-S"
 [[annotations]]
 path = [
     "skills/**/*.py",
+    "skills/**/*.sh",
     "skills/**/*.sql",
     "skills/**/pyproject.toml",
     "skills/**/uv.lock",

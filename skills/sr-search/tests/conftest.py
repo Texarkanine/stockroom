@@ -43,6 +43,31 @@ class FakeEncoder:
         return [byte / 255.0 for byte in raw]
 
 
+@pytest.fixture
+def stub_uv(tmp_path: Path) -> Path:
+    """Write a stub ``uv`` executable and return the bin dir containing it.
+
+    The stub prints its ``PYTHONPATH`` and each argument on its own labelled
+    line (``UV_PYTHONPATH:…`` / ``UV_ARG:…``) and exits 0, so the shim runtime
+    tests can assert the exact exec contract (baked ``APP_DIR``, torch-safe
+    flags, verbatim argument forwarding) without a real uv or engine run.
+    """
+    bin_dir = tmp_path / "stub-bin"
+    bin_dir.mkdir(exist_ok=True)
+    uv = bin_dir / "uv"
+    uv.write_text(
+        "#!/bin/sh\n"
+        "printf 'UV_PYTHONPATH:%s\\n' \"$PYTHONPATH\"\n"
+        'for arg in "$@"; do\n'
+        "    printf 'UV_ARG:%s\\n' \"$arg\"\n"
+        "done\n"
+        "exit 0\n",
+        encoding="utf-8",
+    )
+    uv.chmod(0o755)
+    return bin_dir
+
+
 @pytest.fixture(scope="session")
 def repo_root() -> Path:
     """Return the repository root: the nearest ancestor containing ``.git``.

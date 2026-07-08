@@ -60,3 +60,12 @@ def test_prompt_skill_resolves_ppls(license_map: dict[str, set[str]]) -> None:
     target = "skills/sr-search/SKILL.md"
     assert target in license_map, f"{target} not in SPDX report"
     assert "LicenseRef-PPL-S" in license_map[target]
+
+
+def test_shell_inside_skill_resolves_agpl(license_map: dict[str, set[str]]) -> None:
+    """The shim template (.sh inside skills/**) is software: re-asserted to
+    AGPL, not PPL-S."""
+    target = "skills/sr-search/src/stockroom/shim_template.sh"
+    assert target in license_map, f"{target} not in SPDX report"
+    assert "AGPL-3.0-or-later" in license_map[target]
+    assert "LicenseRef-PPL-S" not in license_map[target]
