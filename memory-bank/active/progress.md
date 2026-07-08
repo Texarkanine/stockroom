@@ -90,3 +90,14 @@ Milestone m3 of L4 project `p3-onboarding-cli-scheduling`: build the `sr-initial
     - New techContext/systemPatterns sections keep those files' existing hard-wrapped paragraph style (consistency with surrounding content over the no-hard-wrap preference) — recorded, not changed
 * Insights
     - The B14/B12 complement (subprocess torch-free smoke self-skips when torch is importable; the real-model test skips when it is not) means every environment runs exactly one of the pair — the loud-failure contract is never untested anywhere
+
+## 2026-07-08 - REFLECT - COMPLETE
+
+* Work completed
+    - Full-lifecycle reflection written to `memory-bank/active/reflection/reflection-p3-m3-sr-initialize-torch-cli.md`
+    - Persistent files reconciled: techContext/systemPatterns were already updated during the build's docs step; nothing else invalidated (productContext untouched)
+* Decisions made
+    - None — reflection is analytical
+* Insights
+    - `uv pip` and `uv run` resolve projects differently (`--directory` vs `--project`) — any rendered command targeting the engine venv must use the pip-safe form
+    - The live-example invariant is the integration layer the pytest suite deliberately doesn't own: both build surprises were uv CLI behaviors outside every injectable seam

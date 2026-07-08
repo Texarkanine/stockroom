@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: p3-m3-sr-initialize-torch-cli
-**Phase:** BUILD - COMPLETE
+**Phase:** REFLECT - COMPLETE (QA PASS, reflection written)
 
 ## What Was Done
 - All six plan steps executed in order, TDD red→green for every Python step:
@@ -22,5 +22,8 @@
 ## Deviations from Plan
 - None structural. Two in-flight corrections: the `--project`→`--directory` remedy fix (plan assumed `--project` worked) and the pre-existing `make shim` relative-path bug (surfaced by live validation; fixing it was required to validate the dev-shim path)
 
+## Reflection Outcome
+- `reflection-p3-m3-sr-initialize-torch-cli.md` written: built to plan (6/6 steps, QA clean); both surprises were environmental uv behaviors caught by the live-example invariant (`uv pip` needs `--directory` not `--project`; `uv --directory` moves the cwd → `make shim` relative-path bug); persistent files already reconciled during the docs step
+
 ## Next Step
-- QA phase (runs automatically per the L3 workflow)
+- L4 sub-run: operator runs `/niko` to advance to the next milestone (m4 — scheduling and first run)
