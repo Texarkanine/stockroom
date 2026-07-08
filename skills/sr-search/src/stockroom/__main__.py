@@ -33,6 +33,7 @@ SUBCOMMANDS: dict[str, tuple[str, str]] = {
     "embed": ("stockroom.embed", "Embed pending message text into vectors."),
     "migrate": ("stockroom.migrate", "Migrate the warehouse to the schema head."),
     "shim": ("stockroom.shim", "Install or rectify the on-path stockroom shim."),
+    "doctor": ("stockroom.doctor", "Report environment facts / smoke-test torch."),
 }
 
 

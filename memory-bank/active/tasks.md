@@ -122,15 +122,15 @@ Covered above by design: absent/broken `nvidia-smi` (B3/B4), absent torch (B5/B8
 
 ## Implementation Plan
 
-1. **`stockroom.doctor` — probe** (red→green)
+1. ✅ **`stockroom.doctor` — probe** (red→green)
     - Files: `skills/sr-search/src/stockroom/doctor.py` (new), `skills/sr-search/tests/test_doctor.py` (new)
     - Changes: `probe_facts(*, smi_runner=…, torch_importer=…) -> list[tuple[str, str]]` (ordered facts: os, arch, gpu, driver-cuda, torch, torch-cuda, engine dir) + `format_facts()`; stub then implement B1–B7 tests; implement to green.
     - Creative ref: probe is facts-only — no index-recommendation logic in Python.
-2. **`stockroom.doctor` — smoke** (red→green)
+2. ✅ **`stockroom.doctor` — smoke** (red→green)
     - Files: `doctor.py`, `test_doctor.py`
     - Changes: `run_smoke(*, torch_importer=…, encoder_factory=BgeEncoder-by-default) -> int` printing version + CUDA availability, encoding one string, asserting `EMBED_DIM` width; one-stderr-line **ratchet** failures — each remedy carries the next action, torch-missing prints the exact engine-env install command (B8–B11 first, then implement; B12 as the gated real-model test).
     - Creative ref: smoke goes through the production `BgeEncoder` path, not a bare torch import.
-3. **doctor CLI + dispatcher row** (red→green)
+3. ✅ **doctor CLI + dispatcher row** (red→green)
     - Files: `doctor.py` (`_build_parser` flat argparse `probe|smoke`, `main(argv)`), `tests/test_doctor_cli.py` (new), `stockroom/__main__.py` (+1 `SUBCOMMANDS` row), `tests/test_dispatcher_cli.py` (tuple + `doctor` fingerprint)
     - Changes: B13–B16 red first; wire `main` and the dispatcher row to green.
 4. **`skills/sr-initialize/SKILL.md`** (prose)

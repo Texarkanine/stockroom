@@ -18,7 +18,7 @@ import stockroom
 
 _SRC_DIR = str(Path(stockroom.__file__).parent.parent)
 
-SUBCOMMANDS = ("query", "semantic", "ingest", "embed", "migrate", "shim")
+SUBCOMMANDS = ("query", "semantic", "ingest", "embed", "migrate", "shim", "doctor")
 
 
 def _base_env(home: Path) -> dict:
@@ -85,6 +85,7 @@ def test_help_forwards_to_each_module(tmp_path: Path) -> None:
         "embed": "Re-embed",
         "migrate": "schema",
         "shim": "rectify",
+        "doctor": "probe",
     }
     for sub in SUBCOMMANDS:
         result = _run(sub, "--help", home=tmp_path / "home")
