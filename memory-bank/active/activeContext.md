@@ -1,12 +1,12 @@
 # Active Context
 
-## Current Task: p3-m1-stockroom-dispatcher
-**Phase:** REFLECT COMPLETE
+## Current Task: p3-m2-stockroom-shim
+**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
 
 ## What Was Done
-- Reflection written to `memory-bank/active/reflection/reflection-p3-m1-stockroom-dispatcher.md`
-- Key insights: the uniform `main(argv) -> int` module-CLI shape made dispatch nearly free (keep it for future modules like m3's `doctor`); `warehouse.py` imports `stockroom.migrate` at load time, so `migrate`-side code needing `warehouse` must import lazily
-- Persistent files reconciled: `techContext.md` already gained its dispatcher section in QA; `systemPatterns.md` / `productContext.md` unaffected
+- `/niko` re-entry advanced the L4 project: m1 (dispatcher) checked off in `milestones.md`, sub-run ephemeral state cleared
+- m2 classified as **Level 3**: a complete feature spanning multiple components (shim template, generation/installation logic, staleness healing, resolution ordering, dev-repo parity, README rewrite) with multiple open design decisions reserved to this milestone — creative-phase exploration warranted; no system-wide architectural implications
+- Fresh sub-run ephemeral state written: `activeContext.md`, stubbed `tasks.md`, new `progress.md`; `projectbrief.md` and `milestones.md` preserved
 
 ## Next Step
-- Run `/niko` to advance the L4 milestone (m1 complete; m2 bake-then-verify shim is next)
+- Load the Level 3 workflow and proceed to the PLAN phase
