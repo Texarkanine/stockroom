@@ -250,7 +250,133 @@ def trends(
     }
 
 
+def projects(
+    con: duckdb.DuckDBPyConnection,
+    harnesses: Sequence[str] | None = None,
+    since: datetime | None = None,
+    until: datetime | None = None,
+    *,
+    limit: int = 10,
+) -> dict[str, Any]:
+    """Return top projects and aligned per-harness session counts."""
+    start, end = parse_window(since, until, default_days=30)
+    names = _active_harnesses(con, harnesses)
+    active = set(names)
+    counts: dict[str, dict[str, int]] = {}
+    for harness, _session_id, project_id, _activity, _messages in _session_rows(
+        con, start, end
+    ):
+        if not _is_selected(harness, active) or project_id is None:
+            continue
+        per_harness = counts.setdefault(project_id, {})
+        per_harness[harness] = per_harness.get(harness, 0) + 1
+
+    ranked = sorted(
+        counts,
+        key=lambda project: (-sum(counts[project].values()), project),
+    )[:limit]
+    return {
+        "projects": ranked,
+        "sessions": {
+            name: [counts[project].get(name, 0) for project in ranked]
+            for name in names
+        },
+    }
+
+
+def tools(
+    con: duckdb.DuckDBPyConnection,
+    harnesses: Sequence[str] | None = None,
+    since: datetime | None = None,
+    until: datetime | None = None,
+    *,
+    limit: int = 10,
+) -> dict[str, Any]:
+    """Return top tools and aligned per-harness call counts."""
+    start, end = parse_window(since, until, default_days=30)
+    names = _active_harnesses(con, harnesses)
+    active = set(names)
+    counts: dict[str, dict[str, int]] = {}
+    rows = con.execute(
+        f"SELECT s.harness, t.tool_name FROM sessions s JOIN tool_calls t "
+        "ON t.harness = s.harness AND t.session_id = s.session_id "
+        f"WHERE NOT s.is_subagent AND {ACTIVITY_TIME_SQL} IS NOT NULL "
+        f"AND {ACTIVITY_TIME_SQL} >= ? AND {ACTIVITY_TIME_SQL} < ?",
+        [start, end],
+    ).fetchall()
+    for harness, tool_name in rows:
+        if not _is_selected(harness, active):
+            continue
+        per_harness = counts.setdefault(tool_name, {})
+        per_harness[harness] = per_harness.get(harness, 0) + 1
+
+    ranked = sorted(
+        counts,
+        key=lambda tool: (-sum(counts[tool].values()), tool),
+    )[:limit]
+    return {
+        "tools": ranked,
+        "calls": {
+            name: [counts[tool].get(name, 0) for tool in ranked] for name in names
+        },
+    }
+
+
+def models(
+    con: duckdb.DuckDBPyConnection,
+    harnesses: Sequence[str] | None = None,
+    since: datetime | None = None,
+    until: datetime | None = None,
+) -> dict[str, Any]:
+    """Return session-grain model usage across both schema grains.
+
+    A session uses model M when M occurs in either its session-level ``models``
+    list or any child message's ``model``. Repetition within one session counts
+    once.
+    """
+    start, end = parse_window(since, until, default_days=30)
+    names = _active_harnesses(con, harnesses)
+    active = set(names)
+    rows = con.execute(
+        f"SELECT s.harness, s.session_id, s.models, m.model "
+        "FROM sessions s LEFT JOIN messages m "
+        "ON m.harness = s.harness AND m.session_id = s.session_id "
+        f"WHERE NOT s.is_subagent AND {ACTIVITY_TIME_SQL} IS NOT NULL "
+        f"AND {ACTIVITY_TIME_SQL} >= ? AND {ACTIVITY_TIME_SQL} < ?",
+        [start, end],
+    ).fetchall()
+    per_session: dict[tuple[str, str], set[str]] = {}
+    for harness, session_id, session_models, message_model in rows:
+        if not _is_selected(harness, active):
+            continue
+        used = per_session.setdefault((harness, session_id), set())
+        if session_models:
+            used.update(model for model in session_models if model)
+        if message_model:
+            used.add(message_model)
+
+    counts: dict[str, dict[str, int]] = {}
+    for (harness, _session_id), used in per_session.items():
+        for model in used:
+            per_harness = counts.setdefault(model, {})
+            per_harness[harness] = per_harness.get(harness, 0) + 1
+
+    ranked = sorted(
+        counts,
+        key=lambda model: (-sum(counts[model].values()), model),
+    )
+    return {
+        "models": ranked,
+        "sessions": {
+            name: [counts[model].get(name, 0) for model in ranked] for name in names
+        },
+    }
+
+
 ENDPOINTS = {
     "overview": overview,
     "trends": trends,
+    "projects": projects,
+    "tools": tools,
+    "models": models,
 }

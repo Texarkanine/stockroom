@@ -155,7 +155,7 @@ Every step is one TDD cycle and its sub-steps are **ordered**: (a) stub interfac
 4. [x] **`dashboard.metrics` — window/filter plumbing + overview + trends**
     - Files: `src/stockroom/dashboard/__init__.py`, `src/stockroom/dashboard/metrics.py`, `tests/test_dashboard_metrics.py`
     - TDD order: (a) stub the module: `parse_window`, harness-filter helper, activity-time SQL constant, `WRITE_TOOLS`/`READ_TOOLS`, `overview()`, `trends()`, and the `ENDPOINTS` registry (name → callable — the single routing source the server and the tests share) → (b) write failing tests (window parsing/defaults/edges, seeded overview incl. `distinct_projects`/`last_sync`/prev-window, trends zero-fill + tool-set classification) → (c) fail → (d) implement to green.
-5. **`dashboard.metrics` — projects, tools, models**
+5. [x] **`dashboard.metrics` — projects, tools, models**
     - Files: `src/stockroom/dashboard/metrics.py`, `tests/test_dashboard_metrics.py`
     - TDD order: (a) stub `projects()`, `tools()`, `models()` into the registry → (b) failing tests (top-N ordering, per-harness counts, session-grain model union across both grain columns) → (c) fail → (d) implement.
 6. **`dashboard.metrics` — efficiency, sessions, wrapped**

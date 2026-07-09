@@ -248,3 +248,143 @@ def test_trends_zero_fills_daily_and_classifies_weekly_tools(
             "reads": {"claude": [0, 0], "cursor": [1, 0]},
         },
     }
+
+
+def test_projects_ranks_by_selected_total_with_aligned_harness_counts(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Projects rank deterministically and each harness gets aligned counts."""
+    for harness, session_id, project in [
+        ("cursor", "c-pa-1", "pa"),
+        ("cursor", "c-pa-2", "pa"),
+        ("claude", "a-pa", "pa"),
+        ("claude", "a-pb-1", "pb"),
+        ("claude", "a-pb-2", "pb"),
+        ("cursor", "c-pc", "pc"),
+    ]:
+        _seed_session(
+            migrated_con,
+            harness=harness,
+            session_id=session_id,
+            activity=datetime(2026, 1, 10),
+            project_id=project,
+        )
+
+    result = metrics.projects(
+        migrated_con,
+        since=datetime(2026, 1, 1),
+        until=datetime(2026, 2, 1),
+        limit=2,
+    )
+    assert result == {
+        "projects": ["pa", "pb"],
+        "sessions": {"claude": [1, 2], "cursor": [2, 0]},
+    }
+
+    selected = metrics.projects(
+        migrated_con,
+        ["cursor"],
+        since=datetime(2026, 1, 1),
+        until=datetime(2026, 2, 1),
+        limit=2,
+    )
+    assert selected == {
+        "projects": ["pa", "pc"],
+        "sessions": {"cursor": [2, 1]},
+    }
+
+
+def test_tools_ranks_calls_with_per_harness_breakout(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Tool names rank by total selected calls with deterministic ties."""
+    for harness, session_id in [("cursor", "c1"), ("claude", "a1")]:
+        _seed_session(
+            migrated_con,
+            harness=harness,
+            session_id=session_id,
+            activity=datetime(2026, 1, 10),
+            project_id="p",
+        )
+    for harness, session_id, names in [
+        ("cursor", "c1", ["Read", "Read", "Shell", "Shell", "Shell"]),
+        ("claude", "a1", ["Read", "Write", "Write"]),
+    ]:
+        for ordinal, name in enumerate(names):
+            _seed_tool(
+                migrated_con,
+                harness=harness,
+                session_id=session_id,
+                ordinal=ordinal,
+                tool_name=name,
+            )
+
+    result = metrics.tools(
+        migrated_con,
+        since=datetime(2026, 1, 1),
+        until=datetime(2026, 2, 1),
+    )
+    assert result == {
+        "tools": ["Read", "Shell", "Write"],
+        "calls": {"claude": [1, 0, 2], "cursor": [2, 3, 0]},
+    }
+
+
+def test_models_unifies_message_and_session_grains_once_per_session(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """A model counts once per session across message and session-list grains."""
+    _seed_session(
+        migrated_con,
+        harness="cursor",
+        session_id="c1",
+        activity=datetime(2026, 1, 10),
+        project_id="p",
+    )
+    _seed_session(
+        migrated_con,
+        harness="cursor",
+        session_id="c2",
+        activity=datetime(2026, 1, 11),
+        project_id="p",
+    )
+    migrated_con.execute(
+        "UPDATE sessions SET models = ['m1', 'm3'] WHERE session_id = 'c1'"
+    )
+    migrated_con.execute(
+        "UPDATE sessions SET models = ['m1'] WHERE session_id = 'c2'"
+    )
+    _seed_session(
+        migrated_con,
+        harness="claude",
+        session_id="a1",
+        activity=datetime(2026, 1, 12),
+        project_id="p",
+        message_count=3,
+    )
+    migrated_con.execute(
+        "UPDATE messages SET model = CASE "
+        "WHEN ordinal < 2 THEN 'm1' ELSE 'm2' END "
+        "WHERE session_id = 'a1'"
+    )
+    _seed_session(
+        migrated_con,
+        harness="cursor",
+        session_id="sub",
+        activity=datetime(2026, 1, 13),
+        project_id="p",
+    )
+    migrated_con.execute(
+        "UPDATE sessions SET models = ['m4'], is_subagent = true "
+        "WHERE session_id = 'sub'"
+    )
+
+    result = metrics.models(
+        migrated_con,
+        since=datetime(2026, 1, 1),
+        until=datetime(2026, 2, 1),
+    )
+    assert result == {
+        "models": ["m1", "m2", "m3"],
+        "sessions": {"claude": [1, 1, 0], "cursor": [2, 0, 1]},
+    }

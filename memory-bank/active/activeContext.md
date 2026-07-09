@@ -19,4 +19,4 @@
 
 ## Next Step
 
-Implement step 5: dashboard project, tool, and session-grain model metrics.
+Implement step 6: efficiency, recent-session, and all-time wrapped metrics.
