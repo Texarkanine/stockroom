@@ -56,3 +56,18 @@ Deliver milestone m2 of `p4-dashboard`: a fully offline, vendored single-pane fr
 * Insights
     - The frontend can preserve m1's client-owned mode boundary and still receive rigorous unit coverage by separating transformations from browser effects.
     - Licensing, MIME handling, request races, and average/project semantics are the highest-risk cross-component seams for preflight.
+
+## 2026-07-09 - PREFLIGHT - COMPLETE (PASS)
+
+* Work completed
+    - Validated prerequisites, per-unit TDD ordering, repository conventions, dependency impacts, conflicts, completeness, public boundaries, security, offline behavior, accessibility, licensing, and technology assumptions.
+    - Amended the plan to extract `dashboard-data.mjs` as an injectable/tested coordinator, enumerate every core/data interface, and bind request races, errors, seven chart panels, and the wrapped field map to explicit failing-test loops.
+    - Added exact planned REUSE assertions/overrides for authored static modules and `tests-js/**`, explicit chart/wrapped maps, all-three-module serving/import coverage, and concrete Makefile/CI Node 22 wiring.
+    - Re-ran independent TDD and completeness audits after amendments; both passed with no remaining blockers.
+* Decisions made
+    - The browser adapter is an effects-only layer; any deterministic policy discovered during build returns to the appropriate Node test-first cycle.
+    - `.mjs` MIME handling remains evidence-driven: assert the real server contract first and add a narrow mapping only after a demonstrated failure.
+    - The in-scope radical improvement is the tested data coordinator; no further redesign has sufficient ROI.
+* Insights
+    - TDD pressure improved the architecture by separating fetch/race/error policy from DOM and Chart.js effects.
+    - Exact file ownership in REUSE and exact field-to-panel maps are build inputs, not cleanup details.
