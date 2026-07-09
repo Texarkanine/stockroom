@@ -19,4 +19,4 @@
 
 ## Next Step
 
-Implement step 7: loopback HTTP routing, typed refusals, and guarded static serving.
+Implement step 8: idempotent dashboard CLI probe, foreground serving, and detached spawn seam.
