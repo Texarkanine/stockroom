@@ -200,7 +200,7 @@ The wrapped banner has exactly eight cells: Total Sessions with `totals.span` as
     - Extract `dist/chart.umd.min.js` verbatim from the official `chart.js@4.5.1` npm tarball already validated in planning; use the versioned filename as the runtime pin.
     - Add canonical MIT text and ordered REUSE overrides: the exact authored `index.html`, `dashboard.mjs`, `dashboard-core.mjs`, `dashboard-data.mjs`, and `skills/sr-search/tests-js/**` paths to AGPL, then the exact Chart.js file to `MIT` with the upstream package copyright.
     - Rerun focused licensing tests and `reuse lint`; do not modify the minified upstream artifact to satisfy formatting or headers.
-6. **Build the semantic responsive page shell and pass static contracts.**
+6. [x] **Build the semantic responsive page shell and pass static contracts.**
     - Files: `skills/sr-search/src/stockroom/dashboard/static/index.html`.
     - Replace the placeholder with the header/control region, status/error live region, four KPI cards, seven chart panels, recent-sessions table, and eight-cell wrapped banner.
     - Add inline authored CSS for the mock-guided tokens, 1200px layout, cards, chart containers, responsive breakpoints, dark scheme, visible focus, screen-reader utilities, and no-data states.
