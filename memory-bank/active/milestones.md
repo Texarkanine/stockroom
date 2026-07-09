@@ -15,7 +15,7 @@
 ## Execution Order
 
 - [x] m1 — Dashboard metrics API server: `stockroom.dashboard` module serving the spec's per-harness JSON endpoints (overview, trends, projects, tools, models, efficiency, sessions, wrapped) read-only on port 6767 with `?harness=` filtering and optional `?since=`/`?until=` windows (spec defaults), a non-migrating open path (typed refusal when the schema is behind), static-file serving, and port-probe idempotent startup
-- [ ] m2 — Vendored single-pane front-end: `index.html` + pinned Chart.js committed to the engine package (REUSE carve-out annotations; Chart.js keeps its upstream MIT identity, never relicensed), with harness dropdown selector, Aggregate/Compare switcher, positional color palette, KPI cards, charts, recent-sessions table, and wrapped banner per the mockup guide
+- [x] m2 — Vendored single-pane front-end: `index.html` + pinned Chart.js committed to the engine package (REUSE carve-out annotations; Chart.js keeps its upstream MIT identity, never relicensed), with harness dropdown selector, Aggregate/Compare switcher, positional color palette, KPI cards, charts, recent-sessions table, and wrapped banner per the mockup guide
 - [ ] m3 — Launch surfaces: `dashboard` subcommand registered in the `python -m stockroom` dispatcher, thin `sr-dashboard` wrapper skill printing the local URL, one combined sequenced session-start hook per harness (rectify-then-launch in a single command; port bind is the mutex), and the planning-doc port corrections (roadmap + tech-brief: 3143 → 6767)
 
 ## Milestone Estimates

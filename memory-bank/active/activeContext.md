@@ -1,14 +1,12 @@
 # Active Context
 
-## Current Task: p4-dashboard / m2 — Vendored single-pane front-end
-
-**Phase:** REFLECT - COMPLETE
+## Current Task: p4-dashboard / m3 — Launch surfaces
+**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
 
 ## What Was Done
-
-- Rewrote `reflection-p4-dashboard-m2.md` to cover the full lifecycle, including the first QA FAIL and the additive `prev_distinct_projects` / chart-summary rework.
-- Reconciled `systemPatterns.md` with the distinct-KPI previous-window and pure chart-summary ownership rules; `techContext.md` already carried the additive overview field.
+- Closed completed milestone m2 and cleared its sub-run ephemeral state.
+- Selected m3 (first unchecked L4 milestone) as the classification target.
+- Classified m3 as Level 2: small feature/enhancement composed of pattern-following launch surfaces (dispatcher registration, thin `sr-dashboard` skill, sequenced session-start hooks, planning-doc port corrections) with no architectural implications.
 
 ## Next Step
-
-- Run `/niko` to continue to the next milestone (m3).
+- Load the Level 2 workflow and begin planning.
