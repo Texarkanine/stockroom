@@ -1,6 +1,0 @@
-status: PASS
-phase: L3 preflight (m1 sub-run)
-task: p4-dashboard-m1
-date: 2026-07-09
-advisories: 0 blocking; 5 findings folded into the plan (see tasks.md)
-amendment: operator plan review 2026-07-09 — first_seen_at + doctrine revision folded (validated: writer/message INSERTs are explicit-column, carry-forward is writer-internal, no new deps; PASS holds)
