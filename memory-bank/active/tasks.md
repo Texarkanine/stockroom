@@ -152,7 +152,7 @@ Every step is one TDD cycle and its sub-steps are **ordered**: (a) stub interfac
     - Files: `src/stockroom/warehouse.py`, `tests/test_warehouse_open.py`
     - TDD order: (a) stub `WarehouseStaleError` + `open_current(read_only=True, **backoff)` with documented signature, empty body → (b) write failing tests: current warehouse → usable RO connection (write rejected); behind-head warehouse → raises `WarehouseStaleError` naming `stockroom migrate` AND version stays behind afterward (anti-gate assertion) → (c) fail → (d) implement: path → `_open_with_backoff` → `ensure_vss` → version check → return or close-and-raise.
     - Creative ref: `creative-dashboard-nonmigrating-open.md`
-4. **`dashboard.metrics` — window/filter plumbing + overview + trends**
+4. [x] **`dashboard.metrics` — window/filter plumbing + overview + trends**
     - Files: `src/stockroom/dashboard/__init__.py`, `src/stockroom/dashboard/metrics.py`, `tests/test_dashboard_metrics.py`
     - TDD order: (a) stub the module: `parse_window`, harness-filter helper, activity-time SQL constant, `WRITE_TOOLS`/`READ_TOOLS`, `overview()`, `trends()`, and the `ENDPOINTS` registry (name → callable — the single routing source the server and the tests share) → (b) write failing tests (window parsing/defaults/edges, seeded overview incl. `distinct_projects`/`last_sync`/prev-window, trends zero-fill + tool-set classification) → (c) fail → (d) implement to green.
 5. **`dashboard.metrics` — projects, tools, models**

@@ -1,0 +1,256 @@
+"""Mode-agnostic, per-harness metrics for the local dashboard.
+
+The server returns raw harness-keyed series; aggregate/compare rendering and
+signature colors belong to the client. Session activity means
+``COALESCE(started_at, source_mtime)``: source-authored wall clock where the
+harness has it, otherwise the durable transcript-mtime provenance captured by
+ingest. Main-session metrics exclude subagents.
+
+Tool classification is intentionally explicit and tunable. Write tools are
+``WRITE_TOOLS``; read tools are ``READ_TOOLS``; Shell, task delegation, MCP, and
+unknown future tools are neither until deliberately classified.
+"""
+
+from collections.abc import Sequence
+from datetime import datetime, timedelta, timezone
+from typing import Any
+
+import duckdb
+
+ACTIVITY_TIME_SQL = "COALESCE(s.started_at, s.source_mtime)"
+
+WRITE_TOOLS = frozenset(
+    {"Write", "StrReplace", "Edit", "ApplyPatch", "Delete", "EditNotebook"}
+)
+READ_TOOLS = frozenset(
+    {
+        "Read",
+        "ReadFile",
+        "Grep",
+        "Glob",
+        "ListDir",
+        "ReadLints",
+        "rg",
+        "SemanticSearch",
+    }
+)
+
+
+def parse_window(
+    since: str | datetime | None,
+    until: str | datetime | None,
+    *,
+    default_days: int,
+    now: datetime | None = None,
+) -> tuple[datetime, datetime]:
+    """Parse an inclusive/exclusive ISO window, applying a default duration."""
+    def _parse(value: str | datetime | None, name: str) -> datetime | None:
+        if value is None:
+            return None
+        if isinstance(value, datetime):
+            parsed = value
+        else:
+            try:
+                parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            except ValueError as exc:
+                raise ValueError(f"invalid {name}: expected ISO-8601") from exc
+        if parsed.tzinfo is not None:
+            parsed = parsed.astimezone(timezone.utc).replace(tzinfo=None)
+        return parsed
+
+    end = _parse(until, "until") or now or datetime.now()
+    start = _parse(since, "since") or end - timedelta(days=default_days)
+    if start >= end:
+        raise ValueError("since must be earlier than until")
+    return start, end
+
+
+def _active_harnesses(
+    con: duckdb.DuckDBPyConnection,
+    selected: Sequence[str] | None,
+) -> list[str]:
+    if selected:
+        return sorted(set(selected))
+    return [
+        row[0]
+        for row in con.execute(
+            "SELECT DISTINCT harness FROM sessions "
+            "WHERE harness IS NOT NULL ORDER BY harness"
+        ).fetchall()
+    ]
+
+
+def _session_rows(
+    con: duckdb.DuckDBPyConnection,
+    start: datetime,
+    end: datetime,
+) -> list[tuple[str, str, str | None, datetime, int]]:
+    return con.execute(
+        f"SELECT s.harness, s.session_id, s.project_id, {ACTIVITY_TIME_SQL}, "
+        "count(m.message_id) "
+        "FROM sessions s LEFT JOIN messages m "
+        "ON m.harness = s.harness AND m.session_id = s.session_id "
+        f"WHERE NOT s.is_subagent AND {ACTIVITY_TIME_SQL} IS NOT NULL "
+        f"AND {ACTIVITY_TIME_SQL} >= ? AND {ACTIVITY_TIME_SQL} < ? "
+        "GROUP BY s.harness, s.session_id, s.project_id, "
+        "s.started_at, s.source_mtime",
+        [start, end],
+    ).fetchall()
+
+
+def _is_selected(harness: str, active: set[str]) -> bool:
+    return harness in active
+
+
+def _iso(value: datetime | None) -> str | None:
+    return value.isoformat() if value is not None else None
+
+
+def overview(
+    con: duckdb.DuckDBPyConnection,
+    harnesses: Sequence[str] | None = None,
+    since: datetime | None = None,
+    until: datetime | None = None,
+) -> dict[str, Any]:
+    """Return 30-day KPI counts and the equal-length preceding window.
+
+    ``since`` is inclusive and ``until`` exclusive. Harness enumeration is
+    all-time, so an installed but idle harness retains a zeroed card.
+    """
+    start, end = parse_window(since, until, default_days=30)
+    width = end - start
+    previous_start = start - width
+    names = _active_harnesses(con, harnesses)
+    active = set(names)
+
+    def _empty() -> dict[str, int]:
+        return {
+            "sessions": 0,
+            "messages": 0,
+            "projects": 0,
+            "prev_sessions": 0,
+            "prev_messages": 0,
+            "prev_projects": 0,
+        }
+
+    per_harness = {name: _empty() for name in names}
+    current_projects = {name: set() for name in names}
+    previous_projects = {name: set() for name in names}
+    distinct_projects: set[str] = set()
+
+    for harness, _session_id, project_id, _activity, messages in _session_rows(
+        con, start, end
+    ):
+        if not _is_selected(harness, active):
+            continue
+        values = per_harness[harness]
+        values["sessions"] += 1
+        values["messages"] += messages
+        if project_id is not None:
+            current_projects[harness].add(project_id)
+            distinct_projects.add(project_id)
+
+    for harness, _session_id, project_id, _activity, messages in _session_rows(
+        con, previous_start, start
+    ):
+        if not _is_selected(harness, active):
+            continue
+        values = per_harness[harness]
+        values["prev_sessions"] += 1
+        values["prev_messages"] += messages
+        if project_id is not None:
+            previous_projects[harness].add(project_id)
+
+    for name, values in per_harness.items():
+        values["projects"] = len(current_projects[name])
+        values["prev_projects"] = len(previous_projects[name])
+
+    last_sync = con.execute("SELECT max(updated_at) FROM _sync_state").fetchone()[0]
+    return {
+        "last_sync": _iso(last_sync),
+        "per_harness": per_harness,
+        "distinct_projects": len(distinct_projects),
+    }
+
+
+def _date_labels(start: datetime, end: datetime) -> list[str]:
+    current = start.date()
+    labels: list[str] = []
+    while datetime.combine(current, datetime.min.time()) < end:
+        labels.append(current.isoformat())
+        current += timedelta(days=1)
+    return labels
+
+
+def _week_start(value: datetime) -> datetime:
+    day = value.replace(hour=0, minute=0, second=0, microsecond=0)
+    return day - timedelta(days=day.weekday())
+
+
+def _week_labels(start: datetime, end: datetime) -> list[str]:
+    current = _week_start(start)
+    final = _week_start(end - timedelta(microseconds=1))
+    labels: list[str] = []
+    while current <= final:
+        labels.append(current.date().isoformat())
+        current += timedelta(days=7)
+    return labels
+
+
+def trends(
+    con: duckdb.DuckDBPyConnection,
+    harnesses: Sequence[str] | None = None,
+    since: datetime | None = None,
+    until: datetime | None = None,
+) -> dict[str, Any]:
+    """Return daily sessions (14d default) and weekly tools (12w default)."""
+    effective_end = until or datetime.now()
+    daily_start, daily_end = parse_window(
+        since, effective_end, default_days=14, now=effective_end
+    )
+    weekly_start, weekly_end = parse_window(
+        since, effective_end, default_days=84, now=effective_end
+    )
+    names = _active_harnesses(con, harnesses)
+    active = set(names)
+
+    days = _date_labels(daily_start, daily_end)
+    day_index = {label: index for index, label in enumerate(days)}
+    daily = {name: [0] * len(days) for name in names}
+    for harness, _session_id, _project_id, activity, _messages in _session_rows(
+        con, daily_start, daily_end
+    ):
+        if _is_selected(harness, active):
+            daily[harness][day_index[activity.date().isoformat()]] += 1
+
+    weeks = _week_labels(weekly_start, weekly_end)
+    week_index = {label: index for index, label in enumerate(weeks)}
+    writes = {name: [0] * len(weeks) for name in names}
+    reads = {name: [0] * len(weeks) for name in names}
+    tool_rows = con.execute(
+        f"SELECT s.harness, {ACTIVITY_TIME_SQL}, t.tool_name "
+        "FROM sessions s JOIN tool_calls t "
+        "ON t.harness = s.harness AND t.session_id = s.session_id "
+        f"WHERE NOT s.is_subagent AND {ACTIVITY_TIME_SQL} IS NOT NULL "
+        f"AND {ACTIVITY_TIME_SQL} >= ? AND {ACTIVITY_TIME_SQL} < ?",
+        [weekly_start, weekly_end],
+    ).fetchall()
+    for harness, activity, tool_name in tool_rows:
+        if not _is_selected(harness, active):
+            continue
+        index = week_index[_week_start(activity).date().isoformat()]
+        if tool_name in WRITE_TOOLS:
+            writes[harness][index] += 1
+        elif tool_name in READ_TOOLS:
+            reads[harness][index] += 1
+
+    return {
+        "daily": {"days": days, "sessions": daily},
+        "weekly": {"weeks": weeks, "writes": writes, "reads": reads},
+    }
+
+
+ENDPOINTS = {
+    "overview": overview,
+    "trends": trends,
+}

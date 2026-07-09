@@ -19,4 +19,4 @@
 
 ## Next Step
 
-Implement step 4: dashboard metrics window/filter plumbing, overview, and trends.
+Implement step 5: dashboard project, tool, and session-grain model metrics.
