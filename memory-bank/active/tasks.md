@@ -198,6 +198,12 @@ No new locked dependencies. The server is stdlib `http.server` (the roadmap's de
 - [x] Build
 - [ ] QA
 
+### QA Review 1 — FAIL (fixable in Build)
+
+- [ ] Replace the server's endpoint-agnostic 30-day partial-window expansion with bound-only parsing so each metric retains its specified defaults (trends 14d/12w; sessions recent-N with no implicit window).
+- [ ] Add the explicit cross-cutting coverage promised by the plan: empty overview shape, trends defaults, inclusive/exclusive edges, subagent exclusion, repeated harness filters, 500-session cap, HTTP stale anti-gate, and missing-warehouse startup parity.
+- [ ] Document Cursor's transcript-mtime last-activity grain in windowed endpoint docstrings and the bootstrap NULL-activity behavior in wrapped.
+
 ---
 
 ## Reference: L4 Preflight Findings (milestone-list validation, 2026-07-09)

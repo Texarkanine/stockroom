@@ -82,3 +82,15 @@ Deliver milestone m1 of `p4-dashboard`: the dashboard metrics API server — a `
 * Insights
     - The existing `make format`/`make ci` sync prerequisite conflicts with the documented torch-held-out workflow by deleting the per-machine torch install; build restored it immediately, but the Makefile deserves a future inexact-sync correction outside this milestone
     - The migration-head bump required routine updates to existing runner, warehouse snapshot, and concurrency expectations that the plan's file list did not enumerate
+
+## 2026-07-09 - QA - FAIL (FIXABLE)
+
+* Work completed
+    - Reviewed all implemented components semantically against the original plan, creative decisions, KISS/DRY/YAGNI, architectural patterns, and explicit test plan
+    - Confirmed migration/retention, non-migrating warehouse open, refusal mapping, metric shapes, loopback/static safety, and CLI ownership are structurally aligned
+* Decisions made
+    - Route back to Build: the HTTP layer must parse only supplied bounds so endpoint-specific defaults remain owned by metrics
+    - Treat explicit cross-cutting coverage and Cursor last-activity documentation promised by the plan as completion requirements, not optional QA suggestions
+* Insights
+    - The universal server-side `default_days=30` expansion is correct for overview/projects/tools/models/efficiency but changes `/api/trends?until=...` from 14d/12w to one 30d window and changes `/api/sessions?until=...` from an open-ended upper bound to an implicit 30d window
+    - Core implementation is sound; findings are localized and do not require replanning or creative re-exploration

@@ -2,7 +2,7 @@
 
 **Current Task:** p4-dashboard / m1 — Dashboard metrics API server
 
-**Phase:** BUILD - COMPLETE (9/9 implementation steps; full CI green)
+**Phase:** QA - FAIL (fixable; routing back to Build)
 
 ## Operator Plan-Review Decisions (2026-07-09)
 
@@ -39,4 +39,4 @@
 
 ## Next Step
 
-Run autonomous Level 3 QA (`niko-qa`).
+Re-enter Build to correct endpoint-specific partial-window semantics, close the explicit cross-cutting test gaps, and complete activity-grain documentation.
