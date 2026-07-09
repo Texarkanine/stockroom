@@ -123,6 +123,42 @@ def test_parse_window_applies_default_and_rejects_reversed_bounds() -> None:
         metrics.parse_window("2026-02-02", "2026-02-01", default_days=14)
 
 
+def test_empty_overview_has_stable_zero_shape(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """A migrated but un-ingested warehouse returns a complete empty payload."""
+    assert metrics.overview(
+        migrated_con,
+        since=datetime(2026, 1, 1),
+        until=datetime(2026, 2, 1),
+    ) == {
+        "last_sync": None,
+        "per_harness": {},
+        "distinct_projects": 0,
+    }
+
+
+def test_trends_defaults_to_fourteen_days_and_twelve_calendar_weeks(
+    migrated_con: duckdb.DuckDBPyConnection,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Default trend windows expose exactly 14 day and 12 week labels."""
+
+    class FixedDateTime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return cls(2026, 2, 1, 12)
+
+    monkeypatch.setattr(metrics, "datetime", FixedDateTime)
+    result = metrics.trends(migrated_con)
+    assert result["daily"]["days"] == [
+        f"2026-01-{day:02d}" for day in range(19, 32)
+    ] + ["2026-02-01"]
+    assert len(result["weekly"]["weeks"]) == 12
+    assert result["weekly"]["weeks"][0] == "2025-11-10"
+    assert result["weekly"]["weeks"][-1] == "2026-01-26"
+
+
 def test_overview_returns_per_harness_counts_previous_window_and_rollups(
     migrated_con: duckdb.DuckDBPyConnection,
 ) -> None:
@@ -248,6 +284,74 @@ def test_trends_zero_fills_daily_and_classifies_weekly_tools(
             "reads": {"claude": [0, 0], "cursor": [1, 0]},
         },
     }
+
+
+def test_window_edges_source_mtime_and_subagents_are_cross_cutting(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Windows are [since, until), Cursor uses mtime, and subagents stay excluded."""
+    _seed_session(
+        migrated_con,
+        harness="cursor",
+        session_id="at-since",
+        activity=datetime(2026, 1, 10),
+        project_id="p",
+    )
+    _seed_session(
+        migrated_con,
+        harness="cursor",
+        session_id="before-until",
+        activity=datetime(2026, 1, 19, 23, 59, 59),
+        project_id="p",
+    )
+    _seed_session(
+        migrated_con,
+        harness="cursor",
+        session_id="at-until",
+        activity=datetime(2026, 1, 20),
+        project_id="p",
+    )
+    _seed_session(
+        migrated_con,
+        harness="cursor",
+        session_id="subagent",
+        activity=datetime(2026, 1, 15),
+        project_id="p",
+    )
+    migrated_con.execute(
+        "UPDATE sessions SET is_subagent = true WHERE session_id = 'subagent'"
+    )
+    _seed_tool(
+        migrated_con,
+        harness="cursor",
+        session_id="at-since",
+        ordinal=0,
+        tool_name="Read",
+    )
+    _seed_tool(
+        migrated_con,
+        harness="cursor",
+        session_id="subagent",
+        ordinal=0,
+        tool_name="Write",
+    )
+    window = {
+        "since": datetime(2026, 1, 10),
+        "until": datetime(2026, 1, 20),
+    }
+
+    overview = metrics.overview(migrated_con, **window)
+    assert overview["per_harness"]["cursor"]["sessions"] == 2
+    trends = metrics.trends(migrated_con, **window)
+    assert sum(trends["daily"]["sessions"]["cursor"]) == 2
+    assert sum(trends["weekly"]["reads"]["cursor"]) == 1
+    assert sum(trends["weekly"]["writes"]["cursor"]) == 0
+    assert metrics.tools(migrated_con, **window) == {
+        "tools": ["Read"],
+        "calls": {"cursor": [1]},
+    }
+    assert sum(metrics.efficiency(migrated_con, **window)["sessions"]["cursor"]) == 2
+    assert metrics.wrapped(migrated_con)["totals"]["sessions"] == 3
 
 
 def test_projects_ranks_by_selected_total_with_aligned_harness_counts(

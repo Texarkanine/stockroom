@@ -4,6 +4,7 @@ import json
 import threading
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
+from datetime import datetime
 from pathlib import Path
 from urllib.error import HTTPError
 from urllib.request import urlopen
@@ -63,6 +64,12 @@ def test_every_api_route_returns_json_from_current_warehouse(
             status, payload = _json_get(f"{base}/api/{endpoint}")
             assert status == 200
             assert payload is not None
+        _, overview = _json_get(f"{base}/api/overview")
+        assert overview == {
+            "last_sync": None,
+            "per_harness": {},
+            "distinct_projects": 0,
+        }
 
 
 def test_unknown_api_and_bad_parameters_return_clean_client_errors(
@@ -84,6 +91,82 @@ def test_unknown_api_and_bad_parameters_return_clean_client_errors(
             status, payload = _json_get(base + path)
             assert status == 400
             assert parameter in payload["error"]
+
+
+def test_partial_bounds_preserve_endpoint_specific_defaults(
+    warehouse_home: Path,
+) -> None:
+    """Until-only trends keep 14d/12w; sessions remain open-ended recent-N."""
+    con = warehouse.open(read_only=False)
+    try:
+        for session_id, activity in [
+            ("old", datetime(2025, 1, 1)),
+            ("recent", datetime(2026, 1, 31)),
+        ]:
+            con.execute(
+                "INSERT INTO sessions "
+                "(harness, session_id, project_id, source_path, is_subagent, "
+                "source_mtime) VALUES ('cursor', ?, 'p', ?, false, ?)",
+                [session_id, f"/tmp/{session_id}.jsonl", activity],
+            )
+            con.execute(
+                "INSERT INTO messages "
+                "(harness, session_id, message_id, ordinal, role, text) "
+                "VALUES ('cursor', ?, ?, 0, 'user', 'hello')",
+                [session_id, f"{session_id}#0"],
+            )
+    finally:
+        con.close()
+
+    with _running_server() as (_httpd, base):
+        status, trends = _json_get(f"{base}/api/trends?until=2026-02-01")
+        assert status == 200
+        assert len(trends["daily"]["days"]) == 14
+        assert len(trends["weekly"]["weeks"]) == 12
+
+        status, sessions = _json_get(f"{base}/api/sessions?until=2026-02-01")
+        assert status == 200
+        assert [row["started"] for row in sessions] == [
+            "2026-01-31T00:00:00",
+            "2025-01-01T00:00:00",
+        ]
+
+
+def test_repeated_harness_limit_cap_and_short_timeout_are_wired(
+    warehouse_home: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """HTTP preserves repeated filters, clamps limit, and opens with 2s backoff."""
+    captured: dict[str, object] = {}
+
+    class FakeConnection:
+        def close(self) -> None:
+            captured["closed"] = True
+
+    def _open(**kwargs):
+        captured["open_kwargs"] = kwargs
+        return FakeConnection()
+
+    def _sessions(_con, harnesses, since, until, *, limit):
+        return {
+            "harnesses": harnesses,
+            "since": since,
+            "until": until,
+            "limit": limit,
+        }
+
+    monkeypatch.setitem(metrics.ENDPOINTS, "sessions", _sessions)
+    with _running_server(open_warehouse=_open) as (_httpd, base):
+        status, payload = _json_get(
+            f"{base}/api/sessions?harness=cursor&harness=claude&limit=501"
+        )
+    assert status == 200
+    assert payload["harnesses"] == ["cursor", "claude"]
+    assert payload["limit"] == 500
+    assert captured == {
+        "open_kwargs": {"read_only": True, "timeout": 2.0},
+        "closed": True,
+    }
 
 
 def test_missing_stale_and_busy_warehouses_return_actionable_503(
@@ -114,6 +197,11 @@ def test_missing_stale_and_busy_warehouses_return_actionable_503(
         assert status == 503
         assert set(payload) == {"error", "action"}
         assert "stockroom migrate" in payload["action"]
+    con = duckdb.connect(str(path), read_only=True)
+    try:
+        assert migrate.current_version(con) == 1
+    finally:
+        con.close()
 
     def _busy(**_kwargs):
         raise warehouse.WarehouseBusyError("busy")

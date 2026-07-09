@@ -94,3 +94,20 @@ Deliver milestone m1 of `p4-dashboard`: the dashboard metrics API server — a `
 * Insights
     - The universal server-side `default_days=30` expansion is correct for overview/projects/tools/models/efficiency but changes `/api/trends?until=...` from 14d/12w to one 30d window and changes `/api/sessions?until=...` from an open-ended upper bound to an implicit 30d window
     - Core implementation is sound; findings are localized and do not require replanning or creative re-exploration
+
+## 2026-07-09 - BUILD REMEDIATION - COMPLETE
+
+* Work completed
+    - Replaced transport-level window expansion with independent ISO-bound parsing; metrics now own all endpoint defaults and validate a pair only when both bounds are supplied
+    - Made trends defaults calendar-exact: 14 daily labels and 12 Monday-aligned weekly labels, including when HTTP supplies only `until`
+    - Added the QA-requested cross-cutting tests for empty overview shape, default trend lengths, inclusive/exclusive activity edges, subagent exclusion, repeated harness filters, 500-row clamp, short open timeout, stale anti-migration, and missing-warehouse startup
+    - Documented Cursor transcript-mtime last-activity semantics on every windowed endpoint and bootstrap NULL-activity behavior on wrapped
+* Decisions made
+    - A single-bound parser is a public metrics helper because transport parsing must not synthesize an endpoint-specific opposite bound
+    - Calendar trend defaults anchor on the last instant included by the exclusive end, avoiding an accidental 15th day or 13th partial week
+* Verification
+    - Targeted dashboard suite: 27 passed
+    - `make ci`: 402 passed, 3 skipped; ruff check/format, lock verification, full pytest suite, and REUSE passed
+    - Restored the established out-of-lock `torch==2.13.0+cu126` environment removed by exact sync; CUDA encoder smoke produced a 384-dimensional vector
+* Insights
+    - Defaults expressed as elapsed durations are not equivalent to fixed calendar bucket counts when labels include both boundary dates; deriving the first bucket from the last included instant keeps API shape stable

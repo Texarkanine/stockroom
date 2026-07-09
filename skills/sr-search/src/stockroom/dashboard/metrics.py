@@ -43,6 +43,25 @@ EFFICIENCY_BUCKETS = ("abandoned", "short", "medium", "long")
 FIRST_PROMPT_BUCKETS = ("short", "medium", "detailed")
 
 
+def parse_timestamp(
+    value: str | datetime | None,
+    name: str,
+) -> datetime | None:
+    """Parse one optional ISO-8601 bound without inventing its opposite bound."""
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        parsed = value
+    else:
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise ValueError(f"invalid {name}: expected ISO-8601") from exc
+    if parsed.tzinfo is not None:
+        parsed = parsed.astimezone(timezone.utc).replace(tzinfo=None)
+    return parsed
+
+
 def parse_window(
     since: str | datetime | None,
     until: str | datetime | None,
@@ -51,23 +70,8 @@ def parse_window(
     now: datetime | None = None,
 ) -> tuple[datetime, datetime]:
     """Parse an inclusive/exclusive ISO window, applying a default duration."""
-
-    def _parse(value: str | datetime | None, name: str) -> datetime | None:
-        if value is None:
-            return None
-        if isinstance(value, datetime):
-            parsed = value
-        else:
-            try:
-                parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
-            except ValueError as exc:
-                raise ValueError(f"invalid {name}: expected ISO-8601") from exc
-        if parsed.tzinfo is not None:
-            parsed = parsed.astimezone(timezone.utc).replace(tzinfo=None)
-        return parsed
-
-    end = _parse(until, "until") or now or datetime.now()
-    start = _parse(since, "since") or end - timedelta(days=default_days)
+    end = parse_timestamp(until, "until") or now or datetime.now()
+    start = parse_timestamp(since, "since") or end - timedelta(days=default_days)
     if start >= end:
         raise ValueError("since must be earlier than until")
     return start, end
@@ -123,7 +127,8 @@ def overview(
     """Return 30-day KPI counts and the equal-length preceding window.
 
     ``since`` is inclusive and ``until`` exclusive. Harness enumeration is
-    all-time, so an installed but idle harness retains a zeroed card.
+    all-time, so an installed but idle harness retains a zeroed card. Cursor
+    sessions are dated by transcript mtime, an honest last-activity grain.
     """
     start, end = parse_window(since, until, default_days=30)
     width = end - start
@@ -211,14 +216,24 @@ def trends(
     since: datetime | None = None,
     until: datetime | None = None,
 ) -> dict[str, Any]:
-    """Return daily sessions (14d default) and weekly tools (12w default)."""
+    """Return daily sessions (14d default) and weekly tools (12w default).
+
+    Cursor buckets use transcript mtime and therefore represent the session's
+    last observed activity day, not a fabricated start time.
+    """
     effective_end = until or datetime.now()
-    daily_start, daily_end = parse_window(
-        since, effective_end, default_days=14, now=effective_end
-    )
-    weekly_start, weekly_end = parse_window(
-        since, effective_end, default_days=84, now=effective_end
-    )
+    if since is None:
+        last_included = effective_end - timedelta(microseconds=1)
+        daily_start = datetime.combine(
+            last_included.date() - timedelta(days=13), datetime.min.time()
+        )
+        weekly_start = _week_start(last_included) - timedelta(weeks=11)
+        daily_end = weekly_end = effective_end
+    else:
+        daily_start, daily_end = parse_window(
+            since, effective_end, default_days=14, now=effective_end
+        )
+        weekly_start, weekly_end = daily_start, daily_end
     names = _active_harnesses(con, harnesses)
     active = set(names)
 
@@ -266,7 +281,7 @@ def projects(
     *,
     limit: int = 10,
 ) -> dict[str, Any]:
-    """Return top projects and aligned per-harness session counts."""
+    """Return top projects; Cursor sessions use transcript-mtime last activity."""
     start, end = parse_window(since, until, default_days=30)
     names = _active_harnesses(con, harnesses)
     active = set(names)
@@ -299,7 +314,7 @@ def tools(
     *,
     limit: int = 10,
 ) -> dict[str, Any]:
-    """Return top tools and aligned per-harness call counts."""
+    """Return top tools; Cursor sessions use transcript-mtime last activity."""
     start, end = parse_window(since, until, default_days=30)
     names = _active_harnesses(con, harnesses)
     active = set(names)
@@ -339,7 +354,7 @@ def models(
 
     A session uses model M when M occurs in either its session-level ``models``
     list or any child message's ``model``. Repetition within one session counts
-    once.
+    once. Cursor sessions use transcript-mtime last activity for windowing.
     """
     start, end = parse_window(since, until, default_days=30)
     names = _active_harnesses(con, harnesses)
@@ -386,7 +401,7 @@ def efficiency(
     since: datetime | None = None,
     until: datetime | None = None,
 ) -> dict[str, Any]:
-    """Return session-length and first-prompt efficiency buckets."""
+    """Return efficiency buckets using transcript-mtime activity for Cursor."""
     start, end = parse_window(since, until, default_days=30)
     names = _active_harnesses(con, harnesses)
     active = set(names)
@@ -451,7 +466,7 @@ def sessions(
     *,
     limit: int = 50,
 ) -> list[dict[str, Any]]:
-    """Return newest main sessions with read-time-truncated prompts."""
+    """Return newest sessions; Cursor ``started`` is last transcript activity."""
     names = _active_harnesses(con, harnesses)
     if not names or limit <= 0:
         return []
@@ -535,7 +550,12 @@ def wrapped(
     since: datetime | None = None,
     until: datetime | None = None,
 ) -> dict[str, Any]:
-    """Return all-time recap rollups, ignoring filters by design."""
+    """Return all-time recap rollups, ignoring filters by design.
+
+    Pre-0004 rows not yet re-ingested can lack any activity time. They still
+    count toward all-time totals but cannot honestly contribute to span, streak,
+    or peak-hour fields until ingest captures ``source_mtime``.
+    """
     rows = con.execute(
         f"SELECT s.harness, s.session_id, s.cwd, s.project_id, "
         f"{ACTIVITY_TIME_SQL}, count(m.message_id) "

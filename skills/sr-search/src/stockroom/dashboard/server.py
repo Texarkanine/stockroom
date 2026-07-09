@@ -82,10 +82,10 @@ class _DashboardHandler(BaseHTTPRequestHandler):
         since: datetime | None = None
         until: datetime | None = None
         try:
-            if raw_since is not None or raw_until is not None:
-                since, until = metrics.parse_window(
-                    raw_since, raw_until, default_days=30
-                )
+            since = metrics.parse_timestamp(raw_since, "since")
+            until = metrics.parse_timestamp(raw_until, "until")
+            if since is not None and until is not None and since >= until:
+                raise ValueError("since must be before until")
             limit = 50
             if "limit" in query:
                 try:

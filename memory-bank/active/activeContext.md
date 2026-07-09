@@ -2,7 +2,7 @@
 
 **Current Task:** p4-dashboard / m1 — Dashboard metrics API server
 
-**Phase:** QA - FAIL (fixable; routing back to Build)
+**Phase:** BUILD - COMPLETE (QA remediation)
 
 ## Operator Plan-Review Decisions (2026-07-09)
 
@@ -18,6 +18,11 @@
 - Added `stockroom.dashboard`: eight per-harness metric endpoints, all-time wrapped rollup, loopback-only threaded HTTP server, static traversal guard, stable JSON refusals, and `python -m stockroom.dashboard` probe/detach/foreground startup.
 - Updated the `sr-query` schema map for migration `0004`.
 - Added/extended schema, ingest, warehouse, metric, HTTP, CLI, and ingest-to-serve integration tests.
+- Corrected partial HTTP bounds so metrics, rather than the transport, retain
+  ownership of endpoint-specific defaults; trends now expose 14 calendar days
+  and 12 calendar weeks while recent sessions remain open-ended unless bounded.
+- Closed the QA coverage and endpoint-documentation gaps, including HTTP
+  repeated filters/cap/timeout wiring and stale-schema anti-migration behavior.
 
 ## Build Decisions
 
@@ -32,11 +37,10 @@
 
 ## Verification
 
-- `make ci`: 396 passed, 3 skipped; ruff lint/format, lock check, and REUSE all passed.
-- Final full suite after restoring torch: 398 passed, 1 skipped.
+- `make ci`: 402 passed, 3 skipped; ruff lint/format, lock check, and REUSE all passed.
 - `stockroom doctor smoke`: CUDA available; production BGE encoder returned a 384-dimensional vector.
 - In-process integration: fixture ingest → real warehouse file → `open_current()` → HTTP overview passed.
 
 ## Next Step
 
-Re-enter Build to correct endpoint-specific partial-window semantics, close the explicit cross-cutting test gaps, and complete activity-grain documentation.
+Run the autonomous QA review again.
