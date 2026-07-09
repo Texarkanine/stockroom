@@ -1,14 +1,15 @@
 # Active Context
 
-**Current Task:** Phase 4 — Dashboard (`p4-dashboard`)
+**Current Task:** p4-dashboard / m1 — Dashboard metrics API server
 
-**Phase:** PREFLIGHT - COMPLETE (PASS with advisories)
+**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
 
 ## What Was Done
 
-- L4 milestone list generated (3 milestones, `memory-bank/active/milestones.md`): m1 metrics API server (est. L3) → m2 vendored front-end (est. L3) → m3 launch surfaces (est. L2), with cross-milestone invariants.
-- Preflight validated the list against the codebase: PASS. Findings recorded in `tasks.md` — notably the m1 migration-gate/hook-discipline tension, the m2 REUSE gap for vendored `*.js`/`*.html`/`*.css`, and the m3 dual-doc port correction.
+- `/niko` re-entry: L4 project `p4-dashboard` active, no sub-run in flight; m1 (Dashboard metrics API server) is the first unchecked milestone.
+- m1 classified **Level 3** — complete feature spanning multiple components (`stockroom.dashboard` module, tests, fixtures) with no architectural change; matches the milestone list's L3 estimate.
+- Fresh sub-run `progress.md` created; L4 preflight findings in `tasks.md` preserved as plan-phase inputs (findings 1, 5, 6 are m1-specific).
 
 ## Next Step
 
-Operator review of the milestone plan; on approval, run `/niko` to classify and start the first sub-run (m1).
+Load the Level 3 workflow and execute its plan phase (`/niko-plan`).
