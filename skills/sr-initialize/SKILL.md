@@ -1,14 +1,14 @@
 ---
 name: sr-initialize
-description: Set up stockroom on this machine — check prerequisites, provision the per-machine torch build, smoke-test the embedding path, and put the `stockroom` command on PATH. Run this on a new machine, after a "run sr-initialize" error from a sibling skill, or any time the setup seems broken; it re-probes and only does what is still missing.
+description: Set up stockroom on this machine — check prerequisites, provision the per-machine torch build, smoke-test the embedding path, put the `stockroom` command on PATH, schedule the nightly ingest+embed, and run the first full ingest. Run this on a new machine, after a "run sr-initialize" error from a sibling skill, or any time the setup seems broken; it re-probes and only does what is still missing.
 enable-model-invocation: true
 ---
 
 # sr-initialize
 
-`sr-initialize` walks a machine from "plugin installed" to "engine ready": prerequisites checked, the per-machine torch wheel provisioned and smoke-tested, and the on-path `stockroom` command bound. You (the agent) orchestrate; every mechanical check runs through the tested engine CLI (`stockroom doctor`, `stockroom shim`), and the two judgment calls — which torch wheel, whether to take over a foreign shim — always go to the user.
+`sr-initialize` walks a machine from "plugin installed" to "warehouse ready": prerequisites checked, the per-machine torch wheel provisioned and smoke-tested, the on-path `stockroom` command bound, nightly freshness scheduled, and a first full ingest + embed completed. You (the agent) orchestrate; every mechanical check runs through the tested engine CLI (`stockroom doctor`, `stockroom shim`, `stockroom schedule`), and the judgment calls — which torch wheel, whether to take over a foreign shim, whether (and when) to schedule the nightly job — always go to the user.
 
-**Idempotent by design: the environment is the state.** There is no progress file. Re-running this skill re-probes and skips whatever is already green — torch present → skip provisioning and go to the smoke test; shim present and owned → nothing to do. "Go install torch your own way and run me again" is a supported flow, not a dead end.
+**Idempotent by design: the environment is the state.** There is no progress file. Re-running this skill re-probes and skips whatever is already green — torch present → skip provisioning and go to the smoke test; shim present and owned → nothing to do; `stockroom schedule status` says installed → skip scheduling; warehouse already populated → skip the first run. "Go install torch your own way and run me again" is a supported flow, not a dead end.
 
 ## Step 1: Prerequisite — uv
 
@@ -119,6 +119,46 @@ The install is ownership-guarded and its report is honest — relay it:
 
 From here on, every engine call is `stockroom <subcommand>` (`stockroom --help` lists them).
 
-## What's next
+## Step 8: Schedule nightly freshness
 
-Scheduling (nightly ingest + embed) and the first full ingest land in a later milestone of this skill. Until then, populate the warehouse manually when you want it: `stockroom ingest --full`, then `stockroom embed`.
+The warehouse stays current by running `stockroom ingest && stockroom embed` every night on the platform's own scheduler — cron on Linux/WSL, launchd on macOS. The engine owns the mechanism; you own the consent. First, re-probe:
+
+```bash
+stockroom schedule status
+```
+
+`status` reports facts and always exits 0: `installed: <the entry>` or `not installed`, a `daemon: running|not running` liveness fact (cron platforms), and `log: <path>` — where the nightly output goes. **If it says installed, this step is done; skip ahead.**
+
+If not installed, **ask the user** before touching their scheduler: propose installing the nightly job at the default **03:30**, and let them pick a different time if they want one (a machine that is reliably off at 03:30 wants a time it is actually awake for). Then:
+
+```bash
+stockroom schedule install                # default 03:30
+stockroom schedule install --time 01:15   # or the user's chosen HH:MM
+```
+
+Install is idempotent — re-running replaces the previous entry, never duplicates it. On cron it manages only its own marker-delimited block and never touches any other crontab line. The report is honest — relay it:
+
+- **Refusal** (exit 1, `the 'stockroom' command is not on PATH…`): the shim isn't bound yet — go back to step 7, then retry.
+- **Warning** (`cron daemon is not running…`): the entry is written but cannot fire; relay the fix verbatim (WSL: `sudo service cron start`, or enable systemd) and make sure the user acts on it — a schedule that can't fire is silent data staleness.
+- **Success** prints the installed entry. Sanity-check the fire time is what the user chose.
+
+(`stockroom schedule remove` uninstalls the entry cleanly if the user ever wants it gone.)
+
+## Step 9: First run — populate the warehouse
+
+Don't leave the user waiting until 03:30 for their first data. Run the initial full ingest + embed now, through the shim:
+
+```bash
+stockroom ingest --full
+stockroom embed
+```
+
+Expectations to set: on years of history the ingest takes minutes (it prints per-harness session/message counts when done), and the first `embed` is the long pole — hours are normal for a large corpus on modest hardware. If the smoke test (step 6) didn't already download the embedding model, `embed` pays that one-time download first. Both commands are incremental and idempotent: interrupted or re-run, they resume from what's already done — which is also why the nightly job stays cheap.
+
+Then verify the warehouse answers:
+
+```bash
+stockroom query "SELECT (SELECT count(*) FROM sessions) AS sessions, (SELECT count(*) FROM messages) AS messages, (SELECT count(*) FROM embeddings) AS embeddings"
+```
+
+Non-zero counts in all three columns means the machine is fully onboarded: engine smoke-tested, `stockroom` on PATH, nightly freshness scheduled, warehouse populated and searchable. Point the user at the `sr-search` skill (or `stockroom query` / `stockroom semantic` directly) and you're done.

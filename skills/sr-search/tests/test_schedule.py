@@ -97,11 +97,13 @@ def which_without_shim(name: str) -> str | None:
 
 def test_payload_invokes_shim_with_log_redirection(tmp_path: Path) -> None:
     """B1: the payload runs date + ingest + embed through the shim by name,
-    appending stdout+stderr to ``<home>/logs/nightly.log``."""
+    appending stdout+stderr of the *whole* command list (not just the last
+    ``&&`` operand) to ``<home>/logs/nightly.log``."""
     payload = render_payload(tmp_path)
-    assert "date" in payload
-    assert "stockroom ingest && stockroom embed" in payload
-    assert f">> {tmp_path}/logs/nightly.log 2>&1" in payload
+    assert (
+        payload == "(date; stockroom ingest && stockroom embed)"
+        f" >> {tmp_path}/logs/nightly.log 2>&1"
+    )
 
 
 def test_payload_is_home_aware(tmp_path: Path) -> None:
@@ -426,7 +428,7 @@ def test_launchd_install_writes_a_valid_plist(tmp_path: Path) -> None:
     assert data["Label"] == PLIST_LABEL
     assert data["ProgramArguments"][:2] == ["/bin/sh", "-c"]
     payload = data["ProgramArguments"][2]
-    assert "stockroom ingest && stockroom embed" in payload
+    assert payload == render_payload(home)  # the one shared renderer (B1)
     assert data["EnvironmentVariables"]["PATH"].startswith("/")
     assert "/fake/bin" in data["EnvironmentVariables"]["PATH"]
     assert data["StartCalendarInterval"] == {"Hour": 3, "Minute": 30}

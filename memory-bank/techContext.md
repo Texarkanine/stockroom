@@ -281,6 +281,34 @@ venv via the working directory). Injection mirrors the engine convention
 ([`test_doctor.py`](../skills/sr-search/tests/test_doctor.py) /
 [`test_doctor_cli.py`](../skills/sr-search/tests/test_doctor_cli.py)).
 
+## Nightly scheduling (`stockroom.schedule`)
+
+The Phase-3 m4 scheduler-entry manager lives in
+[`stockroom.schedule`](../skills/sr-search/src/stockroom/schedule.py) (the
+dispatcher's eighth subcommand): `stockroom schedule {install|status|remove}
+[--time HH:MM]` (default `03:30`) manages the nightly
+`stockroom ingest && stockroom embed` job on the platform scheduler —
+cron on Linux/WSL via a marker-delimited managed crontab block (foreign
+lines pass through byte-for-byte; install strips-then-appends, so
+re-install is idempotent by construction), launchd on macOS via an owned
+`jp.ne.cani.stockroom.nightly.plist` (rewritten in place, reloaded
+bootout-then-bootstrap with the not-loaded bootout failure tolerated).
+Both halves render the *same* payload — a `%`-free
+`(date; stockroom ingest && stockroom embed) >> <home>/logs/nightly.log 2>&1`
+in a `/bin/sh -c` wrapper under an install-time-resolved absolute `PATH=`
+(the shim's and uv's dirs via `shutil.which`), because the scheduler
+environment is minimal (`PATH=/usr/bin:/bin`) and unredirected cron output
+is mailed and discarded on MTA-less boxes. Entries invoke the shim by
+name — never an engine path. Install refuses when the shim is not on
+`PATH` (naming the fix), and warns — without failing — when no cron
+daemon (`cron`/`crond`) is running. `status` is facts-only, exit 0
+either way: the installed entry (or `not installed`), daemon liveness
+(cron platforms), and the `log:` location. External effects run through
+injectable seams (`crontab`/`launchctl` runners, `which`, the daemon
+check, the agents dir) in
+[`test_schedule.py`](../skills/sr-search/tests/test_schedule.py) /
+[`test_schedule_cli.py`](../skills/sr-search/tests/test_schedule_cli.py).
+
 ## Onboarding (`sr-initialize` skill)
 
 Machine onboarding is prose orchestration over tested units:
@@ -296,7 +324,12 @@ install --owner <harness>` (dev checkouts defer to `make shim`). It is
 idempotent with no progress file — the environment is the state; a re-run
 re-probes and skips green steps. It carries the one sanctioned pre-shim
 invocation incantation; everything after the shim lands is `stockroom
-<subcommand>`. Scheduling and the first full ingest are the next milestone.
+<subcommand>` — including the closing steps: nightly scheduling
+(re-probe via `stockroom schedule status`, user consent + time-of-night,
+`stockroom schedule install`, warnings relayed verbatim) and the first
+full run (`stockroom ingest --full`, `stockroom embed`, a
+`stockroom query` count sanity-check) that leaves the warehouse
+populated, embedded, and query-ready.
 
 ## Read-time truncation (`stockroom.truncate`)
 

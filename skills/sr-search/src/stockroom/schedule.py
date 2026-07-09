@@ -123,12 +123,14 @@ def render_payload(home: Path) -> str:
     """Render the shared nightly shell payload for ``home``.
 
     The one place the entry content is decided, used verbatim by both
-    platforms: ``date; stockroom ingest && stockroom embed`` with
-    stdout+stderr appended to ``<home>/logs/nightly.log``. Invokes the
-    shim by name (never an engine path) and contains no ``%`` (cron
-    newline syntax).
+    platforms: ``(date; stockroom ingest && stockroom embed)`` with
+    stdout+stderr appended to ``<home>/logs/nightly.log``. The subshell
+    parentheses are load-bearing — without them the redirection binds
+    only to the last ``&&`` operand and everything else is mailed and
+    discarded (caught during live validation). Invokes the shim by name
+    (never an engine path) and contains no ``%`` (cron newline syntax).
     """
-    payload = f"date; stockroom ingest && stockroom embed >> {_log_path(home)} 2>&1"
+    payload = f"(date; stockroom ingest && stockroom embed) >> {_log_path(home)} 2>&1"
     assert "%" not in payload, "cron treats % as newline — payload must be %-free"
     return payload
 
@@ -364,9 +366,10 @@ def launchd_install(
     log = _log_path(home)
     log.parent.mkdir(parents=True, exist_ok=True)
 
-    # The plist routes stdout/stderr itself, so the payload carries no
-    # shell redirection here — StandardOutPath/StandardErrorPath own it.
-    payload = "date; stockroom ingest && stockroom embed"
+    # The shared payload carries its own log redirection; the plist's
+    # StandardOutPath/StandardErrorPath route the same file as a backstop
+    # for anything the shell itself emits (launchd defaults to /dev/null).
+    payload = render_payload(home)
     data = {
         "Label": PLIST_LABEL,
         "ProgramArguments": ["/bin/sh", "-c", payload],

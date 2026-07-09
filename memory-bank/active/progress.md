@@ -66,3 +66,17 @@ Milestone m4 of L4 project `p3-onboarding-cli-scheduling`: build the `sr-initial
     - Combined log over the operator's per-command split — at this volume the chronological story reads better and the failed phase is obvious from content; recorded as a coin-flip, not a hill
 * Insights
     - Unredirected cron output is *mailed*, and MTA-less boxes (WSL default) discard it with only a syslog note — explicit redirection is the only way scheduler output survives at all, on either platform (launchd defaults to /dev/null without `StandardOutPath`/`StandardErrorPath`)
+
+## 2026-07-09 - BUILD - COMPLETE
+
+* Work completed
+    - All six plan steps, each TDD red→green: `stockroom.schedule` (payload renderer + `parse_time`, cron managed-block half, launchd owned-plist half, platform-dispatched flat CLI), eighth dispatcher row, `test_schedule.py` (30 tests) + `test_schedule_cli.py` (3) + dispatcher tuple/fingerprint extension — 362 passed, 3 torch-gated skips, `make ci` green end to end
+    - `sr-initialize` SKILL.md Steps 8–9 replace the "What's next" stub (scheduling consent/install/relay; first run + count sanity-check), every example executed live before being written in; README, techContext, systemPatterns accreted
+    - Live validation on this WSL box against the real crontab (backed up first, 24 foreign lines): install/re-install/`--time`/remove/no-op all verified with byte-for-byte foreign-line diffs; daemon `cron` running → `daemon: running` fact, no warning
+    - First run through the shim: `stockroom ingest --full` (11 min, 809 sessions, 29 080 messages) → `stockroom embed` (48 min, 39 805 chunk vectors) → count sanity-check green → re-run `embed` no-op (incrementality confirmed). The operator's warehouse is populated, embedded, and query-ready with nightly freshness scheduled at 03:30
+* Decisions made
+    - **Payload gained subshell parentheses** (`(date; … && …) >> log 2>&1`): live validation exposed that the creative doc's unparenthesized form binds the redirection only to the final `&&` operand — date output and ingest failures would be mailed and discarded. Test-first fix; B1 now pins the exact payload string; launchd reuses the identical payload with plist Standard*Path as backstop
+    - Entry `PATH=` prefix: shim dir + uv dir (deduped) + `/usr/bin:/bin`; `--time` malformed input → argparse-clean exit 2 naming `HH:MM`
+* Insights
+    - `make sync` (and thus `make test`/`make ci`) strips out-of-lock torch *every* run — a dev-box embed must be preceded by `make torch` whenever CI ran in between; the nightly job is immune (shim runs `--no-sync`)
+    - The one plan deviation was exactly where the plan predicted risk concentrates: the cron execution environment (redirection semantics), not the Python

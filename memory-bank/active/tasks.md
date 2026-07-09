@@ -129,11 +129,11 @@ Log-dir behavior:
 4. ✅ **Platform dispatch, CLI, and dispatcher row** (TDD red→green)
     - Files: `schedule.py`, `test_schedule.py`, `skills/sr-search/tests/test_schedule_cli.py` (new), `skills/sr-search/src/stockroom/__main__.py`, `skills/sr-search/tests/test_dispatcher_cli.py`
     - Changes: flat parser (`action` choices + `--time`), `main(argv)` with injectable `system`, unsupported-platform refusal; `SUBCOMMANDS["schedule"]` eighth row; dispatcher tuple + `--time` fingerprint; tests B14–B16
-5. **`sr-initialize` SKILL.md — scheduling + first run** (prose; every example executed live first)
+5. ✅ **`sr-initialize` SKILL.md — scheduling + first run** (prose; every example executed live first)
     - Files: `skills/sr-initialize/SKILL.md`
     - Changes: replace the "What's next" stub with Step 8 (re-probe via `stockroom schedule status`, consent + time-of-night default 03:30, `stockroom schedule install`, relay the daemon warning and any refusal verbatim) and Step 9 (first run: `stockroom ingest --full`, then `stockroom embed` — noting first-model-download if the smoke didn't pre-warm — then a `stockroom query` count sanity-check); idempotent re-entry statement extended to cover scheduling
     - Creative ref: "Judgment stays in prose"
-6. **Docs accretion + live validation + full gate**
+6. ✅ **Docs accretion + live validation + full gate**
     - Files: `README.md`, `memory-bank/techContext.md`, `memory-bank/systemPatterns.md`
     - Changes: README subcommand list gains `schedule`; onboarding pointer covers scheduling/first-run; techContext gains a `stockroom.schedule` section; systemPatterns records the managed-block/owned-plist idempotency pattern under the judgment-vs-mechanism split
     - Live validation on this machine (WSL/cron path): back up the real crontab (`crontab -l > backup`), `stockroom schedule install` → verify block + foreign-line preservation against the backup, re-install idempotency, `status`, `remove`, re-install; verify the cron-daemon warning behavior honestly (check `pgrep -x cron` state first); first run through the shim (`stockroom ingest --full`, `stockroom embed`, count sanity-check) leaving the operator's warehouse populated and embedded; macOS/launchd path is unit-tested here and artisanally validated by the operator on the M4 (the m3 precedent); `make ci` green end to end
@@ -157,6 +157,6 @@ No new technology — `plistlib`, `shutil.which`, `subprocess` are stdlib; `cron
 - [x] Test planning complete (TDD)
 - [x] Implementation plan complete
 - [x] Technology validation complete
-- [ ] Preflight
-- [ ] Build
+- [x] Preflight
+- [x] Build
 - [ ] QA

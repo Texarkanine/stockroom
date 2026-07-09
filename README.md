@@ -75,7 +75,7 @@ See [`planning/spikes/o9-torch/`](planning/spikes/o9-torch/) for index choices a
 
 ### Ad-hoc engine invocation: the `stockroom` command
 
-The on-path `stockroom` command (`~/.local/bin/stockroom`) is how you invoke the engine ad hoc. It is a generated shim that owns the whole torch-safe run contract, and forwards to the dispatcher's subcommands (`query`, `semantic`, `ingest`, `embed`, `migrate`, `shim`, `doctor`); `stockroom --help` lists them and `stockroom <subcommand> --help` shows each one's own options:
+The on-path `stockroom` command (`~/.local/bin/stockroom`) is how you invoke the engine ad hoc. It is a generated shim that owns the whole torch-safe run contract, and forwards to the dispatcher's subcommands (`query`, `semantic`, `ingest`, `embed`, `migrate`, `shim`, `doctor`, `schedule`); `stockroom --help` lists them and `stockroom <subcommand> --help` shows each one's own options:
 
 ```bash
 stockroom ingest --full
@@ -84,7 +84,7 @@ stockroom query "SELECT DISTINCT harness FROM sessions"
 
 Get the shim onto your PATH with `make shim` (bakes this checkout, owner `dev`; plugin installs get theirs from `sr-initialize`). The shim is baked-only and **succeed-or-refuse**: it never guesses at an engine location — if its baked engine dir is gone it refuses with a one-line remedy, and each harness's session-start hook re-bakes its own shim after a plugin update moves the install.
 
-For full machine onboarding — prerequisites, the per-machine torch wheel choice, the `stockroom doctor` smoke test, and the shim — run the [`sr-initialize`](skills/sr-initialize/SKILL.md) skill; it re-probes on every run and only does what is still missing.
+For full machine onboarding — prerequisites, the per-machine torch wheel choice, the `stockroom doctor` smoke test, the shim, the nightly ingest+embed schedule (`stockroom schedule`, cron or launchd), and the first full ingest — run the [`sr-initialize`](skills/sr-initialize/SKILL.md) skill; it re-probes on every run and only does what is still missing.
 
 <details>
 <summary>Bootstrap footnote: invoking the engine without the shim</summary>
