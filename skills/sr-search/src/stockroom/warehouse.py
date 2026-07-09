@@ -1,10 +1,11 @@
 """The warehouse-open chokepoint: the single contract for reaching the DB.
 
 Every stockroom consumer (skills, the nightly job, ``sr-query``) opens the
-DuckDB warehouse through this module — never by connecting directly. That
-makes ``warehouse.open()`` the one place where the lazy migration gate runs,
-so no consumer can ever touch an un-migrated database (and the session-start
-hook simply never calls it, satisfying "the hook never migrates").
+DuckDB warehouse through this module — never by connecting directly.
+``warehouse.open()`` owns the lazy migration gate. Hook-launched read surfaces
+that are constitutionally forbidden to migrate use ``open_current()`` instead:
+it opens read-only and either returns a current schema or refuses with typed
+staleness.
 
 This module owns:
 
@@ -59,6 +60,57 @@ class WarehouseBusyError(RuntimeError):
     fail to drain in time. It is the typed, fail-soft-visible terminal state —
     never a raw DuckDB ``IOException``, and never an unbounded block.
     """
+
+
+class WarehouseStaleError(RuntimeError):
+    """Raised when a non-migrating consumer finds the schema behind head.
+
+    ``current`` and ``latest`` make the refusal inspectable while the message
+    follows the errmsg ratchet by naming the exact recovery command.
+    """
+
+    def __init__(self, current: int, latest: int) -> None:
+        self.current = current
+        self.latest = latest
+        super().__init__(
+            f"warehouse schema is behind ({current} < {latest}); "
+            "run `stockroom migrate`"
+        )
+
+
+def open_current(
+    read_only: bool = True,
+    **backoff,
+) -> duckdb.DuckDBPyConnection:
+    """Open the current warehouse read-only, refusing rather than migrating.
+
+    This is the structural counterpart to :func:`open` for hook-launched
+    consumers: it never calls the migration runner. A missing warehouse raises
+    ``FileNotFoundError`` with the ingest recovery action; a behind-head
+    warehouse closes its connection and raises :class:`WarehouseStaleError`.
+    Backoff options are forwarded to the same bounded open helper as
+    :func:`open`.
+    """
+    if not read_only:
+        raise ValueError("open_current only supports read_only=True")
+
+    path = warehouse_path()
+    if not path.is_file():
+        raise FileNotFoundError(
+            f"no warehouse found at {path}; run `stockroom ingest` first"
+        )
+
+    con = _open_with_backoff(path, read_only=True, **backoff)
+    try:
+        ensure_vss(con)
+        current = current_version(con)
+        latest = _latest_version()
+        if current < latest:
+            raise WarehouseStaleError(current, latest)
+        return con
+    except BaseException:
+        con.close()
+        raise
 
 
 def ensure_vss(con: duckdb.DuckDBPyConnection) -> None:

@@ -12,11 +12,15 @@ import json
 from pathlib import Path
 
 import duckdb
+import pytest
 
 from stockroom import migrate, warehouse
-from test_schema_0003 import SNAPSHOT_PATH, _introspect_schema
+from stockroom.migrations import discover
+from test_schema_0004 import SNAPSHOT_PATH
+from test_schema_0003 import _introspect_schema
 
 _PRODUCT_TABLES = {"sessions", "messages", "tool_calls", "embeddings", "_sync_state"}
+_HEAD_VERSION = 4
 
 
 def _table_names(con: duckdb.DuckDBPyConnection) -> set[str]:
@@ -61,7 +65,7 @@ def test_open_writer_on_fresh_path_returns_migrated_connection(
     """``open(read_only=False)`` on a brand-new path migrates and is ready."""
     con = warehouse.open(read_only=False)
     try:
-        assert migrate.current_version(con) == 3
+        assert migrate.current_version(con) == _HEAD_VERSION
         assert _PRODUCT_TABLES <= _table_names(con)
         # The warehouse file was created at the resolved path.
         assert warehouse.warehouse_path().is_file()
@@ -77,7 +81,7 @@ def test_open_reader_on_current_warehouse_returns_working_connection(
 
     con = warehouse.open(read_only=True)
     try:
-        assert migrate.current_version(con) == 3
+        assert migrate.current_version(con) == _HEAD_VERSION
         # A plain read works against the migrated schema.
         assert con.execute("SELECT count(*) FROM sessions").fetchone()[0] == 0
     finally:
@@ -97,7 +101,7 @@ def test_open_reader_on_current_warehouse_does_not_invoke_runner(
 
     con = warehouse.open(read_only=True)
     try:
-        assert migrate.current_version(con) == 3
+        assert migrate.current_version(con) == _HEAD_VERSION
     finally:
         con.close()
 
@@ -146,14 +150,67 @@ def test_open_with_migrate_false_skips_the_gate(
         con.close()
 
 
+def test_open_current_returns_read_only_current_connection(
+    warehouse_home: Path,
+) -> None:
+    """A current warehouse opens read-only without invoking a write path."""
+    warehouse.open(read_only=False).close()
+
+    con = warehouse.open_current()
+    try:
+        assert migrate.current_version(con) == _HEAD_VERSION
+        with pytest.raises(duckdb.Error):
+            con.execute("CREATE TABLE forbidden (id INTEGER)")
+    finally:
+        con.close()
+
+
+def test_open_current_refuses_stale_schema_without_migrating(
+    warehouse_home: Path,
+) -> None:
+    """A behind-head warehouse raises typed staleness and stays behind."""
+    path = warehouse.warehouse_path()
+    con = duckdb.connect(str(path))
+    migration = next(item for item in discover() if item.version == 1)
+    try:
+        con.execute(migration.path.read_text(encoding="utf-8"))
+        migrate.ensure_schema_version_table(con)
+        con.execute(
+            f"INSERT INTO {migrate.SCHEMA_VERSION_TABLE} (version, filename) "
+            "VALUES (1, ?)",
+            [migration.path.name],
+        )
+    finally:
+        con.close()
+
+    with pytest.raises(warehouse.WarehouseStaleError) as caught:
+        warehouse.open_current()
+    assert caught.value.current == 1
+    assert caught.value.latest == _HEAD_VERSION
+    assert "stockroom migrate" in str(caught.value)
+
+    con = duckdb.connect(str(path), read_only=True)
+    try:
+        assert migrate.current_version(con) == 1
+        assert "source_mtime" not in {
+            row[0]
+            for row in con.execute(
+                "SELECT column_name FROM duckdb_columns() "
+                "WHERE table_name = 'sessions'"
+            ).fetchall()
+        }
+    finally:
+        con.close()
+
+
 # --- radical-innovation guard: the framework yields exactly the locked DDL --
 
 
 def test_migrated_warehouse_matches_locked_snapshot(warehouse_home: Path) -> None:
     """A freshly opened warehouse's product schema byte-matches the head snapshot.
 
-    Reuses the schema-introspection helper against the *cumulative* post-``0003``
-    golden (``0003_snapshot.json``: columns + PKs + the HNSW index). The
+    Reuses the schema-introspection helper against the *cumulative* post-``0004``
+    golden (``0004_snapshot.json``: columns + PKs + the HNSW index). The
     runner-owned ``schema_version`` bookkeeping table is excluded by the helper
     (it is not part of any product migration), proving the migration framework
     produces precisely the locked product DDL — including the VSS index — at the

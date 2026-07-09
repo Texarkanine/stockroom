@@ -18,6 +18,7 @@ from stockroom import migrate, warehouse
 from stockroom.warehouse import WarehouseBusyError
 
 _PRODUCT_TABLES = {"sessions", "messages", "tool_calls", "embeddings", "_sync_state"}
+_HEAD_VERSION = 4
 
 
 def _create_current_warehouse() -> None:
@@ -55,7 +56,7 @@ def test_reader_succeeds_after_migration_releases(
 
     con = warehouse.open(read_only=True, timeout=15.0, initial_delay=0.02)
     try:
-        assert migrate.current_version(con) == 3
+        assert migrate.current_version(con) == _HEAD_VERSION
     finally:
         con.close()
 
@@ -99,15 +100,15 @@ def test_racing_migrators_serialize_without_double_apply(
     assert proc_a.wait(timeout=30) == 0
     assert proc_b.wait(timeout=30) == 0
 
-    assert out_a.read_text(encoding="utf-8") == "3"
-    assert out_b.read_text(encoding="utf-8") == "3"
+    assert out_a.read_text(encoding="utf-8") == str(_HEAD_VERSION)
+    assert out_b.read_text(encoding="utf-8") == str(_HEAD_VERSION)
 
     con = warehouse.open(read_only=True)
     try:
         row_count = con.execute(
             f"SELECT count(*) FROM {migrate.SCHEMA_VERSION_TABLE}"
         ).fetchone()[0]
-        assert row_count == 3
+        assert row_count == _HEAD_VERSION
         tables = {
             r[0]
             for r in con.execute(

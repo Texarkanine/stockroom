@@ -19,4 +19,4 @@
 
 ## Next Step
 
-Implement step 3: the non-migrating `warehouse.open_current()` chokepoint and typed stale-schema refusal.
+Implement step 4: dashboard metrics window/filter plumbing, overview, and trends.
