@@ -1,12 +1,12 @@
 # Active Context
 
 ## Current Task: p4-dashboard / m3 — Launch surfaces
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Closed completed milestone m2 and cleared its sub-run ephemeral state.
-- Selected m3 (first unchecked L4 milestone) as the classification target.
-- Classified m3 as Level 2: small feature/enhancement composed of pattern-following launch surfaces (dispatcher registration, thin `sr-dashboard` skill, sequenced session-start hooks, planning-doc port corrections) with no architectural implications.
+- Classified m3 as Level 2 and produced a linear TDD plan covering dispatcher registration, `sr-dashboard` skill hygiene, combined rectify-then-launch hooks, and planning-doc port corrections.
+- Resolved the hook chicken-egg: rectify keeps the plugin-root bootstrap; only dashboard launch uses on-path `stockroom dashboard`.
+- Mapped all behaviors onto existing test files (`test_dispatcher_cli.py`, `test_skill_hygiene.py`, `test_packaging.py`) — no new test infrastructure.
 
 ## Next Step
-- Load the Level 2 workflow and begin planning.
+- Run Level 2 preflight validation.

@@ -14,3 +14,15 @@ Deliver milestone m3 of `p4-dashboard`: register the `dashboard` subcommand in t
     - The milestone inherits all cross-milestone constraints in `milestones.md`, including invocation-contract hygiene (`stockroom` on PATH only), hook discipline (rectify-then-launch, never ingest/migrate/error/block), port 6767, and test-ROI discipline (unit-test our logic only; platform daemonization is manual smoke).
 * Insights
     - The milestone list's original Level 2 estimate remains accurate; the work is three small pattern-following artifacts plus doc corrections, not a multi-component feature build.
+
+## 2026-07-09 - PLAN - COMPLETE
+
+* Work completed
+    - Produced an 8-step TDD plan wiring the existing dashboard launcher into the dispatcher, `sr-dashboard` skill, and combined session-start hooks, plus 3143→6767 planning-doc corrections.
+    - Mapped behaviors onto existing pytest suites only (dispatcher, skill hygiene, packaging) — no new test files or technology.
+* Decisions made
+    - Hook chicken-egg: keep plugin-root `PYTHONPATH`+`uv run` bootstrap for `shim rectify`; launch via on-path `stockroom dashboard` after rectify in the same single command entry.
+    - Skill stays thin (`stockroom dashboard` only); no `--foreground` coaching in the skill body.
+    - Roadmap narrative about "launch only / no plumbing" is out of m3 port-correction scope unless a free adjacent edit appears.
+* Insights
+    - m1 already owns probe/spawn/idempotency; m3 is pure surface wiring and must not re-test platform daemonization.
