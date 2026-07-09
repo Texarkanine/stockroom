@@ -1,3 +1,7 @@
 # Tasks: p3-m4-sr-initialize-scheduling
 
-Task list to be populated by the Level 3 PLAN phase.
+Task list being populated by the Level 3 PLAN phase.
+
+## Open Questions
+
+- [x] **Q1: Scheduling logic surface and idempotent entry management.** → Resolved: new flat `stockroom.schedule` module (eighth subcommand, `install | status | remove`) — cron via a marker-delimited managed crontab block, launchd via an owned plist; entries invoke the shim by name with an install-time-resolved absolute `PATH=` prefix; judgment (consent, time-of-night, first run) stays in `sr-initialize` prose (see `memory-bank/active/creative/creative-scheduling-surface.md`). Original question: **Q1: Scheduling logic surface and idempotent entry management.** Where does the cron/launchd installation logic live (engine Python vs skill prose vs an extension of an existing module), and what mechanism makes re-install idempotent (how an existing stockroom entry is detected, replaced, and removed without touching foreign crontab lines or LaunchAgents)? Ambiguous because multiple placements are viable (a new `stockroom.schedule` module, prose-only crontab editing, extending `stockroom.doctor`) and the entry composition (one entry vs two, logging destination, how the scheduler's minimal PATH finds the shim and uv) admits several shapes. Constraints: entries invoke the shim (`stockroom ingest` / `stockroom embed`) and never a raw engine path; per-machine absolute path resolution (the roadmap's cautionary cron example); the dispatcher owns all logic (the shim and rendered artifacts stay dumb); idempotent re-install; POSIX cron (Linux/WSL) + launchd (macOS) only; TDD for all Python.
