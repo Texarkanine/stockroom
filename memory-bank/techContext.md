@@ -8,11 +8,11 @@ This file is intentionally thin right now and is designed to **accrete**. The te
 
 ## Environment Setup
 
-uv provisions the interpreter pinned by `requires-python`. Locked deps via `make sync` (or `uv sync --frozen --no-config` in `skills/sr-search/`); **regenerate the lock hermetically** with `make lock` (or `uv lock --no-config`) so ambient user config can't leak in. **Torch is the one exception** — held out of the lock, provisioned per-machine out of band, and preserved across syncs (never run an exact sync after installing it). Recipe proven in [`planning/spikes/o9-torch/`](../planning/spikes/o9-torch/); full detail in tech-brief → "The Torch Exception". The canonical project config is [`skills/sr-search/pyproject.toml`](../skills/sr-search/pyproject.toml) (the `requires-python` floor, the `[tool.uv] override-dependencies` torch marker, and `package = false`) with its hermetic [`skills/sr-search/uv.lock`](../skills/sr-search/uv.lock); the torch-safe run contract is documented in the [root README](../README.md).
+uv provisions the interpreter pinned by `requires-python`. Locked deps via `make sync` (or `uv sync --frozen --no-config` in `skills/sr-search/`); **regenerate the lock hermetically** with `make lock` (or `uv lock --no-config`) so ambient user config can't leak in. **Torch is the one exception** — held out of the lock and provisioned per-machine out of band. Never run an exact sync after installing it: the current root Makefile's sync prerequisite is still exact, so `make format` / `make ci` remove Torch and require restoring the confirmed wheel before production-path smoke testing; this is a known tooling debt until that prerequisite becomes inexact. Recipe proven in [`planning/spikes/o9-torch/`](../planning/spikes/o9-torch/); full detail in tech-brief → "The Torch Exception". The canonical project config is [`skills/sr-search/pyproject.toml`](../skills/sr-search/pyproject.toml) (the `requires-python` floor, the `[tool.uv] override-dependencies` torch marker, and `package = false`) with its hermetic [`skills/sr-search/uv.lock`](../skills/sr-search/uv.lock); the torch-safe run contract is documented in the [root README](../README.md).
 
 ## Build Tools
 
-uv for dependency resolution (no compile/bundle/transpile step) and `release-please` for version syncing into both plugin manifests. Canonical config: [`skills/sr-search/pyproject.toml`](../skills/sr-search/pyproject.toml) + [`uv.lock`](../skills/sr-search/uv.lock), and [`release-please-config.json`](../release-please-config.json) + [`.release-please-manifest.json`](../.release-please-manifest.json) (writes `$.version` into both `plugin.json` manifests). CI is [`.github/workflows/ci.yml`](../.github/workflows/ci.yml); release automation is [`.github/workflows/release-please.yaml`](../.github/workflows/release-please.yaml). **Local iteration** is via the root [`Makefile`](../Makefile) (`make help` lists sync/lock/test/lint/format/reuse/ci targets; it wraps the engine-dir `uv` invocations with `--no-config` and torch-safe `--no-sync`).
+uv for dependency resolution (no compile/bundle/transpile step) and `release-please` for version syncing into both plugin manifests. Canonical config: [`skills/sr-search/pyproject.toml`](../skills/sr-search/pyproject.toml) + [`uv.lock`](../skills/sr-search/uv.lock), and [`release-please-config.json`](../release-please-config.json) + [`.release-please-manifest.json`](../.release-please-manifest.json) (writes `$.version` into both `plugin.json` manifests). CI is [`.github/workflows/ci.yml`](../.github/workflows/ci.yml); release automation is [`.github/workflows/release-please.yaml`](../.github/workflows/release-please.yaml). **Local iteration** is via the root [`Makefile`](../Makefile) (`make help` lists sync/lock/test/lint/format/reuse/ci targets; engine commands use `--no-config` and test/lint execution uses `--no-sync`, subject to the exact-sync prerequisite caveat above).
 
 ## Warehouse Schema
 
@@ -77,6 +77,16 @@ stay frozen (forward-only); the cumulative post-`0002` shape is pinned by
 Schema-changing ingest/writer tests run against the `migrated_con` fixture (the
 full chain via `apply_pending`); the frozen `0001` contract tests keep using
 `schema_con`.
+
+The Phase-4 dashboard substrate upgrade is
+[`0004_observation_times.sql`](../skills/sr-search/src/stockroom/migrations/0004_observation_times.sql):
+`sessions.source_mtime` records source-transcript provenance and supplies an
+honest last-activity fallback where a harness has no authored timestamps;
+`messages.first_seen_at` records stockroom's first observation and is carried
+forward by deterministic message identity across re-ingest. Existing rows stay
+honestly NULL until observed; the cumulative shape is pinned by
+[`test_schema_0004.py`](../skills/sr-search/tests/test_schema_0004.py) and
+[`0004_snapshot.json`](../skills/sr-search/tests/fixtures/schema/0004_snapshot.json).
 
 ## Ingest (ETL)
 
@@ -211,6 +221,20 @@ model-invocable judgement skill that routes a question to the `sr-query` /
 `stockroom.search` module and the skill carries no engine-invocation contract —
 delegation is by sibling skill name with a relative-path fallback (see
 `systemPatterns.md` → search-surface architecture).
+
+## Dashboard metrics API (`stockroom.dashboard`)
+
+The Phase-4 milestone-1 local dashboard backend lives in
+[`stockroom.dashboard`](../skills/sr-search/src/stockroom/dashboard/): eight
+JSON metric endpoints plus packaged static-file serving on a loopback-only
+stdlib `ThreadingHTTPServer`. Each request opens its own read-only connection
+through [`warehouse.open_current()`](../skills/sr-search/src/stockroom/warehouse.py),
+which never migrates and turns missing, stale, or writer-busy warehouses into
+actionable 503 responses. Window ownership stays in the metric functions
+(`since` inclusive, `until` exclusive, endpoint-specific defaults); the HTTP
+layer parses only supplied bounds. `python -m stockroom.dashboard` provides the
+idempotent port probe and detached/foreground launcher. Contracts are pinned by
+the dashboard metrics, server, and CLI test modules.
 
 ## CLI dispatcher (`python -m stockroom`)
 

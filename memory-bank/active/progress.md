@@ -126,3 +126,17 @@ Deliver milestone m1 of `p4-dashboard`: the dashboard metrics API server — a `
     - Production encoder smoke remained green after restoring the established per-machine Torch build
 * Insights
     - Keeping transport parsing bound-only is the key ownership boundary: endpoint functions can evolve their defaults without hidden HTTP-layer policy
+
+## 2026-07-09 - REFLECT - COMPLETE
+
+* Work completed
+    - Reviewed requirements, plan accuracy, both creative decisions, build/QA outcomes, causal chains, workflow effectiveness, and L4 estimation accuracy
+    - Created `reflection/reflection-p4-dashboard-m1.md` with technical and process insights
+    - Reconciled persistent context: documented the non-migrating warehouse chokepoint, migration 0004 observation-time substrate, dashboard backend, and the exact-sync/Torch tooling caveat
+* Decisions made
+    - Product context remains balanced and factually current; no update needed
+    - The milestone is ready for `/niko` to mark m1 complete and initialize m2
+* Insights
+    - Transport syntax parsing and endpoint policy construction must remain separate ownership layers
+    - Cross-cutting behavior needs a boundary-level example, not only unit coverage in each layer
+    - L3 sizing was accurate; recurring Torch restoration is verification overhead from known Makefile debt, not feature complexity

@@ -57,10 +57,10 @@ Two sanctioned exceptions carry the raw contract: `sr-initialize` (the one pre-s
 
 Intentional and load-bearing (mirrors `../slobac/REUSE.toml`). A root `REUSE.toml` + `LICENSES/*.txt`, enforced by `reuse lint` in CI/tests (not advisory). AGPLv3 is the **battle-tested explicit base on all code**; the experimental **PPL-S is layered over prompt-shaped content** (`skills/**` — `SKILL.md`, references), and code-shaped paths within `skills/**` (`*.py`, `*.sql`, `pyproject.toml`, `uv.lock`, `tests/**`) are **re-asserted AGPL**. Worst case prompts are still AGPL; best case they are PPL-S-clarified too. Relies on REUSE's last-matching-annotation-wins ordering: base AGPL → `skills/**` PPL-S → code-within-skills AGPL → vendored `.cursor/**` NOASSERTION.
 
-## Two-layer warehouse lock behind a single open() chokepoint
+## Two-layer warehouse lock behind warehouse chokepoints
 
 Every consumer reaches the DuckDB warehouse through one function —
-[`stockroom.warehouse.open(read_only=…)`](../skills/sr-search/src/stockroom/warehouse.py) — never by connecting directly. The lazy migration gate lives *inside* `open()`, so no consumer can touch an un-migrated DB and the session-start hook stays migration-free simply by never calling it. Concurrency is two cooperating locks, each with one job:
+[`stockroom.warehouse.open(read_only=…)`](../skills/sr-search/src/stockroom/warehouse.py) — or its deliberately non-migrating dashboard variant, `open_current()` — never by connecting directly. The lazy migration gate lives *inside* `open()`, so ordinary consumers cannot touch an un-migrated DB. `open_current()` is the narrow exception for hook-launched read surfaces: it opens read-only, checks the schema head, and raises typed `WarehouseStaleError` without migrating; the caller degrades to an actionable refusal. Concurrency is two cooperating locks, each with one job:
 
 - **Coordination layer** — an `fcntl.flock(LOCK_EX)` on a sidecar `~/.stockroom/.warehouse.lock`. The single-writer/migrator token; a process takes it before opening DuckDB read-write. Readers never take it. OS auto-releases it on process death, so a crashed migrator can't wedge the warehouse (no TTL/reaper needed).
 - **Data layer** — DuckDB's own file lock (RW exclusive, RO shared). The real data-integrity guarantee; the flock exists only to approach it in an orderly, herd-free way.

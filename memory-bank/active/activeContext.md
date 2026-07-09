@@ -2,7 +2,7 @@
 
 **Current Task:** p4-dashboard / m1 — Dashboard metrics API server
 
-**Phase:** QA - COMPLETE (PASS)
+**Phase:** REFLECT - COMPLETE
 
 ## Operator Plan-Review Decisions (2026-07-09)
 
@@ -43,4 +43,4 @@
 
 ## Next Step
 
-Run the autonomous reflection phase.
+Run `/niko` to close m1 and continue to the next dashboard milestone.
