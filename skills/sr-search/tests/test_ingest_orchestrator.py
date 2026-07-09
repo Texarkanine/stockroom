@@ -251,6 +251,42 @@ def test_no_fabrication_roundtrip_invariant(
             assert encode_for(harness, cwd) == project_id
 
 
+def test_full_ingest_persists_source_mtime_for_sessions_and_subagents(
+    migrated_con: duckdb.DuckDBPyConnection,
+    fixture_roots: None,
+    ai_tracking_db: Path,
+) -> None:
+    """Each session uses its discovered conversation mtime; subagents inherit it."""
+    _full_ingest(migrated_con, ai_tracking_db)
+    rows = migrated_con.execute(
+        "SELECT harness, session_id, source_path, is_subagent, parent_session_id, "
+        "source_mtime FROM sessions ORDER BY harness, session_id"
+    ).fetchall()
+    assert rows
+
+    by_identity = {
+        (harness, session_id): source_mtime
+        for harness, session_id, *_, source_mtime in rows
+    }
+    subagent_count = 0
+    for (
+        harness,
+        _session_id,
+        source_path,
+        is_subagent,
+        parent_id,
+        source_mtime,
+    ) in rows:
+        assert source_mtime is not None
+        if is_subagent:
+            subagent_count += 1
+            assert source_mtime == by_identity[(harness, parent_id)]
+        else:
+            expected = datetime.fromtimestamp(Path(source_path).stat().st_mtime)
+            assert source_mtime == expected
+    assert subagent_count > 0
+
+
 # --- Golden ingest-output snapshot ------------------------------------------
 
 

@@ -1,7 +1,7 @@
 """The stockroom trace-ingest (ETL) subsystem.
 
-Fills the milestone-1 DuckDB schema from the operator's own Cursor and Claude
-Code history, writing through the milestone-2 ``warehouse.open()`` chokepoint.
+Fills the DuckDB warehouse from the operator's own Cursor and Claude Code
+history, writing through the ``warehouse.open()`` chokepoint.
 The pipeline is, per harness, per run:
 
     sources (discover + watermark) -> cursor.py / claude.py (clean-room parse
@@ -10,6 +10,11 @@ The pipeline is, per harness, per run:
 
 with an optional ``enrich`` step that folds Cursor ``ai-code-tracking.db``
 model/labeling fields in when that DB is present.
+
+The warehouse is an append-mostly archive that outlives its sources. A full run
+reprocesses only files that still exist; it never prunes orphaned warehouse rows.
+The writer carries message observation times through re-ingest, so ``--full`` is
+safe for capture-time history as well as source-derived rows.
 
 :func:`ingest` is the orchestrator entrypoint: it wires discovery -> parse ->
 (enrich) -> write -> watermark for each requested harness and returns per-harness
@@ -111,8 +116,10 @@ def _parse_discovered(
     honestly: for Cursor by re-encode-and-match over the conversation's in-band
     paths (``None`` when none re-encodes to the slug); for Claude it is the
     authoritative record ``cwd`` set by the parser (left untouched). Subagents
-    inherit the parent's ``project_id`` and ``cwd``. Optional model enrichment is
-    applied to the matching Cursor conversation.
+    inherit the parent's ``project_id`` and ``cwd``. Every returned session,
+    including subagents, inherits the parent conversation's discovered
+    ``source_mtime``. Optional model enrichment is applied to the matching Cursor
+    conversation.
     """
     if harness == "cursor":
         main = cursor.parse_session(discovered.session_path)
@@ -128,16 +135,18 @@ def _parse_discovered(
             sub.project_id = discovered.project_id
             sub.cwd = main.cwd
             result.append(sub)
-        return result
+    else:
+        main = claude.parse_session(discovered.session_path)
+        main.project_id = discovered.project_id
+        result = [main]
+        for sub_path in discovered.subagent_paths:
+            meta_path = sub_path.with_suffix(".meta.json")
+            sub = claude.parse_subagent(sub_path, meta_path=meta_path)
+            sub.project_id = discovered.project_id
+            result.append(sub)
 
-    main = claude.parse_session(discovered.session_path)
-    main.project_id = discovered.project_id
-    result = [main]
-    for sub_path in discovered.subagent_paths:
-        meta_path = sub_path.with_suffix(".meta.json")
-        sub = claude.parse_subagent(sub_path, meta_path=meta_path)
-        sub.project_id = discovered.project_id
-        result.append(sub)
+    for session in result:
+        session.source_mtime = discovered.mtime
     return result
 
 

@@ -14,7 +14,12 @@ Two operations:
   counts). It expands the model's positional identity into the schema's
   ``message_id = '{session_id}#{ordinal}'`` and matching ``parent_id``,
   serializes each ``tool_input`` whole as JSON (no truncation at rest), and
-  denormalizes the session's ``harness`` onto every child row.
+  denormalizes the session's ``harness`` onto every child row. Before deletion,
+  it carries each existing message's ``first_seen_at`` forward by deterministic
+  ``message_id``; new or previously-unobserved rows seed from the session's
+  ``source_mtime``. Thus ``--full`` preserves observation history, and source
+  files that disappear remain untouched because ingest never calls the writer
+  for undiscovered sessions.
 * :func:`update_watermark` — upsert the per-``(harness, source_root)``
   ``_sync_state`` row that drives incremental discovery.
 """
@@ -67,16 +72,24 @@ def write_session(con: duckdb.DuckDBPyConnection, session: NormalizedSession) ->
     Inserts the ``sessions`` row, then its ``messages`` (with expanded
     ``message_id``/``parent_id``), then their ``tool_calls`` (``tool_input``
     serialized whole as JSON). Re-running with the same ``(harness, session_id)``
-    replaces the prior rows rather than colliding on the primary key.
+    replaces the prior rows rather than colliding on the primary key while
+    carrying forward each existing message's first-observation time.
     """
+    carried_first_seen = dict(
+        con.execute(
+            "SELECT message_id, first_seen_at FROM messages "
+            "WHERE harness = ? AND session_id = ?",
+            [session.harness, session.session_id],
+        ).fetchall()
+    )
     _delete_session(con, session.harness, session.session_id)
 
     con.execute(
         "INSERT INTO sessions (harness, session_id, project_id, cwd, git_branch, "
         "source_path, is_subagent, parent_session_id, agent_id, agent_type, "
         "spawning_tool_use_id, agent_name, models, title, harness_version, "
-        "started_at, ended_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
-        "?, ?, ?)",
+        "started_at, ended_at, source_mtime) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [
             session.harness,
             session.session_id,
@@ -95,6 +108,7 @@ def write_session(con: duckdb.DuckDBPyConnection, session: NormalizedSession) ->
             session.harness_version,
             session.started_at,
             session.ended_at,
+            session.source_mtime,
         ],
     )
 
@@ -108,8 +122,8 @@ def write_session(con: duckdb.DuckDBPyConnection, session: NormalizedSession) ->
         con.execute(
             "INSERT INTO messages (harness, session_id, message_id, parent_id, "
             "ordinal, role, text, model, ts, input_tokens, output_tokens, "
-            "cache_creation_tokens, cache_read_tokens, source_uuid) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "cache_creation_tokens, cache_read_tokens, source_uuid, first_seen_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             [
                 session.harness,
                 session.session_id,
@@ -125,6 +139,7 @@ def write_session(con: duckdb.DuckDBPyConnection, session: NormalizedSession) ->
                 message.cache_creation_tokens,
                 message.cache_read_tokens,
                 message.source_uuid,
+                carried_first_seen.get(message_id) or session.source_mtime,
             ],
         )
         for call in message.tool_calls:

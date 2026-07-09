@@ -28,6 +28,7 @@ def _session(**overrides) -> NormalizedSession:
         harness="claude",
         session_id="s1",
         source_path="/p/s1.jsonl",
+        source_mtime=datetime(2026, 1, 1, 0, 0, 2),
         cwd="/home/user/project",
         title="t",
         harness_version="2.1.0",
@@ -125,6 +126,70 @@ def test_write_session_reingest_reflects_new_content(
     grown.messages.append(NormalizedMessage(ordinal=2, role="user", text="more"))
     writer.write_session(migrated_con, grown)
     assert _count(migrated_con, "messages") == 3
+
+
+def test_write_session_persists_source_mtime(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """The session row round-trips the source transcript provenance mtime."""
+    expected = datetime(2026, 2, 3, 4, 5, 6)
+    writer.write_session(migrated_con, _session(source_mtime=expected))
+    stored = migrated_con.execute(
+        "SELECT source_mtime FROM sessions WHERE session_id = 's1'"
+    ).fetchone()[0]
+    assert stored == expected
+
+
+def test_first_write_seeds_message_first_seen_at(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Every new message seeds first observation time from source mtime."""
+    observed = datetime(2026, 2, 3, 4, 5, 6)
+    writer.write_session(migrated_con, _session(source_mtime=observed))
+    values = migrated_con.execute(
+        "SELECT first_seen_at FROM messages "
+        "WHERE session_id = 's1' ORDER BY ordinal"
+    ).fetchall()
+    assert values == [(observed,), (observed,)]
+
+
+def test_append_carries_existing_first_seen_and_stamps_only_new_message(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Append re-ingest preserves old observations and stamps only the new row."""
+    first_seen = datetime(2026, 1, 1, 0, 0, 2)
+    appended_seen = datetime(2026, 1, 2, 0, 0, 2)
+    writer.write_session(migrated_con, _session(source_mtime=first_seen))
+
+    grown = _session(source_mtime=appended_seen)
+    grown.messages.append(NormalizedMessage(ordinal=2, role="user", text="more"))
+    writer.write_session(migrated_con, grown)
+
+    values = migrated_con.execute(
+        "SELECT message_id, first_seen_at FROM messages "
+        "WHERE session_id = 's1' ORDER BY ordinal"
+    ).fetchall()
+    assert values == [
+        ("s1#0", first_seen),
+        ("s1#1", first_seen),
+        ("s1#2", appended_seen),
+    ]
+
+
+def test_unchanged_rewrite_preserves_every_first_seen_at(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """An unchanged re-ingest leaves every observation time untouched."""
+    first_seen = datetime(2026, 1, 1, 0, 0, 2)
+    reingest_mtime = datetime(2026, 1, 2, 0, 0, 2)
+    writer.write_session(migrated_con, _session(source_mtime=first_seen))
+    writer.write_session(migrated_con, _session(source_mtime=reingest_mtime))
+
+    values = migrated_con.execute(
+        "SELECT first_seen_at FROM messages "
+        "WHERE session_id = 's1' ORDER BY ordinal"
+    ).fetchall()
+    assert values == [(first_seen,), (first_seen,)]
 
 
 def test_write_session_persists_cursor_models_list(

@@ -19,4 +19,4 @@
 
 ## Next Step
 
-Implement step 2: ingest population of `source_mtime` and writer-owned `first_seen_at` carry-forward.
+Implement step 3: the non-migrating `warehouse.open_current()` chokepoint and typed stale-schema refusal.

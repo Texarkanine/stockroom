@@ -64,6 +64,7 @@ def test_session_minimal_and_defaults() -> None:
     assert s.harness == "cursor"
     assert s.session_id == "conv-1"
     assert s.source_path == "/p/conv-1.jsonl"
+    assert s.source_mtime is None
     assert s.is_subagent is False
     assert s.project_id is None
     assert s.cwd is None
