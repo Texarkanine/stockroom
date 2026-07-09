@@ -168,7 +168,7 @@ Every step is one TDD cycle and its sub-steps are **ordered**: (a) stub interfac
     - Files: `src/stockroom/dashboard/__main__.py`, `tests/test_dashboard_cli.py`
     - TDD order: (a) stub `main(argv) -> int`, `probe(port)`, the injectable spawn seam → (b) failing tests (already-running → URL + exit 0 + no spawn; free port → spawn argv `[sys.executable, -m stockroom.dashboard, --foreground, --port N]` + URL; `--port` respected everywhere; `--foreground` binds in-process; EADDRINUSE → URL + exit 0) → (c) fail → (d) implement (`start_new_session=True`, output to devnull). Detach mechanics themselves: manual smoke in QA (operator testing constraint).
     - Creative ref: advisory 6 (CLI-owned daemonization)
-9. **Full-suite gate + docs touch-up**
+9. [x] **Full-suite gate + docs touch-up**
     - Files: (all above), `skills/sr-search/src/stockroom/dashboard/*` docstrings, `skills/sr-query/SKILL.md`
     - Changes: `make ci` green (format, lint, test, reuse — new `.py` files are AGPL by REUSE.toml's re-assert; the placeholder `index.html` inherits `skills/**` PPL-S, which lints clean); module docstrings in the house narrative style; **update `sr-query`'s schema map** (its "as of migrations 0001–0003" header becomes "0001–0004"; the `sessions` line gains `source_mtime`, the `messages` line gains `first_seen_at` — preflight finding + amendment). No README/roadmap edits in m1 (roadmap port correction is m3 scope). (`systemPatterns.md` doctrine reframe already landed at plan time — operator-accepted.)
 
@@ -194,8 +194,8 @@ No new locked dependencies. The server is stdlib `http.server` (the roadmap's de
 - [x] Test planning complete (TDD)
 - [x] Implementation plan complete
 - [x] Technology validation complete
-- [ ] Preflight
-- [ ] Build
+- [x] Preflight
+- [x] Build
 - [ ] QA
 
 ---

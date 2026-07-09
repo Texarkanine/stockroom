@@ -195,8 +195,7 @@ def test_open_current_refuses_stale_schema_without_migrating(
         assert "source_mtime" not in {
             row[0]
             for row in con.execute(
-                "SELECT column_name FROM duckdb_columns() "
-                "WHERE table_name = 'sessions'"
+                "SELECT column_name FROM duckdb_columns() WHERE table_name = 'sessions'"
             ).fetchall()
         }
     finally:

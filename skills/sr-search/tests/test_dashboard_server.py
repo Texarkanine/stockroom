@@ -37,7 +37,11 @@ def _running_server(
 def _get(url: str) -> tuple[int, str, bytes]:
     try:
         with urlopen(url, timeout=5) as response:
-            return response.status, response.headers.get("Content-Type", ""), response.read()
+            return (
+                response.status,
+                response.headers.get("Content-Type", ""),
+                response.read(),
+            )
     except HTTPError as exc:
         return exc.code, exc.headers.get("Content-Type", ""), exc.read()
 
@@ -138,6 +142,7 @@ def test_unexpected_exception_returns_clean_json_500(
     warehouse_home: Path,
 ) -> None:
     """Unexpected failures never leak tracebacks into the HTTP response."""
+
     def _explode(**_kwargs):
         raise RuntimeError("private detail")
 

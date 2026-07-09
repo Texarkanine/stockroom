@@ -51,6 +51,7 @@ def parse_window(
     now: datetime | None = None,
 ) -> tuple[datetime, datetime]:
     """Parse an inclusive/exclusive ISO window, applying a default duration."""
+
     def _parse(value: str | datetime | None, name: str) -> datetime | None:
         if value is None:
             return None
@@ -285,8 +286,7 @@ def projects(
     return {
         "projects": ranked,
         "sessions": {
-            name: [counts[project].get(name, 0) for project in ranked]
-            for name in names
+            name: [counts[project].get(name, 0) for project in ranked] for name in names
         },
     }
 
@@ -391,9 +391,7 @@ def efficiency(
     names = _active_harnesses(con, harnesses)
     active = set(names)
     session_rows = [
-        row
-        for row in _session_rows(con, start, end)
-        if _is_selected(row[0], active)
+        row for row in _session_rows(con, start, end) if _is_selected(row[0], active)
     ]
     message_counts = {
         (harness, session_id): count

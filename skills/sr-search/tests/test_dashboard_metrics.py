@@ -351,9 +351,7 @@ def test_models_unifies_message_and_session_grains_once_per_session(
     migrated_con.execute(
         "UPDATE sessions SET models = ['m1', 'm3'] WHERE session_id = 'c1'"
     )
-    migrated_con.execute(
-        "UPDATE sessions SET models = ['m1'] WHERE session_id = 'c2'"
-    )
+    migrated_con.execute("UPDATE sessions SET models = ['m1'] WHERE session_id = 'c2'")
     _seed_session(
         migrated_con,
         harness="claude",
@@ -412,8 +410,7 @@ def test_efficiency_covers_boundaries_and_weighted_prompt_averages(
             message_count=message_count,
         )
         migrated_con.execute(
-            "UPDATE messages SET text = ? "
-            "WHERE session_id = ? AND ordinal = 0",
+            "UPDATE messages SET text = ? WHERE session_id = ? AND ordinal = 0",
             ["x" * prompt_length, session_id],
         )
 
@@ -465,8 +462,7 @@ def test_sessions_are_recent_filtered_and_display_truncated(
         "WHERE session_id = 'a-new'"
     )
     migrated_con.execute(
-        "UPDATE messages SET text = ? "
-        "WHERE session_id = 'a-new' AND ordinal = 0",
+        "UPDATE messages SET text = ? WHERE session_id = 'a-new' AND ordinal = 0",
         ["x" * 130],
     )
     _seed_session(

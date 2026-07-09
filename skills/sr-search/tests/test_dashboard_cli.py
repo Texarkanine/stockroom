@@ -72,6 +72,7 @@ def test_foreground_serves_in_process_without_probe_or_spawn(capsys) -> None:
 
 def test_foreground_bind_race_is_success_elsewhere(capsys) -> None:
     """EADDRINUSE means another child won the bind mutex and is success."""
+
     def _race(_port: int):
         raise OSError(errno.EADDRINUSE, "address already in use")
 

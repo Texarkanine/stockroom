@@ -2,7 +2,7 @@
 
 **Current Task:** p4-dashboard / m1 — Dashboard metrics API server
 
-**Phase:** BUILD - IN-PROGRESS (preflight PASS; implementing the validated nine-step TDD plan)
+**Phase:** BUILD - COMPLETE (9/9 implementation steps; full CI green)
 
 ## Operator Plan-Review Decisions (2026-07-09)
 
@@ -12,11 +12,31 @@
 
 ## What Was Done
 
-- Full L3 plan written to `tasks.md`: component analysis, resolved open questions, TDD test plan, 9 ordered implementation steps, challenges/mitigations.
-- Two open questions resolved via creative phase (both high-confidence): `sessions.source_mtime` via migration `0004` as the honest session-time grain for Cursor (`COALESCE(started_at, source_mtime)` activity time), and `warehouse.open_current()` + `WarehouseStaleError` as the non-migrating open path with HTTP 503 `{"error", "action"}` refusals.
-- Plan-level decisions: stdlib `http.server.ThreadingHTTPServer` (the roadmap's deferred framework pick — no new locked deps), per-request short-timeout opens, session-grain model metric, tunable write/read tool sets and efficiency buckets, subagent sessions excluded from v1 metrics, wrapped ignores the harness selector.
-- Scope grew by two substrate items the milestone description implied but didn't name: migration `0004` + ingest population of `source_mtime` (still comfortably L3).
+- Added migration `0004_observation_times.sql` plus cumulative schema contract: `sessions.source_mtime` and `messages.first_seen_at`.
+- Extended ingest model/orchestrator/writer so every session receives discovered source mtime, subagents inherit the parent conversation mtime, and message first-observation times survive append, unchanged, and full re-ingest.
+- Added `warehouse.open_current()` and `WarehouseStaleError`: missing/current/stale/busy states are typed, the stale path never migrates, and current connections are DuckDB-enforced read-only.
+- Added `stockroom.dashboard`: eight per-harness metric endpoints, all-time wrapped rollup, loopback-only threaded HTTP server, static traversal guard, stable JSON refusals, and `python -m stockroom.dashboard` probe/detach/foreground startup.
+- Updated the `sr-query` schema map for migration `0004`.
+- Added/extended schema, ingest, warehouse, metric, HTTP, CLI, and ingest-to-serve integration tests.
+
+## Build Decisions
+
+- Metric output remains client-mode-agnostic; selected unknown harnesses receive zero-valued series rather than an error.
+- Deterministic ranking ties use lexical names; wrapped tie-breaks use lexical harness/session and earliest hour.
+- `sessions` caps returned rows at 500 defensively in both server and metric layers.
+
+## Deviations
+
+- Updated existing migration-head and warehouse-concurrency expectations from version 3 to 4; this was an expected ripple omitted from the file list, not an architectural change.
+- `make format` performs an exact sync and removed the per-machine torch exception. Restored the previously installed `torch==2.13.0+cu126` build and verified the production encoder path.
+
+## Verification
+
+- `make ci`: 396 passed, 3 skipped; ruff lint/format, lock check, and REUSE all passed.
+- Final full suite after restoring torch: 398 passed, 1 skipped.
+- `stockroom doctor smoke`: CUDA available; production BGE encoder returned a 384-dimensional vector.
+- In-process integration: fixture ingest → real warehouse file → `open_current()` → HTTP overview passed.
 
 ## Next Step
 
-Execute step 9: schema-map documentation, full-suite CI, and final build handoff.
+Run autonomous Level 3 QA (`niko-qa`).

@@ -147,8 +147,7 @@ def test_first_write_seeds_message_first_seen_at(
     observed = datetime(2026, 2, 3, 4, 5, 6)
     writer.write_session(migrated_con, _session(source_mtime=observed))
     values = migrated_con.execute(
-        "SELECT first_seen_at FROM messages "
-        "WHERE session_id = 's1' ORDER BY ordinal"
+        "SELECT first_seen_at FROM messages WHERE session_id = 's1' ORDER BY ordinal"
     ).fetchall()
     assert values == [(observed,), (observed,)]
 
@@ -186,8 +185,7 @@ def test_unchanged_rewrite_preserves_every_first_seen_at(
     writer.write_session(migrated_con, _session(source_mtime=reingest_mtime))
 
     values = migrated_con.execute(
-        "SELECT first_seen_at FROM messages "
-        "WHERE session_id = 's1' ORDER BY ordinal"
+        "SELECT first_seen_at FROM messages WHERE session_id = 's1' ORDER BY ordinal"
     ).fetchall()
     assert values == [(first_seen,), (first_seen,)]
 

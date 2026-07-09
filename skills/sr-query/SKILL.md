@@ -91,10 +91,10 @@ stockroom query "SELECT table_name, column_name, data_type
   FROM information_schema.columns ORDER BY table_name, ordinal_position"
 ```
 
-Quick reference of the load-bearing columns **as of migrations 0001–0003** (confirm with the introspection query above):
+Quick reference of the load-bearing columns **as of migrations 0001–0004** (confirm with the introspection query above):
 
-- **`sessions`** — one row per conversation. `harness` (`'cursor'`|`'claude'`), `session_id`, `project_id` (verbatim project-dir slug — the grouping key), `cwd` (real path, may be `NULL`), `models` (`VARCHAR[]`, Cursor only), `title`, `git_branch`, `is_subagent`, `parent_session_id`, `started_at`, `ended_at`. PK `(harness, session_id)`.
-- **`messages`** — one row per turn. `message_id = '{session_id}#{ordinal}'` (uniform across harnesses), `parent_id`, `ordinal`, `role` (`'user'`|`'assistant'`), `text` (whole; thinking is **not** captured), `model` (per-message, Claude only), `ts`, and four token `BIGINT`s: `input_tokens`, `output_tokens`, `cache_creation_tokens`, `cache_read_tokens`. PK `(harness, session_id, message_id)`.
+- **`sessions`** — one row per conversation. `harness` (`'cursor'`|`'claude'`), `session_id`, `project_id` (verbatim project-dir slug — the grouping key), `cwd` (real path, may be `NULL`), `models` (`VARCHAR[]`, Cursor only), `title`, `git_branch`, `is_subagent`, `parent_session_id`, `started_at`, `ended_at`, `source_mtime` (source transcript mtime at last ingest). PK `(harness, session_id)`.
+- **`messages`** — one row per turn. `message_id = '{session_id}#{ordinal}'` (uniform across harnesses), `parent_id`, `ordinal`, `role` (`'user'`|`'assistant'`), `text` (whole; thinking is **not** captured), `model` (per-message, Claude only), `ts`, `first_seen_at` (when stockroom first observed the message), and four token `BIGINT`s: `input_tokens`, `output_tokens`, `cache_creation_tokens`, `cache_read_tokens`. PK `(harness, session_id, message_id)`.
 - **`tool_calls`** — tool **inputs only** (never outputs). `message_id` (the turn that emitted it), `ordinal`, `tool_name`, `tool_input` (heterogeneous `JSON`, stored whole — see the guardrail). PK `(harness, session_id, message_id, ordinal)`.
 - **`embeddings`** — per-chunk vectors for semantic search (`owner_table`, `owner_id`, `chunk_index`, `embed_model`, `vector FLOAT[384]`). You rarely query this directly — use the `sr-semantic` skill.
 - **`_sync_state`** — ingest watermark bookkeeping; not interesting to query.

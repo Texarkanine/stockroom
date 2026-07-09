@@ -66,3 +66,19 @@ Deliver milestone m1 of `p4-dashboard`: the dashboard metrics API server — a `
 * Insights
     - Retention was already structural (discovery touches only existing files; delete-then-insert fires only per re-parsed session; nothing prunes warehouse rows) — the amendment makes the doctrine match the mechanics
     - Accepted soft spot: positional `message_id` means a history-rewriting harness edit would shift ordinals and misattribute carried times; Cursor is append-only in practice and the value stays an honest upper bound
+
+## 2026-07-09 - BUILD - COMPLETE
+
+* Work completed
+    - Completed all 9 ordered TDD steps: migration 0004, ingest observation-time plumbing, non-migrating warehouse open, eight dashboard metrics, loopback HTTP/static server, idempotent CLI launcher, documentation, and full verification
+    - Added schema, writer/orchestrator, warehouse, metrics, HTTP, CLI, and ingest-to-serve integration coverage
+    - Updated the `sr-query` schema map for `source_mtime` and `first_seen_at`
+    - Passed `make ci` (396 passed, 3 skipped; lint, format, lock, REUSE green) and the final torch-enabled full suite (398 passed, 1 skipped)
+    - Restored the existing per-machine `torch==2.13.0+cu126` build after the Makefile's exact-sync prerequisite removed it; production encoder smoke passed on CUDA
+* Decisions made
+    - Unknown selected harnesses return zero-valued payload keys, preserving a mode-agnostic non-error API
+    - Deterministic ties use lexical ordering; wrapped peak-hour ties choose the earliest hour
+    - Sessions responses are capped at 500 in both HTTP validation and the metric function
+* Insights
+    - The existing `make format`/`make ci` sync prerequisite conflicts with the documented torch-held-out workflow by deleting the per-machine torch install; build restored it immediately, but the Makefile deserves a future inexact-sync correction outside this milestone
+    - The migration-head bump required routine updates to existing runner, warehouse snapshot, and concurrency expectations that the plan's file list did not enumerate
