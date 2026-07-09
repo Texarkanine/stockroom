@@ -1,8 +1,13 @@
-# Tasks: Phase 4 — Dashboard (`p4-dashboard`)
+# Tasks: Phase 4 — Dashboard (`p4-dashboard`) / m1 sub-run
 
-L4 project — work is decomposed into the milestone list in `memory-bank/active/milestones.md` (m1 API server → m2 vendored front-end → m3 launch surfaces). Each milestone runs as its own L1/L2/L3 sub-run with its own plan; this file is re-populated per sub-run.
+## Open Questions (m1 plan phase)
+
+- [x] **Cursor sessions have no time data — how do time-windowed metrics get a session time?** → Resolved: migration `0004` adds a uniform provenance column `sessions.source_mtime` (mtime of the source transcript at last ingest, populated for every harness by the writer); dashboard queries derive activity time as `COALESCE(started_at, source_mtime)`. Never overload `ended_at`; never stat at request time (recap substrate must be in-warehouse). (see `memory-bank/active/creative/creative-dashboard-session-time-grain.md`)
+- [x] **Non-migrating dashboard open path — where do the gate bypass and the typed refusal live?** → Resolved: new chokepoint variant `warehouse.open_current(read_only=True)` — opens with `migrate=False` and raises a typed `WarehouseStaleError` naming `stockroom migrate` when behind head; dashboard maps missing-warehouse / stale / busy to HTTP 503 with a stable `{"error", "action"}` JSON shape. (see `memory-bank/active/creative/creative-dashboard-nonmigrating-open.md`)
 
 ## Preflight Findings (L4 milestone-list validation, 2026-07-09)
+
+L4 project — work is decomposed into the milestone list in `memory-bank/active/milestones.md` (m1 API server → m2 vendored front-end → m3 launch surfaces). Each milestone runs as its own L1/L2/L3 sub-run with its own plan; this file is re-populated per sub-run.
 
 Status: **PASS with advisories** — no blocking findings; the items below are recorded for the relevant sub-runs to address.
 
