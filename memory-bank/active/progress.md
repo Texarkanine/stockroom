@@ -59,3 +59,13 @@ Deliver milestone m3 of `p4-dashboard`: register the `dashboard` subcommand in t
     - Doc drift in persistent files was treated as incomplete implementation and fixed in-QA (trivial completeness), not deferred to reflect.
 * Insights
     - The chicken-egg hook shape is the one non-obvious pattern worth keeping prominent in systemPatterns/techContext.
+
+## 2026-07-09 - REFLECT - COMPLETE
+
+* Work completed
+    - Captured Level 2 reflection for `p4-dashboard-m3`.
+    - Confirmed persistent-file reconciliation already done in QA; no further productContext edits.
+* Decisions made
+    - Million-dollar form matches what shipped: thin wiring over the m1 launcher, not a parallel launch path.
+* Insights
+    - Chicken-egg heal + hygiene substring scan are the durable lessons from this sub-run.
