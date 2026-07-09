@@ -69,3 +69,17 @@ def test_shell_inside_skill_resolves_agpl(license_map: dict[str, set[str]]) -> N
     assert target in license_map, f"{target} not in SPDX report"
     assert "AGPL-3.0-or-later" in license_map[target]
     assert "LicenseRef-PPL-S" not in license_map[target]
+
+
+def test_authored_dashboard_assets_resolve_agpl(
+    license_map: dict[str, set[str]],
+) -> None:
+    """Authored dashboard HTML/modules and JavaScript tests are AGPL software."""
+    pass
+
+
+def test_vendored_chartjs_resolves_only_mit(
+    license_map: dict[str, set[str]],
+) -> None:
+    """The exact upstream Chart.js artifact retains its MIT identity."""
+    pass

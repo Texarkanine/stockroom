@@ -226,6 +226,13 @@ def test_static_root_and_traversal_guard(warehouse_home: Path) -> None:
         assert payload["error"] == "not found"
 
 
+def test_dashboard_javascript_assets_have_browser_mime_types(
+    warehouse_home: Path,
+) -> None:
+    """Authored modules and vendored Chart.js are served as JavaScript."""
+    pass
+
+
 def test_unexpected_exception_returns_clean_json_500(
     warehouse_home: Path,
 ) -> None:

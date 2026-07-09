@@ -2,7 +2,7 @@
 
 ## Current Task: p4-dashboard / m2 — Vendored single-pane front-end
 
-**Phase:** PREFLIGHT - COMPLETE (PASS)
+**Phase:** BUILD - IN-PROGRESS
 
 ## What Was Done
 
@@ -14,7 +14,9 @@
 - Validated the official Chart.js 4.5.1 UMD artifact and Node 22 test runner without adding repository artifacts.
 - Preflight amended the plan to ten steps and closed all findings: testable request coordination, explicit per-panel/wrapped builders, exact REUSE paths, chart/wrapped maps, Node gate wiring, and all-three-module MIME/import coverage.
 - Independent TDD and completeness re-audits passed with no remaining blockers or advisories requiring action.
+- Build prerequisites were revalidated; both creative decisions remain applicable to the current backend and toolchain.
+- Build Step 1 completed: all planned Node/pytest tests exist as empty stubs, all client interfaces exist as documented stubs, and Node 22 is wired into Make and CI without npm.
 
 ## Next Step
 
-- Preflight passed. Run `/niko-build` to begin the Level 3 build phase.
+- Execute implementation Step 2: implement the pure client contract tests, observe their failure against the stubs, then build the core module behavior by behavior.

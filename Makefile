@@ -6,6 +6,7 @@
 
 ENGINE := skills/sr-search
 UV := uv
+NODE ?= node
 UV_NO_CFG := --no-config
 UV_DIR := $(UV) --directory $(ENGINE) $(UV_NO_CFG)
 UV_RUN := $(UV_DIR) run --no-sync
@@ -15,7 +16,7 @@ UV_RUN := $(UV_DIR) run --no-sync
 # CPU-only (default): https://download.pytorch.org/whl/cpu
 TORCH_INDEX ?= https://download.pytorch.org/whl/cpu
 
-.PHONY: help sync lock lock-check test lint format format-check reuse ci torch localdev shim
+.PHONY: help sync lock lock-check test test-js lint format format-check reuse ci torch localdev shim
 
 # localdev: mirror skills/ into .cursor/skills/stockroom-local so a harness can
 # load them "normally", without ever letting the mirror land in a commit.
@@ -41,8 +42,13 @@ lock: ## Regenerate uv.lock hermetically
 lock-check: ## Fail if uv.lock is stale vs pyproject.toml
 	$(UV_DIR) lock --locked
 
-test: sync ## Run pytest
+test: sync test-js ## Run pytest and JavaScript unit tests
 	$(UV_RUN) pytest
+
+test-js: ## Run native dashboard tests under Node 22
+	@command -v $(NODE) >/dev/null 2>&1 || { echo "Node 22 is required for dashboard tests"; exit 1; }
+	@version="$$($(NODE) --version)"; case "$$version" in v22.*) ;; *) echo "Node 22 is required for dashboard tests (found $$version)"; exit 1;; esac
+	cd $(ENGINE) && $(NODE) --test tests-js/*.test.mjs
 
 lint: sync ## Run ruff check
 	$(UV_RUN) ruff check

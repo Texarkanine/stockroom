@@ -173,7 +173,7 @@ The wrapped banner has exactly eight cells: Total Sessions with `totals.span` as
 
 ## Implementation Plan
 
-1. **Prepare every test, interface, and runner without implementing behavior.**
+1. [x] **Prepare every test, interface, and runner without implementing behavior.**
     - Files: `skills/sr-search/tests-js/dashboard-core.test.mjs`, `skills/sr-search/tests-js/dashboard-data.test.mjs`, `skills/sr-search/tests/test_dashboard_static.py`, `skills/sr-search/tests/test_dashboard_server.py`, `skills/sr-search/tests/test_licensing.py`, `skills/sr-search/src/stockroom/dashboard/static/dashboard-core.mjs`, `skills/sr-search/src/stockroom/dashboard/static/dashboard-data.mjs`, `skills/sr-search/src/stockroom/dashboard/static/dashboard.mjs`, `Makefile`, `.github/workflows/ci.yml`.
     - Test stubs first: add every planned Node/pytest test with an empty implementation and explanatory comments where the signature is not self-describing; modify existing test modules only after stubs exist.
     - Interface stubs second: add every documented export from the Interface Inventory with empty implementations, plus a browser adapter entry that performs no fetch, transition, transformation, or rendering.
