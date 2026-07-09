@@ -19,4 +19,4 @@
 
 ## Next Step
 
-Implement step 8: idempotent dashboard CLI probe, foreground serving, and detached spawn seam.
+Execute step 9: schema-map documentation, full-suite CI, and final build handoff.

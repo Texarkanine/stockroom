@@ -164,7 +164,7 @@ Every step is one TDD cycle and its sub-steps are **ordered**: (a) stub interfac
 7. [x] **`dashboard.server` — routing, refusals, static**
     - Files: `src/stockroom/dashboard/server.py`, `src/stockroom/dashboard/static/index.html` (placeholder), `tests/test_dashboard_server.py`
     - TDD order: (a) stub `serve(port, …) -> HTTPServer` + handler class routing from `metrics.ENDPOINTS` → (b) failing tests over a real in-process server on port 0 (per-endpoint 200 JSON, unknown-route 404, bad-param 400, the three 503 refusals, static `/` + traversal guard, loopback-only bind, unexpected-exception guard → clean 500 JSON) → (c) fail → (d) implement: `ThreadingHTTPServer` bound to **127.0.0.1 only** (never `0.0.0.0` — local read surface, not a network service), per-request `open_current` with short (~2s) backoff timeout, ISO-date JSON serialization, and a broad per-request guard so no traceback ever leaks as a response body.
-8. **`dashboard.__main__` — CLI: probe, URL, detach**
+8. [x] **`dashboard.__main__` — CLI: probe, URL, detach**
     - Files: `src/stockroom/dashboard/__main__.py`, `tests/test_dashboard_cli.py`
     - TDD order: (a) stub `main(argv) -> int`, `probe(port)`, the injectable spawn seam → (b) failing tests (already-running → URL + exit 0 + no spawn; free port → spawn argv `[sys.executable, -m stockroom.dashboard, --foreground, --port N]` + URL; `--port` respected everywhere; `--foreground` binds in-process; EADDRINUSE → URL + exit 0) → (c) fail → (d) implement (`start_new_session=True`, output to devnull). Detach mechanics themselves: manual smoke in QA (operator testing constraint).
     - Creative ref: advisory 6 (CLI-owned daemonization)
