@@ -50,3 +50,13 @@ Milestone m5 of L4 project `p3-onboarding-cli-scheduling`: the wrapper-skill tri
 * Insights
     - The trimmed skills lost roughly a third of their prose with zero operational loss — the litter audit's Category D keep-list made the cut mechanical rather than judgment-heavy
     - `make ci` stripping torch mid-milestone happened again exactly as the m4 insight predicted; sequencing live examples before the CI gate (per the plan's mitigation) made it a non-event
+
+## 2026-07-09 - QA - COMPLETE (PASS)
+
+* Work completed
+    - Semantic review of the full diff against the plan and the litter audit (KISS/DRY/YAGNI/completeness/regression/integrity/documentation): every Category A/B/C item verified gone from both trimmed skills, every Category D item verified present; pointer count is exactly one per skill; the two shipped `--format json` example forms re-executed live to confirm they answer as written; lints clean on all four touched Python files
+    - The one operational-content boundary in `system-model.md` inspected ("the fix is re-provisioning") — it describes routing, not an incantation, so the doc holds no "always pass X" rules
+* Decisions made
+    - PASS written to `.qa-validation-status`; no findings, no fixes applied, nothing routed back
+* Insights
+    - A keep-list (Category D) turns "did we over-trim?" from a judgment re-litigation into a mechanical diff check — the audit's category structure did the QA heavy lifting
