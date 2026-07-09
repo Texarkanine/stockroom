@@ -190,7 +190,7 @@ The wrapped banner has exactly eight cells: Total Sessions with `totals.span` as
     - Fill tests for the eight-URL request plan, repeated filters, sessions limit, wrapped omission, injected parallel fetch, atomic success/failure, sanitized actionable errors, abort forwarding, and latest-generation commit gating.
     - Run the focused Node test and confirm failure against the Step 1 stubs.
     - Implement one coordinator export at a time and rerun after each behavior. No fetch/generation/error policy may be added later in `dashboard.mjs`.
-4. **Lock vendored-asset, static-page, MIME, and license contracts before adding assets or page behavior.**
+4. [x] **Lock vendored-asset, static-page, MIME, and license contracts before adding assets or page behavior.**
     - Files: `skills/sr-search/tests/test_dashboard_static.py`, `skills/sr-search/tests/test_dashboard_server.py`, `skills/sr-search/tests/test_licensing.py`.
     - Fill the prepared pytest cases for semantic landmarks/panel IDs, local-only resource references, script ordering, served `.mjs`/Chart.js MIME, AGPL authored assets/data coordinator/tests-js, and MIT Chart.js. Extend the existing static-root test rather than replacing its traversal assertion.
     - Run these focused pytest modules and `reuse lint`; confirm failures due to the placeholder, absent assets, and missing MIT annotation/license.

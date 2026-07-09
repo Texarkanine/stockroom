@@ -75,11 +75,26 @@ def test_authored_dashboard_assets_resolve_agpl(
     license_map: dict[str, set[str]],
 ) -> None:
     """Authored dashboard HTML/modules and JavaScript tests are AGPL software."""
-    pass
+    targets = [
+        "skills/sr-search/src/stockroom/dashboard/static/index.html",
+        "skills/sr-search/src/stockroom/dashboard/static/dashboard.mjs",
+        "skills/sr-search/src/stockroom/dashboard/static/dashboard-core.mjs",
+        "skills/sr-search/src/stockroom/dashboard/static/dashboard-data.mjs",
+        "skills/sr-search/tests-js/dashboard-core.test.mjs",
+        "skills/sr-search/tests-js/dashboard-data.test.mjs",
+    ]
+    for target in targets:
+        assert target in license_map, f"{target} not in SPDX report"
+        assert license_map[target] == {"AGPL-3.0-or-later"}
 
 
 def test_vendored_chartjs_resolves_only_mit(
     license_map: dict[str, set[str]],
 ) -> None:
     """The exact upstream Chart.js artifact retains its MIT identity."""
-    pass
+    target = (
+        "skills/sr-search/src/stockroom/dashboard/static/"
+        "chart-4.5.1.umd.min.js"
+    )
+    assert target in license_map, f"{target} not in SPDX report"
+    assert license_map[target] == {"MIT"}

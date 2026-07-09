@@ -230,7 +230,20 @@ def test_dashboard_javascript_assets_have_browser_mime_types(
     warehouse_home: Path,
 ) -> None:
     """Authored modules and vendored Chart.js are served as JavaScript."""
-    pass
+    with _running_server() as (_httpd, base):
+        for asset in [
+            "dashboard.mjs",
+            "dashboard-core.mjs",
+            "dashboard-data.mjs",
+            "chart-4.5.1.umd.min.js",
+        ]:
+            status, content_type, body = _get(f"{base}/{asset}")
+            assert status == 200, asset
+            assert content_type.split(";", 1)[0] in {
+                "application/javascript",
+                "text/javascript",
+            }
+            assert body
 
 
 def test_unexpected_exception_returns_clean_json_500(
