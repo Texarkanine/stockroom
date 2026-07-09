@@ -326,10 +326,12 @@ def test_cli_detail_full_prints_whole_text(warehouse_home: Path, capsys) -> None
 
 
 def test_cli_missing_warehouse_is_friendly(warehouse_home: Path, capsys) -> None:
-    """No warehouse → exit 1 with a 'run ingest' hint, encoder never constructed."""
+    """No warehouse → exit 1 with a 'run ingest' hint, encoder never constructed.
+    The hint names the on-path command (`stockroom ingest`), never a raw module
+    invocation — pinned exactly so the message cannot drift back."""
     code = semantic.main(["a query"], encoder_factory=_never_built)
     assert code == 1
-    assert "ingest" in capsys.readouterr().err.lower()
+    assert "run `stockroom ingest` first" in capsys.readouterr().err
 
 
 def test_cli_empty_query_rejected(warehouse_home: Path, capsys) -> None:

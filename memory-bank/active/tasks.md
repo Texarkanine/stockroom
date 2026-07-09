@@ -33,22 +33,22 @@ Prose (artisanal verification + mechanical check, per the project invariant):
 
 ## Implementation Plan
 
-1. Engine hint swap (TDD cycle)
+1. [x] Engine hint swap (TDD cycle)
    - Files: `skills/sr-search/tests/test_query_cli.py`, `tests/test_semantic.py`, `tests/test_embed.py`, then `src/stockroom/query.py`, `src/stockroom/semantic.py`, `src/stockroom/embed.py`
    - Changes: tighten the three missing-warehouse tests to pin the exact new message tail (red), then change the three `print(...)` hints to ``run `stockroom ingest` first`` (green)
-2. Skill-hygiene test (TDD cycle spanning the prose steps)
+2. [x] Skill-hygiene test (TDD cycle spanning the prose steps)
    - Files: `skills/sr-search/tests/test_skill_hygiene.py` (new)
    - Changes: for each of the three wrapper SKILL.md files, assert zero occurrences of the B7 token set (word-boundary-aware where needed — e.g. `python -m stockroom` must also catch `python -m stockroom.query`). Written *now* so it is red against the untrimmed skills; steps 3–5 drive it green — the grep check becomes the failing test that drives the prose edit
-3. Author the shared system-model reference doc
+3. [x] Author the shared system-model reference doc
    - Files: `skills/sr-search/references/system-model.md` (new)
    - Changes: Category A/B content from the litter audit — torch contract (out of lock, out-of-band provisioning, why `--no-sync` exists), run-in-place packaging (`[tool.uv] package = false`, why the shim exists), ETL / read-only-by-construction, no-truncation-at-rest doctrine, embedding pipeline + staleness model, identity/provenance philosophy (`source_*` demotion). No operational rules — those stay in skills. REUSE: PPL-S applies automatically via the `skills/**` glob (`.md` is not code-shaped); verify with `make reuse`
-4. Trim `skills/sr-query/SKILL.md`
+4. [x] Trim `skills/sr-query/SKILL.md`
    - Files: `skills/sr-query/SKILL.md`
    - Changes: invocation section collapses to `stockroom query …` + the `command -v stockroom` → `sr-initialize` failure path; all examples/guardrails/worked-example prefixes swap to `stockroom query`; Category A cuts (rationale bullets, "rebuildable ETL output", planner theory, provenance framing); Category B (flag-bullet triplet gone with the incantation); Category C (self-description padding, "Two independent axes" narration); Category D kept (error table — quoting the *new* engine hint, `tool_input` JSON guardrail, schema map, identity join rule); one shared-doc pointer added; every example executed live before write-in
-5. Trim `skills/sr-semantic/SKILL.md`
+5. [x] Trim `skills/sr-semantic/SKILL.md`
    - Files: `skills/sr-semantic/SKILL.md`
    - Changes: same treatment; the full-text-handoff and coverage-check examples become `stockroom query …`; torch-missing advice collapses to the single error-table row with next-action "re-run `sr-initialize`" (litter audit B: the duplicate runtime-notes paragraph goes); `--format` lead-in maintenance metadata moves out (Category C); score semantics, staleness guardrail, re-phrase-don't-repeat, prefix-doubling warning all kept (Category D); one shared-doc pointer; every example executed live
-6. Touch up `skills/sr-search/SKILL.md`
+6. [x] Touch up `skills/sr-search/SKILL.md`
    - Files: `skills/sr-search/SKILL.md`
    - Changes: already zero invocation plumbing (m6 verified); add the one shared-doc pointer (fold into the engine-home breadcrumb), confirm no Category C narration crept in; steps 4–6 together drive the step-2 hygiene test green
 7. Reconcile persistent docs

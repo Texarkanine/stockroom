@@ -116,12 +116,14 @@ def test_query_read_only_rejects_writes(
 
 def test_query_missing_warehouse_is_friendly(tmp_path: Path) -> None:
     """Querying with no warehouse present exits nonzero with a 'run ingest'
-    hint rather than a raw IOException/traceback."""
+    hint rather than a raw IOException/traceback. The hint names the on-path
+    command (`stockroom ingest`), never a raw module invocation — pinned
+    exactly so the message cannot drift back."""
     home = tmp_path / "empty-home"
     result = _run_query("SELECT 1", home=home)
     assert result.returncode != 0
     assert "Traceback" not in result.stderr
-    assert "ingest" in result.stderr.lower()
+    assert "run `stockroom ingest` first" in result.stderr
 
 
 def test_query_empty_sql_is_rejected(tmp_path: Path) -> None:

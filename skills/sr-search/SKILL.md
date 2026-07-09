@@ -32,4 +32,4 @@ If the routed surface comes back empty or thin, try the other surface before con
 
 ## Engine home
 
-This directory also hosts the shared stockroom engine (`src/stockroom/`) that every `sr-*` skill invokes — developers, see the repo README and `memory-bank/systemPatterns.md`.
+This directory also hosts the shared stockroom engine (`src/stockroom/`) that every `sr-*` skill invokes as `stockroom <subcommand>` — developers, see the repo README and `memory-bank/systemPatterns.md`. To understand *why* the system's contracts look the way they do, read the shared system model: [`references/system-model.md`](references/system-model.md).

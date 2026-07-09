@@ -228,7 +228,7 @@ def main(
     if not warehouse_file.is_file():
         print(
             f"error: no warehouse found at {warehouse_file} — "
-            "run `python -m stockroom.ingest` first",
+            "run `stockroom ingest` first",
             file=sys.stderr,
         )
         return 1

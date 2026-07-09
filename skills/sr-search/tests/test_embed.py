@@ -243,11 +243,13 @@ def _seed_warehouse_message(text: str = "hi there", ordinal: int = 0) -> None:
 
 def test_embed_cli_missing_warehouse_is_friendly(warehouse_home: Path, capsys) -> None:
     """With no warehouse present, the CLI exits nonzero with a 'run ingest' hint
-    (and never constructs the torch-backed encoder)."""
+    (and never constructs the torch-backed encoder). The hint names the on-path
+    command (`stockroom ingest`), never a raw module invocation — pinned exactly
+    so the message cannot drift back."""
     code = embed.main([])
     assert code == 1
     err = capsys.readouterr().err
-    assert "ingest" in err.lower()
+    assert "run `stockroom ingest` first" in err
 
 
 def test_embed_cli_embeds_pending_and_reports_count(
