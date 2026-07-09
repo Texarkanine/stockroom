@@ -48,3 +48,14 @@ Deliver milestone m3 of `p4-dashboard`: register the `dashboard` subcommand in t
     - Skill avoids naming forbidden hygiene tokens even in negative guidance.
 * Insights
     - No server/front-end changes were required; m3 stayed pure surface wiring as planned.
+
+## 2026-07-09 - QA - COMPLETE (PASS)
+
+* Work completed
+    - Reviewed dispatcher, skill, hooks, packaging tests, and planning-doc ports against the plan; no over-engineering or missing requirements.
+    - Updated persistent memory-bank docs (`systemPatterns.md`, `techContext.md`) so wrapper-skill, dispatcher, and hook narratives match the shipped m3 surfaces.
+    - Manual smoke confirmed idempotent URL printing and dispatcher help listing.
+* Decisions made
+    - Doc drift in persistent files was treated as incomplete implementation and fixed in-QA (trivial completeness), not deferred to reflect.
+* Insights
+    - The chicken-egg hook shape is the one non-obvious pattern worth keeping prominent in systemPatterns/techContext.

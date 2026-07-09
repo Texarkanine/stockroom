@@ -2,10 +2,10 @@
 
 The single entrypoint the on-path ``stockroom`` shim (Phase-3 m2) execs into.
 It makes the engine behave like one CLI with subcommands: the first token
-selects a module (``query`` / ``semantic`` / ``ingest`` / ``embed`` /
-``migrate``), everything after it is forwarded verbatim to that module's own
-``main(argv)`` — so each module's argparse remains the single source of truth
-for its flags, and ``stockroom <sub> --help`` is that module's own help.
+selects a module from ``SUBCOMMANDS``, everything after it is forwarded
+verbatim to that module's own ``main(argv)`` — so each module's argparse
+remains the single source of truth for its flags, and ``stockroom <sub>
+--help`` is that module's own help.
 
 Dispatch is deliberately dumb: no argparse subparsers duplicating module
 flags, no option parsing beyond the first token. The target module is imported

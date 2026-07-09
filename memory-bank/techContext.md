@@ -237,9 +237,7 @@ actionable 503 responses. Window ownership stays in the metric functions
 layer parses only supplied bounds. Overview exposes additive
 `prev_distinct_projects` beside `distinct_projects` so the Projects KPI can
 delta distinct-to-distinct without summing per-harness `prev_projects`.
-`python -m stockroom.dashboard` provides the idempotent port probe and
-detached/foreground launcher. Contracts are pinned by the dashboard metrics,
-server, and CLI test modules.
+`stockroom dashboard` (dispatcher → [`stockroom.dashboard.__main__`](../skills/sr-search/src/stockroom/dashboard/__main__.py)) provides the idempotent port-6767 probe and detached/foreground launcher; `python -m stockroom.dashboard` remains a direct equivalent. Contracts are pinned by the dashboard metrics, server, and CLI test modules. The thin wrapper skill is [`skills/sr-dashboard/SKILL.md`](../skills/sr-dashboard/SKILL.md).
 
 The Phase-4 milestone-2 browser surface is the semantic single-pane [`static/index.html`](../skills/sr-search/src/stockroom/dashboard/static/index.html), a pure/tested transformation layer in [`dashboard-core.mjs`](../skills/sr-search/src/stockroom/dashboard/static/dashboard-core.mjs), injectable atomic request coordination in [`dashboard-data.mjs`](../skills/sr-search/src/stockroom/dashboard/static/dashboard-data.mjs), and an effects-only DOM/Chart.js adapter in [`dashboard.mjs`](../skills/sr-search/src/stockroom/dashboard/static/dashboard.mjs). Aggregate/Compare remains client-owned, wrapped remains all-time and unfiltered, harness keys remain open and positionally colored, and all warehouse-derived strings enter through safe text/attribute DOM APIs. Deterministic JavaScript behavior is covered under [`tests-js/`](../skills/sr-search/tests-js/); actual canvas rendering, native interaction, responsive layout, theme appearance, and offline-network verification remain an explicit real-browser QA boundary rather than a headless CI dependency.
 
@@ -247,10 +245,11 @@ The Phase-4 milestone-2 browser surface is the semantic single-pane [`static/ind
 
 The Phase-3 m1 single CLI entrypoint lives in
 [`stockroom.__main__`](../skills/sr-search/src/stockroom/__main__.py):
-`python -m stockroom <subcommand>` dispatches the first token to the existing
-module CLIs (`query`, `semantic`, `ingest`, `embed`, `migrate`), forwarding
-everything after it verbatim to that module's own `main(argv)` and returning
-its exit code unchanged — modules keep sole ownership of their flags, so
+`python -m stockroom <subcommand>` dispatches the first token to the module
+CLIs registered in `SUBCOMMANDS` (`query`, `semantic`, `ingest`, `embed`,
+`migrate`, `shim`, `doctor`, `schedule`, `dashboard`), forwarding everything
+after it verbatim to that module's own `main(argv)` and returning its exit
+code unchanged — modules keep sole ownership of their flags, so
 `<subcommand> --help` is the module's own help. Top-level `--help` lists the
 subcommands and `--version` prints `stockroom.__version__` (the m2 shim's
 identity probe). Dispatch imports the target module lazily, keeping the
@@ -282,11 +281,14 @@ reporting, and a conditional install-time `stockroom --version` verify.
 Staleness healing is hook-driven: each harness's sessionStart hook
 ([`hooks/cursor-hooks.json`](../hooks/cursor-hooks.json) /
 [`hooks/claude-hooks.json`](../hooks/claude-hooks.json), pointed to by the
-`"hooks"` key in each plugin manifest) runs `stockroom shim rectify --owner
-<harness> --app-dir ${*_PLUGIN_ROOT}/skills/sr-search` — silenced, short
-timeout, failures swallowed. `rectify` rewrites only an owned, drifted shim
-and never creates one. Dev parity: `make shim` installs with owner `dev`
-baking the checkout; harness hooks never touch it. Decision records:
+`"hooks"` key in each plugin manifest) is one combined silenced command —
+plugin-root bootstrap of `shim rectify --owner <harness> --app-dir
+${*_PLUGIN_ROOT}/skills/sr-search`, then on-path `stockroom dashboard`
+(port bind is the launch mutex). Failures are swallowed (`|| true`).
+`rectify` rewrites only an owned, drifted shim and never creates one; it
+cannot depend solely on the on-path shim (chicken-egg). Dev parity: `make
+shim` installs with owner `dev` baking the checkout; harness hooks never
+touch it. Decision records:
 `memory-bank/active/creative/creative-shim-{staleness-resolution,generation-surface}.md`
 (until archived).
 
