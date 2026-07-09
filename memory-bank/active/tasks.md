@@ -207,7 +207,7 @@ The wrapped banner has exactly eight cells: Total Sessions with `totals.span` as
     - Load the local versioned UMD bundle before `dashboard.mjs`; include labels/fallback summaries for every canvas.
     - Rerun `test_dashboard_static.py` and server asset tests until green.
     - Creative ref: `creative-dashboard-interaction-contract.md`.
-7. **Wire the thin browser adapter to already-green state and data contracts.**
+7. [x] **Wire the thin browser adapter to already-green state and data contracts.**
     - Files: `skills/sr-search/src/stockroom/dashboard/static/dashboard.mjs`, `skills/sr-search/src/stockroom/dashboard/static/index.html`.
     - Use the tested core transition helpers to discover/default harnesses, render a native disclosure/checklist and Aggregate/Compare radio group, prevent an empty selection, and distinguish mode-only redraw from selection refetch.
     - Use only the tested coordinator to fetch eight endpoints, filter seven, retain the previous snapshot while busy, suppress stale generations, and commit complete snapshots.

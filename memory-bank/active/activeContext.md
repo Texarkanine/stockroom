@@ -21,7 +21,8 @@
 - Build Step 4 completed: semantic/offline/script-order/import, real served-asset MIME, and exact AGPL/MIT ownership contracts now fail for the expected placeholder, missing Chart.js asset, unwired adapter, and broad PPL-S resolution; the pre-vendoring REUSE lint remains clean.
 - Build Step 5 completed: vendored and runtime-verified the official Chart.js 4.5.1 minified UMD artifact (SHA-256 `48444a82…c9f54a`), added canonical MIT text, and established exact ordered AGPL/MIT ownership; all seven focused serving/licensing tests and REUSE lint pass.
 - Build Step 6 completed: replaced the placeholder with the accessible single-pane shell, responsive light/dark design tokens, native controls, four KPI cards, seven chart regions, semantic session table, and eight-cell wrapped banner; all five static/serving contracts pass.
+- Build Step 7 completed: wired native harness/mode controls, non-empty selection enforcement, atomic eight-endpoint refresh, prior-snapshot retention, sanitized global errors, abort/latest-generation suppression, and loading/refresh status through only the tested core/coordinator contracts; adapter syntax, 23 JavaScript tests, and static contracts pass.
 
 ## Next Step
 
-- Execute implementation Step 7: wire native selection/mode controls, atomic refresh, stale suppression, and global loading/error states through the tested core and coordinator.
+- Execute implementation Step 8: render every KPI, chart, recent-session row, and wrapped fact through the already-green panel models.
