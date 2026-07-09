@@ -25,3 +25,16 @@ Deliver milestone m1 of `p4-dashboard`: the dashboard metrics API server — a `
     - **Non-migrating open:** `warehouse.open_current(read_only=True)` chokepoint variant + typed `WarehouseStaleError`; version policy stays in `stockroom.warehouse`, dashboard maps missing/stale/busy to HTTP 503 `{"error", "action"}` (errmsg ratchet)
 * Insights
     - The golden ingest snapshot dumps an explicit column list, so `source_mtime` (machine-dependent) simply stays out of the golden — asserted instead by a dynamic stat-comparison test, the same treatment the watermark already gets
+
+## 2026-07-09 - PLAN - COMPLETE
+
+* Work completed
+    - Full L3 plan in `tasks.md`: component analysis (5 components), TDD test plan (~30 behaviors, 4 new test files + 3 extended), 9 ordered implementation steps, challenges/mitigations; L4 preflight findings folded in as a reference section
+* Decisions made
+    - Server stack: stdlib `http.server.ThreadingHTTPServer` (the roadmap's deferred framework pick) — zero new locked deps, per the spec's KISS directive and the supply-chain posture
+    - Per-request `open_current` with a short (~2s) backoff timeout so a nightly-writer lock degrades to a quick busy-503 instead of a 30s hang
+    - Metrics scope: non-subagent sessions only (subagent metrics are the spec's noted future Compare-mode addition); model metric at session grain (spec recommendation); write/read tool sets and efficiency buckets as documented tunable constants
+    - Windows: `since` inclusive / `until` exclusive; overview prev-period = equal-length interval preceding `since`; wrapped is all-time and ignores the harness selector
+    - m1 static serving ships a placeholder `index.html` (PPL-S by existing REUSE layering — lints clean); m2 owns the real front-end and its REUSE carve-outs
+* Insights
+    - The milestone description implied but didn't name two substrate items now in scope: migration `0004` + ingest population of `source_mtime` — the plan absorbs them at L3 without re-leveling (both ride established mechanics with strong precedents: `0002` structural migration, watermark mtime plumbing)

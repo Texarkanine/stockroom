@@ -1,24 +1,204 @@
-# Tasks: Phase 4 — Dashboard (`p4-dashboard`) / m1 sub-run
+# Task: p4-dashboard / m1 — Dashboard metrics API server
 
-## Open Questions (m1 plan phase)
+* Task ID: p4-dashboard-m1
+* Complexity: Level 3
+* Type: feature
 
-- [x] **Cursor sessions have no time data — how do time-windowed metrics get a session time?** → Resolved: migration `0004` adds a uniform provenance column `sessions.source_mtime` (mtime of the source transcript at last ingest, populated for every harness by the writer); dashboard queries derive activity time as `COALESCE(started_at, source_mtime)`. Never overload `ended_at`; never stat at request time (recap substrate must be in-warehouse). (see `memory-bank/active/creative/creative-dashboard-session-time-grain.md`)
-- [x] **Non-migrating dashboard open path — where do the gate bypass and the typed refusal live?** → Resolved: new chokepoint variant `warehouse.open_current(read_only=True)` — opens with `migrate=False` and raises a typed `WarehouseStaleError` naming `stockroom migrate` when behind head; dashboard maps missing-warehouse / stale / busy to HTTP 503 with a stable `{"error", "action"}` JSON shape. (see `memory-bank/active/creative/creative-dashboard-nonmigrating-open.md`)
+A new `stockroom.dashboard` package in the engine serving the dashboard spec's per-harness JSON endpoints (overview, trends, projects, tools, models, efficiency, sessions, wrapped) read-only on port 6767, with repeatable `?harness=` filters and optional `?since=`/`?until=` windows (spec defaults), a non-migrating open path with typed refusal, static-file serving, and port-probe idempotent startup. Plus the two substrate changes the creative phase settled: migration `0004` (`sessions.source_mtime`) and the `warehouse.open_current()` chokepoint variant.
 
-## Preflight Findings (L4 milestone-list validation, 2026-07-09)
+## Pinned Info
 
-L4 project — work is decomposed into the milestone list in `memory-bank/active/milestones.md` (m1 API server → m2 vendored front-end → m3 launch surfaces). Each milestone runs as its own L1/L2/L3 sub-run with its own plan; this file is re-populated per sub-run.
+### Request flow and refusal mapping
 
-Status: **PASS with advisories** — no blocking findings; the items below are recorded for the relevant sub-runs to address.
+Pinned because every endpoint shares this path — the per-request open, the refusal mapping, and the mode-agnostic per-harness payload are the plan's load-bearing seams.
 
-1. **[m1 — must-address in sub-run design] Hook-launched dashboard vs. the lazy migration gate.** `warehouse.open(read_only=True)` runs the lazy migration gate — a reader behind the schema head *transparently becomes the migrator* (see `techContext.md` → Query). The hook-discipline invariant ("never migrates") therefore cannot be satisfied by simply opening read-only. m1 must decide how the dashboard behaves when the warehouse is behind the schema head (e.g. a gate-bypassing open that degrades to an "upgrade needed" response, rather than migrating). This is a design decision for the m1 sub-run's creative/plan phase, not a milestone-list defect.
-2. **[m2 — required scope, already in invariants] REUSE annotation for vendored assets.** `REUSE.toml`'s layered licensing labels non-code `skills/**` paths PPL-S, and its code re-assert list (`*.py`, `*.sh`, `*.sql`, …) does not cover `*.js`/`*.html`/`*.css`. Vendored Chart.js (MIT, third-party) and the dashboard front-end must get explicit annotations so `reuse lint` stays green and upstream copyright is honored.
-3. **[m3 — noted] Hook payload shape.** The existing sessionStart hooks carry the sanctioned raw `shim rectify` incantation (the shim may not exist/be stale at hook time). The dashboard launch must chain *after* rectify and go through the on-path `stockroom dashboard` (per roadmap); `test_skill_hygiene.py` extends to `sr-dashboard`. Planning-doc port corrections cover both `planning/roadmap.md` and `planning/tech-brief.md` (3143 → 6767).
-4. **[all — caution] Clean-room posture toward `cursor-warehouse`.** The operator offered its dashboard as a reference, but `systemPatterns.md` flags it as itself a port of `claude-warehouse`. Use it for *shape* (server structure, idempotent startup, chart layout); write stockroom's metrics SQL from `dashboard-spec.md` and stockroom's own schema, not by copying queries.
+```mermaid
+flowchart LR
+    subgraph client["m2 front-end / curl"]
+        REQ["GET /api/&lt;endpoint&gt;?harness=…&since=…&until=…"]
+    end
+    REQ --> H["dashboard.server handler<br/>(ThreadingHTTPServer, stdlib)"]
+    H -->|"parse + validate params<br/>(bad param → 400)"| M["dashboard.metrics.&lt;endpoint&gt;(con, harnesses, since, until)"]
+    H -->|"per request"| OC["warehouse.open_current(read_only=True)"]
+    OC -->|"missing file → 503 'run stockroom ingest'"| E503a["503 {error, action}"]
+    OC -->|"WarehouseStaleError → 503 'run stockroom migrate'"| E503b["503 {error, action}"]
+    OC -->|"WarehouseBusyError → 503 'retry shortly'"| E503c["503 {error, action}"]
+    M -->|"per-harness dict, keyed by harness name<br/>(no colors, no aggregate math)"| JSON["200 application/json"]
+```
 
-### Advisory Dispositions (operator-reviewed, 2026-07-09)
+### Session activity time
 
-5. **[m1 — ACCEPTED, in scope] Windowed endpoints as the recap substrate.** Endpoints take optional `?since=`/`?until=` window parameters defaulting to the spec's 30d/14d windows, so the post-v1 recap is literally a client of the same endpoints dragged through time. Folded into the m1 milestone description.
-6. **[m1/m3 — ACCEPTED as design guidance, with operator testing constraint] Daemonization lives in the `stockroom.dashboard` CLI**, not hook shell. **Testing constraint (operator):** test only our own logic (probe decision, URL printing, refusal paths) and only where the ROI on test complexity/stability makes sense — never contort to prove the platform works (e.g. that Python background processes function). Flaky-by-nature behaviors get manual smoke verification in QA instead of code tests.
-7. **[m3 — ACCEPTED (operator-proposed)] One combined session-start hook per harness.** Rectify-then-launch chained in a single hook command, because harnesses don't guarantee ordering between sibling hook entries and the on-path launch depends on the shim rectify having run. Resource locking is structural: the OS port bind is the mutex — concurrent launchers race, one binds, the rest exit cleanly. No lockfile, no bookkeeping.
-8. **[m2 — CONFIRMED approach] REUSE carve-outs for vendored assets**, in the same style as the existing `.cursor/**` vendored-tooling annotation: explicit "but not these" entries for the vendored files. Chart.js keeps its upstream MIT copyright and license identity — we never claim to relicense it.
+Every windowed metric uses `COALESCE(started_at, source_mtime)` as the session's activity time (creative decision: `started_at` where the harness records wall-clock — Claude; `source_mtime` as the honest fallback — Cursor). Metrics scope to non-subagent sessions (`NOT is_subagent`); subagent metrics are a noted future Compare-mode addition (spec).
+
+## Component Analysis
+
+### Affected Components
+
+- **`stockroom.migrations`** (`src/stockroom/migrations/`): forward-only migration home → gains `0004_session_source_mtime.sql` (`ALTER TABLE sessions ADD COLUMN source_mtime TIMESTAMP`); `0001`–`0003` and their snapshots stay frozen.
+- **`stockroom.ingest`** (`model.py`, `__init__.py` orchestrator, `writer.py`): ETL → `NormalizedSession` gains `source_mtime`; the orchestrator stamps it from `DiscoveredSession.mtime` (parsers stay pure — no stat); subagents inherit the parent conversation's mtime; the writer inserts the new column.
+- **`stockroom.warehouse`** (`warehouse.py`): the open chokepoint → gains `WarehouseStaleError` and `open_current(read_only=True)` (open with `migrate=False`, `ensure_vss`, raise typed staleness error when `current_version < head`). `open()` itself is untouched.
+- **`stockroom.dashboard`** (new package: `__init__.py`, `metrics.py`, `server.py`, `__main__.py`, `static/index.html` placeholder): the milestone deliverable — metrics queries, HTTP server, CLI with port-probe idempotent startup and CLI-owned daemonization.
+- **Tests** (`tests/`): new `test_schema_0004.py` + `fixtures/schema/0004_snapshot.json`, `test_dashboard_metrics.py`, `test_dashboard_server.py`, `test_dashboard_cli.py`; additions to `test_ingest_writer.py`, `test_ingest_orchestrator.py`, `test_warehouse_open.py`.
+
+### Cross-Module Dependencies
+
+- `dashboard.server` → `warehouse.open_current`: the only DB entry; per-request open (fresh-on-refresh is a product requirement; no held read connection to starve the nightly writer).
+- `dashboard.server` → `dashboard.metrics`: handler resolves route → metrics function; metrics functions take `(con, harnesses, since, until)` and return JSON-ready dicts (con-injection: unit-testable against `migrated_con`, mirroring the engine convention).
+- `dashboard.__main__` → `dashboard.server`: `--foreground` serves in-process; the default detached path re-execs `[sys.executable, -m stockroom.dashboard, --foreground, …]` via an injectable spawn seam.
+- `ingest` orchestrator → `sources.DiscoveredSession.mtime`: already computed for the watermark; now also stamped onto sessions.
+- m3 (future) → `dashboard.__main__.main(argv)`: the dispatcher registration lands in m3; m1 makes the module runnable (`python -m stockroom.dashboard`) with the standard `main(argv) -> int` shape.
+
+### Boundary Changes
+
+- **Schema:** migration `0004` adds `sessions.source_mtime TIMESTAMP` (uniform provenance meaning: mtime of the session's source transcript at last ingest). Cumulative shape pinned by new `0004_snapshot.json`; operator warehouses pick it up via the normal lazy gate on the next write-path open, values fill on the next ingest touch (`--full` for history).
+- **Warehouse public API:** `open_current()` + `WarehouseStaleError` added (new names beside `open()`; nothing existing changes).
+- **HTTP API (new public surface):** the eight `/api/*` endpoint shapes per `planning/brainstorm/dashboard-spec.md` — server always returns per-harness data keyed by harness name; harness set enumerated from the DB; no colors, no aggregate math server-side.
+
+### Invariants & Constraints
+
+- Read-only over the warehouse: every dashboard DB touch is `open_current(read_only=True)`; no dashboard write path, ever.
+- Non-migrating: the dashboard never runs the migration gate (structural, via `open_current`); refusals name the next action (errmsg ratchet).
+- Mode-agnostic, harness-open endpoints: per-harness payloads keyed by name; `SELECT DISTINCT harness`, never hard-coded; colors are m2's client-side concern.
+- Port 6767 default; fully offline (stdlib server, no CDN, no network).
+- Averages never averaged-of-averages: endpoints return numerator + denominator (`n`) where the client must re-weight.
+- Test ROI discipline (operator): unit-test our own logic only (probe decision, URL printing, argument handling, refusal paths, metrics math); daemonization/detach mechanics get manual smoke QA.
+- Test-first for all Python; green `make ci` (incl. REUSE) at milestone end.
+
+## Open Questions
+
+- [x] **Cursor sessions have no time data — how do time-windowed metrics get a session time?** → Resolved: migration `0004` adds uniform provenance column `sessions.source_mtime`; dashboard derives activity time as `COALESCE(started_at, source_mtime)`. (see `memory-bank/active/creative/creative-dashboard-session-time-grain.md`)
+- [x] **Non-migrating dashboard open path — where do the gate bypass and typed refusal live?** → Resolved: `warehouse.open_current(read_only=True)` chokepoint variant + typed `WarehouseStaleError`; dashboard maps missing/stale/busy to HTTP 503 `{"error", "action"}`. (see `memory-bank/active/creative/creative-dashboard-nonmigrating-open.md`)
+
+## Design Decisions (plan-level)
+
+- **Server stack (the roadmap's build-time pick): stdlib `http.server.ThreadingHTTPServer`** + a routing handler. Zero new locked deps (supply-chain posture), matches the spec's "Python, no external deps, KISS" and the prior art's shape. Threading variant so a slow query can't wedge static-asset serving; each request opens its own connection (no cross-thread sharing).
+- **Windows:** `?since=`/`?until=` accept ISO-8601 dates/datetimes; `since` inclusive, `until` exclusive. Defaults per endpoint (spec): overview 30d (prev window = equal-length interval immediately preceding `since`), trends daily 14d + weekly 12w, projects/tools/models/efficiency 30d, sessions no window (recent-N, `?limit=` default 50), wrapped all-time and unaffected by `?harness=`.
+- **Model grain:** session grain (spec recommendation) — a session "used" model M if M ∈ its messages' `model` values (Claude) or its `models[]` array (Cursor); union view via one SQL per grain, combined.
+- **Write/read tool sets:** module constants in `metrics.py` (write: `Write`, `StrReplace`, `Edit`, `ApplyPatch`, `Delete`, `EditNotebook`; read: `Read`, `ReadFile`, `Grep`, `Glob`, `ListDir`, `ReadLints`, `rg`, `SemanticSearch`); everything else (Shell, Task, MCP, …) is neither. Tunable constants, documented in the module docstring.
+- **Efficiency buckets:** by kept-message count — abandoned ≤ 2, short 3–10, medium 11–40, long > 40. First-prompt buckets by ordinal-0 user-message length — short < 100 chars, medium 100–500, detailed > 500; returns `avg_msgs` + `n` per harness for client re-weighting. Constants, documented.
+- **Wrapped fields** (mockup + spec): totals (sessions, messages, span), distinct projects, `busiest_harness {name, pct}`, best streak (consecutive active days + range), marathon session (max msgs; project, harness), peak hour (mode of activity-hour + count), `top_tool {name, calls}` (the "Your Type" persona mapping is m2 client-side).
+- **Sessions endpoint fields:** `started` (activity time), `harness`, `project_name` (`cwd` basename, else `project_id`), `msgs`, `model` (message-grain mode for Claude / first of `models[]` for Cursor, else NULL), `prompt` (ordinal-0 user text, display-truncated via `stockroom.truncate.truncate_cell(…, "snippet")` — read-time only).
+- **Overview extras:** `last_sync` = `MAX(updated_at) FROM _sync_state`; `distinct_projects` server-side rollup (spec exception — projects can't be summed).
+- **Idempotent startup:** probe = TCP connect to `127.0.0.1:port`; success → print URL, exit 0. Otherwise spawn the detached foreground child and print the URL. The OS port bind is the mutex: a child losing the bind race (`EADDRINUSE`) exits 0 quietly. No lockfile.
+- **Static serving:** files from the packaged `stockroom/dashboard/static/` dir (`/` → `index.html`); resolved paths must stay inside the static root (traversal guard); m1 ships a one-line placeholder `index.html` (m2 replaces it).
+
+## Test Plan (TDD)
+
+### Behaviors to Verify
+
+Substrate:
+
+- Migration `0004` applied via the real chain → `sessions.source_mtime` exists; cumulative snapshot matches `0004_snapshot.json`; `0001`–`0003` snapshots unchanged.
+- Full ingest over fixtures → every session row's `source_mtime` equals its source file's statted mtime (dynamic comparison; golden columns unchanged — `source_mtime` is machine-dependent like the watermark); subagent rows carry the parent conversation file's mtime.
+- Writer inserts `source_mtime` (unit: write one `NormalizedSession` with a set value → column round-trips).
+- `open_current` on a current warehouse → returns a read-only connection (write attempt rejected by DuckDB); on a behind-head warehouse → raises `WarehouseStaleError` naming `stockroom migrate`, **without migrating** (version stays behind afterward — the anti-gate assertion).
+
+Metrics (all against `migrated_con` + a seeding helper; all return per-harness dicts keyed by harness name):
+
+- `overview`: per-harness sessions/messages/projects for the window + prev window; `distinct_projects` counts a project touched by two harnesses once; `last_sync` from `_sync_state`; empty warehouse → zeroed shape, no error.
+- `trends`: daily sessions per harness over the window (missing days zero-filled, day keys ISO); weekly writes/reads counted from the tool sets, unknown tools in neither.
+- `projects`: top-N by total sessions across selected harnesses; each harness's count per project; ordering deterministic.
+- `models`: session-grain union — a Claude session with model M in messages counts once; a Cursor session with M in `models[]` counts once; a session using two models counts under both.
+- `efficiency`: sessions land in the right message-count bucket (boundary values: 2 → abandoned, 3 → short, 10 → short, 11 → medium, 40 → medium, 41 → long); `first_prompt` buckets by ordinal-0 user length and returns `avg_msgs` + `n` per harness.
+- `sessions`: newest-first by activity time, respects `limit`, includes harness/project_name/msgs/model/truncated prompt; subagent sessions excluded.
+- `wrapped`: totals, busiest harness pct, streak over synthetic dates, marathon, peak hour, top tool; ignores harness filter.
+- Cross-cutting: `?harness=` filtering (single, repeated, unknown-harness value → empty series, not an error); `since`/`until` window edges (inclusive/exclusive); a Cursor session (NULL `started_at`) appears in windowed output via `source_mtime`; subagent exclusion.
+
+Server (in-process `ThreadingHTTPServer` on port 0 — testing our routing/serialization logic):
+
+- Each `/api/*` route returns 200 + `application/json` with the endpoint's shape; unknown `/api/x` → 404 JSON.
+- Malformed `since`/`until`/`limit` → 400 JSON naming the parameter.
+- Missing warehouse → 503 `{"error", "action": …ingest…}`; stale warehouse → 503 `{…migrate…}` (real behind-head `STOCKROOM_HOME`); shape stable across all three refusals.
+- `/` serves `static/index.html`; a traversal path (`/../…`) refuses (404), never escapes the static root.
+
+CLI (probe/spawn seams injected; no real daemon in tests):
+
+- Port already serving → prints `http://127.0.0.1:<port>/`, exit 0, spawn seam not called.
+- Port free → spawn seam called with the foreground re-exec argv; URL printed; exit 0.
+- `--foreground` → serves in-process (seam not called); `--port` respected in probe, spawn argv, and URL.
+- Refusal parity: missing warehouse at startup does **not** prevent serving (server starts; endpoints refuse per request) — the hook must never error.
+
+### Test Infrastructure
+
+- Framework: pytest (`skills/sr-search/pyproject.toml`), run via `make test`.
+- Test location: `skills/sr-search/tests/`.
+- Conventions: `con`-injection against `migrated_con`; env isolation via `warehouse_home`/`STOCKROOM_HOME`; injectable seams for external effects (the `schedule`/`doctor` precedent); snapshot discipline for schema.
+- New test files: `test_schema_0004.py`, `test_dashboard_metrics.py`, `test_dashboard_server.py`, `test_dashboard_cli.py`; new fixture `fixtures/schema/0004_snapshot.json`; a dashboard seeding helper (module-level in `test_dashboard_metrics.py`) inserting controlled sessions/messages/tool_calls.
+
+### Integration Tests
+
+- `test_dashboard_server.py`: real HTTP round-trip (urllib) → handler → `open_current` → metrics over a real ingested-fixture warehouse in a tmp `STOCKROOM_HOME` (the ingest→serve loop, the m1 "done" proof).
+- `test_ingest_orchestrator.py` addition: full-chain ingest → `source_mtime` populated (writer + orchestrator + migration together).
+
+## Implementation Plan
+
+1. **Migration `0004`** (substrate, fewest dependencies)
+    - Files: `src/stockroom/migrations/0004_session_source_mtime.sql`, `tests/test_schema_0004.py`, `tests/fixtures/schema/0004_snapshot.json`
+    - Changes: `ALTER TABLE sessions ADD COLUMN source_mtime TIMESTAMP` with the uniform-provenance doc comment; snapshot test mirroring `test_schema_0003.py` (generate via the test's own helper, `0001`–`0003` frozen)
+    - Creative ref: `creative-dashboard-session-time-grain.md`
+2. **Ingest populates `source_mtime`**
+    - Files: `src/stockroom/ingest/model.py`, `src/stockroom/ingest/__init__.py`, `src/stockroom/ingest/writer.py`, `tests/test_ingest_writer.py`, `tests/test_ingest_orchestrator.py`
+    - Changes: `NormalizedSession.source_mtime: datetime | None = None`; orchestrator stamps main + subagents from `DiscoveredSession.mtime` in `_parse_discovered` (signature gains the discovered session's mtime or the whole `DiscoveredSession`); writer adds the column to its INSERT; golden dump columns untouched
+3. **`warehouse.open_current` + `WarehouseStaleError`**
+    - Files: `src/stockroom/warehouse.py`, `tests/test_warehouse_open.py`
+    - Changes: exception class carrying `current`/`latest` and the `stockroom migrate` action message; `open_current(read_only=True)` = path resolve → `_open_with_backoff` → `ensure_vss` → version check → return or close-and-raise; short-timeout backoff kwargs pass through
+    - Creative ref: `creative-dashboard-nonmigrating-open.md`
+4. **`dashboard.metrics` — window/filter plumbing + overview + trends**
+    - Files: `src/stockroom/dashboard/__init__.py`, `src/stockroom/dashboard/metrics.py`, `tests/test_dashboard_metrics.py`
+    - Changes: `parse_window`/defaults, harness-filter SQL helper, activity-time expression constant, `WRITE_TOOLS`/`READ_TOOLS`, `overview(con, …)`, `trends(con, …)` returning spec shapes
+5. **`dashboard.metrics` — projects, tools, models**
+    - Files: `src/stockroom/dashboard/metrics.py`, `tests/test_dashboard_metrics.py`
+    - Changes: `projects()` (top-N + per-harness counts), `tools()` (calls by tool per harness), `models()` (session-grain union across the two grain columns)
+6. **`dashboard.metrics` — efficiency, sessions, wrapped**
+    - Files: `src/stockroom/dashboard/metrics.py`, `tests/test_dashboard_metrics.py`
+    - Changes: bucket constants + `efficiency()` (incl. first-prompt with `n`), `sessions()` (recent-N, truncated prompt via `stockroom.truncate`), `wrapped()` (all-time rollup incl. streak/peak-hour/marathon/top-tool)
+7. **`dashboard.server` — routing, refusals, static**
+    - Files: `src/stockroom/dashboard/server.py`, `src/stockroom/dashboard/static/index.html` (placeholder), `tests/test_dashboard_server.py`
+    - Changes: `ThreadingHTTPServer` + handler with a route table (`/api/<name>` → metrics fn), query parsing/validation (400), per-request `open_current` with the three-way 503 mapping, JSON serialization (ISO dates), static serving with traversal guard, `serve(port, …) -> HTTPServer` entry for tests/CLI
+8. **`dashboard.__main__` — CLI: probe, URL, detach**
+    - Files: `src/stockroom/dashboard/__main__.py`, `tests/test_dashboard_cli.py`
+    - Changes: argparse (`--port` default 6767, `--foreground`); `probe(port)`; default path = probe → spawn detached foreground child (injectable spawn seam; `start_new_session=True`, output to devnull) → print URL → 0; foreground path = bind + serve (EADDRINUSE → print URL, exit 0); `main(argv) -> int` dispatcher-ready
+    - Creative ref: advisory 6 (CLI-owned daemonization; probe/print/refusal logic tested, detach mechanics smoke-verified in QA)
+9. **Full-suite gate + docs touch-up**
+    - Files: (all above), `skills/sr-search/src/stockroom/dashboard/*` docstrings
+    - Changes: `make ci` green (format, lint, test, reuse — new `.py` files are AGPL by REUSE.toml's re-assert; the placeholder `index.html` inherits `skills/**` PPL-S, which lints clean); module docstrings in the house narrative style. No README/roadmap edits in m1 (roadmap port correction is m3 scope)
+
+## Technology Validation
+
+No new locked dependencies. The server is stdlib `http.server` (the roadmap's deferred "framework pick", resolved here per the spec's no-external-deps/KISS directive and the locked-project supply-chain posture); everything else rides on already-locked `duckdb`. Validation not required beyond the test suite itself.
+
+## Challenges & Mitigations
+
+- **Golden snapshot vs. machine-dependent mtimes:** `source_mtime` never enters `expected_rows.json` (the dump has an explicit column list); correctness is asserted dynamically (`== stat().st_mtime` of the fixture file), the watermark's existing treatment.
+- **Operator warehouse goes behind-head when `0004` lands:** by design — the dashboard refuses with "run `stockroom migrate`"; the nightly ingest (write path) migrates it transparently. QA smoke covers the refusal + recovery.
+- **Nightly writer holds the DB while a request arrives:** DuckDB RW-exclusive lock → `_open_with_backoff` would wait 30s per request. Mitigation: `open_current` calls pass a short timeout (~2s) so requests degrade quickly to the busy 503.
+- **Windowed prev-period semantics with custom `since`/`until`:** define prev = equal-length interval ending at `since` (documented in `metrics.py`); tested explicitly.
+- **Port-probe/bind race (two session-start hooks at once):** the bind is the mutex; the losing child treats `EADDRINUSE` as success-elsewhere and exits 0. No lockfile (operator decision).
+- **Cursor `source_mtime` is last-activity-grained:** daily buckets date a Cursor session by its last write — acceptable for at-a-glance metrics, documented in the endpoint docstring.
+- **ThreadingHTTPServer concurrency:** one DuckDB connection per request, never shared across threads; read-only connections coexist (shared lock).
+
+## Status
+
+- [x] Component analysis complete
+- [x] Open questions resolved
+- [x] Test planning complete (TDD)
+- [x] Implementation plan complete
+- [x] Technology validation complete
+- [ ] Preflight
+- [ ] Build
+- [ ] QA
+
+---
+
+## Reference: L4 Preflight Findings (milestone-list validation, 2026-07-09)
+
+Status: **PASS with advisories** — recorded for the relevant sub-runs; m1-relevant items are folded into the plan above.
+
+1. **[m1 — addressed above] Hook-launched dashboard vs. the lazy migration gate.** Resolved via `open_current` (creative doc).
+2. **[m2 — required scope] REUSE annotation for vendored assets.** `REUSE.toml`'s code re-assert list doesn't cover `*.js`/`*.html`/`*.css`; vendored Chart.js and the front-end need explicit annotations.
+3. **[m3 — noted] Hook payload shape.** Dashboard launch chains after `shim rectify` via on-path `stockroom dashboard`; `test_skill_hygiene.py` extends to `sr-dashboard`; port corrections in `planning/roadmap.md` + `planning/tech-brief.md` (3143 → 6767).
+4. **[all — caution] Clean-room posture toward `cursor-warehouse`.** Use for shape only; metrics SQL written from `dashboard-spec.md` + stockroom's own schema (honored: this plan's SQL is spec-derived; the reference was not consulted).
+5. **[m1 — ACCEPTED, in plan] Windowed endpoints as the recap substrate** (`?since=`/`?until=`, spec defaults).
+6. **[m1/m3 — ACCEPTED, in plan] Daemonization lives in the dashboard CLI**; test only our own logic; flaky-by-nature behavior → manual smoke QA.
+7. **[m3 — ACCEPTED] One combined session-start hook per harness**; the OS port bind is the mutex.
+8. **[m2 — CONFIRMED] REUSE carve-outs for vendored assets**; Chart.js keeps upstream MIT identity.

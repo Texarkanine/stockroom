@@ -2,14 +2,15 @@
 
 **Current Task:** p4-dashboard / m1 — Dashboard metrics API server
 
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
 
-- `/niko` re-entry: L4 project `p4-dashboard` active, no sub-run in flight; m1 (Dashboard metrics API server) is the first unchecked milestone.
-- m1 classified **Level 3** — complete feature spanning multiple components (`stockroom.dashboard` module, tests, fixtures) with no architectural change; matches the milestone list's L3 estimate.
-- Fresh sub-run `progress.md` created; L4 preflight findings in `tasks.md` preserved as plan-phase inputs (findings 1, 5, 6 are m1-specific).
+- Full L3 plan written to `tasks.md`: component analysis, resolved open questions, TDD test plan, 9 ordered implementation steps, challenges/mitigations.
+- Two open questions resolved via creative phase (both high-confidence): `sessions.source_mtime` via migration `0004` as the honest session-time grain for Cursor (`COALESCE(started_at, source_mtime)` activity time), and `warehouse.open_current()` + `WarehouseStaleError` as the non-migrating open path with HTTP 503 `{"error", "action"}` refusals.
+- Plan-level decisions: stdlib `http.server.ThreadingHTTPServer` (the roadmap's deferred framework pick — no new locked deps), per-request short-timeout opens, session-grain model metric, tunable write/read tool sets and efficiency buckets, subagent sessions excluded from v1 metrics, wrapped ignores the harness selector.
+- Scope grew by two substrate items the milestone description implied but didn't name: migration `0004` + ingest population of `source_mtime` (still comfortably L3).
 
 ## Next Step
 
-Load the Level 3 workflow and execute its plan phase (`/niko-plan`).
+Preflight phase (`niko-preflight` skill) to validate the plan against the codebase.
