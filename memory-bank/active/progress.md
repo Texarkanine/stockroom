@@ -80,3 +80,13 @@ Milestone m4 of L4 project `p3-onboarding-cli-scheduling`: build the `sr-initial
 * Insights
     - `make sync` (and thus `make test`/`make ci`) strips out-of-lock torch *every* run — a dev-box embed must be preceded by `make torch` whenever CI ran in between; the nightly job is immune (shim runs `--no-sync`)
     - The one plan deviation was exactly where the plan predicted risk concentrates: the cron execution environment (redirection semantics), not the Python
+
+## 2026-07-09 - QA - COMPLETE (PASS)
+
+* Work completed
+    - Semantic review of `stockroom.schedule` + tests + prose against the plan (KISS/DRY/YAGNI/completeness/regression/integrity/documentation): B1–B17 all implemented and test-pinned, both halves share one payload renderer / PATH resolver / shim guard, dispatcher row and flat-parser conventions match doctor/shim exactly, docs accreted everywhere the plan named
+    - One trivial fix applied: dead `isinstance(args.time, tuple)` fallback in `main` removed — argparse applies `type=` to string defaults too (verified live), so `args.time` is always a validated tuple; full suite re-run green after (364 passed, 1 skipped — torch present, so the real-model tests ran)
+* Decisions made
+    - PASS written to `.qa-validation-status`; no substantive findings, nothing routed back to Build or Plan
+* Insights
+    - The two inline `assert`s (payload `%`-free, payload quote-free) are invariant pins in the style of the golden-snapshot discipline — they guard never-do list items at the exact point of construction, complementing the tests that pin the same facts from outside

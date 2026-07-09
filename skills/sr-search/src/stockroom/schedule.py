@@ -487,7 +487,9 @@ def main(
     lines, not failures); ``status`` and ``remove`` always exit 0.
     """
     args = _build_parser().parse_args(argv)
-    hour, minute = args.time if isinstance(args.time, tuple) else parse_time(args.time)
+    # argparse applies ``type`` to string defaults too, so this is always
+    # a validated (hour, minute) tuple.
+    hour, minute = args.time
 
     plat = system()
     if plat not in ("Linux", "Darwin"):

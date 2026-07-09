@@ -159,4 +159,4 @@ No new technology — `plistlib`, `shutil.which`, `subprocess` are stdlib; `cron
 - [x] Technology validation complete
 - [x] Preflight
 - [x] Build
-- [ ] QA
+- [x] QA — PASS (one trivial fix: dead `isinstance` fallback in `main` removed — argparse applies `type` to string defaults, so `args.time` is always a validated tuple; 364 passed / 1 skipped after)
