@@ -163,7 +163,7 @@ A **single session-start hook launches the dashboard and nothing else.** It must
 
 The dashboard is the v1 headline UI: a **local web server** rendering an at-a-glance summary of usage and activity. It launches on session start (via the hook above) and on demand via `sr-dashboard`, which prints the local URL. The metrics it computes are intentionally the **substrate for the future recap** — recap is reconceived as those same metrics dragged through time into a time-series, not a separate feature.
 
-It is a **light/stdlib server with vendored front-end assets — no CDN**, honoring the offline and supply-chain posture; the exact server/front-end framework is a build-time pick. There is **no formal design system** (no Figma, design tokens, Storybook, or component library) and none is planned for v1; the UI is a self-contained local analytics page whose assets are vendored into the repo. Uses port `3143`.
+It is a **light/stdlib server with vendored front-end assets — no CDN**, honoring the offline and supply-chain posture; the exact server/front-end framework is a build-time pick. There is **no formal design system** (no Figma, design tokens, Storybook, or component library) and none is planned for v1; the UI is a self-contained local analytics page whose assets are vendored into the repo. Uses port `6767`.
 
 ## Distribution and Packaging
 

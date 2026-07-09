@@ -138,35 +138,67 @@ def _hook_command_entries(config: dict, harness: str) -> list[dict]:
     return [entry for group in groups for entry in group["hooks"]]
 
 
-def test_cursor_hook_schema_and_rectify_command(cursor_hooks: dict) -> None:
-    """The Cursor config carries the version field and a silenced, timed-out
-    sessionStart command invoking shim rectify at the Cursor plugin root."""
+def _assert_combined_rectify_then_dashboard(
+    cmd: str, *, plugin_root_token: str, owner: str
+) -> None:
+    """Shared shape for the single session-start command per harness.
+
+    Rectify keeps the plugin-root bootstrap (chicken-egg heal). Dashboard
+    launch is on-path ``stockroom dashboard`` after rectify, not folded into
+    the ``uv run`` / ``PYTHONPATH`` bootstrap.
+    """
+    assert plugin_root_token in cmd
+    assert "shim rectify" in cmd
+    assert f"--owner {owner}" in cmd
+    assert "stockroom dashboard" in cmd
+    rectify_at = cmd.find("shim rectify")
+    dashboard_at = cmd.find("stockroom dashboard")
+    assert 0 <= rectify_at < dashboard_at, "rectify must precede dashboard launch"
+    launch_half = cmd[dashboard_at:]
+    assert "uv run" not in launch_half
+    assert "PYTHONPATH=" not in launch_half
+    assert "python -m stockroom" not in launch_half
+    assert ">/dev/null 2>&1" in cmd, "hook output must be silenced"
+    assert "|| true" in cmd, "hook must never fail session start"
+
+
+def test_cursor_hook_schema_and_combined_command(cursor_hooks: dict) -> None:
+    """Cursor sessionStart is one silenced timed-out command: rectify then
+    on-path ``stockroom dashboard``."""
     assert cursor_hooks.get("version") == 1
     entries = _hook_command_entries(cursor_hooks, "cursor")
-    assert entries, "no sessionStart command hooks"
-    for entry in entries:
-        assert entry["type"] == "command"
-        assert entry.get("timeout"), "hook must set a timeout"
-        cmd = entry["command"]
-        assert "${CURSOR_PLUGIN_ROOT}" in cmd
-        assert "shim rectify" in cmd
-        assert "--owner cursor" in cmd
-        assert ">/dev/null 2>&1" in cmd, "hook output must be silenced"
+    assert len(entries) == 1, "exactly one combined sessionStart command"
+    entry = entries[0]
+    assert entry["type"] == "command"
+    assert entry.get("timeout"), "hook must set a timeout"
+    _assert_combined_rectify_then_dashboard(
+        entry["command"],
+        plugin_root_token="${CURSOR_PLUGIN_ROOT}",
+        owner="cursor",
+    )
 
 
-def test_claude_hook_schema_and_rectify_command(claude_hooks: dict) -> None:
-    """The Claude config uses the SessionStart wrapper shape and a silenced,
-    timed-out command invoking shim rectify at the Claude plugin root."""
+def test_claude_hook_schema_and_combined_command(claude_hooks: dict) -> None:
+    """Claude SessionStart is one silenced timed-out command: rectify then
+    on-path ``stockroom dashboard``."""
     entries = _hook_command_entries(claude_hooks, "claude")
-    assert entries, "no SessionStart command hooks"
-    for entry in entries:
-        assert entry["type"] == "command"
-        assert entry.get("timeout"), "hook must set a timeout"
-        cmd = entry["command"]
-        assert "${CLAUDE_PLUGIN_ROOT}" in cmd
-        assert "shim rectify" in cmd
-        assert "--owner claude" in cmd
-        assert ">/dev/null 2>&1" in cmd, "hook output must be silenced"
+    assert len(entries) == 1, "exactly one combined SessionStart command"
+    entry = entries[0]
+    assert entry["type"] == "command"
+    assert entry.get("timeout"), "hook must set a timeout"
+    _assert_combined_rectify_then_dashboard(
+        entry["command"],
+        plugin_root_token="${CLAUDE_PLUGIN_ROOT}",
+        owner="claude",
+    )
+
+
+def test_planning_docs_use_dashboard_port_6767(repo_root: Path) -> None:
+    """Roadmap and tech-brief cite port 6767, not the superseded 3143."""
+    for rel in ("planning/roadmap.md", "planning/tech-brief.md"):
+        text = (repo_root / rel).read_text(encoding="utf-8")
+        assert "6767" in text, f"{rel} must cite dashboard port 6767"
+        assert "3143" not in text, f"{rel} must not cite superseded port 3143"
 
 
 def test_release_config_syncs_both_manifests(release_config: dict) -> None:

@@ -38,6 +38,10 @@ SUBCOMMANDS: dict[str, tuple[str, str]] = {
         "stockroom.schedule",
         "Manage the nightly ingest+embed scheduler entry.",
     ),
+    "dashboard": (
+        "stockroom.dashboard.__main__",
+        "Launch the read-only local dashboard.",
+    ),
 }
 
 

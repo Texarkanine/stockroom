@@ -1,11 +1,12 @@
-"""Wrapper-skill hygiene: zero invocation plumbing in the three wrapper skills.
+"""Wrapper-skill hygiene: zero invocation plumbing in the wrapper skills.
 
-The Phase-3 m5 invariant, regression-pinned: `sr-query`, `sr-semantic`, and
-`sr-search` invoke the engine only as ``stockroom <subcommand>`` — the shim
-owns the whole invocation contract, so no wrapper SKILL.md may carry any
-token of the pre-shim incantation (engine-dir resolution, ``PYTHONPATH``,
-uv flags, or raw ``python -m`` module invocations). This is the m6
-"grep-verifiable no-invocation-token check" promoted into a permanent test.
+The Phase-3 m5 invariant, regression-pinned: `sr-query`, `sr-semantic`,
+`sr-search`, and `sr-dashboard` invoke the engine only as
+``stockroom <subcommand>`` — the shim owns the whole invocation contract, so
+no wrapper SKILL.md may carry any token of the pre-shim incantation
+(engine-dir resolution, ``PYTHONPATH``, uv flags, or raw ``python -m`` module
+invocations). This is the m6 "grep-verifiable no-invocation-token check"
+promoted into a permanent test.
 
 ``sr-initialize`` is deliberately NOT covered: it owns environment setup and
 carries the one sanctioned pre-shim invocation (the shim does not exist yet
@@ -17,7 +18,7 @@ from pathlib import Path
 import pytest
 
 #: The wrapper skills bound by the "no invocation plumbing" contract.
-WRAPPER_SKILLS = ("sr-query", "sr-semantic", "sr-search")
+WRAPPER_SKILLS = ("sr-query", "sr-semantic", "sr-search", "sr-dashboard")
 
 #: Tokens of the pre-shim incantation, none of which may appear in a wrapper
 #: SKILL.md. ``python -m stockroom`` also catches dotted module forms

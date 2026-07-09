@@ -37,3 +37,14 @@ Deliver milestone m3 of `p4-dashboard`: register the `dashboard` subcommand in t
     - No radical redesign within L2 scope — surface wiring is the right shape.
 * Insights
     - The only real preflight gap was soft TDD on two static planning files; a packaging contract closes it without new infrastructure.
+
+## 2026-07-09 - BUILD - COMPLETE (PASS)
+
+* Work completed
+    - Wired `dashboard` into the dispatcher; added thin `sr-dashboard` skill; combined rectify-then-launch hooks; corrected planning ports to 6767.
+    - Extended dispatcher, hygiene, and packaging tests; full `make ci` green (411 pytest / 3 skipped, 32 JS, ruff, REUSE).
+* Decisions made
+    - Hook command uses `{ rectify; stockroom dashboard; } >/dev/null 2>&1 || true` so one silence wrapper covers both halves.
+    - Skill avoids naming forbidden hygiene tokens even in negative guidance.
+* Insights
+    - No server/front-end changes were required; m3 stayed pure surface wiring as planned.
