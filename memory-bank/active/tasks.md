@@ -213,7 +213,7 @@ The wrapped banner has exactly eight cells: Total Sessions with `totals.span` as
     - Use only the tested coordinator to fetch eight endpoints, filter seven, retain the previous snapshot while busy, suppress stale generations, and commit complete snapshots.
     - Surface sanitized global errors/actions through text nodes; distinguish initial loading, refreshing, refusal, and legitimate no-data states.
     - Keep warehouse-derived strings out of `innerHTML`. This step may contain only DOM/Chart.js effects; if any deterministic policy is discovered, return to Step 2 or 3, add/fail its test, and implement it there before wiring.
-8. **Render all measured content through already-green panel models.**
+8. [x] **Render all measured content through already-green panel models.**
     - Files: `skills/sr-search/src/stockroom/dashboard/static/dashboard.mjs`.
     - Render header `last_sync`, truthful KPIs/deltas and proportional harness bars; consume the seven tested panel builders exactly as specified in the chart matrix; rebuild through a centralized chart registry.
     - Render all recent sessions with generic harness labels/colors and exact ISO titles; consume the tested `buildWrappedPanel` result unfiltered.

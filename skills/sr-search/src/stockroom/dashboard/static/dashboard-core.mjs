@@ -292,6 +292,38 @@ export function deriveOverviewCards(overview, selected) {
 }
 
 /**
+ * Derive a selected-harness proportional breakdown for one KPI.
+ *
+ * @param {Record<string, unknown>} overview Overview endpoint payload.
+ * @param {Iterable<string>} selected Selected harness keys.
+ * @param {"sessions"|"messages"|"projects"|"average"} metric KPI key.
+ * @returns {object[]} Ordered harness value/share models.
+ */
+export function deriveHarnessBreakdown(overview, selected, metric) {
+  const perHarness = safeObject(safeObject(overview).per_harness);
+  const rows = orderedSelection(selected).map((harness) => {
+    const values = safeObject(perHarness[harness]);
+    let value;
+    if (metric === "average") {
+      const sessions = finiteNumber(values.sessions);
+      value = sessions > 0 ? finiteNumber(values.messages) / sessions : 0;
+    } else {
+      value = finiteNumber(values[metric]);
+    }
+    return {
+      harness,
+      label: displayHarness(harness),
+      value: Math.round(value * 10) / 10,
+    };
+  });
+  const total = rows.reduce((sum, row) => sum + row.value, 0);
+  return rows.map((row) => ({
+    ...row,
+    share: total > 0 ? Math.round((row.value * 1000) / total) / 10 : 0,
+  }));
+}
+
+/**
  * Build the exact ordered eight-cell all-time recap model.
  *
  * @param {Record<string, unknown>} wrapped Wrapped endpoint payload.

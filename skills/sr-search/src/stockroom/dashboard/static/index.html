@@ -294,6 +294,34 @@
         color: var(--negative);
       }
 
+      .metric-breakdown {
+        display: grid;
+        gap: 0.4rem;
+        margin-top: 0.8rem;
+      }
+
+      .metric-bar-heading {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.5rem;
+        color: var(--muted);
+        font-size: 0.7rem;
+      }
+
+      .metric-bar-track {
+        height: 0.3rem;
+        overflow: hidden;
+        border-radius: 999px;
+        background: var(--surface-soft);
+      }
+
+      .metric-bar-fill {
+        height: 100%;
+        width: var(--share, 0%);
+        border-radius: inherit;
+        background: var(--harness-color, var(--accent));
+      }
+
       .chart-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -552,21 +580,25 @@
           <p class="metric-label">Sessions</p>
           <p class="metric-value" data-value>0</p>
           <p class="metric-delta" data-delta data-trend="neutral">No change</p>
+          <div class="metric-breakdown" data-breakdown></div>
         </article>
         <article class="metric-card" id="kpi-messages">
           <p class="metric-label">Messages</p>
           <p class="metric-value" data-value>0</p>
           <p class="metric-delta" data-delta data-trend="neutral">No change</p>
+          <div class="metric-breakdown" data-breakdown></div>
         </article>
         <article class="metric-card" id="kpi-projects">
           <p class="metric-label">Projects</p>
           <p class="metric-value" data-value>0</p>
           <p class="metric-delta" data-delta data-trend="neutral">No change</p>
+          <div class="metric-breakdown" data-breakdown></div>
         </article>
         <article class="metric-card" id="kpi-average">
           <p class="metric-label">Avg Msgs / Session</p>
           <p class="metric-value" data-value>0</p>
           <p class="metric-delta" data-delta data-trend="neutral">No change</p>
+          <div class="metric-breakdown" data-breakdown></div>
         </article>
       </section>
 

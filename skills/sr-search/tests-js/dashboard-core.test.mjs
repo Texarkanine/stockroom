@@ -11,6 +11,7 @@ import {
   buildWrappedPanel,
   buildWriteReadPanel,
   chartHeight,
+  deriveHarnessBreakdown,
   deriveOverviewCards,
   displayHarness,
   formatDelta,
@@ -143,6 +144,37 @@ test("derives mode-independent overview cards and selected deltas", () => {
     },
   ]);
   assert.equal(deriveOverviewCards({ per_harness: {} }, [])[3].value, 0);
+});
+
+test("derives per-harness KPI breakdown proportions", () => {
+  const overview = {
+    per_harness: {
+      cursor: { sessions: 3, messages: 9, projects: 2 },
+      "claude-code": { sessions: 1, messages: 2, projects: 1 },
+    },
+  };
+  assert.deepEqual(deriveHarnessBreakdown(overview, selected, "sessions"), [
+    {
+      harness: "claude-code",
+      label: "Claude Code",
+      value: 1,
+      share: 25,
+    },
+    { harness: "cursor", label: "Cursor", value: 3, share: 75 },
+  ]);
+  assert.deepEqual(deriveHarnessBreakdown(overview, selected, "average"), [
+    {
+      harness: "claude-code",
+      label: "Claude Code",
+      value: 2,
+      share: 40,
+    },
+    { harness: "cursor", label: "Cursor", value: 3, share: 60 },
+  ]);
+  assert.deepEqual(
+    deriveHarnessBreakdown({ per_harness: { cursor: {} } }, ["cursor"], "messages"),
+    [{ harness: "cursor", label: "Cursor", value: 0, share: 0 }],
+  );
 });
 
 test("formats percentage deltas including new and neutral values", () => {

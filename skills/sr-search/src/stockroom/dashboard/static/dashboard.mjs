@@ -7,6 +7,7 @@ import {
   buildToolsPanel,
   buildWrappedPanel,
   buildWriteReadPanel,
+  deriveHarnessBreakdown,
   deriveOverviewCards,
   displayHarness,
   harnessColors,
@@ -27,9 +28,27 @@ const elements = {
   status: document.querySelector("#status"),
   error: document.querySelector("#error"),
   lastSync: document.querySelector("#last-sync"),
+  sessionRows: document.querySelector("#session-rows"),
+  wrappedGrid: document.querySelector("#wrapped-grid"),
 };
 
 const requestGate = createRequestGate();
+const chartRegistry = new Map();
+const numberFormatter = new Intl.NumberFormat(undefined, {
+  maximumFractionDigits: 1,
+});
+const dateFormatter = new Intl.DateTimeFormat(undefined, {
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+});
+const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+});
 let state = {
   harnesses: [],
   selected: [],
@@ -126,8 +145,263 @@ function renderHarnessControls() {
   }
 }
 
+function parseDisplayDate(value, dateOnly = false) {
+  if (typeof value !== "string" || !value) {
+    return null;
+  }
+  const parsed = new Date(dateOnly ? `${value}T00:00:00` : value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function formatDate(value, dateOnly = false) {
+  const parsed = parseDisplayDate(value, dateOnly);
+  return parsed ? (dateOnly ? dateFormatter : dateTimeFormatter).format(parsed) : "—";
+}
+
+function renderBreakdown(container, rows, colors) {
+  container.replaceChildren();
+  for (const row of rows) {
+    const item = document.createElement("div");
+    const heading = document.createElement("div");
+    heading.className = "metric-bar-heading";
+    const label = document.createElement("span");
+    label.textContent = row.label;
+    const value = document.createElement("span");
+    value.textContent = numberFormatter.format(row.value);
+    heading.append(label, value);
+    const track = document.createElement("div");
+    track.className = "metric-bar-track";
+    track.setAttribute("aria-hidden", "true");
+    const fill = document.createElement("div");
+    fill.className = "metric-bar-fill";
+    fill.style.setProperty("--share", `${Math.max(0, Math.min(100, row.share))}%`);
+    fill.style.setProperty("--harness-color", colors[row.harness]);
+    track.append(fill);
+    item.append(heading, track);
+    container.append(item);
+  }
+}
+
+function renderOverview(overview) {
+  const colors = harnessColors(state.harnesses);
+  for (const card of deriveOverviewCards(overview, state.selected)) {
+    const element = document.querySelector(`#kpi-${card.key}`);
+    element.querySelector("[data-value]").textContent = numberFormatter.format(card.value);
+    const delta = element.querySelector("[data-delta]");
+    delta.textContent = card.delta.text;
+    delta.dataset.trend = card.delta.trend;
+    renderBreakdown(
+      element.querySelector("[data-breakdown]"),
+      deriveHarnessBreakdown(overview, state.selected, card.key),
+      colors,
+    );
+  }
+}
+
+function chartLabels(name, labels) {
+  return name === "daily" || name === "write-read"
+    ? labels.map((label) => formatDate(label, true))
+    : labels;
+}
+
+function chartOptions(model) {
+  const styles = getComputedStyle(document.documentElement);
+  const text = styles.getPropertyValue("--text").trim();
+  const muted = styles.getPropertyValue("--muted").trim();
+  const border = styles.getPropertyValue("--border").trim();
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    indexAxis: model.indexAxis,
+    animation: false,
+    plugins: {
+      legend: {
+        display:
+          model.kind === "doughnut" ||
+          model.datasets.length > 1 ||
+          state.mode === "compare",
+        labels: {
+          color: text,
+          usePointStyle: true,
+          boxWidth: 10,
+        },
+      },
+      tooltip: {
+        mode: "index",
+        intersect: false,
+      },
+    },
+  };
+  if (model.kind !== "doughnut") {
+    options.scales = {
+      x: {
+        stacked: model.stacked,
+        ticks: { color: muted },
+        grid: { color: border },
+      },
+      y: {
+        stacked: model.stacked,
+        beginAtZero: true,
+        ticks: { color: muted },
+        grid: { color: border },
+      },
+    };
+  }
+  return options;
+}
+
+function renderChart(name, title, model) {
+  const canvas = document.querySelector(`#${name}-chart`);
+  const wrapper = document.querySelector(`#${name}-chart-wrap`);
+  const empty = document.querySelector(`#${name}-empty`);
+  chartRegistry.get(name)?.destroy();
+  chartRegistry.delete(name);
+  wrapper.style.height = `${model.height ?? 280}px`;
+  canvas.hidden = model.empty;
+  empty.hidden = !model.empty;
+  canvas.setAttribute(
+    "aria-label",
+    `${title}. ${state.mode === "compare" ? "Compare" : "Aggregate"} view.`,
+  );
+  if (model.empty) {
+    return;
+  }
+  if (typeof window.Chart !== "function") {
+    canvas.hidden = true;
+    empty.textContent = "Chart runtime unavailable.";
+    empty.hidden = false;
+    return;
+  }
+  const chart = new window.Chart(canvas, {
+    type: model.kind,
+    data: {
+      labels: chartLabels(name, model.labels),
+      datasets: model.datasets.map((dataset) => ({ ...dataset })),
+    },
+    options: chartOptions(model),
+  });
+  chartRegistry.set(name, chart);
+}
+
+function appendCell(row, value, className) {
+  const cell = document.createElement("td");
+  if (className) {
+    cell.className = className;
+  }
+  cell.textContent = value ?? "—";
+  row.append(cell);
+  return cell;
+}
+
+function renderSessions(sessions) {
+  elements.sessionRows.replaceChildren();
+  if (!Array.isArray(sessions) || sessions.length === 0) {
+    const row = document.createElement("tr");
+    const cell = appendCell(row, "No recent sessions for this selection.");
+    cell.colSpan = 6;
+    elements.sessionRows.append(row);
+    return;
+  }
+  const colors = harnessColors(state.harnesses);
+  for (const session of sessions) {
+    const row = document.createElement("tr");
+    const started = appendCell(row, formatDate(session.started));
+    if (session.started) {
+      started.title = session.started;
+    }
+    const harnessCell = document.createElement("td");
+    const harnessLabel = document.createElement("span");
+    harnessLabel.className = "harness-label";
+    const dot = document.createElement("span");
+    dot.className = "harness-dot";
+    dot.setAttribute("aria-hidden", "true");
+    dot.style.setProperty("--harness-color", colors[session.harness] ?? "var(--accent)");
+    harnessLabel.append(dot, document.createTextNode(displayHarness(session.harness)));
+    harnessCell.append(harnessLabel);
+    row.append(harnessCell);
+    appendCell(row, session.project_name || "—");
+    appendCell(row, numberFormatter.format(Number(session.msgs) || 0));
+    appendCell(row, session.model || "—");
+    appendCell(row, session.prompt || "—", "prompt-cell");
+    elements.sessionRows.append(row);
+  }
+}
+
+function renderWrapped(wrapped) {
+  elements.wrappedGrid.replaceChildren();
+  for (const cell of buildWrappedPanel(wrapped)) {
+    const article = document.createElement("article");
+    article.className = "wrapped-cell";
+    const label = document.createElement("p");
+    label.className = "wrapped-label";
+    label.textContent = cell.label;
+    const value = document.createElement("p");
+    value.className = "wrapped-value";
+    value.textContent = cell.value;
+    const subtitle = document.createElement("p");
+    subtitle.className = "wrapped-subtitle";
+    subtitle.textContent = cell.subtitle;
+    article.append(label, value, subtitle);
+    elements.wrappedGrid.append(article);
+  }
+}
+
 function renderDashboard() {
-  // Measured content is rendered after the state and request effects are wired.
+  if (!state.snapshot) {
+    return;
+  }
+  const { snapshot } = state;
+  const colors = harnessColors(state.harnesses);
+  const lastSync = snapshot.overview?.last_sync;
+  elements.lastSync.textContent = formatDate(lastSync);
+  if (lastSync) {
+    elements.lastSync.title = lastSync;
+  } else {
+    elements.lastSync.removeAttribute("title");
+  }
+  renderOverview(snapshot.overview);
+  renderChart(
+    "daily",
+    "Daily session activity",
+    buildDailyPanel(snapshot.trends?.daily, state.selected, state.mode, colors),
+  );
+  renderChart(
+    "projects",
+    "Sessions by project",
+    buildProjectsPanel(snapshot.projects, state.selected, state.mode, colors),
+  );
+  renderChart(
+    "tools",
+    "Tool distribution",
+    buildToolsPanel(snapshot.tools, state.selected, state.mode, colors),
+  );
+  renderChart(
+    "write-read",
+    "Weekly write and read tool calls",
+    buildWriteReadPanel(snapshot.trends?.weekly, state.selected, state.mode),
+  );
+  renderChart(
+    "efficiency",
+    "Session efficiency",
+    buildEfficiencyPanel(snapshot.efficiency, state.selected, state.mode, colors),
+  );
+  renderChart(
+    "models",
+    "Model distribution",
+    buildModelsPanel(snapshot.models, state.selected, state.mode, colors),
+  );
+  renderChart(
+    "first-prompt",
+    "First-prompt quality",
+    buildFirstPromptPanel(
+      snapshot.efficiency?.first_prompt,
+      state.selected,
+      state.mode,
+      colors,
+    ),
+  );
+  renderSessions(snapshot.sessions);
+  renderWrapped(snapshot.wrapped);
 }
 
 function applyTransition(action) {
