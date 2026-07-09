@@ -2,7 +2,7 @@
 
 **Current Task:** p4-dashboard / m1 — Dashboard metrics API server
 
-**Phase:** PLAN - COMPLETE (preflight PASS; operator plan-review amendments folded)
+**Phase:** BUILD - IN-PROGRESS (preflight PASS; implementing the validated nine-step TDD plan)
 
 ## Operator Plan-Review Decisions (2026-07-09)
 
@@ -19,4 +19,4 @@
 
 ## Next Step
 
-Preflight phase (`niko-preflight` skill) to validate the plan against the codebase.
+Implement step 1: migration `0004_observation_times.sql` and its cumulative schema contract test.
