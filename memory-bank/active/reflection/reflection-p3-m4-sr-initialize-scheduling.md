@@ -10,6 +10,10 @@ complexity_level: 3
 
 Built `stockroom.schedule` (the dispatcher's eighth subcommand: `install | status | remove` over cron and launchd) plus `sr-initialize` Steps 8–9, and closed the milestone with a real first run: the operator's warehouse is populated (809 sessions, 29 080 messages), embedded (39 805 vectors), and refreshed nightly at 03:30 by a live cron entry. All 17 planned behaviors are test-pinned; QA passed with one trivial fix.
 
+## Post-Milestone Operator Verification (2026-07-09)
+
+The deferred artisanal checks closed out: the WSL cron entry fired overnight as scheduled, and the launchd half on the M4 MacBook Pro works on-demand and passes validation. The M4 timer has not yet been observed firing on its own, but the operator judges the on-demand pass plus the identical payload/mechanism sufficient — recorded as artisanally-verified.
+
 ## Requirements vs Outcome
 
 Every milestone requirement delivered: nightly ingest + embed installed via cron with idempotent re-install semantics (launchd half unit-tested, M4 validation deferred to the operator per the m3 precedent), entries invoking the shim by name with install-time-resolved `PATH=`, judgment (consent, time-of-night) in skill prose, and a first full ingest + embed leaving a query-ready warehouse. Nothing dropped or descoped. One addition beyond the plan text: subshell parentheses in the payload (see Plan Accuracy) — a correctness fix, not scope creep.
