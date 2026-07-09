@@ -27,3 +27,15 @@ Milestone m5 of L4 project `p3-onboarding-cli-scheduling`: the wrapper-skill tri
     - Grep token set: `APP_DIR`, `PYTHONPATH`, `uv run`, `--no-sync`, `--no-config`, `CURSOR_PLUGIN_ROOT`, `find -L`, `python -m stockroom` — zero hits required across all three wrapper SKILL.md files
 * Insights
     - The engine's own error text is a rendered-out surface too: a stderr hint naming a raw module invocation is the same drift class the milestone exists to remove, and the skills' Category-D error tables would otherwise re-import it verbatim
+
+## 2026-07-09 - PREFLIGHT - COMPLETE (PASS)
+
+* Work completed
+    - TDD encoding, convention compliance, dependency impact, conflict detection, and completeness verified; `.preflight-status` written PASS
+    - Traced every consumer of the old ``python -m stockroom.ingest`` hint: the two skill error tables (steps 4–5), `techContext.md` line 133 (step 7), archive docs (historical, untouched), and `ingest/__main__.py`'s own `prog=` (its real module name — not in scope)
+    - Verified: plugin manifests point at `./skills/` as a directory (no file enumeration to update); `test_packaging.py`/`test_licensing.py` spot-check named paths only; REUSE globs cover both new files with no `REUSE.toml` change; the shim is live on this box (`stockroom 0.0.0` via PATH) and the warehouse is populated — B8 live-example dependencies satisfied
+* Decisions made
+    - One plan amendment (the radical-innovation step, applied in-scope): the m6 grep check is promoted from a one-shot manual command to a permanent pytest, `tests/test_skill_hygiene.py`, written red against the untrimmed skills before the prose edits and driven green by them — the no-invocation-token invariant becomes regression-pinned in CI forever, exactly like the m6 archive suggested ("a grep-verifiable constraint is worth designing for")
+    - Steps renumbered 1–8 to fold the hygiene test in as step 2
+* Insights
+    - Module CLIs keep `prog="python -m stockroom.<mod>"` in their argparse usage lines; forwarded `--help` therefore still shows module-form usage. Cosmetic, out of m5 scope — noted as a future suggestion, not a finding

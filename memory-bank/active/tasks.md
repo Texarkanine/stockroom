@@ -21,7 +21,7 @@ Prose (artisanal verification + mechanical check, per the project invariant):
 - B4: `skills/sr-search/references/system-model.md` exists and holds the *why* content (torch contract, run-in-place packaging, ETL / read-only-by-construction, no-truncation-at-rest doctrine, embedding pipeline & staleness model, identity/provenance philosophy) with **no operational incantations** — the doc holds why, skills hold do
 - B5: all three wrapper SKILL.md files invoke only `stockroom <subcommand>`; the failure path is exactly "`command -v stockroom` fails → run `sr-initialize`" with **no fallback incantation**
 - B6: each of the three skills carries exactly one pointer to the shared doc (sibling-relative, e.g. `../sr-search/references/system-model.md` — committed layout = install layout)
-- B7: the m6 no-invocation-token grep across all three wrapper SKILL.md files finds zero hits for `APP_DIR`, `PYTHONPATH`, `uv run`, `--no-sync`, `--no-config`, `CURSOR_PLUGIN_ROOT`, `find -L`, `python -m stockroom`
+- B7: the m6 no-invocation-token check across all three wrapper SKILL.md files finds zero hits for `APP_DIR`, `PYTHONPATH`, `uv run`, `--no-sync`, `--no-config`, `CURSOR_PLUGIN_ROOT`, `find -L`, `python -m stockroom` — encoded as a permanent pytest (`tests/test_skill_hygiene.py`, preflight amendment) so the invariant is regression-pinned in CI, not a one-shot manual grep
 - B8: every shipped example in the trimmed skills is executed live against the real warehouse before being written in
 
 ### Test Infrastructure
@@ -29,31 +29,34 @@ Prose (artisanal verification + mechanical check, per the project invariant):
 - Framework: pytest, invoked via `make test` / `make ci` from the repo root
 - Test location: `skills/sr-search/tests/`
 - Conventions: CLI behavior tested via subprocess or `main([])` with env-pointed `STOCKROOM_HOME`; friendly-error tests already exist for all three surfaces
-- New test files: none — tighten `test_query_cli.py::test_query_missing_warehouse_is_friendly`, `test_semantic.py::test_cli_missing_warehouse_is_friendly`, `test_embed.py::test_embed_cli_missing_warehouse_is_friendly`
+- New test files: `tests/test_skill_hygiene.py` (B7 — repo-root-relative SKILL.md scan, same `repo_root` convention as `test_packaging.py`); tighten `test_query_cli.py::test_query_missing_warehouse_is_friendly`, `test_semantic.py::test_cli_missing_warehouse_is_friendly`, `test_embed.py::test_embed_cli_missing_warehouse_is_friendly`
 
 ## Implementation Plan
 
 1. Engine hint swap (TDD cycle)
    - Files: `skills/sr-search/tests/test_query_cli.py`, `tests/test_semantic.py`, `tests/test_embed.py`, then `src/stockroom/query.py`, `src/stockroom/semantic.py`, `src/stockroom/embed.py`
    - Changes: tighten the three missing-warehouse tests to pin the exact new message tail (red), then change the three `print(...)` hints to ``run `stockroom ingest` first`` (green)
-2. Author the shared system-model reference doc
+2. Skill-hygiene test (TDD cycle spanning the prose steps)
+   - Files: `skills/sr-search/tests/test_skill_hygiene.py` (new)
+   - Changes: for each of the three wrapper SKILL.md files, assert zero occurrences of the B7 token set (word-boundary-aware where needed — e.g. `python -m stockroom` must also catch `python -m stockroom.query`). Written *now* so it is red against the untrimmed skills; steps 3–5 drive it green — the grep check becomes the failing test that drives the prose edit
+3. Author the shared system-model reference doc
    - Files: `skills/sr-search/references/system-model.md` (new)
    - Changes: Category A/B content from the litter audit — torch contract (out of lock, out-of-band provisioning, why `--no-sync` exists), run-in-place packaging (`[tool.uv] package = false`, why the shim exists), ETL / read-only-by-construction, no-truncation-at-rest doctrine, embedding pipeline + staleness model, identity/provenance philosophy (`source_*` demotion). No operational rules — those stay in skills. REUSE: PPL-S applies automatically via the `skills/**` glob (`.md` is not code-shaped); verify with `make reuse`
-3. Trim `skills/sr-query/SKILL.md`
+4. Trim `skills/sr-query/SKILL.md`
    - Files: `skills/sr-query/SKILL.md`
    - Changes: invocation section collapses to `stockroom query …` + the `command -v stockroom` → `sr-initialize` failure path; all examples/guardrails/worked-example prefixes swap to `stockroom query`; Category A cuts (rationale bullets, "rebuildable ETL output", planner theory, provenance framing); Category B (flag-bullet triplet gone with the incantation); Category C (self-description padding, "Two independent axes" narration); Category D kept (error table — quoting the *new* engine hint, `tool_input` JSON guardrail, schema map, identity join rule); one shared-doc pointer added; every example executed live before write-in
-4. Trim `skills/sr-semantic/SKILL.md`
+5. Trim `skills/sr-semantic/SKILL.md`
    - Files: `skills/sr-semantic/SKILL.md`
    - Changes: same treatment; the full-text-handoff and coverage-check examples become `stockroom query …`; torch-missing advice collapses to the single error-table row with next-action "re-run `sr-initialize`" (litter audit B: the duplicate runtime-notes paragraph goes); `--format` lead-in maintenance metadata moves out (Category C); score semantics, staleness guardrail, re-phrase-don't-repeat, prefix-doubling warning all kept (Category D); one shared-doc pointer; every example executed live
-5. Touch up `skills/sr-search/SKILL.md`
+6. Touch up `skills/sr-search/SKILL.md`
    - Files: `skills/sr-search/SKILL.md`
-   - Changes: already zero invocation plumbing (m6 verified); add the one shared-doc pointer (fold into the engine-home breadcrumb), confirm no Category C narration crept in
-6. Reconcile persistent docs
-   - Files: `memory-bank/systemPatterns.md` (the "Cross-skill resource resolution" section still teaches the pre-shim `$APP_DIR`/`PYTHONPATH` contract as the skill-facing pattern — rewrite around "the shim owns the contract; skills say `stockroom <subcommand>`"), `memory-bank/techContext.md` (verify/update any skill-invocation mentions), `README.md` (verify only — the dev-facing raw incantation in the shim section is the shim's own documentation, not skill litter)
+   - Changes: already zero invocation plumbing (m6 verified); add the one shared-doc pointer (fold into the engine-home breadcrumb), confirm no Category C narration crept in; steps 4–6 together drive the step-2 hygiene test green
+7. Reconcile persistent docs
+   - Files: `memory-bank/systemPatterns.md` (the "Cross-skill resource resolution" section still teaches the pre-shim `$APP_DIR`/`PYTHONPATH` contract as the skill-facing pattern — rewrite around "the shim owns the contract; skills say `stockroom <subcommand>`"), `memory-bank/techContext.md` (the line-133 quote of the old hint and any skill-invocation mentions updated; the `stockroom.query`/`semantic` sections gain nothing new), `README.md` (verify only — the dev-facing raw incantation in the shim section is the shim's own documentation, not skill litter)
    - Changes: post-shim contract described once; the raw incantation survives only where it documents the shim/dev internals
-7. Verification
+8. Verification
    - Files: none (checks)
-   - Changes: run the B7 grep token check across the three wrapper SKILL.md files; full `make ci` (test, lint, format-check, lock-check, reuse); re-provision torch (`make torch`) before live-executing `sr-semantic` examples if CI ran in between (m4 insight: exact sync strips torch every run)
+   - Changes: full test suite (includes the new hygiene test and the three tightened hint tests); full `make ci` (test, lint, format-check, lock-check, reuse — REUSE covers the two new files via existing globs); live example execution happens during steps 4–5 (before the final CI gate); re-provision torch (`make torch`) if a `make` target ran between provisioning and a torch-needing live example (m4 insight: exact sync strips torch every run)
 
 ## Technology Validation
 
