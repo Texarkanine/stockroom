@@ -43,3 +43,15 @@ Milestone m4 of L4 project `p3-onboarding-cli-scheduling`: build the `sr-initial
     - First run is orchestration-only prose (`stockroom ingest --full` → `stockroom embed` → count sanity-check through the shim) — no new engine code, it validates wiring over the m1/m2-tested surfaces
 * Insights
     - The milestone's real risk concentrates in the cron execution environment, not the Python: every mitigation (absolute `PATH=` prefix, `/bin/sh -c` wrapper, `%`-free payload) is structural and test-pinned rather than documented-only
+
+## 2026-07-08 - PREFLIGHT - COMPLETE (PASS)
+
+* Work completed
+    - TDD encoding, convention compliance, dependency impact, conflict detection, and completeness verified against the codebase; `.preflight-status` written PASS
+    - Verified: `schedule` name is unclaimed in `src/`; `SUBCOMMANDS` is consumed only by `__main__` and `test_dispatcher_cli.py` (localdev hits are the symlink mirror); `test_packaging.py` enumerates neither modules nor subcommands; REUSE.toml globs (`skills/**/*.py`, `skills/**/tests/**` AGPL re-assert) cover both new files with no annotation change; `stockroom.warehouse` import for `home_dir()` pulls duckdb only at schedule runtime (dispatcher row is lazy, matching migrate/query); no crontab/launchctl/plistlib logic exists anywhere to conflict with
+    - Live facts gathered: this machine's cron daemon is running and named `cron` (`pgrep -x cron` → pid), `crontab` at `/usr/bin/crontab`, real crontab has ~24 lines of foreign entries (the live-validation backup protocol is not optional)
+* Decisions made
+    - Two fixable-in-place plan amendments: the daemon-check default matches `cron` or `crond` (distro name variance, B7); `schedule status` on the cron platform also reports a `daemon: running|not running` fact line (B9) — facts-only per the `doctor probe` convention, making "the environment is the state" re-entry honest about a schedule that exists but cannot fire
+    - No blocking findings; no advisory items withheld from the plan
+* Insights
+    - The B16 dispatcher extension stays mechanical (tuple + `--time` fingerprint), the third row added this way — the fingerprint-table shape from m1 keeps paying

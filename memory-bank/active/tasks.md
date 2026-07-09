@@ -78,9 +78,9 @@ Cron half (injected `crontab` runner + `which` + daemon check):
 - **B4** install with pre-existing foreign lines → foreign lines preserved byte-for-byte, block appended
 - **B5** install over an existing managed block (possibly with a different time) → old block stripped, exactly one fresh block in the result (idempotent re-install)
 - **B6** install when `which("stockroom")` fails → refuses exit 1, stderr names binding the shim first (`sr-initialize` / `make shim`)
-- **B7** install when the cron-daemon check reports not-running → still writes, report carries a warning naming the fix; daemon running → no warning
+- **B7** install when the cron-daemon check reports not-running → still writes, report carries a warning naming the fix; daemon running → no warning (default check matches `cron` *or* `crond` — distro name variance; verified `cron` live on this machine)
 - **B8** remove → strips the block, preserves foreign lines; remove when no block / no crontab → clean no-op exit 0
-- **B9** status → "installed" + the schedule line when the block exists; "not installed" otherwise; exit 0 both ways
+- **B9** status → "installed" + the schedule line when the block exists; "not installed" otherwise; on the cron platform also a `daemon: running|not running` fact line (facts only, the `doctor probe` convention — makes re-entry probing honest about a schedule that exists but cannot fire); exit 0 both ways
 
 launchd half (injected `launchctl` runner + agents dir):
 

@@ -13,5 +13,8 @@
 - Never a raw engine path in an entry; never touch a foreign crontab line; never two managed blocks; never assume the scheduler's PATH; never install silently against a dead cron daemon
 - Live validation backs up the operator's real crontab before any mutate step; launchd is unit-tested here and artisanally validated on the M4 (m3 precedent)
 
+## Preflight Outcome
+- PASS (`.preflight-status` written). Two in-place amendments: daemon check matches `cron`/`crond` (B7); `schedule status` reports a daemon liveness fact on the cron platform (B9). Verified live: this machine's daemon is `cron` (running), real crontab carries ~24 foreign lines — backup protocol mandatory.
+
 ## Next Step
-- Preflight phase (autonomous) — validate the plan against the codebase
+- Operator gate: run `/niko-build` to start the build phase
