@@ -103,3 +103,16 @@ Deliver milestone m2 of `p4-dashboard`: a fully offline, vendored single-pane fr
 * Insights
     - Distinct-vs-summable KPI fields need an explicit previous-window contract before client deltas are planned.
     - Canvas accessibility must be asserted as content-bearing summaries, not merely the presence of `aria-label` attributes.
+
+## 2026-07-09 - PLAN (QA rework) - COMPLETE
+
+* Work completed
+    - Re-entered plan after QA FAIL and separated the two blockers: Projects delta is a missing previous-window rollup; chart summaries are incomplete implementation of the settled accessibility contract.
+    - Completed architecture creative for the Projects previous-window contract and recorded it in `creative/creative-projects-kpi-previous-window.md`.
+    - Produced a five-step TDD rework plan: overview `prev_distinct_projects`, Projects delta baseline switch, pure `summarizeChartPanel`, adapter wiring, then browser smoke and full `make ci`.
+* Decisions made
+    - Amend the earlier "no JSON shape changes in m2" boundary for one additive overview integer rather than hide the Projects delta or redefine Projects as summable.
+    - Keep chart-summary generation in tested pure core; the adapter only applies the resulting string to `aria-label` and canvas fallback text.
+* Insights
+    - The server already held the previous project sets needed for a truthful distinct baseline; the bug was an incomplete rollup, not client arithmetic skill.
+    - Title/mode-only canvas labels can satisfy a shallow attribute check while still failing the interaction contract's measured-content requirement.
