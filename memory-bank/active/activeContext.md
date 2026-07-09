@@ -2,7 +2,13 @@
 
 **Current Task:** p4-dashboard / m1 — Dashboard metrics API server
 
-**Phase:** PLAN - COMPLETE
+**Phase:** PLAN - COMPLETE (preflight PASS; operator plan-review amendments folded)
+
+## Operator Plan-Review Decisions (2026-07-09)
+
+- `messages.first_seen_at` joins migration `0004` (now `0004_observation_times.sql`): "when stockroom first observed this message", writer-internal carry-forward (carried per `message_id`, else seeded from the session's `source_mtime`), ingest-cadence granularity going forward.
+- Doctrine revised in `systemPatterns.md`: the warehouse outlives its sources; rebuild is degraded recovery, not equivalence; never justify a design by future re-ingest of prunable data.
+- No `--full` warning needed (it never deletes orphaned rows; carry-forward survives it) — retention contract documented in the ingest docstring instead.
 
 ## What Was Done
 

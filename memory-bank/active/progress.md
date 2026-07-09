@@ -52,3 +52,17 @@ Deliver milestone m1 of `p4-dashboard`: the dashboard metrics API server — a `
     - `metrics.ENDPOINTS` registry (name → callable) as the single routing source shared by server and tests
 * Insights
     - Radical-innovation scan produced nothing level-changing; the registry was the one accretive structural improvement worth folding in
+
+## 2026-07-09 - PLAN REVIEW (operator) - COMPLETE
+
+* Work completed
+    - Operator reviewed the session-time-grain decision and raised message-grain attribution + the rebuildability doctrine; analysis discussed and recommendation accepted in full
+    - Plan amended: `0004` renamed `0004_observation_times.sql` and gains `messages.first_seen_at`; writer carry-forward added to step 2 with three unit behaviors (bootstrap seed, append keeps old + stamps new, unchanged re-write idempotent); creative doc amended; challenges updated
+    - `systemPatterns.md` doctrine reframed now (new pattern: "The warehouse outlives its sources — rebuild is degraded recovery, not equivalence" + How-This-Works bullet)
+* Decisions made (operator)
+    - **`messages.first_seen_at`** ("when stockroom first observed this message" — uniform, all harnesses) joins migration `0004`; writer-internal carry-forward (read pairs before delete; carried if `message_id` pre-existed, else seeded from the session's `source_mtime` so bootstrap keeps history's real spread); granularity = ingest cadence going forward; never older than the message
+    - **Doctrine revision:** rebuild is a degraded recovery path, not an equivalence claim; no design may depend on future re-ingest of data the harness may prune; capture-time (observation-derived) data is the most urgent kind — it cannot be backfilled
+    - **No `--full` warning:** `--full` re-processes existing files only, never deletes orphaned rows, and carry-forward preserves `first_seen_at` through it; retention contract documented in the ingest docstring instead
+* Insights
+    - Retention was already structural (discovery touches only existing files; delete-then-insert fires only per re-parsed session; nothing prunes warehouse rows) — the amendment makes the doctrine match the mechanics
+    - Accepted soft spot: positional `message_id` means a history-rewriting harness edit would shift ordinals and misattribute carried times; Cursor is append-only in practice and the value stays an honest upper bound

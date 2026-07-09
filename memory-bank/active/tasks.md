@@ -34,8 +34,8 @@ Every windowed metric uses `COALESCE(started_at, source_mtime)` as the session's
 
 ### Affected Components
 
-- **`stockroom.migrations`** (`src/stockroom/migrations/`): forward-only migration home → gains `0004_session_source_mtime.sql` (`ALTER TABLE sessions ADD COLUMN source_mtime TIMESTAMP`); `0001`–`0003` and their snapshots stay frozen.
-- **`stockroom.ingest`** (`model.py`, `__init__.py` orchestrator, `writer.py`): ETL → `NormalizedSession` gains `source_mtime`; the orchestrator stamps it from `DiscoveredSession.mtime` (parsers stay pure — no stat); subagents inherit the parent conversation's mtime; the writer inserts the new column.
+- **`stockroom.migrations`** (`src/stockroom/migrations/`): forward-only migration home → gains `0004_observation_times.sql` (`ALTER TABLE sessions ADD COLUMN source_mtime TIMESTAMP; ALTER TABLE messages ADD COLUMN first_seen_at TIMESTAMP`); `0001`–`0003` and their snapshots stay frozen.
+- **`stockroom.ingest`** (`model.py`, `__init__.py` orchestrator, `writer.py`): ETL → `NormalizedSession` gains `source_mtime`; the orchestrator stamps it from `DiscoveredSession.mtime` (parsers stay pure — no stat); subagents inherit the parent conversation's mtime; the writer inserts the new column **and owns the `first_seen_at` carry-forward** (read existing `(message_id, first_seen_at)` pairs before `_delete_session`; carried value if the `message_id` pre-existed, else seeded from the session's `source_mtime` — writer-internal, parsers and `NormalizedMessage` untouched).
 - **`stockroom.warehouse`** (`warehouse.py`): the open chokepoint → gains `WarehouseStaleError` and `open_current(read_only=True)` (open with `migrate=False`, `ensure_vss`, raise typed staleness error when `current_version < head`). `open()` itself is untouched.
 - **`stockroom.dashboard`** (new package: `__init__.py`, `metrics.py`, `server.py`, `__main__.py`, `static/index.html` placeholder): the milestone deliverable — metrics queries, HTTP server, CLI with port-probe idempotent startup and CLI-owned daemonization.
 - **Tests** (`tests/`): new `test_schema_0004.py` + `fixtures/schema/0004_snapshot.json`, `test_dashboard_metrics.py`, `test_dashboard_server.py`, `test_dashboard_cli.py`; additions to `test_ingest_writer.py`, `test_ingest_orchestrator.py`, `test_warehouse_open.py`.
@@ -50,7 +50,8 @@ Every windowed metric uses `COALESCE(started_at, source_mtime)` as the session's
 
 ### Boundary Changes
 
-- **Schema:** migration `0004` adds `sessions.source_mtime TIMESTAMP` (uniform provenance meaning: mtime of the session's source transcript at last ingest). Cumulative shape pinned by new `0004_snapshot.json`; operator warehouses pick it up via the normal lazy gate on the next write-path open, values fill on the next ingest touch (`--full` for history).
+- **Schema:** migration `0004` adds `sessions.source_mtime TIMESTAMP` (uniform provenance meaning: mtime of the session's source transcript at last ingest) and `messages.first_seen_at TIMESTAMP` (uniform observation meaning: when stockroom first observed this message — operator-accepted amendment; `first_seen_at >=` true creation time, granularity = ingest cadence going forward, mtime-seeded at bootstrap so history keeps its spread). Cumulative shape pinned by new `0004_snapshot.json`; operator warehouses pick it up via the normal lazy gate on the next write-path open, values fill on the next ingest touch (`--full` for history).
+- **Doctrine (operator-accepted):** `systemPatterns.md` reframed — the warehouse is an append-mostly archive; **rebuild is a degraded recovery path, not an equivalence claim**; no design may depend on future re-ingest of data the harness may prune. (`first_seen_at` exists in no source; orphaned rows already persist forever by construction.)
 - **Warehouse public API:** `open_current()` + `WarehouseStaleError` added (new names beside `open()`; nothing existing changes).
 - **HTTP API (new public surface):** the eight `/api/*` endpoint shapes per `planning/brainstorm/dashboard-spec.md` — server always returns per-harness data keyed by harness name; harness set enumerated from the DB; no colors, no aggregate math server-side.
 
@@ -90,9 +91,13 @@ Every windowed metric uses `COALESCE(started_at, source_mtime)` as the session's
 
 Substrate:
 
-- Migration `0004` applied via the real chain → `sessions.source_mtime` exists; cumulative snapshot matches `0004_snapshot.json`; `0001`–`0003` snapshots unchanged.
-- Full ingest over fixtures → every session row's `source_mtime` equals its source file's statted mtime (dynamic comparison; golden columns unchanged — `source_mtime` is machine-dependent like the watermark); subagent rows carry the parent conversation file's mtime.
+- Migration `0004` applied via the real chain → `sessions.source_mtime` and `messages.first_seen_at` exist; cumulative snapshot matches `0004_snapshot.json`; `0001`–`0003` snapshots unchanged.
+- Full ingest over fixtures → every session row's `source_mtime` equals its source file's statted mtime (dynamic comparison; golden columns unchanged — both new columns are machine-dependent like the watermark); subagent rows carry the parent conversation file's mtime.
 - Writer inserts `source_mtime` (unit: write one `NormalizedSession` with a set value → column round-trips).
+- `first_seen_at` carry-forward (all writer-unit, against `migrated_con`):
+  - First write of a session → every message's `first_seen_at` equals the session's `source_mtime` (bootstrap seeding, incl. Claude sessions — the column is harness-uniform).
+  - Re-write of the same session with one appended message and a newer `source_mtime` → pre-existing `message_id`s keep their original `first_seen_at`; only the new message gets the new value (the never-older promise).
+  - Re-write with unchanged content → all `first_seen_at` values unchanged (idempotent; `--full` safety is this same path via the orchestrator).
 - `open_current` on a current warehouse → returns a read-only connection (write attempt rejected by DuckDB); on a behind-head warehouse → raises `WarehouseStaleError` naming `stockroom migrate`, **without migrating** (version stays behind afterward — the anti-gate assertion).
 
 Metrics (all against `migrated_con` + a seeding helper; all return per-harness dicts keyed by harness name):
@@ -137,12 +142,12 @@ CLI (probe/spawn seams injected; no real daemon in tests):
 Every step is one TDD cycle and its sub-steps are **ordered**: (a) stub interfaces, (b) write the tests, (c) run them and see them fail, (d) implement to green. Never start (d) before (c).
 
 1. **Migration `0004`** (substrate, fewest dependencies)
-    - Files: `src/stockroom/migrations/0004_session_source_mtime.sql`, `tests/test_schema_0004.py`, `tests/fixtures/schema/0004_snapshot.json`
-    - TDD order: (a) write `test_schema_0004.py` mirroring `test_schema_0003.py` (chain-apply through `0004`, column-presence assertion, cumulative snapshot vs `0004_snapshot.json`) → (b) run: fails (no migration file) → (c) write the migration SQL (`ALTER TABLE sessions ADD COLUMN source_mtime TIMESTAMP` + uniform-provenance doc comment) → (d) regenerate golden via the test's own helper (`STOCKROOM_UPDATE_SCHEMA_GOLDEN=1`), review the diff, re-run green. `0001`–`0003` snapshots frozen.
-    - Creative ref: `creative-dashboard-session-time-grain.md`
-2. **Ingest populates `source_mtime`**
+    - Files: `src/stockroom/migrations/0004_observation_times.sql`, `tests/test_schema_0004.py`, `tests/fixtures/schema/0004_snapshot.json`
+    - TDD order: (a) write `test_schema_0004.py` mirroring `test_schema_0003.py` (chain-apply through `0004`, both-columns-present assertion, cumulative snapshot vs `0004_snapshot.json`) → (b) run: fails (no migration file) → (c) write the migration SQL (`ALTER TABLE sessions ADD COLUMN source_mtime TIMESTAMP; ALTER TABLE messages ADD COLUMN first_seen_at TIMESTAMP` + uniform-meaning doc comments: provenance mtime / first-observation time) → (d) regenerate golden via the test's own helper (`STOCKROOM_UPDATE_SCHEMA_GOLDEN=1`), review the diff, re-run green. `0001`–`0003` snapshots frozen.
+    - Creative ref: `creative-dashboard-session-time-grain.md` (incl. the operator-accepted amendment)
+2. **Ingest populates `source_mtime` + `first_seen_at` carry-forward**
     - Files: `src/stockroom/ingest/model.py`, `src/stockroom/ingest/__init__.py`, `src/stockroom/ingest/writer.py`, `tests/test_ingest_writer.py`, `tests/test_ingest_orchestrator.py`
-    - TDD order: (a) add the `NormalizedSession.source_mtime: datetime | None = None` field (interface stub) → (b) write the failing tests: writer round-trip of a set value; orchestrator full-ingest `source_mtime == stat().st_mtime` per session incl. subagents-inherit-parent → (c) run: fail → (d) implement: orchestrator stamps from `DiscoveredSession.mtime` in `_parse_discovered`, writer adds the column to its INSERT. Golden dump columns untouched (machine-dependent value stays out).
+    - TDD order: (a) add the `NormalizedSession.source_mtime: datetime | None = None` field (interface stub; `NormalizedMessage` untouched — carry-forward is writer-internal) → (b) write the failing tests: writer round-trip of a set `source_mtime`; the three carry-forward behaviors (bootstrap seeding from `source_mtime`, append keeps old + stamps new, unchanged re-write idempotent); orchestrator full-ingest `source_mtime == stat().st_mtime` per session incl. subagents-inherit-parent → (c) run: fail → (d) implement: orchestrator stamps from `DiscoveredSession.mtime` in `_parse_discovered`; writer reads existing `(message_id, first_seen_at)` pairs before `_delete_session` and inserts both columns (carried value or `source_mtime` seed). Golden dump columns untouched (machine-dependent values stay out); ingest docstring documents the retention contract (orphaned rows persist; carry-forward survives `--full`).
 3. **`warehouse.open_current` + `WarehouseStaleError`**
     - Files: `src/stockroom/warehouse.py`, `tests/test_warehouse_open.py`
     - TDD order: (a) stub `WarehouseStaleError` + `open_current(read_only=True, **backoff)` with documented signature, empty body → (b) write failing tests: current warehouse → usable RO connection (write rejected); behind-head warehouse → raises `WarehouseStaleError` naming `stockroom migrate` AND version stays behind afterward (anti-gate assertion) → (c) fail → (d) implement: path → `_open_with_backoff` → `ensure_vss` → version check → return or close-and-raise.
@@ -165,7 +170,7 @@ Every step is one TDD cycle and its sub-steps are **ordered**: (a) stub interfac
     - Creative ref: advisory 6 (CLI-owned daemonization)
 9. **Full-suite gate + docs touch-up**
     - Files: (all above), `skills/sr-search/src/stockroom/dashboard/*` docstrings, `skills/sr-query/SKILL.md`
-    - Changes: `make ci` green (format, lint, test, reuse — new `.py` files are AGPL by REUSE.toml's re-assert; the placeholder `index.html` inherits `skills/**` PPL-S, which lints clean); module docstrings in the house narrative style; **update `sr-query`'s schema map** (its "as of migrations 0001–0003" sessions line gains `source_mtime` and becomes "0001–0004" — preflight finding). No README/roadmap edits in m1 (roadmap port correction is m3 scope)
+    - Changes: `make ci` green (format, lint, test, reuse — new `.py` files are AGPL by REUSE.toml's re-assert; the placeholder `index.html` inherits `skills/**` PPL-S, which lints clean); module docstrings in the house narrative style; **update `sr-query`'s schema map** (its "as of migrations 0001–0003" header becomes "0001–0004"; the `sessions` line gains `source_mtime`, the `messages` line gains `first_seen_at` — preflight finding + amendment). No README/roadmap edits in m1 (roadmap port correction is m3 scope). (`systemPatterns.md` doctrine reframe already landed at plan time — operator-accepted.)
 
 ## Technology Validation
 
@@ -173,12 +178,13 @@ No new locked dependencies. The server is stdlib `http.server` (the roadmap's de
 
 ## Challenges & Mitigations
 
-- **Golden snapshot vs. machine-dependent mtimes:** `source_mtime` never enters `expected_rows.json` (the dump has an explicit column list); correctness is asserted dynamically (`== stat().st_mtime` of the fixture file), the watermark's existing treatment.
+- **Golden snapshot vs. machine-dependent mtimes:** neither `source_mtime` nor `first_seen_at` enters `expected_rows.json` (the dump has an explicit column list); correctness is asserted dynamically (`== stat().st_mtime` of the fixture file; carry-forward via controlled writer-unit sequences), the watermark's existing treatment.
 - **Operator warehouse goes behind-head when `0004` lands:** by design — the dashboard refuses with "run `stockroom migrate`"; the nightly ingest (write path) migrates it transparently. QA smoke covers the refusal + recovery.
 - **Nightly writer holds the DB while a request arrives:** DuckDB RW-exclusive lock → `_open_with_backoff` would wait 30s per request. Mitigation: `open_current` calls pass a short timeout (~2s) so requests degrade quickly to the busy 503.
 - **Windowed prev-period semantics with custom `since`/`until`:** define prev = equal-length interval ending at `since` (documented in `metrics.py`); tested explicitly.
 - **Port-probe/bind race (two session-start hooks at once):** the bind is the mutex; the losing child treats `EADDRINUSE` as success-elsewhere and exits 0. No lockfile (operator decision).
-- **Cursor `source_mtime` is last-activity-grained:** daily buckets date a Cursor session by its last write — acceptable for at-a-glance metrics, documented in the endpoint docstring.
+- **Cursor `source_mtime` is last-activity-grained:** daily buckets date a Cursor session by its last write — acceptable for at-a-glance metrics, documented in the endpoint docstring. Message-grain attribution accrues in `first_seen_at` going forward (ingest-cadence granularity) as the recap substrate; v1 panels stay session-grain per the spec.
+- **Positional identity vs. carry-forward:** `message_id` is ordinal-derived, so a history-*rewriting* (non-appending) harness edit would shift ordinals and misattribute carried `first_seen_at` values. Accepted soft spot (operator): Cursor transcripts are append-only in practice; the value remains an upper bound on staleness, never a fabricated authorship claim.
 - **ThreadingHTTPServer concurrency:** one DuckDB connection per request, never shared across threads; read-only connections coexist (shared lock).
 
 ## Status
