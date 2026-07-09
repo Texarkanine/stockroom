@@ -101,7 +101,9 @@ clean pipeline of single-responsibility modules: `model` (harness-neutral
 `cursor` and `claude`, `sources` (discovery carrying the verbatim project-dir
 slug as `project_id` + `_sync_state` watermark), `paths` (the `encode` transform
 and `resolve_cwd` re-encode-and-match recovery), `enrich` (optional Cursor
-`ai-code-tracking.db` model fill, a graceful no-op when absent), `writer`
+`ai-code-tracking.db` model fill from `ai_code_hashes` / `conversation_summaries`,
+resolved via env override then conventional/`ai-tracking`/WSL-mount candidates;
+graceful no-op when absent), `writer`
 (delete-then-insert by `(harness, session_id)` + watermark upsert), and the
 `ingest()` orchestrator in `__init__`. Parsers depend only on `model` + stdlib
 (pure, unit-testable); the writer is the only new DB writer and goes through

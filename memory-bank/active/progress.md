@@ -25,3 +25,12 @@ Fix Cursor model enrichment so unconfigured ingest finds the real `ai-code-track
     - Operator runs live `stockroom ingest --full --harness cursor` verification (not agent-driven against their warehouse)
 * Insights
     - Live DB on this machine is under `/mnt/s/Users/Austin/.cursor/ai-tracking/ai-code-tracking.db`; models live on `ai_code_hashes.conversationId` / `model`
+
+## 2026-07-09 - QA - COMPLETE
+
+* Work completed
+    - Semantic review PASS; techContext enrich description updated
+* Decisions made
+    - No substantive FAIL findings; operator-owned live re-ingest remains the acceptance check outside the suite
+* Insights
+    - None beyond build
