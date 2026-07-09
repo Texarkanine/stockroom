@@ -8,51 +8,48 @@ complexity_level: 3
 
 ## Summary
 
-The milestone replaced the dashboard placeholder with the planned fully offline, accessible, single-pane front-end over all eight shipped metric APIs. The implementation, browser integration pass, complete CI gate, and subsequent semantic QA all succeeded.
+Milestone m2 delivered the fully offline single-pane dashboard front-end, then closed a QA-driven rework that made the Projects KPI delta distinct-to-distinct and gave every chart canvas a content-bearing accessible summary. The final gate and semantic review both passed.
 
 ## Requirements vs Outcome
 
-Every m2 requirement shipped: open harness discovery, positional colors, client-owned Aggregate/Compare, mode-independent KPIs, seven chart panels, recent sessions, the exact eight factual wrapped cells, atomic same-origin refresh, actionable warehouse refusals, responsive light/dark presentation, vendored Chart.js 4.5.1, precise REUSE ownership, Node 22 contracts, and no package manager or build path.
+Every original m2 requirement shipped: open harness discovery, positional colors, client-owned Aggregate/Compare, mode-independent KPIs, seven chart panels, recent sessions, eight factual wrapped cells, atomic same-origin refresh, actionable warehouse refusals, responsive light/dark presentation, vendored Chart.js 4.5.1, precise REUSE ownership, Node 22 contracts, and no package manager or build path.
 
-Nothing was descoped. The only added interface was `deriveHarnessBreakdown`, introduced test-first when the already-planned proportional KPI rendering needed a pure owner. The browser pass also added a live color-scheme redraw listener; this completed the planned theme behavior rather than expanding scope. Migrating the local populated warehouse from v3 to v4 was test-environment recovery through an existing documented action, not a product change.
+The QA rework added one intentional public-boundary amendment: overview `prev_distinct_projects`. That completed the Projects delta contract rather than expanding product scope. Chart summaries implemented the already-settled interaction-contract accessibility requirement; they were incomplete in the first build, not a new feature ask.
 
 ## Plan Accuracy
 
-The preflight-amended ten-step plan was accurate in sequence, scope, and file ownership. Preparing interfaces and tests before behavior kept the TDD order explicit; separating pure transforms, request coordination, page structure, browser effects, and measured rendering allowed each layer to become green before integration.
+The original preflight-amended ten-step plan was accurate for the front-end surface, REUSE ownership, Node testing boundary, and browser-only checks. The first build followed it closely and passed mechanical CI.
 
-The identified high-risk seams were the right ones. REUSE override order required exact rules and tests; request races warranted abort/generation gating; weighted first-prompt and distinct-project semantics needed pure contracts; and browser-only responsive/accessibility/offline checks could not be replaced by source assertions. `.mjs` MIME inference did not fail on the supported environment, so the planned evidence-driven server fallback was correctly unnecessary.
-
-Two integration details were not predicted precisely. The real warehouse was one migration behind, but the m1 actionable 503 contract made recovery immediate. Chart.js canvas colors did not automatically follow a live system-theme change; the browser pass exposed this and a centralized redraw fixed it without architectural change. Level 3 was the right estimate: the task was substantial and cross-cutting, but remained within the established backend and needed no rearchitecture.
+The plan's weak seam was the Projects previous-window contract. It treated `distinct_projects` versus summed `prev_projects` as acceptable client math under a "no JSON shape changes" boundary. That assumption survived preflight and the first build, then failed semantic QA. The rework plan that followed was accurate: five TDD steps, shared-project fixtures on both sides, pure summary generation, and adapter-only application.
 
 ## Creative Phase Review
 
-The contract-first native interaction decision held throughout implementation. Native disclosure, checkboxes, radios, semantic table markup, live regions, and one atomic snapshot delivered the required behavior with less state and accessibility risk than custom widgets or panel-independent fetches. Replacing the unsupported personality field with Top Tool kept every wrapped value factual.
+The contract-first native interaction decision held, including the accessibility note that canvas labels must carry measured content. The first build under-implemented that note with title/mode-only `aria-label`s; the rework restored the creative intent without redesign.
 
-The native-ESM/Node-testing decision also held. Pure panel/state math and coordinator policy ran directly under Node 22 without npm, while the adapter remained limited to DOM, localization, and Chart.js effects. The one browser-discovered theme issue confirmed that the selected boundary was honest: deterministic application policy belonged in unit tests, while canvas rendering and live media behavior still required a real browser.
+The native-ESM/Node-testing decision also held and paid off again during rework: Projects delta and chart summaries were fixed entirely in tested pure modules before the adapter touched the DOM.
+
+The Projects previous-window creative, added after the first QA FAIL, held cleanly in build: the server already had previous project sets, so an additive union field was the smallest correct fix.
 
 ## Build & QA Observations
 
-The staged TDD cycles went smoothly: 18 core contracts and five coordinator contracts failed against stubs before implementation, static/serving/licensing contracts failed for the expected absent artifacts, and each layer then turned green in plan order. Exact REUSE assertions prevented the broad `skills/**` prompt-content rule from silently claiming authored JavaScript or Chart.js.
+The first build's staged TDD and browser pass were strong for packaging, races, theme redraw, and offline behavior. Formal QA then correctly failed on two substantive blockers rather than rubber-stamping a green suite.
 
-The populated browser pass was the most valuable integration activity. It verified real request counts and filters, no-refetch mode changes, stale-generation suppression, retained snapshots, empty states, dates, narrow layouts, accessibility semantics, offline-only traffic, and both themes. It found the only product defect, the live canvas-theme redraw gap, before the milestone gate. The later semantic QA found no KISS, DRY, YAGNI, completeness, regression, integrity, documentation, or licensing correction to make.
+The rework build was uneventful because the plan named the exact failing assertions to rewrite, including the Node `+100%` case that encoded the buggy baseline. Live-warehouse smoke confirmed Projects `+27%` (14 vs 11) and measured Aggregate/Compare canvas summaries. The second QA was clean.
 
 ## Cross-Phase Analysis
 
-Preflight materially improved build quality. Extracting `dashboard-data.mjs` before implementation prevented fetch, error, and generation policy from accumulating in the adapter. Enumerating every chart and wrapped mapping made missing panels or speculative display facts easy to detect. Exact license-path planning prevented a late vendoring cleanup.
+The first QA FAIL was a planning/creative gap, not a coding miss: distinct current values cannot truthfully delta against summable previous counts, and title/mode labels do not satisfy a measured-content accessibility contract. Preflight of the original plan could not catch the missing previous distinct field because the plan itself treated the false comparison as in-bounds.
 
-The creative decisions reduced rather than created QA risk. Native controls removed custom-widget complexity, and the pure-module boundary made the effects adapter auditable. Planning could not prove Chart.js's response to a live theme change, but it correctly reserved that class of behavior for browser QA, which caught it. Consequently the formal QA phase was clean rather than a rework cycle.
+The rework loop worked as designed: FAIL → plan/creative → preflight amendment → build → clean QA. Keeping summary prose out of the adapter made the second QA a completeness check rather than a second design debate.
 
 ## Insights
 
 ### Technical
 
-- Treat a dashboard refresh as one immutable application snapshot when all panels share a warehouse and timestamp boundary; abort plus generation gating preserves coherence without per-panel state machines.
-- Canvas libraries own rendered colors after creation. CSS custom-property changes require an explicit redraw path even when the surrounding page updates automatically.
-- In layered REUSE repositories, vendored browser software and authored code under prompt-shaped directories need exact resolved-license tests, not only broad annotation rules.
-- A no-build front-end can retain strong TDD seams: native modules provide enough structure to test deterministic policy without importing a package manager or browser harness.
+- Non-summable KPI cards need an explicit previous-window rollup of the same grain before any client delta is planned; per-harness previous counts are not a substitute for a filtered distinct union.
+- Canvas accessibility is a content contract, not an attribute-presence check: summaries must include measured values or an explicit no-data sentence, and that prose belongs in pure tested code.
 
 ### Process
 
-- Define the browser-test boundary by behavior, not convenience: unit-test stockroom-owned deterministic policy, statically test packaging/security contracts, and reserve native interaction, layout, canvas, and media changes for a real-browser pass.
-- Preflight interface and ownership inventories paid for themselves on this Level 3 feature; they converted likely integration discoveries into explicit failing-test loops before adapter work.
-- The Level 3 estimate was accurate. Ten build checkpoints were verbose but kept the multi-surface TDD progression recoverable, while no additional design cycle or QA rework was needed.
+- A green first CI gate does not prove semantic KPI honesty. Challenge distinct-versus-summable comparisons and accessibility content before calling a dashboard milestone done.
+- When QA fails on a missing contract, amend the public boundary narrowly rather than hiding the trend or redefining the metric to make the old math work.

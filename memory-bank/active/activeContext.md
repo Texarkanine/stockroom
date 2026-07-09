@@ -1,14 +1,14 @@
 # Active Context
 
-## Current Task: p4-dashboard / m2 — Vendored single-pane front-end (QA rework)
+## Current Task: p4-dashboard / m2 — Vendored single-pane front-end
 
-**Phase:** QA - COMPLETE (PASS)
+**Phase:** REFLECT - COMPLETE
 
 ## What Was Done
 
-- Semantic QA of the rework: additive `prev_distinct_projects`, Projects delta baseline, pure `summarizeChartPanel`, adapter wiring, and techContext update.
-- Clean PASS — no trivial or substantive findings.
+- Rewrote `reflection-p4-dashboard-m2.md` to cover the full lifecycle, including the first QA FAIL and the additive `prev_distinct_projects` / chart-summary rework.
+- Reconciled `systemPatterns.md` with the distinct-KPI previous-window and pure chart-summary ownership rules; `techContext.md` already carried the additive overview field.
 
 ## Next Step
 
-- Run `/niko-reflect` (autonomous Level 3 transition).
+- Run `/niko` to continue to the next milestone (m3).

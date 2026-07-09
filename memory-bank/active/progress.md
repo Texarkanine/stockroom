@@ -151,3 +151,13 @@ Deliver milestone m2 of `p4-dashboard`: a fully offline, vendored single-pane fr
     - Record clean PASS and proceed to reflect.
 * Insights
     - Keeping summary generation pure made the adapter review a one-line application check rather than a second prose contract.
+
+## 2026-07-09 - REFLECT - COMPLETE
+
+* Work completed
+    - Replaced the premature m2 reflection with a full-lifecycle document covering the first QA FAIL and the successful rework.
+    - Reconciled `systemPatterns.md` for distinct-KPI previous-window rollups and pure chart-summary ownership.
+* Decisions made
+    - Leave `milestones.md` m2 unchecked for `/niko` advancement; reflection does not close L4 milestones.
+* Insights
+    - Distinct-versus-summable KPI deltas and canvas content summaries are semantic contracts that green CI alone will not prove.
