@@ -391,3 +391,7 @@ unit-tested in [`tests/test_render.py`](../skills/sr-search/tests/test_render.py
 ## Testing Process
 
 All work is **test-first** per the workspace TDD rule (`.cursor/rules/shared/always-tdd.mdc`); test-running discipline in `.cursor/rules/shared/test-running-practices.mdc`. Tests run under `pytest`, configured in [`skills/sr-search/pyproject.toml`](../skills/sr-search/pyproject.toml) (`[tool.pytest.ini_options]`). **Day-to-day:** `make test` / `make lint` / `make format` / `make ci` from the repo root ([`Makefile`](../Makefile)); lint/format is `ruff`, whole-tree licensing is `make reuse`. The full gate also runs in [`.github/workflows/ci.yml`](../.github/workflows/ci.yml).
+
+## Design System
+
+The dashboard's canonical visual and interaction authority is [`planning/brainstorm/Cross-harness Warehouse (standalone).html`](../planning/brainstorm/Cross-harness%20Warehouse%20(standalone).html), interpreted through the behavioral contract in [`planning/brainstorm/dashboard-spec.md`](../planning/brainstorm/dashboard-spec.md). Both are design guides rather than pixel law: shipped API semantics, accessibility, the offline/no-build constraint, and explicit scope decisions take precedence where they conflict.
