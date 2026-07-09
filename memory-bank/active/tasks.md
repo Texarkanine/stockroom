@@ -79,6 +79,8 @@ Every windowed metric uses `COALESCE(started_at, source_mtime)` as the session's
 - **Wrapped fields** (mockup + spec): totals (sessions, messages, span), distinct projects, `busiest_harness {name, pct}`, best streak (consecutive active days + range), marathon session (max msgs; project, harness), peak hour (mode of activity-hour + count), `top_tool {name, calls}` (the "Your Type" persona mapping is m2 client-side).
 - **Sessions endpoint fields:** `started` (activity time), `harness`, `project_name` (`cwd` basename, else `project_id`), `msgs`, `model` (message-grain mode for Claude / first of `models[]` for Cursor, else NULL), `prompt` (ordinal-0 user text, display-truncated via `stockroom.truncate.truncate_cell(…, "snippet")` — read-time only).
 - **Overview extras:** `last_sync` = `MAX(updated_at) FROM _sync_state`; `distinct_projects` server-side rollup (spec exception — projects can't be summed).
+- **Harness enumeration is all-time, not window-scoped** (preflight): the active harness set is `SELECT DISTINCT harness FROM sessions` over the whole table; a harness idle within the requested window still appears in `overview.per_harness` with zeroed counts, so the m2 selector never loses an installed harness to a quiet fortnight.
+- **`?limit` is capped** (preflight): sessions endpoint clamps `limit` to 500 (bad/negative → 400) so a single request can't flood the response.
 - **Idempotent startup:** probe = TCP connect to `127.0.0.1:port`; success → print URL, exit 0. Otherwise spawn the detached foreground child and print the URL. The OS port bind is the mutex: a child losing the bind race (`EADDRINUSE`) exits 0 quietly. No lockfile.
 - **Static serving:** files from the packaged `stockroom/dashboard/static/` dir (`/` → `index.html`); resolved paths must stay inside the static root (traversal guard); m1 ships a one-line placeholder `index.html` (m2 replaces it).
 
@@ -132,36 +134,38 @@ CLI (probe/spawn seams injected; no real daemon in tests):
 
 ## Implementation Plan
 
+Every step is one TDD cycle and its sub-steps are **ordered**: (a) stub interfaces, (b) write the tests, (c) run them and see them fail, (d) implement to green. Never start (d) before (c).
+
 1. **Migration `0004`** (substrate, fewest dependencies)
     - Files: `src/stockroom/migrations/0004_session_source_mtime.sql`, `tests/test_schema_0004.py`, `tests/fixtures/schema/0004_snapshot.json`
-    - Changes: `ALTER TABLE sessions ADD COLUMN source_mtime TIMESTAMP` with the uniform-provenance doc comment; snapshot test mirroring `test_schema_0003.py` (generate via the test's own helper, `0001`–`0003` frozen)
+    - TDD order: (a) write `test_schema_0004.py` mirroring `test_schema_0003.py` (chain-apply through `0004`, column-presence assertion, cumulative snapshot vs `0004_snapshot.json`) → (b) run: fails (no migration file) → (c) write the migration SQL (`ALTER TABLE sessions ADD COLUMN source_mtime TIMESTAMP` + uniform-provenance doc comment) → (d) regenerate golden via the test's own helper (`STOCKROOM_UPDATE_SCHEMA_GOLDEN=1`), review the diff, re-run green. `0001`–`0003` snapshots frozen.
     - Creative ref: `creative-dashboard-session-time-grain.md`
 2. **Ingest populates `source_mtime`**
     - Files: `src/stockroom/ingest/model.py`, `src/stockroom/ingest/__init__.py`, `src/stockroom/ingest/writer.py`, `tests/test_ingest_writer.py`, `tests/test_ingest_orchestrator.py`
-    - Changes: `NormalizedSession.source_mtime: datetime | None = None`; orchestrator stamps main + subagents from `DiscoveredSession.mtime` in `_parse_discovered` (signature gains the discovered session's mtime or the whole `DiscoveredSession`); writer adds the column to its INSERT; golden dump columns untouched
+    - TDD order: (a) add the `NormalizedSession.source_mtime: datetime | None = None` field (interface stub) → (b) write the failing tests: writer round-trip of a set value; orchestrator full-ingest `source_mtime == stat().st_mtime` per session incl. subagents-inherit-parent → (c) run: fail → (d) implement: orchestrator stamps from `DiscoveredSession.mtime` in `_parse_discovered`, writer adds the column to its INSERT. Golden dump columns untouched (machine-dependent value stays out).
 3. **`warehouse.open_current` + `WarehouseStaleError`**
     - Files: `src/stockroom/warehouse.py`, `tests/test_warehouse_open.py`
-    - Changes: exception class carrying `current`/`latest` and the `stockroom migrate` action message; `open_current(read_only=True)` = path resolve → `_open_with_backoff` → `ensure_vss` → version check → return or close-and-raise; short-timeout backoff kwargs pass through
+    - TDD order: (a) stub `WarehouseStaleError` + `open_current(read_only=True, **backoff)` with documented signature, empty body → (b) write failing tests: current warehouse → usable RO connection (write rejected); behind-head warehouse → raises `WarehouseStaleError` naming `stockroom migrate` AND version stays behind afterward (anti-gate assertion) → (c) fail → (d) implement: path → `_open_with_backoff` → `ensure_vss` → version check → return or close-and-raise.
     - Creative ref: `creative-dashboard-nonmigrating-open.md`
 4. **`dashboard.metrics` — window/filter plumbing + overview + trends**
     - Files: `src/stockroom/dashboard/__init__.py`, `src/stockroom/dashboard/metrics.py`, `tests/test_dashboard_metrics.py`
-    - Changes: `parse_window`/defaults, harness-filter SQL helper, activity-time expression constant, `WRITE_TOOLS`/`READ_TOOLS`, `overview(con, …)`, `trends(con, …)` returning spec shapes
+    - TDD order: (a) stub the module: `parse_window`, harness-filter helper, activity-time SQL constant, `WRITE_TOOLS`/`READ_TOOLS`, `overview()`, `trends()`, and the `ENDPOINTS` registry (name → callable — the single routing source the server and the tests share) → (b) write failing tests (window parsing/defaults/edges, seeded overview incl. `distinct_projects`/`last_sync`/prev-window, trends zero-fill + tool-set classification) → (c) fail → (d) implement to green.
 5. **`dashboard.metrics` — projects, tools, models**
     - Files: `src/stockroom/dashboard/metrics.py`, `tests/test_dashboard_metrics.py`
-    - Changes: `projects()` (top-N + per-harness counts), `tools()` (calls by tool per harness), `models()` (session-grain union across the two grain columns)
+    - TDD order: (a) stub `projects()`, `tools()`, `models()` into the registry → (b) failing tests (top-N ordering, per-harness counts, session-grain model union across both grain columns) → (c) fail → (d) implement.
 6. **`dashboard.metrics` — efficiency, sessions, wrapped**
     - Files: `src/stockroom/dashboard/metrics.py`, `tests/test_dashboard_metrics.py`
-    - Changes: bucket constants + `efficiency()` (incl. first-prompt with `n`), `sessions()` (recent-N, truncated prompt via `stockroom.truncate`), `wrapped()` (all-time rollup incl. streak/peak-hour/marathon/top-tool)
+    - TDD order: (a) stub `efficiency()`, `sessions()`, `wrapped()` + bucket constants → (b) failing tests (bucket boundaries, first-prompt `avg_msgs`+`n`, recent-N ordering/truncation/subagent-exclusion, wrapped rollups incl. streak/peak-hour/marathon/top-tool and selector-immunity) → (c) fail → (d) implement (`sessions()` prompt truncation via `stockroom.truncate.truncate_cell`).
 7. **`dashboard.server` — routing, refusals, static**
     - Files: `src/stockroom/dashboard/server.py`, `src/stockroom/dashboard/static/index.html` (placeholder), `tests/test_dashboard_server.py`
-    - Changes: `ThreadingHTTPServer` + handler with a route table (`/api/<name>` → metrics fn), query parsing/validation (400), per-request `open_current` with the three-way 503 mapping, JSON serialization (ISO dates), static serving with traversal guard, `serve(port, …) -> HTTPServer` entry for tests/CLI
+    - TDD order: (a) stub `serve(port, …) -> HTTPServer` + handler class routing from `metrics.ENDPOINTS` → (b) failing tests over a real in-process server on port 0 (per-endpoint 200 JSON, unknown-route 404, bad-param 400, the three 503 refusals, static `/` + traversal guard, loopback-only bind, unexpected-exception guard → clean 500 JSON) → (c) fail → (d) implement: `ThreadingHTTPServer` bound to **127.0.0.1 only** (never `0.0.0.0` — local read surface, not a network service), per-request `open_current` with short (~2s) backoff timeout, ISO-date JSON serialization, and a broad per-request guard so no traceback ever leaks as a response body.
 8. **`dashboard.__main__` — CLI: probe, URL, detach**
     - Files: `src/stockroom/dashboard/__main__.py`, `tests/test_dashboard_cli.py`
-    - Changes: argparse (`--port` default 6767, `--foreground`); `probe(port)`; default path = probe → spawn detached foreground child (injectable spawn seam; `start_new_session=True`, output to devnull) → print URL → 0; foreground path = bind + serve (EADDRINUSE → print URL, exit 0); `main(argv) -> int` dispatcher-ready
-    - Creative ref: advisory 6 (CLI-owned daemonization; probe/print/refusal logic tested, detach mechanics smoke-verified in QA)
+    - TDD order: (a) stub `main(argv) -> int`, `probe(port)`, the injectable spawn seam → (b) failing tests (already-running → URL + exit 0 + no spawn; free port → spawn argv `[sys.executable, -m stockroom.dashboard, --foreground, --port N]` + URL; `--port` respected everywhere; `--foreground` binds in-process; EADDRINUSE → URL + exit 0) → (c) fail → (d) implement (`start_new_session=True`, output to devnull). Detach mechanics themselves: manual smoke in QA (operator testing constraint).
+    - Creative ref: advisory 6 (CLI-owned daemonization)
 9. **Full-suite gate + docs touch-up**
-    - Files: (all above), `skills/sr-search/src/stockroom/dashboard/*` docstrings
-    - Changes: `make ci` green (format, lint, test, reuse — new `.py` files are AGPL by REUSE.toml's re-assert; the placeholder `index.html` inherits `skills/**` PPL-S, which lints clean); module docstrings in the house narrative style. No README/roadmap edits in m1 (roadmap port correction is m3 scope)
+    - Files: (all above), `skills/sr-search/src/stockroom/dashboard/*` docstrings, `skills/sr-query/SKILL.md`
+    - Changes: `make ci` green (format, lint, test, reuse — new `.py` files are AGPL by REUSE.toml's re-assert; the placeholder `index.html` inherits `skills/**` PPL-S, which lints clean); module docstrings in the house narrative style; **update `sr-query`'s schema map** (its "as of migrations 0001–0003" sessions line gains `source_mtime` and becomes "0001–0004" — preflight finding). No README/roadmap edits in m1 (roadmap port correction is m3 scope)
 
 ## Technology Validation
 

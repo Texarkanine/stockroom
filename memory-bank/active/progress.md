@@ -38,3 +38,17 @@ Deliver milestone m1 of `p4-dashboard`: the dashboard metrics API server — a `
     - m1 static serving ships a placeholder `index.html` (PPL-S by existing REUSE layering — lints clean); m2 owns the real front-end and its REUSE carve-outs
 * Insights
     - The milestone description implied but didn't name two substrate items now in scope: migration `0004` + ingest population of `source_mtime` — the plan absorbs them at L3 without re-leveling (both ride established mechanics with strong precedents: `0002` structural migration, watermark mtime plumbing)
+
+## 2026-07-09 - PREFLIGHT - COMPLETE (PASS)
+
+* Work completed
+    - TDD encoding hardened: every implementation step now carries explicit stub → failing-test → implement sub-ordering (was preamble-level)
+    - Convention compliance verified: package-with-`__main__` shape (ingest precedent), `main(argv) -> int` dispatcher contract, `NNNN_*.sql` migration naming, con-injection, snapshot discipline, REUSE layering for the placeholder `index.html` — all aligned
+    - Dependency sweep: all `INSERT INTO sessions` sites (writer + 4 test sites) use explicit column lists, so `0004` breaks nothing; `migrated_con` picks up `0004` automatically via `apply_pending`; frozen `0001`–`0003` snapshot tests apply only their own chains — unaffected
+    - Finding folded: `sr-query` SKILL.md's schema map ("as of 0001–0003") goes stale with `0004` → doc update added to step 9
+    - Findings folded from spec re-read: harness enumeration is all-time (idle harness still appears zeroed), `?limit` clamped to 500, server binds 127.0.0.1 only, broad per-request guard so no traceback leaks (clean 500 JSON)
+    - `.preflight-status` written: PASS
+* Decisions made
+    - `metrics.ENDPOINTS` registry (name → callable) as the single routing source shared by server and tests
+* Insights
+    - Radical-innovation scan produced nothing level-changing; the registry was the one accretive structural improvement worth folding in

@@ -1,5 +1,5 @@
 status: PASS
-phase: L4 plan (milestone list)
-task: p4-dashboard
+phase: L3 preflight (m1 sub-run)
+task: p4-dashboard-m1
 date: 2026-07-09
-advisories: 4 (see tasks.md)
+advisories: 0 blocking; 5 findings folded into the plan (see tasks.md)
