@@ -41,3 +41,18 @@ Deliver milestone m2 of `p4-dashboard`: a fully offline, vendored single-pane fr
 * Insights
     - No-build and testable modules are compatible: committed `.mjs` files execute directly in both modern browsers and Node.
     - The test boundary should separate deterministic transformations from browser rendering rather than treating the entire frontend as inherently untestable.
+
+## 2026-07-09 - PLAN - COMPLETE
+
+* Work completed
+    - Completed the Level 3 component/dependency/boundary analysis across static UI, pure client logic, browser adapter, vendored Chart.js, HTTP serving, Node/pytest infrastructure, REUSE, CI, and technical documentation.
+    - Defined 18 automated JavaScript/Python behaviors plus 10 manual browser/integration behaviors, with exact test-file mapping and a strict preparation-first TDD sequence.
+    - Produced nine ordered implementation steps from test/interface stubbing through full CI and offline browser smoke.
+    - Validated new technology choices: official Chart.js 4.5.1 UMD/MIT and the stable Node 22 built-in test runner.
+* Decisions made
+    - Use three committed browser assets: a pure `dashboard-core.mjs`, a DOM/Chart.js `dashboard.mjs`, and versioned `chart-4.5.1.umd.min.js`, loaded by semantic `index.html`.
+    - Add Node 22 to contributor/CI testing without npm, a JavaScript package manifest, lockfile, build, or runtime dependency.
+    - Treat static/HTTP/licensing behavior as pytest contracts and deterministic transforms as Node unit contracts; reserve actual rendering/layout/native-control behavior for explicit QA smoke.
+* Insights
+    - The frontend can preserve m1's client-owned mode boundary and still receive rigorous unit coverage by separating transformations from browser effects.
+    - Licensing, MIME handling, request races, and average/project semantics are the highest-risk cross-component seams for preflight.
