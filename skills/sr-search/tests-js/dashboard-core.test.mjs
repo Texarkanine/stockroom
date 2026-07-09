@@ -24,13 +24,13 @@ import {
 
 const COLORS = [
   "#6366f1",
-  "#f59e0b",
   "#10b981",
-  "#ef4444",
-  "#8b5cf6",
+  "#f59e0b",
+  "#f43f5e",
   "#06b6d4",
-  "#f97316",
+  "#8b5cf6",
   "#ec4899",
+  "#84cc16",
 ];
 
 const selected = ["claude-code", "cursor"];
@@ -368,7 +368,6 @@ test("builds exactly eight factual wrapped cells with nullable fallbacks", () =>
     "Peak Hour",
     "Top Tool",
   ]);
-  assert.equal(cells[0].subtitle, "5 days · 2026-01-01 – 2026-01-05");
   assert.equal(cells[3].value, "Claude Code");
   assert.equal(cells[7].value, "ReadFile");
   const empty = buildWrappedPanel({});
@@ -376,6 +375,31 @@ test("builds exactly eight factual wrapped cells with nullable fallbacks", () =>
   assert.equal(empty[0].value, "0");
   assert.equal(empty[3].value, "—");
   assert.equal(empty[5].value, "—");
+  assert.equal(
+    buildWrappedPanel({ peak_hour: { hour: null, count: 0 } })[6].value,
+    "—",
+  );
+});
+
+test("formats wrapped span and streak dates with short local dates", () => {
+  const formatter = new Intl.DateTimeFormat(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+  const start = formatter.format(new Date("2026-01-01T00:00:00"));
+  const end = formatter.format(new Date("2026-01-05T00:00:00"));
+  const streakEnd = formatter.format(new Date("2026-01-03T00:00:00"));
+  const cells = buildWrappedPanel({
+    totals: {
+      sessions: 1,
+      messages: 1,
+      span: { start: "2026-01-01", end: "2026-01-05", days: 5 },
+    },
+    best_streak: { days: 3, start: "2026-01-01", end: "2026-01-03" },
+  });
+  assert.equal(cells[0].subtitle, `5 days · ${start} – ${end}`);
+  assert.equal(cells[4].subtitle, `${start} – ${streakEnd}`);
 });
 
 test("keeps every pure transformation input unchanged", () => {

@@ -14,10 +14,10 @@ It ships as a **dual-manifest plugin** (one shared `skills/` tree serving both
 Cursor and Claude Code) with **no build step**: the committed layout is the
 install layout.
 
-> **Status: Phase 0 — Foundations.** This repository currently contains the
-> substrate (locked Python engine, plugin scaffold, versioning, licensing, and
-> the test/lint/format harness). No product behavior ships yet; search lands in
-> a later phase.
+> **Status: Phase 4 in progress.** The locked Python engine, dual-manifest
+> plugin scaffold, warehouse ingest/search surfaces, and local dashboard
+> backend/front-end are in tree. Remaining Phase 4 work is the
+> `sr-dashboard` skill and session-start hook.
 
 ## The torch-safe run contract
 
@@ -56,13 +56,16 @@ make help          # list targets
 make sync          # install from the committed lock (torch-free)
 make lock          # regenerate uv.lock hermetically
 make lock-check    # fail if the lock is stale vs pyproject.toml
-make test          # pytest
+make test          # Node 22 dashboard tests + pytest
+make test-js       # Node 22 built-in tests only (`node --test`)
 make lint          # ruff check
 make format        # ruff format
 make reuse         # whole-tree reuse lint
 make ci            # full gate (matches CI)
 make shim          # install the on-path stockroom shim baking this checkout
 ```
+
+**Node 22** is required for the full test gate: `make test` and `make ci` run the dashboard's native ES-module contracts through Node's built-in test runner (no npm packages).
 
 **Torch** is held out of the lock on purpose — `make sync` (and anything that depends on it, like `make test`) will remove a previously installed torch. After sync, reinstall with:
 

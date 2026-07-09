@@ -89,29 +89,17 @@ Deliver milestone m2 of `p4-dashboard`: a fully offline, vendored single-pane fr
     - Real-browser QA caught a canvas-specific live-theme gap that static CSS and pure unit tests could not expose.
     - Exact vendored-file ownership plus resolved-license tests prevent broad prompt-content annotations from silently relicensing browser software.
 
-## 2026-07-09 - QA - COMPLETE (PASS)
+## 2026-07-09 - QA - COMPLETE (FAIL)
 
 * Work completed
-    - Reviewed the complete build diff against the Level 3 implementation plan, project brief, system patterns, and both creative decision records.
-    - Applied KISS, DRY, YAGNI, completeness, regression, integrity, documentation, security, accessibility, offline, and licensing checks across the authored client modules, semantic page, tests, Make/CI wiring, REUSE ownership, vendored artifact, and technical context.
-    - Confirmed no TODOs, stubs, placeholder implementations, debug artifacts, unsafe HTML sinks, external runtime dependencies, speculative scope, or vendoring/build debris remained.
-    - Revalidated all 24 native Node contracts and all 18 focused static, HTTP, and licensing contracts after review.
+    - An independent semantic audit challenged the initial clean PASS; verification confirmed remaining defects.
+    - Applied trivial QA fixes: dashboard-spec positional palette, nullable peak-hour em dash, localized wrapped span/streak dates, wrapped-banner contrast above 4.5:1, and README Node 22/`make test-js` documentation.
+    - Revalidated 25 Node contracts and 18 focused static/HTTP/licensing contracts after those fixes.
+    - Recorded FAIL for two substantive blockers that require plan or build rework rather than in-QA patching.
 * Decisions made
-    - No QA correction was warranted: the small apparent duplications are intentional seam-local validation, and the fixed palette, endpoint set, session limit, and chart sizing constants are explicit product contracts rather than temporary magic values.
-    - The recent complete `make ci` result remains the authoritative full regression gate; QA reran focused dashboard contracts to verify the reviewed surface without repeating the unchanged 408-test repository gate.
+    - Treat the Projects KPI delta as a plan-level contract defect: current `distinct_projects` cannot be compared with summed `prev_projects` without inventing a previous distinct count the m1 API does not expose.
+    - Treat chart accessible summaries as incomplete against the interaction contract; title/mode labels alone are insufficient.
+    - Supersede the premature reflection until QA passes again.
 * Insights
-    - The split between pure panel/request policy and browser effects made semantic review traceable from each plan invariant to one implementation owner.
-    - Exact static, serving, and resolved-license assertions complement browser QA without overstating what source inspection can prove.
-
-## 2026-07-09 - REFLECT - COMPLETE
-
-* Work completed
-    - Compared the delivered milestone against its requirements, ten-step plan, both creative decisions, build history, browser integration findings, and semantic QA result.
-    - Recorded the full lifecycle reflection in `reflection/reflection-p4-dashboard-m2.md`.
-    - Reconciled persistent context: product context remained accurate, the build had already updated technical context, and system patterns now records the atomic dashboard snapshot and browser-owned presentation boundary.
-* Decisions made
-    - Preserve the core/data/effects split as a durable dashboard architecture rather than task-local scaffolding.
-    - Keep real-browser validation as an explicit complement to deterministic Node and static/HTTP contracts; the live-theme issue demonstrated that this boundary catches distinct failures.
-* Insights
-    - Preflight's exact interface, chart, request, and license inventories directly prevented integration and QA rework.
-    - Level 3 was the correct estimate: the task needed rigorous cross-surface execution but no architectural redesign.
+    - Distinct-vs-summable KPI fields need an explicit previous-window contract before client deltas are planned.
+    - Canvas accessibility must be asserted as content-bearing summaries, not merely the presence of `aria-label` attributes.

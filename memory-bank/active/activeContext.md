@@ -2,7 +2,7 @@
 
 ## Current Task: p4-dashboard / m2 — Vendored single-pane front-end
 
-**Phase:** REFLECT - COMPLETE
+**Phase:** QA - COMPLETE (FAIL)
 
 ## What Was Done
 
@@ -25,9 +25,11 @@
 - Build Step 8 completed: added one test-first KPI breakdown helper, then rendered local last-sync/session dates, four KPI/delta/proportional breakdown cards, all seven Chart.js panels through tested models and a centralized registry, every recent session via safe DOM nodes, and the exact eight wrapped facts; all 24 JavaScript tests and four focused static/serving contracts pass with no HTML injection sink.
 - Build Step 9 completed against the real populated warehouse: observed the expected stale-schema actionable refusal, ran the documented migration from v3 to v4, then verified eight same-origin initial requests, Aggregate/Compare redraw without refetch, one-harness filtering with seven repeated filters plus unfiltered wrapped, last-selection prevention, prior-state loading behavior, zero/no-data presentation, semantic table/canvas labels, exact timestamp titles, 700px/390px no-overflow collapse, and light/dark rendering. Fixed the only discovered issue by redrawing Chart.js instances on live color-scheme changes; dark chart colors now track the active CSS tokens.
 - Build Step 10 completed: documented Node 22/native ESM/no-build ownership and the browser-QA boundary; formatting, Ruff, lock verification, 24 Node tests, 408 passing pytest tests with 3 expected skips, and REUSE 220/220 all pass through `make ci`. Restored Torch 2.13.0+cu126 after exact sync, confirmed CUDA and the production 384-dimension encoder, and completed a final foreground route smoke over HTML, authored module, vendored Chart.js, and populated overview JSON.
-- QA completed cleanly: semantic review against the approved plan and creative contracts found no KISS, DRY, YAGNI, completeness, regression, integrity, documentation, security, accessibility, offline, or licensing deficiency requiring correction. Reconfirmed 24 Node contracts and 18 focused static/HTTP/licensing contracts.
-- Reflection completed across requirements, plan accuracy, both creative decisions, build/QA behavior, and cross-phase causality. The central durable pattern is now explicit: the browser owns deterministic presentation over one atomic eight-endpoint snapshot, while the adapter remains effects-only.
+- Initial QA incorrectly recorded PASS. An independent semantic audit, then verification, found remaining defects.
+- QA applied trivial fixes: dashboard-spec palette, nullable peak-hour em dash, localized wrapped span/streak dates, wrapped-banner contrast, and README Node 22/test-gate documentation. Node contracts are now 25/25.
+- QA failed on two substantive blockers that require a plan decision or build rework: the Projects KPI delta compares distinct current counts with summed previous per-harness counts, and chart canvases still lack meaningful accessible data summaries.
+- The earlier reflection remains on disk but is superseded until QA passes again.
 
 ## Next Step
 
-- Run `/niko` to close this sub-run and continue to the next Phase 4 milestone.
+- Run `/niko-plan` to resolve the Projects delta contract, then return through build for that decision and the chart accessibility summaries.

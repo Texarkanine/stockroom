@@ -267,11 +267,18 @@ The wrapped banner has exactly eight cells: Total Sessions with `totals.span` as
 - [x] Technology validation complete
 - [x] Preflight
 - [x] Build
-- [x] QA
+- [ ] QA
 
 ## QA Results
 
-- **Result:** PASS
-- **Findings:** No substantive or trivial semantic defects remained. The implementation matches the approved component boundaries, interaction contract, chart/wrapped mappings, offline and licensing constraints, and documented contributor/runtime toolchain.
-- **Integrity review:** No TODOs, stubs, placeholder implementations, debug output, unsafe HTML injection sinks, external runtime resources, speculative features, or untracked vendoring/build debris were found.
-- **Validation:** Reconfirmed 24/24 native Node contracts and 18/18 focused static, HTTP, and licensing contracts after semantic review; the build-phase full gate remains 408 pytest passes with 3 expected skips plus Ruff, format, lock, and REUSE 220/220 checks.
+- **Result:** FAIL
+- **Trivial fixes applied during QA:**
+  - Restored the dashboard-spec positional palette (`#6366f1`, `#10b981`, `#f59e0b`, `#f43f5e`, `#06b6d4`, `#8b5cf6`, `#ec4899`, `#84cc16`).
+  - Treated nullable `peak_hour.hour` as an em dash instead of `00:00`.
+  - Localized wrapped span/streak date subtitles with short local dates.
+  - Raised wrapped-banner secondary text contrast above WCAG 4.5:1.
+  - Updated `README.md` for Phase 4 status and the Node 22/`make test-js` gate.
+- **Substantive blockers remaining:**
+  1. **Projects KPI delta is semantically wrong.** `deriveOverviewCards` compares filtered `distinct_projects` against the sum of per-harness `prev_projects`. Shared projects are double-counted on the previous side, so an unchanged shared project can show `-50%`. The m1 overview payload has no previous-window distinct count, and m2 forbade JSON shape changes, so the fix needs a plan decision: add `prev_distinct_projects`, hide the Projects delta, or otherwise redefine the card.
+  2. **Chart canvases lack meaningful accessible summaries.** `renderChart` and the static canvas fallbacks expose only the chart title/mode, not values or a concise data summary. The interaction contract and manual QA checklist require canvas labels plus fallback summaries that convey measured content.
+- **Validation after trivial fixes:** 25/25 Node contracts and 18/18 focused static/HTTP/licensing contracts pass.

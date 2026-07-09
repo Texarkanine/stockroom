@@ -1,12 +1,12 @@
 const PALETTE = [
   "#6366f1",
-  "#f59e0b",
   "#10b981",
-  "#ef4444",
-  "#8b5cf6",
+  "#f59e0b",
+  "#f43f5e",
   "#06b6d4",
-  "#f97316",
+  "#8b5cf6",
   "#ec4899",
+  "#84cc16",
 ];
 
 function finiteNumber(value) {
@@ -79,6 +79,20 @@ function safeObject(value) {
 
 function displayValue(value, fallback = "—") {
   return value === null || value === undefined || value === "" ? fallback : String(value);
+}
+
+const shortDateFormatter = new Intl.DateTimeFormat(undefined, {
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+});
+
+function formatShortDate(value) {
+  if (typeof value !== "string" || !value) {
+    return "—";
+  }
+  const parsed = new Date(`${value}T00:00:00`);
+  return Number.isNaN(parsed.getTime()) ? "—" : shortDateFormatter.format(parsed);
 }
 
 /**
@@ -340,19 +354,23 @@ export function buildWrappedPanel(wrapped) {
   const tool = safeObject(payload.top_tool);
   const spanSubtitle =
     span.start && span.end
-      ? `${finiteNumber(span.days)} days · ${span.start} – ${span.end}`
+      ? `${finiteNumber(span.days)} days · ${formatShortDate(span.start)} – ${formatShortDate(span.end)}`
       : "—";
   const streakSubtitle =
-    streak.start && streak.end ? `${streak.start} – ${streak.end}` : "—";
+    streak.start && streak.end
+      ? `${formatShortDate(streak.start)} – ${formatShortDate(streak.end)}`
+      : "—";
   const marathonSubtitle =
     marathon.project_name || marathon.harness
       ? [displayValue(marathon.project_name), displayHarness(marathon.harness)]
           .filter((value) => value !== "—" && value !== "Unknown")
           .join(" · ") || "—"
       : "—";
-  const peakHour = Number.isInteger(Number(peak.hour))
-    ? `${String(Number(peak.hour)).padStart(2, "0")}:00`
-    : "—";
+  const hour = peak.hour;
+  const peakHour =
+    typeof hour === "number" && Number.isInteger(hour)
+      ? `${String(hour).padStart(2, "0")}:00`
+      : "—";
   return [
     {
       key: "sessions",
