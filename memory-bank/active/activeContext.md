@@ -2,13 +2,13 @@
 
 **Current Task:** Phase 4 — Dashboard (`p4-dashboard`)
 
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PREFLIGHT - COMPLETE (PASS with advisories)
 
 ## What Was Done
 
-- Intent clarified and approved by the operator: execute both Phase 4 milestones from `planning/roadmap.md`, guided (not bound) by the mockup and `dashboard-spec.md`; port **6767** (operator override); vendored Chart.js approved; session-start hooks for both harnesses approved; server code lives in the engine package with `sr-dashboard` as a thin wrapper skill.
-- Complexity determined: **Level 4** — a complete multi-component system delivery (metrics API server, vendored front-end, dispatcher subcommand, wrapper skill, dual-harness hooks) expressed by the roadmap as independently deliverable milestones, matching the L4 shape of Phases 1–3.
+- L4 milestone list generated (3 milestones, `memory-bank/active/milestones.md`): m1 metrics API server (est. L3) → m2 vendored front-end (est. L3) → m3 launch surfaces (est. L2), with cross-milestone invariants.
+- Preflight validated the list against the codebase: PASS. Findings recorded in `tasks.md` — notably the m1 migration-gate/hook-discipline tension, the m2 REUSE gap for vendored `*.js`/`*.html`/`*.css`, and the m3 dual-doc port correction.
 
 ## Next Step
 
-Load the Level 4 workflow (`.cursor/skills/shared/niko/references/level4/level4-workflow.md`) and execute the **Plan phase** (`level4-plan.md`) to generate `milestones.md`.
+Operator review of the milestone plan; on approval, run `/niko` to classify and start the first sub-run (m1).
