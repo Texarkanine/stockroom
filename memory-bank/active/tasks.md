@@ -195,7 +195,7 @@ The wrapped banner has exactly eight cells: Total Sessions with `totals.span` as
     - Fill the prepared pytest cases for semantic landmarks/panel IDs, local-only resource references, script ordering, served `.mjs`/Chart.js MIME, AGPL authored assets/data coordinator/tests-js, and MIT Chart.js. Extend the existing static-root test rather than replacing its traversal assertion.
     - Run these focused pytest modules and `reuse lint`; confirm failures due to the placeholder, absent assets, and missing MIT annotation/license.
     - If the real `.mjs` request does not produce a JavaScript MIME on a supported platform, add a narrow explicit `.mjs` registration in `server.py` only after the failing server test, then rerun it; accept either standard JavaScript MIME spelling in the assertion.
-5. **Vendor Chart.js and establish precise REUSE ownership.**
+5. [x] **Vendor Chart.js and establish precise REUSE ownership.**
     - Files: `skills/sr-search/src/stockroom/dashboard/static/chart-4.5.1.umd.min.js`, `LICENSES/MIT.txt`, `REUSE.toml`.
     - Extract `dist/chart.umd.min.js` verbatim from the official `chart.js@4.5.1` npm tarball already validated in planning; use the versioned filename as the runtime pin.
     - Add canonical MIT text and ordered REUSE overrides: the exact authored `index.html`, `dashboard.mjs`, `dashboard-core.mjs`, `dashboard-data.mjs`, and `skills/sr-search/tests-js/**` paths to AGPL, then the exact Chart.js file to `MIT` with the upstream package copyright.
