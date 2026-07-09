@@ -70,3 +70,12 @@ Milestone m5 of L4 project `p3-onboarding-cli-scheduling`: the wrapper-skill tri
 * Insights
     - TDD generalizes to prose when the assertion is mechanical: a forbidden-token test written red before editing gives markdown the same red→green discipline as code and survives as a regression pin
     - Writing a categorized inventory (with an explicit keep-list) *before* the milestone that applies it is what kept this run L2 — the audit was effectively a pre-paid creative phase
+
+## 2026-07-09 - POST-REFLECT AMENDMENT (OPERATOR FEEDBACK) - COMPLETE
+
+* Work completed
+    - `system-model.md` rewritten to present-tense facts per operator review: the drift war story in "One Engine, One Command" ("the contract drifted into being wrong in several places", "the drift the shim was built to end") removed; intro reframed from "the why behind the contracts" to "how the system is put together"; intent-flavored phrasing ("deliberately", "must avoid") made descriptive
+* Decisions made
+    - The doc's audience is an agent understanding the system *as shipped in their version* — it states how the system is, not how it came to be; genealogy belongs in the memory bank archives, not in shipped references
+* Insights
+    - "Why" content splits into two kinds: timeless design rationale (a fact about the system) and historical justification (a fact about the project). Shipped reference docs get the first kind only

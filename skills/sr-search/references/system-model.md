@@ -1,24 +1,22 @@
 # The Stockroom System Model
 
-This document holds the *why* behind the contracts the `sr-*` skills operate: how the engine is packaged, why invocation looks the way it does, and the design doctrines that shape what queries and searches can see. Skills hold the *do* — operational rules, flags, and error recoveries live there, not here. Read this when you need to understand or debug the system, not to run it.
+How the system is put together: engine packaging, the invocation contract, and the data doctrines that shape what queries and searches can see. Skills hold the *do* — operational rules, flags, and error recoveries live there, not here. Read this when you need to understand or debug the system, not to run it.
 
 ## One Engine, One Command
 
-All `sr-*` skills share a single Python engine that lives in the `sr-search` skill directory (`src/stockroom/`) — the sibling skills have no Python of their own. Every invocation goes through the on-path `stockroom` command: a small generated shim (installed by `sr-initialize` to `~/.local/bin/stockroom`) that owns the entire invocation contract — engine-directory resolution, `PYTHONPATH`, and the uv flags — in exactly one place, then dispatches to the engine's subcommand modules.
+All `sr-*` skills share a single Python engine that lives in the `sr-search` skill directory (`src/stockroom/`) — the sibling skills have no Python of their own. Every invocation goes through the on-path `stockroom` command: a small generated shim (installed by `sr-initialize` to `~/.local/bin/stockroom`) that owns the entire invocation contract — engine-directory resolution, `PYTHONPATH`, and the uv flags — in exactly one place, then dispatches to the engine's subcommand modules. The shim is self-healing: it verifies its baked engine path at every run and re-resolves it if a plugin update moved the cache.
 
-The shim exists because the raw invocation is fragile: it has multiple load-bearing parts, and when each skill carried its own copy the contract drifted into being wrong in several places at once. Centralizing it in one generated file made the contract structural instead of memorized. The shim is also self-healing: it verifies its baked engine path at every run and re-resolves it if a plugin update moved the cache.
-
-This is why skills carry **no fallback incantation**: if `stockroom` is not on `PATH`, the only correct next action is to run `sr-initialize`. Any inline fallback would reintroduce the copy-paste drift the shim was built to end.
+The shim is the *only* holder of that contract. Skills carry **no fallback incantation**: if `stockroom` is not on `PATH`, the machine is not initialized, and the only correct next action is to run `sr-initialize`.
 
 ## Run-in-Place Packaging
 
-The engine is deliberately *not* an installed Python package: `[tool.uv] package = false`, no build step, no console-script entry points. The committed repository layout **is** the install layout — what the plugin manager copies to disk is exactly what runs. Consequently `stockroom` is never on `sys.path` by installation; making it importable is part of the invocation contract the shim owns.
+The engine is not an installed Python package: `[tool.uv] package = false`, no build step, no console-script entry points. The committed repository layout **is** the install layout — what the plugin manager copies to disk is exactly what runs. Consequently `stockroom` is never on `sys.path` by installation; making it importable is part of the invocation contract the shim owns.
 
 ## The Torch Contract
 
-Torch is required for embedding (writing vectors, and encoding queries at semantic-search time) but is deliberately **held out of the dependency lock**: the correct torch build is a per-machine choice (CUDA generation, CPU, MPS) that no single lockfile can make. It is provisioned out-of-band by `sr-initialize`, and every run must avoid an exact dependency sync, because an exact sync removes anything not in the lock — including the provisioned torch.
+Torch is required for embedding (writing vectors, and encoding queries at semantic-search time) but is **held out of the dependency lock**: the correct torch build is a per-machine choice (CUDA generation, CPU, MPS) that no single lockfile can make. It is provisioned out-of-band by `sr-initialize`, and every run avoids an exact dependency sync, because an exact sync removes anything not in the lock — including the provisioned torch.
 
-This is why a missing torch is always an *environment* problem, never a query problem: nothing about retrying, rephrasing, or reformatting a call can bring torch back. The fix is re-provisioning (re-run `sr-initialize`), and the skills' error tables route there.
+A missing torch is therefore an *environment* problem, never a query problem: no amount of retrying, rephrasing, or reformatting a call can bring torch back. The fix is re-provisioning (re-run `sr-initialize`), and the skills' error tables route there.
 
 ## ETL, and Read-Only by Construction
 
