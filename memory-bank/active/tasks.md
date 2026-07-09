@@ -158,7 +158,7 @@ Every step is one TDD cycle and its sub-steps are **ordered**: (a) stub interfac
 5. [x] **`dashboard.metrics` — projects, tools, models**
     - Files: `src/stockroom/dashboard/metrics.py`, `tests/test_dashboard_metrics.py`
     - TDD order: (a) stub `projects()`, `tools()`, `models()` into the registry → (b) failing tests (top-N ordering, per-harness counts, session-grain model union across both grain columns) → (c) fail → (d) implement.
-6. **`dashboard.metrics` — efficiency, sessions, wrapped**
+6. [x] **`dashboard.metrics` — efficiency, sessions, wrapped**
     - Files: `src/stockroom/dashboard/metrics.py`, `tests/test_dashboard_metrics.py`
     - TDD order: (a) stub `efficiency()`, `sessions()`, `wrapped()` + bucket constants → (b) failing tests (bucket boundaries, first-prompt `avg_msgs`+`n`, recent-N ordering/truncation/subagent-exclusion, wrapped rollups incl. streak/peak-hour/marathon/top-tool and selector-immunity) → (c) fail → (d) implement (`sessions()` prompt truncation via `stockroom.truncate.truncate_cell`).
 7. **`dashboard.server` — routing, refusals, static**

@@ -19,4 +19,4 @@
 
 ## Next Step
 
-Implement step 6: efficiency, recent-session, and all-time wrapped metrics.
+Implement step 7: loopback HTTP routing, typed refusals, and guarded static serving.

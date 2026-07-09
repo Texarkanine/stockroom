@@ -388,3 +388,181 @@ def test_models_unifies_message_and_session_grains_once_per_session(
         "models": ["m1", "m2", "m3"],
         "sessions": {"claude": [1, 1, 0], "cursor": [2, 0, 1]},
     }
+
+
+def test_efficiency_covers_boundaries_and_weighted_prompt_averages(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Message and prompt buckets include every documented boundary."""
+    cases = [
+        ("s2", 2, 50),
+        ("s3", 3, 99),
+        ("s10", 10, 100),
+        ("s11", 11, 500),
+        ("s40", 40, 501),
+        ("s41", 41, 600),
+    ]
+    for session_id, message_count, prompt_length in cases:
+        _seed_session(
+            migrated_con,
+            harness="cursor",
+            session_id=session_id,
+            activity=datetime(2026, 1, 10),
+            project_id="p",
+            message_count=message_count,
+        )
+        migrated_con.execute(
+            "UPDATE messages SET text = ? "
+            "WHERE session_id = ? AND ordinal = 0",
+            ["x" * prompt_length, session_id],
+        )
+
+    result = metrics.efficiency(
+        migrated_con,
+        since=datetime(2026, 1, 1),
+        until=datetime(2026, 2, 1),
+    )
+    assert result == {
+        "buckets": ["abandoned", "short", "medium", "long"],
+        "sessions": {"cursor": [1, 2, 2, 1]},
+        "first_prompt": {
+            "labels": ["short", "medium", "detailed"],
+            "avg_msgs": {"cursor": [2.5, 10.5, 40.5]},
+            "n": {"cursor": [2, 2, 2]},
+        },
+    }
+
+
+def test_sessions_are_recent_filtered_and_display_truncated(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Recent sessions are newest-first with model/project/prompt display fields."""
+    _seed_session(
+        migrated_con,
+        harness="cursor",
+        session_id="c-old",
+        activity=datetime(2026, 1, 1, 8),
+        project_id="cursor-project",
+    )
+    migrated_con.execute(
+        "UPDATE sessions SET models = ['gpt-5'] WHERE session_id = 'c-old'"
+    )
+    _seed_session(
+        migrated_con,
+        harness="claude",
+        session_id="a-new",
+        activity=datetime(2026, 1, 2, 9),
+        started_at=datetime(2026, 1, 2, 9),
+        project_id="claude-project",
+        message_count=3,
+    )
+    migrated_con.execute(
+        "UPDATE sessions SET cwd = '/home/me/stockroom' WHERE session_id = 'a-new'"
+    )
+    migrated_con.execute(
+        "UPDATE messages SET model = CASE "
+        "WHEN ordinal < 2 THEN 'claude-sonnet' ELSE 'claude-opus' END "
+        "WHERE session_id = 'a-new'"
+    )
+    migrated_con.execute(
+        "UPDATE messages SET text = ? "
+        "WHERE session_id = 'a-new' AND ordinal = 0",
+        ["x" * 130],
+    )
+    _seed_session(
+        migrated_con,
+        harness="cursor",
+        session_id="sub",
+        activity=datetime(2026, 1, 3, 10),
+        project_id="ignored",
+    )
+    migrated_con.execute(
+        "UPDATE sessions SET is_subagent = true WHERE session_id = 'sub'"
+    )
+
+    result = metrics.sessions(migrated_con, limit=2)
+    assert result == [
+        {
+            "started": "2026-01-02T09:00:00",
+            "harness": "claude",
+            "project_name": "stockroom",
+            "msgs": 3,
+            "model": "claude-sonnet",
+            "prompt": f"{'x' * 120}…(+10)",
+        },
+        {
+            "started": "2026-01-01T08:00:00",
+            "harness": "cursor",
+            "project_name": "cursor-project",
+            "msgs": 1,
+            "model": "gpt-5",
+            "prompt": "message 0",
+        },
+    ]
+    assert [row["harness"] for row in metrics.sessions(migrated_con, ["cursor"])] == [
+        "cursor"
+    ]
+
+
+def test_wrapped_returns_all_time_rollups_and_ignores_selector(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Wrapped computes totals, streak, marathon, peak, and top tool all-time."""
+    for harness, session_id, activity, project_id, message_count in [
+        ("cursor", "c1", datetime(2026, 1, 1, 10), "p1", 2),
+        ("claude", "a1", datetime(2026, 1, 2, 10), "p1", 5),
+        ("claude", "a2", datetime(2026, 1, 3, 14), "p2", 3),
+        ("cursor", "c2", datetime(2026, 1, 5, 14), "p3", 1),
+    ]:
+        _seed_session(
+            migrated_con,
+            harness=harness,
+            session_id=session_id,
+            activity=activity,
+            project_id=project_id,
+            message_count=message_count,
+        )
+    for ordinal in range(3):
+        _seed_tool(
+            migrated_con,
+            harness="cursor",
+            session_id="c1",
+            ordinal=ordinal,
+            tool_name="Read",
+        )
+    for ordinal in range(2):
+        _seed_tool(
+            migrated_con,
+            harness="claude",
+            session_id="a1",
+            ordinal=ordinal,
+            tool_name="Write",
+        )
+
+    result = metrics.wrapped(
+        migrated_con,
+        ["cursor"],
+        since=datetime(2026, 1, 5),
+        until=datetime(2026, 1, 6),
+    )
+    assert result == {
+        "totals": {
+            "sessions": 4,
+            "messages": 11,
+            "span": {"start": "2026-01-01", "end": "2026-01-05", "days": 5},
+        },
+        "distinct_projects": 3,
+        "busiest_harness": {"name": "claude", "pct": 50.0},
+        "best_streak": {
+            "days": 3,
+            "start": "2026-01-01",
+            "end": "2026-01-03",
+        },
+        "marathon_session": {
+            "messages": 5,
+            "project_name": "p1",
+            "harness": "claude",
+        },
+        "peak_hour": {"hour": 10, "count": 2},
+        "top_tool": {"name": "Read", "calls": 3},
+    }
