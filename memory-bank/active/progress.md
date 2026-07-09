@@ -30,3 +30,16 @@ Milestone m4 of L4 project `p3-onboarding-cli-scheduling`: build the `sr-initial
     - The scheduler's execution environment is the real adversary: cron's `PATH=/usr/bin:/bin` resolves neither uv nor the shim, `%` is cron syntax, and a POSIX `PATH=` prefix cannot precede an `&&` list directly — hence the `/bin/sh -c '…'` wrapper in the rendered entry
     - `schedule status` is what extends "the environment is the state" re-entry contract to scheduling — the skill re-probes instead of tracking progress
     - Third application of the judgment-vs-mechanism split (search m6, onboarding m3, scheduling m4) — it is now safely a load-bearing project pattern
+
+## 2026-07-08 - PLAN - COMPLETE
+
+* Work completed
+    - Component analysis: `stockroom.schedule` (new flat module), dispatcher eighth `SUBCOMMANDS` row, `sr-initialize` SKILL.md steps 8–9 (scheduling consent/install + first full ingest/embed), README/techContext/systemPatterns accretion; `warehouse.home_dir()` reused for the nightly log; no schema or existing-signature changes
+    - Test plan: 17 behaviors — payload rendering + `%`-guard + `--time` validation (B1–B2), cron foreign-line preservation / idempotent re-install / shim-missing refusal / daemon warning / remove / status (B3–B9, B17), launchd plist shape + idempotency + shared guard (B10–B13), platform dispatch + CLI + dispatcher fingerprint (B14–B16); new `test_schedule.py` / `test_schedule_cli.py`, extended `test_dispatcher_cli.py`
+    - Six-step ordered plan written to `tasks.md`: payload → cron → launchd → dispatch/CLI (each red→green) → SKILL.md prose (every example executed live first) → docs + live validation + `make ci`
+* Decisions made
+    - Live validation protocol for the operator's real crontab: back up first, diff foreign lines byte-for-byte after every mutate step; unit tests (B4/B5/B8) lock the filter before it touches the real thing
+    - launchd closed the m3 way: injected-seam unit tests here, artisanal validation on the operator's M4
+    - First run is orchestration-only prose (`stockroom ingest --full` → `stockroom embed` → count sanity-check through the shim) — no new engine code, it validates wiring over the m1/m2-tested surfaces
+* Insights
+    - The milestone's real risk concentrates in the cron execution environment, not the Python: every mitigation (absolute `PATH=` prefix, `/bin/sh -c` wrapper, `%`-free payload) is structural and test-pinned rather than documented-only
