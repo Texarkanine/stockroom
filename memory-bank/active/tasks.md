@@ -164,7 +164,15 @@ No new technology — validation not required. The rework uses the existing Pyth
 - [x] Technology validation complete
 - [x] Preflight
 - [x] Build
-- [ ] QA
+- [x] QA
+
+## QA Findings
+
+- **PASS (clean):** KISS/DRY/YAGNI/completeness/regression/integrity/documentation review of the rework diff found no blockers and no trivial debris requiring in-QA fixes.
+- **Completeness:** All five plan steps are present in code and tests — additive overview field, Projects delta baseline switch with shared-previous anti-regression, pure `summarizeChartPanel` (aggregate/compare/empty/dual-series/immutability), adapter wiring of `aria-label` + canvas fallback, and techContext pointer.
+- **Integrity:** No TODOs, debug scaffolding, or adapter-invented metric prose; summary text remains pure-core-owned.
+- **Regression:** Existing per-harness `prev_projects` breakdowns, mode-agnostic KPIs, and static `role="img"` contracts remain intact.
+
 
 ## Preflight Findings
 

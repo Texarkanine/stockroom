@@ -140,3 +140,14 @@ Deliver milestone m2 of `p4-dashboard`: a fully offline, vendored single-pane fr
     - Built exactly to the five-step rework plan; no further public-boundary or creative changes.
 * Insights
     - The live warehouse already had matching previous distinct and previous sum in the default window; the shared-project fixture remains the contract that proves the rollup is a union.
+
+## 2026-07-09 - QA (QA rework) - COMPLETE (PASS)
+
+* Work completed
+    - Semantic review of the rework diff against the five-step plan and both creative authorities.
+    - Confirmed completeness of the additive overview field, Projects delta baseline, pure summaries, adapter wiring, and techContext documentation.
+    - Found no KISS/DRY/YAGNI, regression, integrity, or documentation blockers; no trivial in-QA fixes required.
+* Decisions made
+    - Record clean PASS and proceed to reflect.
+* Insights
+    - Keeping summary generation pure made the adapter review a one-line application check rather than a second prose contract.
