@@ -185,7 +185,7 @@ The wrapped banner has exactly eight cells: Total Sessions with `totals.span` as
     - Fill tests for harness ordering/colors/labels, non-empty selection and mode/selection transition effects, array aggregation, weighted averages, KPI/delta semantics, the exact wrapped cell map/null guards, dynamic heights, immutability, and every explicit chart-matrix panel builder.
     - Run the Node test file and confirm the newly implemented tests fail against the stubs.
     - Implement one pure export at a time, rerunning the focused Node suite after each behavior; refactor shared selected-series traversal only after green.
-3. **Implement and fail the data-coordinator contracts, then build fetch orchestration behavior by behavior.**
+3. [x] **Implement and fail the data-coordinator contracts, then build fetch orchestration behavior by behavior.**
     - Files: `skills/sr-search/tests-js/dashboard-data.test.mjs`, `skills/sr-search/src/stockroom/dashboard/static/dashboard-data.mjs`.
     - Fill tests for the eight-URL request plan, repeated filters, sessions limit, wrapped omission, injected parallel fetch, atomic success/failure, sanitized actionable errors, abort forwarding, and latest-generation commit gating.
     - Run the focused Node test and confirm failure against the Step 1 stubs.

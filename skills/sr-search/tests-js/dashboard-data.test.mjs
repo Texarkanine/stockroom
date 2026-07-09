@@ -1,11 +1,141 @@
 import test from "node:test";
+import assert from "node:assert/strict";
 
-test("builds eight same-origin request URLs with correct filtering", () => {});
+import {
+  DashboardRequestError,
+  buildRequestPlan,
+  createRequestGate,
+  fetchSnapshot,
+} from "../src/stockroom/dashboard/static/dashboard-data.mjs";
 
-test("fetches and names one complete parallel snapshot", () => {});
+const endpointNames = [
+  "overview",
+  "trends",
+  "projects",
+  "tools",
+  "models",
+  "efficiency",
+  "sessions",
+  "wrapped",
+];
 
-test("rejects atomically with sanitized actionable API errors", () => {});
+function response(payload, options = {}) {
+  return {
+    ok: options.ok ?? true,
+    status: options.status ?? 200,
+    async json() {
+      if (options.jsonError) {
+        throw new SyntaxError("bad JSON");
+      }
+      return payload;
+    },
+  };
+}
 
-test("forwards abort signals to every request", () => {});
+test("builds eight same-origin request URLs with correct filtering", () => {
+  const plan = buildRequestPlan(["cursor pro", "claude/cli"]);
+  assert.deepEqual(plan.map((item) => item.name), endpointNames);
+  for (const item of plan.slice(0, -1)) {
+    assert.match(item.url, /^\/api\//);
+    assert.match(item.url, /harness=claude%2Fcli&harness=cursor%20pro/);
+  }
+  assert.equal(
+    plan.find((item) => item.name === "sessions").url,
+    "/api/sessions?harness=claude%2Fcli&harness=cursor%20pro&limit=50",
+  );
+  assert.equal(plan.at(-1).url, "/api/wrapped");
+});
 
-test("allows only the latest request generation to commit", () => {});
+test("fetches and names one complete parallel snapshot", async () => {
+  const pending = [];
+  const fetchImpl = (url) =>
+    new Promise((resolve) => {
+      pending.push({ url, resolve });
+    });
+  const snapshotPromise = fetchSnapshot(fetchImpl, ["cursor"]);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(pending.length, 8);
+  assert.deepEqual(
+    pending.map((item) => item.url.split("?")[0]),
+    endpointNames.map((name) => `/api/${name}`),
+  );
+  pending.reverse().forEach((item, index) => {
+    item.resolve(response({ url: item.url, completion: index }));
+  });
+  const snapshot = await snapshotPromise;
+  assert.deepEqual(Object.keys(snapshot), endpointNames);
+  assert.match(snapshot.overview.url, /\/api\/overview/);
+  assert.match(snapshot.wrapped.url, /\/api\/wrapped/);
+});
+
+test("rejects atomically with sanitized actionable API errors", async () => {
+  const fetchImpl = async (url) => {
+    if (url.startsWith("/api/tools")) {
+      return response(
+        {
+          error: "warehouse schema is behind",
+          action: "run `stockroom migrate`",
+          private: "must not escape",
+        },
+        { ok: false, status: 503 },
+      );
+    }
+    return response({ partial: url });
+  };
+  await assert.rejects(
+    fetchSnapshot(fetchImpl, ["cursor"]),
+    (error) => {
+      assert.ok(error instanceof DashboardRequestError);
+      assert.equal(error.message, "warehouse schema is behind");
+      assert.equal(error.action, "run `stockroom migrate`");
+      assert.equal(error.status, 503);
+      assert.equal(error.endpoint, "tools");
+      assert.doesNotMatch(String(error), /private|must not escape/);
+      return true;
+    },
+  );
+  await assert.rejects(
+    fetchSnapshot(
+      async () =>
+        response("<html>private proxy failure</html>", {
+          ok: false,
+          status: 500,
+        }),
+      ["cursor"],
+    ),
+    (error) => {
+      assert.equal(error.message, "Dashboard request failed");
+      assert.doesNotMatch(String(error), /private proxy/);
+      return true;
+    },
+  );
+});
+
+test("forwards abort signals to every request", async () => {
+  const controller = new AbortController();
+  const signals = [];
+  await fetchSnapshot(
+    async (_url, options) => {
+      signals.push(options.signal);
+      return response({});
+    },
+    ["cursor"],
+    { signal: controller.signal },
+  );
+  assert.equal(signals.length, 8);
+  assert.ok(signals.every((signal) => signal === controller.signal));
+});
+
+test("allows only the latest request generation to commit", () => {
+  const gate = createRequestGate();
+  const committed = [];
+  const first = gate.begin();
+  const second = gate.begin();
+  assert.equal(first.signal.aborted, true);
+  assert.equal(second.signal.aborted, false);
+  assert.equal(first.commit(() => committed.push("first")), false);
+  assert.equal(second.commit(() => committed.push("second")), true);
+  assert.deepEqual(committed, ["second"]);
+  assert.equal(first.isCurrent(), false);
+  assert.equal(second.isCurrent(), true);
+});
