@@ -90,3 +90,13 @@ Milestone m4 of L4 project `p3-onboarding-cli-scheduling`: build the `sr-initial
     - PASS written to `.qa-validation-status`; no substantive findings, nothing routed back to Build or Plan
 * Insights
     - The two inline `assert`s (payload `%`-free, payload quote-free) are invariant pins in the style of the golden-snapshot discipline — they guard never-do list items at the exact point of construction, complementing the tests that pin the same facts from outside
+
+## 2026-07-09 - REFLECT - COMPLETE
+
+* Work completed
+    - Full-lifecycle reflection written to `memory-bank/active/reflection/reflection-p3-m4-sr-initialize-scheduling.md`; persistent files reconciled (techContext/systemPatterns already updated during build; productContext untouched — nothing invalidated)
+* Decisions made
+    - launchd artisanal validation on the M4 stays a post-milestone operator step (m3 precedent), not a blocker
+* Insights
+    - Pin generated output exactly, not by fragments — B1's substring assertions let a semantically-wrong payload pass until live validation caught it; the golden-snapshot lesson holds at single-line scale
+    - Example shell lines in creative docs are untested code: when promoted into a plan they deserve the same suspicion — "every example executed live first" is the guard that worked

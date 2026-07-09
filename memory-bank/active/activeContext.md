@@ -23,5 +23,11 @@
 - Note: `make sync`/`make ci` strips torch by design — re-provisioned cu126 afterwards, smoke green (GTX 1070, CUDA available)
 - launchd half unit-tested via injected seams (B10–B13); artisanal M4 validation is the operator's post-milestone step (m3 precedent)
 
+## QA Outcome
+- PASS (`.qa-validation-status` written). One trivial fix: dead `isinstance` fallback in `main` removed (argparse applies `type=` to string defaults). 364 passed / 1 skipped after.
+
+## Reflection Outcome
+- `reflection/reflection-p3-m4-sr-initialize-scheduling.md` written. Headline: the plan predicted the risk location exactly (cron execution environment) and the live-validation step it mandated caught the one real bug — the creative doc's example payload bound its redirection only to the last `&&` operand; fixed test-first with B1 now pinning the exact payload string. Persistent files were reconciled during build; productContext needed nothing.
+
 ## Next Step
-- QA review (`niko-qa`) runs automatically now
+- Operator gate: `milestones.md` exists (L4 sub-run) — run `/niko` to check off m4 and continue to the next milestone
