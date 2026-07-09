@@ -17,7 +17,8 @@ Wire the already-shipped dashboard launcher into the three operator-facing surfa
 - **Cursor combined hook**: exactly one `sessionStart` command entry → silenced (`>/dev/null 2>&1`), timed out, contains `shim rectify` with `--owner cursor` and `${CURSOR_PLUGIN_ROOT}`, and contains `stockroom dashboard`, with rectify appearing before dashboard in the command string.
 - **Claude combined hook**: exactly one `SessionStart` command entry → same shape with `--owner claude` and `${CLAUDE_PLUGIN_ROOT}`.
 - **Hook still never errors**: each harness command ends with `|| true` (or equivalent whole-command silence+swallow) so a missing shim / busy port cannot fail session start.
-- **Port docs**: `planning/roadmap.md` and `planning/tech-brief.md` contain `6767` and no standalone port `3143` references.
+- **Port docs**: `planning/roadmap.md` and `planning/tech-brief.md` contain `6767` as the dashboard port and do not cite `3143` as a port (lockfile hash substrings elsewhere are out of scope).
+- **On-path launch half**: in each harness hook command, the substring `stockroom dashboard` is not preceded on the same half by `uv run` / `PYTHONPATH=` / `python -m stockroom` — i.e. launch is on-path after rectify, not folded into the bootstrap incantation.
 
 ### Edge Cases
 
@@ -35,7 +36,7 @@ Wire the already-shipped dashboard launcher into the three operator-facing surfa
 - Extend:
   - `tests/test_dispatcher_cli.py` — add `"dashboard"` to `SUBCOMMANDS` tuple; add fingerprint `"--foreground"` (or `"Launch"`) in `fingerprints`
   - `tests/test_skill_hygiene.py` — add `"sr-dashboard"` to `WRAPPER_SKILLS`
-  - `tests/test_packaging.py` — extend cursor/claude hook tests for combined rectify-then-dashboard sequencing, single entry, on-path launch token; optionally assert port docs via a small packaging or docs assertion if already patterned, otherwise verify in build step / manual grep (prefer a focused assertion in packaging or a tiny new case in an existing docs-adjacent test if one exists — otherwise build-step verification is enough for two static files)
+  - `tests/test_packaging.py` — extend cursor/claude hook tests for combined rectify-then-dashboard sequencing, single entry, and on-path launch (assert `stockroom dashboard` appears after `shim rectify` and is not wrapped in the `uv run`/`PYTHONPATH` bootstrap); add a small port-doc contract asserting `planning/roadmap.md` and `planning/tech-brief.md` mention `6767` and do not mention port `3143`
 
 ## Implementation Plan
 
@@ -55,9 +56,9 @@ Wire the already-shipped dashboard launcher into the three operator-facing surfa
    - Files: `skills/sr-dashboard/SKILL.md` (new)
    - Changes: mirror `sr-query`/`sr-semantic` shape — YAML front-matter (`name`, `description`, `enable-model-invocation: true`), when-to-use, `stockroom dashboard` as the sole engine invocation, missing-shim → `sr-initialize`, pointer to `../sr-search/references/system-model.md`, short guardrails (prints URL; do not pass `--foreground` from the skill; relay URL to user). Run hygiene tests — pass.
 
-5. **Failing hook packaging tests**
+5. **Failing hook + port-doc packaging tests**
    - Files: `skills/sr-search/tests/test_packaging.py`
-   - Changes: extend `test_cursor_hook_schema_and_rectify_command` / `test_claude_hook_schema_and_rectify_command` (or rename to combined-hook names) to assert: exactly one command entry; `stockroom dashboard` present; `cmd.find("shim rectify") < cmd.find("stockroom dashboard")`; silence + timeout preserved; plugin-root + owner assertions preserved for the rectify half. Run — expect fail.
+   - Changes: extend `test_cursor_hook_schema_and_rectify_command` / `test_claude_hook_schema_and_rectify_command` (or rename to combined-hook names) to assert: exactly one command entry; `stockroom dashboard` present; `cmd.find("shim rectify") < cmd.find("stockroom dashboard")`; the launch token is not inside the `uv run`/`PYTHONPATH` bootstrap (on-path after rectify); silence + timeout preserved; plugin-root + owner assertions preserved for the rectify half. Add `test_planning_docs_use_dashboard_port_6767` reading `planning/roadmap.md` and `planning/tech-brief.md` via `repo_root`, asserting `6767` is present and `3143` is absent. Run — expect fail.
 
 6. **Combine rectify-then-launch in both hook configs**
    - Files: `hooks/cursor-hooks.json`, `hooks/claude-hooks.json`
@@ -65,11 +66,11 @@ Wire the already-shipped dashboard launcher into the three operator-facing surfa
      - Rectify half (bootstrap, unchanged mechanism): existing `PYTHONPATH=… uv run … python -m stockroom shim rectify --owner cursor --app-dir "${CURSOR_PLUGIN_ROOT}/skills/sr-search"`
      - Launch half (on-path): `stockroom dashboard`
      - Whole command silenced and non-failing: `… >/dev/null 2>&1 || true` covering both halves (e.g. `{ rectify; stockroom dashboard; } >/dev/null 2>&1 || true` or sequential `… || true; stockroom dashboard >/dev/null 2>&1 || true`). Prefer one silence wrapper so session start never surfaces output.
-   - Rationale (chicken-egg): rectify cannot depend solely on the on-path shim — a stale baked `APP_DIR` makes `stockroom` itself unusable; the plugin-root bootstrap is the only heal path. After rectify, launch goes through the healed shim. Run packaging tests — pass.
+   - Rationale (chicken-egg): rectify cannot depend solely on the on-path shim — a stale baked `APP_DIR` makes `stockroom` itself unusable; the plugin-root bootstrap is the only heal path. After rectify, launch goes through the healed shim. Run hook packaging tests — pass; port-doc test still fails.
 
 7. **Correct planning-doc ports**
    - Files: `planning/roadmap.md`, `planning/tech-brief.md`
-   - Changes: replace port `3143` with `6767` at the three narrative sites (roadmap prose + milestone bullet; tech-brief Dashboard section). Do not touch `uv.lock` hash substrings. Verify with a targeted search that planning docs no longer cite 3143 as the dashboard port.
+   - Changes: replace port `3143` with `6767` at the three narrative sites (roadmap prose + milestone bullet; tech-brief Dashboard section). Do not touch `uv.lock` hash substrings. Run port-doc packaging test — pass.
 
 8. **Full verification**
    - Files: none (gate)
@@ -93,12 +94,17 @@ No new technology — validation not required. Reuses existing dispatcher, dashb
 - **Test ROI**: Do not write tests that Python can daemonize or that Cursor/Claude fire hooks. **Mitigation**: packaging asserts command *shape*; dashboard CLI tests already own probe/spawn; QA does one manual `stockroom dashboard` smoke.
 - **Skill over-teaching**: Skill must not document `--foreground` / internal spawn as normal agent usage. **Mitigation**: skill says "run `stockroom dashboard`, print the URL"; leave flags to `stockroom dashboard --help`.
 
+## Preflight Amendments
+
+- Port-doc correction is now an explicit failing packaging test before the doc edit (was build-step/manual only).
+- Hook packaging asserts the launch half stays on-path (`stockroom dashboard` after rectify, not folded into `uv run`/`PYTHONPATH` bootstrap).
+
 ## Status
 
 - [x] Initialization complete
 - [x] Test planning complete (TDD)
 - [x] Implementation plan complete
 - [x] Technology validation complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
 - [ ] QA

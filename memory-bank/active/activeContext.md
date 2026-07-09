@@ -1,12 +1,12 @@
 # Active Context
 
 ## Current Task: p4-dashboard / m3 — Launch surfaces
-**Phase:** PLAN - COMPLETE
+**Phase:** PREFLIGHT - COMPLETE
 
 ## What Was Done
-- Classified m3 as Level 2 and produced a linear TDD plan covering dispatcher registration, `sr-dashboard` skill hygiene, combined rectify-then-launch hooks, and planning-doc port corrections.
-- Resolved the hook chicken-egg: rectify keeps the plugin-root bootstrap; only dashboard launch uses on-path `stockroom dashboard`.
-- Mapped all behaviors onto existing test files (`test_dispatcher_cli.py`, `test_skill_hygiene.py`, `test_packaging.py`) — no new test infrastructure.
+- Validated the Level 2 plan against TDD encoding, conventions, dependencies, conflicts, and completeness.
+- Amended the plan: port-doc correction is now test-first via packaging; hook tests assert on-path launch is not folded into the rectify bootstrap.
+- Wrote `.preflight-status` = PASS.
 
 ## Next Step
-- Run Level 2 preflight validation.
+- Begin Level 2 build.

@@ -26,3 +26,14 @@ Deliver milestone m3 of `p4-dashboard`: register the `dashboard` subcommand in t
     - Roadmap narrative about "launch only / no plumbing" is out of m3 port-correction scope unless a free adjacent edit appears.
 * Insights
     - m1 already owns probe/spawn/idempotency; m3 is pure surface wiring and must not re-test platform daemonization.
+
+## 2026-07-09 - PREFLIGHT - COMPLETE (PASS)
+
+* Work completed
+    - Confirmed per-unit TDD ordering for dispatcher, skill, hooks; amended port-doc and on-path-launch assertions into packaging tests so no implementation-only step remains.
+    - Verified conventions (dispatcher `SUBCOMMANDS`, wrapper-skill hygiene, committed hook JSON), REUSE auto-coverage of `skills/**`, and no missing consumers beyond the planned touchpoints.
+* Decisions made
+    - Keep chicken-egg rectify bootstrap; strengthen tests so launch cannot silently regress into the bootstrap path.
+    - No radical redesign within L2 scope — surface wiring is the right shape.
+* Insights
+    - The only real preflight gap was soft TDD on two static planning files; a packaging contract closes it without new infrastructure.
