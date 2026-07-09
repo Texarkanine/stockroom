@@ -111,3 +111,18 @@ Deliver milestone m1 of `p4-dashboard`: the dashboard metrics API server — a `
     - Restored the established out-of-lock `torch==2.13.0+cu126` environment removed by exact sync; CUDA encoder smoke produced a 384-dimensional vector
 * Insights
     - Defaults expressed as elapsed durations are not equivalent to fixed calendar bucket counts when labels include both boundary dates; deriving the first bucket from the last included instant keeps API shape stable
+
+## 2026-07-09 - QA REVIEW 2 - COMPLETE (PASS)
+
+* Work completed
+    - Re-reviewed the implementation against the original L3 plan, both creative decisions, and the Review 1 findings
+    - Confirmed endpoint-specific defaults survive absent and partial HTTP bounds, sessions remain recent-N, and the calendar bucket counts are stable
+    - Confirmed all promised cross-cutting contracts now have explicit tests and the activity-time documentation matches the implemented fallback
+    - Checked KISS, DRY, YAGNI, completeness, regression, integrity, documentation, and implementation debris; no further findings
+* Decisions made
+    - QA passes cleanly; the implementation is ready for reflection
+* Verification
+    - Review used the completed `make ci` result: 402 passed, 3 skipped; lint, format, lock, and REUSE green
+    - Production encoder smoke remained green after restoring the established per-machine Torch build
+* Insights
+    - Keeping transport parsing bound-only is the key ownership boundary: endpoint functions can evolve their defaults without hidden HTTP-layer policy

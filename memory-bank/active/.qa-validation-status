@@ -1,6 +1,1 @@
-status: FAIL
-phase: L3 QA (m1 sub-run)
-task: p4-dashboard-m1
-date: 2026-07-09
-route: BUILD
-findings: endpoint-agnostic HTTP window parsing breaks partial-bound defaults; explicit cross-cutting coverage and endpoint-grain documentation incomplete
+PASS
