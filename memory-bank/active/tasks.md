@@ -114,19 +114,19 @@ Log-dir behavior:
 
 ## Implementation Plan
 
-1. **Payload rendering + time validation** (`stockroom.schedule`, TDD red→green)
+1. ✅ **Payload rendering + time validation** (`stockroom.schedule`, TDD red→green)
     - Files: `skills/sr-search/src/stockroom/schedule.py` (new), `skills/sr-search/tests/test_schedule.py` (new)
     - Changes: module docstring (design record pointer), `render_payload(home)`, `parse_time("HH:MM") -> (hour, minute)`, marker constants; tests B1–B2
     - Creative ref: `creative-scheduling-surface.md` → "Shared command rendering"
-2. **Cron half** (TDD red→green)
+2. ✅ **Cron half** (TDD red→green)
     - Files: `schedule.py`, `test_schedule.py`
     - Changes: `CrontabRunner` seam (argv → stdout, raising on failure; "no crontab" failure = empty), `_strip_managed_block`, `cron_install/cron_remove/cron_status`, `which`-based PATH-prefix resolution, shim-missing refusal, injectable daemon check (`pgrep -x cron` default) with the install-with-warning shape, log-dir creation; tests B3–B9, B17
     - Creative ref: "Cron: marker-delimited managed block"
-3. **launchd half** (TDD red→green)
+3. ✅ **launchd half** (TDD red→green)
     - Files: `schedule.py`, `test_schedule.py`
     - Changes: plist build via `plistlib` (label `jp.ne.cani.stockroom.nightly`), injectable agents dir + `launchctl` runner, `launchd_install/remove/status` (bootout tolerated, bootstrap `gui/<uid>`), shared shim guard; tests B10–B13
     - Creative ref: "launchd: an owned plist file"
-4. **Platform dispatch, CLI, and dispatcher row** (TDD red→green)
+4. ✅ **Platform dispatch, CLI, and dispatcher row** (TDD red→green)
     - Files: `schedule.py`, `test_schedule.py`, `skills/sr-search/tests/test_schedule_cli.py` (new), `skills/sr-search/src/stockroom/__main__.py`, `skills/sr-search/tests/test_dispatcher_cli.py`
     - Changes: flat parser (`action` choices + `--time`), `main(argv)` with injectable `system`, unsupported-platform refusal; `SUBCOMMANDS["schedule"]` eighth row; dispatcher tuple + `--time` fingerprint; tests B14–B16
 5. **`sr-initialize` SKILL.md — scheduling + first run** (prose; every example executed live first)
