@@ -16,7 +16,8 @@
 - Independent TDD and completeness re-audits passed with no remaining blockers or advisories requiring action.
 - Build prerequisites were revalidated; both creative decisions remain applicable to the current backend and toolchain.
 - Build Step 1 completed: all planned Node/pytest tests exist as empty stubs, all client interfaces exist as documented stubs, and Node 22 is wired into Make and CI without npm.
+- Build Step 2 completed: 18 pure client contracts failed against the stubs, then passed over deterministic harness/state/KPI/wrapped/chart transformations with input immutability.
 
 ## Next Step
 
-- Execute implementation Step 2: implement the pure client contract tests, observe their failure against the stubs, then build the core module behavior by behavior.
+- Execute implementation Step 3: implement and fail the request-coordinator contracts, then build atomic fetch and latest-generation behavior.

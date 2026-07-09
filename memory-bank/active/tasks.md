@@ -180,7 +180,7 @@ The wrapped banner has exactly eight cells: Total Sessions with `totals.span` as
     - Runner wiring: add `NODE ?= node`, a `.PHONY` `test-js` target that explicitly refuses missing/non-22 Node and runs `cd $(ENGINE) && $(NODE) --test tests-js/*.test.mjs`, make `test: sync test-js`, and let `ci` inherit it through `test`. In GitHub CI, add `actions/setup-node@v4` pinned to Node 22 and a separate `node --test tests-js/*.test.mjs` step under the existing engine working directory.
     - Do not replace the placeholder page, vendor Chart.js, add licensing rules, or implement any transformation in this step.
     - Creative ref: `creative-dashboard-js-testing.md`.
-2. **Implement and fail all pure client contract tests, then build the core module behavior by behavior.**
+2. [x] **Implement and fail all pure client contract tests, then build the core module behavior by behavior.**
     - Files: `skills/sr-search/tests-js/dashboard-core.test.mjs`, `skills/sr-search/src/stockroom/dashboard/static/dashboard-core.mjs`.
     - Fill tests for harness ordering/colors/labels, non-empty selection and mode/selection transition effects, array aggregation, weighted averages, KPI/delta semantics, the exact wrapped cell map/null guards, dynamic heights, immutability, and every explicit chart-matrix panel builder.
     - Run the Node test file and confirm the newly implemented tests fail against the stubs.
