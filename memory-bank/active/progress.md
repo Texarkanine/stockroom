@@ -102,3 +102,16 @@ Deliver milestone m2 of `p4-dashboard`: a fully offline, vendored single-pane fr
 * Insights
     - The split between pure panel/request policy and browser effects made semantic review traceable from each plan invariant to one implementation owner.
     - Exact static, serving, and resolved-license assertions complement browser QA without overstating what source inspection can prove.
+
+## 2026-07-09 - REFLECT - COMPLETE
+
+* Work completed
+    - Compared the delivered milestone against its requirements, ten-step plan, both creative decisions, build history, browser integration findings, and semantic QA result.
+    - Recorded the full lifecycle reflection in `reflection/reflection-p4-dashboard-m2.md`.
+    - Reconciled persistent context: product context remained accurate, the build had already updated technical context, and system patterns now records the atomic dashboard snapshot and browser-owned presentation boundary.
+* Decisions made
+    - Preserve the core/data/effects split as a durable dashboard architecture rather than task-local scaffolding.
+    - Keep real-browser validation as an explicit complement to deterministic Node and static/HTTP contracts; the live-theme issue demonstrated that this boundary catches distinct failures.
+* Insights
+    - Preflight's exact interface, chart, request, and license inventories directly prevented integration and QA rework.
+    - Level 3 was the correct estimate: the task needed rigorous cross-surface execution but no architectural redesign.
