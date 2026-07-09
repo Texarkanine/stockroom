@@ -20,7 +20,7 @@ flowchart TD
     Consent -->|"stockroom schedule install [--time]"| Mech["stockroom.schedule (mechanism)"]
     Mech --> Plat{"platform.system()"}
     Plat -->|Linux| Cron["crontab: strip managed block,<br>append fresh block, write back<br>(foreign lines byte-for-byte)"]
-    Plat -->|Darwin| Launchd["write com.stockroom.nightly.plist,<br>bootout + bootstrap"]
+    Plat -->|Darwin| Launchd["write jp.ne.cani.stockroom.nightly.plist,<br>bootout + bootstrap"]
     Plat -->|other| Refuse["exit 1: use WSL"]
     Cron --> Guard["guards: shim on PATH (refuse if not),<br>cron daemon running (warn if not)"]
     Skill -->|"after schedule lands"| First["first run: stockroom ingest --full,<br>stockroom embed, count sanity-check"]
@@ -30,7 +30,7 @@ flowchart TD
 
 ### Affected Components
 
-- `skills/sr-search/src/stockroom/schedule.py` (**new**): platform-dispatched scheduler-entry management — `install`/`status`/`remove` over cron (marker-delimited managed crontab block) and launchd (owned `com.stockroom.nightly.plist`), shared payload renderer, install-time absolute `PATH=` resolution, flat CLI. All seams injectable: `crontab` runner, `launchctl` runner, platform `system`, `which` resolver, LaunchAgents dir, cron-daemon check.
+- `skills/sr-search/src/stockroom/schedule.py` (**new**): platform-dispatched scheduler-entry management — `install`/`status`/`remove` over cron (marker-delimited managed crontab block) and launchd (owned `jp.ne.cani.stockroom.nightly.plist`), shared payload renderer, install-time absolute `PATH=` resolution, flat CLI. All seams injectable: `crontab` runner, `launchctl` runner, platform `system`, `which` resolver, LaunchAgents dir, cron-daemon check.
 - `stockroom.__main__` (`SUBCOMMANDS`): eighth row `schedule` → (`stockroom.schedule`, one-line summary).
 - `skills/sr-initialize/SKILL.md`: the "What's next" stub is replaced by two real steps — Step 8 (scheduling: status re-probe → consent → install → relay warnings) and Step 9 (first run: `stockroom ingest --full`, `stockroom embed`, a `stockroom query` count sanity-check) — every example executed live before being written in.
 - `README.md`: `schedule` added to the subcommand list (line ~78); the onboarding pointer sentence gains scheduling/first-run.
@@ -80,13 +80,13 @@ Cron half (injected `crontab` runner + `which` + daemon check):
 - **B6** install when `which("stockroom")` fails → refuses exit 1, stderr names binding the shim first (`sr-initialize` / `make shim`)
 - **B7** install when the cron-daemon check reports not-running → still writes, report carries a warning naming the fix; daemon running → no warning (default check matches `cron` *or* `crond` — distro name variance; verified `cron` live on this machine)
 - **B8** remove → strips the block, preserves foreign lines; remove when no block / no crontab → clean no-op exit 0
-- **B9** status → "installed" + the schedule line when the block exists; "not installed" otherwise; on the cron platform also a `daemon: running|not running` fact line (facts only, the `doctor probe` convention — makes re-entry probing honest about a schedule that exists but cannot fire); exit 0 both ways
+- **B9** status → "installed" + the schedule line when the block exists; "not installed" otherwise; on the cron platform also a `daemon: running|not running` fact line (facts only, the `doctor probe` convention — makes re-entry probing honest about a schedule that exists but cannot fire); always a `log: <home>/logs/nightly.log` fact line (operator gate decision: "where are the logs?" is answered by the same command that answers "is it installed?" — discoverability is structural, never memorized); exit 0 both ways
 
 launchd half (injected `launchctl` runner + agents dir):
 
-- **B10** install writes a valid plist (parsed back via `plistlib`): label `com.stockroom.nightly`, `ProgramArguments` = `/bin/sh -c '<payload>'`, `EnvironmentVariables.PATH` absolute, `StartCalendarInterval` Hour/Minute, stdout/stderr → the nightly log; `launchctl` called bootout-then-bootstrap, bootout failure (not loaded) tolerated
+- **B10** install writes a valid plist (parsed back via `plistlib`): label `jp.ne.cani.stockroom.nightly`, `ProgramArguments` = `/bin/sh -c '<payload>'`, `EnvironmentVariables.PATH` absolute, `StartCalendarInterval` Hour/Minute, stdout/stderr → the nightly log; `launchctl` called bootout-then-bootstrap, bootout failure (not loaded) tolerated
 - **B11** re-install → file rewritten, single plist (idempotent); remove → bootout + file deleted; remove when absent → clean no-op exit 0
-- **B12** status reads the plist → installed (with interval) / not installed
+- **B12** status reads the plist → installed (with interval) / not installed; same `log:` fact line as B9 (the log-path fact is platform-independent)
 - **B13** shim-not-on-PATH refusal applies on Darwin too (shared guard, not per-platform)
 
 Platform dispatch & CLI:
@@ -124,7 +124,7 @@ Log-dir behavior:
     - Creative ref: "Cron: marker-delimited managed block"
 3. **launchd half** (TDD red→green)
     - Files: `schedule.py`, `test_schedule.py`
-    - Changes: plist build via `plistlib` (label `com.stockroom.nightly`), injectable agents dir + `launchctl` runner, `launchd_install/remove/status` (bootout tolerated, bootstrap `gui/<uid>`), shared shim guard; tests B10–B13
+    - Changes: plist build via `plistlib` (label `jp.ne.cani.stockroom.nightly`), injectable agents dir + `launchctl` runner, `launchd_install/remove/status` (bootout tolerated, bootstrap `gui/<uid>`), shared shim guard; tests B10–B13
     - Creative ref: "launchd: an owned plist file"
 4. **Platform dispatch, CLI, and dispatcher row** (TDD red→green)
     - Files: `schedule.py`, `test_schedule.py`, `skills/sr-search/tests/test_schedule_cli.py` (new), `skills/sr-search/src/stockroom/__main__.py`, `skills/sr-search/tests/test_dispatcher_cli.py`

@@ -23,7 +23,7 @@ Milestone m4 of L4 project `p3-onboarding-cli-scheduling`: build the `sr-initial
     - One open question explored and resolved with high confidence: `creative-scheduling-surface.md` (architecture) — where scheduling logic lives and how idempotent entry management works
     - Led with the never-do list per the established process insight: never a raw engine path in an entry, never touch a foreign crontab line, never accumulate duplicate entries, never assume the scheduler's PATH, never install silently against a dead cron daemon
 * Decisions made
-    - Q1: new flat `stockroom.schedule` module (the dispatcher's eighth subcommand: `install | status | remove`) with injectable `crontab`/`launchctl` runners; cron idempotency via a marker-delimited managed block (the Makefile localdev precedent), launchd idempotency via an owned `com.stockroom.nightly.plist`; one shared payload renderer (`date; stockroom ingest && stockroom embed` → nightly log) for both platforms; entries invoke the shim by name, resolvable under cron's minimal environment through an install-time-resolved absolute `PATH=` prefix (`shutil.which` on uv and the shim)
+    - Q1: new flat `stockroom.schedule` module (the dispatcher's eighth subcommand: `install | status | remove`) with injectable `crontab`/`launchctl` runners; cron idempotency via a marker-delimited managed block (the Makefile localdev precedent), launchd idempotency via an owned `jp.ne.cani.stockroom.nightly.plist`; one shared payload renderer (`date; stockroom ingest && stockroom embed` → nightly log) for both platforms; entries invoke the shim by name, resolvable under cron's minimal environment through an install-time-resolved absolute `PATH=` prefix (`shutil.which` on uv and the shim)
     - Prose-only rejected (untestable foreign-crontab filtering — an unrecoverable failure mode); extending `stockroom.shim` rejected (different lifecycle/ownership policies would interleave)
     - Judgment stays in `sr-initialize` prose: consent to install, time-of-night (default 03:30), the daemon-not-running warning relay, and first-run orchestration (`stockroom ingest --full` + `stockroom embed` over the shim — no new engine code)
 * Insights
@@ -55,3 +55,14 @@ Milestone m4 of L4 project `p3-onboarding-cli-scheduling`: build the `sr-initial
     - No blocking findings; no advisory items withheld from the plan
 * Insights
     - The B16 dispatcher extension stays mechanical (tuple + `--time` fingerprint), the third row added this way — the fingerprint-table shape from m1 keeps paying
+
+## 2026-07-08 - PLAN (AMENDED AT GATE) - COMPLETE
+
+* Work completed
+    - Operator review at the preflight→build gate examined the nightly-log strategy against the operator's live cursor-warehouse cron entry (per-command `>> /tmp/*.log` routing); analysis delivered and accepted in whole, folded into `tasks.md` (B9/B12) and the creative doc — no component or dependency changes, preflight PASS stands
+* Decisions made
+    - **Log destination stays `~/.stockroom/logs/nightly.log`** (append, combined): `/tmp` is the most volatile dir on both targets (WSL wipes it every restart, macOS cleans ~3-day-old files) and the nightly log is the only witness that unattended freshness works; at ~3 quiet lines/night, append-forever is ~40 KB/decade and preserves the "failing since Tuesday" history a truncate-per-run log destroys
+    - **`schedule status` gains a `log:` fact line on both platforms** (B9/B12): "where are the logs?" is answered by the same command that answers "is it installed?" — discoverability is structural, never memorized
+    - Combined log over the operator's per-command split — at this volume the chronological story reads better and the failed phase is obvious from content; recorded as a coin-flip, not a hill
+* Insights
+    - Unredirected cron output is *mailed*, and MTA-less boxes (WSL default) discard it with only a syslog note — explicit redirection is the only way scheduler output survives at all, on either platform (launchd defaults to /dev/null without `StandardOutPath`/`StandardErrorPath`)

@@ -92,7 +92,7 @@ Idempotency mechanism (same shape as the Makefile's localdev pre-commit-hook mar
 
 ### launchd: an owned plist file
 
-`~/Library/LaunchAgents/com.stockroom.nightly.plist` (dir injectable): idempotency is file ownership — write the plist (stdlib `plistlib`), then reload via an injectable `launchctl` runner (`bootout` ignoring not-loaded failures, then `bootstrap gui/<uid>`). Remove = bootout + delete, no-op when absent. `ProgramArguments` = `/bin/sh -c '<the same rendered command>'`; PATH rides in `EnvironmentVariables` instead of an inline prefix; `StartCalendarInterval` carries Hour/Minute; stdout/stderr paths point at the same log.
+`~/Library/LaunchAgents/jp.ne.cani.stockroom.nightly.plist` (dir injectable): idempotency is file ownership — write the plist (stdlib `plistlib`), then reload via an injectable `launchctl` runner (`bootout` ignoring not-loaded failures, then `bootstrap gui/<uid>`). Remove = bootout + delete, no-op when absent. `ProgramArguments` = `/bin/sh -c '<the same rendered command>'`; PATH rides in `EnvironmentVariables` instead of an inline prefix; `StartCalendarInterval` carries Hour/Minute; stdout/stderr paths point at the same log.
 
 ### Shared command rendering
 
@@ -100,7 +100,11 @@ One function renders the `date; stockroom ingest && stockroom embed` payload (an
 
 ### CLI shape
 
-Flat parser like `shim`/`doctor`: `stockroom schedule {install|status|remove} [--time HH:MM]` (default `03:30`, validated). `status` prints `installed: <schedule line / plist label + interval>` or `not installed` and exits 0 either way (facts, not errors — the `doctor probe` convention).
+Flat parser like `shim`/`doctor`: `stockroom schedule {install|status|remove} [--time HH:MM]` (default `03:30`, validated). `status` prints `installed: <schedule line / plist label + interval>` or `not installed`, a `daemon:` liveness fact on the cron platform (preflight amendment), and a `log: <home>/logs/nightly.log` fact on both platforms (operator gate amendment), exiting 0 either way (facts, not errors — the `doctor probe` convention).
+
+### Log destination — confirmed at the operator gate
+
+The operator's hand-written cursor-warehouse entry routes per-command logs to `/tmp`. Reviewed and deliberately not aped: unredirected cron output is *mailed* and discarded on MTA-less boxes (WSL default), so explicit routing is mandatory — but `/tmp` is the most volatile directory on both targets (WSL wipes it every restart; macOS cleans ~3-day-old files), and the nightly log is the only witness that unattended freshness works. Decision: append to `~/.stockroom/logs/nightly.log` (beside the warehouse, reboot-proof, dashboard-visible later), one combined log (~3 quiet lines/night — append-forever is ~40 KB/decade, and truncate-per-run would destroy the "failing since Tuesday" history), discoverability via the `status` `log:` fact rather than memory.
 
 ### Judgment stays in prose
 
