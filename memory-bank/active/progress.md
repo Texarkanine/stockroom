@@ -28,3 +28,16 @@ Deliver milestone m2 of `p4-dashboard`: a fully offline, vendored single-pane fr
 * Insights
     - Aggregate/Compare changes presentation, not the meaning of measured values.
     - Native controls and semantic markup provide the highest accessibility return without adding framework or custom-widget complexity.
+
+## 2026-07-09 - CREATIVE (within plan) - COMPLETE
+
+* Work completed
+    - Resolved the test-first strategy for deterministic browser-owned behavior without adding a JavaScript package manager or headless browser stack.
+    - Documented the high-confidence tooling decision in `creative/creative-dashboard-js-testing.md`.
+    - Validated the official Chart.js 4.5.1 UMD package in a temporary proof of concept: it exposes the expected browser global and declares MIT.
+* Decisions made
+    - Split the client into a pure native ES module tested with Node 22's built-in `node:test` and a DOM/Chart.js adapter verified by static contracts plus manual browser QA.
+    - Add Node 22 as an explicit contributor/CI test prerequisite, with no npm dependencies, package manifest, build, or runtime requirement.
+* Insights
+    - No-build and testable modules are compatible: committed `.mjs` files execute directly in both modern browsers and Node.
+    - The test boundary should separate deterministic transformations from browser rendering rather than treating the entire frontend as inherently untestable.
