@@ -110,14 +110,14 @@ graph TD
 
 ## Implementation Plan
 
-1. [ ] **Fail and implement the overview previous-distinct contract.**
+1. [x] **Fail and implement the overview previous-distinct contract.**
     - Files: `skills/sr-search/tests/test_dashboard_metrics.py`, `skills/sr-search/src/stockroom/dashboard/metrics.py`, and any overview empty-shape assertions in `tests/test_dashboard_server.py` that hard-code the payload.
     - Extend/add tests for empty, populated, filtered, unknown-harness, and shared-previous-project cases requiring `prev_distinct_projects`.
     - Run the focused metrics tests and confirm failure against the current payload.
     - Implement the previous-window union in `metrics.overview` without changing existing field meanings.
     - Creative ref: `creative-projects-kpi-previous-window.md`.
 
-2. [ ] **Fail and implement the Projects KPI delta baseline switch.**
+2. [x] **Fail and implement the Projects KPI delta baseline switch.**
     - Files: `skills/sr-search/tests-js/dashboard-core.test.mjs`, `skills/sr-search/src/stockroom/dashboard/static/dashboard-core.mjs`.
     - Rewrite the existing `deriveOverviewCards` assertion that currently expects Projects `+100%` from `distinct_projects: 2` versus summed `prev_projects: 1`; give it an explicit `prev_distinct_projects` and the matching truthful delta.
     - Add a shared-previous-project fixture where `sum(prev_projects) > prev_distinct_projects` so the old summed baseline cannot silently pass.
@@ -125,20 +125,20 @@ graph TD
     - Run the focused Node test and confirm failure against the current summed-baseline implementation.
     - Change Projects delta to `formatDelta(distinct_projects, prev_distinct_projects)` and stop accumulating `previousProjects` from `prev_projects` for that card.
 
-3. [ ] **Fail and implement pure chart summary generation.**
+3. [x] **Fail and implement pure chart summary generation.**
     - Files: `skills/sr-search/tests-js/dashboard-core.test.mjs`, `skills/sr-search/src/stockroom/dashboard/static/dashboard-core.mjs`.
     - Stub then implement tests for Aggregate, Compare, empty, and dual-series summaries; assert immutability of the input model.
     - Run the focused Node suite and confirm failure against the missing export.
     - Implement `summarizeChartPanel(title, mode, model)` as a pure export that reads only `empty`, `labels`, and `datasets`.
     - Creative ref: `creative-dashboard-interaction-contract.md` accessibility notes.
 
-4. [ ] **Wire the adapter to tested summaries and verify static contracts.**
+4. [x] **Wire the adapter to tested summaries and verify static contracts.**
     - Files: `skills/sr-search/src/stockroom/dashboard/static/dashboard.mjs`, `skills/sr-search/tests/test_dashboard_static.py` only if an assertion must acknowledge dynamic fallback text.
     - In `renderChart`, set both `aria-label` and canvas fallback text from `summarizeChartPanel`; keep the existing no-data element for visual empty state.
     - Do not invent summary prose in the adapter. If a gap appears, return to Step 3.
     - Rerun focused Node and static/server suites.
 
-5. [ ] **Manual accessibility/delta smoke and full milestone gate.**
+5. [x] **Manual accessibility/delta smoke and full milestone gate.**
     - Files: none expected beyond fixes discovered by smoke; update `memory-bank/techContext.md` only if the additive overview field needs a durable pointer.
     - Verify Projects delta and canvas summaries in the real browser against populated data in Aggregate and Compare.
     - Run formatting/linting, focused suites, then full `make ci`; restore Torch and rerun the production encoder smoke as the established boundary check.
@@ -163,7 +163,7 @@ No new technology — validation not required. The rework uses the existing Pyth
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Preflight
-- [ ] Build
+- [x] Build
 - [ ] QA
 
 ## Preflight Findings

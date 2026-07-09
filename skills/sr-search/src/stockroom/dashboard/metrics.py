@@ -150,6 +150,7 @@ def overview(
     current_projects = {name: set() for name in names}
     previous_projects = {name: set() for name in names}
     distinct_projects: set[str] = set()
+    prev_distinct_projects: set[str] = set()
 
     for harness, _session_id, project_id, _activity, messages in _session_rows(
         con, start, end
@@ -173,6 +174,7 @@ def overview(
         values["prev_messages"] += messages
         if project_id is not None:
             previous_projects[harness].add(project_id)
+            prev_distinct_projects.add(project_id)
 
     for name, values in per_harness.items():
         values["projects"] = len(current_projects[name])
@@ -183,6 +185,7 @@ def overview(
         "last_sync": _iso(last_sync),
         "per_harness": per_harness,
         "distinct_projects": len(distinct_projects),
+        "prev_distinct_projects": len(prev_distinct_projects),
     }
 
 

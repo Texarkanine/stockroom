@@ -127,3 +127,16 @@ Deliver milestone m2 of `p4-dashboard`: a fully offline, vendored single-pane fr
     - No further redesign; the additive field plus pure `summarizeChartPanel` remains the smallest correct fix.
 * Insights
     - Existing exact overview equality tests are the highest-risk downstream consumers of the additive field and must move with Step 1.
+
+## 2026-07-09 - BUILD (QA rework) - COMPLETE (PASS)
+
+* Work completed
+    - Implemented additive `prev_distinct_projects` in `metrics.overview` with empty, populated, filtered, unknown-harness, and shared-previous-project contracts.
+    - Switched `deriveOverviewCards` Projects delta to `prev_distinct_projects` and locked the shared-previous anti-regression in Node.
+    - Added pure `summarizeChartPanel` and applied it from `dashboard.mjs` to every chart `aria-label` and canvas fallback.
+    - Browser-smoked Projects `+27%` (14 vs 11) and content-bearing Aggregate/Compare canvas summaries against the live warehouse.
+    - Passed `make ci` (32 Node; 409 pytest / 3 skips; Ruff; format; lock; REUSE 223/223), restored Torch 2.13.0+cu126, and verified the 384-dim encoder smoke.
+* Decisions made
+    - Built exactly to the five-step rework plan; no further public-boundary or creative changes.
+* Insights
+    - The live warehouse already had matching previous distinct and previous sum in the default window; the shared-project fixture remains the contract that proves the rollup is a union.

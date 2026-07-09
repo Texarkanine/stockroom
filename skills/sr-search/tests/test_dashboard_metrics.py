@@ -135,6 +135,7 @@ def test_empty_overview_has_stable_zero_shape(
         "last_sync": None,
         "per_harness": {},
         "distinct_projects": 0,
+        "prev_distinct_projects": 0,
     }
 
 
@@ -198,7 +199,35 @@ def test_overview_returns_per_harness_counts_previous_window_and_rollups(
             },
         },
         "distinct_projects": 1,
+        "prev_distinct_projects": 1,
     }
+
+
+def test_overview_prev_distinct_projects_unions_shared_previous_projects(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Previous distinct is a union; shared projects must not inflate the rollup."""
+    _seed_overview_data(migrated_con)
+    _seed_session(
+        migrated_con,
+        harness="claude",
+        session_id="a-prev-shared",
+        activity=datetime(2026, 1, 6, 11),
+        started_at=datetime(2026, 1, 6, 11),
+        project_id="previous",
+        message_count=1,
+    )
+    result = metrics.overview(
+        migrated_con,
+        since=datetime(2026, 1, 10),
+        until=datetime(2026, 1, 20),
+    )
+    prev_sum = sum(values["prev_projects"] for values in result["per_harness"].values())
+    assert result["per_harness"]["cursor"]["prev_projects"] == 1
+    assert result["per_harness"]["claude"]["prev_projects"] == 1
+    assert prev_sum == 2
+    assert result["prev_distinct_projects"] == 1
+    assert result["prev_distinct_projects"] < prev_sum
 
 
 def test_overview_filter_and_unknown_harness_are_mode_agnostic(
@@ -213,11 +242,13 @@ def test_overview_filter_and_unknown_harness_are_mode_agnostic(
     selected = metrics.overview(migrated_con, ["cursor"], **window)
     assert list(selected["per_harness"]) == ["cursor"]
     assert selected["distinct_projects"] == 1
+    assert selected["prev_distinct_projects"] == 1
 
     unknown = metrics.overview(migrated_con, ["missing"], **window)
     assert list(unknown["per_harness"]) == ["missing"]
     assert unknown["per_harness"]["missing"]["sessions"] == 0
     assert unknown["distinct_projects"] == 0
+    assert unknown["prev_distinct_projects"] == 0
 
 
 def test_trends_zero_fills_daily_and_classifies_weekly_tools(

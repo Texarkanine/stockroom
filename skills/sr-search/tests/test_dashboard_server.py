@@ -69,6 +69,7 @@ def test_every_api_route_returns_json_from_current_warehouse(
             "last_sync": None,
             "per_harness": {},
             "distinct_projects": 0,
+            "prev_distinct_projects": 0,
         }
 
 

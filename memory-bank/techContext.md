@@ -234,9 +234,12 @@ through [`warehouse.open_current()`](../skills/sr-search/src/stockroom/warehouse
 which never migrates and turns missing, stale, or writer-busy warehouses into
 actionable 503 responses. Window ownership stays in the metric functions
 (`since` inclusive, `until` exclusive, endpoint-specific defaults); the HTTP
-layer parses only supplied bounds. `python -m stockroom.dashboard` provides the
-idempotent port probe and detached/foreground launcher. Contracts are pinned by
-the dashboard metrics, server, and CLI test modules.
+layer parses only supplied bounds. Overview exposes additive
+`prev_distinct_projects` beside `distinct_projects` so the Projects KPI can
+delta distinct-to-distinct without summing per-harness `prev_projects`.
+`python -m stockroom.dashboard` provides the idempotent port probe and
+detached/foreground launcher. Contracts are pinned by the dashboard metrics,
+server, and CLI test modules.
 
 The Phase-4 milestone-2 browser surface is the semantic single-pane [`static/index.html`](../skills/sr-search/src/stockroom/dashboard/static/index.html), a pure/tested transformation layer in [`dashboard-core.mjs`](../skills/sr-search/src/stockroom/dashboard/static/dashboard-core.mjs), injectable atomic request coordination in [`dashboard-data.mjs`](../skills/sr-search/src/stockroom/dashboard/static/dashboard-data.mjs), and an effects-only DOM/Chart.js adapter in [`dashboard.mjs`](../skills/sr-search/src/stockroom/dashboard/static/dashboard.mjs). Aggregate/Compare remains client-owned, wrapped remains all-time and unfiltered, harness keys remain open and positionally colored, and all warehouse-derived strings enter through safe text/attribute DOM APIs. Deterministic JavaScript behavior is covered under [`tests-js/`](../skills/sr-search/tests-js/); actual canvas rendering, native interaction, responsive layout, theme appearance, and offline-network verification remain an explicit real-browser QA boundary rather than a headless CI dependency.
 

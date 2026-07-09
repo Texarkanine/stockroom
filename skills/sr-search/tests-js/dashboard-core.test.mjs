@@ -18,6 +18,7 @@ import {
   harnessColors,
   sortedHarnesses,
   sumAligned,
+  summarizeChartPanel,
   transitionViewState,
   weightedSeries,
 } from "../src/stockroom/dashboard/static/dashboard-core.mjs";
@@ -98,6 +99,7 @@ test("computes weighted averages with zero-observation guards", () => {
 test("derives mode-independent overview cards and selected deltas", () => {
   const overview = {
     distinct_projects: 2,
+    prev_distinct_projects: 1,
     per_harness: {
       cursor: {
         sessions: 2,
@@ -144,6 +146,77 @@ test("derives mode-independent overview cards and selected deltas", () => {
     },
   ]);
   assert.equal(deriveOverviewCards({ per_harness: {} }, [])[3].value, 0);
+});
+
+test("projects delta uses prev_distinct_projects not summed prev_projects", () => {
+  const overview = {
+    distinct_projects: 2,
+    prev_distinct_projects: 2,
+    per_harness: {
+      cursor: {
+        sessions: 1,
+        messages: 2,
+        projects: 1,
+        prev_sessions: 1,
+        prev_messages: 2,
+        prev_projects: 2,
+      },
+      "claude-code": {
+        sessions: 1,
+        messages: 2,
+        projects: 1,
+        prev_sessions: 1,
+        prev_messages: 2,
+        prev_projects: 2,
+      },
+    },
+  };
+  const prevSum =
+    overview.per_harness.cursor.prev_projects +
+    overview.per_harness["claude-code"].prev_projects;
+  assert.ok(prevSum > overview.prev_distinct_projects);
+  const projects = deriveOverviewCards(overview, selected).find(
+    (card) => card.key === "projects",
+  );
+  assert.deepEqual(projects, {
+    key: "projects",
+    label: "Projects",
+    value: 2,
+    delta: { text: "No change", trend: "neutral" },
+  });
+});
+
+test("missing prev_distinct_projects degrades through formatDelta guards", () => {
+  const overview = {
+    distinct_projects: 2,
+    per_harness: {
+      cursor: {
+        sessions: 1,
+        messages: 1,
+        projects: 1,
+        prev_sessions: 0,
+        prev_messages: 0,
+        prev_projects: 5,
+      },
+      "claude-code": {
+        sessions: 1,
+        messages: 1,
+        projects: 1,
+        prev_sessions: 0,
+        prev_messages: 0,
+        prev_projects: 5,
+      },
+    },
+  };
+  const projects = deriveOverviewCards(overview, selected).find(
+    (card) => card.key === "projects",
+  );
+  assert.deepEqual(projects.delta, { text: "New", trend: "up" });
+  assert.deepEqual(
+    deriveOverviewCards({ distinct_projects: 0, prev_distinct_projects: null }, [])
+      .find((card) => card.key === "projects").delta,
+    { text: "No change", trend: "neutral" },
+  );
 });
 
 test("derives per-harness KPI breakdown proportions", () => {
@@ -402,6 +475,76 @@ test("formats wrapped span and streak dates with short local dates", () => {
   assert.equal(cells[4].subtitle, `${start} – ${streakEnd}`);
 });
 
+test("summarizes aggregate panel measured content", () => {
+  const model = {
+    kind: "bar",
+    labels: ["stockroom", "other"],
+    datasets: [{ label: "Sessions", data: [3, 4] }],
+    empty: false,
+  };
+  assert.equal(
+    summarizeChartPanel("Sessions by project", "aggregate", model),
+    "Sessions by project. Aggregate view. Sessions: stockroom 3, other 4.",
+  );
+});
+
+test("summarizes compare panel per-harness measured content", () => {
+  const model = {
+    kind: "bar",
+    labels: ["stockroom", "other"],
+    datasets: [
+      { label: "Claude Code", data: [1, 4] },
+      { label: "Cursor", data: [2, 0] },
+    ],
+    empty: false,
+  };
+  assert.equal(
+    summarizeChartPanel("Sessions by project", "compare", model),
+    "Sessions by project. Compare view. Claude Code: stockroom 1, other 4; Cursor: stockroom 2, other 0.",
+  );
+});
+
+test("summarizes empty panel without inventing values", () => {
+  const model = {
+    kind: "bar",
+    labels: ["a", "b"],
+    datasets: [{ label: "Sessions", data: [0, 0] }],
+    empty: true,
+  };
+  assert.equal(
+    summarizeChartPanel("Daily session activity", "aggregate", model),
+    "Daily session activity. Aggregate view. No data in this period.",
+  );
+});
+
+test("summarizes dual-series write and read panel", () => {
+  const model = {
+    kind: "line",
+    labels: ["2026-01-05", "2026-01-12"],
+    datasets: [
+      { label: "Writes", data: [3, 1] },
+      { label: "Reads", data: [4, 5] },
+    ],
+    empty: false,
+  };
+  assert.equal(
+    summarizeChartPanel("Weekly write and read tool calls", "aggregate", model),
+    "Weekly write and read tool calls. Aggregate view. Writes: 2026-01-05 3, 2026-01-12 1; Reads: 2026-01-05 4, 2026-01-12 5.",
+  );
+});
+
+test("summarizeChartPanel leaves the input model unchanged", () => {
+  const model = {
+    kind: "bar",
+    labels: ["one"],
+    datasets: [{ label: "Sessions", data: [2] }],
+    empty: false,
+  };
+  const before = structuredClone(model);
+  summarizeChartPanel("Sessions by project", "aggregate", model);
+  assert.deepEqual(model, before);
+});
+
 test("keeps every pure transformation input unchanged", () => {
   const payload = {
     projects: ["one"],
@@ -412,6 +555,7 @@ test("keeps every pure transformation input unchanged", () => {
   deriveOverviewCards(
     {
       distinct_projects: 1,
+      prev_distinct_projects: 0,
       per_harness: {
         cursor: {
           sessions: 1,

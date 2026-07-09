@@ -11,6 +11,7 @@ import {
   deriveOverviewCards,
   displayHarness,
   harnessColors,
+  summarizeChartPanel,
   transitionViewState,
 } from "./dashboard-core.mjs";
 import {
@@ -259,10 +260,9 @@ function renderChart(name, title, model) {
   wrapper.style.height = `${model.height ?? 280}px`;
   canvas.hidden = model.empty;
   empty.hidden = !model.empty;
-  canvas.setAttribute(
-    "aria-label",
-    `${title}. ${state.mode === "compare" ? "Compare" : "Aggregate"} view.`,
-  );
+  const summary = summarizeChartPanel(title, state.mode, model);
+  canvas.setAttribute("aria-label", summary);
+  canvas.textContent = summary;
   if (model.empty) {
     return;
   }

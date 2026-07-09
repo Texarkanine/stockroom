@@ -262,7 +262,6 @@ export function deriveOverviewCards(overview, selected) {
     messages: 0,
     previousSessions: 0,
     previousMessages: 0,
-    previousProjects: 0,
   };
   for (const harness of orderedSelection(selected)) {
     const values = safeObject(perHarness[harness]);
@@ -270,9 +269,9 @@ export function deriveOverviewCards(overview, selected) {
     totals.messages += finiteNumber(values.messages);
     totals.previousSessions += finiteNumber(values.prev_sessions);
     totals.previousMessages += finiteNumber(values.prev_messages);
-    totals.previousProjects += finiteNumber(values.prev_projects);
   }
   const projects = finiteNumber(payload.distinct_projects);
+  const previousProjects = finiteNumber(payload.prev_distinct_projects);
   const average = totals.sessions > 0 ? totals.messages / totals.sessions : 0;
   const previousAverage =
     totals.previousSessions > 0 ? totals.previousMessages / totals.previousSessions : 0;
@@ -294,7 +293,7 @@ export function deriveOverviewCards(overview, selected) {
       key: "projects",
       label: "Projects",
       value: projects,
-      delta: formatDelta(projects, totals.previousProjects),
+      delta: formatDelta(projects, previousProjects),
     },
     {
       key: "average",
@@ -464,6 +463,39 @@ export function chartHeight(labelCount, options) {
   const perLabel = finiteNumber(settings.perLabel) || 34;
   const count = Math.max(0, Math.floor(finiteNumber(labelCount)));
   return Math.max(minimum, count * perLabel);
+}
+
+/**
+ * Build a concise accessible summary for a chart panel model.
+ *
+ * Reads only ``empty``, ``labels``, and ``datasets`` from the model. Empty
+ * panels get an explicit no-data sentence; populated panels list measured
+ * label/value pairs per dataset.
+ *
+ * @param {string} title Chart title.
+ * @param {string} mode View mode (``aggregate`` or ``compare``).
+ * @param {Record<string, unknown>} model Panel model from a builder.
+ * @returns {string} Content-bearing accessible summary.
+ */
+export function summarizeChartPanel(title, mode, model) {
+  const panel = safeObject(model);
+  const modeLabel = mode === "compare" ? "Compare" : "Aggregate";
+  const heading = `${displayValue(title, "Chart")}. ${modeLabel} view.`;
+  if (panel.empty) {
+    return `${heading} No data in this period.`;
+  }
+  const labels = Array.isArray(panel.labels) ? panel.labels : [];
+  const datasets = Array.isArray(panel.datasets) ? panel.datasets : [];
+  const fragments = datasets.map((dataset) => {
+    const entry = safeObject(dataset);
+    const seriesLabel = displayValue(entry.label, "Series");
+    const data = Array.isArray(entry.data) ? entry.data : [];
+    const pairs = labels.map((label, index) => {
+      return `${displayValue(label)} ${finiteNumber(data[index])}`;
+    });
+    return `${seriesLabel}: ${pairs.join(", ")}`;
+  });
+  return `${heading} ${fragments.join("; ")}.`;
 }
 
 /** Build the Daily Activity chart model. */

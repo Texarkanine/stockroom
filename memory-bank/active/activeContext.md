@@ -1,14 +1,18 @@
 # Active Context
 
-## Current Task: p4-dashboard / m2 — Vendored single-pane front-end
+## Current Task: p4-dashboard / m2 — Vendored single-pane front-end (QA rework)
 
-**Phase:** PREFLIGHT (QA rework) - COMPLETE (PASS)
+**Phase:** BUILD - COMPLETE (PASS)
 
 ## What Was Done
 
-- Completed the QA-rework plan: additive `prev_distinct_projects`, Projects delta baseline switch, pure chart summaries, adapter wiring, and full gate.
-- Preflight validated TDD ordering, conventions, downstream overview shape updates, and completeness; amended Step 2 to rewrite the existing buggy Projects `+100%` Node assertion.
+- Added overview `prev_distinct_projects` (Python metrics + empty/populated/shared/filtered contracts).
+- Switched Projects KPI delta to `prev_distinct_projects`; anti-regression for summed `prev_projects`.
+- Added pure `summarizeChartPanel` and wired `renderChart` to set `aria-label` + canvas fallback from it.
+- Documented the additive overview field in `techContext.md`.
+- Browser smoke: Projects `14` / `+27%` (14 vs 11); all seven canvases expose measured Aggregate/Compare summaries.
+- Gate: 32 Node tests; 409 pytest passes / 3 skips; Ruff/format/lock/REUSE green; Torch 2.13.0+cu126 restored; encoder smoke 384-dim OK.
 
 ## Next Step
 
-- Run `/niko-build` to implement the five-step rework plan.
+- Run `/niko-qa` for the post-rework semantic review.
