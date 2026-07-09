@@ -130,13 +130,14 @@ rebuildable ETL output and this surface only interrogates it, so DuckDB rejects
 writes through it; the lazy migration gate still runs (a reader behind the schema
 head transparently becomes the migrator). Errors are surfaced as clean stderr
 messages (invalid SQL → `query failed: …`; absent warehouse → a "run
-`python -m stockroom.ingest` first" hint) with no traceback. The library entry
+`stockroom ingest` first" hint, pinned exactly by the CLI tests) with no
+traceback. The library entry
 `run_query(sql, *, con=None)` mirrors the ingest `con`-injection shape so it is
 unit-testable against an injected connection. The model-invocable wrapper skill
-[`skills/sr-query/SKILL.md`](../skills/sr-query/SKILL.md) (Phase-2 milestone 4)
-encodes the safe LLM-ergonomic use of this surface — routing, the engine-invocation
-contract (note: external callers must set `PYTHONPATH=<engine>/src`, since the
-engine is `package = false`), `--format`/`--detail` discipline, guardrails, and a
+[`skills/sr-query/SKILL.md`](../skills/sr-query/SKILL.md) (Phase-2 milestone 4,
+trimmed to the `stockroom query` contract in Phase-3 m5)
+encodes the safe LLM-ergonomic use of this surface — routing,
+`--format`/`--detail` discipline, guardrails, and a
 schema map; only the empirical per-harness invocation-form verification remains
 Phase 5.
 

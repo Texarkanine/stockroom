@@ -39,3 +39,14 @@ Milestone m5 of L4 project `p3-onboarding-cli-scheduling`: the wrapper-skill tri
     - Steps renumbered 1–8 to fold the hygiene test in as step 2
 * Insights
     - Module CLIs keep `prog="python -m stockroom.<mod>"` in their argparse usage lines; forwarded `--help` therefore still shows module-form usage. Cosmetic, out of m5 scope — noted as a future suggestion, not a finding
+
+## 2026-07-09 - BUILD - COMPLETE
+
+* Work completed
+    - All 8 plan steps in order: engine hint swap (red→green, exact-pin tests), `test_skill_hygiene.py` written red against the untrimmed skills, `references/system-model.md` authored, `sr-query`/`sr-semantic` rewritten around `stockroom <subcommand>` (A–C out, D kept, one pointer each), `sr-search` breadcrumb extended, `systemPatterns.md`/`techContext.md` reconciled, full verification
+    - `make ci` green end to end (365 passed, 3 torch-gated skips; REUSE 200/200); every shipped example live-executed through the real shim against the real warehouse before write-in; torch re-provisioned (cu126) and smoke green after the final gate
+* Decisions made
+    - Hygiene token list extended with `CLAUDE_PLUGIN_ROOT` (symmetry); error tables name both recoveries (`stockroom ingest` for a missing warehouse, `sr-initialize` for an unbound machine)
+* Insights
+    - The trimmed skills lost roughly a third of their prose with zero operational loss — the litter audit's Category D keep-list made the cut mechanical rather than judgment-heavy
+    - `make ci` stripping torch mid-milestone happened again exactly as the m4 insight predicted; sequencing live examples before the CI gate (per the plan's mitigation) made it a non-event

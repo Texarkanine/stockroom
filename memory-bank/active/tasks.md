@@ -51,10 +51,10 @@ Prose (artisanal verification + mechanical check, per the project invariant):
 6. [x] Touch up `skills/sr-search/SKILL.md`
    - Files: `skills/sr-search/SKILL.md`
    - Changes: already zero invocation plumbing (m6 verified); add the one shared-doc pointer (fold into the engine-home breadcrumb), confirm no Category C narration crept in; steps 4–6 together drive the step-2 hygiene test green
-7. Reconcile persistent docs
+7. [x] Reconcile persistent docs
    - Files: `memory-bank/systemPatterns.md` (the "Cross-skill resource resolution" section still teaches the pre-shim `$APP_DIR`/`PYTHONPATH` contract as the skill-facing pattern — rewrite around "the shim owns the contract; skills say `stockroom <subcommand>`"), `memory-bank/techContext.md` (the line-133 quote of the old hint and any skill-invocation mentions updated; the `stockroom.query`/`semantic` sections gain nothing new), `README.md` (verify only — the dev-facing raw incantation in the shim section is the shim's own documentation, not skill litter)
    - Changes: post-shim contract described once; the raw incantation survives only where it documents the shim/dev internals
-8. Verification
+8. [x] Verification
    - Files: none (checks)
    - Changes: full test suite (includes the new hygiene test and the three tightened hint tests); full `make ci` (test, lint, format-check, lock-check, reuse — REUSE covers the two new files via existing globs); live example execution happens during steps 4–5 (before the final CI gate); re-provision torch (`make torch`) if a `make` target ran between provisioning and a torch-needing live example (m4 insight: exact sync strips torch every run)
 
@@ -81,6 +81,6 @@ No new technology - validation not required.
 - [x] Test planning complete (TDD)
 - [x] Implementation plan complete
 - [x] Technology validation complete
-- [ ] Preflight
-- [ ] Build
+- [x] Preflight
+- [x] Build
 - [ ] QA

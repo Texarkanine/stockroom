@@ -46,19 +46,11 @@ Ships from the `slobac` template as a `.cursor-plugin/plugin.json` + `.claude-pl
 
 **Skeleton-skill convention:** a skill directory may ship before its behavior exists, carrying a `SKILL.md` with real front-matter and a body that states the dir's purpose and that the behavior is built in a named later phase. This is an honest placeholder, explicitly *not* a dummy — it is how the engine-bearing skill existed from Phase 0 until its search behavior landed in Phase 2 m6 (no skeleton skills currently ship).
 
-## Cross-skill resource resolution (PLUGIN_ROOT, cribbed from `cursor-warehouse`)
+## The shim owns the invocation contract; wrapper skills say `stockroom <subcommand>`
 
-`cursor-warehouse`'s own invention (safe to reuse — not `claude-warehouse`-derived). Sibling skills locate the shared engine **once on startup** via the harness-provided plugin-root env var (`CURSOR_PLUGIN_ROOT` in Cursor; the Claude equivalent — verify exact name empirically per harness at build), with a `find -L` fallback that traverses symlinked dev installs. Then invoke through the **torch-safe** contract — never an exact sync:
+Since Phase 3, the whole engine-invocation contract — engine-dir resolution (plugin-root env var with a `find -L` fallback across harness caches), `PYTHONPATH="$APP_DIR/src"` (load-bearing: the engine is run-in-place, `[tool.uv] package = false`, so `stockroom` is never on `sys.path`; pytest only gets away without it via `[tool.pytest.ini_options] pythonpath = ["src"]`), and the torch-safe `--no-sync --no-config` uv flags — lives in exactly one generated file: the on-path shim (`stockroom.shim` + `shim_template.sh`, installed to `~/.local/bin/stockroom`). Wrapper skills (`sr-query` / `sr-semantic` / `sr-search`) invoke the engine **only** as `stockroom <subcommand>` and carry **no fallback incantation** — `command -v stockroom` failing means "run `sr-initialize`", full stop. This is regression-pinned by [`tests/test_skill_hygiene.py`](../skills/sr-search/tests/test_skill_hygiene.py), which fails if any pre-shim invocation token (`APP_DIR`, `PYTHONPATH`, uv flags, `python -m stockroom`, plugin-root vars) reappears in a wrapper SKILL.md.
 
-```bash
-APP_DIR="${CURSOR_PLUGIN_ROOT:+$CURSOR_PLUGIN_ROOT/skills/sr-search}"
-if [ -z "$APP_DIR" ] || [ ! -d "$APP_DIR" ]; then
-  APP_DIR="$(dirname "$(find -L ~/.cursor/plugins -path '*/stockroom/*/skills/sr-search/pyproject.toml' 2>/dev/null | head -1)")"
-fi
-PYTHONPATH="$APP_DIR/src" uv run --project "$APP_DIR" --no-sync --no-config python -m stockroom.<entrypoint> ...
-```
-
-`PYTHONPATH="$APP_DIR/src"` is **load-bearing**: the engine is run-in-place (`[tool.uv] package = false`), so `stockroom` is never installed on `sys.path` and a bare `python -m stockroom.<entrypoint>` fails with `ModuleNotFoundError` — pytest only gets away without it via `[tool.pytest.ini_options] pythonpath = ["src"]`. Any external caller (sibling skills, the README, ad-hoc runs) must set it. `--no-config` keeps ambient `uv.toml` out of resolution.
+Two sanctioned exceptions carry the raw contract: `sr-initialize` (the one pre-shim invocation, on machines where the shim does not exist yet) and the repo `Makefile`/README (dev-facing shim internals documentation). The *why* behind the contract lives in the shared system-model doc ([`skills/sr-search/references/system-model.md`](../skills/sr-search/references/system-model.md)) — skills hold *do*, the doc holds *why*, and each wrapper skill carries exactly one pointer to it.
 
 ## Layered licensing (REUSE/SPDX): AGPL on code, PPL-S on prompts
 
