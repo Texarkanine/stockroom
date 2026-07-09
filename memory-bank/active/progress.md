@@ -60,3 +60,13 @@ Milestone m5 of L4 project `p3-onboarding-cli-scheduling`: the wrapper-skill tri
     - PASS written to `.qa-validation-status`; no findings, no fixes applied, nothing routed back
 * Insights
     - A keep-list (Category D) turns "did we over-trim?" from a judgment re-litigation into a mechanical diff check — the audit's category structure did the QA heavy lifting
+
+## 2026-07-09 - REFLECT - COMPLETE
+
+* Work completed
+    - Level 2 reflection written to `memory-bank/active/reflection/reflection-p3-m5-wrapper-skill-trimming.md`; persistent files reconciled (systemPatterns/techContext updated during build; productContext untouched — nothing invalidated)
+* Decisions made
+    - None — clean terminal phase
+* Insights
+    - TDD generalizes to prose when the assertion is mechanical: a forbidden-token test written red before editing gives markdown the same red→green discipline as code and survives as a regression pin
+    - Writing a categorized inventory (with an explicit keep-list) *before* the milestone that applies it is what kept this run L2 — the audit was effectively a pre-paid creative phase

@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: p3-m5-wrapper-skill-trimming
-**Phase:** BUILD - COMPLETE
+**Phase:** REFLECT COMPLETE
 
 ## What Was Done
 - Files created: `skills/sr-search/references/system-model.md` (the shared *why* doc: shim/one-command, run-in-place packaging, torch contract, ETL read-only, no-truncation-at-rest, embedding staleness, identity/provenance), `skills/sr-search/tests/test_skill_hygiene.py` (the m6 no-invocation-token check as a permanent parametrized pytest over the three wrapper skills)
@@ -20,5 +20,11 @@
 - Every shipped example in both trimmed skills executed live through the real shim against the real warehouse before write-in (query: 7 examples incl. write-rejection and full-fetch; semantic: 4 examples + handoff pair + coverage check)
 - Torch was stripped twice by `make` targets during the run (expected contract); re-provisioned cu126 + smoke green (`cuda.is_available(): True`) after the final CI gate
 
+## QA Outcome
+- PASS (`.qa-validation-status` written) — no findings, no fixes required
+
+## Reflection Outcome
+- `reflection/reflection-p3-m5-wrapper-skill-trimming.md` written. Headline: the pre-existing litter audit acted as the creative phase, making build transcription-smooth; the hygiene test proved TDD's red→green arc works on prose deliverables when the assertion is mechanical. Persistent files were reconciled during build; productContext untouched — nothing invalidated.
+
 ## Next Step
-- QA review (runs automatically)
+- Operator gate: `milestones.md` exists (L4 sub-run) — run `/niko` to check off m5 and continue
