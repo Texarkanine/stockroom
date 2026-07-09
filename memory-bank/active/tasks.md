@@ -119,8 +119,10 @@ graph TD
 
 2. [ ] **Fail and implement the Projects KPI delta baseline switch.**
     - Files: `skills/sr-search/tests-js/dashboard-core.test.mjs`, `skills/sr-search/src/stockroom/dashboard/static/dashboard-core.mjs`.
-    - Add/adjust `deriveOverviewCards` coverage so a shared-previous-project fixture cannot produce the false summed-baseline decline.
-    - Run the focused Node test and confirm failure.
+    - Rewrite the existing `deriveOverviewCards` assertion that currently expects Projects `+100%` from `distinct_projects: 2` versus summed `prev_projects: 1`; give it an explicit `prev_distinct_projects` and the matching truthful delta.
+    - Add a shared-previous-project fixture where `sum(prev_projects) > prev_distinct_projects` so the old summed baseline cannot silently pass.
+    - Cover missing/null `prev_distinct_projects` through the existing `formatDelta` guards.
+    - Run the focused Node test and confirm failure against the current summed-baseline implementation.
     - Change Projects delta to `formatDelta(distinct_projects, prev_distinct_projects)` and stop accumulating `previousProjects` from `prev_projects` for that card.
 
 3. [ ] **Fail and implement pure chart summary generation.**
@@ -160,6 +162,14 @@ No new technology — validation not required. The rework uses the existing Pyth
 - [x] Test planning complete (TDD)
 - [x] Implementation plan complete
 - [x] Technology validation complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
 - [ ] QA
+
+## Preflight Findings
+
+- **PASS after in-phase amendment:** TDD ordering, conventions, dependency impact, conflicts, completeness, and public-boundary checks found no blocker for the QA rework.
+- **Completeness hardening:** Step 2 now explicitly rewrites the existing Node Projects `+100%` assertion that encodes the buggy summed `prev_projects` baseline, and adds the shared-previous-project fixture as a separate anti-regression.
+- **Accounted downstream shapes:** empty overview equality in `test_dashboard_metrics.py` and `test_dashboard_server.py`, plus the full populated overview equality, must gain `prev_distinct_projects` in Step 1; wrapped's separate `distinct_projects` field is unrelated.
+- **Radical innovation:** none with enough ROI inside scope; keeping summary generation pure and additive-only on overview remains the smallest correct fix.
+- **Advisories:** none that warrant plan changes before build.

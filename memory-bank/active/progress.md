@@ -116,3 +116,14 @@ Deliver milestone m2 of `p4-dashboard`: a fully offline, vendored single-pane fr
 * Insights
     - The server already held the previous project sets needed for a truthful distinct baseline; the bug was an incomplete rollup, not client arithmetic skill.
     - Title/mode-only canvas labels can satisfy a shallow attribute check while still failing the interaction contract's measured-content requirement.
+
+## 2026-07-09 - PREFLIGHT (QA rework) - COMPLETE (PASS)
+
+* Work completed
+    - Validated the five-step rework plan against TDD encoding, conventions, dependency impact, conflicts, completeness, and the additive overview boundary.
+    - Confirmed creative coverage for the Projects previous-window decision and that chart summaries remain implementation of the settled interaction contract.
+    - Amended Step 2 to rewrite the existing Node Projects `+100%` assertion that encodes the buggy summed baseline.
+* Decisions made
+    - No further redesign; the additive field plus pure `summarizeChartPanel` remains the smallest correct fix.
+* Insights
+    - Existing exact overview equality tests are the highest-risk downstream consumers of the additive field and must move with Step 1.
