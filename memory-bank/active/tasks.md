@@ -218,7 +218,7 @@ The wrapped banner has exactly eight cells: Total Sessions with `totals.span` as
     - Render header `last_sync`, truthful KPIs/deltas and proportional harness bars; consume the seven tested panel builders exactly as specified in the chart matrix; rebuild through a centralized chart registry.
     - Render all recent sessions with generic harness labels/colors and exact ISO titles; consume the tested `buildWrappedPanel` result unfiltered.
     - No new pure export or metric math is permitted in this step. If a gap appears, return to Step 2's failing-test loop before changing the adapter.
-9. **Complete cross-browser accessibility, responsive, and offline QA.**
+9. [x] **Complete cross-browser accessibility, responsive, and offline QA.**
     - Files: `skills/sr-search/src/stockroom/dashboard/static/index.html`, `skills/sr-search/src/stockroom/dashboard/static/dashboard.mjs`.
     - Verify keyboard flow, visible focus, semantic table/controls, live announcements, canvas labels/fallbacks, color-plus-text encoding, light/dark contrast, 800px collapse, and dynamic all-model scrolling.
     - Run the real server against populated data, inspect all panels in Aggregate and Compare, exercise one/many harnesses, resize/theme changes, and each 503 action.

@@ -481,5 +481,9 @@ elements.selector.addEventListener("keydown", (event) => {
   }
 });
 
+window
+  .matchMedia("(prefers-color-scheme: dark)")
+  .addEventListener("change", () => renderDashboard());
+
 renderHarnessControls();
 void refreshDashboard(true);
