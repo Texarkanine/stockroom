@@ -127,7 +127,7 @@ def test_robustness_fixture_covers_metadata_and_ignorable_types(
 
 
 def test_ai_tracking_db_builds_with_expected_schema(ai_tracking_db: Path) -> None:
-    """The synthetic enrichment DB materializes with the model-usage table."""
+    """The synthetic enrichment DB materializes with the current model tables."""
     assert ai_tracking_db.is_file()
     con = sqlite3.connect(ai_tracking_db)
     try:
@@ -137,10 +137,9 @@ def test_ai_tracking_db_builds_with_expected_schema(ai_tracking_db: Path) -> Non
                 "SELECT name FROM sqlite_master WHERE type = 'table'"
             ).fetchall()
         }
-        assert "conversation_model_usage" in tables
-        count = con.execute("SELECT count(*) FROM conversation_model_usage").fetchone()[
-            0
-        ]
+        assert "ai_code_hashes" in tables
+        assert "conversation_summaries" in tables
+        count = con.execute("SELECT count(*) FROM ai_code_hashes").fetchone()[0]
         assert count > 0
     finally:
         con.close()

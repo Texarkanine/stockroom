@@ -85,13 +85,15 @@ transcripts/
 
 ### Synthetic enrichment DB
 
-The optional Cursor `ai-code-tracking.db` model-enrichment source is **absent**
-on the operator's current machine. Its happy path is exercised against a
-synthetic, clean-room sqlite DB built at test time by the `ai_tracking_db`
-pytest fixture (in `tests/conftest.py`) from documented SQL — reviewable, with
-no opaque binary committed. It carries a single `conversation_model_usage`
-table keyed by Cursor conversation id, overlapping the committed Cursor
-transcript fixtures so the orchestrator can apply enrichment to real rows.
+The optional Cursor `ai-code-tracking.db` model-enrichment source is resolved
+at runtime (env override, then conventional/`ai-tracking` paths, then WSL
+Windows-mount fallbacks). Its happy path is exercised against a synthetic,
+clean-room sqlite DB built at test time by the `ai_tracking_db` pytest fixture
+(in `tests/conftest.py`) from documented SQL — reviewable, with no opaque
+binary committed. It mirrors the current Cursor schema subset ingest reads
+(`ai_code_hashes`, `conversation_summaries`) keyed by Cursor conversation id,
+overlapping the committed Cursor transcript fixtures so the orchestrator can
+apply enrichment to real rows.
 
 ## What Each Pathological Case Guards
 

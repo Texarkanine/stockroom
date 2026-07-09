@@ -14,3 +14,14 @@ Fix Cursor model enrichment so unconfigured ingest finds the real `ai-code-track
 * Insights
     - `.cursor/skills/stockroom-local/sr-search` is a symlink to `skills/sr-search`; edit the canonical tree only
     - Operator "date info" expectation is satisfied by re-ingest of warehouse observation/session fields, not by expanding enrichment beyond the model grain
+
+## 2026-07-09 - BUILD - COMPLETE
+
+* Work completed
+    - Failing enrich path/schema tests first; then implemented candidate path search + current-schema reader
+    - Fixture/README updated off `conversation_model_usage`
+    - Full test suite green (417 passed, 3 skipped)
+* Decisions made
+    - Operator runs live `stockroom ingest --full --harness cursor` verification (not agent-driven against their warehouse)
+* Insights
+    - Live DB on this machine is under `/mnt/s/Users/Austin/.cursor/ai-tracking/ai-code-tracking.db`; models live on `ai_code_hashes.conversationId` / `model`
