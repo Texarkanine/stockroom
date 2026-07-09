@@ -71,19 +71,19 @@ def test_apply_pending_applies_all_packaged_on_fresh_db(
 ) -> None:
     """A fresh DB gets every packaged migration in order, landing at the head.
 
-    The product tables come from ``0001``; ``0002`` (workspace identity) and
-    ``0003`` (the VSS/HNSW embeddings index) are structural follow-ons, so a
-    fresh apply returns ``[1, 2, 3]`` and stamps a bookkeeping row per migration
-    — including ``0001``'s, asserted explicitly. ``ensure_vss`` is the
-    precondition ``0003`` assumes (it creates the HNSW index but does not load
-    ``vss``); the chokepoint runs it in production, so the test does too.
+    The product tables come from ``0001``; ``0002`` (workspace identity),
+    ``0003`` (the VSS/HNSW embeddings index), and ``0004`` (durable observation
+    times) are structural follow-ons. A fresh apply stamps one bookkeeping row
+    per migration, including ``0001``'s, asserted explicitly. ``ensure_vss`` is
+    the precondition ``0003`` assumes; the chokepoint runs it in production, so
+    the test does too.
     """
     warehouse.ensure_vss(mem_con)
     applied = migrate.apply_pending(mem_con)
 
-    assert applied == [1, 2, 3]
+    assert applied == [1, 2, 3, 4]
     assert _PRODUCT_TABLES <= _table_names(mem_con)
-    assert migrate.current_version(mem_con) == 3
+    assert migrate.current_version(mem_con) == 4
 
     version, filename, applied_at = mem_con.execute(
         f"SELECT version, filename, applied_at FROM {migrate.SCHEMA_VERSION_TABLE} "
@@ -103,7 +103,7 @@ def test_apply_pending_is_idempotent(
     second = migrate.apply_pending(mem_con)
 
     assert second == []
-    assert migrate.current_version(mem_con) == 3
+    assert migrate.current_version(mem_con) == 4
     row_count = mem_con.execute(
         f"SELECT count(*) FROM {migrate.SCHEMA_VERSION_TABLE}"
     ).fetchone()[0]

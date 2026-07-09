@@ -19,4 +19,4 @@
 
 ## Next Step
 
-Implement step 1: migration `0004_observation_times.sql` and its cumulative schema contract test.
+Implement step 2: ingest population of `source_mtime` and writer-owned `first_seen_at` carry-forward.

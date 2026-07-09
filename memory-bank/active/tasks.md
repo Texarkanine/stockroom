@@ -141,7 +141,7 @@ CLI (probe/spawn seams injected; no real daemon in tests):
 
 Every step is one TDD cycle and its sub-steps are **ordered**: (a) stub interfaces, (b) write the tests, (c) run them and see them fail, (d) implement to green. Never start (d) before (c).
 
-1. **Migration `0004`** (substrate, fewest dependencies)
+1. [x] **Migration `0004`** (substrate, fewest dependencies)
     - Files: `src/stockroom/migrations/0004_observation_times.sql`, `tests/test_schema_0004.py`, `tests/fixtures/schema/0004_snapshot.json`
     - TDD order: (a) write `test_schema_0004.py` mirroring `test_schema_0003.py` (chain-apply through `0004`, both-columns-present assertion, cumulative snapshot vs `0004_snapshot.json`) → (b) run: fails (no migration file) → (c) write the migration SQL (`ALTER TABLE sessions ADD COLUMN source_mtime TIMESTAMP; ALTER TABLE messages ADD COLUMN first_seen_at TIMESTAMP` + uniform-meaning doc comments: provenance mtime / first-observation time) → (d) regenerate golden via the test's own helper (`STOCKROOM_UPDATE_SCHEMA_GOLDEN=1`), review the diff, re-run green. `0001`–`0003` snapshots frozen.
     - Creative ref: `creative-dashboard-session-time-grain.md` (incl. the operator-accepted amendment)
