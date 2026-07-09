@@ -43,3 +43,14 @@ Deliver Phase 4 — Dashboard of `planning/roadmap.md`: a read-only local web se
     - The lazy migration gate inside `warehouse.open(read_only=True)` conflicts with the "hook never migrates" discipline — a reader behind the schema head becomes the migrator; m1 must design a non-migrating open/degrade path for the dashboard
     - `REUSE.toml`'s code re-assert list doesn't cover `*.js`/`*.html`/`*.css` under `skills/**`, so vendored front-end assets need explicit annotations (m2)
 
+## 2026-07-09 - L4 PLAN REVIEW (operator) - COMPLETE
+
+* Work completed
+    - Preflight findings and advisories reviewed with the operator; all dispositions recorded in `tasks.md` and folded into `milestones.md`
+    - Finding 1 (migration gate vs. hook discipline) explained and confirmed as an m1 must-address: the dashboard needs a gate-bypassing open that refuses (typed error → friendly "run `stockroom migrate`" response) instead of transitively migrating on session start
+* Decisions made
+    - Advisory 5 accepted: m1 endpoints take optional `?since=`/`?until=` windows (spec defaults) as the recap substrate
+    - Advisory 6 accepted with an operator testing constraint (now a cross-milestone invariant): test only our own logic where test ROI is sound; never prove-the-platform tests; flaky-by-nature behavior → manual smoke QA
+    - Operator-proposed and accepted: one combined sequenced session-start hook per harness (rectify-then-launch in a single command; ordering between sibling hook entries is not harness-guaranteed); resource lock is the OS port bind, no lockfile
+    - m2 REUSE approach confirmed: explicit carve-out annotations for vendored assets; Chart.js keeps its upstream MIT identity, never relicensed
+

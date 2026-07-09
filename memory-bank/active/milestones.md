@@ -7,15 +7,16 @@
 - **Endpoints are mode-agnostic and harness-open.** The server always returns per-harness data keyed by harness name (Aggregate/Compare is a client concern); the harness set is enumerated from the DB (`SELECT DISTINCT harness`), never hard-coded; signature colors are assigned client-side positionally from the fixed palette.
 - **Port 6767 everywhere.** The roadmap's stated 3143 is corrected in-phase (operator override).
 - **Invocation contract holds.** Engine calls outside the repo go only through the on-path `stockroom` command; no rendered artifact (hook payload, skill) carries a raw engine path or invocation plumbing — `test_skill_hygiene.py` extends to `sr-dashboard`.
-- **Hook discipline (amended Phase-3 m2).** The session-start hook launches the dashboard and rectifies the shim only — never ingests, never migrates, never errors, never blocks; idempotency is structural (port probe), not bookkeeping.
+- **Hook discipline (amended Phase-3 m2).** The session-start hook launches the dashboard and rectifies the shim only — never ingests, never migrates (transitively: no hook-spawned process migrates either), never errors, never blocks. One combined hook per harness guarantees rectify-before-launch sequencing; idempotency is structural (the OS port bind is the mutex), not bookkeeping.
+- **Test ROI discipline (operator, preflight review).** Unit-test our own logic only (probe decision, URL printing, argument handling, refusal paths); never write tests that prove the platform works (e.g. that Python can daemonize). Where a code test would be flaky-by-nature, manual smoke verification in the sub-run's QA is the sanctioned alternative.
 - **Single pane, no drill-downs.** Conversation reconstruction and other drill-ins are explicitly out of scope (operator decision); mockup and spec are guides, not law.
 - **Test-first for all Python; green `make ci` (incl. REUSE) at every milestone boundary.**
 
 ## Execution Order
 
-- [ ] m1 — Dashboard metrics API server: `stockroom.dashboard` module serving the spec's per-harness JSON endpoints (overview, trends, projects, tools, models, efficiency, sessions, wrapped) read-only on port 6767 with `?harness=` filtering, static-file serving, and port-probe idempotent startup
-- [ ] m2 — Vendored single-pane front-end: `index.html` + pinned Chart.js committed to the engine package (REUSE-annotated), with harness dropdown selector, Aggregate/Compare switcher, positional color palette, KPI cards, charts, recent-sessions table, and wrapped banner per the mockup guide
-- [ ] m3 — Launch surfaces: `dashboard` subcommand registered in the `python -m stockroom` dispatcher, thin `sr-dashboard` wrapper skill printing the local URL, idempotent fire-and-forget session-start hooks for both harnesses, and the planning-doc port corrections (roadmap + tech-brief: 3143 → 6767)
+- [ ] m1 — Dashboard metrics API server: `stockroom.dashboard` module serving the spec's per-harness JSON endpoints (overview, trends, projects, tools, models, efficiency, sessions, wrapped) read-only on port 6767 with `?harness=` filtering and optional `?since=`/`?until=` windows (spec defaults), a non-migrating open path (typed refusal when the schema is behind), static-file serving, and port-probe idempotent startup
+- [ ] m2 — Vendored single-pane front-end: `index.html` + pinned Chart.js committed to the engine package (REUSE carve-out annotations; Chart.js keeps its upstream MIT identity, never relicensed), with harness dropdown selector, Aggregate/Compare switcher, positional color palette, KPI cards, charts, recent-sessions table, and wrapped banner per the mockup guide
+- [ ] m3 — Launch surfaces: `dashboard` subcommand registered in the `python -m stockroom` dispatcher, thin `sr-dashboard` wrapper skill printing the local URL, one combined sequenced session-start hook per harness (rectify-then-launch in a single command; port bind is the mutex), and the planning-doc port corrections (roadmap + tech-brief: 3143 → 6767)
 
 ## Milestone Estimates
 
