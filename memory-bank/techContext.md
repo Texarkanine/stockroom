@@ -14,6 +14,8 @@ uv provisions the interpreter pinned by `requires-python`. Locked deps via `make
 
 uv for dependency resolution (no compile/bundle/transpile step) and `release-please` for version syncing into both plugin manifests. Canonical config: [`skills/sr-search/pyproject.toml`](../skills/sr-search/pyproject.toml) + [`uv.lock`](../skills/sr-search/uv.lock), and [`release-please-config.json`](../release-please-config.json) + [`.release-please-manifest.json`](../.release-please-manifest.json) (writes `$.version` into both `plugin.json` manifests). CI is [`.github/workflows/ci.yml`](../.github/workflows/ci.yml); release automation is [`.github/workflows/release-please.yaml`](../.github/workflows/release-please.yaml). **Local iteration** is via the root [`Makefile`](../Makefile) (`make help` lists sync/lock/test/lint/format/reuse/ci targets; engine commands use `--no-config` and test/lint execution uses `--no-sync`, subject to the exact-sync prerequisite caveat above).
 
+The dashboard front-end is a committed no-build surface: native ES modules in [`stockroom/dashboard/static/`](../skills/sr-search/src/stockroom/dashboard/static/) load the exact vendored Chart.js 4.5.1 UMD artifact locally, with no package manifest, npm install, bundler, transpiler, or runtime network dependency. Contributors and CI use Node 22 only to run the pure client/coordinator contracts through its stable built-in test runner (`make test-js`, which executes `node --test tests-js/*.test.mjs` from the engine directory).
+
 ## Warehouse Schema
 
 The locked, harness-labeled DuckDB data contract is authored as the first
@@ -236,6 +238,8 @@ layer parses only supplied bounds. `python -m stockroom.dashboard` provides the
 idempotent port probe and detached/foreground launcher. Contracts are pinned by
 the dashboard metrics, server, and CLI test modules.
 
+The Phase-4 milestone-2 browser surface is the semantic single-pane [`static/index.html`](../skills/sr-search/src/stockroom/dashboard/static/index.html), a pure/tested transformation layer in [`dashboard-core.mjs`](../skills/sr-search/src/stockroom/dashboard/static/dashboard-core.mjs), injectable atomic request coordination in [`dashboard-data.mjs`](../skills/sr-search/src/stockroom/dashboard/static/dashboard-data.mjs), and an effects-only DOM/Chart.js adapter in [`dashboard.mjs`](../skills/sr-search/src/stockroom/dashboard/static/dashboard.mjs). Aggregate/Compare remains client-owned, wrapped remains all-time and unfiltered, harness keys remain open and positionally colored, and all warehouse-derived strings enter through safe text/attribute DOM APIs. Deterministic JavaScript behavior is covered under [`tests-js/`](../skills/sr-search/tests-js/); actual canvas rendering, native interaction, responsive layout, theme appearance, and offline-network verification remain an explicit real-browser QA boundary rather than a headless CI dependency.
+
 ## CLI dispatcher (`python -m stockroom`)
 
 The Phase-3 m1 single CLI entrypoint lives in
@@ -390,7 +394,7 @@ unit-tested in [`tests/test_render.py`](../skills/sr-search/tests/test_render.py
 
 ## Testing Process
 
-All work is **test-first** per the workspace TDD rule (`.cursor/rules/shared/always-tdd.mdc`); test-running discipline in `.cursor/rules/shared/test-running-practices.mdc`. Tests run under `pytest`, configured in [`skills/sr-search/pyproject.toml`](../skills/sr-search/pyproject.toml) (`[tool.pytest.ini_options]`). **Day-to-day:** `make test` / `make lint` / `make format` / `make ci` from the repo root ([`Makefile`](../Makefile)); lint/format is `ruff`, whole-tree licensing is `make reuse`. The full gate also runs in [`.github/workflows/ci.yml`](../.github/workflows/ci.yml).
+All work is **test-first** per the workspace TDD rule (`.cursor/rules/shared/always-tdd.mdc`); test-running discipline in `.cursor/rules/shared/test-running-practices.mdc`. Python/static/HTTP contracts run under `pytest`, configured in [`skills/sr-search/pyproject.toml`](../skills/sr-search/pyproject.toml) (`[tool.pytest.ini_options]`), while deterministic dashboard JavaScript contracts run directly under Node 22's built-in runner from [`skills/sr-search/tests-js/`](../skills/sr-search/tests-js/) with no npm dependencies. **Day-to-day:** `make test` / `make test-js` / `make lint` / `make format` / `make ci` from the repo root ([`Makefile`](../Makefile)); lint/format is `ruff`, whole-tree licensing is `make reuse`. The full gate also runs in [`.github/workflows/ci.yml`](../.github/workflows/ci.yml).
 
 ## Design System
 

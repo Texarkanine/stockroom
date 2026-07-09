@@ -223,7 +223,7 @@ The wrapped banner has exactly eight cells: Total Sessions with `totals.span` as
     - Verify keyboard flow, visible focus, semantic table/controls, live announcements, canvas labels/fallbacks, color-plus-text encoding, light/dark contrast, 800px collapse, and dynamic all-model scrolling.
     - Run the real server against populated data, inspect all panels in Aggregate and Compare, exercise one/many harnesses, resize/theme changes, and each 503 action.
     - Disable external network or inspect requests to prove every runtime asset/API request remains loopback-only. Fix stockroom code found by the smoke pass; do not add tests for Chart.js/browser internals.
-10. **Document and run the complete milestone gate.**
+10. [x] **Document and run the complete milestone gate.**
     - Files: `memory-bank/techContext.md`.
     - Record Node 22, the no-package native module test command, static asset locations, Chart.js 4.5.1 vendoring, and manual browser QA boundary.
     - Run formatting/linting, focused Node and pytest suites, `make reuse`, then the entire `make ci` gate. Because `make ci` exact-syncs, restore the documented per-machine Torch build afterward and rerun the production encoder smoke as the established milestone-boundary check.
@@ -266,5 +266,5 @@ The wrapped banner has exactly eight cells: Total Sessions with `totals.span` as
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Preflight
-- [ ] Build
+- [x] Build
 - [ ] QA

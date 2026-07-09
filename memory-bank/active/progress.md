@@ -71,3 +71,20 @@ Deliver milestone m2 of `p4-dashboard`: a fully offline, vendored single-pane fr
 * Insights
     - TDD pressure improved the architecture by separating fetch/race/error policy from DOM and Chart.js effects.
     - Exact file ownership in REUSE and exact field-to-panel maps are build inputs, not cleanup details.
+
+## 2026-07-09 - BUILD - COMPLETE (PASS)
+
+* Work completed
+    - Replaced the dashboard placeholder with a fully offline semantic single-pane page, vendored and runtime-verified Chart.js 4.5.1, and established exact AGPL/MIT REUSE ownership.
+    - Built native ES module seams for 19 pure client transformations, five atomic request-coordinator behaviors, and an effects-only DOM/Chart.js adapter covering native controls, stale-request suppression, loading/error states, KPI cards, seven chart panels, recent sessions, and eight wrapped facts.
+    - Added Node 22 built-in tests and CI/Make wiring without npm or a build step, plus pytest contracts for the static document, served JavaScript MIME types, traversal safety, offline resources, script ordering, and resolved licenses.
+    - Completed real-browser QA against the populated warehouse across Aggregate/Compare, filtered refreshes, actionable stale-schema recovery, one/many harnesses, no-data behavior, semantic accessibility, exact timestamp preservation, narrow responsive layouts, live light/dark changes, and offline-only requests.
+    - Passed the complete milestone gate: 24 Node tests; 408 pytest passes with 3 expected skips; Ruff, format, lock, and REUSE 220/220 checks; restored Torch 2.13.0+cu126; verified CUDA and the production 384-dimension encoder; and smoke-tested final foreground routes.
+* Decisions made
+    - Keep all deterministic presentation and request policy in tested native modules; the adapter performs only DOM, date-localization, and Chart.js effects.
+    - Redraw the centralized chart registry when the system color scheme changes so canvas-owned colors remain synchronized with CSS tokens.
+    - Preserve the initial all-harness request as unfiltered, use repeated encoded harness parameters for later selections, and continue requesting wrapped without filters as part of each atomic eight-endpoint snapshot.
+* Insights
+    - A no-build vanilla dashboard can still have rigorous client contracts and race-safe atomic refresh without introducing a package manager or browser test dependency.
+    - Real-browser QA caught a canvas-specific live-theme gap that static CSS and pure unit tests could not expose.
+    - Exact vendored-file ownership plus resolved-license tests prevent broad prompt-content annotations from silently relicensing browser software.

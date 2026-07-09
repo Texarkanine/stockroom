@@ -4,9 +4,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 
 
-STATIC_ROOT = (
-    Path(__file__).parents[1] / "src" / "stockroom" / "dashboard" / "static"
-)
+STATIC_ROOT = Path(__file__).parents[1] / "src" / "stockroom" / "dashboard" / "static"
 
 
 class _DocumentParser(HTMLParser):
@@ -41,9 +39,7 @@ def test_dashboard_document_has_semantic_controls_panels_and_fallbacks() -> None
     source, parser = _document()
     tags = [tag for tag, _attrs in parser.elements]
     by_id = {
-        attrs["id"]: (tag, attrs)
-        for tag, attrs in parser.elements
-        if attrs.get("id")
+        attrs["id"]: (tag, attrs) for tag, attrs in parser.elements if attrs.get("id")
     }
     assert "<!doctype html>" in source.lower()
     assert "stockroom dashboard" in " ".join(parser.text).lower()
@@ -94,9 +90,7 @@ def test_dashboard_resources_are_local_and_loaded_in_dependency_order() -> None:
     adapter_position = source.index('src="dashboard.mjs"')
     assert chart_position < adapter_position
     scripts = [
-        attrs
-        for tag, attrs in parser.elements
-        if tag == "script" and attrs.get("src")
+        attrs for tag, attrs in parser.elements if tag == "script" and attrs.get("src")
     ]
     assert [script["src"] for script in scripts] == [
         "chart-4.5.1.umd.min.js",
