@@ -24,3 +24,34 @@ Adopt XDG Base Directory layout for stockroom-owned data on all Unix-like platfo
     - Canonical code lives under `skills/`; `.cursor/skills/stockroom-local` is localdev symlink only (not a second edit target)
 * Insights
     - `home_dir()` mkdir-on-resolve means naive XDG defaults would create empty XDG dirs even when legacy still holds data — migration/detection order matters
+
+## 2026-07-09 - CREATIVE - COMPLETE (xdg layout shape)
+
+* Work completed
+    - Architecture exploration of single data tree vs split data/state vs symlink compat
+* Decisions made
+    - **Single tree under `$XDG_DATA_HOME/stockroom/`** (default `~/.local/share/stockroom/`), including logs — see `creative-xdg-layout-shape.md`
+* Insights
+    - Issue already permits keeping logs under data home; STATE split is premature for a regenerable log
+
+## 2026-07-09 - CREATIVE - COMPLETE (legacy home migration)
+
+* Work completed
+    - Architecture exploration of auto-migrate vs explicit CLI vs defer vs init-only
+* Decisions made
+    - **Safe auto-migrate at path resolve** when unambiguous; hard refuse when both warehouses exist and diverge; doctor reports home + legacy facts — see `creative-legacy-home-migration.md`
+* Insights
+    - Detection must run before mkdir so an empty XDG tree never masquerades as “already migrated”
+
+## 2026-07-09 - PLAN - COMPLETE
+
+* Work completed
+    - Component analysis across warehouse / doctor / schedule / docs
+    - TDD map for XDG resolution, migration, conflict, doctor facts
+    - Ordered 7-step implementation plan in `tasks.md`
+* Decisions made
+    - Doctor uses pure `inspect_homes()` (no migrate on probe); only `home_dir()` migrates
+    - Living docs + O1/brainstorm reconciliation in scope; historical archives left as-is
+    - Spike `export_dataset.py` default path aligned as a docs/consistency edit
+* Insights
+    - Schedule needs no API change under the single-tree decision; risk is stale installed log paths, handled by docs/doctor warning
