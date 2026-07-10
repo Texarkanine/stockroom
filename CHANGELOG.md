@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.2](https://github.com/Texarkanine/stockroom/compare/v0.1.1...v0.1.2) (2026-07-10)
+
+
+### Bug Fixes
+
+* **cursor:** make Cursor auto-dashboard hook load and run ([#12](https://github.com/Texarkanine/stockroom/issues/12)) ([#16](https://github.com/Texarkanine/stockroom/issues/16)) ([8d4709f](https://github.com/Texarkanine/stockroom/commit/8d4709fe749fc2f0bee65ed94d43c1f18df94f22))
+* heal engine env and hashed torch freeze after plugin moves [[#17](https://github.com/Texarkanine/stockroom/issues/17)] ([#19](https://github.com/Texarkanine/stockroom/issues/19)) ([efd2e44](https://github.com/Texarkanine/stockroom/commit/efd2e44bb63f78f6f28b05c6625311689e1b44e3))
+
 ## [0.1.1](https://github.com/Texarkanine/stockroom/compare/v0.1.0...v0.1.1) (2026-07-10)
 
 
