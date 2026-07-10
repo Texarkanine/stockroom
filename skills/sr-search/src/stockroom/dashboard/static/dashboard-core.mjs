@@ -142,7 +142,7 @@ export function harnessColors(harnesses) {
 }
 
 /** Supported date-range preset ids for the top controls strip. */
-export const DATE_RANGE_PRESETS = Object.freeze([
+const DATE_RANGE_PRESETS = Object.freeze([
   "default",
   "7d",
   "30d",
@@ -181,7 +181,7 @@ const DEFAULT_PANEL_RANGE_LABELS = Object.freeze({
  * @param {unknown} preset Raw preset id.
  * @returns {"default"|"7d"|"30d"|"90d"|"1y"} Known preset, else default.
  */
-export function normalizeDateRangePreset(preset) {
+function normalizeDateRangePreset(preset) {
   return DATE_RANGE_PRESETS.includes(preset) ? preset : "default";
 }
 

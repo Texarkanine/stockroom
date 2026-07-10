@@ -136,4 +136,4 @@ No new technology — validation not required (native HTML/CSS/JS only; no calen
 - [x] Pre-Mortem complete
 - [x] Preflight
 - [x] Build
-- [ ] QA
+- [x] QA

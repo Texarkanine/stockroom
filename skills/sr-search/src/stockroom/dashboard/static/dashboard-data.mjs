@@ -60,7 +60,7 @@ function normalizeWindowBounds(windowBounds) {
  * Build the complete same-origin request plan for one selected harness set.
  *
  * @param {Iterable<string>} selectedHarnesses Selected harness keys.
- * @param {{since?: string, until?: string} | null} [windowBounds] Optional inclusive window.
+ * @param {{since?: string, until?: string} | null} [windowBounds] Optional since/until window.
  * @returns {{name: string, url: string}[]} Ordered endpoint plan.
  */
 export function buildRequestPlan(selectedHarnesses, windowBounds = null) {

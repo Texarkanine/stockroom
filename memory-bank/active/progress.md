@@ -68,3 +68,14 @@ Add top-bar date-range selector wired to windowed `since`/`until` (prior-period 
     - No server changes; no plan deviations
 * Insights
     - Keeping label/bounds logic in core made adapter glue thin and low-risk
+
+## 2026-07-10 - QA - COMPLETE
+
+* Work completed
+    - Semantic review against plan + creative-date-range-ux
+    - Trivial fixes: un-export unused preset helpers; JSDoc wording
+    - Wrote `.qa-validation-status` = PASS
+* Decisions made
+    - No substantive issues; no return to build/plan
+* Insights
+    - Export surface discipline still worth a QA pass even on thin adapters
