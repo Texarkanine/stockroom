@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/Texarkanine/stockroom/compare/v0.1.5...v0.2.0) (2026-07-10)
+
+
+### Features
+
+* **ingest,embed:** add progress meter ([#1](https://github.com/Texarkanine/stockroom/issues/1)) ([#26](https://github.com/Texarkanine/stockroom/issues/26)) ([ee10ef2](https://github.com/Texarkanine/stockroom/commit/ee10ef280b7f1eb19bcb5b5035d79decde8eb2ec))
+
 ## [0.1.5](https://github.com/Texarkanine/stockroom/compare/v0.1.4...v0.1.5) (2026-07-10)
 
 
