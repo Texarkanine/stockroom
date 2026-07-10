@@ -14,3 +14,15 @@ End-of-roadmap cutover: re-initialize persistent memory-bank files from current 
     - Level 2: multi-file documentation cutover without architectural product change
 * Insights
     - Persistent MB files still explicitly defer to `planning/` and name a cut gate — this task is that cut
+
+## 2026-07-09 - PLAN - COMPLETE
+
+* Work completed
+    - Wrote Level 2 implementation plan with verification behaviors (B1–B10)
+    - Mapped README → `docs/` split (using + development); discard spikes/brainstorm/roadmap with `planning/`
+* Decisions made
+    - `docs/` is a markdown stash only — no doc site, no docs CI (operator)
+    - Verification via shell/`rg` assertions, not a new pytest/docs suite
+    - Leave `memory-bank/archive/**` historical planning mentions alone
+* Insights
+    - Known live `planning/` refs: persistent MB, README, and three code/comment sites (`pyproject.toml`, `__main__.py`, `ingest/paths.py`)
