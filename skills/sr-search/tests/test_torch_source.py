@@ -79,9 +79,7 @@ def test_ensure_torch_noop_when_importable(app_dir: Path, stockroom_home: Path) 
     assert not any("pip" in c for c in calls)
 
 
-def test_ensure_torch_installs_from_freeze(
-    app_dir: Path, stockroom_home: Path
-) -> None:
+def test_ensure_torch_installs_from_freeze(app_dir: Path, stockroom_home: Path) -> None:
     """F3: missing torch + freeze present → --require-hashes -r freeze; no bare index install."""
     url = "https://download.pytorch.org/whl/cpu"
     freeze = stockroom_home / "torch-requirements.txt"
@@ -114,12 +112,12 @@ def test_ensure_torch_installs_from_freeze(
     assert "--directory" in pip
     assert str(app_dir) in pip or str(Path(os.path.abspath(app_dir))) in pip
     # Must not floating-install torch by name with --index alone.
-    assert not (pip[3] == "torch" and "--index" in pip and "--require-hashes" not in pip)
+    assert not (
+        pip[3] == "torch" and "--index" in pip and "--require-hashes" not in pip
+    )
 
 
-def test_ensure_torch_fails_without_freeze(
-    app_dir: Path, stockroom_home: Path
-) -> None:
+def test_ensure_torch_fails_without_freeze(app_dir: Path, stockroom_home: Path) -> None:
     """F4: missing torch + no freeze → failed soft; no pip (even if index sidecar exists)."""
     torch_source.write_index("https://download.pytorch.org/whl/cpu")
     py = app_dir / ".venv" / "bin" / "python"

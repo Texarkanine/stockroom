@@ -41,9 +41,7 @@ def _stub_torch_ensure(monkeypatch: pytest.MonkeyPatch) -> list[Path]:
 
 
 def _ok(stdout: str = "") -> subprocess.CompletedProcess[str]:
-    return subprocess.CompletedProcess(
-        args=[], returncode=0, stdout=stdout, stderr=""
-    )
+    return subprocess.CompletedProcess(args=[], returncode=0, stdout=stdout, stderr="")
 
 
 def _fail(stderr: str = "outdated", code: int = 1) -> subprocess.CompletedProcess[str]:

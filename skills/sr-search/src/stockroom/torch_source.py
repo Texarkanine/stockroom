@@ -127,9 +127,7 @@ def _venv_python(app_dir: Path) -> Path:
     return app_dir / ".venv" / "bin" / "python"
 
 
-def _read_torch_version(
-    app_dir: Path, *, runner: Runner, timeout: float
-) -> str | None:
+def _read_torch_version(app_dir: Path, *, runner: Runner, timeout: float) -> str | None:
     """Return ``torch.__version__`` from the engine venv, or ``None``."""
     py = _venv_python(app_dir)
     if not py.is_file():

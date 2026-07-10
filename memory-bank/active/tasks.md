@@ -76,7 +76,7 @@ Each step: **tests first → implement → green**.
    - New `docs/torch.md`: contract, freeze location, heal, failure → re-initialize or manual freeze
    - Update `docs/development.md`, `docs/using.md`, `systemPatterns.md`, skill references that still say index-only
 
-5. **Verification**
+5. **Verification** ✅
    - Targeted tests + full `make test` / lint
 
 ## Technology Validation
@@ -112,5 +112,5 @@ No new dependencies.
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Preflight
-- [ ] Build
+- [x] Build
 - [ ] QA

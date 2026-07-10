@@ -51,9 +51,7 @@ def test_freeze_invokes_freeze_torch(
         )
 
     monkeypatch.setattr(torch_cli, "freeze_torch", fake_freeze)
-    code = torch_cli.main(
-        ["freeze", "--app-dir", str(app_dir), "--index", url]
-    )
+    code = torch_cli.main(["freeze", "--app-dir", str(app_dir), "--index", url])
     assert code == 0
     assert Path(seen["app_dir"]) == Path(app_dir)
     assert seen["index"] == url
@@ -101,9 +99,7 @@ def test_freeze_propagates_soft_failure(
 
 
 def test_freeze_rejects_bad_url(app_dir: Path, stockroom_home: Path) -> None:
-    code = torch_cli.main(
-        ["freeze", "--app-dir", str(app_dir), "--index", "not-a-url"]
-    )
+    code = torch_cli.main(["freeze", "--app-dir", str(app_dir), "--index", "not-a-url"])
     assert code == 2
     assert torch_source.read_freeze_path() is None
 

@@ -119,3 +119,16 @@ Heal engine-env staleness after plugin-root moves so one session/workspace-open 
     - `.preflight-status` = PASS
 * Decisions made
     - Ready for build
+
+## 2026-07-10 - BUILD - COMPLETE (hashed torch freeze)
+
+* Work completed
+    - `freeze_torch` + hashed `torch-requirements.txt` / `torch-index` sidecar
+    - `ensure_torch` heals only via `--require-hashes -r` freeze
+    - CLI `torch freeze` (removed `record`); writers + `docs/torch.md`
+    - Full suite: 456 passed, 3 skipped; ruff clean
+* Decisions made
+    - No floating heal fallback for legacy index-only
+    - Soft-fail freeze/heal reports; ValueError only for non-https index
+* Insights
+    - `make sync` still strips torch; operators need `make torch` (now freezes) after sync before embed/semantic

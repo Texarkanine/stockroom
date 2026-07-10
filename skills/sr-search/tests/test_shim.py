@@ -91,7 +91,7 @@ class TestRender:
         assert "--no-config" in text
         assert 'PYTHONPATH="$APP_DIR/src"' in text
         assert "exec uv run" in text
-        assert 'import duckdb' in text
+        assert "import duckdb" in text
         assert "engine env" in text
 
     def test_stamps_generator_version(self, engine_dir: Path) -> None:
