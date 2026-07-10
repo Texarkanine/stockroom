@@ -130,11 +130,12 @@ def test_manifests_point_at_hook_configs(
 def _hook_command_entries(config: dict, harness: str) -> list[dict]:
     """Extract the sessionStart command-hook entries per harness schema.
 
-    Cursor: ``{"version": 1, "hooks": {"sessionStart": [{"hooks": [entry]}]}}``.
-    Claude: ``{"hooks": {"SessionStart": [{"hooks": [entry]}]}}``.
+    Cursor (native): ``{"version": 1, "hooks": {"sessionStart": [{"command": "..."}]}}``.
+    Claude: ``{"hooks": {"SessionStart": [{"hooks": [{"type": "command", ...}]}]}}``.
     """
-    key = "sessionStart" if harness == "cursor" else "SessionStart"
-    groups = config["hooks"][key]
+    if harness == "cursor":
+        return list(config["hooks"]["sessionStart"])
+    groups = config["hooks"]["SessionStart"]
     return [entry for group in groups for entry in group["hooks"]]
 
 
@@ -163,16 +164,29 @@ def _assert_combined_rectify_then_dashboard(
 
 
 def test_cursor_hook_schema_and_combined_command(cursor_hooks: dict) -> None:
-    """Cursor sessionStart is one silenced timed-out command: rectify then
-    on-path ``stockroom dashboard``."""
+    """Cursor sessionStart uses native flat schema: one timed command that
+    drains stdin, sets PATH, then rectifies and launches the dashboard.
+
+    Cursor docs require ``sessionStart: [{ "command": "..." }]`` — not Claude's
+    nested ``matcher`` / ``hooks`` / ``type`` layout. Timeout is seconds.
+    """
     assert cursor_hooks.get("version") == 1
     entries = _hook_command_entries(cursor_hooks, "cursor")
     assert len(entries) == 1, "exactly one combined sessionStart command"
     entry = entries[0]
-    assert entry["type"] == "command"
-    assert entry.get("timeout"), "hook must set a timeout"
+    assert "command" in entry, "Cursor entries carry top-level command"
+    assert "hooks" not in entry, "Cursor entries must not nest Claude-style hooks[]"
+    assert "type" not in entry, "Cursor command type is implicit; omit type"
+    assert "matcher" not in entry, "sessionStart does not use a matcher"
+    timeout = entry.get("timeout")
+    assert isinstance(timeout, (int, float)) and 1 <= timeout <= 60, (
+        "Cursor timeout is seconds-scale (1-60)"
+    )
+    cmd = entry["command"]
+    assert "cat >/dev/null" in cmd, "must drain Cursor hook stdin JSON"
+    assert "$HOME/.local/bin" in cmd, "must put ~/.local/bin on PATH for uv/stockroom"
     _assert_combined_rectify_then_dashboard(
-        entry["command"],
+        cmd,
         plugin_root_token="${CURSOR_PLUGIN_ROOT}",
         owner="cursor",
     )
