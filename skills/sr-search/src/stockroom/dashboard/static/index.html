@@ -365,6 +365,7 @@
       }
 
       .panel {
+        position: relative;
         min-width: 0;
         padding: 1rem;
       }
@@ -375,10 +376,9 @@
 
       .panel-header {
         display: flex;
-        flex-wrap: wrap;
         align-items: baseline;
         justify-content: space-between;
-        gap: 0.5rem 1rem;
+        gap: 1rem;
         margin-bottom: 0.75rem;
       }
 
@@ -387,6 +387,7 @@
         align-items: center;
         gap: 0.4rem;
         min-width: 0;
+        position: relative;
       }
 
       .panel-info {
@@ -419,15 +420,24 @@
       }
 
       .panel-help {
-        flex: 1 1 100%;
+        position: absolute;
+        z-index: 30;
+        top: calc(100% + 0.35rem);
+        left: 0;
+        width: min(26rem, calc(100vw - 3rem));
         margin: 0;
-        padding: 0.65rem 0.75rem;
+        padding: 0.7rem 0.8rem;
         border: 1px solid var(--border);
         border-radius: 0.4rem;
-        background: color-mix(in srgb, var(--surface) 92%, var(--accent) 8%);
+        background: var(--surface);
         color: var(--muted);
         font-size: 0.82rem;
         line-height: 1.45;
+        box-shadow: 0 0.5rem 1.25rem color-mix(in srgb, var(--text) 18%, transparent);
+      }
+
+      .panel-help[hidden] {
+        display: none;
       }
 
       .panel h2,
@@ -775,9 +785,9 @@
                 aria-label="About Session Efficiency"
                 data-help-id="efficiency"
               >i</button>
+              <p id="efficiency-help" class="panel-help" hidden></p>
             </div>
             <p class="panel-range">Last 30 days</p>
-            <p id="efficiency-help" class="panel-help" hidden></p>
           </header>
           <div class="chart-scroll">
             <div class="chart-wrap" id="efficiency-chart-wrap">
@@ -812,9 +822,9 @@
                 aria-label="About First-Prompt Quality"
                 data-help-id="first-prompt"
               >i</button>
+              <p id="first-prompt-help" class="panel-help" hidden></p>
             </div>
             <p class="panel-range">Average session length by prompt detail · 30 days</p>
-            <p id="first-prompt-help" class="panel-help" hidden></p>
           </header>
           <div class="chart-scroll">
             <div class="chart-wrap" id="first-prompt-chart-wrap">

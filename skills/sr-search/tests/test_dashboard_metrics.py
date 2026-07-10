@@ -154,12 +154,84 @@ def test_trends_defaults_to_fourteen_days_and_twelve_calendar_weeks(
 
     monkeypatch.setattr(metrics, "datetime", FixedDateTime)
     result = metrics.trends(migrated_con)
-    assert result["daily"]["days"] == [
+    assert result["daily"]["granularity"] == "day"
+    assert result["daily"]["labels"] == [
         f"2026-01-{day:02d}" for day in range(19, 32)
     ] + ["2026-02-01"]
-    assert len(result["weekly"]["weeks"]) == 12
-    assert result["weekly"]["weeks"][0] == "2025-11-10"
-    assert result["weekly"]["weeks"][-1] == "2026-01-26"
+    assert result["weekly"]["granularity"] == "week"
+    assert len(result["weekly"]["labels"]) == 12
+    assert result["weekly"]["labels"][0] == "2025-11-10"
+    assert result["weekly"]["labels"][-1] == "2026-01-26"
+
+
+def test_trends_bounded_window_uses_shared_adaptive_granularity(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Range picker windows share one bucket size across both time-series panels."""
+    _seed_session(
+        migrated_con,
+        harness="cursor",
+        session_id="c-day",
+        activity=datetime(2026, 1, 10, 8),
+        project_id="p",
+    )
+    _seed_tool(
+        migrated_con,
+        harness="cursor",
+        session_id="c-day",
+        ordinal=0,
+        tool_name="ReadFile",
+    )
+
+    seven_day = metrics.trends(
+        migrated_con,
+        since=datetime(2026, 1, 10),
+        until=datetime(2026, 1, 17),
+    )
+    assert seven_day["daily"]["granularity"] == "day"
+    assert seven_day["weekly"]["granularity"] == "day"
+    assert seven_day["daily"]["labels"] == seven_day["weekly"]["labels"]
+    assert len(seven_day["daily"]["labels"]) == 7
+
+    thirty_day = metrics.trends(
+        migrated_con,
+        since=datetime(2026, 1, 1),
+        until=datetime(2026, 1, 31),
+    )
+    assert thirty_day["daily"]["granularity"] == "day"
+    assert thirty_day["weekly"]["granularity"] == "day"
+    assert thirty_day["daily"]["labels"] == thirty_day["weekly"]["labels"]
+    assert len(thirty_day["daily"]["labels"]) == 30
+
+    sixty_day = metrics.trends(
+        migrated_con,
+        since=datetime(2026, 1, 1),
+        until=datetime(2026, 3, 2),
+    )
+    assert sixty_day["daily"]["granularity"] == "week"
+    assert sixty_day["weekly"]["granularity"] == "week"
+    assert sixty_day["daily"]["labels"] == sixty_day["weekly"]["labels"]
+    assert len(sixty_day["daily"]["labels"]) >= 8
+
+    ninety_day = metrics.trends(
+        migrated_con,
+        since=datetime(2026, 1, 1),
+        until=datetime(2026, 4, 1),
+    )
+    assert ninety_day["daily"]["granularity"] == "week"
+    assert ninety_day["weekly"]["granularity"] == "week"
+    assert ninety_day["daily"]["labels"] == ninety_day["weekly"]["labels"]
+
+    year = metrics.trends(
+        migrated_con,
+        since=datetime(2025, 1, 1),
+        until=datetime(2026, 1, 1),
+    )
+    assert year["daily"]["granularity"] == "month"
+    assert year["weekly"]["granularity"] == "month"
+    assert year["daily"]["labels"] == year["weekly"]["labels"]
+    assert year["daily"]["labels"][0] == "2025-01-01"
+    assert year["daily"]["labels"][-1] == "2025-12-01"
 
 
 def test_overview_returns_per_harness_counts_previous_window_and_rollups(
@@ -308,13 +380,15 @@ def test_trends_zero_fills_daily_and_classifies_weekly_tools(
     )
     assert result == {
         "daily": {
-            "days": ["2026-01-10", "2026-01-11", "2026-01-12"],
+            "granularity": "day",
+            "labels": ["2026-01-10", "2026-01-11", "2026-01-12"],
             "sessions": {"claude": [0, 0, 1], "cursor": [1, 0, 0]},
         },
         "weekly": {
-            "weeks": ["2026-01-05", "2026-01-12"],
-            "writes": {"claude": [0, 1], "cursor": [1, 0]},
-            "reads": {"claude": [0, 0], "cursor": [1, 0]},
+            "granularity": "day",
+            "labels": ["2026-01-10", "2026-01-11", "2026-01-12"],
+            "writes": {"claude": [0, 0, 1], "cursor": [1, 0, 0]},
+            "reads": {"claude": [0, 0, 0], "cursor": [1, 0, 0]},
         },
     }
 

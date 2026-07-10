@@ -712,7 +712,11 @@ export function summarizeChartPanel(title, mode, model) {
 /** Build the Daily Activity chart model. */
 export function buildDailyPanel(payload, selected, mode, colors) {
   const source = safeObject(payload);
-  const labels = Array.isArray(source.days) ? source.days : [];
+  const labels = Array.isArray(source.labels)
+    ? source.labels
+    : Array.isArray(source.days)
+      ? source.days
+      : [];
   const datasets =
     mode === "compare"
       ? selectedDatasets(source.sessions, selected, labels, colors)
@@ -760,21 +764,18 @@ export function buildToolsPanel(payload, selected, mode, colors) {
  *
  * @param {number} writes Write tool-call count.
  * @param {number} reads Read tool-call count.
- * @returns {number | null} Ratio in [0, 1], or null when the denominator is zero.
+ * @returns {number} Ratio in [0, 1]. Zero-denominator buckets are ``0`` so the
+ *   line stays continuous instead of gapping.
  */
 export function writeShare(writes, reads) {
   const writeCount = finiteNumber(writes);
   const readCount = finiteNumber(reads);
   const total = writeCount + readCount;
-  return total === 0 ? null : writeCount / total;
+  return total === 0 ? 0 : writeCount / total;
 }
 
-function ratioSeriesEmpty(datasets) {
-  return !datasets.some((dataset) =>
-    Array.isArray(dataset.data)
-      ? dataset.data.some((value) => value !== null && Number.isFinite(Number(value)))
-      : false,
-  );
+function ratioSeriesHasActivity(writes, reads) {
+  return writes.some((writeCount, index) => writeCount + reads[index] > 0);
 }
 
 function lineDataset(label, data, color) {
@@ -788,28 +789,38 @@ function lineDataset(label, data, color) {
 /** Build the Write/Read Ratio chart model. */
 export function buildWriteReadPanel(payload, selected, mode, colors) {
   const source = safeObject(payload);
-  const labels = Array.isArray(source.weeks) ? source.weeks : [];
+  const labels = Array.isArray(source.labels)
+    ? source.labels
+    : Array.isArray(source.weeks)
+      ? source.weeks
+      : [];
   const length = labels.length;
   let datasets;
+  let empty;
   if (mode === "compare") {
     const keys = orderedSelection(selected);
     const assigned = colors ?? harnessColors(keys);
+    empty = true;
     datasets = keys.map((harness) => {
       const writes = seriesFor(source.writes, harness, length);
       const reads = seriesFor(source.reads, harness, length);
+      if (ratioSeriesHasActivity(writes, reads)) {
+        empty = false;
+      }
       const data = writes.map((writeCount, index) => writeShare(writeCount, reads[index]));
       return lineDataset(displayHarness(harness), data, assigned[harness]);
     });
   } else {
     const writes = sumAligned(source.writes, selected, length);
     const reads = sumAligned(source.reads, selected, length);
+    empty = !ratioSeriesHasActivity(writes, reads);
     const data = writes.map((writeCount, index) => writeShare(writeCount, reads[index]));
     datasets = [lineDataset("Write share", data, PALETTE[0])];
   }
   return panelModel("line", labels, datasets, {
     stacked: false,
     yMax: 1,
-    empty: ratioSeriesEmpty(datasets),
+    empty,
   });
 }
 

@@ -213,16 +213,68 @@ def _week_labels(start: datetime, end: datetime) -> list[str]:
     return labels
 
 
+def _month_start(value: datetime) -> datetime:
+    return value.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+
+def _month_labels(start: datetime, end: datetime) -> list[str]:
+    current = _month_start(start)
+    final = _month_start(end - timedelta(microseconds=1))
+    labels: list[str] = []
+    while current <= final:
+        labels.append(current.date().isoformat())
+        if current.month == 12:
+            current = current.replace(year=current.year + 1, month=1)
+        else:
+            current = current.replace(month=current.month + 1)
+    return labels
+
+
+def _window_duration_days(start: datetime, end: datetime) -> float:
+    return (end - start).total_seconds() / 86400.0
+
+
+def _trend_granularity(start: datetime, end: datetime) -> str:
+    """Choose shared axis buckets for a bounded range-picker window.
+
+    ``<= 30d`` → day, ``<= 90d`` → week, else month.
+    """
+    days = _window_duration_days(start, end)
+    if days <= 30:
+        return "day"
+    if days <= 90:
+        return "week"
+    return "month"
+
+
+def _bucket_labels(start: datetime, end: datetime, granularity: str) -> list[str]:
+    if granularity == "day":
+        return _date_labels(start, end)
+    if granularity == "week":
+        return _week_labels(start, end)
+    return _month_labels(start, end)
+
+
+def _activity_bucket(activity: datetime, granularity: str) -> str:
+    if granularity == "day":
+        return activity.date().isoformat()
+    if granularity == "week":
+        return _week_start(activity).date().isoformat()
+    return _month_start(activity).date().isoformat()
+
+
 def trends(
     con: duckdb.DuckDBPyConnection,
     harnesses: Sequence[str] | None = None,
     since: datetime | None = None,
     until: datetime | None = None,
 ) -> dict[str, Any]:
-    """Return daily sessions (14d default) and weekly tools (12w default).
+    """Return session and write/read time series for the dashboard.
 
-    Cursor buckets use transcript mtime and therefore represent the session's
-    last observed activity day, not a fabricated start time.
+    Unbounded defaults keep the historical dual windows (14 day session bars,
+    12 calendar-week tool buckets). Bounded ``since``/``until`` windows share
+    one adaptive granularity across both series so the range picker never
+    leaves write/read on a coarser axis than session activity.
     """
     effective_end = until or datetime.now()
     if since is None:
@@ -232,27 +284,38 @@ def trends(
         )
         weekly_start = _week_start(last_included) - timedelta(weeks=11)
         daily_end = weekly_end = effective_end
+        daily_granularity = "day"
+        weekly_granularity = "week"
+        daily_labels = _date_labels(daily_start, daily_end)
+        weekly_labels = _week_labels(weekly_start, weekly_end)
     else:
         daily_start, daily_end = parse_window(
             since, effective_end, default_days=14, now=effective_end
         )
-        weekly_start, weekly_end = daily_start, daily_end
+        weekly_start = daily_start
+        weekly_end = daily_end
+        daily_granularity = weekly_granularity = _trend_granularity(
+            daily_start, daily_end
+        )
+        daily_labels = weekly_labels = _bucket_labels(
+            daily_start, daily_end, daily_granularity
+        )
+
     names = _active_harnesses(con, harnesses)
     active = set(names)
 
-    days = _date_labels(daily_start, daily_end)
-    day_index = {label: index for index, label in enumerate(days)}
-    daily = {name: [0] * len(days) for name in names}
+    day_index = {label: index for index, label in enumerate(daily_labels)}
+    daily = {name: [0] * len(daily_labels) for name in names}
     for harness, _session_id, _project_id, activity, _messages in _session_rows(
         con, daily_start, daily_end
     ):
         if _is_selected(harness, active):
-            daily[harness][day_index[activity.date().isoformat()]] += 1
+            bucket = _activity_bucket(activity, daily_granularity)
+            daily[harness][day_index[bucket]] += 1
 
-    weeks = _week_labels(weekly_start, weekly_end)
-    week_index = {label: index for index, label in enumerate(weeks)}
-    writes = {name: [0] * len(weeks) for name in names}
-    reads = {name: [0] * len(weeks) for name in names}
+    week_index = {label: index for index, label in enumerate(weekly_labels)}
+    writes = {name: [0] * len(weekly_labels) for name in names}
+    reads = {name: [0] * len(weekly_labels) for name in names}
     tool_rows = con.execute(
         f"SELECT s.harness, {ACTIVITY_TIME_SQL}, t.tool_name "
         "FROM sessions s JOIN tool_calls t "
@@ -264,15 +327,24 @@ def trends(
     for harness, activity, tool_name in tool_rows:
         if not _is_selected(harness, active):
             continue
-        index = week_index[_week_start(activity).date().isoformat()]
+        index = week_index[_activity_bucket(activity, weekly_granularity)]
         if tool_name in WRITE_TOOLS:
             writes[harness][index] += 1
         elif tool_name in READ_TOOLS:
             reads[harness][index] += 1
 
     return {
-        "daily": {"days": days, "sessions": daily},
-        "weekly": {"weeks": weeks, "writes": writes, "reads": reads},
+        "daily": {
+            "granularity": daily_granularity,
+            "labels": daily_labels,
+            "sessions": daily,
+        },
+        "weekly": {
+            "granularity": weekly_granularity,
+            "labels": weekly_labels,
+            "writes": writes,
+            "reads": reads,
+        },
     }
 
 

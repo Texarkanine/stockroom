@@ -122,8 +122,8 @@ def test_partial_bounds_preserve_endpoint_specific_defaults(
     with _running_server() as (_httpd, base):
         status, trends = _json_get(f"{base}/api/trends?until=2026-02-01")
         assert status == 200
-        assert len(trends["daily"]["days"]) == 14
-        assert len(trends["weekly"]["weeks"]) == 12
+        assert len(trends["daily"]["labels"]) == 14
+        assert len(trends["weekly"]["labels"]) == 12
 
         status, sessions = _json_get(f"{base}/api/sessions?until=2026-02-01")
         assert status == 200
