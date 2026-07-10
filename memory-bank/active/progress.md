@@ -14,3 +14,15 @@ Add `--verbose` progress logging to `python -m stockroom.ingest` and `python -m 
     - Level 2: enhancement across ingest + embed CLIs with a shared quiet-by-default / `--verbose` contract; no architecture change
 * Insights
     - Issue already specifies flag semantics and acceptance criteria; design work is mostly where to hook progress callbacks
+
+## 2026-07-10 - PLAN - COMPLETE
+
+* Work completed
+    - Linear TDD plan in `tasks.md` (orchestrator/embed `on_progress` → CLI `--verbose` → docs)
+    - Technology validation: no new dependencies
+* Decisions made
+    - Optional `on_progress: Callable[[str], None] | None` in library; CLI passes `print` only when `--verbose`
+    - Progress denominator = selected discovered conversations (not subagent-inflated write count)
+    - Elapsed time / skip stats are verbose-only CLI prints, not `IngestSummary` API changes
+* Insights
+    - House style already uses injection (`encoder_factory`); progress callbacks fit the same seam

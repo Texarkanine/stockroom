@@ -1,11 +1,11 @@
 # Active Context
 
 ## Current Task: add-ingest-embed-progress-logging
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Intent clarified and approved against GitHub issue #1
-- Classified as Level 2: small enhancement — `--verbose` progress on existing ingest/embed CLIs; quiet by default; tests updated; no architectural change
+- Level 2 plan written: optional `on_progress` callback in ingest orchestrator + `embed_pending`; CLI `--verbose` wires `print`; quiet by default; tests in existing CLI/orchestrator/embed suites; brief docs mention
+- Denominator decision: progress `N` = selected discovered conversations (watermark-aware work units)
 
 ## Next Step
-- Load Level 2 workflow and execute PLAN phase
+- Preflight validation (automatic per L2 workflow)
