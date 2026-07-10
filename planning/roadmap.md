@@ -111,8 +111,9 @@ Phase 5 is the "clean enough to ship" gate. Stockroom is added to the separate `
 
 **Milestones**
 
-- [ ] **Marketplace entry + install docs** — stockroom added to `txrk9-agent-plugins` (both `.cursor-plugin` and `.claude-plugin` marketplace entries pointing at the source repo), with install and usage documentation and the per-harness `/sr-*` invocation forms verified empirically.
-- [ ] **Release flow + end-to-end install test** — the release-please release path exercised (version synced into both manifests), then a clean-machine install from the marketplace confirming the whole spine: `sr-initialize`, then `sr-search` / `sr-semantic` / `sr-query` / `sr-dashboard` all working against real data.
+- [ ] **Plugin definition + install docs** — .cursor-plugin and .claude-plugin manifests added, with install and usage documentation and the per-harness `/sr-*` invocation forms verified empirically. Plugin can be installed manually.
+- [ ] **Marketplace entry** — stockroom added to `txrk9-agent-plugins` (both `.cursor-plugin` and `.claude-plugin` marketplace entries pointing at the source repo).
+- [ ] **Release flow + end-to-end install test** — the release-please release path exercised (version synced into both plugin manifests, not marketplace manifests), then a clean-machine install from the marketplace confirming the whole spine: `sr-initialize`, then `sr-search` / `sr-semantic` / `sr-query` / `sr-dashboard` all working against real data.
 
 **Done when:** a fresh user can add the marketplace, install stockroom, run `sr-initialize`, and use all four surfaces against their own Cursor and Claude Code history — the v1 success criteria, demonstrated end to end on a clean machine.
 
