@@ -1,0 +1,46 @@
+# Project Brief
+
+## User Story
+
+As a stockroom user who updates or reinstalls the Cursor/Claude plugin (or rsyncs a local plugin tree without `.venv`), I want one session/workspace-open cycle to leave a runnable on-path `stockroom` engine so that I do not hit missing-dependency failures after path-only rectify healing.
+
+## Use-Case(s)
+
+### Use-Case 1 — Marketplace / cache move
+
+Plugin content-hash directory changes; auto-dashboard hook fires; shim path is rebaked to the new engine dir; engine deps are provisioned when safe; `stockroom doctor smoke` / `stockroom dashboard` succeed without a manual full `sr-initialize`.
+
+### Use-Case 2 — Local rsync without `.venv`
+
+Developer copies plugin into `~/.cursor/plugins/local/stockroom` excluding `.venv`; same healing contract as Use-Case 1.
+
+### Use-Case 3 — Already-healthy engine
+
+Hook/session cycle is a no-op for env when a usable synced venv already exists; torch-safe rules are not violated (no exact sync after torch).
+
+## Requirements
+
+1. Verify issue [#17](https://github.com/Texarkanine/stockroom/issues/17) claims against the codebase before trusting them (do not implement the issue’s preferred approach by default).
+2. Evaluate proposed solutions (hook/rectify env heal vs shim-runtime refusal vs alternatives) and implement the **best** fix within stockroom’s constraints and goals — not merely the issue’s preferred option.
+3. After a plugin-root move, one hook/session cycle leaves the engine runnable without a manual full re-init.
+4. Do not leave users with a silent empty `.venv` that masks the real failure.
+5. Preserve torch-safe sync rules from `sr-initialize` / `docs/development.md`.
+6. Claude and Cursor hooks share the same healing contract (or document a deliberate difference).
+
+## Constraints
+
+1. Exact `uv sync --frozen` only when safe (missing env / pre-torch); never exact-sync after torch exists.
+2. Hooks must not fail the triggering event (`|| true` / silenced output today).
+3. Hook timeout budget is tight (currently 10s) — cold `uv sync` may not fit; design must account for this.
+4. `doctor` remains read-only (no install/sync/write).
+5. `rectify` must not create a shim where none exists (existing policy).
+6. Prefer durable, reusable ownership over one-off shell duplication in both hook JSON files.
+7. Operator directive: verify claims; evaluate approaches; choose best solution for stockroom — not blind trust of the issue text.
+
+## Acceptance Criteria
+
+1. After a plugin-root move without `.venv`, one hook/session cycle leaves `stockroom doctor smoke` (or equivalent) working without a manual full re-init.
+2. Empty/missing engine env does not produce a silent empty `.venv` that masks the failure mode.
+3. Torch-safe sync rules from `sr-initialize` / `docs/development.md` are preserved.
+4. Claude and Cursor hooks share the same healing contract (or a documented, justified difference).
+5. Chosen design is justified against verified root cause and stockroom goals (not merely “what #17 suggested”).
