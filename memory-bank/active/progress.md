@@ -50,3 +50,13 @@ Add stockroom to both `.cursor-plugin/marketplace.json` and `.claude-plugin/mark
     - Did not backfill cursor-warehouse into Claude catalog
 * Insights
     - Marketplace repo has no lint/test suite — verification was ephemeral JSON assertions only
+
+## 2026-07-09 - QA - COMPLETE
+
+* Work completed
+    - Semantic review against plan: Cursor + Claude stockroom entries, no version pin, prior entries preserved, README unchanged, PR #2 open
+    - Wrote `.qa-validation-status` = PASS
+* Decisions made
+    - PASS with no fixes — implementation matches plan and L4 marketplace invariants
+* Insights
+    - Live catalog visibility after merge remains m3; m2 deliverable is the PR + catalog entries
