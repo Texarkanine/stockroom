@@ -57,3 +57,13 @@ Add `--verbose` progress logging to `python -m stockroom.ingest` and `python -m 
     - Duplicate one-line `ProgressCallback` alias across ingest/embed left as-is (shared module still YAGNI)
 * Insights
     - Implementation matches plan; quiet-default and verbose paths covered
+
+## 2026-07-10 - REFLECT - COMPLETE
+
+* Work completed
+    - Reflection documented under `memory-bank/active/reflection/`
+    - Persistent memory bank: no reconcile needed
+* Decisions made
+    - Elegant form is optional `on_progress` + CLI `--verbose` — what we shipped
+* Insights
+    - Nothing notable beyond clean execution

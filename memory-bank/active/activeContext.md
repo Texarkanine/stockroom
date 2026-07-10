@@ -1,11 +1,11 @@
 # Active Context
 
 ## Current Task: add-ingest-embed-progress-logging
-**Phase:** QA - COMPLETE
+**Phase:** REFLECT COMPLETE
 
 ## What Was Done
-- Semantic QA PASS against plan; no fixes required
-- Duplicate `ProgressCallback` alias noted as acceptable YAGNI
+- Reflection written; persistent files unchanged (no system-level invalidation)
+- Ready for archive
 
 ## Next Step
-- Reflect phase (automatic per L2 workflow)
+- Run `/niko-archive` to create the archive document and finalize the current project
