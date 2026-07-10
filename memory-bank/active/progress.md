@@ -40,3 +40,14 @@ Exercise the release-please path so a cut version syncs into both stockroom plug
     - Roadmap Phase 5 checkboxes updated only after proof lands
 * Insights
     - m3 is mostly proof/ops, not product code — plan must resist inventing a release bump or CI for marketplace UI
+
+## 2026-07-09 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated plan against packaging conventions, L4 invariants, marketplace merge state, and TDD encoding
+    - Amended implementation steps to assert-before-mutate per unit
+    - Wrote `.preflight-status` = PASS
+* Decisions made
+    - PASS with advisory: E2E remains operator-gated for marketplace UI (expected; not a plan defect)
+* Insights
+    - Proof-heavy L3 plans still need per-step verify/mutate ordering or preflight fails TDD encoding

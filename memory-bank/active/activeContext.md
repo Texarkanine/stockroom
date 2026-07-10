@@ -1,12 +1,12 @@
 # Active Context
 
 ## Current Task: p5-m3-release-e2e-spine
-**Phase:** PLAN - COMPLETE
+**Phase:** PREFLIGHT - COMPLETE
 
 ## What Was Done
-- Component analysis: release-please already cut 0.1.0/0.1.1 lockstep; marketplace PR #2 merged; remaining work is verify + clean-machine E2E
-- Creative (high confidence): same-host `STOCKROOM_HOME` isolation + marketplace reinstall; operator UI; agent runbook/CLI verify; do not re-cut release
-- Wrote L3 plan: 6 steps, packaging tests + ephemeral asserts + operator runbook, no new product tech
+- Preflight validated plan against packaging tests, marketplace merge, L4 invariants, and TDD encoding
+- Amended implementation steps to explicit assert-before-mutate per unit
+- Wrote `.preflight-status` = PASS
 
 ## Next Step
-- Preflight phase to validate the plan
+- Operator: run `/niko-build` to execute the plan (release verify + E2E runbook; UI install steps need you)

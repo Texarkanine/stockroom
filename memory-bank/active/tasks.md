@@ -79,29 +79,37 @@ flowchart TD
 
 ## Implementation Plan
 
-1. **Verify release-please exercise (already landed)**
+Each step is verify-first (assert / test before any mutation). There is no greenfield product code unless step 6 triggers a defect fix.
+
+1. **Verify release-please exercise (already landed)** — TDD: assert before mutate
+    - Red/verify: run `skills/sr-search/tests/test_packaging.py` (must pass). Ephemeral asserts: tags `v0.1.0`/`v0.1.1` exist; PR #11 files include both plugin manifests + `.release-please-manifest.json`.
+    - Green/mutate: only if asserts fail — fix release-please config / manifests under packaging-test guidance, then re-run tests. **Do not open a new release PR unless lockstep is broken.**
     - Files: `.release-please-manifest.json`, `.cursor-plugin/plugin.json`, `.claude-plugin/plugin.json`, `skills/sr-search/tests/test_packaging.py`
-    - Changes: Run packaging tests (must stay green). Ephemeral asserts: tags `v0.1.0`/`v0.1.1`, PR #11 file list includes both manifests. Document evidence in progress / later reflection. **Do not open a new release PR unless lockstep fails.**
     - Creative ref: `creative-clean-machine-e2e.md` (verify, don't re-cut)
 
-2. **Confirm marketplace prerequisite**
-    - Files: `txrk9-agent-plugins` `.cursor-plugin/marketplace.json`, `.claude-plugin/marketplace.json` (read-only on `main`)
-    - Changes: Ephemeral assert stockroom entries present, no version pin. If missing on `main`, stop — m2 incomplete.
+2. **Confirm marketplace prerequisite** — TDD: assert before mutate
+    - Red/verify: ephemeral JSON asserts on `txrk9-agent-plugins` `main` — both catalogs include `stockroom` → `Texarkanine/stockroom`, no version field.
+    - Green/mutate: none expected (m2 delivered). If asserts fail → stop; do not invent catalog edits inside m3 without re-scoping.
+    - Files: `txrk9-agent-plugins` `.cursor-plugin/marketplace.json`, `.claude-plugin/marketplace.json` (read-only)
 
-3. **Author operator E2E runbook**
+3. **Author operator E2E runbook** — docs-only (no production code)
+    - Verify: runbook covers every behavior in the Test Plan (isolation, both harnesses, four surfaces, evidence capture).
     - Files: `memory-bank/active/e2e-clean-machine-runbook.md` (ephemeral; distilled into reflection/archive)
     - Changes: Ordered checklist — disable local/dev loads; add marketplace URL; install stockroom in Cursor and Claude; `export STOCKROOM_HOME=…` (empty dir); run initialize both harness forms; exercise four surfaces; capture outputs/URLs; note pass/fail per step.
 
-4. **Execute E2E with operator**
-    - Files: none in-repo until evidence captured
-    - Changes: Operator performs UI steps; agent assists with CLI verification under `STOCKROOM_HOME` (`stockroom doctor`, query counts, surface smokes). Record evidence into the runbook (or a sibling evidence section).
+4. **Execute E2E with operator** — assert outcomes as evidence
+    - Verify: each runbook step records pass/fail + captured output before marking complete.
+    - Files: none in-repo product code; evidence lands in the runbook
+    - Changes: Operator performs UI steps; agent assists with CLI verification under `STOCKROOM_HOME` (`stockroom doctor`, query counts, surface smokes).
 
-5. **Close Phase 5 bookkeeping**
+5. **Close Phase 5 bookkeeping** — only after step 4 evidence is green
+    - Verify: runbook shows release evidence + E2E spine pass for both harnesses (or documents an explicit harness blocker).
     - Files: `planning/roadmap.md` (Phase 5 checkboxes), memory-bank progress/tasks
-    - Changes: Check off release flow + end-to-end install test / done-when criteria when proof is complete. Fix README only if E2E found a factual doc bug.
+    - Changes: Check off release flow + end-to-end install test / done-when criteria. Fix README only if E2E found a factual doc bug (doc fix is content correction, not a new feature).
 
-6. **No product code by default**
-    - If E2E finds a real defect, fix under TDD in the owning component — that becomes a scoped repair inside this build, not a new milestone.
+6. **Defect repair (conditional)** — full TDD cycle if E2E finds a product bug
+    - Stub/write failing test in the owning component → implement → re-run tests → re-run affected E2E step.
+    - Scoped repair inside this build, not a new milestone.
 
 ## Technology Validation
 
@@ -115,6 +123,10 @@ No new technology - validation not required. Uses existing release-please, marke
 - **E2E finds product bugs**: Mitigation — fix under normal TDD in-scope; do not invent a Phase 6.
 - **Harness history missing on this host**: Mitigation — unlikely for the operator's box; if a harness has zero data, document which harness was proven and whether the other is blocked.
 
+## Preflight Amendments
+
+- **TDD encoding**: Rewrote implementation steps 1–6 so each unit is assert/verify-before-mutate (packaging tests + ephemeral asserts before any release/catalog change; runbook evidence before roadmap checkboxes; conditional defect repair is an explicit red→green cycle).
+
 ## Status
 
 - [x] Component analysis complete
@@ -122,6 +134,6 @@ No new technology - validation not required. Uses existing release-please, marke
 - [x] Test planning complete (TDD)
 - [x] Implementation plan complete
 - [x] Technology validation complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
 - [ ] QA
