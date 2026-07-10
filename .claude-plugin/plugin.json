@@ -1,7 +1,7 @@
 {
   "name": "stockroom",
   "description": "Local, faithful, searchable warehouse of your agentic-coding history.",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "author": {
     "name": "Texarkanine"
   },

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.4](https://github.com/Texarkanine/stockroom/compare/v0.1.3...v0.1.4) (2026-07-10)
+
+
+### Bug Fixes
+
+* **hooks:** sessionStart + uv python find bootstrap ([#23](https://github.com/Texarkanine/stockroom/issues/23)) ([201b353](https://github.com/Texarkanine/stockroom/commit/201b35399ef675a8ed8c942964b33d098afda94f))
+
 ## [0.1.3](https://github.com/Texarkanine/stockroom/compare/v0.1.2...v0.1.3) (2026-07-10)
 
 
