@@ -13,3 +13,24 @@ Add top-bar date-range selector wired to windowed `since`/`until` (prior-period 
     - Aligns with milestones.md advisory estimate for m1
 * Insights
     - Design choices on date-range UX (presets vs free-form) are expected to surface in plan/creative; preflight advisory preferred presets with clean prior-window math
+
+## 2026-07-10 - CREATIVE (date-range UX) - COMPLETE
+
+* Work completed
+    - UI/UX exploration for date-range control; documented in `creative/creative-date-range-ux.md`
+* Decisions made
+    - Preset exclusive control: Default | 7d | 30d | 90d | 1y; initial Default (omit bounds)
+    - Always send both `since`/`until` when a preset is active; no URL sync / persistence / free-form calendar in m1
+* Insights
+    - Preserves mixed endpoint defaults until operator opts in; prior-window math stays operator-obvious
+
+## 2026-07-10 - PLAN - COMPLETE
+
+* Work completed
+    - Component analysis across dashboard static modules + test surfaces
+    - Creative decision integrated; full TDD + implementation plan written to `tasks.md`
+* Decisions made
+    - Optional bounds arg on request plan/fetch; label helper for honest panel ranges
+    - No new dependencies; Python metrics/server unchanged for m1
+* Insights
+    - Main risk is dishonest static labels after bounds land — treated as first-class test/ impl step

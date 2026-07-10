@@ -1,16 +1,17 @@
 # Active Context
 
 ## Current Task: dashboard-polish-m1-top-controls
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- First unchecked L4 milestone classified: m1 — top-bar date-range (#4) + Aggregate/Compare segmented toggle (#5)
-- Complexity: Level 3 (multi-component enhancement; not self-contained)
+- Classified m1 as Level 3; creative resolved date-range UX (presets + Default)
+- Wrote full L3 plan: component analysis, TDD map, 5 implementation steps, challenges, pre-mortem
 
 ## Decisions
-- Sub-run task id: `dashboard-polish-m1-top-controls`
-- Parent L4 projectbrief retained; this sub-run implements only #4 and #5
-- Cross-milestone invariants from `milestones.md` still apply
+- Date range: `Default | 7d | 30d | 90d | 1y`; initial Default omits bounds
+- `buildRequestPlan`/`fetchSnapshot` gain optional `{ since, until } | null`
+- #5 is CSS/ARIA segmented restyle only; mode stays render-only
+- No server changes expected for m1
 
 ## Next Step
-- Load Level 3 workflow → Plan phase
+- Preflight to validate the plan, then operator runs `/niko-build`
