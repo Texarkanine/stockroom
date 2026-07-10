@@ -14,18 +14,18 @@ It ships as a **dual-manifest plugin** (one shared `skills/` tree serving both
 Cursor and Claude Code) with **no build step**: the committed layout is the
 install layout.
 
-> **Status: Phase 5 — distribution.** Product surfaces are in tree. Install docs
-> below describe the intended marketplace path and local/dev loaders. Stockroom
-> is **not yet listed** in [`txrk9-agent-plugins`](https://github.com/Texarkanine/txrk9-agent-plugins);
-> end-to-end install proof waits on that listing (and a release on `main`).
+> **Status: v1 ship gate met.** Listed in [`txrk9-agent-plugins`](https://github.com/Texarkanine/txrk9-agent-plugins);
+> release-please syncs version into both plugin manifests; marketplace install →
+> `sr-initialize` → all four surfaces proven on Cursor and Claude Code against
+> real history. Known caveat: Cursor `sessionStart` auto-dashboard on some WSL
+> hosts — see [#12](https://github.com/Texarkanine/stockroom/issues/12); use
+> `/sr-dashboard` or `stockroom dashboard` instead.
 
 ## Install
 
 The committed repo **is** the install layout — dual manifests over a shared [`skills/`](skills/) tree, no build or bundle step.
 
-### Marketplace (intended path)
-
-Once stockroom appears in the marketplace catalog:
+### Marketplace
 
 **Cursor** ([marketplace docs](https://cursor.com/docs/plugins)):
 
@@ -73,7 +73,7 @@ After the plugin is loaded, run **`sr-initialize`** once (Cursor: `/sr-initializ
 
 ## Skills and invocation
 
-Invocation forms differ by harness (from [Cursor Plugins](https://cursor.com/docs/plugins) and [Claude Code plugin namespacing](https://code.claude.com/docs/en/plugins)). Engine calls after setup are always `stockroom <subcommand>` on PATH; only the *skill* slash forms below are harness-specific. These forms are documented from the platform contracts — they have **not** yet been proven against a marketplace install of stockroom.
+Invocation forms differ by harness (from [Cursor Plugins](https://cursor.com/docs/plugins) and [Claude Code plugin namespacing](https://code.claude.com/docs/en/plugins)). Engine calls after setup are always `stockroom <subcommand>` on PATH; only the *skill* slash forms below are harness-specific. These forms have been proven against a marketplace install of stockroom on both Cursor and Claude Code.
 
 | Skill | Cursor | Claude Code | Role |
 | --- | --- | --- | --- |
@@ -88,7 +88,7 @@ Invocation forms differ by harness (from [Cursor Plugins](https://cursor.com/doc
 - Prefer **`/sr-search`** (Cursor) or **`/stockroom:sr-search`** (Claude Code) when you are unsure whether the question is structured or meaning-based.
 - Use **`/sr-query`** / **`/stockroom:sr-query`** for exact SQL, filters, and counts.
 - Use **`/sr-semantic`** / **`/stockroom:sr-semantic`** for recall by meaning.
-- Use **`/sr-dashboard`** / **`/stockroom:sr-dashboard`** for the at-a-glance UI (also launched by the session-start hook).
+- Use **`/sr-dashboard`** / **`/stockroom:sr-dashboard`** for the at-a-glance UI (also launched by the session-start hook where the harness PATH is complete; see [#12](https://github.com/Texarkanine/stockroom/issues/12) for Cursor-on-WSL).
 
 ## The torch-safe run contract
 
