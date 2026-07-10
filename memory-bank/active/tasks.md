@@ -91,17 +91,17 @@ Single tree under the XDG data home (warehouse DB, lock, and `logs/`). `STOCKROO
    - Files: `tests/test_doctor.py`, `tests/test_doctor_cli.py` → `src/stockroom/doctor.py`
    - Changes: probe reports `home` + `home-source` from `resolve_home()` (no legacy keys; no mkdir)
 
-3. **Docstring / comment sweep**
+3. **Docstring / comment sweep** ✅
    - Files: `tests/conftest.py`, `tests/test_warehouse_open.py`, schedule docs if needed
    - Changes: default path language → XDG data home
 
-4. **Memory bank + planning reconciliation**
+4. **Memory bank + planning reconciliation** ✅
    - Files: `systemPatterns.md`, `techContext.md`, brainstorm O1/D7, `tech-brief.md`, related brainstorm notes
    - Changes: shipped default is XDG data home + `STOCKROOM_HOME`; O1 gap closed; **no migration story**
 
-5. **Skills / operator docs**
+5. **Skills / operator docs** ✅
    - Files: `sr-initialize` if useful; spike `export_dataset.py` (+ README) default path
-   - Changes: stop teaching `~/.stockroom` as current home
+   - Changes: stop teaching `~/.stockroom` as current home (`sr-initialize` already had none)
 
 6. **Verification**
    - Targeted new tests, then full engine/CI test recipe; fix regressions
