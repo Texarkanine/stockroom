@@ -101,7 +101,7 @@ None — creative resolved architecture; no further creative phase needed.
 - [x] Pre-Mortem complete
 - [x] Preflight
 - [x] Build
-- [ ] QA
+- [x] QA
 
 ### Build checklist
 

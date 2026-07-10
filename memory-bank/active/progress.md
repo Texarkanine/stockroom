@@ -50,3 +50,12 @@ Implement start-time identity-aware replace for the machine-scoped dashboard so 
     - Only SIGTERM pid from our identity file after verify_owned
 * Insights
     - `make test`/`make lint` sync strips torch; heal/freeze restores it — unrelated to this change
+
+## 2026-07-10 - QA - COMPLETE
+
+* Work completed
+    - Semantic review PASS; minor test polish only
+* Decisions made
+    - No substantive rework; implementation matches creative Option B
+* Insights
+    - Package `__version__` may lag marketplace version; `app_dir` remains the primary staleness signal after plugin hash moves

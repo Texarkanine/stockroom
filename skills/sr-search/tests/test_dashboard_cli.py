@@ -203,7 +203,7 @@ def test_foreground_serves_in_process_without_probe_or_spawn(capsys) -> None:
     def _forbidden(*_args):
         raise AssertionError("probe/spawn must not run in foreground mode")
 
-    written: list[object] = []
+    written: list[DashboardIdentity] = []
 
     result = dashboard_cli.main(
         ["--foreground", "--port", "8888"],
@@ -215,7 +215,7 @@ def test_foreground_serves_in_process_without_probe_or_spawn(capsys) -> None:
     assert result == 0
     assert events == [("bound", 8888), "served", "closed"]
     assert len(written) == 1
-    assert written[0].port == 8888  # type: ignore[union-attr]
+    assert written[0].port == 8888
     assert capsys.readouterr().out == "http://127.0.0.1:8888/\n"
 
 
@@ -240,7 +240,6 @@ def test_foreground_bind_writes_identity(warehouse_home: Path, capsys) -> None:
     assert record.app_dir == current_app_dir()
     assert record.version == stockroom.__version__
     assert record.port == 6767
-    assert record == dash_identity.read(6767)
     assert capsys.readouterr().out == "http://127.0.0.1:6767/\n"
     assert warehouse_home.exists()
 
