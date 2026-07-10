@@ -15,6 +15,10 @@
                     "type": "json",
                     "path": ".claude-plugin/plugin.json",
                     "jsonpath": "$.version"
+                },
+                {
+                    "type": "generic",
+                    "path": "skills/sr-search/src/stockroom/__init__.py"
                 }
             ],
             "pull-request-header": ":service_dog: I have created a release \\*bark\\* \\*woof\\*"
