@@ -1,15 +1,11 @@
 # Active Context
 
-## Current Task: dashboard-polish-m2-write-read-ratio
-**Phase:** REFLECT - COMPLETE
+## Current Task: dashboard-polish-m3-labels-and-help
+**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
 
 ## What Was Done
-- m2 Write/Read ratio built and QA-passed
-- Reflection written; persistent files unchanged (no invalidated system-level content)
-
-## Reflection Outcome
-- Plan held; no deviations
-- Insight: paired write/read → ratio needs a dedicated builder path, not `selectedDatasets` reuse
+- Advanced L4: m2 checked off; classified next unchecked milestone (m3: #8 + #7) as Level 3
+- Rationale: enhancement spanning metrics/display contract for friendly project names plus accessible tooltip chrome across Session Efficiency and First-Prompt Quality panels — multiple components, not self-contained → L3 (matches milestones.md advisory estimate)
 
 ## Next Step
-- Operator runs `/niko` to continue to the next milestone
+- Load Level 3 workflow → Plan phase
