@@ -1,10 +1,10 @@
 # Active Context
 
 ## Current Task: fix-session-start-heal-after-plugin-move
-**Phase:** QA - COMPLETE
+**Phase:** REFLECT COMPLETE
 
 ## What Was Done
-- QA PASS: dep-light `stockroom.home` extract matches plan; no debris; docs/patterns updated; tests pin the heal import contract
+- Reflection written; persistent files reconciled (systemPatterns already updated in build; product/tech context unchanged)
 
 ## Next Step
-- Reflect phase
+- Run `/niko-archive` to archive and clear ephemeral memory-bank state
