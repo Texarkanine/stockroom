@@ -85,7 +85,7 @@ Adopt XDG Base Directory layout for stockroom-owned data on all Unix-like platfo
     - Confirmed warehouse owns path policy; schedule remains a consumer of `home_dir()`
     - Confirmed no existing XDG helpers; edits under `skills/` only
 * Decisions made
-    - Plan amended: pure `recommend_home`/`resolve_home()` for source labeling without doctor mkdir
+    - Plan amended: pure `resolve_home()` for source labeling without doctor mkdir
     - Treat `creative-legacy-home-migration.md` as superseded exploration only
 * Insights
     - Without migration, detect-before-mkdir risk collapses; remaining risk is doc sprawl and stale installed cron log paths

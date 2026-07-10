@@ -1,12 +1,12 @@
 # Active Context
 
 ## Current Task: xdg-base-directory-layout
-**Phase:** PLAN - AMENDED (awaiting re-preflight)
+**Phase:** BUILD - READY
 
 ## What Was Done
-- Operator waived legacy migration (private installs only; manual `cp` / fresh install)
-- Rewrote `tasks.md` and `projectbrief.md` without migrate/conflict/legacy doctor facts
-- Q2 creative doc superseded — do not implement
+- Re-preflight PASS on amended no-migration plan
+- Plan/advisory: pure `resolve_home()` so doctor does not mkdir
+- `creative-legacy-home-migration.md` treated as superseded (do not build)
 
 ## Next Step
-- Re-run `/niko-preflight`, then `/niko-build`
+- Execute `/niko-build` implementation steps
