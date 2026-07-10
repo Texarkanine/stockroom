@@ -1,11 +1,12 @@
 # Active Context
 
 ## Current Task: xdg-base-directory-layout
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - IN-PROGRESS (routing to creative for open questions)
 
 ## What Was Done
-- Intent clarified and approved: implement [issue #3](https://github.com/Texarkanine/stockroom/issues/3) as written
-- Complexity determined: Level 3 — complete feature spanning path resolution, migration, doctor reporting, docs/skills, and tests; design choices needed (data vs state split, migrate vs defer), but not a multi-subsystem redesign
+- Intent clarified; Level 3 classified; ephemeral MB files created
+- Component scan: path ownership concentrated in `warehouse.home_dir()`; `schedule._log_path` / install derive from that home; `doctor.probe_facts` reports no warehouse-home facts today; docs/memory bank / O1 still say `~/.stockroom/`
+- Identified two open questions: directory layout shape (single tree vs XDG data/state split); legacy migration strategy (auto / explicit / defer)
 
 ## Next Step
-- Load Level 3 workflow and begin PLAN phase
+- Creative phase: resolve Q1 (layout shape), then Q2 (migration strategy); return to plan to finalize implementation
