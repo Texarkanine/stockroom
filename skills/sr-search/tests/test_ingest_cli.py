@@ -113,3 +113,54 @@ def test_cli_rejects_unknown_harness(
         ai_tracking_db=ai_tracking_db,
     )
     assert result.returncode != 0
+
+
+def test_cli_quiet_default_has_no_mid_run_progress(
+    tmp_path: Path,
+    cursor_root: Path,
+    claude_root: Path,
+    ai_tracking_db: Path,
+) -> None:
+    """Without ``--verbose``, stdout is only the end-of-run summary."""
+    home = tmp_path / "home"
+    result = _run_cli(
+        "--full",
+        "--harness",
+        "claude",
+        home=home,
+        cursor_root=cursor_root,
+        claude_root=claude_root,
+        ai_tracking_db=ai_tracking_db,
+    )
+    assert result.returncode == 0, result.stderr
+    lines = [line for line in result.stdout.splitlines() if line.strip()]
+    assert lines[0] == "ingest complete:"
+    assert any("claude:" in line for line in lines)
+    assert not any("/" in line and "sessions" in line for line in lines)
+
+
+def test_cli_verbose_prints_progress_and_summary(
+    tmp_path: Path,
+    cursor_root: Path,
+    claude_root: Path,
+    ai_tracking_db: Path,
+) -> None:
+    """``--verbose`` emits harness progress lines and still prints the summary."""
+    home = tmp_path / "home"
+    result = _run_cli(
+        "--full",
+        "--verbose",
+        "--harness",
+        "claude",
+        home=home,
+        cursor_root=cursor_root,
+        claude_root=claude_root,
+        ai_tracking_db=ai_tracking_db,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "claude: " in result.stdout
+    assert any(
+        "/" in line and line.strip().endswith("sessions")
+        for line in result.stdout.splitlines()
+    )
+    assert "ingest complete:" in result.stdout

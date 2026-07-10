@@ -289,6 +289,66 @@ def test_embed_cli_full_reembeds(warehouse_home: Path, capsys) -> None:
         con.close()
 
 
+def test_embed_pending_on_progress_reports_message_counts(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """``on_progress`` receives a start line and ``i/N`` lines per selected message."""
+    _insert_message(migrated_con, ordinal=0, text="alpha")
+    _insert_message(migrated_con, ordinal=1, text="beta")
+    _insert_message(migrated_con, ordinal=2, text="gamma")
+    lines: list[str] = []
+    written = embed.embed_pending(
+        migrated_con, FakeEncoder(), on_progress=lines.append
+    )
+    assert written == 3
+    assert lines[0] == "embed: 3 messages"
+    assert lines[1:] == [
+        "embed: 1/3 messages",
+        "embed: 2/3 messages",
+        "embed: 3/3 messages",
+    ]
+
+
+def test_embed_cli_quiet_default_has_no_mid_run_progress(
+    warehouse_home: Path, capsys
+) -> None:
+    """Without ``--verbose``, stdout is only the final embedded-count line."""
+    _seed_warehouse_message("hello world", ordinal=0)
+    _seed_warehouse_message("second message", ordinal=1)
+    code = embed.main([], encoder_factory=FakeEncoder)
+    assert code == 0
+    out = capsys.readouterr().out
+    lines = [line for line in out.splitlines() if line.strip()]
+    assert len(lines) == 1
+    assert "embedded 2" in lines[0]
+    assert not any("/" in line and "messages" in line for line in lines)
+
+
+def test_embed_cli_verbose_prints_progress_and_count(
+    warehouse_home: Path, capsys
+) -> None:
+    """``--verbose`` emits progress lines and still prints the embedded count."""
+    _seed_warehouse_message("hello world", ordinal=0)
+    _seed_warehouse_message("second message", ordinal=1)
+    code = embed.main(["--verbose"], encoder_factory=FakeEncoder)
+    assert code == 0
+    out = capsys.readouterr().out
+    assert "embed: 2 messages" in out
+    assert "embed: 1/2 messages" in out
+    assert "embed: 2/2 messages" in out
+    assert "embedded 2" in out
+
+
+def test_embed_cli_verbose_missing_warehouse_still_friendly(
+    warehouse_home: Path, capsys
+) -> None:
+    """``--verbose`` does not change the missing-warehouse friendly error path."""
+    code = embed.main(["--verbose"])
+    assert code == 1
+    err = capsys.readouterr().err
+    assert "run `stockroom ingest` first" in err
+
+
 def test_bge_encoder_encodes_to_384_on_cpu() -> None:
     """``BgeEncoder`` loads ``bge-small-en-v1.5`` (no ``trust_remote_code``) and
     encodes to 384-dim; a default chunk stays within the 512-token window.

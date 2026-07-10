@@ -31,32 +31,11 @@ Add `--verbose` progress logging to `python -m stockroom.ingest` and `python -m 
 
 ## Implementation Plan
 
-1. **Orchestrator progress seam (ingest library)** — TDD cycle
-   - Files: `skills/sr-search/tests/test_ingest_orchestrator.py`, then `skills/sr-search/src/stockroom/ingest/__init__.py`
-   - Tests first: add failing cases that pass `on_progress=capture` and assert harness-start + `i/N` lines; assert default `on_progress=None` invokes nothing.
-   - Then implement: optional `on_progress: Callable[[str], None] | None = None` on `ingest` and `_ingest_harness`. After selection, emit `{harness}: N sessions` (N = selected discovered conversations). In the selected loop, emit `{harness}: i/N sessions` (1-based over selected conversations). Default `None` = no calls.
-
-2. **Ingest CLI `--verbose`** — TDD cycle
-   - Files: `skills/sr-search/tests/test_ingest_cli.py`, then `skills/sr-search/src/stockroom/ingest/__main__.py`
-   - Tests first: quiet `--full` stdout is summary-only (no `N/N` / mid-run progress); `--verbose --full` includes progress substrings plus `ingest complete:`; exit 0.
-   - Then implement: `--verbose` flag; when set, pass `on_progress` that `print`s each line with `flush=True` (so long runs show live under pipes/tee). Keep end-of-run summary unconditional. Optional: elapsed seconds when verbose.
-
-3. **Embed pipeline + CLI `--verbose`** — TDD cycle
-   - Files: `skills/sr-search/tests/test_embed.py`, then `skills/sr-search/src/stockroom/embed.py`
-   - Tests first: `embed_pending(..., on_progress=capture)` gets start + `i/N` lines; `embed.main([])` quiet (count only); `embed.main(["--verbose"], …)` shows progress + count; missing-warehouse + `--verbose` still exit 1 with existing hint.
-   - Then implement: `on_progress` on `embed_pending`; `--verbose` on parser/`main` wiring `print(..., flush=True)`; preserve missing-warehouse path before encoder construction.
-
-4. **Docs touch**
-   - Files: `docs/development.md` (and CLI module docstrings if they list flags)
-   - Changes: Mention `--verbose` on ingest/embed as optional progress output; keep brief.
-
-5. **Verify**
-   - Run targeted new/changed tests, then full `make test` / lint as required by build phase.
-
-## Preflight Amendments
-
-- Made TDD ordering explicit per implementable unit (tests before production code in steps 1–3).
-- Progress printer uses `flush=True` so operators see lines immediately on long runs.
+1. [x] **Orchestrator progress seam (ingest library)** — TDD cycle
+2. [x] **Ingest CLI `--verbose`** — TDD cycle
+3. [x] **Embed pipeline + CLI `--verbose`** — TDD cycle
+4. [x] **Docs touch**
+5. [x] **Verify** — `make lint` clean; `make test` → 475 passed, 3 skipped
 
 ## Technology Validation
 
@@ -70,16 +49,20 @@ No new technology - validation not required
 
 ## Challenges & Mitigations
 
-- **Denominator ambiguity (discovered vs selected vs written sessions including subagents):** Issue examples use session counts like `47/200`. Mitigation: use **selected discovered conversations** as `N` for the progress denominator (watermark-filtered work units); harness-start reports that same `N`. Subagent writes still happen inside each conversation without inflating `N` (or document if we count written NormalizedSessions instead — prefer discovered-selected for operator clarity).
-- **Library printing vs injection:** Printing from deep library code would break quiet library callers and complicate tests. Mitigation: optional `on_progress` callback only; CLI is the sole default printer.
-- **Subprocess vs in-process assertions for ingest progress:** Fixture ingest is fast; progress lines still appear. Mitigation: assert substrings in subprocess stdout; use orchestrator unit tests for precise line shapes.
-- **Dispatcher / `stockroom ingest`:** Subcommand forwarding already passes argv through; no dispatcher change expected. Mitigation: if a packaging/help test pins exact help text, update it only if it fails.
+- **Denominator ambiguity:** Progress `N` = selected discovered conversations (ingest) / selected messages (embed).
+- **Library printing vs injection:** Optional `on_progress` callback; CLI wires `print(..., flush=True)`.
+- **Subprocess vs in-process:** Covered by both CLI and orchestrator/unit tests.
 
 ## Pre-Mortem
 
-- **Plan failed because progress was implemented only in CLI wrappers wrapping a silent library loop:** Would leave no way to unit-test progress without subprocess timing. Response: Step 1/3 already require library `on_progress` seams — keep that as the load-bearing design; CLI only wires the flag.
-- **Plan failed because default runs became noisy and broke CI assertions on exact stdout:** Response: already covered by quiet-default behaviors and existing summary assertions; add explicit “no progress substring without `--verbose`” checks.
-- **Plan failed by over-scoping elapsed time / watermark-skip stats into a redesign of IngestSummary:** Response: treat those as optional verbose-only print lines in CLI after the run, not schema/API changes to `IngestSummary`.
+- CLI-only wrapping without library seam — avoided via `on_progress`.
+- Noisy default breaking CI — quiet-default tests added.
+- Over-scoping `IngestSummary` — not done; elapsed/skip stats deferred.
+
+## Preflight Amendments
+
+- Made TDD ordering explicit per implementable unit (tests before production code in steps 1–3).
+- Progress printer uses `flush=True` so operators see lines immediately on long runs.
 
 ## Status
 
@@ -89,5 +72,5 @@ No new technology - validation not required
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight
-- [ ] Build
+- [x] Build
 - [ ] QA

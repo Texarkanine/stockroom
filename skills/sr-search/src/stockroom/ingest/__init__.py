@@ -23,6 +23,7 @@ the milestone-2 ``warehouse.open()`` chokepoint.
 """
 
 import json
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -31,6 +32,9 @@ import duckdb
 from stockroom import warehouse
 from stockroom.ingest import claude, cursor, enrich, paths, sources, writer
 from stockroom.ingest.model import NormalizedSession
+
+#: Optional progress reporter: one human-readable line per call (CLI wires print).
+ProgressCallback = Callable[[str], None]
 
 #: The harnesses ingested by default (in deterministic order).
 _HARNESSES = ("cursor", "claude")
@@ -156,8 +160,15 @@ def _ingest_harness(
     *,
     full: bool,
     ai_tracking_db: Path | None,
+    on_progress: ProgressCallback | None = None,
 ) -> HarnessSummary:
-    """Discover, parse, enrich, write, and advance the watermark for one harness."""
+    """Discover, parse, enrich, write, and advance the watermark for one harness.
+
+    When ``on_progress`` is set, emits a harness-start line with the selected
+    conversation count, then ``{harness}: i/N sessions`` after each selected
+    conversation is processed (``N`` is selected discovered conversations, not
+    subagent-inflated write counts).
+    """
     summary = HarnessSummary()
     root = _root_for(harness)
     discovered = sources.discover(harness, root)
@@ -173,6 +184,10 @@ def _ingest_harness(
             discovered, last_mtime=last_mtime, last_path=last_path
         )
 
+    total = len(selected)
+    if on_progress is not None:
+        on_progress(f"{harness}: {total} sessions")
+
     enrichment: dict[str, list[str]] = {}
     if harness == "cursor":
         db_path = (
@@ -180,12 +195,14 @@ def _ingest_harness(
         )
         enrichment = enrich.read_enrichment(db_path)
 
-    for discovered_session in selected:
+    for index, discovered_session in enumerate(selected, start=1):
         for session in _parse_discovered(harness, discovered_session, enrichment):
             writer.write_session(con, session)
             summary.sessions += 1
             summary.messages += len(session.messages)
             summary.tool_calls += sum(len(m.tool_calls) for m in session.messages)
+        if on_progress is not None:
+            on_progress(f"{harness}: {index}/{total} sessions")
 
     # Advance the watermark to the high-water of everything discovered (we have
     # now ingested up to it — the older files were written on prior runs).
@@ -206,6 +223,7 @@ def ingest(
     full: bool = False,
     con: duckdb.DuckDBPyConnection | None = None,
     ai_tracking_db: Path | None = None,
+    on_progress: ProgressCallback | None = None,
 ) -> IngestSummary:
     """Run the trace ingest and return per-harness write counts.
 
@@ -216,6 +234,8 @@ def ingest(
     is opened read-write through ``warehouse.open()`` (and closed on return);
     tests inject a connection. ``ai_tracking_db`` overrides the Cursor
     enrichment DB location (default: :func:`enrich.default_db_path`).
+    ``on_progress``, when set, receives human-readable progress lines (see
+    :func:`_ingest_harness`); default ``None`` emits nothing.
     """
     harnesses = _HARNESSES if harness is None else (harness,)
     summary = IngestSummary()
@@ -224,7 +244,11 @@ def ingest(
     try:
         for current in harnesses:
             summary.by_harness[current] = _ingest_harness(
-                connection, current, full=full, ai_tracking_db=ai_tracking_db
+                connection,
+                current,
+                full=full,
+                ai_tracking_db=ai_tracking_db,
+                on_progress=on_progress,
             )
     finally:
         if owns_connection:

@@ -38,3 +38,13 @@ Add `--verbose` progress logging to `python -m stockroom.ingest` and `python -m 
     - Optional `on_progress` default keeps `test_semantic` / dashboard ingest callers unchanged
 * Insights
     - All production callers use keyword defaults; signature extension is non-breaking
+
+## 2026-07-10 - BUILD - COMPLETE
+
+* Work completed
+    - `on_progress` on ingest + embed_pending; `--verbose` on both CLIs
+    - Tests extended; docs updated; lint clean; 475 passed, 3 skipped
+* Decisions made
+    - Deferred elapsed-time nice-to-have
+* Insights
+    - None beyond plan

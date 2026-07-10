@@ -30,6 +30,8 @@ import duckdb
 
 from stockroom import warehouse
 
+#: Optional progress reporter: one human-readable line per call (CLI wires print).
+ProgressCallback = Callable[[str], None]
 #: The local sentence-transformers model used for message embeddings. Recorded
 #: per ``embeddings`` row (``embed_model``) so a future model swap re-embeds only
 #: rows lacking the *current* model — see
@@ -109,6 +111,7 @@ def embed_pending(
     *,
     embed_model: str = EMBED_MODEL,
     full: bool = False,
+    on_progress: ProgressCallback | None = None,
 ) -> int:
     """Embed messages lacking a current-model vector; return rows written.
 
@@ -125,6 +128,10 @@ def embed_pending(
     written: ``(harness, 'messages', message_id, chunk_index, embed_model,
     vector)``. ``tool_calls`` are not embedded in m1. Assumes a read-write
     connection with ``vss`` loaded (the chokepoint's ``ensure_vss``).
+
+    When ``on_progress`` is set, emits ``embed: N messages`` then
+    ``embed: i/N messages`` after each selected message (``N`` is the selected
+    message count).
     """
     if full:
         selected = con.execute(
@@ -143,8 +150,12 @@ def embed_pending(
             [embed_model],
         ).fetchall()
 
+    total = len(selected)
+    if on_progress is not None:
+        on_progress(f"embed: {total} messages")
+
     written = 0
-    for harness, message_id, text in selected:
+    for index, (harness, message_id, text) in enumerate(selected, start=1):
         # Clear any prior vectors for this owner (a model change replaces them;
         # the PK has no embed_model, so coexisting models would collide).
         con.execute(
@@ -161,6 +172,8 @@ def embed_pending(
                 [harness, message_id, chunk_index, embed_model, vector],
             )
             written += 1
+        if on_progress is not None:
+            on_progress(f"embed: {index}/{total} messages")
     return written
 
 
@@ -205,6 +218,11 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Re-embed all messages, ignoring existing rows (mirrors ingest --full).",
     )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Print progress while embedding (quiet by default).",
+    )
     return parser
 
 
@@ -234,9 +252,12 @@ def main(
         return 1
 
     encoder = encoder_factory()
+    on_progress = (lambda line: print(line, flush=True)) if args.verbose else None
     con = warehouse.open(read_only=False)
     try:
-        written = embed_pending(con, encoder, full=args.full)
+        written = embed_pending(
+            con, encoder, full=args.full, on_progress=on_progress
+        )
     finally:
         con.close()
 

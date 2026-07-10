@@ -1,10 +1,11 @@
-"""CLI entrypoint: ``python -m stockroom.ingest [--full] [--harness ...]``.
+"""CLI entrypoint: ``python -m stockroom.ingest [--full] [--harness ...] [--verbose]``.
 
 Runs the trace ingest against the operator's history (or the env-pointed
 fixture roots in tests), opening the warehouse read-write through
 :func:`stockroom.warehouse.open`, and prints a short per-harness summary. This
 is the only user-facing surface milestone 3 ships; ``sr-query`` and the
-dashboard adopt the same env conventions later.
+dashboard adopt the same env conventions later. Pass ``--verbose`` for
+mid-run progress lines (quiet by default).
 """
 
 import argparse
@@ -28,13 +29,21 @@ def _build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Ingest only this harness (default: both).",
     )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Print progress while ingesting (quiet by default).",
+    )
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     """Parse arguments, run the ingest, print a summary, and return an exit code."""
     args = _build_parser().parse_args(argv)
-    summary = ingest.ingest(harness=args.harness, full=args.full)
+    on_progress = (lambda line: print(line, flush=True)) if args.verbose else None
+    summary = ingest.ingest(
+        harness=args.harness, full=args.full, on_progress=on_progress
+    )
 
     print("ingest complete:")
     for harness, counts in summary.by_harness.items():
