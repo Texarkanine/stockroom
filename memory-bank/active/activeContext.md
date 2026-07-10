@@ -1,12 +1,12 @@
 # Active Context
 
 ## Current Task: xdg-base-directory-layout
-**Phase:** PREFLIGHT - COMPLETE (PASS)
+**Phase:** PLAN - AMENDED (awaiting re-preflight)
 
 ## What Was Done
-- Validated L3 plan against codebase: TDD ordering, conventions, dependencies, completeness
-- Wrote `.preflight-status` = PASS
-- Advisory only: optional future `schedule status` stale-log warning (out of issue scope; doctor/docs suffice)
+- Operator waived legacy migration (private installs only; manual `cp` / fresh install)
+- Rewrote `tasks.md` and `projectbrief.md` without migrate/conflict/legacy doctor facts
+- Q2 creative doc superseded — do not implement
 
 ## Next Step
-- Operator runs `/niko-build` to implement
+- Re-run `/niko-preflight`, then `/niko-build`

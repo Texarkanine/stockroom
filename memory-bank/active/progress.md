@@ -1,6 +1,6 @@
 # Progress
 
-Adopt XDG Base Directory layout for stockroom-owned data on all Unix-like platforms (Linux, WSL, macOS), with `STOCKROOM_HOME` override preserved, a safe legacy `~/.stockroom/` migration path, doctor reporting, docs/skills updates, and tests — as specified in [issue #3](https://github.com/Texarkanine/stockroom/issues/3).
+Adopt XDG Base Directory layout for stockroom-owned data on all Unix-like platforms (Linux, WSL, macOS), with `STOCKROOM_HOME` override preserved, doctor home facts, docs/skills updates, and tests — as specified in [issue #3](https://github.com/Texarkanine/stockroom/issues/3), amended to omit legacy migration (operator waiver).
 
 **Complexity:** Level 3
 
@@ -66,3 +66,26 @@ Adopt XDG Base Directory layout for stockroom-owned data on all Unix-like platfo
     - Do not expand scope to schedule-status stale-path detection in this issue (advisory only)
 * Insights
     - Primary operational risk remains detect-before-mkdir and dual-warehouse conflict messaging
+
+## 2026-07-09 - PLAN - AMENDED (drop legacy migration)
+
+* Work completed
+    - Operator direction: no legacy migration — only two private installs; fresh install / manual `cp`
+    - Rewrote `tasks.md` + `projectbrief.md`; invalidated preflight status pending re-run
+* Decisions made
+    - Issue #3 migration acceptance waived for this task; Q2 creative superseded
+    - Scope is XDG path retarget + doctor home facts + doc reconciliation only
+* Insights
+    - Simpler `home_dir()` (STOCKROOM_HOME else XDG data home) — no detect-before-mkdir dance
+
+## 2026-07-09 - PREFLIGHT - COMPLETE (PASS, amended plan)
+
+* Work completed
+    - Re-validated TDD ordering on steps 1–2; docs steps 3–5 need no TDD
+    - Confirmed warehouse owns path policy; schedule remains a consumer of `home_dir()`
+    - Confirmed no existing XDG helpers; edits under `skills/` only
+* Decisions made
+    - Plan amended: pure `recommend_home`/`resolve_home()` for source labeling without doctor mkdir
+    - Treat `creative-legacy-home-migration.md` as superseded exploration only
+* Insights
+    - Without migration, detect-before-mkdir risk collapses; remaining risk is doc sprawl and stale installed cron log paths

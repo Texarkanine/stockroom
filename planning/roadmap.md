@@ -100,8 +100,8 @@ Phase 4 delivers the v1 headline UI, and with it the metric substrate that the f
 
 **Milestones**
 
-- [ ] **Metrics + local server + vendored front-end** — a light/stdlib web server (framework chosen here) computing at-a-glance usage and activity metrics over the warehouse, all front-end assets vendored (no CDN), served read-only on port 6767; metrics designed as the time-series substrate for the post-v1 recap.
-- [ ] **`sr-dashboard` + session-start hook** — on-demand launch that prints the local URL, plus the single session-start hook that launches the dashboard only, both invoking it via the on-path `stockroom dashboard` subcommand (added to the dispatcher here): idempotent, fire-and-forget, bounded by the hook timeout, never erroring, and never ingesting or migrating.
+- [x] **Metrics + local server + vendored front-end** — a light/stdlib web server (framework chosen here) computing at-a-glance usage and activity metrics over the warehouse, all front-end assets vendored (no CDN), served read-only on port 6767; metrics designed as the time-series substrate for the post-v1 recap.
+- [x] **`sr-dashboard` + session-start hook** — on-demand launch that prints the local URL, plus the single session-start hook that launches the dashboard only, both invoking it via the on-path `stockroom dashboard` subcommand (added to the dispatcher here): idempotent, fire-and-forget, bounded by the hook timeout, never erroring, and never ingesting or migrating.
 
 **Done when:** the dashboard renders real metrics fully offline, `sr-dashboard` reliably surfaces the URL, and the session-start hook launches it exactly once regardless of how many sessions start — never erroring, never blocking session start, never touching the schema.
 
