@@ -76,3 +76,13 @@ Exercise the release-please path so a cut version syncs into both stockroom plug
     - Phase 5 done-when met without fixing Cursor sessionStart hook (#12 remains open)
 * Insights
     - Manual `/sr-dashboard` / CLI dashboard is enough for the four-surface gate; auto-hook is a follow-up bug
+
+## 2026-07-09 - QA - COMPLETE
+
+* Work completed
+    - Semantic review against plan: release verify, marketplace, E2E runbook evidence, roadmap/README bookkeeping, #12 explicitly not fixed
+    - Wrote `.qa-validation-status` = PASS
+* Decisions made
+    - PASS with no fixes — docs/bookkeeping match plan; no product code shipped (correct for proof milestone)
+* Insights
+    - Mid-build operator correction (#12 out of scope) is a feature of the workflow, not a QA miss

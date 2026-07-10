@@ -145,4 +145,4 @@ No new technology - validation not required. Uses existing release-please, marke
 - [x] Technology validation complete
 - [x] Preflight
 - [x] Build
-- [ ] QA
+- [x] QA
