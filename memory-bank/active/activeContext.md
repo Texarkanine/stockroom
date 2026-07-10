@@ -1,11 +1,12 @@
 # Active Context
 
-## Current Task: p5-m2-marketplace-entries
-**Phase:** REFLECT COMPLETE
+## Current Task: p5-m3-release-e2e-spine
+**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
 
 ## What Was Done
-- Reflection written: marketplace catalog entries + PR #2 shipped to plan; live install deferred to m3.
-- Persistent files unchanged (marketplace lives outside stockroom; no stockroom system-shape change).
+- Advanced L4: marked m2 complete; cleared m2 sub-run ephemerals (preserved milestones, projectbrief, reflection/)
+- Classified first unchecked milestone (m3 — Release-please exercise + clean-machine E2E spine) as Level 3
+- Rationale: multi-component deliverable (release-please version sync into both plugin manifests + cross-harness clean-machine proof of the full spine); not a system redesign — L3 Intermediate Feature
 
 ## Next Step
-- Run `/niko` to continue to the next milestone.
+- Load Level 3 workflow and execute Plan phase
