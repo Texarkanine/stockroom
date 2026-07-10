@@ -91,17 +91,17 @@ flowchart LR
 
 ## Implementation Plan
 
-1. **Request-plan bounds (TDD)** — write failing tests in `dashboard-data.test.mjs` for null vs preset bounds (including `fetchSnapshot` URL assertions); then implement `buildRequestPlan` optional bounds + `fetchSnapshot` forwarding via `options.window`.
+1. [x] **Request-plan bounds (TDD)** — write failing tests in `dashboard-data.test.mjs` for null vs preset bounds (including `fetchSnapshot` URL assertions); then implement `buildRequestPlan` optional bounds + `fetchSnapshot` forwarding via `options.window`.
     - Files: `tests-js/dashboard-data.test.mjs`, `static/dashboard-data.mjs`
     - Changes: append `since`/`until` when bounds provided; never on `wrapped`.
-2. **View-state + label helpers (TDD)** — write failing tests in `dashboard-core.test.mjs` for date-range transitions and label mapping; then implement preset constants, bounds resolver (`until=now`, `since=until−duration`), `transitionViewState` action, `panelRangeLabels(preset)` (or equivalent).
+2. [ ] **View-state + label helpers (TDD)** — write failing tests in `dashboard-core.test.mjs` for date-range transitions and label mapping; then implement preset constants, bounds resolver (`until=now`, `since=until−duration`), `transitionViewState` action, `panelRangeLabels(preset)` (or equivalent).
     - Files: `tests-js/dashboard-core.test.mjs`, `static/dashboard-core.mjs`
     - Creative ref: `creative-date-range-ux.md`
-3. **Static shell contracts (TDD)** — write failing assertions in `test_dashboard_static.py` for `#date-range-selector` fieldset + segmented mode markup/classes; then update `index.html` CSS/markup for date presets and mode pill.
+3. [ ] **Static shell contracts (TDD)** — write failing assertions in `test_dashboard_static.py` for `#date-range-selector` fieldset + segmented mode markup/classes; then update `index.html` CSS/markup for date presets and mode pill.
     - Files: `tests/test_dashboard_static.py`, `static/index.html`
-4. **DOM adapter glue (after 1–3 green)** — no new business logic in `dashboard.mjs`: only event wiring, busy disable, pass `options.window` into `fetchSnapshot`, and apply already-tested label helpers / aria updates. Mode path stays render-only. If any non-trivial logic appears during wiring, extract it to `dashboard-core.mjs` with a failing test first (do not grow untested logic in the adapter).
+4. [ ] **DOM adapter glue (after 1–3 green)** — no new business logic in `dashboard.mjs`: only event wiring, busy disable, pass `options.window` into `fetchSnapshot`, and apply already-tested label helpers / aria updates. Mode path stays render-only. If any non-trivial logic appears during wiring, extract it to `dashboard-core.mjs` with a failing test first (do not grow untested logic in the adapter).
     - Files: `static/dashboard.mjs`
-5. **Verification** — `make test-js`, targeted pytest dashboard tests, then `make ci` at milestone boundary.
+5. [ ] **Verification** — `make test-js`, targeted pytest dashboard tests, then `make ci` at milestone boundary.
 
 ### Preflight amendments (2026-07-10)
 
