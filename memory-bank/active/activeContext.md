@@ -1,11 +1,12 @@
 # Active Context
 
 ## Current Task: dashboard-polish-m3-labels-and-help
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Advanced L4: m2 checked off; classified next unchecked milestone (m3: #8 + #7) as Level 3
-- Rationale: enhancement spanning metrics/display contract for friendly project names plus accessible tooltip chrome across Session Efficiency and First-Prompt Quality panels — multiple components, not self-contained → L3 (matches milestones.md advisory estimate)
+- L3 plan for #8 (friendly project labels + slug hover) and #7 (efficiency / first-prompt info popovers)
+- Locked: parallel `labels` on `/api/projects`; projects-local cwd pick (most recent non-NULL); Chart.js tooltip for slug; `PANEL_HELP` + two-panel info chrome only
+- Flagged dirty WIP (trends granularity / writeShare) as out of scope — restore before build
 
 ## Next Step
-- Load Level 3 workflow → Plan phase
+- Preflight phase to validate the plan

@@ -14,3 +14,17 @@ Show friendly project names with `project_id` on hover (#8) and add clickable in
 * Insights
     - Friendly names are display-only; `sessions.project_id` remains the grouping/identity key
     - Tooltips are limited to Session Efficiency and First-Prompt Quality only
+
+## 2026-07-10 - PLAN - COMPLETE
+
+* Work completed
+    - Component analysis across metrics.py, dashboard-core, dashboard.mjs, index.html, tests
+    - TDD plan: projects labels + sessions/wrapped project_id + panel labelTitles + two-panel help chrome
+    - No open questions; no new dependencies
+* Decisions made
+    - Keep `projects` as ranked ids; add parallel `labels`; cwd = most recent non-NULL in window
+    - Chart.js tooltip (not tick DOM) for slug hover; `title` attrs on sessions/marathon
+    - Static `PANEL_HELP` copy; info icons only on efficiency + first-prompt
+    - Dirty trends/writeShare WIP is out of scope — restore before build
+* Insights
+    - Widening `_session_rows` would ripple overview/trends/efficiency — projects-local cwd pass is safer
