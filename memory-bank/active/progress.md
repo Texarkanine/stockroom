@@ -39,3 +39,14 @@ Move Cursor auto-heal/dashboard hook from `workspaceOpen` to `sessionStart`, and
     - No plan amendments; keep inline hook commands (no new script artifact)
 * Insights
     - `sr-initialize` still uses bare `python3` in an interactive shell — out of scope; advisory only
+
+## 2026-07-10 - BUILD - COMPLETE
+
+* Work completed
+    - Packaging tests updated for `sessionStart` + `uv python find` bootstrap
+    - Cursor + Claude hook JSON updated; docs/systemPatterns/shim docstring
+    - 467 passed, 3 skipped; ruff clean
+* Decisions made
+    - `PY=$(uv python find --project "$APP" --no-config)` without quoting the substitution (paths are space-free plugin hashes)
+* Insights
+    - None beyond plan

@@ -1,11 +1,21 @@
 # Active Context
 
 ## Current Task: fix-cursor-sessionstart-python-bootstrap
-**Phase:** PREFLIGHT - COMPLETE
+**Phase:** BUILD - COMPLETE
 
 ## What Was Done
-- Preflight PASS: TDD encoding OK; conventions OK; no blocking conflicts
-- Advisory: `sr-initialize` still uses bare `python3` (interactive shell; out of brief scope)
+- Cursor hook: `sessionStart` + `uv python find --project` bootstrap
+- Claude hook: same bootstrap; nested schema unchanged
+- Packaging tests + docs/systemPatterns/shim docstring updated
+- Full suite: 467 passed, 3 skipped; ruff clean
+
+## Files modified
+- `/home/mobaxterm/git/stockroom/hooks/cursor-hooks.json`
+- `/home/mobaxterm/git/stockroom/hooks/claude-hooks.json`
+- `/home/mobaxterm/git/stockroom/skills/sr-search/tests/test_packaging.py`
+- `/home/mobaxterm/git/stockroom/docs/using.md`
+- `/home/mobaxterm/git/stockroom/memory-bank/systemPatterns.md`
+- `/home/mobaxterm/git/stockroom/skills/sr-search/src/stockroom/shim.py`
 
 ## Next Step
-- Build phase
+- QA review

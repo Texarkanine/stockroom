@@ -9,9 +9,10 @@ here, in tested Python; the rendered script is environment plumbing only.
 Three writers drive this module (all through the same code):
 
 * ``sr-initialize`` (Phase-3 m3) — ``stockroom shim install --owner <harness>``
-* the plugin sessionStart / workspaceOpen hooks — ``stockroom shim rectify
+* the plugin sessionStart hooks — ``stockroom shim rectify
   --owner <harness> --app-dir ${*_PLUGIN_ROOT}/skills/sr-search`` (path + env
-  staleness healing)
+  staleness healing; harness hooks bootstrap via ``uv python find``, not bare
+  ``python3``)
 * ``make shim`` — ``stockroom shim install --owner dev`` (dev-checkout parity)
 
 Ownership is explicit (a ``# STOCKROOM_OWNER=`` header marker): only the
