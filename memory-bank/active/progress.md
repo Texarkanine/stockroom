@@ -16,3 +16,15 @@ Move Cursor auto-heal/dashboard hook from `workspaceOpen` to `sessionStart`, and
 * Insights
     - Shim already uses uv for the engine; the failure is only the PYTHONPATH bootstrap `python3`
     - Empty-`.venv` footgun from heal-after-move remains the reason rectify must not use `uv run --no-sync`
+
+## 2026-07-10 - PLAN - COMPLETE
+
+* Work completed
+    - Linear TDD plan in `tasks.md` (packaging tests → both hook JSONs → docs)
+    - Technology validation: `uv python find --project` selects `>=3.11` without creating empty `.venv`
+* Decisions made
+    - Bootstrap: `PY="$(uv python find --project \"$APP\" --no-config)"` then `"$PY" -m stockroom` — not bare `python3`, not `uv run --no-sync`
+    - Cursor event: `sessionStart` only (no dual-event fallback)
+    - Claude gets the same bootstrap; nested schema unchanged
+* Insights
+    - Cursor docs: `sessionStart` is agent/composer lifecycle; `workspaceOpen` is IDE workspace lifecycle — Mac 3.10.x not firing the latter matches operator evidence
