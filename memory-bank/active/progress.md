@@ -15,3 +15,28 @@ Exercise the release-please path so a cut version syncs into both stockroom plug
 * Insights
     - m2 left marketplace PR #2 open; clean-machine E2E depends on marketplace entries being available (merge or otherwise reachable)
     - Milestone estimate and decision tree both land on L3 (multi-component, no system-wide redesign)
+
+## 2026-07-09 - CREATIVE - COMPLETE
+
+* Work completed
+    - Explored clean-machine E2E methodology (generic creative)
+    - Wrote `memory-bank/active/creative/creative-clean-machine-e2e.md`
+* Decisions made
+    - Same-host isolation via fresh `STOCKROOM_HOME` + marketplace reinstall (not a second VM)
+    - Operator-driven marketplace UI; agent prepares runbook and verifies CLI outcomes
+    - Release half = verify existing v0.1.0/v0.1.1 cuts; do not re-cut unless lockstep broken
+* Insights
+    - Marketplace install is UI-bound — any honest plan splits operator vs agent roles
+    - `STOCKROOM_HOME` makes "clean warehouse" cheap without destroying the operator's real data
+
+## 2026-07-09 - PLAN - COMPLETE
+
+* Work completed
+    - Wrote L3 plan for release verification + operator E2E spine
+    - Confirmed marketplace PR #2 already MERGED; release PRs #10/#11 already synced both manifests
+* Decisions made
+    - No new automated test files; packaging tests + ephemeral asserts + runbook evidence
+    - Ephemeral runbook under `memory-bank/active/` distilled into reflection/archive
+    - Roadmap Phase 5 checkboxes updated only after proof lands
+* Insights
+    - m3 is mostly proof/ops, not product code — plan must resist inventing a release bump or CI for marketplace UI
