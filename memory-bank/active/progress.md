@@ -64,3 +64,13 @@ Fix warehouse/dashboard timezone skew ([issue #32](https://github.com/Texarkanin
     - QA PASS — no substantive gaps; peak-hour local rebucket remains out of scope
 * Insights
     - Wire-format helpers should assume callers may pass aware values even when the warehouse contract is naive UTC
+
+## 2026-07-10 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `reflection/reflection-fix-dashboard-utc-timestamps.md`
+    - Reconciled `systemPatterns.md` with UTC-at-rest briefing section
+* Decisions made
+    - Standalone L2 task → next operator step is `/niko-archive`
+* Insights
+    - Time-freeze tests couple to the concrete clock helper name; renaming `datetime.now` → `utc_now` is a cross-cutting test change
