@@ -196,6 +196,7 @@ def test_cursor_hook_schema_and_combined_command(cursor_hooks: dict) -> None:
     )
     cmd = entry["command"]
     assert "cat >/dev/null" in cmd, "must drain Cursor hook stdin JSON"
+    assert "export PATH=" in cmd, "must export PATH so children see ~/.local/bin"
     assert "$HOME/.local/bin" in cmd, "must put ~/.local/bin on PATH for uv/stockroom"
     _assert_combined_rectify_then_dashboard(
         cmd,
