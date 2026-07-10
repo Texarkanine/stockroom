@@ -20,7 +20,7 @@ After release-please cuts a versioned release (version synced into both plugin m
 
 ## Requirements
 
-1. **Plugin definition + install docs** — user-facing install and usage documentation; per-harness skill-invocation forms verified empirically (`/sr-*` vs Claude's `<plugin>:<skill>`); plugin installable manually. Manifests already exist from Phase 0; this milestone completes the docs and empirical verification surface.
+1. **Plugin definition + install docs** — user-facing install and usage documentation (marketplace path + local/dev loaders); per-harness skill-invocation forms documented from platform contracts (`/sr-*` vs Claude's `/stockroom:<skill>`). Live marketplace install and empirical invocation proof deferred to m2/m3 (catalog + `main`). Manifests already exist from Phase 0. No CI pins on doc prose — docs may move freely.
 2. **Marketplace entry** — stockroom added to `txrk9-agent-plugins` in both `.cursor-plugin/marketplace.json` and `.claude-plugin/marketplace.json`, pointing at the GitHub source repo (follow the existing `slobac` / `cursor-warehouse` entry pattern).
 3. **Release flow + end-to-end install test** — exercise the release-please path (version synced into both plugin manifests, not marketplace manifests); then prove the full spine on a clean machine: marketplace add → install → `sr-initialize` → all four surfaces against real data.
 4. Cross-harness correctness must follow official docs ([Cursor Plugins](https://cursor.com/docs/plugins), [Claude Code Plugins Reference](https://code.claude.com/docs/en/plugins-reference.md)) and the working example at `../slobac`.

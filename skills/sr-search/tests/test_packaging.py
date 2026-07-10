@@ -193,14 +193,6 @@ def test_claude_hook_schema_and_combined_command(claude_hooks: dict) -> None:
     )
 
 
-def test_planning_docs_use_dashboard_port_6767(repo_root: Path) -> None:
-    """Roadmap and tech-brief cite port 6767, not the superseded 3143."""
-    for rel in ("planning/roadmap.md", "planning/tech-brief.md"):
-        text = (repo_root / rel).read_text(encoding="utf-8")
-        assert "6767" in text, f"{rel} must cite dashboard port 6767"
-        assert "3143" not in text, f"{rel} must not cite superseded port 3143"
-
-
 def test_release_config_syncs_both_manifests(release_config: dict) -> None:
     """release-please writes ``$.version`` into both plugin manifests."""
     extra_files = release_config["packages"]["."]["extra-files"]

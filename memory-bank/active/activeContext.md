@@ -1,12 +1,11 @@
 # Active Context
 
 ## Current Task: p5-m1-install-docs
-**Phase:** PREFLIGHT - COMPLETE
+**Phase:** QA - COMPLETE
 
 ## What Was Done
-- Preflight validated L2 plan: TDD ordering (contract test before README), conventions (`test_packaging.py` + `_front_matter`), scope vs m1 milestone.
-- Amended plan: reuse `_front_matter`; pin exact `/<name>` and `stockroom:<name>` substrings in README.
-- Status: **PASS** (with advisory on operator-gated empirical verification and marketplace honesty).
+- QA PASS against amended m1 plan: best-effort install docs, no docstring tests, live install/invocation deferred to m2/m3.
+- No substantive defects; no trivial debris to clean.
 
 ## Next Step
-- Build phase (automatic per L2 workflow).
+- Reflect phase (automatic per L2 workflow).

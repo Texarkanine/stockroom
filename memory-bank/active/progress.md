@@ -1,6 +1,6 @@
 # Progress
 
-Author install/usage docs with empirically verified per-harness skill invocation forms, confirm manual install via existing dual manifests, and add a packaging/doc contract test so documented skill names and invocation forms cannot drift from the skills tree.
+Author install/usage docs (marketplace path + local/dev loaders) and document per-harness skill invocation forms from platform contracts. Live marketplace install / empirical invocation proof deferred to m2/m3. No packaging/doc contract tests.
 
 **Complexity:** Level 2
 
@@ -27,6 +27,30 @@ Author install/usage docs with empirically verified per-harness skill invocation
 * Insights
     - README still says "Phase 4 in progress"; status refresh is in-scope for m1
     - `.cursor/skills/stockroom-local/` and Niko shared skills must stay out of the install inventory contract
+
+## 2026-07-09 - BUILD - COMPLETE
+
+* Work completed
+    - Authored then rewrote README install/usage: marketplace (Cursor + Claude via txrk9-agent-plugins), local/dev (`~/.cursor/plugins/local/`, `claude --plugin-dir`), skill table, usage
+    - Packaging/doc contract briefly landed then **removed** per operator; also removed Phase-4 `test_planning_docs_use_dashboard_port_6767`
+    - `make test` green (424 passed, 3 skipped, 32 JS)
+* Decisions made
+    - **No docstring / planning-prose tests** — docs free to rewrite without CI failure
+    - **Defer live install + empirical invocation** until marketplace listing (m2) and `main`/clean-machine (m3); m1 ships best-effort docs only
+    - Cursor "add plugins from folder" is marketplace UI; Claude permanent install is marketplace-shaped; local loaders are for development
+* Insights
+    - m1 packaging/doc contract amendment from L4 preflight is superseded by operator decisions
+
+## 2026-07-09 - QA - COMPLETE
+
+* Work completed
+    - Semantic review against amended plan (no doc pins; live install deferred)
+    - Confirmed README covers marketplace + local/dev loaders honestly; packaging suite retains only real contracts
+    - Wrote `.qa-validation-status` = PASS
+* Decisions made
+    - PASS: deferred empirical/marketplace proof is operator-sanctioned scope change, not incomplete implementation
+* Insights
+    - Removing the Phase-4 planning-doc port pin is consistent with the "no docstring tests" rule and does not weaken product contracts
 
 ## 2026-07-09 - PREFLIGHT - COMPLETE
 
