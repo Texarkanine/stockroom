@@ -1,16 +1,15 @@
 # Active Context
 
 ## Current Task: dashboard-polish-m1-top-controls
-**Phase:** QA - COMPLETE
+**Phase:** REFLECT - COMPLETE
 
 ## What Was Done
-- Build completed for m1 top controls; `make ci` green
-- QA semantic review PASS (trivial YAGNI/doc fixes applied)
+- m1 top controls built and QA-passed
+- Reflection written; persistent files unchanged (no invalidated system-level content)
 
-## QA Findings
-- Un-exported unused `DATE_RANGE_PRESETS` / `normalizeDateRangePreset` (YAGNI)
-- Corrected `buildRequestPlan` JSDoc window wording
-- Completeness, regression, integrity, creative conformance: clean
+## Reflection Outcome
+- Plan and creative held; no deviations
+- Insight: keep presentation policy in core/data; adapter stays glue-only
 
 ## Next Step
-- Reflect phase runs automatically
+- Operator runs `/niko` to continue to the next milestone

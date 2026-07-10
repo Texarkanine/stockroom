@@ -79,3 +79,13 @@ Add top-bar date-range selector wired to windowed `since`/`until` (prior-period 
     - No substantive issues; no return to build/plan
 * Insights
     - Export surface discipline still worth a QA pass even on thin adapters
+
+## 2026-07-10 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `reflection/reflection-dashboard-polish-m1-top-controls.md`
+    - Reconciled persistent files: no updates required
+* Decisions made
+    - Next operator step is `/niko` (L4 milestone advance), not archive
+* Insights
+    - Core/data vs adapter split and static-contract TDD step both validated for control-strip work
