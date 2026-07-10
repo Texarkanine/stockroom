@@ -30,3 +30,14 @@ Heal engine-env staleness after plugin-root moves so one session/workspace-open 
     - Post-move success bar is runnable locked deps / dashboard — not `doctor smoke` without torch re-provision
 * Insights
     - Hook bootstrap `uv run --no-sync` creates the empty `.venv` *before* Python starts; ensure must detect incompleteness, not directory presence
+
+## 2026-07-10 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated plan vs conventions, deps, conflicts, completeness
+    - Amended plan: per-step TDD; `python3` rectify bootstrap; `system-model.md` fix
+    - Wrote `.preflight-status` = PASS
+* Decisions made
+    - Heal authority stays in Python ensure; hooks must not use `uv run --no-sync` for rectify bootstrap
+* Insights
+    - `shim` + `engine_env` are stdlib-only, so plugin-root `PYTHONPATH` + `python3 -m stockroom` is a valid chicken-egg bootstrap without touching the project venv
