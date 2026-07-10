@@ -100,3 +100,12 @@ Adopt XDG Base Directory layout for stockroom-owned data on all Unix-like platfo
     - Pure `resolve_home()` for probe; no migration / legacy doctor keys
 * Insights
     - Schedule needed only docstring alignment; `sr-initialize` already silent on home path
+
+## 2026-07-09 - QA - COMPLETE (PASS)
+
+* Work completed
+    - Semantic review against amended plan + Q1 creative decision
+* Decisions made
+    - No substantive findings; no trivial debris to fix
+* Insights
+    - Dropping migration at plan time kept build small and pattern-consistent
