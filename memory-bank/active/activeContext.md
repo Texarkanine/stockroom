@@ -1,12 +1,11 @@
 # Active Context
 
 ## Current Task: p5-m2-marketplace-entries
-**Phase:** PLAN - COMPLETE
+**Phase:** PREFLIGHT - COMPLETE
 
 ## What Was Done
-- Wrote L2 plan: add stockroom to both marketplace JSON catalogs in `txrk9-agent-plugins`, verify via parse/shape checks (no new test harness), open PR from branch `stockroom`.
-- README left unchanged by default (install-URL docs; catalog UI lists plugins).
-- Description text sourced from existing stockroom plugin manifests.
+- Preflight PASS with plan amendment: TDD reordered so Cursor/Claude assertions fail before each catalog edit.
+- Confirmed entry shape matches existing marketplace plugins; no version pin; README default unchanged; no committed test harness.
 
 ## Next Step
-- Preflight validation.
+- Build phase.

@@ -27,3 +27,14 @@ Add stockroom to both `.cursor-plugin/marketplace.json` and `.claude-plugin/mark
     - Do not backfill `cursor-warehouse` into the Claude marketplace
 * Insights
     - Marketplace branch `stockroom` exists and is clean at `main` tip — first commit will be the catalog addition
+
+## 2026-07-09 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated plan against marketplace conventions, L4 invariants, and TDD encoding
+    - Amended plan: fail-then-implement cycles for Cursor and Claude catalog entries
+    - Wrote `.preflight-status` = PASS
+* Decisions made
+    - PASS: entry shape, no version pin, no README change by default, ephemeral asserts only
+* Insights
+    - Prior plan would have failed TDD encoding (implement then verify); amendment unblocks build

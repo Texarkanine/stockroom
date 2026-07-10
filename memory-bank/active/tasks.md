@@ -22,27 +22,30 @@ Add `stockroom` to both marketplace manifests in `Texarkanine/txrk9-agent-plugin
 
 - Framework: **none** in `txrk9-agent-plugins` (JSON + README only; no CI, no test runner)
 - Stockroom's pytest suite does not own the marketplace repo and must not grow cross-repo catalog pins (m1 precedent: no docstring/prose CI pins; L4 invariant: marketplace never carries a stockroom version pin)
-- Conventions: verification is build-time structural checks (JSON parse + field assertions against the edited files), not a new harness
-- New test files: **none** — ad-hoc verification during build (e.g. `python -c` / `jq` assertions); durable proof is the PR + m3 clean-machine install
+- Conventions: verification is a small ephemeral assert script run during build (JSON parse + field assertions), not a committed harness
+- New test files: **none committed** — ephemeral assert helper during build; durable proof is the PR + m3 clean-machine install
 
 ## Implementation Plan
 
-1. Add Cursor marketplace entry for stockroom
+1. Write failing Cursor catalog assertions (TDD)
+   - Files: ephemeral assert (shell/`python -c` against `.cursor-plugin/marketplace.json`)
+   - Changes: assert stockroom entry missing → expect failure; also snapshot `slobac` / `cursor-warehouse` for later preservation checks
+2. Add Cursor marketplace entry for stockroom
    - Files: `/home/mobaxterm/git/txrk9-agent-plugins/.cursor-plugin/marketplace.json`
-   - Changes: append a plugin object matching existing shape:
-     `{"name": "stockroom", "source": {"source": "github", "repo": "Texarkanine/stockroom"}, "description": "<from stockroom .cursor-plugin/plugin.json description>"}`
-2. Add Claude marketplace entry for stockroom
+   - Changes: append `{"name": "stockroom", "source": {"source": "github", "repo": "Texarkanine/stockroom"}, "description": "Local, faithful, searchable warehouse of your agentic-coding history."}` (description from stockroom plugin manifests); re-run Cursor assertions → pass; confirm no `version` key; confirm prior entries unchanged
+3. Write failing Claude catalog assertions (TDD)
+   - Files: ephemeral assert against `.claude-plugin/marketplace.json`
+   - Changes: assert stockroom entry missing → expect failure; snapshot `slobac`
+4. Add Claude marketplace entry for stockroom
    - Files: `/home/mobaxterm/git/txrk9-agent-plugins/.claude-plugin/marketplace.json`
-   - Changes: append the same-shaped entry (Claude catalog currently has only `slobac`; do **not** backfill `cursor-warehouse` — out of scope)
-3. README discoverability assessment
+   - Changes: append same-shaped entry (do **not** backfill `cursor-warehouse`); re-run Claude assertions → pass; confirm no `version` key; confirm `slobac` unchanged
+5. README discoverability assessment
    - Files: `/home/mobaxterm/git/txrk9-agent-plugins/README.md`
    - Changes: **none expected** — README documents how to add the marketplace URL; the catalog UI is the plugin list. Only edit if a minimal plugin inventory is clearly warranted; default leave as-is
-4. Verify behaviors (build-time checks)
-   - Parse both JSON files; assert stockroom entry fields; assert no version key; assert prior entries unchanged
-5. Commit on marketplace `stockroom` branch and open PR to `main`
+6. Commit on marketplace `stockroom` branch and open PR to `main`
    - Conventional commit (e.g. `feat: add stockroom to Cursor and Claude marketplaces`)
-   - `gh pr create` from `stockroom` → `main` with summary + test plan
-6. Memory-bank progress only in stockroom (this L4 parent) — no marketplace code changes in the stockroom repo beyond ephemeral tracking
+   - Push `-u` and `gh pr create` from `stockroom` → `main` with summary + test plan; verify PR exists
+7. Memory-bank progress only in stockroom (this L4 parent) — no marketplace code changes in the stockroom repo beyond ephemeral tracking
 
 ## Technology Validation
 
@@ -56,11 +59,16 @@ No new technology - validation not required
 
 ## Challenges & Mitigations
 
-- **No test harness in marketplace repo**: Do not invent one; verify with parse/shape checks during build and PR review. Live install deferred to m3.
+- **No test harness in marketplace repo**: Do not invent a committed one; verify with ephemeral parse/shape checks during build and PR review. Live install deferred to m3.
 - **Claude catalog asymmetry** (`cursor-warehouse` missing): Leave as-is; only add stockroom.
 - **README "if needed"**: Prefer no README change; marketplace UI is the discoverability surface after the URL is added.
 - **Cross-repo commits**: Marketplace changes commit/PR in `txrk9-agent-plugins`; stockroom memory-bank commits stay on stockroom `initialdev`.
 - **Branch already named `stockroom` but empty of commits ahead of main**: First commit on this branch will be the catalog addition; push `-u` then open PR.
+
+## Preflight Findings
+
+- **Amended (TDD encoding)**: Split Cursor/Claude work into fail-then-implement cycles (steps 1–4). Prior plan listed production edits before verification.
+- **Advisory**: None blocking. Optional future: list plugins in marketplace README — out of default plan.
 
 ## Status
 
@@ -68,6 +76,6 @@ No new technology - validation not required
 - [x] Test planning complete (TDD)
 - [x] Implementation plan complete
 - [x] Technology validation complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
 - [ ] QA
