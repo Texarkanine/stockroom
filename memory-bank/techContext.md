@@ -154,8 +154,8 @@ unit-testable against an injected connection. The model-invocable wrapper skill
 trimmed to the `stockroom query` contract in Phase-3 m5)
 encodes the safe LLM-ergonomic use of this surface — routing,
 `--format`/`--detail` discipline, guardrails, and a
-schema map; only the empirical per-harness invocation-form verification remains
-Phase 5.
+schema map. Per-harness skill slash-forms (`/sr-*` vs `/stockroom:sr-*`) are
+proven against a marketplace install (Phase 5).
 
 ## Embeddings (`stockroom.embed`)
 
@@ -215,8 +215,8 @@ full text stays whole in the store and in `SemanticHit.text`. The
 real-model path is covered by one `importorskip("torch")`-gated end-to-end test.
 The safe LLM wrapper, [`skills/sr-semantic/SKILL.md`](../skills/sr-semantic/SKILL.md)
 (Phase-2 m5), is the single home for the surface's operational guidance (routing,
-query phrasing, `-k`/`--format`/`--detail` discipline, guardrails); only the
-empirical per-harness invocation-form verification remains Phase 5.
+query phrasing, `-k`/`--format`/`--detail` discipline, guardrails). Per-harness
+skill slash-forms are proven against a marketplace install (Phase 5).
 
 ## Search entrypoint (`sr-search` skill)
 
@@ -289,7 +289,11 @@ Staleness healing is hook-driven: each harness's sessionStart hook
 plugin-root bootstrap of `shim rectify --owner <harness> --app-dir
 ${*_PLUGIN_ROOT}/skills/sr-search`, then on-path `stockroom dashboard`
 (port bind is the launch mutex). Failures are swallowed (`|| true`).
-`rectify` rewrites only an owned, drifted shim and never creates one; it
+On some Cursor/WSL hosts the hook subprocess PATH omits `~/.local/bin`, so
+auto-dashboard may not start — tracked as [#12](https://github.com/Texarkanine/stockroom/issues/12);
+`/sr-dashboard` / `stockroom dashboard` remain the reliable path. Claude Code's
+SessionStart hook works on the same machine. `rectify` rewrites only an owned,
+drifted shim and never creates one; it
 cannot depend solely on the on-path shim (chicken-egg). Dev parity: `make
 shim` installs with owner `dev` baking the checkout; harness hooks never
 touch it. Decision records:
