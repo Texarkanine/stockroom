@@ -1,13 +1,11 @@
 # Active Context
 
-## Current Task: p5-distribution-release
-**Phase:** PREFLIGHT - COMPLETE
+## Current Task: p5-m1-install-docs
+**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
 
 ## What Was Done
-- Preflight validated the 3-milestone L4 plan against brief, conventions, and codebase reality.
-- Amended m1 to include a packaging/doc contract test (install-doc drift guard).
-- Recorded advisories: release-please only on `main`; empirical/E2E steps need operator; TDD deferred to sub-run plans.
-- Status: **PASS** (with advisory).
+- Classified L4 milestone m1 (install/usage docs + empirical skill-invocation verification + packaging/doc contract) as **Level 2**.
+- Rationale: self-contained enhancement over existing dual-manifest plugin scaffolding — docs, verification, and a thin contract test; no architectural change.
 
 ## Next Step
-- Operator reviews the plan, then runs `/niko` to start the first milestone (m1).
+- Load Level 2 workflow and begin PLAN phase.
