@@ -1,11 +1,11 @@
 # Active Context
 
 ## Current Task: p5-m2-marketplace-entries
-**Phase:** QA - COMPLETE
+**Phase:** REFLECT COMPLETE
 
 ## What Was Done
-- Semantic QA PASS: both catalogs match plan shape; no version pin; prior entries preserved; README untouched; PR #2 open.
-- No KISS/DRY/YAGNI/integrity issues; no fixes required.
+- Reflection written: marketplace catalog entries + PR #2 shipped to plan; live install deferred to m3.
+- Persistent files unchanged (marketplace lives outside stockroom; no stockroom system-shape change).
 
 ## Next Step
-- Reflect phase.
+- Run `/niko` to continue to the next milestone.

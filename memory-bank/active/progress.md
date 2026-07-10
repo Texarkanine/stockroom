@@ -60,3 +60,13 @@ Add stockroom to both `.cursor-plugin/marketplace.json` and `.claude-plugin/mark
     - PASS with no fixes — implementation matches plan and L4 marketplace invariants
 * Insights
     - Live catalog visibility after merge remains m3; m2 deliverable is the PR + catalog entries
+
+## 2026-07-09 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `memory-bank/active/reflection/reflection-p5-m2-marketplace-entries.md`
+    - Reconciled persistent files: no updates required
+* Decisions made
+    - Thin catalog entry is the correct end state; no redesign warranted
+* Insights
+    - Cross-repo L4 sub-runs need an explicit product-vs-memory-bank commit split in the plan
