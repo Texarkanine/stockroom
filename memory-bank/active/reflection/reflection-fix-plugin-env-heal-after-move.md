@@ -8,29 +8,29 @@ complexity_level: 2
 
 ## Summary
 
-Fixed plugin-root-move env staleness (#17): `ensure_engine_env` (torch-safe inexact sync) owned by shim/`rectify`, with stdlib hook bootstrap, shim duckdb refuse, and shared `ensure-env` for `sr-initialize`. Verified claims first; rejected the issue’s preferred shell-in-hooks approach.
+Fixed plugin-root-move env staleness (#17): locked-deps heal via `ensure_engine_env`, plus durable torch-index under stockroom home so torch is reinstalled on rectify without re-picking a wheel.
 
 ## Requirements vs Outcome
 
-Delivered: one hook cycle heals path + locked deps; no silent empty `.venv` on the on-path path; torch-safe rules preserved (heal never exact-syncs); Cursor/Claude share the same rectify→ensure contract. Did not claim `doctor smoke` without torch re-provision — correctly scoped to locked-deps/dashboard readiness.
+First pass under-scoped torch (operator corrected). Rework delivers: `{stockroom_home}/torch-index`, `stockroom torch record`, heal in `ensure_engine_env`, writers in `sr-initialize` / `make torch`, hook timeout 300s.
 
 ## Plan Accuracy
 
-Plan held. Preflight amendment (python3 bootstrap) was the right call — it removes the empty-venv chicken-egg the issue’s `[ -d .venv ]` recipe would miss. Fixture updates for duckdb-ready stub venvs were the main unplanned test churn.
+Initial plan correctly rejected hook-shell sync and exact `--check`; wrong on “torch stays out of band forever.” Rework plan matched the real acceptance bar.
 
 ## Build & QA Observations
 
-TDD cycles were smooth; full suite stayed green. QA only needed doc/stderr polish. Live empty-venv → ensure-env → duckdb import confirmed the heal path outside unit stubs.
+TDD for torch_source was clean. Existing installs need a one-time record before heal can restore torch.
 
 ## Insights
 
 ### Technical
-- `uv sync --frozen --check` is unsafe as a readiness probe when torch is present (it wants to uninstall torch); `--inexact --check` is the correct “locked deps OK?” signal.
-- Hook `uv run --no-sync` against a missing project env creates an empty `.venv` before Python starts — any heal that keys only on directory presence is wrong.
+- Torch heal requires state outside the disposable plugin tree; warehouse home is the right place.
+- Inexact `--check` for deps + recorded index for torch is the full post-move contract.
 
 ### Process
-- Verifying the issue’s claims and evaluating alternatives before coding paid off: the “preferred” fix would have duplicated untested shell and used a broken guard.
+- Operator pushback on “torch out of scope” was load-bearing — overnight embed failure mode is the real product break.
 
 ### Million-Dollar Question
 
-If env readiness had been part of the shim contract from day one, `ensure_engine_env` would live beside render/install/rectify as the third heal primitive, hooks would always have used stdlib bootstrap, and `sr-initialize` would never have owned a one-liner sync. What we built is essentially that — retrofitted cleanly.
+From day one: `sr-initialize` would write torch-index, and rectify would always ensure deps+torch. What we have now is that contract, retrofitted.
