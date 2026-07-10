@@ -17,3 +17,16 @@ Heal engine-env staleness after plugin-root moves so one session/workspace-open 
     - Hook 10s timeout may make “sync inside hook” impractical on cold cache
     - Empty-but-present `.venv` breaks naive `[ -d .venv ]` guards
     - Torch must be re-provisioned separately after a fresh engine dir; dep sync alone does not restore embed/semantic
+
+## 2026-07-10 - PLAN - COMPLETE
+
+* Work completed
+    - Reproduced empty-venv footgun; confirmed `uv sync --frozen --inexact --check` is torch-safe readiness probe (exact `--check` wants to uninstall torch)
+    - Selected design C: `ensure_engine_env` in Python, called from `rectify`; shim duckdb sentinel refuse; hook timeout 60s + Claude PATH parity; update `sr-initialize` to same CLI
+    - Authored full L2 test/implementation plan in `tasks.md`
+* Decisions made
+    - Heal path never exact-syncs — only `--inexact` (safer than copying issue/sr-initialize `[ -d .venv ] || uv sync --frozen` literally)
+    - Reject hook-JSON shell sync duplication and refusal-only approaches as primary fix
+    - Post-move success bar is runnable locked deps / dashboard — not `doctor smoke` without torch re-provision
+* Insights
+    - Hook bootstrap `uv run --no-sync` creates the empty `.venv` *before* Python starts; ensure must detect incompleteness, not directory presence
