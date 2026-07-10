@@ -28,3 +28,14 @@ Move Cursor auto-heal/dashboard hook from `workspaceOpen` to `sessionStart`, and
     - Claude gets the same bootstrap; nested schema unchanged
 * Insights
     - Cursor docs: `sessionStart` is agent/composer lifecycle; `workspaceOpen` is IDE workspace lifecycle — Mac 3.10.x not firing the latter matches operator evidence
+
+## 2026-07-10 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated plan against hooks, packaging tests, Cursor docs (`sessionStart` schema)
+    - Confirmed TDD ordering (tests before hook JSON edits)
+    - Wrote `.preflight-status` = PASS
+* Decisions made
+    - No plan amendments; keep inline hook commands (no new script artifact)
+* Insights
+    - `sr-initialize` still uses bare `python3` in an interactive shell — out of scope; advisory only

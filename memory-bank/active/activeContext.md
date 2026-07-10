@@ -1,12 +1,11 @@
 # Active Context
 
 ## Current Task: fix-cursor-sessionstart-python-bootstrap
-**Phase:** PLAN - COMPLETE
+**Phase:** PREFLIGHT - COMPLETE
 
 ## What Was Done
-- Level 2 plan written: sessionStart event + `uv python find --project` bootstrap (both harnesses)
-- Validated uv find does not create empty `.venv`
-- Explicit non-goals: no `uv run --no-sync` for rectify; no lowering `requires-python`
+- Preflight PASS: TDD encoding OK; conventions OK; no blocking conflicts
+- Advisory: `sr-initialize` still uses bare `python3` (interactive shell; out of brief scope)
 
 ## Next Step
-- Preflight validation
+- Build phase
