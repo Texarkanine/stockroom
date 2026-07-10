@@ -20,3 +20,16 @@ Fix warehouse/dashboard timezone skew ([issue #32](https://github.com/Texarkanin
     - Complexity analysis archived; entering plan phase
 * Decisions made
     - Proceeding to Level 2 plan per workflow
+
+## 2026-07-10 - PLAN - COMPLETE
+
+* Work completed
+    - Mapped UTC contract across discovery mtime, Claude `_parse_ts`, writer/metrics `now`, metrics JSON `Z`, dashboard parse/format, watermark-clear migration
+    - Wrote TDD behaviors B1–B6 and ordered implementation steps in `tasks.md`
+* Decisions made
+    - DuckDB stays naive `TIMESTAMP` meaning UTC; wire format uses `Z`; no `TIMESTAMPTZ` migration
+    - Clear `_sync_state` watermarks so re-ingest rewrites local `source_mtime`; do not SQL-convert historical observation times
+    - Wrapped `peak_hour` remains UTC hour-of-day under this contract (local rebucket out of scope)
+* Insights
+    - UI-only fix would leave SQL windowing on mixed clocks; ingest + watermark reset are load-bearing
+    - UTC+ offsets make watermark clear mandatory, not optional

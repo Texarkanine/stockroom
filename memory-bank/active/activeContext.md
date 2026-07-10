@@ -1,11 +1,12 @@
 # Active Context
 
 ## Current Task: fix-dashboard-utc-timestamps
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Intent clarified: UTC in DB; clients render into a timezone ([issue #32](https://github.com/Texarkanine/stockroom/issues/32))
-- Complexity determined: Level 2 — bug fix affecting multiple components (ingest mtime stamping, Claude/Cursor timestamp contract, metrics activity clock, dashboard JS)
+- Level 2 plan written for issue #32 UTC-at-rest / client-renders-zone contract
+- Behaviors B1–B6 + edges mapped to ingest, migration watermark reset, metrics `Z` serialization, dashboard JS UTC parse
+- Explicit non-goals: timestamptz migration; local peak-hour rebucket
 
 ## Next Step
-- Load Level 2 workflow and execute planning phase
+- Preflight validation (automatic per Level 2 workflow)
