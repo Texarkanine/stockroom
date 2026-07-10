@@ -11,16 +11,24 @@ import {
   buildWrappedPanel,
   buildWriteReadPanel,
   chartHeight,
+  closePanelHelp,
   deriveHarnessBreakdown,
   deriveOverviewCards,
   displayHarness,
   formatDelta,
   harnessColors,
+  PANEL_HELP,
+  panelRangeLabels,
+  projectHoverTitle,
+  resolveWindowBounds,
   sortedHarnesses,
   sumAligned,
   summarizeChartPanel,
+  togglePanelHelp,
+  tooltipTitleFromLabelTitles,
   transitionViewState,
   weightedSeries,
+  writeShare,
 } from "../src/stockroom/dashboard/static/dashboard-core.mjs";
 
 const COLORS = [
@@ -266,7 +274,13 @@ test("derives deterministic chart heights from label counts", () => {
 });
 
 test("defaults discovered harnesses and rejects an empty selection", () => {
-  const initial = { harnesses: [], selected: [], mode: "aggregate" };
+  const initial = {
+    harnesses: [],
+    selected: [],
+    mode: "aggregate",
+    dateRange: "default",
+    window: null,
+  };
   const discovered = transitionViewState(initial, {
     type: "discover",
     harnesses: ["cursor", "claude-code", "cursor"],
@@ -276,15 +290,29 @@ test("defaults discovered harnesses and rejects an empty selection", () => {
       harnesses: ["claude-code", "cursor"],
       selected: ["claude-code", "cursor"],
       mode: "aggregate",
+      dateRange: "default",
+      window: null,
     },
     effect: "render",
   });
   const refused = transitionViewState(
-    { harnesses: ["cursor"], selected: ["cursor"], mode: "aggregate" },
+    {
+      harnesses: ["cursor"],
+      selected: ["cursor"],
+      mode: "aggregate",
+      dateRange: "default",
+      window: null,
+    },
     { type: "toggle", harness: "cursor" },
   );
   assert.deepEqual(refused, {
-    state: { harnesses: ["cursor"], selected: ["cursor"], mode: "aggregate" },
+    state: {
+      harnesses: ["cursor"],
+      selected: ["cursor"],
+      mode: "aggregate",
+      dateRange: "default",
+      window: null,
+    },
     effect: "none",
   });
 });
@@ -294,6 +322,8 @@ test("distinguishes mode redraws from selection refetches", () => {
     harnesses: ["claude-code", "cursor"],
     selected: ["claude-code", "cursor"],
     mode: "aggregate",
+    dateRange: "default",
+    window: null,
   };
   assert.equal(
     transitionViewState(state, { type: "mode", mode: "compare" }).effect,
@@ -309,9 +339,107 @@ test("distinguishes mode redraws from selection refetches", () => {
   );
 });
 
+test("date-range changes refetch and identical presets are no-ops", () => {
+  const now = new Date("2026-07-10T18:00:00.000Z");
+  const state = {
+    harnesses: ["cursor"],
+    selected: ["cursor"],
+    mode: "aggregate",
+    dateRange: "default",
+    window: null,
+  };
+  const changed = transitionViewState(state, {
+    type: "daterange",
+    preset: "7d",
+    now,
+  });
+  assert.equal(changed.effect, "refetch");
+  assert.equal(changed.state.dateRange, "7d");
+  assert.deepEqual(changed.state.window, resolveWindowBounds("7d", now));
+  assert.equal(changed.state.mode, "aggregate");
+
+  const same = transitionViewState(changed.state, {
+    type: "daterange",
+    preset: "7d",
+    now,
+  });
+  assert.equal(same.effect, "none");
+  assert.equal(same.state.dateRange, "7d");
+
+  const backToDefault = transitionViewState(changed.state, {
+    type: "daterange",
+    preset: "default",
+    now,
+  });
+  assert.equal(backToDefault.effect, "refetch");
+  assert.equal(backToDefault.state.dateRange, "default");
+  assert.equal(backToDefault.state.window, null);
+
+  const modeStillRenderOnly = transitionViewState(changed.state, {
+    type: "mode",
+    mode: "compare",
+  });
+  assert.equal(modeStillRenderOnly.effect, "render");
+  assert.equal(modeStillRenderOnly.state.dateRange, "7d");
+  assert.deepEqual(modeStillRenderOnly.state.window, changed.state.window);
+});
+
+test("resolveWindowBounds omits default and computes ISO since/until for presets", () => {
+  const now = new Date("2026-07-10T18:00:00.000Z");
+  assert.equal(resolveWindowBounds("default", now), null);
+  assert.equal(resolveWindowBounds("nope", now), null);
+
+  const week = resolveWindowBounds("7d", now);
+  assert.equal(week.until, "2026-07-10T18:00:00.000Z");
+  assert.equal(week.since, "2026-07-03T18:00:00.000Z");
+
+  const year = resolveWindowBounds("1y", now);
+  assert.equal(year.until, "2026-07-10T18:00:00.000Z");
+  assert.equal(year.since, "2025-07-10T18:00:00.000Z");
+
+  assert.equal(resolveWindowBounds("30d", now).since, "2026-06-10T18:00:00.000Z");
+  assert.equal(resolveWindowBounds("90d", now).since, "2026-04-11T18:00:00.000Z");
+});
+
+test("panelRangeLabels keep per-panel defaults and share preset window copy", () => {
+  const defaults = panelRangeLabels("default");
+  assert.equal(defaults.overviewAria, "Thirty-day overview");
+  assert.equal(defaults.daily, "Last 14 days");
+  assert.equal(defaults.projects, "Last 30 days");
+  assert.equal(defaults.tools, "Last 30 days");
+  assert.equal(defaults.writeRead, "Last 12 weeks");
+  assert.equal(defaults.efficiency, "Last 30 days");
+  assert.equal(defaults.models, "Last 30 days");
+  assert.equal(
+    defaults.firstPrompt,
+    "Average session length by prompt detail · 30 days",
+  );
+
+  const week = panelRangeLabels("7d");
+  assert.equal(week.overviewAria, "Last 7 days overview");
+  assert.equal(week.daily, "Last 7 days");
+  assert.equal(week.projects, "Last 7 days");
+  assert.equal(week.tools, "Last 7 days");
+  assert.equal(week.writeRead, "Last 7 days");
+  assert.equal(week.efficiency, "Last 7 days");
+  assert.equal(week.models, "Last 7 days");
+  assert.equal(
+    week.firstPrompt,
+    "Average session length by prompt detail · Last 7 days",
+  );
+
+  const year = panelRangeLabels("1y");
+  assert.equal(year.overviewAria, "Last 1 year overview");
+  assert.equal(year.daily, "Last 1 year");
+  assert.equal(
+    year.firstPrompt,
+    "Average session length by prompt detail · Last 1 year",
+  );
+});
+
 test("builds aggregate and compare daily activity models", () => {
   const payload = {
-    days: ["2026-01-01", "2026-01-02"],
+    labels: ["2026-01-01", "2026-01-02"],
     sessions: { cursor: [1, 2], "claude-code": [3, 0] },
   };
   const aggregate = buildDailyPanel(payload, selected, "aggregate", colors);
@@ -337,6 +465,98 @@ test("builds aggregate and compare project models", () => {
   assertDataset(compare, "Cursor", [2, 0]);
 });
 
+test("projectHoverTitle returns id only when display differs", () => {
+  assert.equal(projectHoverTitle("stockroom", "home-me-stockroom"), "home-me-stockroom");
+  assert.equal(projectHoverTitle("slug", "slug"), null);
+  assert.equal(projectHoverTitle("slug", null), null);
+  assert.equal(projectHoverTitle(null, "slug"), "slug");
+});
+
+test("buildProjectsPanel prefers friendly labels and sets labelTitles", () => {
+  const payload = {
+    projects: ["home-me-stockroom", "other-slug"],
+    labels: ["stockroom", "other-slug"],
+    sessions: { cursor: [2, 1], "claude-code": [0, 0] },
+  };
+  const panel = buildProjectsPanel(payload, selected, "aggregate", colors);
+  assert.deepEqual(panel.labels, ["stockroom", "other-slug"]);
+  assert.deepEqual(panel.labelTitles, ["home-me-stockroom", null]);
+  assertDataset(panel, "Sessions", [2, 1]);
+});
+
+test("buildProjectsPanel falls back to projects when labels missing", () => {
+  const payload = {
+    projects: ["only-id"],
+    sessions: { cursor: [1], "claude-code": [0] },
+  };
+  const panel = buildProjectsPanel(payload, selected, "aggregate", colors);
+  assert.deepEqual(panel.labels, ["only-id"]);
+  assert.deepEqual(panel.labelTitles, [null]);
+});
+
+test("tooltipTitleFromLabelTitles surfaces slug when present", () => {
+  assert.equal(
+    tooltipTitleFromLabelTitles(["home-me-stockroom", null], 0, "stockroom"),
+    "home-me-stockroom",
+  );
+  assert.equal(tooltipTitleFromLabelTitles(["home-me-stockroom", null], 1, "other"), "other");
+  assert.equal(tooltipTitleFromLabelTitles(undefined, 0, "friendly"), "friendly");
+});
+
+test("PANEL_HELP documents efficiency and first-prompt buckets", () => {
+  assert.match(PANEL_HELP.efficiency, /abandoned/i);
+  assert.match(PANEL_HELP.efficiency, /short/i);
+  assert.match(PANEL_HELP.efficiency, /medium/i);
+  assert.match(PANEL_HELP.efficiency, /long/i);
+  assert.match(PANEL_HELP.efficiency, /≤\s*2|<=\s*2|1–2|1-2|0–2|0-2/i);
+  assert.match(PANEL_HELP["first-prompt"], /short/i);
+  assert.match(PANEL_HELP["first-prompt"], /medium/i);
+  assert.match(PANEL_HELP["first-prompt"], /detailed/i);
+  assert.match(PANEL_HELP["first-prompt"], /average|avg/i);
+  assert.match(PANEL_HELP["first-prompt"], /100|500/);
+});
+
+test("togglePanelHelp opens one, re-toggles closed, and switches panels", () => {
+  assert.equal(togglePanelHelp(null, "efficiency"), "efficiency");
+  assert.equal(togglePanelHelp("efficiency", "efficiency"), null);
+  assert.equal(togglePanelHelp("efficiency", "first-prompt"), "first-prompt");
+  assert.equal(closePanelHelp(), null);
+});
+
+test("buildWrappedPanel marathon exposes subtitleTitle when name differs from id", () => {
+  const cells = buildWrappedPanel({
+    totals: { sessions: 1, messages: 5, span: { start: null, end: null, days: 0 } },
+    distinct_projects: 1,
+    busiest_harness: { name: null, pct: 0 },
+    best_streak: { days: 0, start: null, end: null },
+    marathon_session: {
+      messages: 5,
+      project_name: "stockroom",
+      project_id: "home-me-stockroom",
+      harness: "cursor",
+    },
+    peak_hour: { hour: null, count: 0 },
+    top_tool: { name: null, calls: 0 },
+  });
+  const marathon = cells.find((cell) => cell.key === "marathon");
+  assert.equal(marathon.subtitleTitle, "home-me-stockroom");
+  const same = buildWrappedPanel({
+    totals: { sessions: 0, messages: 0, span: {} },
+    distinct_projects: 0,
+    busiest_harness: {},
+    best_streak: {},
+    marathon_session: {
+      messages: 1,
+      project_name: "p1",
+      project_id: "p1",
+      harness: "cursor",
+    },
+    peak_hour: {},
+    top_tool: {},
+  }).find((cell) => cell.key === "marathon");
+  assert.equal(same.subtitleTitle, null);
+});
+
 test("builds aggregate doughnut and compare tool models", () => {
   const payload = {
     tools: ["Read", "Write"],
@@ -351,20 +571,55 @@ test("builds aggregate doughnut and compare tool models", () => {
   assertDataset(compare, "Claude Code", [2, 4]);
 });
 
-test("builds blended write and read models in either mode", () => {
+test("writeShare returns zero on zero denominator and finite ratios otherwise", () => {
+  assert.equal(writeShare(0, 0), 0);
+  assert.equal(writeShare(0, 4), 0);
+  assert.equal(writeShare(3, 1), 0.75);
+  assert.equal(writeShare(2, 2), 0.5);
+});
+
+test("builds aggregate write-share ratio line with zeros for idle buckets", () => {
   const payload = {
-    weeks: ["2026-01-05", "2026-01-12"],
-    writes: { cursor: [2, 1], "claude-code": [1, 0] },
-    reads: { cursor: [4, 2], "claude-code": [0, 3] },
+    labels: ["2026-01-05", "2026-01-12", "2026-01-19"],
+    writes: { cursor: [2, 0, 0], "claude-code": [1, 0, 0] },
+    reads: { cursor: [4, 0, 5], "claude-code": [0, 0, 0] },
   };
-  for (const mode of ["aggregate", "compare"]) {
-    const panel = buildWriteReadPanel(payload, selected, mode);
-    assert.equal(panel.kind, "line");
-    assert.equal(panel.stacked, false);
-    assert.equal(panel.datasets.length, 2);
-    assertDataset(panel, "Writes", [3, 1]);
-    assertDataset(panel, "Reads", [4, 5]);
-  }
+  const panel = buildWriteReadPanel(payload, selected, "aggregate", colors);
+  assert.equal(panel.kind, "line");
+  assert.equal(panel.stacked, false);
+  assert.equal(panel.empty, false);
+  assert.equal(panel.yMax, 1);
+  assert.equal(panel.datasets.length, 1);
+  // week0: (2+1)/(2+1+4+0)=3/7; week1: 0/0 → 0; week2: 0/(0+5)=0
+  assertDataset(panel, "Write share", [3 / 7, 0, 0]);
+});
+
+test("builds compare write-share ratio lines per harness", () => {
+  const payload = {
+    labels: ["2026-01-05", "2026-01-12"],
+    writes: { cursor: [2, 0], "claude-code": [1, 0] },
+    reads: { cursor: [2, 0], "claude-code": [3, 4] },
+  };
+  const panel = buildWriteReadPanel(payload, selected, "compare", colors);
+  assert.equal(panel.datasets.length, 2);
+  assert.equal(panel.empty, false);
+  assert.equal(panel.yMax, 1);
+  // orderedSelection sorts: claude-code, cursor
+  assertDataset(panel, "Claude Code", [0.25, 0]);
+  assertDataset(panel, "Cursor", [0.5, 0]);
+  assert.equal(panel.datasets[0].borderColor, colors["claude-code"]);
+  assert.equal(panel.datasets[1].borderColor, colors.cursor);
+});
+
+test("marks write-read panel empty when every bucket has no tool activity", () => {
+  const payload = {
+    labels: ["2026-01-05", "2026-01-12"],
+    writes: { cursor: [0, 0], "claude-code": [0, 0] },
+    reads: { cursor: [0, 0], "claude-code": [0, 0] },
+  };
+  const panel = buildWriteReadPanel(payload, selected, "aggregate", colors);
+  assert.equal(panel.empty, true);
+  assert.deepEqual(panel.datasets[0].data, [0, 0]);
 });
 
 test("builds aggregate and compare efficiency models", () => {
@@ -517,19 +772,16 @@ test("summarizes empty panel without inventing values", () => {
   );
 });
 
-test("summarizes dual-series write and read panel", () => {
+test("summarizes write-share ratio panel including idle zeros", () => {
   const model = {
     kind: "line",
     labels: ["2026-01-05", "2026-01-12"],
-    datasets: [
-      { label: "Writes", data: [3, 1] },
-      { label: "Reads", data: [4, 5] },
-    ],
+    datasets: [{ label: "Write share", data: [0.5, 0] }],
     empty: false,
   };
   assert.equal(
-    summarizeChartPanel("Weekly write and read tool calls", "aggregate", model),
-    "Weekly write and read tool calls. Aggregate view. Writes: 2026-01-05 3, 2026-01-12 1; Reads: 2026-01-05 4, 2026-01-12 5.",
+    summarizeChartPanel("Weekly write share", "aggregate", model),
+    "Weekly write share. Aggregate view. Write share: 2026-01-05 0.5, 2026-01-12 0.",
   );
 });
 

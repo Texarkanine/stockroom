@@ -58,9 +58,76 @@ function panelModel(kind, labels, datasets, options = {}) {
     datasets,
     indexAxis: options.indexAxis ?? "x",
     stacked: options.stacked ?? false,
-    empty: !hasValues(datasets),
+    empty: options.empty ?? !hasValues(datasets),
     ...(options.height === undefined ? {} : { height: options.height }),
+    ...(options.yMax === undefined ? {} : { yMax: options.yMax }),
+    ...(options.labelTitles === undefined ? {} : { labelTitles: [...options.labelTitles] }),
   };
+}
+
+/**
+ * Hover / accessible title for a project display label.
+ *
+ * @param {string | null | undefined} label Visible name.
+ * @param {string | null | undefined} id Stable project_id slug.
+ * @returns {string | null} Slug when it differs from the label; otherwise null.
+ */
+export function projectHoverTitle(label, id) {
+  if (!id) {
+    return null;
+  }
+  return label === id ? null : id;
+}
+
+/**
+ * Chart.js tooltip title: prefer slug from labelTitles when set.
+ *
+ * @param {(string | null)[] | undefined} labelTitles Parallel hover titles.
+ * @param {number} index Data index under the cursor.
+ * @param {string} fallbackLabel Visible tick / default tooltip label.
+ * @returns {string}
+ */
+export function tooltipTitleFromLabelTitles(labelTitles, index, fallbackLabel) {
+  if (Array.isArray(labelTitles)) {
+    const title = labelTitles[index];
+    if (title) {
+      return title;
+    }
+  }
+  return fallbackLabel ?? "";
+}
+
+/**
+ * Static help copy for Session Efficiency and First-Prompt Quality.
+ *
+ * Thresholds mirror metrics.EFFICIENCY_BUCKETS / FIRST_PROMPT_BUCKETS
+ * (abandoned ≤2, short 3–10, medium 11–40, long 41+ messages; first-prompt
+ * short <100, medium ≤500, detailed >500 chars). Keep in sync manually.
+ */
+export const PANEL_HELP = {
+  efficiency:
+    "Buckets by message count per session: abandoned (≤2), short (3–10), medium (11–40), long (41+). Counts sessions in the selected window.",
+  "first-prompt":
+    "Buckets by first user-prompt length: short (<100 chars), medium (100–500), detailed (>500). Bars show average session message count per bucket.",
+};
+
+/**
+ * Toggle which panel help popover is open (one at a time).
+ *
+ * @param {string | null} openId Currently open help id, or null.
+ * @param {string} targetId Help id the user activated.
+ * @returns {string | null} Next open id.
+ */
+export function togglePanelHelp(openId, targetId) {
+  if (!targetId) {
+    return null;
+  }
+  return openId === targetId ? null : targetId;
+}
+
+/** Close any open panel help popover. */
+export function closePanelHelp() {
+  return null;
 }
 
 function aggregateDataset(label, data, color = PALETTE[0]) {
@@ -141,24 +208,147 @@ export function harnessColors(harnesses) {
   );
 }
 
+/** Supported date-range preset ids for the top controls strip. */
+const DATE_RANGE_PRESETS = Object.freeze([
+  "default",
+  "7d",
+  "30d",
+  "90d",
+  "1y",
+]);
+
+const DATE_RANGE_DURATIONS_MS = Object.freeze({
+  "7d": 7 * 24 * 60 * 60 * 1000,
+  "30d": 30 * 24 * 60 * 60 * 1000,
+  "90d": 90 * 24 * 60 * 60 * 1000,
+  "1y": 365 * 24 * 60 * 60 * 1000,
+});
+
+const DATE_RANGE_WINDOW_LABELS = Object.freeze({
+  "7d": "Last 7 days",
+  "30d": "Last 30 days",
+  "90d": "Last 90 days",
+  "1y": "Last 1 year",
+});
+
+const DEFAULT_PANEL_RANGE_LABELS = Object.freeze({
+  overviewAria: "Thirty-day overview",
+  daily: "Last 14 days",
+  projects: "Last 30 days",
+  tools: "Last 30 days",
+  writeRead: "Last 12 weeks",
+  efficiency: "Last 30 days",
+  models: "Last 30 days",
+  firstPrompt: "Average session length by prompt detail · 30 days",
+});
+
+/**
+ * Normalize a date-range preset id.
+ *
+ * @param {unknown} preset Raw preset id.
+ * @returns {"default"|"7d"|"30d"|"90d"|"1y"} Known preset, else default.
+ */
+function normalizeDateRangePreset(preset) {
+  return DATE_RANGE_PRESETS.includes(preset) ? preset : "default";
+}
+
+/**
+ * Resolve ISO window bounds for a date-range preset.
+ *
+ * @param {unknown} preset Preset id (`default` omits bounds).
+ * @param {Date|string|number} [now] Clock used for `until` (injectable for tests).
+ * @returns {{since: string, until: string} | null} Encoded bounds, or null when unset.
+ */
+export function resolveWindowBounds(preset, now = new Date()) {
+  const id = normalizeDateRangePreset(preset);
+  const durationMs = DATE_RANGE_DURATIONS_MS[id];
+  if (!durationMs) {
+    return null;
+  }
+  const untilDate = now instanceof Date ? new Date(now.getTime()) : new Date(now);
+  if (Number.isNaN(untilDate.getTime())) {
+    return null;
+  }
+  const sinceDate = new Date(untilDate.getTime() - durationMs);
+  return {
+    since: sinceDate.toISOString(),
+    until: untilDate.toISOString(),
+  };
+}
+
+/**
+ * Panel-range and overview aria copy for the active date-range preset.
+ *
+ * @param {unknown} preset Preset id.
+ * @returns {{
+ *   overviewAria: string,
+ *   daily: string,
+ *   projects: string,
+ *   tools: string,
+ *   writeRead: string,
+ *   efficiency: string,
+ *   models: string,
+ *   firstPrompt: string,
+ * }} Label map for windowed panels.
+ */
+export function panelRangeLabels(preset) {
+  const id = normalizeDateRangePreset(preset);
+  if (id === "default") {
+    return { ...DEFAULT_PANEL_RANGE_LABELS };
+  }
+  const windowLabel = DATE_RANGE_WINDOW_LABELS[id];
+  return {
+    overviewAria: `${windowLabel} overview`,
+    daily: windowLabel,
+    projects: windowLabel,
+    tools: windowLabel,
+    writeRead: windowLabel,
+    efficiency: windowLabel,
+    models: windowLabel,
+    firstPrompt: `Average session length by prompt detail · ${windowLabel}`,
+  };
+}
+
+function normalizeViewState(state) {
+  const dateRange = normalizeDateRangePreset(state?.dateRange);
+  const window =
+    dateRange === "default"
+      ? null
+      : state?.window &&
+          typeof state.window === "object" &&
+          typeof state.window.since === "string" &&
+          typeof state.window.until === "string"
+        ? { since: state.window.since, until: state.window.until }
+        : resolveWindowBounds(dateRange);
+  return {
+    harnesses: sortedHarnesses(state?.harnesses ?? []),
+    selected: sortedHarnesses(state?.selected ?? []),
+    mode: state?.mode === "compare" ? "compare" : "aggregate",
+    dateRange,
+    window,
+  };
+}
+
 /**
  * Apply one deterministic dashboard state transition.
  *
- * @param {{harnesses: string[], selected: string[], mode: string}} state Current state.
+ * @param {{harnesses: string[], selected: string[], mode: string, dateRange?: string, window?: {since: string, until: string}|null}} state Current state.
  * @param {Record<string, unknown>} action Transition description.
  * @returns {{state: object, effect: "none"|"render"|"refetch"}} Next state and effect.
  */
 export function transitionViewState(state, action) {
-  const current = {
-    harnesses: sortedHarnesses(state?.harnesses ?? []),
-    selected: sortedHarnesses(state?.selected ?? []),
-    mode: state?.mode === "compare" ? "compare" : "aggregate",
-  };
+  const current = normalizeViewState(state);
   const type = action?.type;
   if (type === "discover") {
     const harnesses = sortedHarnesses(action.harnesses ?? []);
     return {
-      state: { harnesses, selected: [...harnesses], mode: current.mode },
+      state: {
+        harnesses,
+        selected: [...harnesses],
+        mode: current.mode,
+        dateRange: current.dateRange,
+        window: current.window,
+      },
       effect: "render",
     };
   }
@@ -167,6 +357,17 @@ export function transitionViewState(state, action) {
     return {
       state: { ...current, mode },
       effect: mode === current.mode ? "none" : "render",
+    };
+  }
+  if (type === "daterange") {
+    const dateRange = normalizeDateRangePreset(action.preset);
+    if (dateRange === current.dateRange) {
+      return { state: current, effect: "none" };
+    }
+    const window = resolveWindowBounds(dateRange, action.now ?? new Date());
+    return {
+      state: { ...current, dateRange, window },
+      effect: "refetch",
     };
   }
   if (type === "toggle") {
@@ -365,6 +566,10 @@ export function buildWrappedPanel(wrapped) {
           .filter((value) => value !== "—" && value !== "Unknown")
           .join(" · ") || "—"
       : "—";
+  const marathonSubtitleTitle = projectHoverTitle(
+    marathon.project_name,
+    marathon.project_id,
+  );
   const hour = peak.hour;
   const peakHour =
     typeof hour === "number" && Number.isInteger(hour)
@@ -409,6 +614,7 @@ export function buildWrappedPanel(wrapped) {
           ? "—"
           : `${finiteNumber(marathon.messages)} messages`,
       subtitle: marathonSubtitle,
+      subtitleTitle: marathonSubtitleTitle,
     },
     {
       key: "peak",
@@ -491,7 +697,12 @@ export function summarizeChartPanel(title, mode, model) {
     const seriesLabel = displayValue(entry.label, "Series");
     const data = Array.isArray(entry.data) ? entry.data : [];
     const pairs = labels.map((label, index) => {
-      return `${displayValue(label)} ${finiteNumber(data[index])}`;
+      const raw = data[index];
+      const rendered =
+        raw === null || raw === undefined || !Number.isFinite(Number(raw))
+          ? "—"
+          : String(Number(raw));
+      return `${displayValue(label)} ${rendered}`;
     });
     return `${seriesLabel}: ${pairs.join(", ")}`;
   });
@@ -501,7 +712,11 @@ export function summarizeChartPanel(title, mode, model) {
 /** Build the Daily Activity chart model. */
 export function buildDailyPanel(payload, selected, mode, colors) {
   const source = safeObject(payload);
-  const labels = Array.isArray(source.days) ? source.days : [];
+  const labels = Array.isArray(source.labels)
+    ? source.labels
+    : Array.isArray(source.days)
+      ? source.days
+      : [];
   const datasets =
     mode === "compare"
       ? selectedDatasets(source.sessions, selected, labels, colors)
@@ -512,15 +727,18 @@ export function buildDailyPanel(payload, selected, mode, colors) {
 /** Build the Sessions by Project chart model. */
 export function buildProjectsPanel(payload, selected, mode, colors) {
   const source = safeObject(payload);
-  const labels = Array.isArray(source.projects) ? source.projects : [];
+  const ids = Array.isArray(source.projects) ? source.projects : [];
+  const labels = Array.isArray(source.labels) ? source.labels : ids;
+  const labelTitles = labels.map((label, index) => projectHoverTitle(label, ids[index]));
   const datasets =
     mode === "compare"
-      ? selectedDatasets(source.sessions, selected, labels, colors)
-      : [aggregateDataset("Sessions", sumAligned(source.sessions, selected, labels.length))];
+      ? selectedDatasets(source.sessions, selected, ids, colors)
+      : [aggregateDataset("Sessions", sumAligned(source.sessions, selected, ids.length))];
   return panelModel("bar", labels, datasets, {
     indexAxis: "y",
     stacked: mode === "compare",
     height: chartHeight(labels.length),
+    labelTitles,
   });
 }
 
@@ -541,27 +759,69 @@ export function buildToolsPanel(payload, selected, mode, colors) {
   return panelModel("doughnut", labels, [dataset]);
 }
 
+/**
+ * Write share of classified tool calls: writes / (writes + reads).
+ *
+ * @param {number} writes Write tool-call count.
+ * @param {number} reads Read tool-call count.
+ * @returns {number} Ratio in [0, 1]. Zero-denominator buckets are ``0`` so the
+ *   line stays continuous instead of gapping.
+ */
+export function writeShare(writes, reads) {
+  const writeCount = finiteNumber(writes);
+  const readCount = finiteNumber(reads);
+  const total = writeCount + readCount;
+  return total === 0 ? 0 : writeCount / total;
+}
+
+function ratioSeriesHasActivity(writes, reads) {
+  return writes.some((writeCount, index) => writeCount + reads[index] > 0);
+}
+
+function lineDataset(label, data, color) {
+  return {
+    ...aggregateDataset(label, data, color),
+    tension: 0.3,
+    fill: false,
+  };
+}
+
 /** Build the Write/Read Ratio chart model. */
-export function buildWriteReadPanel(payload, selected, mode) {
+export function buildWriteReadPanel(payload, selected, mode, colors) {
   const source = safeObject(payload);
-  const labels = Array.isArray(source.weeks) ? source.weeks : [];
-  const writes = aggregateDataset(
-    "Writes",
-    sumAligned(source.writes, selected, labels.length),
-    PALETTE[0],
-  );
-  const reads = aggregateDataset(
-    "Reads",
-    sumAligned(source.reads, selected, labels.length),
-    PALETTE[2],
-  );
-  writes.backgroundColor = `${PALETTE[0]}33`;
-  reads.backgroundColor = `${PALETTE[2]}33`;
-  writes.fill = true;
-  reads.fill = true;
-  writes.tension = 0.3;
-  reads.tension = 0.3;
-  return panelModel("line", labels, [writes, reads], { stacked: false });
+  const labels = Array.isArray(source.labels)
+    ? source.labels
+    : Array.isArray(source.weeks)
+      ? source.weeks
+      : [];
+  const length = labels.length;
+  let datasets;
+  let empty;
+  if (mode === "compare") {
+    const keys = orderedSelection(selected);
+    const assigned = colors ?? harnessColors(keys);
+    empty = true;
+    datasets = keys.map((harness) => {
+      const writes = seriesFor(source.writes, harness, length);
+      const reads = seriesFor(source.reads, harness, length);
+      if (ratioSeriesHasActivity(writes, reads)) {
+        empty = false;
+      }
+      const data = writes.map((writeCount, index) => writeShare(writeCount, reads[index]));
+      return lineDataset(displayHarness(harness), data, assigned[harness]);
+    });
+  } else {
+    const writes = sumAligned(source.writes, selected, length);
+    const reads = sumAligned(source.reads, selected, length);
+    empty = !ratioSeriesHasActivity(writes, reads);
+    const data = writes.map((writeCount, index) => writeShare(writeCount, reads[index]));
+    datasets = [lineDataset("Write share", data, PALETTE[0])];
+  }
+  return panelModel("line", labels, datasets, {
+    stacked: false,
+    yMax: 1,
+    empty,
+  });
 }
 
 /** Build the Session Efficiency chart model. */

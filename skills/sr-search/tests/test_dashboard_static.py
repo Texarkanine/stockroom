@@ -104,3 +104,95 @@ def test_dashboard_adapter_imports_authored_modules() -> None:
     adapter = (STATIC_ROOT / "dashboard.mjs").read_text(encoding="utf-8")
     assert 'from "./dashboard-core.mjs"' in adapter
     assert 'from "./dashboard-data.mjs"' in adapter
+
+
+def test_dashboard_top_controls_expose_date_range_and_segmented_mode() -> None:
+    """Date-range presets and Aggregate/Compare read as exclusive segmented controls."""
+    _source, parser = _document()
+    by_id = {
+        attrs["id"]: (tag, attrs) for tag, attrs in parser.elements if attrs.get("id")
+    }
+    assert by_id["date-range-selector"][0] == "fieldset"
+    assert by_id["mode-selector"][0] == "fieldset"
+    assert "segmented" in (by_id["date-range-selector"][1].get("class") or "").split()
+    assert "segmented" in (by_id["mode-selector"][1].get("class") or "").split()
+
+    date_radios = [
+        attrs
+        for tag, attrs in parser.elements
+        if tag == "input"
+        and attrs.get("type") == "radio"
+        and attrs.get("name") == "date-range"
+    ]
+    assert [radio.get("value") for radio in date_radios] == [
+        "default",
+        "7d",
+        "30d",
+        "90d",
+        "1y",
+    ]
+    assert sum(1 for radio in date_radios if "checked" in radio) == 1
+    assert "checked" in next(
+        radio for radio in date_radios if radio.get("value") == "default"
+    )
+
+    mode_radios = [
+        attrs
+        for tag, attrs in parser.elements
+        if tag == "input"
+        and attrs.get("type") == "radio"
+        and attrs.get("name") == "mode"
+    ]
+    assert [radio.get("value") for radio in mode_radios] == ["aggregate", "compare"]
+    assert sum(1 for radio in mode_radios if "checked" in radio) == 1
+
+
+def test_write_read_chart_aria_describes_ratio_not_absolute_volumes() -> None:
+    """Write/Read canvas fallback copy matches ratio semantics."""
+    _source, parser = _document()
+    by_id = {
+        attrs["id"]: (tag, attrs) for tag, attrs in parser.elements if attrs.get("id")
+    }
+    _tag, attrs = by_id["write-read-chart"]
+    label = (attrs.get("aria-label") or "").lower()
+    assert "ratio" in label or "share" in label
+    assert "tool calls chart" not in label
+
+
+def test_info_controls_only_on_efficiency_and_first_prompt_panels() -> None:
+    """Help chrome is limited to Session Efficiency and First-Prompt Quality."""
+    source, parser = _document()
+    info_buttons = [
+        attrs
+        for tag, attrs in parser.elements
+        if tag == "button" and "panel-info" in (attrs.get("class") or "").split()
+    ]
+    assert len(info_buttons) == 2
+    assert all(btn.get("type") == "button" for btn in info_buttons)
+    assert all(btn.get("aria-expanded") == "false" for btn in info_buttons)
+    assert all(btn.get("aria-controls") for btn in info_buttons)
+    assert all(btn.get("aria-label") for btn in info_buttons)
+
+    efficiency_start = source.index('id="efficiency-panel"')
+    efficiency_end = source.index('id="models-panel"')
+    first_start = source.index('id="first-prompt-panel"')
+    first_end = source.index('id="recent-sessions"')
+    efficiency_chunk = source[efficiency_start:efficiency_end]
+    first_chunk = source[first_start:first_end]
+    assert 'class="panel-info"' in efficiency_chunk
+    assert 'class="panel-info"' in first_chunk
+    assert 'id="efficiency-help"' in efficiency_chunk
+    assert 'id="first-prompt-help"' in first_chunk
+
+    for panel_id in (
+        "daily-panel",
+        "projects-panel",
+        "tools-panel",
+        "write-read-panel",
+        "models-panel",
+    ):
+        start = source.index(f'id="{panel_id}"')
+        rest = source[start + 1 :]
+        next_panel = rest.find('class="panel')
+        chunk = source[start : start + 1 + (next_panel if next_panel != -1 else 800)]
+        assert "panel-info" not in chunk

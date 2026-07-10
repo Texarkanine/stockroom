@@ -39,20 +39,46 @@ export class DashboardRequestError extends Error {
 }
 
 /**
+ * Normalize optional window bounds for request planning.
+ *
+ * @param {{since?: string, until?: string} | null | undefined} windowBounds
+ * @returns {{since: string, until: string} | null}
+ */
+function normalizeWindowBounds(windowBounds) {
+  if (!windowBounds || typeof windowBounds !== "object") {
+    return null;
+  }
+  const since = safeText(windowBounds.since);
+  const until = safeText(windowBounds.until);
+  if (!since || !until) {
+    return null;
+  }
+  return { since, until };
+}
+
+/**
  * Build the complete same-origin request plan for one selected harness set.
  *
  * @param {Iterable<string>} selectedHarnesses Selected harness keys.
+ * @param {{since?: string, until?: string} | null} [windowBounds] Optional since/until window.
  * @returns {{name: string, url: string}[]} Ordered endpoint plan.
  */
-export function buildRequestPlan(selectedHarnesses) {
+export function buildRequestPlan(selectedHarnesses, windowBounds = null) {
   const filters = selectedKeys(selectedHarnesses)
     .map((harness) => `harness=${encodeURIComponent(harness)}`)
     .join("&");
+  const bounds = normalizeWindowBounds(windowBounds);
+  const windowParams = bounds
+    ? [
+        `since=${encodeURIComponent(bounds.since)}`,
+        `until=${encodeURIComponent(bounds.until)}`,
+      ].join("&")
+    : "";
   return ENDPOINTS.map((name) => {
     if (name === "wrapped") {
       return { name, url: "/api/wrapped" };
     }
-    const parameters = [filters, name === "sessions" ? "limit=50" : ""]
+    const parameters = [filters, name === "sessions" ? "limit=50" : "", windowParams]
       .filter(Boolean)
       .join("&");
     return {
@@ -67,14 +93,14 @@ export function buildRequestPlan(selectedHarnesses) {
  *
  * @param {typeof fetch} fetchImpl Injectable fetch implementation.
  * @param {Iterable<string>} selectedHarnesses Selected harness keys.
- * @param {{signal?: AbortSignal}} [options] Request options.
+ * @param {{signal?: AbortSignal, window?: {since?: string, until?: string} | null}} [options] Request options.
  * @returns {Promise<Record<string, unknown>>} Complete named snapshot.
  */
 export async function fetchSnapshot(fetchImpl, selectedHarnesses, options = {}) {
   if (typeof fetchImpl !== "function") {
     throw new TypeError("fetchImpl must be a function");
   }
-  const plan = buildRequestPlan(selectedHarnesses);
+  const plan = buildRequestPlan(selectedHarnesses, options.window);
   const entries = await Promise.all(
     plan.map(async ({ name, url }) => {
       let response;

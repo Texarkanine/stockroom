@@ -209,6 +209,42 @@
         white-space: nowrap;
       }
 
+      fieldset.segmented {
+        gap: 0;
+        padding: 0.2rem;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--surface-soft);
+      }
+
+      .segmented .mode-row {
+        margin: 0;
+        border-radius: 999px;
+        padding: 0.45rem 0.8rem;
+        font-weight: 700;
+        color: var(--muted);
+      }
+
+      .segmented .mode-row:has(input:checked) {
+        background: var(--accent);
+        color: #fff;
+        box-shadow: 0 1px 2px rgb(15 23 42 / 18%);
+      }
+
+      .segmented .mode-row input {
+        position: absolute;
+        opacity: 0;
+        width: 1px;
+        height: 1px;
+        margin: 0;
+        pointer-events: none;
+      }
+
+      .segmented .mode-row:focus-within {
+        outline: 2px solid var(--accent-strong);
+        outline-offset: 2px;
+      }
+
       .mode-row {
         border-radius: 0.6rem;
         padding: 0.5rem 0.65rem;
@@ -329,6 +365,7 @@
       }
 
       .panel {
+        position: relative;
         min-width: 0;
         padding: 1rem;
       }
@@ -343,6 +380,64 @@
         justify-content: space-between;
         gap: 1rem;
         margin-bottom: 0.75rem;
+      }
+
+      .panel-title-row {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        min-width: 0;
+        position: relative;
+      }
+
+      .panel-info {
+        flex: 0 0 auto;
+        width: 1.35rem;
+        height: 1.35rem;
+        padding: 0;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: transparent;
+        color: var(--muted);
+        font: inherit;
+        font-size: 0.75rem;
+        font-weight: 600;
+        line-height: 1;
+        cursor: pointer;
+      }
+
+      .panel-info:hover,
+      .panel-info:focus-visible {
+        color: var(--text);
+        border-color: var(--muted);
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+
+      .panel-info[aria-expanded="true"] {
+        color: var(--text);
+        border-color: var(--accent);
+      }
+
+      .panel-help {
+        position: absolute;
+        z-index: 30;
+        top: calc(100% + 0.35rem);
+        left: 0;
+        width: min(26rem, calc(100vw - 3rem));
+        margin: 0;
+        padding: 0.7rem 0.8rem;
+        border: 1px solid var(--border);
+        border-radius: 0.4rem;
+        background: var(--surface);
+        color: var(--muted);
+        font-size: 0.82rem;
+        line-height: 1.45;
+        box-shadow: 0 0.5rem 1.25rem color-mix(in srgb, var(--text) 18%, transparent);
+      }
+
+      .panel-help[hidden] {
+        display: none;
       }
 
       .panel h2,
@@ -560,7 +655,30 @@
             <span>Loading harnesses…</span>
           </div>
         </details>
-        <fieldset id="mode-selector">
+        <fieldset id="date-range-selector" class="segmented">
+          <legend>Date range</legend>
+          <label class="mode-row">
+            <input type="radio" name="date-range" value="default" checked>
+            Default
+          </label>
+          <label class="mode-row">
+            <input type="radio" name="date-range" value="7d">
+            7d
+          </label>
+          <label class="mode-row">
+            <input type="radio" name="date-range" value="30d">
+            30d
+          </label>
+          <label class="mode-row">
+            <input type="radio" name="date-range" value="90d">
+            90d
+          </label>
+          <label class="mode-row">
+            <input type="radio" name="date-range" value="1y">
+            1y
+          </label>
+        </fieldset>
+        <fieldset id="mode-selector" class="segmented">
           <legend>Presentation mode</legend>
           <label class="mode-row">
             <input type="radio" name="mode" value="aggregate" checked>
@@ -649,7 +767,7 @@
           </header>
           <div class="chart-scroll">
             <div class="chart-wrap" id="write-read-chart-wrap">
-              <canvas id="write-read-chart" role="img" aria-label="Weekly write and read tool calls chart">Weekly write and read tool calls chart.</canvas>
+              <canvas id="write-read-chart" role="img" aria-label="Weekly write share ratio chart">Weekly write share ratio chart.</canvas>
             </div>
           </div>
           <p class="no-data" id="write-read-empty" hidden>No data in this period.</p>
@@ -657,7 +775,18 @@
 
         <article class="panel" id="efficiency-panel">
           <header class="panel-header">
-            <h2>Session Efficiency</h2>
+            <div class="panel-title-row">
+              <h2>Session Efficiency</h2>
+              <button
+                type="button"
+                class="panel-info"
+                aria-expanded="false"
+                aria-controls="efficiency-help"
+                aria-label="About Session Efficiency"
+                data-help-id="efficiency"
+              >i</button>
+              <p id="efficiency-help" class="panel-help" hidden></p>
+            </div>
             <p class="panel-range">Last 30 days</p>
           </header>
           <div class="chart-scroll">
@@ -683,7 +812,18 @@
 
         <article class="panel panel-wide" id="first-prompt-panel">
           <header class="panel-header">
-            <h2>First-Prompt Quality</h2>
+            <div class="panel-title-row">
+              <h2>First-Prompt Quality</h2>
+              <button
+                type="button"
+                class="panel-info"
+                aria-expanded="false"
+                aria-controls="first-prompt-help"
+                aria-label="About First-Prompt Quality"
+                data-help-id="first-prompt"
+              >i</button>
+              <p id="first-prompt-help" class="panel-help" hidden></p>
+            </div>
             <p class="panel-range">Average session length by prompt detail · 30 days</p>
           </header>
           <div class="chart-scroll">

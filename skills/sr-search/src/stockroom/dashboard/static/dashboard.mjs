@@ -7,11 +7,17 @@ import {
   buildToolsPanel,
   buildWrappedPanel,
   buildWriteReadPanel,
+  closePanelHelp,
   deriveHarnessBreakdown,
   deriveOverviewCards,
   displayHarness,
   harnessColors,
+  PANEL_HELP,
+  panelRangeLabels,
+  projectHoverTitle,
   summarizeChartPanel,
+  togglePanelHelp,
+  tooltipTitleFromLabelTitles,
   transitionViewState,
 } from "./dashboard-core.mjs";
 import {
@@ -25,7 +31,9 @@ const elements = {
   selector: document.querySelector("#harness-selector"),
   harnessSummary: document.querySelector("#harness-summary"),
   harnessOptions: document.querySelector("#harness-options"),
+  dateRangeSelector: document.querySelector("#date-range-selector"),
   modeSelector: document.querySelector("#mode-selector"),
+  kpiGrid: document.querySelector("#kpi-grid"),
   status: document.querySelector("#status"),
   error: document.querySelector("#error"),
   lastSync: document.querySelector("#last-sync"),
@@ -54,8 +62,11 @@ let state = {
   harnesses: [],
   selected: [],
   mode: "aggregate",
+  dateRange: "default",
+  window: null,
   snapshot: null,
 };
+let openHelpId = null;
 
 function setStatus(message) {
   elements.status.textContent = message;
@@ -79,6 +90,9 @@ function showError(error) {
 
 function setBusy(busy) {
   elements.dashboard.setAttribute("aria-busy", String(busy));
+  for (const input of elements.dateRangeSelector.querySelectorAll("input")) {
+    input.disabled = busy;
+  }
   for (const input of elements.modeSelector.querySelectorAll("input")) {
     input.disabled = busy;
   }
@@ -230,6 +244,19 @@ function chartOptions(model) {
       tooltip: {
         mode: "index",
         intersect: false,
+        callbacks: {
+          title(items) {
+            const item = items?.[0];
+            if (!item) {
+              return "";
+            }
+            return tooltipTitleFromLabelTitles(
+              model.labelTitles,
+              item.dataIndex,
+              item.label ?? "",
+            );
+          },
+        },
       },
     },
   };
@@ -243,6 +270,7 @@ function chartOptions(model) {
       y: {
         stacked: model.stacked,
         beginAtZero: true,
+        ...(model.yMax === undefined ? {} : { max: model.yMax }),
         ticks: { color: muted },
         grid: { color: border },
       },
@@ -319,7 +347,11 @@ function renderSessions(sessions) {
     harnessLabel.append(dot, document.createTextNode(displayHarness(session.harness)));
     harnessCell.append(harnessLabel);
     row.append(harnessCell);
-    appendCell(row, session.project_name || "—");
+    const projectCell = appendCell(row, session.project_name || "—");
+    const projectTitle = projectHoverTitle(session.project_name, session.project_id);
+    if (projectTitle) {
+      projectCell.title = projectTitle;
+    }
     appendCell(row, numberFormatter.format(Number(session.msgs) || 0));
     appendCell(row, session.model || "—");
     appendCell(row, session.prompt || "—", "prompt-cell");
@@ -341,8 +373,31 @@ function renderWrapped(wrapped) {
     const subtitle = document.createElement("p");
     subtitle.className = "wrapped-subtitle";
     subtitle.textContent = cell.subtitle;
+    if (cell.subtitleTitle) {
+      subtitle.title = cell.subtitleTitle;
+    }
     article.append(label, value, subtitle);
     elements.wrappedGrid.append(article);
+  }
+}
+
+function applyPanelRangeLabels() {
+  const labels = panelRangeLabels(state.dateRange);
+  elements.kpiGrid.setAttribute("aria-label", labels.overviewAria);
+  const mapping = [
+    ["#daily-panel .panel-range", labels.daily],
+    ["#projects-panel .panel-range", labels.projects],
+    ["#tools-panel .panel-range", labels.tools],
+    ["#write-read-panel .panel-range", labels.writeRead],
+    ["#efficiency-panel .panel-range", labels.efficiency],
+    ["#models-panel .panel-range", labels.models],
+    ["#first-prompt-panel .panel-range", labels.firstPrompt],
+  ];
+  for (const [selector, text] of mapping) {
+    const element = document.querySelector(selector);
+    if (element) {
+      element.textContent = text;
+    }
   }
 }
 
@@ -359,6 +414,7 @@ function renderDashboard() {
   } else {
     elements.lastSync.removeAttribute("title");
   }
+  applyPanelRangeLabels();
   renderOverview(snapshot.overview);
   renderChart(
     "daily",
@@ -377,8 +433,8 @@ function renderDashboard() {
   );
   renderChart(
     "write-read",
-    "Weekly write and read tool calls",
-    buildWriteReadPanel(snapshot.trends?.weekly, state.selected, state.mode),
+    "Weekly write share",
+    buildWriteReadPanel(snapshot.trends?.weekly, state.selected, state.mode, colors),
   );
   renderChart(
     "efficiency",
@@ -426,7 +482,7 @@ async function refreshDashboard(initial = false) {
     const snapshot = await fetchSnapshot(
       window.fetch.bind(window),
       state.selected,
-      { signal: request.signal },
+      { signal: request.signal, window: state.window },
     );
     request.commit(() => {
       if (state.harnesses.length === 0) {
@@ -462,6 +518,12 @@ async function refreshDashboard(initial = false) {
   }
 }
 
+elements.dateRangeSelector.addEventListener("change", (event) => {
+  if (event.target instanceof HTMLInputElement && event.target.name === "date-range") {
+    applyTransition({ type: "daterange", preset: event.target.value });
+  }
+});
+
 elements.modeSelector.addEventListener("change", (event) => {
   if (event.target instanceof HTMLInputElement && event.target.name === "mode") {
     applyTransition({ type: "mode", mode: event.target.value });
@@ -472,6 +534,21 @@ document.addEventListener("click", (event) => {
   if (elements.selector.open && !elements.selector.contains(event.target)) {
     elements.selector.open = false;
   }
+  const infoButton =
+    event.target instanceof Element ? event.target.closest(".panel-info") : null;
+  if (infoButton instanceof HTMLButtonElement) {
+    event.stopPropagation();
+    applyHelpOpen(togglePanelHelp(openHelpId, infoButton.dataset.helpId));
+    return;
+  }
+  if (
+    openHelpId &&
+    event.target instanceof Element &&
+    !event.target.closest(".panel-help") &&
+    !event.target.closest(".panel-info")
+  ) {
+    applyHelpOpen(closePanelHelp());
+  }
 });
 
 elements.selector.addEventListener("keydown", (event) => {
@@ -481,9 +558,40 @@ elements.selector.addEventListener("keydown", (event) => {
   }
 });
 
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && openHelpId) {
+    applyHelpOpen(closePanelHelp());
+  }
+});
+
+function applyHelpOpen(nextId) {
+  openHelpId = nextId;
+  for (const button of document.querySelectorAll(".panel-info")) {
+    const helpId = button.dataset.helpId;
+    const expanded = helpId === openHelpId;
+    button.setAttribute("aria-expanded", expanded ? "true" : "false");
+    const panel = document.getElementById(button.getAttribute("aria-controls"));
+    if (panel) {
+      panel.hidden = !expanded;
+    }
+  }
+}
+
+function initPanelHelpCopy() {
+  for (const button of document.querySelectorAll(".panel-info")) {
+    const helpId = button.dataset.helpId;
+    const panel = document.getElementById(button.getAttribute("aria-controls"));
+    const copy = PANEL_HELP[helpId];
+    if (panel && copy) {
+      panel.textContent = copy;
+    }
+  }
+}
+
 window
   .matchMedia("(prefers-color-scheme: dark)")
   .addEventListener("change", () => renderDashboard());
 
+initPanelHelpCopy();
 renderHarnessControls();
 void refreshDashboard(true);

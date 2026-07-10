@@ -139,3 +139,60 @@ test("allows only the latest request generation to commit", () => {
   assert.equal(first.isCurrent(), false);
   assert.equal(second.isCurrent(), true);
 });
+
+test("null or omitted window bounds match today's unwindowed URLs", () => {
+  const baseline = buildRequestPlan(["cursor"]);
+  assert.deepEqual(buildRequestPlan(["cursor"], null), baseline);
+  assert.deepEqual(buildRequestPlan(["cursor"], undefined), baseline);
+  assert.deepEqual(buildRequestPlan(["cursor"], {}), baseline);
+});
+
+test("window bounds append encoded since and until to all endpoints except wrapped", () => {
+  const since = "2026-01-01T00:00:00+00:00";
+  const until = "2026-01-08T12:30:00+00:00";
+  const plan = buildRequestPlan(["cursor pro"], { since, until });
+  const encodedSince = encodeURIComponent(since);
+  const encodedUntil = encodeURIComponent(until);
+  for (const item of plan) {
+    if (item.name === "wrapped") {
+      assert.equal(item.url, "/api/wrapped");
+      assert.doesNotMatch(item.url, /since=|until=/);
+      continue;
+    }
+    assert.match(item.url, new RegExp(`since=${encodedSince}`));
+    assert.match(item.url, new RegExp(`until=${encodedUntil}`));
+    assert.match(item.url, /harness=cursor%20pro/);
+  }
+  assert.equal(
+    plan.find((item) => item.name === "sessions").url,
+    `/api/sessions?harness=cursor%20pro&limit=50&since=${encodedSince}&until=${encodedUntil}`,
+  );
+});
+
+test("fetchSnapshot forwards options.window into every non-wrapped pending URL", async () => {
+  const since = "2026-06-01T00:00:00Z";
+  const until = "2026-07-01T00:00:00Z";
+  const pending = [];
+  const fetchImpl = (url) =>
+    new Promise((resolve) => {
+      pending.push({ url, resolve });
+    });
+  const snapshotPromise = fetchSnapshot(fetchImpl, ["cursor"], {
+    window: { since, until },
+  });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(pending.length, 8);
+  const encodedSince = encodeURIComponent(since);
+  const encodedUntil = encodeURIComponent(until);
+  for (const item of pending) {
+    if (item.url.startsWith("/api/wrapped")) {
+      assert.equal(item.url, "/api/wrapped");
+      assert.doesNotMatch(item.url, /since=|until=/);
+      continue;
+    }
+    assert.match(item.url, new RegExp(`since=${encodedSince}`));
+    assert.match(item.url, new RegExp(`until=${encodedUntil}`));
+  }
+  pending.forEach((item) => item.resolve(response({ ok: true })));
+  await snapshotPromise;
+});
