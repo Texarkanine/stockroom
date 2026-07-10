@@ -1,8 +1,10 @@
 """Harness-neutral stockroom home path resolution (XDG / STOCKROOM_HOME).
 
-Dep-light on purpose: heal imports (``shim`` → ``engine_env`` →
-``torch_source``) must resolve stockroom home without pulling DuckDB. The
-warehouse module re-exports these names for existing callers.
+Stdlib-only on purpose: heal imports (``shim`` → ``engine_env`` →
+``torch_source``) must resolve stockroom home on a bare ``uv python find``
+interpreter with no project site-packages — any third-party import 
+dies before ``ensure_engine_env`` can sync. 
+The warehouse module re-exports these names for existing callers.
 """
 
 from __future__ import annotations

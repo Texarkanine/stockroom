@@ -49,7 +49,7 @@ WAREHOUSE_FILENAME = "warehouse.duckdb"
 LOCK_FILENAME = ".warehouse.lock"
 
 # Re-export home resolution for existing ``from stockroom.warehouse import …``
-# callers. Canonical owner is :mod:`stockroom.home` (DuckDB-free).
+# callers. Canonical owner is :mod:`stockroom.home` (stdlib-only).
 __all__ = [
     "HOME_ENV_VAR",
     "HOME_SOURCE_DEFAULT",
