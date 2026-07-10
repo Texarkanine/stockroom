@@ -31,24 +31,32 @@ Add `--verbose` progress logging to `python -m stockroom.ingest` and `python -m 
 
 ## Implementation Plan
 
-1. **Orchestrator progress seam (ingest library)**
-   - Files: `skills/sr-search/src/stockroom/ingest/__init__.py`, `skills/sr-search/tests/test_ingest_orchestrator.py`
-   - Changes: Add optional `on_progress: Callable[[str], None] | None = None` to `ingest` and `_ingest_harness`. After discovery/selection, call with a harness-start line (`{harness}: N sessions` using selected count as the work unit, or discovered + selected if useful). In the write loop, call with `{harness}: i/N sessions` (1-based `i` over selected conversations, or over written sessions — pick one consistent denominator and document in the callback message). Default `None` = no calls. Write failing orchestrator tests first that capture callback lines.
+1. **Orchestrator progress seam (ingest library)** — TDD cycle
+   - Files: `skills/sr-search/tests/test_ingest_orchestrator.py`, then `skills/sr-search/src/stockroom/ingest/__init__.py`
+   - Tests first: add failing cases that pass `on_progress=capture` and assert harness-start + `i/N` lines; assert default `on_progress=None` invokes nothing.
+   - Then implement: optional `on_progress: Callable[[str], None] | None = None` on `ingest` and `_ingest_harness`. After selection, emit `{harness}: N sessions` (N = selected discovered conversations). In the selected loop, emit `{harness}: i/N sessions` (1-based over selected conversations). Default `None` = no calls.
 
-2. **Ingest CLI `--verbose`**
-   - Files: `skills/sr-search/src/stockroom/ingest/__main__.py`, `skills/sr-search/tests/test_ingest_cli.py`
-   - Changes: Add `--verbose` flag. When set, pass `on_progress=print` (or a thin wrapper) into `ingest.ingest`. Keep end-of-run summary unconditional. Optionally print elapsed seconds when verbose (nice-to-have). Tests: quiet default has no mid-run lines; verbose has progress + summary.
+2. **Ingest CLI `--verbose`** — TDD cycle
+   - Files: `skills/sr-search/tests/test_ingest_cli.py`, then `skills/sr-search/src/stockroom/ingest/__main__.py`
+   - Tests first: quiet `--full` stdout is summary-only (no `N/N` / mid-run progress); `--verbose --full` includes progress substrings plus `ingest complete:`; exit 0.
+   - Then implement: `--verbose` flag; when set, pass `on_progress` that `print`s each line with `flush=True` (so long runs show live under pipes/tee). Keep end-of-run summary unconditional. Optional: elapsed seconds when verbose.
 
-3. **Embed pipeline progress seam**
-   - Files: `skills/sr-search/src/stockroom/embed.py`, `skills/sr-search/tests/test_embed.py`
-   - Changes: Add optional `on_progress` to `embed_pending` (same `Callable[[str], None] | None` shape). After selecting messages, report pending count; in the per-message loop, report `embed: i/N messages` (or equivalent). Wire `--verbose` on `_build_parser` / `main` to pass `print` when set. Preserve missing-warehouse path before encoder construction. Tests for quiet vs verbose CLI output.
+3. **Embed pipeline + CLI `--verbose`** — TDD cycle
+   - Files: `skills/sr-search/tests/test_embed.py`, then `skills/sr-search/src/stockroom/embed.py`
+   - Tests first: `embed_pending(..., on_progress=capture)` gets start + `i/N` lines; `embed.main([])` quiet (count only); `embed.main(["--verbose"], …)` shows progress + count; missing-warehouse + `--verbose` still exit 1 with existing hint.
+   - Then implement: `on_progress` on `embed_pending`; `--verbose` on parser/`main` wiring `print(..., flush=True)`; preserve missing-warehouse path before encoder construction.
 
 4. **Docs touch**
-   - Files: `docs/development.md` (and module docstrings on the CLI entrypoints if they list flags)
+   - Files: `docs/development.md` (and CLI module docstrings if they list flags)
    - Changes: Mention `--verbose` on ingest/embed as optional progress output; keep brief.
 
 5. **Verify**
    - Run targeted new/changed tests, then full `make test` / lint as required by build phase.
+
+## Preflight Amendments
+
+- Made TDD ordering explicit per implementable unit (tests before production code in steps 1–3).
+- Progress printer uses `flush=True` so operators see lines immediately on long runs.
 
 ## Technology Validation
 
@@ -80,6 +88,6 @@ No new technology - validation not required
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
 - [ ] QA
