@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.3](https://github.com/Texarkanine/stockroom/compare/v0.1.2...v0.1.3) (2026-07-10)
+
+
+### Bug Fixes
+
+* **dashboard:** replace stale owned listener after plugin move ([#20](https://github.com/Texarkanine/stockroom/issues/20)) ([094e8a0](https://github.com/Texarkanine/stockroom/commit/094e8a0fb6c0a4ea67588413dd5ea8403ae5bf26))
+* **shim:** manage stockroom.__version__ via release-please ([#21](https://github.com/Texarkanine/stockroom/issues/21)) ([9c338d1](https://github.com/Texarkanine/stockroom/commit/9c338d186ca8ede97e921e251ae00f665c9a5a75))
+
 ## [0.1.2](https://github.com/Texarkanine/stockroom/compare/v0.1.1...v0.1.2) (2026-07-10)
 
 
