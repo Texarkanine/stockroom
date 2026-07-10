@@ -28,3 +28,16 @@ Ship dashboard polish issues #4–#8 as one Level 4 project: date-range control,
     - Serial execution m1 → m2 → m3 (m2∥m3 possible after m1; serial preferred)
 * Insights
     - Date-range first lets later panel work inherit windowed request-plan behavior
+
+## 2026-07-10 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated milestones against `stockroom.dashboard` static + metrics + test layout
+    - Confirmed #4–#8 coverage with no gap/overlap
+    - Wrote `.preflight-status` = PASS
+* Decisions made
+    - TDD step encoding is a sub-run plan gate, not an L4 milestone-list gate
+    - m3 reuses existing sessions `project_name` leaf-from-cwd pattern
+* Insights
+    - Server already parses `since`/`until`; m1 is primarily client control + prior-window delta semantics
+    - Advisory: prefer date-range presets with clean prior-window math before free-form calendar
