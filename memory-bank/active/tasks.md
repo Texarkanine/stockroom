@@ -104,7 +104,12 @@ No new technology - validation not required
 - [x] Pre-Mortem complete
 - [x] Preflight
 - [x] Build
-- [ ] QA
+- [x] QA
+
+## QA Results
+
+- PASS: plan requirements complete; UTC contract consistent end-to-end
+- Trivial fix: `_iso` runs values through `to_utc_naive` before appending `Z`
 
 ## Build checklist
 

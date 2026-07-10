@@ -54,3 +54,13 @@ Fix warehouse/dashboard timezone skew ([issue #32](https://github.com/Texarkanin
     - Head schema version constant bumped to 5 in warehouse tests
 * Insights
     - Local-naive `datetime.now` monkeypatches silently stop freezing windows once call sites move to `utc_now`
+
+## 2026-07-10 - QA - COMPLETE
+
+* Work completed
+    - Semantic review against plan and issue #32 acceptance criteria
+    - Hardened `_iso` with `to_utc_naive` before appending `Z`
+* Decisions made
+    - QA PASS — no substantive gaps; peak-hour local rebucket remains out of scope
+* Insights
+    - Wire-format helpers should assume callers may pass aware values even when the warehouse contract is naive UTC

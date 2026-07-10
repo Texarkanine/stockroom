@@ -22,7 +22,7 @@ from typing import Any
 
 import duckdb
 
-from stockroom.timestamps import utc_now
+from stockroom.timestamps import to_utc_naive, utc_now
 from stockroom.truncate import truncate_cell
 
 ACTIVITY_TIME_SQL = "COALESCE(s.started_at, s.source_mtime)"
@@ -125,7 +125,7 @@ def _iso(value: datetime | None) -> str | None:
     """
     if value is None:
         return None
-    return value.isoformat() + "Z"
+    return to_utc_naive(value).isoformat() + "Z"
 
 
 def overview(
