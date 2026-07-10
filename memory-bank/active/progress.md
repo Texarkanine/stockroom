@@ -48,3 +48,12 @@ Add `--verbose` progress logging to `python -m stockroom.ingest` and `python -m 
     - Deferred elapsed-time nice-to-have
 * Insights
     - None beyond plan
+
+## 2026-07-10 - QA - COMPLETE
+
+* Work completed
+    - Semantic review PASS; no trivial fixes needed
+* Decisions made
+    - Duplicate one-line `ProgressCallback` alias across ingest/embed left as-is (shared module still YAGNI)
+* Insights
+    - Implementation matches plan; quiet-default and verbose paths covered
