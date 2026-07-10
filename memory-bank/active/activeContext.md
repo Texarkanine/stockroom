@@ -1,13 +1,11 @@
 # Active Context
 
 ## Current Task: fix-plugin-env-heal-after-move
-**Phase:** BUILD - COMPLETE (rework: torch persistence)
+**Phase:** REFLECT COMPLETE
 
 ## What Was Done
-- Durable `{stockroom_home}/torch-index`; `torch_source.ensure_torch`; wired into `ensure_engine_env`
-- CLI `stockroom torch record`; `sr-initialize` + `make torch` write the record
-- Hook timeout 300s for cold torch wheels
-- Full suite: 445 passed, 3 skipped
+- Rework complete: durable torch index + heal on ensure/rectify.
+- Reflection updated.
 
 ## Next Step
-- QA / reflect for rework, then `/niko-archive`
+- Run `/niko-archive` to archive and finalize.

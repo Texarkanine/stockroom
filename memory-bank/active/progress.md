@@ -90,3 +90,10 @@ Heal engine-env staleness after plugin-root moves so one session/workspace-open 
     - Never guess an index when missing
 * Insights
     - Existing installs need a one-time `stockroom torch record --index …` (or re-run `make torch`) before heal can restore torch
+
+## 2026-07-10 - REWORK QA + REFLECT - COMPLETE
+
+* Work completed
+    - QA PASS on torch persistence rework; reflection updated
+* Decisions made
+    - Ready for `/niko-archive`
