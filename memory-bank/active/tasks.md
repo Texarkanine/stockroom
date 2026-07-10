@@ -147,6 +147,14 @@ No new technology - validation not required. Uses stdlib `os.environ`, `pathlib`
 - **Move vs copy**: Prefer create XDG dir, `os.replace` warehouse file into place when same filesystem; if cross-device, copy+fsync+verify size+unlink legacy warehouse. Keep lock/logs best-effort secondary.
 - **Archive docs**: Do not rewrite historical `memory-bank/archive/**` narratives; only living docs + O1 reconciliation.
 
+## Preflight Findings
+
+- **PASS** (2026-07-09). Status: `memory-bank/active/.preflight-status`
+- TDD encoding: steps 1–3 order new tests before `warehouse.py` / `doctor.py` production edits
+- Convention: path policy stays owned by `warehouse`; doctor remains read-only via `inspect_homes()`
+- No overlapping XDG utilities found; no second code tree to edit (localdev symlink only)
+- Advisory (not blocking): after migrate, `schedule status` could optionally warn if an installed crontab/plist still names `~/.stockroom/logs/` — deferred; doctor + docs cover the reinstall guidance for this issue
+
 ## Status
 
 - [x] Component analysis complete
@@ -154,6 +162,6 @@ No new technology - validation not required. Uses stdlib `os.environ`, `pathlib`
 - [x] Test planning complete (TDD)
 - [x] Implementation plan complete
 - [x] Technology validation complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
 - [ ] QA

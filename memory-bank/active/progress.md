@@ -55,3 +55,14 @@ Adopt XDG Base Directory layout for stockroom-owned data on all Unix-like platfo
     - Spike `export_dataset.py` default path aligned as a docs/consistency edit
 * Insights
     - Schedule needs no API change under the single-tree decision; risk is stale installed log paths, handled by docs/doctor warning
+
+## 2026-07-09 - PREFLIGHT - COMPLETE (PASS)
+
+* Work completed
+    - Confirmed TDD-before-code on implementable steps 1–3
+    - Confirmed warehouse owns path policy; doctor inspect stays side-effect-free
+    - Confirmed no existing XDG helpers to collide with; skills path is canonical
+* Decisions made
+    - Do not expand scope to schedule-status stale-path detection in this issue (advisory only)
+* Insights
+    - Primary operational risk remains detect-before-mkdir and dual-warehouse conflict messaging

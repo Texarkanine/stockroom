@@ -1,11 +1,12 @@
 # Active Context
 
 ## Current Task: xdg-base-directory-layout
-**Phase:** PLAN - COMPLETE
+**Phase:** PREFLIGHT - COMPLETE (PASS)
 
 ## What Was Done
-- Resolved creative Q1 (single XDG data-home tree incl. logs) and Q2 (safe auto-migrate at resolve; refuse on conflict; doctor inspect facts)
-- Wrote full L3 plan: components, TDD behaviors, 7 implementation steps, challenges
+- Validated L3 plan against codebase: TDD ordering, conventions, dependencies, completeness
+- Wrote `.preflight-status` = PASS
+- Advisory only: optional future `schedule status` stale-log warning (out of issue scope; doctor/docs suffice)
 
 ## Next Step
-- Preflight phase to validate the plan
+- Operator runs `/niko-build` to implement
