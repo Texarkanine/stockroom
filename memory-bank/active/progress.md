@@ -16,3 +16,14 @@ Ship Phase 5 — Distribution and Release: install/usage docs with empirically v
 * Insights
     - Plugin manifests and release-please wiring already exist from Phase 0; Phase 5 is docs, marketplace publication, and demonstrated release/install — not greenfield scaffolding
     - Claude marketplace in `txrk9-agent-plugins` currently lists only slobac; Cursor lists slobac + cursor-warehouse — stockroom must be added to both
+
+## 2026-07-09 - PLAN - COMPLETE
+
+* Work completed
+    - Decomposed Phase 5 into 3 sequential milestones (m1 docs/verification → m2 marketplace → m3 release + E2E)
+    - Wrote `memory-bank/active/milestones.md` with cross-milestone invariants and advisory L2/L2/L3 estimates
+* Decisions made
+    - Keep the roadmap's three-milestone split; refine m1 wording so it does not imply greenfield manifests (those landed in Phase 0)
+    - Sequence is strictly serial: docs before marketplace publication, marketplace before clean-machine E2E that depends on it
+* Insights
+    - m3 is the only L3-shaped piece; m1/m2 are contained L2 enhancements if they stay within docs and marketplace-entry scope

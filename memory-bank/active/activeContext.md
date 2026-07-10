@@ -1,12 +1,12 @@
 # Active Context
 
 ## Current Task: p5-distribution-release
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Intent clarified and approved: Phase 5 of `planning/roadmap.md` (Distribution and Release).
-- Grounded against `../slobac` dual-manifest example, `txrk9-agent-plugins` marketplace (slobac + cursor-warehouse entries; Claude marketplace currently lacks cursor-warehouse), Cursor Plugins docs, and Claude Code Plugins Reference.
-- Complexity determined: **Level 4** — multi-repo distribution system (stockroom docs + marketplace entries + release-please E2E + clean-machine spine proof) with architectural implications for how the plugin ships.
+- Generated L4 milestone list (3 milestones) from roadmap Phase 5, refined for accuracy (manifests already exist; m1 is docs + empirical verification).
+- Recorded cross-milestone invariants (dual-manifest/no-build, versioning in stockroom only, on-path engine invocation, both harnesses, slobac + official docs as bar, marketplace as separate repo).
+- Estimated scopes: m1 L2, m2 L2, m3 L3.
 
 ## Next Step
-- Load Level 4 workflow and execute the Plan phase (generate milestones).
+- Preflight to validate the milestone list.
