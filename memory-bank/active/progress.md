@@ -46,3 +46,14 @@ End-of-roadmap cutover: re-initialize persistent memory-bank files from current 
     - Also scrubbed `test_ingest_paths.py` docstring (extra hit beyond the three planned code sites)
 * Insights
     - README landed at 36 lines vs slobac's 75 — intentionally lean with detail in docs/
+
+## 2026-07-09 - QA - COMPLETE
+
+* Work completed
+    - Semantic review against plan/acceptance: KISS/DRY/YAGNI/completeness/regression/integrity/docs
+    - Re-verified B1–B10; no planning refs; no roadmap/future tone in README/docs/persistent MB; no hard wraps; no docs site tooling
+    - Wrote `.qa-validation-status` = PASS
+* Decisions made
+    - No trivial fixes required
+* Insights
+    - Cutover is documentation-only; product behavior unchanged (make ci already green at build)
