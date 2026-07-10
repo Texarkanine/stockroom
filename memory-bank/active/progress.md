@@ -39,3 +39,14 @@ Implement start-time identity-aware replace for the machine-scoped dashboard so 
     - Identity records include port; only SIGTERM pid from our identity file
 * Insights
     - First upgrade from a pre-identity dashboard remains a documented one-shot manual kill — safer than port-wide process hunting
+
+## 2026-07-10 - BUILD - COMPLETE
+
+* Work completed
+    - Identity module + launcher replace path + docs
+    - 467 passed, 3 skipped; ruff clean
+* Decisions made
+    - Soft-fail identity write on OSError so bind still serves
+    - Only SIGTERM pid from our identity file after verify_owned
+* Insights
+    - `make test`/`make lint` sync strips torch; heal/freeze restores it — unrelated to this change

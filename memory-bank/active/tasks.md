@@ -100,5 +100,13 @@ None — creative resolved architecture; no further creative phase needed.
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight
-- [ ] Build
+- [x] Build
 - [ ] QA
+
+### Build checklist
+
+- [x] Unit 1: identity module + tests
+- [x] Unit 2: launcher decision matrix + tests
+- [x] Unit 3: foreground identity write + tests
+- [x] Docs (`docs/using.md`)
+- [x] Full suite + lint/format
