@@ -24,3 +24,12 @@ Change Write/Read panel to plot ratio series in Aggregate and Compare modes with
     - Y-axis 0–1 via panel model flag consumed by `chartOptions`
 * Insights
     - Main footgun is `finiteNumber`/`hasValues` collapsing null and 0 — must not fix ratio empty-state by breaking count-panel empty UX
+
+## 2026-07-10 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated plan against dashboard static/core/adapter; TDD encoding amended; `.preflight-status` = PASS
+* Decisions made
+    - Required exported `writeShare`; no Python change; tooltip absolute counts deferred (advisory)
+* Insights
+    - Same core-vs-adapter split as m1 remains the right boundary for panel math

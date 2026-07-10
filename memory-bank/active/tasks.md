@@ -36,19 +36,24 @@ Change the Write/Read panel so it plots a true write-share ratio series (`writes
 
 ## Implementation Plan
 
-1. **Ratio panel model (TDD)** — replace `builds blended write and read models in either mode` with aggregate + compare + zero-denominator + empty/zero-ratio cases; then rewrite `buildWriteReadPanel(payload, selected, mode, colors)` to emit ratio series (`null` on 0/0), pass `colors` in compare like sibling builders, set empty via finite-ratio presence (not `hasValues` zero-coercion). Optionally extract a small pure `writeShareSeries(writes, reads)` helper if it keeps the builder thin.
+1. **Ratio math + panel model (TDD)** — write failing tests first for a pure `writeShare(writes, reads) → number|null` (0/0 → `null`; writes=0 & reads>0 → `0`) and for `buildWriteReadPanel` aggregate (one ratio line) / compare (one line per harness, positional colors) / empty vs all-zero-ratio; then implement helper + rewrite `buildWriteReadPanel(payload, selected, mode, colors)`. Replace obsolete dual absolute-series test. Use `panelModel` optional `empty` override (or equivalent) so finite `0` ratios are not treated as empty.
    - Files: `tests-js/dashboard-core.test.mjs`, `static/dashboard-core.mjs`
-   - Changes: ratio math; signature gains `colors`; stop dual Writes/Reads absolute series; `panelModel` may accept optional `empty` override if cleaner than bending `hasValues`.
+   - Changes: export `writeShare`; ratio series only; signature gains `colors`.
 
-2. **Honest nulls in aria summaries (TDD)** — update `summarizes dual-series write and read panel` (and add a null-point case) so summaries do not turn gaps into `0`; adjust `summarizeChartPanel` to render non-finite/`null` points as `—`.
+2. **Honest nulls in aria summaries (TDD)** — write/adjust failing tests (`summarizes dual-series…` → ratio title + null-point case) first; then change `summarizeChartPanel` so `null`/non-finite points render as `—` (numeric `0` still `0`).
    - Files: `tests-js/dashboard-core.test.mjs`, `static/dashboard-core.mjs`
    - Changes: display path only; other summary tests remain valid for numeric data.
 
-3. **Static + adapter glue** — assert `#write-read-chart` aria/text matches ratio semantics; update `index.html` fallback copy; in `dashboard.mjs` pass `colors` into `buildWriteReadPanel`, use ratio-oriented `renderChart` title, and if needed teach `chartOptions` a model flag (e.g. `yMax: 1`) so the Y-axis is a 0–1 ratio scale (`beginAtZero`, `max: 1`). No fill dual-area styling for absolute volumes.
+3. **Static contract (TDD) then adapter glue** — write failing `#write-read-chart` aria/text assertions in `test_dashboard_static.py` first; update `index.html` fallback copy to ratio semantics; after steps 1–2 green, wire `dashboard.mjs` only: pass `colors`, ratio-oriented `renderChart` title, and `chartOptions` respect for model `yMax: 1` (0–1 scale). No new business logic in the adapter — if Y-scale policy needs tests, put the flag on the panel model in core (covered by step 1) and only read it in `chartOptions`.
    - Files: `tests/test_dashboard_static.py`, `static/index.html`, `static/dashboard.mjs`
    - Changes: presentation only; no request-plan / server changes.
 
 4. **Verification** — `make test-js`, targeted dashboard pytest, then `make ci` at milestone boundary.
+
+### Preflight amendments (2026-07-10)
+
+- Made `writeShare` a required exported pure helper with tests (not optional).
+- Spelled out test-before-code on every implementable unit; step 3 splits static TDD from adapter glue.
 
 ## Technology Validation
 
@@ -81,6 +86,6 @@ No new technology - validation not required (native ES modules + existing Chart.
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
 - [ ] QA

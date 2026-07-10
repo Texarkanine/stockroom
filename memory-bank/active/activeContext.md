@@ -1,16 +1,16 @@
 # Active Context
 
 ## Current Task: dashboard-polish-m2-write-read-ratio
-**Phase:** PLAN - COMPLETE
+**Phase:** PREFLIGHT - COMPLETE
 
 ## What Was Done
-- Planned m2 (#6): rewrite `buildWriteReadPanel` to ratio series (aggregate one line / compare per harness) with `null` on 0/0
-- TDD mapped to `dashboard-core.test.mjs` + static aria contract; adapter gets colors + 0–1 Y scale; no Python change
+- Preflight validated m2 plan against dashboard core/adapter/static layout
+- Amended TDD encoding: required `writeShare` helper; explicit test-before-code on steps 1–3; adapter glue last
+- Wrote `.preflight-status` = PASS
 
 ## Decisions
-- Ratio definition: `writes / (writes + reads)`; Y-axis 0–1 via model `yMax`
-- Idle weeks → `null` gaps; write=0 with reads>0 → finite `0` (panel not empty)
-- Empty detection scoped so count panels keep “all zeros → empty”
+- No rearchitect; Python metrics remain absolute weekly substrate
+- Advisory only: absolute write/read tooltip enrichment deferred (issue #6 “later”)
 
 ## Next Step
-- Preflight validation runs automatically
+- Build phase runs automatically
