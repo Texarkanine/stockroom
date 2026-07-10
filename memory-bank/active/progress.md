@@ -26,3 +26,13 @@ End-of-roadmap cutover: re-initialize persistent memory-bank files from current 
     - Leave `memory-bank/archive/**` historical planning mentions alone
 * Insights
     - Known live `planning/` refs: persistent MB, README, and three code/comment sites (`pyproject.toml`, `__main__.py`, `ingest/paths.py`)
+
+## 2026-07-09 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated plan against codebase; amended Implementation Plan for explicit per-unit TDD ordering (red baseline → rewrite → re-check)
+    - Wrote `.preflight-status` = PASS
+* Decisions made
+    - Docs verification remains shell assertions (no docs CI), consistent with stash-only `docs/`
+* Insights
+    - Initial plan put full verification last; that would have failed the TDD plan-encoding gate
