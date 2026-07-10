@@ -67,3 +67,14 @@ Show friendly project names with `project_id` on hover (#8) and add clickable in
     - `PANEL_HELP` keys match `data-help-id` (`efficiency`, `first-prompt`) so the adapter reads copy directly
 * Insights
     - Projects cwd resolution is not harness-filtered; acceptable for display metadata on ranked ids
+
+## 2026-07-10 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `memory-bank/active/reflection/reflection-dashboard-polish-m3-labels-and-help.md`
+    - Reconciled persistent files: no updates (workspace-identity / offline dashboard patterns already accurate)
+* Decisions made
+    - None beyond documenting the unique-short-name amendment already applied in build
+* Insights
+    - Projects-local metadata queries beat widening `_session_rows`; keep identity arrays authoritative with parallel presentation fields
+    - Sync test-plan bullets when locked decisions change mid-flight; restore out-of-scope WIP before build when the tree is dirty

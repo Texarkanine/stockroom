@@ -1,11 +1,11 @@
 # Active Context
 
 ## Current Task: dashboard-polish-m3-labels-and-help
-**Phase:** QA - COMPLETE
+**Phase:** REFLECT - COMPLETE
 
 ## What Was Done
-- Build delivered #8 + #7; `make ci` green
-- QA PASS with trivial cleanups (`PANEL_HELP` key alignment; `project_display_name` reuse in label helper)
+- Reflection written for m3 (#8 labels + #7 help); persistent files unchanged (no system-level invalidation)
+- QA PASS; build delivered to plan with unique-short-name amendment
 
 ## Next Step
-- Reflect phase
+- Run `/niko` to continue to the next milestone (or capstone archive if m3 is the last unchecked)
