@@ -121,33 +121,34 @@ Decisions locked in plan:
 
 ## Implementation Plan
 
-1. **Shared display helper + projects labels (TDD, Python)**
+1. **Shared display helper + projects labels**
     - Files: `metrics.py`, `test_dashboard_metrics.py`
-    - Changes: add `project_display_name(cwd, project_id)`; extend `projects()` to resolve cwd (projects-local query/pass), return parallel `labels`; keep ranking on ids; update `test_projects_*` for friendly/fallback/deterministic pick.
+    - TDD: write failing tests first — extend `test_projects_ranks_*` exact payload to expect parallel `labels` (slug fallback when no cwd); add cases for friendly basename, deterministic most-recent cwd pick, and ranking-still-by-id when basenames collide; then implement `project_display_name(cwd, project_id)` + projects-local cwd resolution + `labels` array until green.
+    - Note: `_seed_session` must accept `cwd=` for these fixtures (extend helper if missing).
 
-2. **Sessions / wrapped `project_id` (TDD, Python)**
+2. **Sessions / wrapped `project_id`**
     - Files: `metrics.py`, `test_dashboard_metrics.py`
-    - Changes: include `project_id` on session rows and marathon; reuse `project_display_name`; assert hover-capable fields without changing default `project_name` behavior.
+    - TDD: write failing assertions first on `test_sessions_*` / `test_wrapped_*` for additive `project_id` alongside existing `project_name`; then implement field emission via `project_display_name` until green (no change to default display string).
 
-3. **Projects panel model + labelTitles (TDD, JS)**
+3. **Projects panel model + labelTitles**
     - Files: `dashboard-core.mjs`, `dashboard-core.test.mjs`
-    - Changes: `buildProjectsPanel` prefers `labels` with fallback to `projects`; `panelModel` accepts `labelTitles`; tests for friendly labels + titles.
+    - TDD: write failing `buildProjectsPanel` tests first (friendly `labels`, `labelTitles` when label≠id, missing-`labels` fallback to `projects`, no title when equal); then extend `panelModel` / `buildProjectsPanel` until green.
 
-4. **Adapter hover wiring (TDD where practical)**
-    - Files: `dashboard.mjs` (`chartOptions`, `renderSessions`, `renderWrapped`)
-    - Changes: tooltip title callback uses `labelTitles`; session/marathon DOM `title` when friendly ≠ slug; keep textContent-only updates.
+4. **Adapter hover wiring**
+    - Files: `dashboard.mjs` (`chartOptions`, `renderSessions`, `renderWrapped`); extract pure helpers into `dashboard-core.mjs` if needed for testability
+    - TDD: write failing unit tests first for any pure helper that maps `(label, id) → title|null` and for tooltip-title formatting from `labelTitles`; then wire Chart.js `callbacks.title`, session cell `title`, and marathon subtitle `title` to those helpers until green. Do not implement DOM wiring before the helper tests exist.
 
-5. **PANEL_HELP copy + static chrome (TDD)**
-    - Files: `dashboard-core.mjs` (export `PANEL_HELP`), `index.html` (header markup + CSS), `test_dashboard_static.py`
-    - Changes: info buttons only on efficiency + first-prompt; copy matches bucket thresholds from issue #7 / `EFFICIENCY_BUCKETS` / first-prompt rules.
+5. **PANEL_HELP copy + static chrome**
+    - Files: `dashboard-core.mjs` (export `PANEL_HELP`), `index.html` (header markup + CSS), `test_dashboard_static.py`, `dashboard-core.test.mjs`
+    - TDD: write failing tests first — `PANEL_HELP` content covers efficiency buckets + first-prompt length/avg-msgs meaning; static HTML asserts info controls only under `#efficiency-panel` and `#first-prompt-panel`; then add markup/CSS/copy until green.
 
 6. **Help toggle behavior**
-    - Files: `dashboard.mjs` (init listeners), optional pure helpers in `dashboard-core.mjs` for open/close state
-    - Changes: click toggle, Escape, outside click; one open popover at a time; ARIA wiring.
+    - Files: `dashboard-core.mjs` (pure open/close state helpers), `dashboard.mjs` (DOM listeners)
+    - TDD: write failing tests first for pure helpers (toggle, close-all, open-one-closes-other, Escape/outside modeled as close events); then implement helpers + adapter listeners (`aria-expanded` / `aria-controls`) until green. DOM listener glue stays thin over tested helpers.
 
 7. **Verification**
-    - Run targeted pytest/JS tests during TDD; finish with `make ci` (pytest + `make test-js` + lint/format/REUSE).
-
+    - Run targeted pytest/JS tests during each TDD cycle; finish with `make ci` (pytest + `make test-js` + lint/format/REUSE).
+    - Before step 1: restore unrelated dirty WIP (`metrics.py` trends granularity + `writeShare` null→0 and matching tests) to HEAD so m2 contracts stay intact.
 ## Technology Validation
 
 No new technology — validation not required. Native ES modules, existing Chart.js, no CDN, no new packages.
@@ -174,6 +175,12 @@ No new technology — validation not required. Native ES modules, existing Chart
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
 - [ ] QA
+
+## Preflight Amendments
+
+- Strengthened Implementation Plan steps 1–6 so each unit explicitly orders failing tests before production code (blocking TDD encoding fix).
+- Noted `_seed_session` currently omits `cwd` — fixtures must gain `cwd=` for #8 tests.
+- Existing `test_projects_ranks_*` exact equality must be updated to include `labels` (slug-equal when no cwd).

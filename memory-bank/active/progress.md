@@ -28,3 +28,12 @@ Show friendly project names with `project_id` on hover (#8) and add clickable in
     - Dirty trends/writeShare WIP is out of scope — restore before build
 * Insights
     - Widening `_session_rows` would ripple overview/trends/efficiency — projects-local cwd pass is safer
+
+## 2026-07-10 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated plan against metrics/static/core/adapter; TDD encoding amended; `.preflight-status` = PASS
+* Decisions made
+    - Keep projects-local cwd resolution; Chart.js tooltip for slug hover; pure helpers for help toggle
+* Insights
+    - `_seed_session` needs `cwd=` for #8 fixtures; existing projects exact-assert must grow `labels`
