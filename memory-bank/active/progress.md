@@ -53,3 +53,13 @@ Heal engine-env staleness after plugin-root moves so one session/workspace-open 
     - Hook rectify via `python3` not `uv run --no-sync`
 * Insights
     - Cold sync of locked deps was ~2s with warm cache in repro; 60s hook budget is adequate for typical updates
+
+## 2026-07-10 - QA - COMPLETE
+
+* Work completed
+    - Semantic review PASS; trivial doc/stderr/systemPatterns/using.md fixes
+    - Wrote `.qa-validation-status` = PASS
+* Decisions made
+    - No substantive redesign; heal design held under review
+* Insights
+    - Ignoring ensure failures inside rectify would hide manual-debug signal; stderr print is cheap and hook-silenced

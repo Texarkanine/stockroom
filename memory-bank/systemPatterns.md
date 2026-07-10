@@ -56,7 +56,7 @@ Both read surfaces print only through [`stockroom.render`](../skills/sr-search/s
 
 ## Baked-only succeed-or-refuse shim
 
-The shim has a baked engine dir and zero resolution logic — succeed correctly or refuse with a one-line remedy. Session-start hooks rectify owned shims after plugin updates; `make shim` installs owner `dev` for checkouts.
+The shim has a baked engine dir and zero resolution logic — succeed correctly or refuse with a one-line remedy (including when the engine env cannot import locked deps). Session/workspace hooks run `shim rectify`, which re-bakes owned shims after plugin updates **and** ensures the engine uv env via torch-safe inexact sync (`stockroom.engine_env`); `make shim` installs owner `dev` for checkouts.
 
 ## Layered licensing
 

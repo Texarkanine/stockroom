@@ -39,7 +39,7 @@ rsync -a --delete \
   /path/to/stockroom/ ~/.cursor/plugins/local/stockroom/
 ```
 
-Reload the window (**Developer: Reload Window**). `.cursor-plugin/plugin.json` must sit at `~/.cursor/plugins/local/stockroom/.cursor-plugin/plugin.json`.
+Reload the window (**Developer: Reload Window**). `.cursor-plugin/plugin.json` must sit at `~/.cursor/plugins/local/stockroom/.cursor-plugin/plugin.json`. Excluding `.venv` is intentional — the next `workspaceOpen` hook runs `shim rectify`, which ensures the engine env (torch-safe inexact sync) before launching the dashboard. Torch still needs `sr-initialize` / `make torch` if this tree never had it.
 
 **Claude Code** ([create plugins](https://code.claude.com/docs/en/plugins)):
 

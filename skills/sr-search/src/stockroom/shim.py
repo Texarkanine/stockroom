@@ -17,7 +17,8 @@ Three writers drive this module (all through the same code):
 Ownership is explicit (a ``# STOCKROOM_OWNER=`` header marker): only the
 owner may rewrite an existing shim; a foreign shim is replaced only when its
 baked engine dir is dead *and* ``--takeover`` is passed. ``rectify`` is the
-hook-safe subset: owner-match-only, content-diff-only, never creates.
+hook-safe subset: ensures the engine env, then owner-match + content-diff
+rebake only, never creates.
 
 Design records: ``memory-bank/active/creative/creative-shim-staleness-resolution.md``
 and ``creative-shim-generation-surface.md`` (both revised 2026-07-08).
@@ -233,7 +234,12 @@ def rectify(dest: Path | str, app_dir: Path | str, owner: str) -> ShimReport:
     creates a missing shim, never touches a foreign one, and is a silent no-op
     when the rendered content already matches (steady state).
     """
-    ensure_engine_env(app_dir)
+    ensure_report = ensure_engine_env(app_dir)
+    if ensure_report.action == "failed":
+        print(
+            f"stockroom shim: ensure-env failed — {ensure_report.reason}",
+            file=sys.stderr,
+        )
     dest = _absolute(dest)
 
     if not dest.exists():
