@@ -56,7 +56,7 @@ Upgrade torch heal from **floating index URL** to a **machine-local hashed freez
 
 Each step: **tests first → implement → green**.
 
-1. **Freeze API in `torch_source.py`**
+1. **Freeze API in `torch_source.py`** ✅
    - Add `REQUIREMENTS_FILENAME = "torch-requirements.txt"`, `requirements_path()`, `freeze_torch(app_dir, index_url, *, runner=…)`, `read_freeze_path()`
    - Deprecate floating install path; keep `write_index` as sidecar writer used by freeze
    - Tests F1–F2, edges
@@ -67,7 +67,7 @@ Each step: **tests first → implement → green**.
 
 3. **CLI: `freeze` replaces `record` as primary**
    - `stockroom torch freeze --app-dir --index` (required)
-   - Keep `record` as thin alias that errors with “use freeze” **or** remove `record` (prefer remove — unreleased)
+   - remove "record" command.
    - Tests F6; dispatcher help fingerprint
 
 4. **Writers onboard**

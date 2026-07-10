@@ -1,10 +1,10 @@
 # Active Context
 
 ## Current Task: fix-plugin-env-heal-after-move
-**Phase:** PREFLIGHT - COMPLETE (hashed torch freeze rework)
+**Phase:** BUILD - IN-PROGRESS (hashed torch freeze rework)
 
 ## What Was Done
-- Preflight PASS with minor amendments (default app-dir; emit-index-url for heal; clear stale QA status).
+- Preflight PASS; entered build for hashed freeze rework.
 
 ## Next Step
-- `/niko-build` (L2 would auto-continue; operator invoked plan — build is next).
+- Step 1: Freeze API in `torch_source.py` (F1–F2 + edges), TDD.
