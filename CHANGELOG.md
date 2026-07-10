@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/Texarkanine/stockroom/compare/v0.1.0...v0.1.1) (2026-07-10)
+
+
+### Bug Fixes
+
+* reconfigure release-please post 0.x release & add doggy header ([dbbbe83](https://github.com/Texarkanine/stockroom/commit/dbbbe83f4459119816e63a27802cba5a728ea9cd))
+
 ## 0.1.0 (2026-07-10)
 
 
