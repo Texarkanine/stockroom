@@ -82,4 +82,4 @@ No new dependencies. Validated on this machine:
 - [x] Pre-Mortem complete
 - [x] Preflight
 - [x] Build
-- [ ] QA
+- [x] QA

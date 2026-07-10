@@ -50,3 +50,12 @@ Move Cursor auto-heal/dashboard hook from `workspaceOpen` to `sessionStart`, and
     - `PY=$(uv python find --project "$APP" --no-config)` without quoting the substitution (paths are space-free plugin hashes)
 * Insights
     - None beyond plan
+
+## 2026-07-10 - QA - COMPLETE
+
+* Work completed
+    - Semantic review PASS; no trivial fixes needed
+* Decisions made
+    - None
+* Insights
+    - Implementation matches plan; docs and packaging contracts aligned
