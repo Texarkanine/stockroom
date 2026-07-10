@@ -25,7 +25,7 @@ Concrete reference facts gathered from the two prior tools and this environment,
 - **Don't truncate stored content (D19).** The references hard-cap fields (see Empirical Findings); stockroom stores the fields it keeps in full, and truncates only at *read* time (context-aware).
 - **Richer linkage than the references (D21).** Add subagent↔parent linkage, model-per-chain, harness-specific plan documents, and explicit conversation-reconstruction keys — *without* storing a verbatim raw copy or tool outputs (ETL into our schema, not mirroring).
 - **Add a real migration system** (D12) — `cursor-warehouse` has none (only idempotent `CREATE TABLE IF NOT EXISTS` plus one ad-hoc `ALTER`).
-- **Harness-neutral DB location** (O1 resolved → `~/.stockroom/`) — don't bury it under `~/.cursor/`.
+- **Harness-neutral DB location** (O1 closed → XDG data home / `STOCKROOM_HOME`) — don't bury it under `~/.cursor/`.
 - **Nightly scheduled freshness** as the primary mechanism (D14), rather than leaning on a session-start hook to sync.
 - **Fix the dashboard port inconsistency** — `cursor-warehouse` binds `3142` but the launcher/docs reference `3141`, which causes duplicate processes and stale URLs. Pick one port, probe it correctly.
 - **Vendor front-end assets** (O6) instead of pulling Chart.js from a CDN — offline-capable and consistent with the no-injection ethos.

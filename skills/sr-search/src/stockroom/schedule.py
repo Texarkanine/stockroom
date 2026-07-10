@@ -13,9 +13,9 @@ The scheduler's execution environment is hostile (cron runs with
 invokes the on-path ``stockroom`` shim **by name** under an install-time
 resolved absolute ``PATH=`` prefix inside a ``/bin/sh -c`` wrapper — a
 raw engine path never appears in a rendered entry. Output appends to
-``<home>/logs/nightly.log`` (``STOCKROOM_HOME``-aware): unredirected
-cron output is mailed and discarded on MTA-less boxes, and launchd
-defaults to ``/dev/null``.
+``<home>/logs/nightly.log`` (follows ``warehouse.home_dir()`` —
+``STOCKROOM_HOME`` or XDG data home): unredirected cron output is mailed
+and discarded on MTA-less boxes, and launchd defaults to ``/dev/null``.
 
 Judgment (consent to install, time-of-night) lives in the
 ``sr-initialize`` skill prose; this module is mechanism only. All

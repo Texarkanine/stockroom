@@ -74,7 +74,7 @@ The schema is designed empirically: **point an agent at each harness's actual on
 
 - **DuckDB** single-file warehouse.
 - **Vector search** via DuckDB's VSS extension with an **HNSW** index (cosine), as in `cursor-warehouse`.
-- **Location is harness-neutral**: `~/.stockroom/` (O1 resolved), XDG-aware where the platform expects it — deliberately *not* under `~/.cursor/` (which is Cursor-specific). This differs from the references, which nest the DB under a single harness's directory.
+- **Location is harness-neutral**: `$XDG_DATA_HOME/stockroom` or `~/.local/share/stockroom` (O1 closed), overridable via `STOCKROOM_HOME` — deliberately *not* under `~/.cursor/` (which is Cursor-specific). This differs from the references, which nest the DB under a single harness's directory.
 
 ## Embeddings
 

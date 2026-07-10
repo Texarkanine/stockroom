@@ -74,7 +74,7 @@ The spike ran on this machine only: **Linux / WSL2 / x86_64 / CUDA (GTX 1070)**,
 
 The warehouse is a **single-file DuckDB database**. Vector search uses DuckDB's **VSS extension with an HNSW index** under the cosine metric, as in `cursor-warehouse`: install/load `vss`, set `hnsw_enable_experimental_persistence = true`, and reinstall/load the extension so deletes work against a live index.
 
-The database lives in a **harness-neutral location** — `~/.stockroom/` as the home. This is a deliberate departure from the references, which bury the DB under a single harness's directory (e.g. `~/.cursor/`); stockroom serves multiple harnesses, so its storage belongs to *stockroom*, not to any one of them.
+The database lives in a **harness-neutral XDG data home** — `$XDG_DATA_HOME/stockroom/` when set, otherwise `~/.local/share/stockroom/` — with `STOCKROOM_HOME` as an absolute override. This is a deliberate departure from the references, which bury the DB under a single harness's directory (e.g. `~/.cursor/`); stockroom serves multiple harnesses, so its storage belongs to *stockroom*, not to any one of them.
 
 Untruncated storage is cheap and safe here: DuckDB `VARCHAR` has no length limit (a 4 GB ceiling, UTF-8) and database files scale to terabytes. The only real cost is *operating* on huge strings, so the design keeps large blobs **out of join and sort/order keys** and chunks text for embedding — but stores the kept content whole. (See Faithful Capture.)
 

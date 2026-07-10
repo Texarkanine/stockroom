@@ -8,7 +8,8 @@ benchmark (handy on a second machine, e.g. a MacBook, with only
 
     --db PATH                 explicit file
     $STOCKROOM_HOME/warehouse.duckdb
-    ~/.stockroom/warehouse.duckdb   (default)
+    $XDG_DATA_HOME/stockroom/warehouse.duckdb
+    ~/.local/share/stockroom/warehouse.duckdb   (default)
 
     python3 export_dataset.py [--db /path/to/warehouse.duckdb]
 
@@ -44,11 +45,16 @@ SEP = "\x1f"  # unit separator — safe global uid delimiter
 
 
 def resolve_warehouse(db_arg: str | None) -> Path:
-    """Resolve the warehouse path: --db, else $STOCKROOM_HOME, else ~/.stockroom."""
+    """Resolve warehouse path: --db, else STOCKROOM_HOME, else XDG data home."""
     if db_arg:
         return Path(db_arg).expanduser()
     home = os.environ.get("STOCKROOM_HOME")
-    base = Path(home).expanduser() if home else Path.home() / ".stockroom"
+    if home:
+        base = Path(home).expanduser()
+    else:
+        xdg = os.environ.get("XDG_DATA_HOME")
+        data = Path(xdg).expanduser() if xdg else Path.home() / ".local" / "share"
+        base = data / "stockroom"
     return base / "warehouse.duckdb"
 
 

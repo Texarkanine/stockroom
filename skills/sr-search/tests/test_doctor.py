@@ -16,7 +16,7 @@ import types
 
 import pytest
 
-from stockroom import doctor
+from stockroom import doctor, warehouse
 from stockroom.embed import EMBED_DIM
 from stockroom.shim import default_app_dir
 
@@ -160,6 +160,31 @@ def test_probe_reports_engine_dir() -> None:
     """The engine dir fact names where the engine environment lives."""
     facts = _probe()
     assert facts["engine-dir"] == str(default_app_dir())
+
+
+def test_probe_reports_home_and_source_from_resolve_home(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    """Probe reports ``home`` + ``home-source`` from ``warehouse.resolve_home``."""
+    xdg = tmp_path / "xdg-data"
+    monkeypatch.delenv(warehouse.HOME_ENV_VAR, raising=False)
+    monkeypatch.setenv(warehouse.XDG_DATA_HOME_ENV_VAR, str(xdg))
+    facts = _probe()
+    assert facts["home"] == str(xdg / "stockroom")
+    assert facts["home-source"] == warehouse.HOME_SOURCE_XDG
+
+
+def test_probe_home_facts_do_not_mkdir(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    """Doctor probe must not create the resolved home directory."""
+    xdg = tmp_path / "xdg-data"
+    target = xdg / "stockroom"
+    monkeypatch.delenv(warehouse.HOME_ENV_VAR, raising=False)
+    monkeypatch.setenv(warehouse.XDG_DATA_HOME_ENV_VAR, str(xdg))
+    facts = _probe()
+    assert facts["home"] == str(target)
+    assert not target.exists()
 
 
 def test_probe_never_imports_torch_eagerly() -> None:

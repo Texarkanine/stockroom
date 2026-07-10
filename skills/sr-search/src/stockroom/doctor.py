@@ -6,9 +6,10 @@ both constitutionally read-only (they never install, sync, or write):
 * ``probe`` — torch-free environment facts: OS/arch (``platform``), GPU
   name / driver / driver-CUDA ceiling / compute capability (``nvidia-smi``
   in its stable ``--query-gpu=`` CSV mode; absence or failure is a
-  *reported fact*, never an error), torch import state, and the engine
-  directory. Facts only — the torch-wheel recommendation mapping is
-  judgment and lives in the ``sr-initialize`` skill prose.
+  *reported fact*, never an error), torch import state, the engine
+  directory, and the resolved warehouse home / how it was chosen
+  (``home`` / ``home-source``). Facts only — the torch-wheel recommendation
+  mapping is judgment and lives in the ``sr-initialize`` skill prose.
 * ``smoke`` — the loud-failing torch/encoder verification: prints
   ``torch.__version__`` and ``torch.cuda.is_available()``, then encodes one
   string through the production :class:`stockroom.embed.BgeEncoder` path
@@ -35,6 +36,7 @@ from collections.abc import Callable
 
 from stockroom.embed import EMBED_DIM, BgeEncoder, Encoder
 from stockroom.shim import default_app_dir
+from stockroom.warehouse import resolve_home
 
 #: The wheel-index base every torch remedy points at. The concrete build
 #: (``cu126``, ``cpu``, …) is a per-machine human choice made in
@@ -118,20 +120,25 @@ def probe_facts(
 ) -> list[tuple[str, str]]:
     """Gather ordered, torch-free environment facts as ``(key, value)`` pairs.
 
-    Always reported: ``os``, ``arch``, ``gpu``, ``torch``, ``engine-dir``.
-    When a GPU is visible and parseable, also ``driver``, ``driver-cuda``
-    (the driver's CUDA ceiling), and ``gpu-compute-cap`` (the ``sm_``
-    generation input to the wheel choice). When torch imports, also
-    ``torch-cuda``. Every ``nvidia-smi`` failure degrades to a reported
-    fact (``gpu: none`` when absent, ``gpu: unavailable`` on error/garbage)
-    — probe never raises and never imports torch eagerly.
+    Always reported: ``os``, ``arch``, ``gpu``, ``torch``, ``engine-dir``,
+    ``home``, ``home-source``. When a GPU is visible and parseable, also
+    ``driver``, ``driver-cuda`` (the driver's CUDA ceiling), and
+    ``gpu-compute-cap`` (the ``sm_`` generation input to the wheel choice).
+    When torch imports, also ``torch-cuda``. Every ``nvidia-smi`` failure
+    degrades to a reported fact (``gpu: none`` when absent,
+    ``gpu: unavailable`` on error/garbage) — probe never raises and never
+    imports torch eagerly. Home facts come from
+    :func:`stockroom.warehouse.resolve_home` (no mkdir).
     """
+    home, home_source = resolve_home()
     return [
         ("os", platform.system()),
         ("arch", platform.machine()),
         *_gpu_facts(smi_runner),
         *_torch_facts(torch_importer),
         ("engine-dir", str(default_app_dir())),
+        ("home", str(home)),
+        ("home-source", home_source),
     ]
 
 

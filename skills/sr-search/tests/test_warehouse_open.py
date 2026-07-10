@@ -2,7 +2,7 @@
 
 ``stockroom.warehouse`` is the single contract every consumer goes through to
 reach the DuckDB warehouse. These tests pin the harness-neutral home
-resolution (``~/.stockroom/``, overridable via ``STOCKROOM_HOME`` for tests),
+resolution (XDG data home by default, overridable via ``STOCKROOM_HOME`` for tests),
 the auto-created home directory, and — once the gate is wired — that opening a
 fresh warehouse returns a ready, migrated connection while opening a current
 one never re-runs the runner.

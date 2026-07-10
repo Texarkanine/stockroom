@@ -54,13 +54,13 @@ python3 -m pip install -r requirements-bench.txt
 # one shot — export from the local warehouse, then benchmark
 ./run.sh macbook-m4
 #   …or point at an explicit warehouse file / non-default $STOCKROOM_HOME:
-#   ./run.sh macbook-m4 ~/.stockroom/warehouse.duckdb
+#   ./run.sh macbook-m4 ~/.local/share/stockroom/warehouse.duckdb
 ```
 
 …or the two steps by hand:
 
 ```bash
-python3 export_dataset.py [--db ~/.stockroom/warehouse.duckdb]
+python3 export_dataset.py [--db ~/.local/share/stockroom/warehouse.duckdb]
 python3 benchmark.py --label macbook-m4
 ```
 

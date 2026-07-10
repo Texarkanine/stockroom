@@ -41,7 +41,7 @@ def test_probe_exits_zero_and_prints_fact_keys() -> None:
     always-present fact keys."""
     result = _run("probe")
     assert result.returncode == 0, result.stderr
-    for key in ("os:", "arch:", "gpu:", "torch:", "engine-dir:"):
+    for key in ("os:", "arch:", "gpu:", "torch:", "engine-dir:", "home:", "home-source:"):
         assert key in result.stdout, f"missing fact {key!r} in: {result.stdout}"
 
 

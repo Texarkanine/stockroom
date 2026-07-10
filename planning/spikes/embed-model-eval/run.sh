@@ -7,7 +7,7 @@
 #
 # Examples:
 #   ./run.sh macbook-m4
-#   ./run.sh macbook-m4 ~/.stockroom/warehouse.duckdb
+#   ./run.sh macbook-m4 ~/.local/share/stockroom/warehouse.duckdb
 #
 # Override the interpreter with PYTHON=/path/to/python ./run.sh ...
 #

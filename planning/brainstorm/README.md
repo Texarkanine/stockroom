@@ -34,7 +34,7 @@ Every decision below is **settled** (confirmed by the operator) unless listed un
 | D4 | Provenance / clean-room | Freely reuse/relicense the operator's own `cursor-warehouse` code; **strict clean-room vs `claude-warehouse`** (MIT) — no code, schema DDL, or unique ideas copied; only commonplace, generally-public concepts |
 | D5 | Packaging | Ship a **uv *project*** (`pyproject.toml` + committed `uv.lock`) inside a skill directory; run via `uv run --frozen`. Pinned, hash-verified deps so nothing can be injected into a tool that reads all your conversations |
 | D6 | Torch | **HARD requirement: do NOT lock torch across platforms with uv.** Lock everything else; torch stays platform-specific / out-of-band. Mechanism is a spike (possibly exclude torch from the locked set) |
-| D7 | Storage | DuckDB single-file warehouse + VSS/HNSW vector index; **harness-neutral location** (`~/.stockroom/`, O1 resolved) |
+| D7 | Storage | DuckDB single-file warehouse + VSS/HNSW vector index; **harness-neutral XDG data home** (`$XDG_DATA_HOME/stockroom` / `~/.local/share/stockroom`, O1 closed) |
 | D8 | Embeddings | Local `sentence-transformers` (`all-MiniLM-L6-v2`, 384-dim); GPU when available, CPU fallback; **no external API** |
 | D9 | Skills + namespace | `/sr-*`. v1: `sr-initialize`, `sr-search` (blended keyword+semantic entrypoint), `sr-query` (SQL), `sr-semantic` (pure vector), `sr-dashboard` |
 | D10 | Dashboard | v1 headline UI. Launched on session-start via an **idempotent, fire-and-forget, bounded, non-erroring** hook, plus on-demand `sr-dashboard`. Not "always-running-while-coding" supervision |
@@ -59,7 +59,7 @@ Everything below is **resolved** except the torch spike (**O9**), which is genui
 
 | ID | Question | Resolution |
 |----|----------|------------|
-| O1 | Warehouse DB + config location (harness-neutral) | `~/.stockroom/` as the home; XDG-aware where the platform expects it (e.g. `~/.local/share/stockroom`, `~/.config/stockroom`) |
+| O1 | Warehouse DB + config location (harness-neutral) | **Closed:** single tree under `$XDG_DATA_HOME/stockroom` (default `~/.local/share/stockroom`); `STOCKROOM_HOME` overrides; no separate config/state trees in v1 |
 | O2 | v1 distribution: Cursor-only or dual manifests? | Both manifests ship (→ D15) |
 | O3 | Ingest Cursor's `ai-code-tracking.db` for model enrichment? | Yes — only what's needed for model/labeling; attribution tables stay out (D16) |
 | O4 | Migrations forward-only or reversible? | Forward-only |

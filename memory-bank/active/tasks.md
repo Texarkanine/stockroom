@@ -83,11 +83,11 @@ Single tree under the XDG data home (warehouse DB, lock, and `logs/`). `STOCKROO
 
 ## Implementation Plan
 
-1. **TDD: XDG / override path resolution**
+1. **TDD: XDG / override path resolution** ✅
    - Files: `tests/test_warehouse_home_xdg.py` → `src/stockroom/warehouse.py`
    - Changes: pure `resolve_home()`; `home_dir()` wraps it with mkdir; XDG data-home default; `STOCKROOM_HOME` first; module docstring
 
-2. **TDD: Doctor home facts**
+2. **TDD: Doctor home facts** ✅
    - Files: `tests/test_doctor.py`, `tests/test_doctor_cli.py` → `src/stockroom/doctor.py`
    - Changes: probe reports `home` + `home-source` from `resolve_home()` (no legacy keys; no mkdir)
 

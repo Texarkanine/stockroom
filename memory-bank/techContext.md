@@ -32,9 +32,11 @@ samples for later ingest work live under
 The forward-only migration framework that applies this SQL landed in
 milestone 2. Consumers never connect to DuckDB directly: they go through the
 single chokepoint [`stockroom.warehouse.open()`](../skills/sr-search/src/stockroom/warehouse.py),
-which resolves the harness-neutral home (`~/.stockroom/`, overridable via the
-`STOCKROOM_HOME` env var), runs a double-checked lazy migration gate, and
-returns a ready connection. The applied-state machinery — the runner-owned
+which resolves the harness-neutral home (`$XDG_DATA_HOME/stockroom` or
+`~/.local/share/stockroom`, overridable via `STOCKROOM_HOME`), runs a
+double-checked lazy migration gate, and returns a ready connection. Pure
+path selection (no mkdir) is `warehouse.resolve_home()`; doctor probe uses
+it for `home` / `home-source` facts. The applied-state machinery — the runner-owned
 `schema_version` bookkeeping table, `current_version`, and forward-only
 `apply_pending` — lives in
 [`stockroom.migrate`](../skills/sr-search/src/stockroom/migrate.py); migration
@@ -302,9 +304,10 @@ dispatcher's seventh subcommand) with two actions. `probe` reports torch-free
 environment facts as aligned `key: value` lines — OS/arch (`platform`), GPU
 name/driver/driver-CUDA ceiling/compute capability (`nvidia-smi` in its stable
 `--query-gpu=` CSV mode; absence or any failure degrades to a reported fact,
-never an error), torch import state, and the engine dir. It carries **no**
-wheel-recommendation logic — facts only; the mapping is judgment in the
-`sr-initialize` skill prose. `smoke` is the loud-failing verification: it
+never an error), torch import state, the engine dir, and the resolved warehouse
+`home` / `home-source` (`STOCKROOM_HOME` | `XDG_DATA_HOME` | `default`). It
+carries **no** wheel-recommendation logic — facts only; the mapping is judgment
+in the `sr-initialize` skill prose. `smoke` is the loud-failing verification: it
 prints `torch.__version__` and `torch.cuda.is_available()`, encodes one string
 through the production `BgeEncoder` path, and checks the vector width — exit 0
 with an `ok` summary, or exit 1 with exactly one stderr line that always
