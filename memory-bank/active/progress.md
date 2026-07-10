@@ -69,3 +69,12 @@ Implement start-time identity-aware replace for the machine-scoped dashboard so 
     - Elegant form is what we built; close hooks remain out
 * Insights
     - Creative-before-build for post-fix reliability gaps pays off
+
+## 2026-07-10 - ARCHIVE - IN-PROGRESS
+
+* Work completed
+    - Entering archive: reflection complete; working tree clean at reflect checkpoint
+* Decisions made
+    - Category: bug-fixes (stale owned dashboard after plugin move)
+* Insights
+    - None yet
