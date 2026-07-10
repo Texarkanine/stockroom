@@ -297,9 +297,7 @@ def test_embed_pending_on_progress_reports_message_counts(
     _insert_message(migrated_con, ordinal=1, text="beta")
     _insert_message(migrated_con, ordinal=2, text="gamma")
     lines: list[str] = []
-    written = embed.embed_pending(
-        migrated_con, FakeEncoder(), on_progress=lines.append
-    )
+    written = embed.embed_pending(migrated_con, FakeEncoder(), on_progress=lines.append)
     assert written == 3
     assert lines[0] == "embed: 3 messages"
     assert lines[1:] == [

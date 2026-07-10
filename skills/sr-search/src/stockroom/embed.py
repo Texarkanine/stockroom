@@ -255,9 +255,7 @@ def main(
     on_progress = (lambda line: print(line, flush=True)) if args.verbose else None
     con = warehouse.open(read_only=False)
     try:
-        written = embed_pending(
-            con, encoder, full=args.full, on_progress=on_progress
-        )
+        written = embed_pending(con, encoder, full=args.full, on_progress=on_progress)
     finally:
         con.close()
 
