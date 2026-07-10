@@ -148,18 +148,22 @@ def _assert_combined_rectify_then_dashboard(
 ) -> None:
     """Shared shape for the single auto-dashboard command per harness.
 
-    Rectify keeps the plugin-root bootstrap (chicken-egg heal). Dashboard
-    launch is on-path ``stockroom dashboard`` after rectify, not folded into
-    the ``uv run`` / ``PYTHONPATH`` bootstrap.
+    Rectify uses a stdlib ``python3`` + ``PYTHONPATH`` bootstrap (no
+    ``uv run --no-sync``, which would create an empty project venv before
+    ensure runs). Dashboard launch is on-path ``stockroom dashboard`` after
+    rectify.
     """
     assert plugin_root_token in cmd
     assert "shim rectify" in cmd
     assert f"--owner {owner}" in cmd
     assert "stockroom dashboard" in cmd
+    assert "python3 -m stockroom" in cmd
     rectify_at = cmd.find("shim rectify")
     dashboard_at = cmd.find("stockroom dashboard")
     assert 0 <= rectify_at < dashboard_at, "rectify must precede dashboard launch"
+    rectify_half = cmd[:dashboard_at]
     launch_half = cmd[dashboard_at:]
+    assert "uv run" not in rectify_half, "rectify must not use uv run --no-sync"
     assert "uv run" not in launch_half
     assert "PYTHONPATH=" not in launch_half
     assert "python -m stockroom" not in launch_half
@@ -191,9 +195,7 @@ def test_cursor_hook_schema_and_combined_command(cursor_hooks: dict) -> None:
     assert "type" not in entry, "Cursor command type is implicit; omit type"
     assert "matcher" not in entry, "workspaceOpen does not use a matcher"
     timeout = entry.get("timeout")
-    assert isinstance(timeout, (int, float)) and 1 <= timeout <= 60, (
-        "Cursor timeout is seconds-scale (1-60)"
-    )
+    assert timeout == 60, "hook budget must allow cold ensure sync + dashboard"
     cmd = entry["command"]
     assert "cat >/dev/null" in cmd, "must drain Cursor hook stdin JSON"
     assert "export PATH=" in cmd, "must export PATH so children see ~/.local/bin"
@@ -213,9 +215,12 @@ def test_claude_hook_schema_and_combined_command(claude_hooks: dict) -> None:
     assert len(entries) == 1, "exactly one combined SessionStart command"
     entry = entries[0]
     assert entry["type"] == "command"
-    assert entry.get("timeout"), "hook must set a timeout"
+    assert entry.get("timeout") == 60, "hook budget must allow cold ensure sync"
+    cmd = entry["command"]
+    assert "export PATH=" in cmd, "Claude must export PATH like Cursor"
+    assert "$HOME/.local/bin" in cmd
     _assert_combined_rectify_then_dashboard(
-        entry["command"],
+        cmd,
         plugin_root_token="${CLAUDE_PLUGIN_ROOT}",
         owner="claude",
         silence_stderr=True,

@@ -36,13 +36,15 @@ The sibling-relative fallback works because the committed layout is the install 
 
 **Neither env var set means you are in a dev checkout** (or a symlinked `make localdev` mirror). Everything below works the same, except the shim step: defer it to `make shim` from the repo root (owner `dev`), unless the user explicitly insists on a harness-owned install.
 
-## Step 3: Sync the locked environment — once, before torch
+## Step 3: Sync the locked environment — before torch
 
 ```bash
-[ -d "$APP_DIR/.venv" ] || uv sync --frozen --no-config --directory "$APP_DIR"
+PYTHONPATH="$APP_DIR/src" python3 -m stockroom shim ensure-env --app-dir "$APP_DIR"
 ```
 
-**Ordering is load-bearing.** This is the one legitimate exact sync, and it is only safe *before* torch exists: torch is deliberately held out of the lock, so an exact sync **removes an installed torch**. That is why the command is guarded on the venv not existing yet — on a re-run, skip it. (After setup, syncs must be `uv sync --inexact`; runs are always `uv run --no-sync`.)
+This is the tested env-heal path (`stockroom.engine_env`): probe with `uv sync --frozen --inexact --check`, and when incomplete run `uv sync --frozen --inexact`. It never exact-syncs, so it is safe whether or not torch is already present. Session/workspace hooks call the same logic via `shim rectify` after a plugin-root move.
+
+**Ordering still matters for torch.** Provision torch only after locked deps exist (steps 4–5). After torch is installed, never run an exact `uv sync` yourself — use `--inexact` / `uv run --no-sync` (see `docs/development.md`).
 
 ## Step 4: Probe the environment
 

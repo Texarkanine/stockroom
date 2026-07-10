@@ -21,10 +21,15 @@ _SRC_DIR = str(Path(stockroom.__file__).parent.parent)
 
 @pytest.fixture
 def engine_dir(tmp_path: Path) -> Path:
-    """An alive fixture engine dir (has pyproject.toml)."""
+    """An alive fixture engine dir (has pyproject.toml + duckdb-ready venv)."""
     d = tmp_path / "engine"
     (d / "src").mkdir(parents=True)
     (d / "pyproject.toml").write_text("[project]\nname = 'stockroom'\n")
+    venv_bin = d / ".venv" / "bin"
+    venv_bin.mkdir(parents=True)
+    py = venv_bin / "python"
+    py.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+    py.chmod(0o755)
     return d
 
 
@@ -34,6 +39,11 @@ def other_engine_dir(tmp_path: Path) -> Path:
     d = tmp_path / "engine-2"
     (d / "src").mkdir(parents=True)
     (d / "pyproject.toml").write_text("[project]\nname = 'stockroom'\n")
+    venv_bin = d / ".venv" / "bin"
+    venv_bin.mkdir(parents=True)
+    py = venv_bin / "python"
+    py.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+    py.chmod(0o755)
     return d
 
 
@@ -60,11 +70,46 @@ def _run(*args: str, tmp_path: Path) -> subprocess.CompletedProcess:
 
 
 def test_help_documents_subactions_and_flags(tmp_path: Path) -> None:
-    """``--help`` exits 0 and names install, rectify, and the flags."""
+    """``--help`` exits 0 and names install, rectify, ensure-env, and the flags."""
     result = _run("--help", tmp_path=tmp_path)
     assert result.returncode == 0, result.stderr
-    for token in ("install", "rectify", "--app-dir", "--dest", "--owner", "--takeover"):
+    for token in (
+        "install",
+        "rectify",
+        "ensure-env",
+        "--app-dir",
+        "--dest",
+        "--owner",
+        "--takeover",
+    ):
         assert token in result.stdout
+
+
+def test_ensure_env_exits_zero_without_owner(
+    tmp_path: Path, engine_dir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """B5: ``ensure-env`` does not require ``--owner`` and exits 0 on noop/sync.
+
+    Invokes ``main`` in-process so ``ensure_engine_env`` can be stubbed — the
+    CLI must not shell out to a real uv here.
+    """
+    from stockroom import engine_env, shim
+
+    calls: list[Path] = []
+
+    def fake_ensure(app_dir, **kwargs):  # noqa: ANN001
+        calls.append(Path(app_dir))
+        return engine_env.EnsureReport(action="noop", app_dir=Path(app_dir))
+
+    monkeypatch.setattr(shim, "ensure_engine_env", fake_ensure)
+    # Also patch the name used if imported as engine_env.ensure_engine_env
+    monkeypatch.setattr(engine_env, "ensure_engine_env", fake_ensure)
+    code = shim.main(["ensure-env", "--app-dir", str(engine_dir)])
+    assert code == 0
+    assert calls, "ensure_engine_env must be invoked"
+    assert Path(os.path.abspath(engine_dir)) in {
+        Path(os.path.abspath(c)) for c in calls
+    }
 
 
 def test_install_writes_shim_and_exits_zero(

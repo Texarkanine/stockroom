@@ -9,8 +9,9 @@ here, in tested Python; the rendered script is environment plumbing only.
 Three writers drive this module (all through the same code):
 
 * ``sr-initialize`` (Phase-3 m3) — ``stockroom shim install --owner <harness>``
-* the plugin sessionStart hooks — ``stockroom shim rectify --owner <harness>
-  --app-dir ${*_PLUGIN_ROOT}/skills/sr-search`` (staleness healing)
+* the plugin sessionStart / workspaceOpen hooks — ``stockroom shim rectify
+  --owner <harness> --app-dir ${*_PLUGIN_ROOT}/skills/sr-search`` (path + env
+  staleness healing)
 * ``make shim`` — ``stockroom shim install --owner dev`` (dev-checkout parity)
 
 Ownership is explicit (a ``# STOCKROOM_OWNER=`` header marker): only the
@@ -34,6 +35,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from stockroom import __version__
+from stockroom.engine_env import EnsureReport, ensure_engine_env
 
 #: Default shim destination: the conventional user-local bin dir.
 DEFAULT_DEST = Path("~/.local/bin/stockroom")
@@ -226,10 +228,12 @@ def install(
 def rectify(dest: Path | str, app_dir: Path | str, owner: str) -> ShimReport:
     """Re-bake ``dest`` iff it exists, ``owner`` owns it, and content differs.
 
-    The hook-safe healing path: never creates a missing shim, never touches a
-    foreign one, and is a silent no-op when the rendered content already
-    matches (steady state).
+    The hook-safe healing path: always ensures the engine env for ``app_dir``
+    first (torch-safe inexact sync when locked deps are missing), then never
+    creates a missing shim, never touches a foreign one, and is a silent no-op
+    when the rendered content already matches (steady state).
     """
+    ensure_engine_env(app_dir)
     dest = _absolute(dest)
 
     if not dest.exists():
@@ -256,19 +260,23 @@ def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="python -m stockroom.shim",
         description=(
-            "Install or rectify the on-path stockroom shim. install writes "
-            "(ownership-guarded); rectify re-bakes an owned, drifted shim and "
-            "never creates one."
+            "Install, rectify, or ensure-env for the on-path stockroom shim. "
+            "install writes (ownership-guarded); rectify re-bakes an owned, "
+            "drifted shim and never creates one; ensure-env heals the engine "
+            "uv environment (torch-safe inexact sync)."
         ),
     )
     parser.add_argument(
         "action",
-        choices=("install", "rectify"),
-        help="install: write the shim (guarded); rectify: heal an owned shim",
+        choices=("install", "rectify", "ensure-env"),
+        help=(
+            "install: write the shim (guarded); rectify: heal an owned shim; "
+            "ensure-env: sync locked deps into the engine env"
+        ),
     )
     parser.add_argument(
         "--owner",
-        required=True,
+        default=None,
         help="owner label written into the shim header (cursor / claude / dev)",
     )
     parser.add_argument(
@@ -289,16 +297,35 @@ def _build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _print_ensure(report: EnsureReport) -> None:
+    """Emit a one-line ensure-env status for operators / skill logs."""
+    if report.action == "synced":
+        print(f"ensured env at {report.app_dir}")
+    elif report.action == "failed":
+        print(f"stockroom shim: ensure-env failed — {report.reason}", file=sys.stderr)
+
+
 def main(argv: list[str] | None = None) -> int:
-    """CLI: ``python -m stockroom.shim {install|rectify} --owner … […]``.
+    """CLI: ``python -m stockroom.shim {install|rectify|ensure-env} […]``.
 
     ``install`` exits ``0`` on a successful write (PATH problems are warnings,
-    not failures) and ``1`` on an ownership refusal. ``rectify`` always exits
-    ``0`` — its no-ops are the designed steady state for the sessionStart
-    hook.
+    not failures) and ``1`` on an ownership refusal. ``rectify`` and
+    ``ensure-env`` always exit ``0`` — soft failures are messages, not hook
+    breakers.
     """
     args = _build_parser().parse_args(argv)
     app_dir = Path(args.app_dir) if args.app_dir else default_app_dir()
+
+    if args.action == "ensure-env":
+        _print_ensure(ensure_engine_env(app_dir))
+        return 0
+
+    if not args.owner:
+        print(
+            "stockroom shim: --owner is required for install and rectify",
+            file=sys.stderr,
+        )
+        return 2
 
     if args.action == "install":
         report = install(args.dest, app_dir, args.owner, takeover=args.takeover)

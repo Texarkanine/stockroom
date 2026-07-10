@@ -20,10 +20,15 @@ from stockroom import shim
 
 @pytest.fixture
 def engine_dir(tmp_path: Path) -> Path:
-    """An 'alive' fixture engine dir: contains a pyproject.toml."""
+    """An 'alive' fixture engine dir: pyproject.toml + duckdb-ready stub venv."""
     d = tmp_path / "engine-alive"
     (d / "src").mkdir(parents=True)
     (d / "pyproject.toml").write_text("[project]\nname = 'stockroom'\n")
+    venv_bin = d / ".venv" / "bin"
+    venv_bin.mkdir(parents=True)
+    py = venv_bin / "python"
+    py.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+    py.chmod(0o755)
     return d
 
 
@@ -33,6 +38,11 @@ def other_engine_dir(tmp_path: Path) -> Path:
     d = tmp_path / "engine-alive-2"
     (d / "src").mkdir(parents=True)
     (d / "pyproject.toml").write_text("[project]\nname = 'stockroom'\n")
+    venv_bin = d / ".venv" / "bin"
+    venv_bin.mkdir(parents=True)
+    py = venv_bin / "python"
+    py.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+    py.chmod(0o755)
     return d
 
 
@@ -74,12 +84,15 @@ class TestRender:
 
     def test_carries_torch_safe_exec_contract(self, engine_dir: Path) -> None:
         """The exec line preserves the torch-safe run contract verbatim:
-        --no-sync, --no-config, PYTHONPATH to src, exec into uv run."""
+        --no-sync, --no-config, PYTHONPATH to src, exec into uv run. Also
+        refuses when the engine env cannot import duckdb."""
         text = shim.render(engine_dir, "cursor")
         assert "--no-sync" in text
         assert "--no-config" in text
         assert 'PYTHONPATH="$APP_DIR/src"' in text
         assert "exec uv run" in text
+        assert 'import duckdb' in text
+        assert "engine env" in text
 
     def test_stamps_generator_version(self, engine_dir: Path) -> None:
         """The generator version is stamped so drift is diagnosable."""
@@ -211,6 +224,16 @@ class TestInstallPathAndVerify:
 
 @pytest.mark.usefixtures("no_dest_on_path")
 class TestRectify:
+    @pytest.fixture(autouse=True)
+    def _stub_ensure_env(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Path-policy tests must not invoke real uv sync against fixture dirs."""
+        from stockroom.engine_env import EnsureReport
+
+        def fake_ensure(app_dir, **kwargs):  # noqa: ANN001
+            return EnsureReport(action="noop", app_dir=Path(app_dir))
+
+        monkeypatch.setattr(shim, "ensure_engine_env", fake_ensure)
+
     def test_owner_match_content_drift_rewrites(
         self, dest: Path, engine_dir: Path, other_engine_dir: Path
     ) -> None:
@@ -245,3 +268,25 @@ class TestRectify:
         report = shim.rectify(dest, engine_dir, "cursor")
         assert report.action == "noop"
         assert not dest.exists()
+
+    def test_always_ensures_engine_env(
+        self,
+        dest: Path,
+        engine_dir: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """B4: rectify always runs ensure_engine_env for app_dir first,
+        including when the dest is absent (path noop)."""
+        from stockroom.engine_env import EnsureReport
+
+        calls: list[Path] = []
+
+        def fake_ensure(app_dir, **kwargs):  # noqa: ANN001
+            calls.append(Path(app_dir))
+            return EnsureReport(action="synced", app_dir=Path(app_dir))
+
+        monkeypatch.setattr(shim, "ensure_engine_env", fake_ensure)
+        report = shim.rectify(dest, engine_dir, "cursor")
+        assert report.action == "noop"
+        assert len(calls) == 1
+        assert Path(os.path.abspath(calls[0])) == Path(os.path.abspath(engine_dir))

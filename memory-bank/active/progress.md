@@ -41,3 +41,15 @@ Heal engine-env staleness after plugin-root moves so one session/workspace-open 
     - Heal authority stays in Python ensure; hooks must not use `uv run --no-sync` for rectify bootstrap
 * Insights
     - `shim` + `engine_env` are stdlib-only, so plugin-root `PYTHONPATH` + `python3 -m stockroom` is a valid chicken-egg bootstrap without touching the project venv
+
+## 2026-07-10 - BUILD - COMPLETE
+
+* Work completed
+    - `ensure_engine_env` + tests; CLI `ensure-env`; rectify wiring; shim duckdb refuse; hook bootstrap/timeout/PATH; docs
+    - Full suite: 435 passed, 3 skipped; ruff clean
+    - Manual repro: empty `.venv` from `--no-sync` → `ensure-env` → `import duckdb` ok
+* Decisions made
+    - Heal path always `--inexact` (never exact)
+    - Hook rectify via `python3` not `uv run --no-sync`
+* Insights
+    - Cold sync of locked deps was ~2s with warm cache in repro; 60s hook budget is adequate for typical updates

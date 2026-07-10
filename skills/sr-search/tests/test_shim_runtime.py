@@ -18,11 +18,30 @@ from stockroom import shim
 
 @pytest.fixture
 def engine_dir(tmp_path: Path) -> Path:
-    """An alive fixture engine dir (has pyproject.toml)."""
+    """An alive fixture engine dir (has pyproject.toml + duckdb-ready venv)."""
     d = tmp_path / "engine"
     (d / "src").mkdir(parents=True)
     (d / "pyproject.toml").write_text("[project]\nname = 'stockroom'\n")
+    _write_venv_python(d, succeed=True)
     return d
+
+
+def _write_venv_python(engine: Path, *, succeed: bool) -> Path:
+    """Install a stub ``.venv/bin/python`` that accepts ``-c import duckdb``.
+
+    When ``succeed`` is True the stub exits 0 (env looks ready). When False it
+    exits 1 so the shim's readiness refuse path can be asserted.
+    """
+    bin_dir = engine / ".venv" / "bin"
+    bin_dir.mkdir(parents=True, exist_ok=True)
+    py = bin_dir / "python"
+    if succeed:
+        body = "#!/bin/sh\nexit 0\n"
+    else:
+        body = "#!/bin/sh\necho \"ModuleNotFoundError: No module named 'duckdb'\" >&2\nexit 1\n"
+    py.write_text(body, encoding="utf-8")
+    py.chmod(0o755)
+    return py
 
 
 @pytest.fixture
@@ -129,3 +148,32 @@ def test_uv_missing_one_line_127(write_shim, engine_dir: Path, tmp_path: Path) -
     assert len(stderr_lines) == 1
     assert "uv not found" in stderr_lines[0]
     assert "sr-initialize" in stderr_lines[0]
+
+
+@pytest.mark.parametrize(
+    ("owner", "remedy_token"),
+    [("cursor", "sr-initialize"), ("claude", "sr-initialize"), ("dev", "make shim")],
+)
+def test_env_not_ready_one_line_owner_remedy(
+    write_shim,
+    stub_uv: Path,
+    tmp_path: Path,
+    owner: str,
+    remedy_token: str,
+) -> None:
+    """B6: pyproject present but venv cannot import duckdb → refuse with
+    remedy before ``uv run --no-sync`` (no silent empty-venv path)."""
+    engine = tmp_path / "engine-empty-env"
+    (engine / "src").mkdir(parents=True)
+    (engine / "pyproject.toml").write_text("[project]\nname = 'stockroom'\n")
+    _write_venv_python(engine, succeed=False)
+    shim_path = write_shim(engine, owner)
+    result = _run(shim_path, "query", path=str(stub_uv), home=tmp_path / "home")
+    assert result.returncode != 0
+    assert result.stdout == ""
+    stderr_lines = result.stderr.splitlines()
+    assert len(stderr_lines) == 1
+    assert "engine env" in stderr_lines[0] or "not ready" in stderr_lines[0]
+    assert remedy_token in stderr_lines[0]
+    # Stub uv must not have been exec'd (no UV_ARG lines).
+    assert "UV_ARG:" not in result.stdout
