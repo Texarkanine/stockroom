@@ -58,3 +58,12 @@ Durable torch installation source must persist on disk and be used to self-heal 
 3. On env heal (`ensure_engine_env` / `shim rectify`), if torch is missing in the engine venv and a recorded index exists, reinstall torch from that index.
 4. If torch is missing and no index is recorded, fail soft with an explicit remedy (run `sr-initialize`) — do not guess a wheel.
 5. After a plugin-root move with a prior recorded index, one heal cycle leaves torch importable again (embed/semantic path viable without manual re-pick).
+
+### Rework — hashed freeze (2026-07-10)
+
+Operator confirmed: index-only record is insufficient (heal could pull a newer torch). Required contract:
+
+1. After smoke passes at onboard / `make torch`, **freeze** the accepted torch stack to a machine-local hashed requirements file under stockroom home.
+2. Shim/env heal always reinstalls from that freeze (`--require-hashes`) — same bits as install time.
+3. If freeze missing or replay fails → do not guess; operator re-runs `sr-initialize` (pick → install → smoke → freeze) or follows manual freeze/install in `docs/torch.md`.
+4. All writers (`sr-initialize`, `make torch`, CLI) must produce the freeze; project `uv.lock` stays torch-free.

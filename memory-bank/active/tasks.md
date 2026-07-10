@@ -1,52 +1,103 @@
-# Task: fix-plugin-env-heal-after-move (rework: torch source persistence)
+# Task: fix-plugin-env-heal-after-move (rework: hashed torch freeze)
 
 * Task ID: fix-plugin-env-heal-after-move
 * Complexity: Level 2
 * Type: bug fix (rework)
 
-Persist the per-machine torch wheel index under stockroom home and reinstall torch during `ensure_engine_env` when the engine venv lacks torch but a recorded index exists — so plugin updates do not silently break overnight embed / semantic.
+Upgrade torch heal from **floating index URL** to a **machine-local hashed freeze** of the exact torch stack accepted at initialize/`make torch` time. Heal must replay that freeze with `--require-hashes` so plugin updates never pull a newer torch than the one that passed smoke.
 
 ## Design
 
 | Piece | Choice |
 | --- | --- |
-| Record location | `{stockroom_home}/torch-index` (one URL line); same home as warehouse via `warehouse.resolve_home` / `home_dir` |
-| Write | `stockroom torch record --index URL`; called from `sr-initialize` after guided install and from `make torch` |
-| Heal | After locked-deps ensure: if venv cannot `import torch` and record exists → `uv pip install torch --no-config --directory APP_DIR --index URL`; if missing and no record → soft-fail reason naming `sr-initialize` |
-| Guessing | Never invent an index |
-| Hook timeout | Raise to 300s (torch wheels are large); ensure torch subprocess timeout bounded (~240s) |
+| Project `uv.lock` | Stays torch-free (keep override). Do **not** pre-enumerate backends as extras. |
+| Freeze artifact | `{stockroom_home}/torch-requirements.txt` — `uv pip compile --generate-hashes --emit-index-url` output for `torch==<installed.__version__>` against the chosen index |
+| Sidecar metadata | `{stockroom_home}/torch-index` — the https index URL (human/debug + re-freeze input) |
+| Freeze trigger | After **successful** `doctor smoke` (initialize); after `make torch` install; CLI `stockroom torch freeze --app-dir … --index …` |
+| Heal | If torch missing: require freeze file → `uv pip install --no-config --directory APP_DIR --require-hashes -r torch-requirements.txt`. No freeze → soft-fail → `sr-initialize` / docs. **Never** floating `pip install torch --index` alone. |
+| Failure | Yanked wheel / hash mismatch → soft-fail; operator re-runs initialize (pick → install → smoke → freeze) or manual path in `docs/torch.md` |
+| Legacy | Index-only installs from prior rework: heal fails soft asking to freeze (no silent floating fallback) |
+
+### Freeze algorithm (mechanism)
+
+1. Assert `app_dir` venv can `import torch`; read `torch.__version__`.
+2. Run (injectable runner):  
+   `uv pip compile --generate-hashes --no-config --emit-index-url --default-index <index> -o <tmp> -` with stdin `torch==<version>`.
+3. Atomically replace `{stockroom_home}/torch-requirements.txt`; write `torch-index`.
+
+### Heal algorithm
+
+1. Locked-deps ensure (unchanged, inexact).
+2. If torch importable → noop.
+3. Else if freeze file missing/invalid → failed (name `sr-initialize` / `docs/torch.md`).
+4. Else `uv pip install --require-hashes -r freeze` into `app_dir`.
 
 ## Test Plan (TDD)
 
-- **T1:** `write_index` / `read_index` round-trip under tmp `STOCKROOM_HOME`
-- **T2:** `ensure_torch` noops when torch importable in venv
-- **T3:** `ensure_torch` runs `uv pip install … --index <recorded>` when torch missing + record present
-- **T4:** `ensure_torch` soft-fails (no pip) when torch missing + no record
-- **T5:** `ensure_engine_env` invokes torch ensure after deps heal
-- **T6:** CLI `torch record` writes the file; help documents it
-- **T7:** Makefile `torch` target records `TORCH_INDEX` after pip install
-- **Edge:** invalid/empty index file → soft-fail; relative path rejected or absolutized as URL only
+### Behaviors
+
+- **F1 (freeze writes):** given venv with importable torch + index → `freeze_torch` writes requirements containing `torch==<version>`, `--hash=`, and index URL; writes `torch-index`
+- **F2 (freeze refuses without torch):** no importable torch → failed/raises; no file written
+- **F3 (heal from freeze):** torch missing + freeze present → install argv includes `--require-hashes` and `-r` freeze path; does **not** use bare `torch --index` without hashes
+- **F4 (heal without freeze):** torch missing + no freeze → failed; no pip install
+- **F5 (heal noop):** torch importable → noop even if freeze present
+- **F6 (CLI freeze):** `stockroom torch freeze --app-dir … --index …` invokes freeze (stubbed compile runner)
+- **F7 (writers):** `sr-initialize` documents freeze **after smoke**; `make torch` freezes after install; `docs/torch.md` covers manual freeze + failure remedy
+- **Edge:** compile failure / timeout → soft-fail with reason; corrupt freeze file → heal soft-fail
+
+### Test Infrastructure
+
+- Framework: pytest under `skills/sr-search/tests/`
+- Extend `test_torch_source.py`, `test_torch_cli.py`; update `test_engine_env.py` stubs
+- Stub `uv pip compile` / `uv pip install` via injectable runner (no network in unit tests)
+- Technology validation already done live: `uv pip compile --generate-hashes` for `torch==2.7.1+cpu` succeeded
 
 ## Implementation Plan
 
-Each step: tests first → implement → green.
+Each step: **tests first → implement → green**.
 
-1. `stockroom/torch_source.py` — path, read, write, ensure_torch (injectable runners)
-2. Wire into `ensure_engine_env`
-3. CLI `stockroom torch record` (+ dispatcher entry)
-4. `sr-initialize` Step 5 records index after install; docs
-5. `Makefile` torch target records; hook timeout 300; packaging tests
-6. Full suite
+1. **Freeze API in `torch_source.py`**
+   - Add `REQUIREMENTS_FILENAME = "torch-requirements.txt"`, `requirements_path()`, `freeze_torch(app_dir, index_url, *, runner=…)`, `read_freeze_path()`
+   - Deprecate floating install path; keep `write_index` as sidecar writer used by freeze
+   - Tests F1–F2, edges
+
+2. **Heal uses freeze only**
+   - Change `ensure_torch` / `_pip_install_cmd` to `--require-hashes -r <freeze>`
+   - Remove heal-via-index-only behavior; update tests F3–F5; fix `test_engine_env` stubs
+
+3. **CLI: `freeze` replaces `record` as primary**
+   - `stockroom torch freeze --app-dir --index` (required)
+   - Keep `record` as thin alias that errors with “use freeze” **or** remove `record` (prefer remove — unreleased)
+   - Tests F6; dispatcher help fingerprint
+
+4. **Writers onboard**
+   - `sr-initialize`: after smoke success → `torch freeze` (not index-only record); order: install → smoke → freeze
+   - `Makefile` `torch`: install then `torch freeze --app-dir … --index $(TORCH_INDEX)`
+   - New `docs/torch.md`: contract, freeze location, heal, failure → re-initialize or manual freeze
+   - Update `docs/development.md`, `docs/using.md`, `systemPatterns.md`, skill references that still say index-only
+
+5. **Verification**
+   - Targeted tests + full `make test` / lint
 
 ## Technology Validation
 
-No new technology — validation not required.
+**PASS (live probe 2026-07-10):** `uv pip compile --generate-hashes --no-config --index-url https://download.pytorch.org/whl/cpu` for `torch==2.7.1+cpu` produced a hashed requirements file (torch + deps). Use `--emit-index-url` / `--default-index` in implementation so heal can resolve pytorch + PyPI deps.
+
+No new dependencies.
+
+## Dependencies
+
+- Existing `uv` on PATH (`pip compile`, `pip install --require-hashes`)
+- Prior work on branch: `ensure_engine_env`, rectify wiring, hook timeout 300 — retain
+- Operator-agreed contract: freeze after smoke; heal replays freeze; failure → re-initialize or manual docs path
 
 ## Challenges & Mitigations
 
-- **Hook timeout vs torch download:** 300s budget; soft-fail + retry next session/ensure if killed mid-download.
-- **Self-managed torch without record:** cannot heal; remedy is `torch record` once or re-run initialize — document.
-- **doctor stays read-only:** record/ensure live outside doctor.
+- **Freeze pins PyPI transitives (filelock, etc.) that also appear in `uv.lock`:** Install freeze **after** inexact deps sync; inexact sync won’t strip torch; minor version drift of shared deps is acceptable and documented in `docs/torch.md`.
+- **Platform tags in hashed multi-wheel lines:** compile emits multiple hashes per package; `--require-hashes` install selects the matching wheel — rely on uv behavior (validated by integration smoke if needed).
+- **Legacy index-only home:** no floating fallback; clear remedy to freeze once.
+- **Compile needs network at freeze time:** only at initialize/`make torch`, not on every heal if wheels cached; heal still needs network if cache cold — same as today.
+- **Not L3:** single subsystem extension of existing torch_source/ensure; design already agreed with operator.
 
 ## Status
 
@@ -54,6 +105,6 @@ No new technology — validation not required.
 - [x] Test planning complete (TDD)
 - [x] Implementation plan complete
 - [x] Technology validation complete
-- [x] Preflight
-- [x] Build
+- [ ] Preflight
+- [ ] Build
 - [ ] QA

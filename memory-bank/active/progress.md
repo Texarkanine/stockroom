@@ -97,3 +97,16 @@ Heal engine-env staleness after plugin-root moves so one session/workspace-open 
     - QA PASS on torch persistence rework; reflection updated
 * Decisions made
     - Ready for `/niko-archive`
+
+## 2026-07-10 - PLAN - COMPLETE (hashed torch freeze rework)
+
+* Work completed
+    - Operator confirmed freeze-after-smoke contract; planned replacement of floating index heal
+    - Tech validation: `uv pip compile --generate-hashes` works for pinned `torch==2.7.1+cpu`
+    - Wrote implementation/test plan in `tasks.md`; extended `projectbrief` rework section
+* Decisions made
+    - Artifact: `{stockroom_home}/torch-requirements.txt` + sidecar `torch-index`
+    - No floating heal fallback for legacy index-only
+    - `docs/torch.md` for manual path; freeze replaces CLI `record`
+* Insights
+    - Freeze will also pin some PyPI transitives of torch; install after inexact sync, document drift
