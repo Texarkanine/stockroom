@@ -104,3 +104,44 @@ def test_dashboard_adapter_imports_authored_modules() -> None:
     adapter = (STATIC_ROOT / "dashboard.mjs").read_text(encoding="utf-8")
     assert 'from "./dashboard-core.mjs"' in adapter
     assert 'from "./dashboard-data.mjs"' in adapter
+
+
+def test_dashboard_top_controls_expose_date_range_and_segmented_mode() -> None:
+    """Date-range presets and Aggregate/Compare read as exclusive segmented controls."""
+    _source, parser = _document()
+    by_id = {
+        attrs["id"]: (tag, attrs) for tag, attrs in parser.elements if attrs.get("id")
+    }
+    assert by_id["date-range-selector"][0] == "fieldset"
+    assert by_id["mode-selector"][0] == "fieldset"
+    assert "segmented" in (by_id["date-range-selector"][1].get("class") or "").split()
+    assert "segmented" in (by_id["mode-selector"][1].get("class") or "").split()
+
+    date_radios = [
+        attrs
+        for tag, attrs in parser.elements
+        if tag == "input"
+        and attrs.get("type") == "radio"
+        and attrs.get("name") == "date-range"
+    ]
+    assert [radio.get("value") for radio in date_radios] == [
+        "default",
+        "7d",
+        "30d",
+        "90d",
+        "1y",
+    ]
+    assert sum(1 for radio in date_radios if "checked" in radio) == 1
+    assert "checked" in next(
+        radio for radio in date_radios if radio.get("value") == "default"
+    )
+
+    mode_radios = [
+        attrs
+        for tag, attrs in parser.elements
+        if tag == "input"
+        and attrs.get("type") == "radio"
+        and attrs.get("name") == "mode"
+    ]
+    assert [radio.get("value") for radio in mode_radios] == ["aggregate", "compare"]
+    assert sum(1 for radio in mode_radios if "checked" in radio) == 1

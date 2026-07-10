@@ -209,6 +209,42 @@
         white-space: nowrap;
       }
 
+      fieldset.segmented {
+        gap: 0;
+        padding: 0.2rem;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--surface-soft);
+      }
+
+      .segmented .mode-row {
+        margin: 0;
+        border-radius: 999px;
+        padding: 0.45rem 0.8rem;
+        font-weight: 700;
+        color: var(--muted);
+      }
+
+      .segmented .mode-row:has(input:checked) {
+        background: var(--accent);
+        color: #fff;
+        box-shadow: 0 1px 2px rgb(15 23 42 / 18%);
+      }
+
+      .segmented .mode-row input {
+        position: absolute;
+        opacity: 0;
+        width: 1px;
+        height: 1px;
+        margin: 0;
+        pointer-events: none;
+      }
+
+      .segmented .mode-row:focus-within {
+        outline: 2px solid var(--accent-strong);
+        outline-offset: 2px;
+      }
+
       .mode-row {
         border-radius: 0.6rem;
         padding: 0.5rem 0.65rem;
@@ -560,7 +596,30 @@
             <span>Loading harnesses…</span>
           </div>
         </details>
-        <fieldset id="mode-selector">
+        <fieldset id="date-range-selector" class="segmented">
+          <legend>Date range</legend>
+          <label class="mode-row">
+            <input type="radio" name="date-range" value="default" checked>
+            Default
+          </label>
+          <label class="mode-row">
+            <input type="radio" name="date-range" value="7d">
+            7d
+          </label>
+          <label class="mode-row">
+            <input type="radio" name="date-range" value="30d">
+            30d
+          </label>
+          <label class="mode-row">
+            <input type="radio" name="date-range" value="90d">
+            90d
+          </label>
+          <label class="mode-row">
+            <input type="radio" name="date-range" value="1y">
+            1y
+          </label>
+        </fieldset>
+        <fieldset id="mode-selector" class="segmented">
           <legend>Presentation mode</legend>
           <label class="mode-row">
             <input type="radio" name="mode" value="aggregate" checked>
