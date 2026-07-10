@@ -1,11 +1,12 @@
 # Active Context
 
 ## Current Task: p5-m1-install-docs
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Classified L4 milestone m1 (install/usage docs + empirical skill-invocation verification + packaging/doc contract) as **Level 2**.
-- Rationale: self-contained enhancement over existing dual-manifest plugin scaffolding — docs, verification, and a thin contract test; no architectural change.
+- Planned L2 m1: install/usage docs in README, empirical per-harness invocation verification, manual-install confirmation, packaging/doc contract in `test_packaging.py`.
+- TDD: contract tests first (skill inventory + Cursor `/sr-*` + Claude `stockroom:<skill>` pins), then docs, then operator empirical check.
+- Scoped marketplace publication to m2; m1 docs stay honest about marketplace vs manual path.
 
 ## Next Step
-- Load Level 2 workflow and begin PLAN phase.
+- Preflight validation (automatic per L2 workflow).
