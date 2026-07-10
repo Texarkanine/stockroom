@@ -61,7 +61,73 @@ function panelModel(kind, labels, datasets, options = {}) {
     empty: options.empty ?? !hasValues(datasets),
     ...(options.height === undefined ? {} : { height: options.height }),
     ...(options.yMax === undefined ? {} : { yMax: options.yMax }),
+    ...(options.labelTitles === undefined ? {} : { labelTitles: [...options.labelTitles] }),
   };
+}
+
+/**
+ * Hover / accessible title for a project display label.
+ *
+ * @param {string | null | undefined} label Visible name.
+ * @param {string | null | undefined} id Stable project_id slug.
+ * @returns {string | null} Slug when it differs from the label; otherwise null.
+ */
+export function projectHoverTitle(label, id) {
+  if (!id) {
+    return null;
+  }
+  return label === id ? null : id;
+}
+
+/**
+ * Chart.js tooltip title: prefer slug from labelTitles when set.
+ *
+ * @param {(string | null)[] | undefined} labelTitles Parallel hover titles.
+ * @param {number} index Data index under the cursor.
+ * @param {string} fallbackLabel Visible tick / default tooltip label.
+ * @returns {string}
+ */
+export function tooltipTitleFromLabelTitles(labelTitles, index, fallbackLabel) {
+  if (Array.isArray(labelTitles)) {
+    const title = labelTitles[index];
+    if (title) {
+      return title;
+    }
+  }
+  return fallbackLabel ?? "";
+}
+
+/**
+ * Static help copy for Session Efficiency and First-Prompt Quality.
+ *
+ * Thresholds mirror metrics.EFFICIENCY_BUCKETS / FIRST_PROMPT_BUCKETS
+ * (abandoned ≤2, short 3–10, medium 11–40, long 41+ messages; first-prompt
+ * short <100, medium ≤500, detailed >500 chars). Keep in sync manually.
+ */
+export const PANEL_HELP = {
+  efficiency:
+    "Buckets by message count per session: abandoned (≤2), short (3–10), medium (11–40), long (41+). Counts sessions in the selected window.",
+  firstPrompt:
+    "Buckets by first user-prompt length: short (<100 chars), medium (100–500), detailed (>500). Bars show average session message count per bucket.",
+};
+
+/**
+ * Toggle which panel help popover is open (one at a time).
+ *
+ * @param {string | null} openId Currently open help id, or null.
+ * @param {string} targetId Help id the user activated.
+ * @returns {string | null} Next open id.
+ */
+export function togglePanelHelp(openId, targetId) {
+  if (!targetId) {
+    return null;
+  }
+  return openId === targetId ? null : targetId;
+}
+
+/** Close any open panel help popover. */
+export function closePanelHelp() {
+  return null;
 }
 
 function aggregateDataset(label, data, color = PALETTE[0]) {
@@ -500,6 +566,10 @@ export function buildWrappedPanel(wrapped) {
           .filter((value) => value !== "—" && value !== "Unknown")
           .join(" · ") || "—"
       : "—";
+  const marathonSubtitleTitle = projectHoverTitle(
+    marathon.project_name,
+    marathon.project_id,
+  );
   const hour = peak.hour;
   const peakHour =
     typeof hour === "number" && Number.isInteger(hour)
@@ -544,6 +614,7 @@ export function buildWrappedPanel(wrapped) {
           ? "—"
           : `${finiteNumber(marathon.messages)} messages`,
       subtitle: marathonSubtitle,
+      subtitleTitle: marathonSubtitleTitle,
     },
     {
       key: "peak",
@@ -652,15 +723,18 @@ export function buildDailyPanel(payload, selected, mode, colors) {
 /** Build the Sessions by Project chart model. */
 export function buildProjectsPanel(payload, selected, mode, colors) {
   const source = safeObject(payload);
-  const labels = Array.isArray(source.projects) ? source.projects : [];
+  const ids = Array.isArray(source.projects) ? source.projects : [];
+  const labels = Array.isArray(source.labels) ? source.labels : ids;
+  const labelTitles = labels.map((label, index) => projectHoverTitle(label, ids[index]));
   const datasets =
     mode === "compare"
-      ? selectedDatasets(source.sessions, selected, labels, colors)
-      : [aggregateDataset("Sessions", sumAligned(source.sessions, selected, labels.length))];
+      ? selectedDatasets(source.sessions, selected, ids, colors)
+      : [aggregateDataset("Sessions", sumAligned(source.sessions, selected, ids.length))];
   return panelModel("bar", labels, datasets, {
     indexAxis: "y",
     stacked: mode === "compare",
     height: chartHeight(labels.length),
+    labelTitles,
   });
 }
 

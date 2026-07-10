@@ -130,19 +130,19 @@ Decisions locked in plan:
     - Files: `metrics.py`, `test_dashboard_metrics.py`
     - TDD: write failing assertions first on `test_sessions_*` / `test_wrapped_*` for additive `project_id` alongside existing `project_name`; then implement field emission via `project_display_name` until green (no change to default display string).
 
-3. **Projects panel model + labelTitles**
+3. **Projects panel model + labelTitles** ✅
     - Files: `dashboard-core.mjs`, `dashboard-core.test.mjs`
     - TDD: write failing `buildProjectsPanel` tests first (friendly `labels`, `labelTitles` when label≠id, missing-`labels` fallback to `projects`, no title when equal); then extend `panelModel` / `buildProjectsPanel` until green.
 
-4. **Adapter hover wiring**
+4. **Adapter hover wiring** ✅
     - Files: `dashboard.mjs` (`chartOptions`, `renderSessions`, `renderWrapped`); extract pure helpers into `dashboard-core.mjs` if needed for testability
     - TDD: write failing unit tests first for any pure helper that maps `(label, id) → title|null` and for tooltip-title formatting from `labelTitles`; then wire Chart.js `callbacks.title`, session cell `title`, and marathon subtitle `title` to those helpers until green. Do not implement DOM wiring before the helper tests exist.
 
-5. **PANEL_HELP copy + static chrome**
+5. **PANEL_HELP copy + static chrome** ✅
     - Files: `dashboard-core.mjs` (export `PANEL_HELP`), `index.html` (header markup + CSS), `test_dashboard_static.py`, `dashboard-core.test.mjs`
     - TDD: write failing tests first — `PANEL_HELP` content covers efficiency buckets + first-prompt length/avg-msgs meaning; static HTML asserts info controls only under `#efficiency-panel` and `#first-prompt-panel`; then add markup/CSS/copy until green.
 
-6. **Help toggle behavior**
+6. **Help toggle behavior** ✅
     - Files: `dashboard-core.mjs` (pure open/close state helpers), `dashboard.mjs` (DOM listeners)
     - TDD: write failing tests first for pure helpers (toggle, close-all, open-one-closes-other, Escape/outside modeled as close events); then implement helpers + adapter listeners (`aria-expanded` / `aria-controls`) until green. DOM listener glue stays thin over tested helpers.
 

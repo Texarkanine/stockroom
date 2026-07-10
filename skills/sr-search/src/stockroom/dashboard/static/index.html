@@ -375,10 +375,59 @@
 
       .panel-header {
         display: flex;
+        flex-wrap: wrap;
         align-items: baseline;
         justify-content: space-between;
-        gap: 1rem;
+        gap: 0.5rem 1rem;
         margin-bottom: 0.75rem;
+      }
+
+      .panel-title-row {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        min-width: 0;
+      }
+
+      .panel-info {
+        flex: 0 0 auto;
+        width: 1.35rem;
+        height: 1.35rem;
+        padding: 0;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: transparent;
+        color: var(--muted);
+        font: inherit;
+        font-size: 0.75rem;
+        font-weight: 600;
+        line-height: 1;
+        cursor: pointer;
+      }
+
+      .panel-info:hover,
+      .panel-info:focus-visible {
+        color: var(--text);
+        border-color: var(--muted);
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+
+      .panel-info[aria-expanded="true"] {
+        color: var(--text);
+        border-color: var(--accent);
+      }
+
+      .panel-help {
+        flex: 1 1 100%;
+        margin: 0;
+        padding: 0.65rem 0.75rem;
+        border: 1px solid var(--border);
+        border-radius: 0.4rem;
+        background: color-mix(in srgb, var(--surface) 92%, var(--accent) 8%);
+        color: var(--muted);
+        font-size: 0.82rem;
+        line-height: 1.45;
       }
 
       .panel h2,
@@ -716,8 +765,19 @@
 
         <article class="panel" id="efficiency-panel">
           <header class="panel-header">
-            <h2>Session Efficiency</h2>
+            <div class="panel-title-row">
+              <h2>Session Efficiency</h2>
+              <button
+                type="button"
+                class="panel-info"
+                aria-expanded="false"
+                aria-controls="efficiency-help"
+                aria-label="About Session Efficiency"
+                data-help-id="efficiency"
+              >i</button>
+            </div>
             <p class="panel-range">Last 30 days</p>
+            <p id="efficiency-help" class="panel-help" hidden></p>
           </header>
           <div class="chart-scroll">
             <div class="chart-wrap" id="efficiency-chart-wrap">
@@ -742,8 +802,19 @@
 
         <article class="panel panel-wide" id="first-prompt-panel">
           <header class="panel-header">
-            <h2>First-Prompt Quality</h2>
+            <div class="panel-title-row">
+              <h2>First-Prompt Quality</h2>
+              <button
+                type="button"
+                class="panel-info"
+                aria-expanded="false"
+                aria-controls="first-prompt-help"
+                aria-label="About First-Prompt Quality"
+                data-help-id="first-prompt"
+              >i</button>
+            </div>
             <p class="panel-range">Average session length by prompt detail · 30 days</p>
+            <p id="first-prompt-help" class="panel-help" hidden></p>
           </header>
           <div class="chart-scroll">
             <div class="chart-wrap" id="first-prompt-chart-wrap">

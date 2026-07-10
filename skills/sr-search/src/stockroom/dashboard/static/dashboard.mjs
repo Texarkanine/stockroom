@@ -7,12 +7,17 @@ import {
   buildToolsPanel,
   buildWrappedPanel,
   buildWriteReadPanel,
+  closePanelHelp,
   deriveHarnessBreakdown,
   deriveOverviewCards,
   displayHarness,
   harnessColors,
+  PANEL_HELP,
   panelRangeLabels,
+  projectHoverTitle,
   summarizeChartPanel,
+  togglePanelHelp,
+  tooltipTitleFromLabelTitles,
   transitionViewState,
 } from "./dashboard-core.mjs";
 import {
@@ -60,6 +65,12 @@ let state = {
   dateRange: "default",
   window: null,
   snapshot: null,
+};
+let openHelpId = null;
+
+const HELP_COPY = {
+  efficiency: PANEL_HELP.efficiency,
+  "first-prompt": PANEL_HELP.firstPrompt,
 };
 
 function setStatus(message) {
@@ -238,6 +249,19 @@ function chartOptions(model) {
       tooltip: {
         mode: "index",
         intersect: false,
+        callbacks: {
+          title(items) {
+            const item = items?.[0];
+            if (!item) {
+              return "";
+            }
+            return tooltipTitleFromLabelTitles(
+              model.labelTitles,
+              item.dataIndex,
+              item.label ?? "",
+            );
+          },
+        },
       },
     },
   };
@@ -328,7 +352,11 @@ function renderSessions(sessions) {
     harnessLabel.append(dot, document.createTextNode(displayHarness(session.harness)));
     harnessCell.append(harnessLabel);
     row.append(harnessCell);
-    appendCell(row, session.project_name || "—");
+    const projectCell = appendCell(row, session.project_name || "—");
+    const projectTitle = projectHoverTitle(session.project_name, session.project_id);
+    if (projectTitle) {
+      projectCell.title = projectTitle;
+    }
     appendCell(row, numberFormatter.format(Number(session.msgs) || 0));
     appendCell(row, session.model || "—");
     appendCell(row, session.prompt || "—", "prompt-cell");
@@ -350,6 +378,9 @@ function renderWrapped(wrapped) {
     const subtitle = document.createElement("p");
     subtitle.className = "wrapped-subtitle";
     subtitle.textContent = cell.subtitle;
+    if (cell.subtitleTitle) {
+      subtitle.title = cell.subtitleTitle;
+    }
     article.append(label, value, subtitle);
     elements.wrappedGrid.append(article);
   }
@@ -508,6 +539,21 @@ document.addEventListener("click", (event) => {
   if (elements.selector.open && !elements.selector.contains(event.target)) {
     elements.selector.open = false;
   }
+  const infoButton =
+    event.target instanceof Element ? event.target.closest(".panel-info") : null;
+  if (infoButton instanceof HTMLButtonElement) {
+    event.stopPropagation();
+    applyHelpOpen(togglePanelHelp(openHelpId, infoButton.dataset.helpId));
+    return;
+  }
+  if (
+    openHelpId &&
+    event.target instanceof Element &&
+    !event.target.closest(".panel-help") &&
+    !event.target.closest(".panel-info")
+  ) {
+    applyHelpOpen(closePanelHelp());
+  }
 });
 
 elements.selector.addEventListener("keydown", (event) => {
@@ -517,9 +563,40 @@ elements.selector.addEventListener("keydown", (event) => {
   }
 });
 
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && openHelpId) {
+    applyHelpOpen(closePanelHelp());
+  }
+});
+
+function applyHelpOpen(nextId) {
+  openHelpId = nextId;
+  for (const button of document.querySelectorAll(".panel-info")) {
+    const helpId = button.dataset.helpId;
+    const expanded = helpId === openHelpId;
+    button.setAttribute("aria-expanded", expanded ? "true" : "false");
+    const panel = document.getElementById(button.getAttribute("aria-controls"));
+    if (panel) {
+      panel.hidden = !expanded;
+    }
+  }
+}
+
+function initPanelHelpCopy() {
+  for (const button of document.querySelectorAll(".panel-info")) {
+    const helpId = button.dataset.helpId;
+    const panel = document.getElementById(button.getAttribute("aria-controls"));
+    const copy = HELP_COPY[helpId];
+    if (panel && copy) {
+      panel.textContent = copy;
+    }
+  }
+}
+
 window
   .matchMedia("(prefers-color-scheme: dark)")
   .addEventListener("change", () => renderDashboard());
 
+initPanelHelpCopy();
 renderHarnessControls();
 void refreshDashboard(true);

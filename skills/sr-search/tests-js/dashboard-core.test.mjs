@@ -11,16 +11,21 @@ import {
   buildWrappedPanel,
   buildWriteReadPanel,
   chartHeight,
+  closePanelHelp,
   deriveHarnessBreakdown,
   deriveOverviewCards,
   displayHarness,
   formatDelta,
   harnessColors,
+  PANEL_HELP,
   panelRangeLabels,
+  projectHoverTitle,
   resolveWindowBounds,
   sortedHarnesses,
   sumAligned,
   summarizeChartPanel,
+  togglePanelHelp,
+  tooltipTitleFromLabelTitles,
   transitionViewState,
   weightedSeries,
   writeShare,
@@ -458,6 +463,98 @@ test("builds aggregate and compare project models", () => {
   const compare = buildProjectsPanel(payload, selected, "compare", colors);
   assert.equal(compare.stacked, true);
   assertDataset(compare, "Cursor", [2, 0]);
+});
+
+test("projectHoverTitle returns id only when display differs", () => {
+  assert.equal(projectHoverTitle("stockroom", "home-me-stockroom"), "home-me-stockroom");
+  assert.equal(projectHoverTitle("slug", "slug"), null);
+  assert.equal(projectHoverTitle("slug", null), null);
+  assert.equal(projectHoverTitle(null, "slug"), "slug");
+});
+
+test("buildProjectsPanel prefers friendly labels and sets labelTitles", () => {
+  const payload = {
+    projects: ["home-me-stockroom", "other-slug"],
+    labels: ["stockroom", "other-slug"],
+    sessions: { cursor: [2, 1], "claude-code": [0, 0] },
+  };
+  const panel = buildProjectsPanel(payload, selected, "aggregate", colors);
+  assert.deepEqual(panel.labels, ["stockroom", "other-slug"]);
+  assert.deepEqual(panel.labelTitles, ["home-me-stockroom", null]);
+  assertDataset(panel, "Sessions", [2, 1]);
+});
+
+test("buildProjectsPanel falls back to projects when labels missing", () => {
+  const payload = {
+    projects: ["only-id"],
+    sessions: { cursor: [1], "claude-code": [0] },
+  };
+  const panel = buildProjectsPanel(payload, selected, "aggregate", colors);
+  assert.deepEqual(panel.labels, ["only-id"]);
+  assert.deepEqual(panel.labelTitles, [null]);
+});
+
+test("tooltipTitleFromLabelTitles surfaces slug when present", () => {
+  assert.equal(
+    tooltipTitleFromLabelTitles(["home-me-stockroom", null], 0, "stockroom"),
+    "home-me-stockroom",
+  );
+  assert.equal(tooltipTitleFromLabelTitles(["home-me-stockroom", null], 1, "other"), "other");
+  assert.equal(tooltipTitleFromLabelTitles(undefined, 0, "friendly"), "friendly");
+});
+
+test("PANEL_HELP documents efficiency and first-prompt buckets", () => {
+  assert.match(PANEL_HELP.efficiency, /abandoned/i);
+  assert.match(PANEL_HELP.efficiency, /short/i);
+  assert.match(PANEL_HELP.efficiency, /medium/i);
+  assert.match(PANEL_HELP.efficiency, /long/i);
+  assert.match(PANEL_HELP.efficiency, /≤\s*2|<=\s*2|1–2|1-2|0–2|0-2/i);
+  assert.match(PANEL_HELP.firstPrompt, /short/i);
+  assert.match(PANEL_HELP.firstPrompt, /medium/i);
+  assert.match(PANEL_HELP.firstPrompt, /detailed/i);
+  assert.match(PANEL_HELP.firstPrompt, /average|avg/i);
+  assert.match(PANEL_HELP.firstPrompt, /100|500/);
+});
+
+test("togglePanelHelp opens one, re-toggles closed, and switches panels", () => {
+  assert.equal(togglePanelHelp(null, "efficiency"), "efficiency");
+  assert.equal(togglePanelHelp("efficiency", "efficiency"), null);
+  assert.equal(togglePanelHelp("efficiency", "first-prompt"), "first-prompt");
+  assert.equal(closePanelHelp(), null);
+});
+
+test("buildWrappedPanel marathon exposes subtitleTitle when name differs from id", () => {
+  const cells = buildWrappedPanel({
+    totals: { sessions: 1, messages: 5, span: { start: null, end: null, days: 0 } },
+    distinct_projects: 1,
+    busiest_harness: { name: null, pct: 0 },
+    best_streak: { days: 0, start: null, end: null },
+    marathon_session: {
+      messages: 5,
+      project_name: "stockroom",
+      project_id: "home-me-stockroom",
+      harness: "cursor",
+    },
+    peak_hour: { hour: null, count: 0 },
+    top_tool: { name: null, calls: 0 },
+  });
+  const marathon = cells.find((cell) => cell.key === "marathon");
+  assert.equal(marathon.subtitleTitle, "home-me-stockroom");
+  const same = buildWrappedPanel({
+    totals: { sessions: 0, messages: 0, span: {} },
+    distinct_projects: 0,
+    busiest_harness: {},
+    best_streak: {},
+    marathon_session: {
+      messages: 1,
+      project_name: "p1",
+      project_id: "p1",
+      harness: "cursor",
+    },
+    peak_hour: {},
+    top_tool: {},
+  }).find((cell) => cell.key === "marathon");
+  assert.equal(same.subtitleTitle, null);
 });
 
 test("builds aggregate doughnut and compare tool models", () => {

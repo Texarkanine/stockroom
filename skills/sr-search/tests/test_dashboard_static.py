@@ -157,3 +157,42 @@ def test_write_read_chart_aria_describes_ratio_not_absolute_volumes() -> None:
     label = (attrs.get("aria-label") or "").lower()
     assert "ratio" in label or "share" in label
     assert "tool calls chart" not in label
+
+
+def test_info_controls_only_on_efficiency_and_first_prompt_panels() -> None:
+    """Help chrome is limited to Session Efficiency and First-Prompt Quality."""
+    source, parser = _document()
+    info_buttons = [
+        attrs
+        for tag, attrs in parser.elements
+        if tag == "button" and "panel-info" in (attrs.get("class") or "").split()
+    ]
+    assert len(info_buttons) == 2
+    assert all(btn.get("type") == "button" for btn in info_buttons)
+    assert all(btn.get("aria-expanded") == "false" for btn in info_buttons)
+    assert all(btn.get("aria-controls") for btn in info_buttons)
+    assert all(btn.get("aria-label") for btn in info_buttons)
+
+    efficiency_start = source.index('id="efficiency-panel"')
+    efficiency_end = source.index('id="models-panel"')
+    first_start = source.index('id="first-prompt-panel"')
+    first_end = source.index('id="recent-sessions"')
+    efficiency_chunk = source[efficiency_start:efficiency_end]
+    first_chunk = source[first_start:first_end]
+    assert 'class="panel-info"' in efficiency_chunk
+    assert 'class="panel-info"' in first_chunk
+    assert 'id="efficiency-help"' in efficiency_chunk
+    assert 'id="first-prompt-help"' in first_chunk
+
+    for panel_id in (
+        "daily-panel",
+        "projects-panel",
+        "tools-panel",
+        "write-read-panel",
+        "models-panel",
+    ):
+        start = source.index(f'id="{panel_id}"')
+        rest = source[start + 1 :]
+        next_panel = rest.find('class="panel')
+        chunk = source[start : start + 1 + (next_panel if next_panel != -1 else 800)]
+        assert "panel-info" not in chunk
