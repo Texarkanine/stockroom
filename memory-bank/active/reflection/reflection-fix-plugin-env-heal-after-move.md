@@ -8,29 +8,29 @@ complexity_level: 2
 
 ## Summary
 
-Fixed plugin-root-move env staleness (#17): locked-deps heal via `ensure_engine_env`, plus durable torch-index under stockroom home so torch is reinstalled on rectify without re-picking a wheel.
+Closed #17 env heal: locked-deps via `ensure_engine_env`, then hashed torch freeze under stockroom home so rectify restores the *same* torch bits (`--require-hashes`) after plugin moves — not a floating newer wheel from an index URL alone.
 
 ## Requirements vs Outcome
 
-First pass under-scoped torch (operator corrected). Rework delivers: `{stockroom_home}/torch-index`, `stockroom torch record`, heal in `ensure_engine_env`, writers in `sr-initialize` / `make torch`, hook timeout 300s.
+Three iterations: (1) deps-only heal under-scoped torch; (2) index-only record still allowed newer wheels on heal; (3) hashed freeze after smoke — delivered. Writers (`sr-initialize` install→smoke→freeze, `make torch`, CLI) and `docs/torch.md` match the operator contract. Legacy index-only homes must freeze once; no silent floating fallback.
 
 ## Plan Accuracy
 
-Initial plan correctly rejected hook-shell sync and exact `--check`; wrong on “torch stays out of band forever.” Rework plan matched the real acceptance bar.
+Freeze plan matched build: compile with `--generate-hashes --emit-index-url`, heal from freeze only, remove `record`. Preflight amendments (default `--app-dir`, emit-index-url for heal resolve) were load-bearing and applied cleanly. No step reordering needed.
 
 ## Build & QA Observations
 
-TDD for torch_source was clean. Existing installs need a one-time record before heal can restore torch.
+TDD steps stayed green with injectable runners (no network in unit tests). Full suite 456 passed / 3 skipped. QA clean aside from a Makefile comment polish; doctor’s floating install remedy correctly left as first-time provision (pre-freeze).
 
 ## Insights
 
 ### Technical
-- Torch heal requires state outside the disposable plugin tree; warehouse home is the right place.
-- Inexact `--check` for deps + recorded index for torch is the full post-move contract.
+- Index URL alone is not a pin — heal must replay a hashed freeze or you silently drift past the smoke-accepted torch.
+- Freeze also pins some PyPI transitives shared with `uv.lock`; install freeze after inexact sync and document the drift (acceptable).
 
 ### Process
-- Operator pushback on “torch out of scope” was load-bearing — overnight embed failure mode is the real product break.
+- Operator “why” on floating heal was the right challenge: product break is overnight embed, not import-time convenience.
 
 ### Million-Dollar Question
 
-From day one: `sr-initialize` would write torch-index, and rectify would always ensure deps+torch. What we have now is that contract, retrofitted.
+From day one: initialize would smoke then freeze; rectify would always ensure deps + replay freeze. Same contract, fewer reworks.

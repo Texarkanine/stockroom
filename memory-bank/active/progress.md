@@ -143,3 +143,13 @@ Heal engine-env staleness after plugin-root moves so one session/workspace-open 
     - Doctor's floating `pip install torch --index` remedy kept (first-time provision, pre-freeze)
 * Insights
     - Legacy index-only homes need one freeze before heal works; no silent fallback by design
+
+## 2026-07-10 - REFLECT - COMPLETE (hashed torch freeze)
+
+* Work completed
+    - Updated `reflection/reflection-fix-plugin-env-heal-after-move.md` for freeze rework
+    - Reconciled `techContext.md` (freeze heal pointer); systemPatterns already current
+* Decisions made
+    - Standalone task → next operator step is `/niko-archive`
+* Insights
+    - Index URL alone is not a pin; hashed freeze is the durable heal contract

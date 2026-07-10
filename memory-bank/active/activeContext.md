@@ -1,12 +1,11 @@
 # Active Context
 
 ## Current Task: fix-plugin-env-heal-after-move
-**Phase:** QA - COMPLETE (hashed torch freeze rework)
+**Phase:** REFLECT - COMPLETE (hashed torch freeze rework)
 
 ## What Was Done
-- Build + QA PASS for hashed torch freeze
-- Heal replays `{stockroom_home}/torch-requirements.txt` with `--require-hashes`
-- Writers: sr-initialize (after smoke), make torch, CLI freeze; docs/torch.md
+- Reflection updated for freeze rework; techContext notes hashed freeze heal
+- systemPatterns already current from build
 
 ## Next Step
-- `/niko-reflect` (auto-continue for L2)
+- Run `/niko-archive` to create the archive document and finalize the current project.
