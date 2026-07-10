@@ -1,12 +1,12 @@
 # Active Context
 
 ## Current Task: p5-m2-marketplace-entries
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Advanced L4 after m1 REFLECT COMPLETE: checked off m1 in `milestones.md`; cleared sub-run ephemerals (preserved `milestones.md`, `projectbrief.md`, `reflection/`).
-- Classified first unchecked milestone **m2 — Marketplace entries in txrk9-agent-plugins** as **Level 2**.
-- Rationale: small enhancement — add stockroom entries to both marketplace manifests (and README if needed) in `txrk9-agent-plugins`, following the existing `slobac` / `cursor-warehouse` pattern; self-contained, no architectural change. Workspace already includes the marketplace repo on branch `stockroom`.
+- Wrote L2 plan: add stockroom to both marketplace JSON catalogs in `txrk9-agent-plugins`, verify via parse/shape checks (no new test harness), open PR from branch `stockroom`.
+- README left unchanged by default (install-URL docs; catalog UI lists plugins).
+- Description text sourced from existing stockroom plugin manifests.
 
 ## Next Step
-- Load Level 2 workflow and execute Plan phase.
+- Preflight validation.

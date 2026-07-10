@@ -15,3 +15,15 @@ Add stockroom to both `.cursor-plugin/marketplace.json` and `.claude-plugin/mark
 * Insights
     - Cursor marketplace already lists `slobac` + `cursor-warehouse`; Claude marketplace currently lists only `slobac` — stockroom must be added to both
     - Marketplace README is harness-install oriented and does not enumerate plugins by name today; assess whether a discoverability update is still warranted
+
+## 2026-07-09 - PLAN - COMPLETE
+
+* Work completed
+    - Wrote L2 plan for marketplace catalog entries + PR on `txrk9-agent-plugins` branch `stockroom`
+    - Mapped entry shape to existing `slobac` / `cursor-warehouse` objects; description from stockroom plugin manifests
+* Decisions made
+    - No new test harness in the marketplace repo; verify with JSON parse + field assertions during build (m1 / L4: no catalog version pins, no prose CI)
+    - Default: leave marketplace README unchanged (URL-add docs; UI is the catalog)
+    - Do not backfill `cursor-warehouse` into the Claude marketplace
+* Insights
+    - Marketplace branch `stockroom` exists and is clean at `main` tip — first commit will be the catalog addition
