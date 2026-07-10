@@ -34,3 +34,14 @@ Add top-bar date-range selector wired to windowed `since`/`until` (prior-period 
     - No new dependencies; Python metrics/server unchanged for m1
 * Insights
     - Main risk is dishonest static labels after bounds land — treated as first-class test/ impl step
+
+## 2026-07-10 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated m1 plan against dashboard static/data/core/test layout
+    - Amended TDD encoding (explicit test-before-code on steps 1–3; step 4 glue-only) and `options.window` API alignment
+    - Wrote `.preflight-status` = PASS
+* Decisions made
+    - No rearchitect; server remains out of scope for m1
+* Insights
+    - Advisory: URL-synced range would help shareable views but was explicitly deferred in creative — leave for a later issue

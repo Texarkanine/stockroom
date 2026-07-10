@@ -43,7 +43,7 @@ flowchart LR
 
 ### Boundary Changes
 
-- **Public JS:** `buildRequestPlan(selectedHarnesses, windowBounds?)` and `fetchSnapshot(..., windowBounds?)` gain an optional bounds argument (`null`/omitted = today’s behavior).
+- **Public JS:** `buildRequestPlan(selectedHarnesses, windowBounds?)` gains an optional bounds argument (`null`/omitted = today’s behavior). `fetchSnapshot(fetchImpl, selectedHarnesses, options?)` already takes an options object — pass bounds via `options.window` (or equivalent) rather than a new positional parameter, and forward that into `buildRequestPlan`.
 - **HTTP/API:** Unchanged contract; client begins exercising existing query params.
 - **HTML contracts:** New `#date-range-selector` fieldset; `#mode-selector` remains a fieldset radiogroup with segmented visuals.
 
@@ -91,17 +91,22 @@ flowchart LR
 
 ## Implementation Plan
 
-1. **Request-plan bounds (TDD)** — extend `dashboard-data.test.mjs` for null vs preset bounds; implement `buildRequestPlan`/`fetchSnapshot` optional window arg.
-    - Files: `static/dashboard-data.mjs`, `tests-js/dashboard-data.test.mjs`
+1. **Request-plan bounds (TDD)** — write failing tests in `dashboard-data.test.mjs` for null vs preset bounds (including `fetchSnapshot` URL assertions); then implement `buildRequestPlan` optional bounds + `fetchSnapshot` forwarding via `options.window`.
+    - Files: `tests-js/dashboard-data.test.mjs`, `static/dashboard-data.mjs`
     - Changes: append `since`/`until` when bounds provided; never on `wrapped`.
-2. **View-state + label helpers (TDD)** — extend `dashboard-core.test.mjs` for date-range transitions and label mapping; implement preset constants, bounds resolver (`until=now`, `since=until−duration`), `transitionViewState` action, `panelRangeLabels(preset)` (or equivalent).
-    - Files: `static/dashboard-core.mjs`, `tests-js/dashboard-core.test.mjs`
+2. **View-state + label helpers (TDD)** — write failing tests in `dashboard-core.test.mjs` for date-range transitions and label mapping; then implement preset constants, bounds resolver (`until=now`, `since=until−duration`), `transitionViewState` action, `panelRangeLabels(preset)` (or equivalent).
+    - Files: `tests-js/dashboard-core.test.mjs`, `static/dashboard-core.mjs`
     - Creative ref: `creative-date-range-ux.md`
-3. **Static shell contracts (TDD)** — extend `test_dashboard_static.py` for `#date-range-selector` fieldset + segmented mode markup/classes; update `index.html` CSS/markup for date presets and mode pill.
-    - Files: `static/index.html`, `tests/test_dashboard_static.py`
-4. **DOM adapter wiring** — wire selector, busy disable, pass bounds into `fetchSnapshot`, apply label/aria updates in `renderDashboard` / dedicated helper; ensure mode path unchanged (no refetch).
+3. **Static shell contracts (TDD)** — write failing assertions in `test_dashboard_static.py` for `#date-range-selector` fieldset + segmented mode markup/classes; then update `index.html` CSS/markup for date presets and mode pill.
+    - Files: `tests/test_dashboard_static.py`, `static/index.html`
+4. **DOM adapter glue (after 1–3 green)** — no new business logic in `dashboard.mjs`: only event wiring, busy disable, pass `options.window` into `fetchSnapshot`, and apply already-tested label helpers / aria updates. Mode path stays render-only. If any non-trivial logic appears during wiring, extract it to `dashboard-core.mjs` with a failing test first (do not grow untested logic in the adapter).
     - Files: `static/dashboard.mjs`
 5. **Verification** — `make test-js`, targeted pytest dashboard tests, then `make ci` at milestone boundary.
+
+### Preflight amendments (2026-07-10)
+
+- Clarified TDD ordering on every implementable unit (tests before code on steps 1–3; step 4 is adapter glue only after those are green).
+- Aligned `fetchSnapshot` bounds with existing `options` object (`options.window`) instead of a new positional arg.
 
 ## Technology Validation
 
@@ -129,6 +134,6 @@ No new technology — validation not required (native HTML/CSS/JS only; no calen
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
 - [ ] QA
