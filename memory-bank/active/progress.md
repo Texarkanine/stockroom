@@ -36,3 +36,13 @@ End-of-roadmap cutover: re-initialize persistent memory-bank files from current 
     - Docs verification remains shell assertions (no docs CI), consistent with stash-only `docs/`
 * Insights
     - Initial plan put full verification last; that would have failed the TDD plan-encoding gate
+
+## 2026-07-09 - BUILD - COMPLETE
+
+* Work completed
+    - Re-initialized persistent MB; created docs/; trimmed README; scrubbed planning refs; deleted planning/
+    - `make ci` green (424 pytest + 32 JS + ruff + reuse)
+* Decisions made
+    - Also scrubbed `test_ingest_paths.py` docstring (extra hit beyond the three planned code sites)
+* Insights
+    - README landed at 36 lines vs slobac's 75 — intentionally lean with detail in docs/

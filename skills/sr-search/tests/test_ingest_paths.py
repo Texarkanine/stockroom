@@ -6,9 +6,8 @@ separators and other non-alphanumerics all collapse to ``-``), but we can
 compute it forward. So a candidate real path is accepted as ``cwd`` only when
 ``encode_for(harness, candidate) == slug`` — verification, never guessing, which
 makes a fabricated path structurally impossible (its failure mode is a clean
-``None``). The transform was locked empirically against the operator's real
-history (see ``planning/spikes/cwd-recovery/``): the real slug alphabet is
-exactly ``[A-Za-z0-9-]``.
+``None``). The transform was locked empirically against real harness history:
+the real slug alphabet is exactly ``[A-Za-z0-9-]``.
 """
 
 from stockroom.ingest import paths

@@ -109,7 +109,7 @@ No new technology - validation not required. `docs/` is a plain directory of mar
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Preflight
-- [ ] Build
+- [x] Build
 - [ ] QA
 
 ## Preflight Amendments
