@@ -82,8 +82,16 @@ No new technology - validation not required
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight
-- [ ] Build
+- [x] Build
 - [ ] QA
+
+## Build checklist
+
+- [x] Step 1–2: import-graph tests (red then green)
+- [x] Step 3: `stockroom.home` extract + warehouse re-exports
+- [x] Step 4: `torch_source` → `stockroom.home`
+- [x] Step 5: full suite + lint/format
+- [x] Step 6: systemPatterns heal-import note (hooks unchanged)
 
 ## Preflight Amendments
 

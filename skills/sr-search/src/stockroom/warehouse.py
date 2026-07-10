@@ -9,10 +9,9 @@ staleness.
 
 This module owns:
 
-* **Path resolution** — the harness-neutral warehouse home under the XDG data
-  directory (``$XDG_DATA_HOME/stockroom`` or ``~/.local/share/stockroom``,
-  overridable via ``STOCKROOM_HOME``), auto-created on first use; the warehouse
-  file and the sidecar lock file beside it.
+* **Warehouse file paths** — ``warehouse.duckdb`` and the sidecar lock beside
+  the harness-neutral home (home resolution itself lives in
+  :mod:`stockroom.home` and is re-exported here for callers).
 * **The coordination lock** — an ``fcntl.flock`` single-writer/migrator token.
 * **Reader/writer backoff** — bounded retry around DuckDB's open-time
   "Could not set lock" ``IOException``, terminating in a typed
@@ -33,26 +32,42 @@ from pathlib import Path
 
 import duckdb
 
+from stockroom.home import (
+    HOME_ENV_VAR,
+    HOME_SOURCE_DEFAULT,
+    HOME_SOURCE_OVERRIDE,
+    HOME_SOURCE_XDG,
+    XDG_DATA_HOME_ENV_VAR,
+    home_dir,
+    resolve_home,
+)
 from stockroom.migrate import apply_pending, current_version
 from stockroom.migrations import discover
-
-#: Env var that overrides the warehouse home (used by tests to redirect away
-#: from the operator's real XDG data home). Later milestones (ingest,
-#: sr-query, dashboard) adopt the same name.
-HOME_ENV_VAR = "STOCKROOM_HOME"
-
-#: Freedesktop XDG data-home env var; when set (and ``STOCKROOM_HOME`` is not),
-#: the warehouse lives at ``$XDG_DATA_HOME/stockroom``.
-XDG_DATA_HOME_ENV_VAR = "XDG_DATA_HOME"
-
-#: Labels returned by :func:`resolve_home` describing how the home was chosen.
-HOME_SOURCE_OVERRIDE = "STOCKROOM_HOME"
-HOME_SOURCE_XDG = "XDG_DATA_HOME"
-HOME_SOURCE_DEFAULT = "default"
 
 #: Filenames placed inside the warehouse home.
 WAREHOUSE_FILENAME = "warehouse.duckdb"
 LOCK_FILENAME = ".warehouse.lock"
+
+# Re-export home resolution for existing ``from stockroom.warehouse import …``
+# callers. Canonical owner is :mod:`stockroom.home` (DuckDB-free).
+__all__ = [
+    "HOME_ENV_VAR",
+    "HOME_SOURCE_DEFAULT",
+    "HOME_SOURCE_OVERRIDE",
+    "HOME_SOURCE_XDG",
+    "LOCK_FILENAME",
+    "WAREHOUSE_FILENAME",
+    "XDG_DATA_HOME_ENV_VAR",
+    "WarehouseBusyError",
+    "WarehouseStaleError",
+    "ensure_vss",
+    "home_dir",
+    "lock_path",
+    "open",
+    "open_current",
+    "resolve_home",
+    "warehouse_path",
+]
 
 # Bounded exponential-backoff defaults for opening DuckDB while a migrator may
 # hold the warehouse read-write. Injectable per-call for tests.
@@ -146,39 +161,6 @@ def ensure_vss(con: duckdb.DuckDBPyConnection) -> None:
         con.execute("INSTALL vss")
         con.execute("LOAD vss")
     con.execute("SET hnsw_enable_experimental_persistence = true")
-
-
-def resolve_home() -> tuple[Path, str]:
-    """Return ``(home_path, source)`` without creating directories.
-
-    Selection order:
-
-    1. ``STOCKROOM_HOME`` when set → source ``STOCKROOM_HOME``
-    2. ``$XDG_DATA_HOME/stockroom`` when ``XDG_DATA_HOME`` is set →
-       source ``XDG_DATA_HOME``
-    3. ``~/.local/share/stockroom`` otherwise → source ``default``
-
-    Pure: never mkdir. Prefer this for diagnostics (``doctor probe``); use
-    :func:`home_dir` when the directory must exist.
-    """
-    override = os.environ.get(HOME_ENV_VAR)
-    if override:
-        return Path(override), HOME_SOURCE_OVERRIDE
-    xdg = os.environ.get(XDG_DATA_HOME_ENV_VAR)
-    if xdg:
-        return Path(xdg) / "stockroom", HOME_SOURCE_XDG
-    return Path.home() / ".local" / "share" / "stockroom", HOME_SOURCE_DEFAULT
-
-
-def home_dir() -> Path:
-    """Return the warehouse home directory, creating it if absent.
-
-    Resolves via :func:`resolve_home`, then creates the path (with parents)
-    so callers can rely on it existing.
-    """
-    base, _source = resolve_home()
-    base.mkdir(parents=True, exist_ok=True)
-    return base
 
 
 def warehouse_path() -> Path:

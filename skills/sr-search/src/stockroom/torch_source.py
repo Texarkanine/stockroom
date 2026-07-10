@@ -16,7 +16,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
-from stockroom.warehouse import home_dir
+from stockroom.home import home_dir
 
 #: Filename under stockroom home holding one torch wheel-index URL.
 INDEX_FILENAME = "torch-index"

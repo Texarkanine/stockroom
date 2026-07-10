@@ -34,3 +34,14 @@ Restore session-start auto-heal after marketplace plugin-hash moves by breaking 
     - PASS — proceed to build; hooks remain unchanged
 * Insights
     - Warehouse re-exports keep `test_warehouse_home_xdg.py` and schedule/doctor/dashboard callers stable
+
+## 2026-07-10 - BUILD - COMPLETE
+
+* Work completed
+    - Added `stockroom.home`; rewired `torch_source`; warehouse re-exports; import-graph tests
+    - Verification: 470 passed, 3 skipped; ruff check/format clean
+* Decisions made
+    - Hooks left unchanged (dep-light Python fix only)
+    - Documented DuckDB-free heal import in `systemPatterns.md`
+* Insights
+    - Load-bearing edge was exactly `torch_source` → `warehouse.home_dir`; dispatcher path was already lazy enough once that edge was cut
