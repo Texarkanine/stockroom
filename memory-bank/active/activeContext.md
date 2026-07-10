@@ -1,12 +1,12 @@
 # Active Context
 
 ## Current Task: p5-m1-install-docs
-**Phase:** PLAN - COMPLETE
+**Phase:** PREFLIGHT - COMPLETE
 
 ## What Was Done
-- Planned L2 m1: install/usage docs in README, empirical per-harness invocation verification, manual-install confirmation, packaging/doc contract in `test_packaging.py`.
-- TDD: contract tests first (skill inventory + Cursor `/sr-*` + Claude `stockroom:<skill>` pins), then docs, then operator empirical check.
-- Scoped marketplace publication to m2; m1 docs stay honest about marketplace vs manual path.
+- Preflight validated L2 plan: TDD ordering (contract test before README), conventions (`test_packaging.py` + `_front_matter`), scope vs m1 milestone.
+- Amended plan: reuse `_front_matter`; pin exact `/<name>` and `stockroom:<name>` substrings in README.
+- Status: **PASS** (with advisory on operator-gated empirical verification and marketplace honesty).
 
 ## Next Step
-- Preflight validation (automatic per L2 workflow).
+- Build phase (automatic per L2 workflow).

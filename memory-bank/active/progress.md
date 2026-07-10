@@ -27,3 +27,14 @@ Author install/usage docs with empirically verified per-harness skill invocation
 * Insights
     - README still says "Phase 4 in progress"; status refresh is in-scope for m1
     - `.cursor/skills/stockroom-local/` and Niko shared skills must stay out of the install inventory contract
+
+## 2026-07-09 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated plan against packaging conventions, TDD encoding, and m1 milestone scope
+    - Amended plan: reuse `_front_matter`; pin `/<name>` and `stockroom:<name>` in README
+    - Wrote `.preflight-status` = PASS
+* Decisions made
+    - PASS with advisory: empirical invocation confirmation remains operator-gated; marketplace claims deferred to m2
+* Insights
+    - `test_packaging.py` already has YAML front-matter parsing — inventing a second helper would be duplication-in-waiting

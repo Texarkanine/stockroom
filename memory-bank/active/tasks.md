@@ -32,9 +32,9 @@ Author user-facing install and usage documentation covering marketplace-add and 
 
 ## Implementation Plan
 
-1. **Failing packaging/doc contract** — add test(s) in `test_packaging.py` that resolve the install/usage doc path, discover shipped skill names from `skills/*/SKILL.md` frontmatter, and assert the doc pins each name plus both harness invocation forms; assert README does not say "Phase 4 in progress". Run → expect fail (doc gaps).
+1. **Failing packaging/doc contract** — add test(s) in `test_packaging.py` that read `README.md` at repo root, discover shipped skill names via existing `_front_matter` on each `skills/*/SKILL.md`, and assert for every name `N`: README contains Cursor form `/N` and Claude form `stockroom:N`; assert README does not contain `Phase 4 in progress`; assert every skill name cited in a delimited inventory block (or equivalent pinned list) is a real shipped skill. Run → expect fail (doc gaps).
    - Files: `skills/sr-search/tests/test_packaging.py`
-   - Changes: new test function(s); optional small helpers for frontmatter `name:` extraction and doc path constant
+   - Changes: new test function(s); reuse `_front_matter` (do not duplicate YAML parsing); discovery helper for `skills/*/SKILL.md` names only
 
 2. **Install & usage documentation** — author user-facing install/usage content in `README.md` (primary surface; no new docs site). Cover: (a) marketplace-add path pointing at `https://github.com/Texarkanine/txrk9-agent-plugins` then install `stockroom`; (b) manual-install path via existing dual manifests (committed layout = install layout; point at `.cursor-plugin/` / `.claude-plugin/` + shared `skills/`); (c) post-install first step `sr-initialize`; (d) skill inventory and per-harness invocation forms for all five skills; (e) brief usage pointers to the four surfaces after init. Follow slobac's `using-slobac.md` shape (marketplace → install → invoke) adapted for multi-skill stockroom. Refresh status line to reflect Phase 5 / shipping posture (honest: marketplace entry is m2 — say install docs + manual path are ready; marketplace publication follows).
    - Files: `README.md`
@@ -70,12 +70,22 @@ No new technology - validation not required
 - **Status honesty before m2 marketplace**: Mitigation — status/docs must not claim marketplace install works until m2; phrase marketplace path as "once listed in txrk9-agent-plugins" or equivalent, with manual install as the verified path for m1
 - **Roadmap checkbox wording still says "manifests added"**: Mitigation — m1 docs/verification only; do not rewrite roadmap Phase 5 bullets beyond what's needed for honesty (optional one-line status in README is enough); roadmap checkbox completion is an L4 concern at archive
 
+## Preflight amendments
+
+- Reuse existing `_front_matter` in `test_packaging.py`; do not add a parallel YAML parser.
+- Contract pins exact substrings `/<name>` and `stockroom:<name>` in `README.md` (plus absence of `Phase 4 in progress`).
+
+## Advisory findings (non-blocking)
+
+- **Empirical verification is operator-gated**: step 3 cannot finish in CI; build should land docs + green contract against the planned forms, then pause for operator confirmation before claiming forms are empirically verified (or record verification evidence in progress if operator confirms mid-build).
+- **Marketplace honesty**: until m2, README must not imply marketplace install already works; phrase as forthcoming / once listed.
+
 ## Status
 
 - [x] Initialization complete
 - [x] Test planning complete (TDD)
 - [x] Implementation plan complete
 - [x] Technology validation complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
 - [ ] QA
