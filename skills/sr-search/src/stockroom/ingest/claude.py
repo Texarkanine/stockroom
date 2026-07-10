@@ -38,6 +38,7 @@ from stockroom.ingest.model import (
     NormalizedSession,
     NormalizedToolCall,
 )
+from stockroom.timestamps import to_utc_naive
 
 
 def _iter_records(path: Path) -> list[dict]:
@@ -59,9 +60,9 @@ def _iter_records(path: Path) -> list[dict]:
 def _parse_ts(value: object) -> datetime | None:
     """Parse an ISO-8601 timestamp (``...Z`` accepted) to a naive-UTC datetime.
 
-    DuckDB's ``TIMESTAMP`` is timezone-naive; Claude stamps are UTC with a
-    trailing ``Z``, so we drop the tzinfo after parsing to store a stable,
-    comparable wall-clock value.
+    DuckDB's ``TIMESTAMP`` is timezone-naive; stockroom stores UTC wall clock.
+    Aware stamps (including trailing ``Z``) are converted to UTC before tzinfo
+    is dropped.
     """
     if not isinstance(value, str) or not value:
         return None
@@ -69,7 +70,7 @@ def _parse_ts(value: object) -> datetime | None:
         parsed = datetime.fromisoformat(value)
     except ValueError:
         return None
-    return parsed.replace(tzinfo=None)
+    return to_utc_naive(parsed)
 
 
 def _user_text(content: object) -> str | None:

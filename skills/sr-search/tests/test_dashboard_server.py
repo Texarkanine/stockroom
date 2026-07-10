@@ -128,8 +128,8 @@ def test_partial_bounds_preserve_endpoint_specific_defaults(
         status, sessions = _json_get(f"{base}/api/sessions?until=2026-02-01")
         assert status == 200
         assert [row["started"] for row in sessions] == [
-            "2026-01-31T00:00:00",
-            "2025-01-01T00:00:00",
+            "2026-01-31T00:00:00Z",
+            "2025-01-01T00:00:00Z",
         ]
 
 

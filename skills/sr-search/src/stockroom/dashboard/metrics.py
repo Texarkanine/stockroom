@@ -2,9 +2,12 @@
 
 The server returns raw harness-keyed series; aggregate/compare rendering and
 signature colors belong to the client. Session activity means
-``COALESCE(started_at, source_mtime)``: source-authored wall clock where the
-harness has it, otherwise the durable transcript-mtime provenance captured by
-ingest. Main-session metrics exclude subagents.
+``COALESCE(started_at, source_mtime)`` on the **UTC-at-rest** warehouse clock:
+source-authored UTC where the harness has it, otherwise the durable
+transcript-mtime provenance captured by ingest (also UTC). Main-session
+metrics exclude subagents. Datetime fields on the wire are ISO-8601 with a
+trailing ``Z``; clients render into a timezone. Wrapped ``peak_hour`` is the
+UTC hour-of-day under this contract.
 
 Tool classification is intentionally explicit and tunable. Write tools are
 ``WRITE_TOOLS``; read tools are ``READ_TOOLS``; Shell, task delegation, MCP, and
@@ -19,6 +22,7 @@ from typing import Any
 
 import duckdb
 
+from stockroom.timestamps import utc_now
 from stockroom.truncate import truncate_cell
 
 ACTIVITY_TIME_SQL = "COALESCE(s.started_at, s.source_mtime)"
@@ -70,7 +74,7 @@ def parse_window(
     now: datetime | None = None,
 ) -> tuple[datetime, datetime]:
     """Parse an inclusive/exclusive ISO window, applying a default duration."""
-    end = parse_timestamp(until, "until") or now or datetime.now()
+    end = parse_timestamp(until, "until") or now or utc_now()
     start = parse_timestamp(since, "since") or end - timedelta(days=default_days)
     if start >= end:
         raise ValueError("since must be earlier than until")
@@ -115,7 +119,13 @@ def _is_selected(harness: str, active: set[str]) -> bool:
 
 
 def _iso(value: datetime | None) -> str | None:
-    return value.isoformat() if value is not None else None
+    """Serialize a naive-UTC datetime for the dashboard wire format.
+
+    Appends ``Z`` so clients parse the value as UTC rather than local wall clock.
+    """
+    if value is None:
+        return None
+    return value.isoformat() + "Z"
 
 
 def overview(
@@ -276,7 +286,7 @@ def trends(
     one adaptive granularity across both series so the range picker never
     leaves write/read on a coarser axis than session activity.
     """
-    effective_end = until or datetime.now()
+    effective_end = until or utc_now()
     if since is None:
         last_included = effective_end - timedelta(microseconds=1)
         daily_start = datetime.combine(
@@ -643,7 +653,7 @@ def sessions(
         ordered.setdefault(
             key,
             {
-                "started": activity.isoformat(),
+                "started": _iso(activity),
                 "harness": harness,
                 "project_name": project_display_name(cwd, project_id),
                 "project_id": project_id,

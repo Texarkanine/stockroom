@@ -43,3 +43,14 @@ Fix warehouse/dashboard timezone skew ([issue #32](https://github.com/Texarkanin
     - Preflight PASS — proceed to build
 * Insights
     - Recent Sessions bypassed `_iso` with raw `isoformat()` — fixing `_iso` alone is insufficient without routing `started` through it
+
+## 2026-07-10 - BUILD - COMPLETE
+
+* Work completed
+    - Implemented UTC helpers, ingest/mtime/`_parse_ts`, watermark migration 0005, metrics `Z` wire format, dashboard UTC parse/format
+    - Verification: `make format`, `make lint`, `make test` — 491 passed, 3 skipped; JS 36 passed
+* Decisions made
+    - Trends default-now tests patch `utc_now` (not `datetime.now`)
+    - Head schema version constant bumped to 5 in warehouse tests
+* Insights
+    - Local-naive `datetime.now` monkeypatches silently stop freezing windows once call sites move to `utc_now`

@@ -11,6 +11,7 @@ import {
   deriveHarnessBreakdown,
   deriveOverviewCards,
   displayHarness,
+  formatDate,
   harnessColors,
   PANEL_HELP,
   panelRangeLabels,
@@ -45,18 +46,6 @@ const requestGate = createRequestGate();
 const chartRegistry = new Map();
 const numberFormatter = new Intl.NumberFormat(undefined, {
   maximumFractionDigits: 1,
-});
-const dateFormatter = new Intl.DateTimeFormat(undefined, {
-  year: "numeric",
-  month: "short",
-  day: "numeric",
-});
-const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
-  year: "numeric",
-  month: "short",
-  day: "numeric",
-  hour: "numeric",
-  minute: "2-digit",
 });
 let state = {
   harnesses: [],
@@ -158,19 +147,6 @@ function renderHarnessControls() {
       onChange: () => applyTransition({ type: "toggle", harness }),
     });
   }
-}
-
-function parseDisplayDate(value, dateOnly = false) {
-  if (typeof value !== "string" || !value) {
-    return null;
-  }
-  const parsed = new Date(dateOnly ? `${value}T00:00:00` : value);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
-
-function formatDate(value, dateOnly = false) {
-  const parsed = parseDisplayDate(value, dateOnly);
-  return parsed ? (dateOnly ? dateFormatter : dateTimeFormatter).format(parsed) : "—";
 }
 
 function renderBreakdown(container, rows, colors) {

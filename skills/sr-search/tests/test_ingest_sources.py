@@ -8,12 +8,13 @@ the real ``cwd`` is recovered downstream). The incremental watermark keeps only
 files newer than ``(last_mtime, last_path)``; ``--full`` ignores it.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
 
 from stockroom.ingest import sources
+from stockroom.timestamps import utc_from_timestamp
 
 
 def test_root_env_overrides(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
@@ -96,6 +97,20 @@ def _disc(mtime: datetime, path: str) -> sources.DiscoveredSession:
         project_id=None,
         mtime=mtime,
     )
+
+
+def test_mtime_is_naive_utc(tmp_path: Path) -> None:
+    """File mtime discovery stores UTC wall clock, not local naive time."""
+    path = tmp_path / "session.jsonl"
+    path.write_text("{}\n", encoding="utf-8")
+    expected = utc_from_timestamp(path.stat().st_mtime)
+    got = sources._mtime(path)
+    assert got.tzinfo is None
+    assert got == expected
+    # Distinct from local-naive when the machine is not on UTC (and equal on UTC).
+    local_naive = datetime.fromtimestamp(path.stat().st_mtime)
+    if datetime.now().astimezone().utcoffset() != timezone.utc.utcoffset(None):
+        assert got != local_naive
 
 
 def test_watermark_full_returns_all() -> None:

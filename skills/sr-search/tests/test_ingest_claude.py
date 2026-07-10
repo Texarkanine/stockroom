@@ -13,9 +13,32 @@ is the file stem (records carry the *parent's* sessionId).
 """
 
 import json
+from datetime import datetime
 from pathlib import Path
 
 from stockroom.ingest import claude
+
+
+def test_parse_ts_z_suffix_is_naive_utc() -> None:
+    """Trailing ``Z`` stamps become naive UTC wall clock."""
+    assert claude._parse_ts("2026-07-10T03:22:00.000Z") == datetime(
+        2026, 7, 10, 3, 22, 0
+    )
+
+
+def test_parse_ts_offset_converts_to_naive_utc() -> None:
+    """Offset-aware stamps convert to UTC before tzinfo is dropped."""
+    assert claude._parse_ts("2026-07-09T22:22:00-05:00") == datetime(
+        2026, 7, 10, 3, 22, 0
+    )
+
+
+def test_parse_ts_rejects_non_strings() -> None:
+    """Non-string / empty values yield ``None``."""
+    assert claude._parse_ts(None) is None
+    assert claude._parse_ts("") is None
+    assert claude._parse_ts(123) is None
+
 
 _BASE = "-home-user-project"
 

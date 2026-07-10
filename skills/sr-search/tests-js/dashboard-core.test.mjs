@@ -693,7 +693,7 @@ test("builds exactly eight factual wrapped cells with nullable fallbacks", () =>
     "Busiest Harness",
     "Best Streak",
     "Marathon Session",
-    "Peak Hour",
+    "Peak Hour (UTC)",
     "Top Tool",
   ]);
   assert.equal(cells[3].value, "Claude Code");

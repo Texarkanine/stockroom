@@ -154,12 +154,63 @@ const shortDateFormatter = new Intl.DateTimeFormat(undefined, {
   day: "numeric",
 });
 
+const dateFormatter = new Intl.DateTimeFormat(undefined, {
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+});
+
+const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+});
+
+const HAS_EXPLICIT_ZONE = /(?:[zZ]|[+-]\d{2}:\d{2})$/;
+
+/**
+ * Parse a warehouse date/datetime for display.
+ *
+ * Date-only values stay local calendar midnights. Datetime values are UTC:
+ * explicit ``Z``/offset is honored; naive ISO strings are treated as UTC.
+ *
+ * @param {unknown} value ISO date or datetime string.
+ * @param {boolean} [dateOnly=false] When true, parse as a calendar date label.
+ * @returns {Date|null} Parsed date, or null when invalid.
+ */
+export function parseDisplayDate(value, dateOnly = false) {
+  if (typeof value !== "string" || !value) {
+    return null;
+  }
+  const normalized = dateOnly
+    ? `${value}T00:00:00`
+    : HAS_EXPLICIT_ZONE.test(value)
+      ? value
+      : `${value}Z`;
+  const parsed = new Date(normalized);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+/**
+ * Format a warehouse date/datetime in the runtime locale/timezone.
+ *
+ * @param {unknown} value ISO date or datetime string.
+ * @param {boolean} [dateOnly=false] When true, format as a date-only label.
+ * @returns {string} Localized display string, or an em dash when invalid.
+ */
+export function formatDate(value, dateOnly = false) {
+  const parsed = parseDisplayDate(value, dateOnly);
+  return parsed ? (dateOnly ? dateFormatter : dateTimeFormatter).format(parsed) : "—";
+}
+
 function formatShortDate(value) {
   if (typeof value !== "string" || !value) {
     return "—";
   }
-  const parsed = new Date(`${value}T00:00:00`);
-  return Number.isNaN(parsed.getTime()) ? "—" : shortDateFormatter.format(parsed);
+  const parsed = parseDisplayDate(value, true);
+  return parsed ? shortDateFormatter.format(parsed) : "—";
 }
 
 /**
@@ -618,7 +669,7 @@ export function buildWrappedPanel(wrapped) {
     },
     {
       key: "peak",
-      label: "Peak Hour",
+      label: "Peak Hour (UTC)",
       value: peakHour,
       subtitle: `${finiteNumber(peak.count)} sessions`,
     },

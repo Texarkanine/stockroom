@@ -103,5 +103,17 @@ No new technology - validation not required
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight
-- [ ] Build
+- [x] Build
 - [ ] QA
+
+## Build checklist
+
+- [x] Step 1: timestamps helpers
+- [x] Step 2: discovery mtime UTC
+- [x] Step 3: Claude `_parse_ts` UTC
+- [x] Step 4: `utc_now` at writer/metrics
+- [x] Step 5: migration 0005 watermark clear
+- [x] Step 6: metrics `_iso` emits `Z`
+- [x] Step 7: dashboard JS UTC parse
+- [x] Step 8: docs/comments
+- [x] Step 9: full verification (`make format` / `lint` / `test`)
