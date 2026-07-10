@@ -6,7 +6,7 @@ Stockroom is a dual-manifest Cursor/Claude Code plugin whose Python engine lives
 
 ## Locked uv project, torch held out of the lock
 
-Lock hermetically with `uv lock --no-config`. Exclude torch via an impossible environment-marker override in `skills/sr-search/pyproject.toml` so it never enters the lock, then provision it per-machine (`uv pip install torch --no-config --index <wheel-url>`). After torch is installed, never run an exact sync — use `uv run --no-sync` or `--inexact`. Local iteration is via the root [`Makefile`](../Makefile).
+Lock hermetically with `uv lock --no-config`. Exclude torch via an impossible environment-marker override in `skills/sr-search/pyproject.toml` so it never enters the lock, then provision it per-machine (`uv pip install torch --no-config --index <wheel-url>`), smoke-test, and freeze the accepted stack under stockroom home. After torch is installed, never run an exact sync — use `uv run --no-sync` or `--inexact`. Local iteration is via the root [`Makefile`](../Makefile). See [`docs/torch.md`](../docs/torch.md).
 
 ## No truncation at rest; truncation is a read-time feature
 
@@ -56,7 +56,7 @@ Both read surfaces print only through [`stockroom.render`](../skills/sr-search/s
 
 ## Baked-only succeed-or-refuse shim
 
-The shim has a baked engine dir and zero resolution logic — succeed correctly or refuse with a one-line remedy. Session-start hooks rectify owned shims after plugin updates; `make shim` installs owner `dev` for checkouts.
+The shim has a baked engine dir and zero resolution logic — succeed correctly or refuse with a one-line remedy (including when the engine env cannot import locked deps). Session/workspace hooks run `shim rectify`, which re-bakes owned shims after plugin updates **and** ensures the engine uv env via torch-safe inexact sync plus torch reinstall from the hashed freeze at `{stockroom_home}/torch-requirements.txt` (`stockroom.torch_source`); `make shim` installs owner `dev` for checkouts. `make torch` / `sr-initialize` / `stockroom torch freeze` write that freeze (plus a `torch-index` sidecar).
 
 ## Layered licensing
 

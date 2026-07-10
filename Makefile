@@ -11,9 +11,10 @@ UV_NO_CFG := --no-config
 UV_DIR := $(UV) --directory $(ENGINE) $(UV_NO_CFG)
 UV_RUN := $(UV_DIR) run --no-sync
 
-# Per-machine torch wheel index (--no-config bypasses the lock override).
+# Per-machine torch wheel index + hashed freeze (--no-config bypasses the lock override).
 # Override for CUDA, e.g.: make torch TORCH_INDEX=https://download.pytorch.org/whl/cu126
 # CPU-only (default): https://download.pytorch.org/whl/cpu
+# After install, freezes the accepted stack under stockroom home (see docs/torch.md).
 TORCH_INDEX ?= https://download.pytorch.org/whl/cpu
 
 .PHONY: help sync lock lock-check test test-js lint format format-check reuse ci torch localdev shim
@@ -35,6 +36,7 @@ sync: ## Install deps from the committed lock (torch-free; re-run make torch aft
 
 torch: ## Install torch out-of-band (embed/semantic; stripped by make sync)
 	$(UV_DIR) pip install torch --index $(TORCH_INDEX)
+	PYTHONPATH=$(CURDIR)/$(ENGINE)/src $(UV_RUN) python -m stockroom torch freeze --index $(TORCH_INDEX)
 
 lock: ## Regenerate uv.lock hermetically
 	$(UV_DIR) lock

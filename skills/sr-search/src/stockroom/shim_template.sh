@@ -21,4 +21,12 @@ command -v uv >/dev/null 2>&1 || {
 	exit 1
 }
 
+# Refuse before `uv run --no-sync` when locked deps are missing. That flag
+# otherwise creates an empty .venv and fails mid-import; session hooks heal
+# via `shim rectify` → ensure_engine_env.
+"$APP_DIR/.venv/bin/python" -c "import duckdb" >/dev/null 2>&1 || {
+	echo "stockroom: engine env at $APP_DIR is not ready — {{REMEDY}}" >&2
+	exit 1
+}
+
 PYTHONPATH="$APP_DIR/src" exec uv run --project "$APP_DIR" --no-sync --no-config python -m stockroom "$@"

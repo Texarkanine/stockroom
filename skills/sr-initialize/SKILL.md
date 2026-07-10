@@ -36,13 +36,15 @@ The sibling-relative fallback works because the committed layout is the install 
 
 **Neither env var set means you are in a dev checkout** (or a symlinked `make localdev` mirror). Everything below works the same, except the shim step: defer it to `make shim` from the repo root (owner `dev`), unless the user explicitly insists on a harness-owned install.
 
-## Step 3: Sync the locked environment — once, before torch
+## Step 3: Sync the locked environment — before torch
 
 ```bash
-[ -d "$APP_DIR/.venv" ] || uv sync --frozen --no-config --directory "$APP_DIR"
+PYTHONPATH="$APP_DIR/src" python3 -m stockroom shim ensure-env --app-dir "$APP_DIR"
 ```
 
-**Ordering is load-bearing.** This is the one legitimate exact sync, and it is only safe *before* torch exists: torch is deliberately held out of the lock, so an exact sync **removes an installed torch**. That is why the command is guarded on the venv not existing yet — on a re-run, skip it. (After setup, syncs must be `uv sync --inexact`; runs are always `uv run --no-sync`.)
+This is the tested env-heal path (`stockroom.engine_env`): probe with `uv sync --frozen --inexact --check`, and when incomplete run `uv sync --frozen --inexact`. It never exact-syncs, so it is safe whether or not torch is already present. Session/workspace hooks call the same logic via `shim rectify` after a plugin-root move.
+
+**Ordering still matters for torch.** Provision torch only after locked deps exist (steps 4–5). After torch is installed, never run an exact `uv sync` yourself — use `--inexact` / `uv run --no-sync` (see `docs/development.md`).
 
 ## Step 4: Probe the environment
 
@@ -80,16 +82,12 @@ The wheel is a **per-machine human choice**. Never pick it silently: recommend f
 
 ## Step 6: Provision and smoke-test
 
-For the guided path, install the confirmed wheel (out of band, per the torch contract — note `--no-config` and `--directory`, both required):
+For the guided path, install the confirmed wheel (out of band, per the torch contract — note `--no-config` and `--directory`, both required), then verify through the production path — `smoke` prints the torch version and CUDA availability, then encodes one real string through the actual embedding encoder:
 
 ```bash
 uv pip install torch --no-config --directory "$APP_DIR" \
   --index https://download.pytorch.org/whl/cu126   # ← the user's confirmed build
-```
 
-Then verify through the production path — `smoke` prints the torch version and CUDA availability, then encodes one real string through the actual embedding encoder:
-
-```bash
 PYTHONPATH="$APP_DIR/src" uv run --project "$APP_DIR" --no-sync --no-config \
   python -m stockroom doctor smoke
 ```
@@ -97,6 +95,16 @@ PYTHONPATH="$APP_DIR/src" uv run --project "$APP_DIR" --no-sync --no-config \
 The first run downloads the embedding model (network needed once); that also pre-warms the cache so the first real embed won't pay it. Exit 0 ends with `ok: encoded one string to a 384-dim vector`.
 
 **On failure, smoke exits 1 with one stderr line that names the next action — relay it and follow it.** The common shape is a wrong wheel (a CUDA kernel error or crash from the encode): go back to step 5, pick a different index (usually an older `cu*` build, or `cpu` as the always-works fallback), reinstall, and re-run the smoke. `uv pip install` replaces the previous build in place.
+
+**Only after smoke succeeds**, freeze the accepted torch stack so plugin updates can reinstall the *same* bits (hashed requirements under stockroom home — see [`docs/torch.md`](../../docs/torch.md)):
+
+```bash
+PYTHONPATH="$APP_DIR/src" python3 -m stockroom torch freeze \
+  --app-dir "$APP_DIR" \
+  --index https://download.pytorch.org/whl/cu126   # ← same URL that passed smoke
+```
+
+The freeze lives under stockroom home (`$STOCKROOM_HOME` or `~/.local/share/stockroom/torch-requirements.txt`, plus a `torch-index` sidecar), outside the disposable plugin tree. Session/workspace hooks call `shim rectify` → `ensure_engine_env`, which restores torch from this freeze (`uv pip install --require-hashes -r …`) after a plugin-root move. Do **not** freeze a build that failed smoke.
 
 ## Step 7: Bind the `stockroom` command
 
