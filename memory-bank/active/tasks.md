@@ -10,7 +10,7 @@ After a marketplace plugin-hash move, session-start hooks die importing `stockro
 
 ### Behaviors to Verify
 
-- [B1 — shim import is duckdb-free]: In a clean subprocess, `import stockroom.shim` succeeds and `duckdb` is absent from `sys.modules` → heal entrypoint can start on a bare `uv python find` interpreter
+- [B1 — shim import is duckdb-free]: In a clean subprocess, (a) `import stockroom.shim` succeeds with `duckdb` absent from `sys.modules`, and (b) `python -m stockroom shim --help` exits 0 without importing duckdb → heal entrypoint can start on a bare `uv python find` interpreter
 - [B2 — home resolution still works after extract]: `resolve_home` / `home_dir` prefer `STOCKROOM_HOME`, then `$XDG_DATA_HOME/stockroom`, else `~/.local/share/stockroom`; `home_dir` mkdir; `resolve_home` does not → same contract as today (via new module and warehouse re-exports)
 - [B3 — torch_source uses light home]: `torch_source.index_path` / `requirements_path` resolve under stockroom home without importing `warehouse` / `duckdb` at module load
 - [B4 — ensure_engine_env still callable after light imports]: Importing `engine_env` / calling `ensure_engine_env` with injectable runner still syncs then ensures torch (existing suite must keep passing)
@@ -27,9 +27,9 @@ After a marketplace plugin-hash move, session-start hooks die importing `stockro
 
 ## Implementation Plan
 
-1. **Failing pin: shim import must not load duckdb**
+1. **Failing pin: shim import / dispatcher path must not load duckdb**
    - Files: `skills/sr-search/tests/test_shim_import_graph.py` (new)
-   - Changes: Subprocess with `PYTHONPATH` to `src` runs a one-liner that imports `stockroom.shim` and asserts `'duckdb' not in sys.modules` (and import exit 0). Expect fail on current graph.
+   - Changes: Subprocess with `PYTHONPATH` to `src` (a) imports `stockroom.shim` and asserts `'duckdb' not in sys.modules`; (b) runs `python -m stockroom shim --help` and asserts exit 0 with no duckdb import (same `sys.modules` probe via `-c` wrapper or env). Expect fail on current graph.
 
 2. **Failing/relocated home + torch_source import pins (as needed)**
    - Files: `skills/sr-search/tests/test_shim_import_graph.py` and/or `test_torch_source.py`
@@ -81,6 +81,10 @@ No new technology - validation not required
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
 - [ ] QA
+
+## Preflight Amendments
+
+- Strengthened B1 to also pin `python -m stockroom shim --help` (dispatcher path), not only bare `import stockroom.shim`.

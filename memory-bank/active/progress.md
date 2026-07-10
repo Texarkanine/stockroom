@@ -24,3 +24,13 @@ Restore session-start auto-heal after marketplace plugin-hash moves by breaking 
     - Pin with subprocess import-graph test so suite pollution cannot false-pass
 * Insights
     - `__main__` already lazy-imports subcommands; the load-bearing edge is `torch_source` → `warehouse.home_dir`
+
+## 2026-07-10 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated TDD ordering, conventions, dependency impact, completeness against issue #25
+    - Amended B1 to pin dispatcher path (`python -m stockroom shim --help`) as well as bare import
+* Decisions made
+    - PASS — proceed to build; hooks remain unchanged
+* Insights
+    - Warehouse re-exports keep `test_warehouse_home_xdg.py` and schedule/doctor/dashboard callers stable
