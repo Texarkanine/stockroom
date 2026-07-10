@@ -73,4 +73,6 @@ Invocation forms differ by harness. Engine calls after setup are always `stockro
 - Use **`/sr-semantic`** / **`/stockroom:sr-semantic`** for recall by meaning.
 - Use **`/sr-dashboard`** / **`/stockroom:sr-dashboard`** for the at-a-glance UI (also launched automatically: Cursor on `workspaceOpen`, Claude Code on `SessionStart`).
 
+The dashboard is a **machine-scoped** singleton on port 6767: it stays up across harness sessions and is not stopped when one IDE closes. After a plugin update moves the engine path, the next session/workspace start replaces a stale owned listener with one from the healed engine. A dashboard started before that identity tracking existed may need one manual stop (`kill` the old `stockroom.dashboard` process) before automatic replace can take over.
+
 If the Cursor auto-dashboard never starts, confirm the third-party setting above is on, then use `/sr-dashboard` or `stockroom dashboard`.
