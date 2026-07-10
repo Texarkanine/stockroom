@@ -43,3 +43,12 @@ Change Write/Read panel to plot ratio series in Aggregate and Compare modes with
     - Aggregate legend “Write share”; `ratioSeriesEmpty` for empty detection; no Python change
 * Insights
     - Keeping ratio math in core kept adapter to three touchpoints (colors, title, yMax)
+
+## 2026-07-10 - QA - COMPLETE
+
+* Work completed
+    - Semantic review vs plan + #6 acceptance; `.qa-validation-status` = PASS
+* Decisions made
+    - No fixes; implementation matched plan without debris
+* Insights
+    - Paired write/read series correctly blocked reuse of `selectedDatasets` — dedicated builder path is justified

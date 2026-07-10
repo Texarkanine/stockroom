@@ -88,4 +88,4 @@ No new technology - validation not required (native ES modules + existing Chart.
 - [x] Pre-Mortem complete
 - [x] Preflight
 - [x] Build
-- [ ] QA
+- [x] QA
