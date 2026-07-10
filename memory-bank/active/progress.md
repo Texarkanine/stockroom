@@ -54,3 +54,17 @@ Add top-bar date-range selector wired to windowed `since`/`until` (prior-period 
     - Execute plan steps 1–4 in order with TDD (tests before code on 1–3; adapter glue last)
 * Insights
     - None yet
+
+## 2026-07-10 - BUILD - COMPLETE
+
+* Work completed
+    - Request-plan bounds via `options.window` (wrapped excluded)
+    - View-state `daterange` action, `resolveWindowBounds`, `panelRangeLabels`
+    - Static `#date-range-selector` + segmented mode/date controls
+    - Adapter wiring: busy disable, fetch window, honest panel labels
+    - Verification: `make test-js` (38), dashboard pytest, full `make ci` green
+* Decisions made
+    - Shared `.segmented` pill styling for date-range and mode fieldsets
+    - No server changes; no plan deviations
+* Insights
+    - Keeping label/bounds logic in core made adapter glue thin and low-risk

@@ -99,9 +99,9 @@ flowchart LR
     - Creative ref: `creative-date-range-ux.md`
 3. [x] **Static shell contracts (TDD)** — write failing assertions in `test_dashboard_static.py` for `#date-range-selector` fieldset + segmented mode markup/classes; then update `index.html` CSS/markup for date presets and mode pill.
     - Files: `tests/test_dashboard_static.py`, `static/index.html`
-4. [ ] **DOM adapter glue (after 1–3 green)** — no new business logic in `dashboard.mjs`: only event wiring, busy disable, pass `options.window` into `fetchSnapshot`, and apply already-tested label helpers / aria updates. Mode path stays render-only. If any non-trivial logic appears during wiring, extract it to `dashboard-core.mjs` with a failing test first (do not grow untested logic in the adapter).
+4. [x] **DOM adapter glue (after 1–3 green)** — no new business logic in `dashboard.mjs`: only event wiring, busy disable, pass `options.window` into `fetchSnapshot`, and apply already-tested label helpers / aria updates. Mode path stays render-only. If any non-trivial logic appears during wiring, extract it to `dashboard-core.mjs` with a failing test first (do not grow untested logic in the adapter).
     - Files: `static/dashboard.mjs`
-5. [ ] **Verification** — `make test-js`, targeted pytest dashboard tests, then `make ci` at milestone boundary.
+5. [x] **Verification** — `make test-js`, targeted pytest dashboard tests, then `make ci` at milestone boundary.
 
 ### Preflight amendments (2026-07-10)
 
@@ -135,5 +135,5 @@ No new technology — validation not required (native HTML/CSS/JS only; no calen
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight
-- [ ] Build
+- [x] Build
 - [ ] QA

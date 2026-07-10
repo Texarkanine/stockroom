@@ -11,6 +11,7 @@ import {
   deriveOverviewCards,
   displayHarness,
   harnessColors,
+  panelRangeLabels,
   summarizeChartPanel,
   transitionViewState,
 } from "./dashboard-core.mjs";
@@ -25,7 +26,9 @@ const elements = {
   selector: document.querySelector("#harness-selector"),
   harnessSummary: document.querySelector("#harness-summary"),
   harnessOptions: document.querySelector("#harness-options"),
+  dateRangeSelector: document.querySelector("#date-range-selector"),
   modeSelector: document.querySelector("#mode-selector"),
+  kpiGrid: document.querySelector("#kpi-grid"),
   status: document.querySelector("#status"),
   error: document.querySelector("#error"),
   lastSync: document.querySelector("#last-sync"),
@@ -54,6 +57,8 @@ let state = {
   harnesses: [],
   selected: [],
   mode: "aggregate",
+  dateRange: "default",
+  window: null,
   snapshot: null,
 };
 
@@ -79,6 +84,9 @@ function showError(error) {
 
 function setBusy(busy) {
   elements.dashboard.setAttribute("aria-busy", String(busy));
+  for (const input of elements.dateRangeSelector.querySelectorAll("input")) {
+    input.disabled = busy;
+  }
   for (const input of elements.modeSelector.querySelectorAll("input")) {
     input.disabled = busy;
   }
@@ -346,6 +354,26 @@ function renderWrapped(wrapped) {
   }
 }
 
+function applyPanelRangeLabels() {
+  const labels = panelRangeLabels(state.dateRange);
+  elements.kpiGrid.setAttribute("aria-label", labels.overviewAria);
+  const mapping = [
+    ["#daily-panel .panel-range", labels.daily],
+    ["#projects-panel .panel-range", labels.projects],
+    ["#tools-panel .panel-range", labels.tools],
+    ["#write-read-panel .panel-range", labels.writeRead],
+    ["#efficiency-panel .panel-range", labels.efficiency],
+    ["#models-panel .panel-range", labels.models],
+    ["#first-prompt-panel .panel-range", labels.firstPrompt],
+  ];
+  for (const [selector, text] of mapping) {
+    const element = document.querySelector(selector);
+    if (element) {
+      element.textContent = text;
+    }
+  }
+}
+
 function renderDashboard() {
   if (!state.snapshot) {
     return;
@@ -359,6 +387,7 @@ function renderDashboard() {
   } else {
     elements.lastSync.removeAttribute("title");
   }
+  applyPanelRangeLabels();
   renderOverview(snapshot.overview);
   renderChart(
     "daily",
@@ -426,7 +455,7 @@ async function refreshDashboard(initial = false) {
     const snapshot = await fetchSnapshot(
       window.fetch.bind(window),
       state.selected,
-      { signal: request.signal },
+      { signal: request.signal, window: state.window },
     );
     request.commit(() => {
       if (state.harnesses.length === 0) {
@@ -461,6 +490,12 @@ async function refreshDashboard(initial = false) {
     }
   }
 }
+
+elements.dateRangeSelector.addEventListener("change", (event) => {
+  if (event.target instanceof HTMLInputElement && event.target.name === "date-range") {
+    applyTransition({ type: "daterange", preset: event.target.value });
+  }
+});
 
 elements.modeSelector.addEventListener("change", (event) => {
   if (event.target instanceof HTMLInputElement && event.target.name === "mode") {

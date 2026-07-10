@@ -1,19 +1,34 @@
 # Active Context
 
 ## Current Task: dashboard-polish-m1-top-controls
-**Phase:** BUILD - IN-PROGRESS
+**Phase:** BUILD - COMPLETE
 
 ## What Was Done
-- Classified m1 as Level 3; creative resolved date-range UX (presets + Default)
-- Full L3 plan written and preflight-validated (PASS with amendments)
-- Entered build phase
+- Implemented m1 top controls per plan (TDD steps 1–4) and verified with `make ci`
+- Date-range presets wired through core → data → adapter; Aggregate/Compare restyled as segmented pill
+- Panel-range labels and overview aria follow selected preset; Wrapped stays unfiltered
 
-## Decisions
-- Date range: `Default | 7d | 30d | 90d | 1y`; initial Default omits bounds
-- Bounds via `buildRequestPlan(..., window)` and `fetchSnapshot(..., { window })`
-- #5 is CSS/ARIA segmented restyle only; mode stays render-only
-- No server changes expected for m1
-- Step 4 is adapter glue only after steps 1–3 tests are green
+## Files Modified
+- `skills/sr-search/src/stockroom/dashboard/static/dashboard-data.mjs`
+- `skills/sr-search/src/stockroom/dashboard/static/dashboard-core.mjs`
+- `skills/sr-search/src/stockroom/dashboard/static/dashboard.mjs`
+- `skills/sr-search/src/stockroom/dashboard/static/index.html`
+- `skills/sr-search/tests-js/dashboard-data.test.mjs`
+- `skills/sr-search/tests-js/dashboard-core.test.mjs`
+- `skills/sr-search/tests/test_dashboard_static.py`
+
+## Decisions During Build
+- State shape extended with `dateRange` + `window`; `daterange` action → `refetch`
+- Shared `.segmented` class for both date-range and mode fieldsets
+- Adapter only wires DOM; bounds/labels live in tested core/data modules
+
+## Deviations from Plan
+- None — built to plan
+
+## Verification
+- `make test-js`: 38 passed
+- Targeted dashboard pytest: 15 passed
+- `make ci`: ruff + 38 JS + 479 pytest (3 skipped) + reuse lint — all green
 
 ## Next Step
-- Execute implementation plan steps 1–4 (TDD)
+- QA review runs automatically (`/niko-qa`)
