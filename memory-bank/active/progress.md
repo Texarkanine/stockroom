@@ -27,3 +27,15 @@ Ship Phase 5 — Distribution and Release: install/usage docs with empirically v
     - Sequence is strictly serial: docs before marketplace publication, marketplace before clean-machine E2E that depends on it
 * Insights
     - m3 is the only L3-shaped piece; m1/m2 are contained L2 enhancements if they stay within docs and marketplace-entry scope
+
+## 2026-07-09 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated milestone list against project brief, dual-manifest conventions, and `txrk9-agent-plugins` / release-please reality
+    - Amended m1 to require a packaging/doc contract test
+    - Wrote `.preflight-status` = PASS
+* Decisions made
+    - PASS with advisory (not FAIL): release-please `main`-only trigger and operator-driven empirical/E2E steps are execution constraints for sub-runs, not milestone-decomposition defects
+* Insights
+    - README still says "Phase 4 in progress" — m1 must refresh user-facing status as part of install docs
+    - Clean-machine E2E cannot be fully automated in CI; treat m3 as checklist + evidence, not a pytest suite

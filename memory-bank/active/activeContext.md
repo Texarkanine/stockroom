@@ -1,12 +1,13 @@
 # Active Context
 
 ## Current Task: p5-distribution-release
-**Phase:** PLAN - COMPLETE
+**Phase:** PREFLIGHT - COMPLETE
 
 ## What Was Done
-- Generated L4 milestone list (3 milestones) from roadmap Phase 5, refined for accuracy (manifests already exist; m1 is docs + empirical verification).
-- Recorded cross-milestone invariants (dual-manifest/no-build, versioning in stockroom only, on-path engine invocation, both harnesses, slobac + official docs as bar, marketplace as separate repo).
-- Estimated scopes: m1 L2, m2 L2, m3 L3.
+- Preflight validated the 3-milestone L4 plan against brief, conventions, and codebase reality.
+- Amended m1 to include a packaging/doc contract test (install-doc drift guard).
+- Recorded advisories: release-please only on `main`; empirical/E2E steps need operator; TDD deferred to sub-run plans.
+- Status: **PASS** (with advisory).
 
 ## Next Step
-- Preflight to validate the milestone list.
+- Operator reviews the plan, then runs `/niko` to start the first milestone (m1).
