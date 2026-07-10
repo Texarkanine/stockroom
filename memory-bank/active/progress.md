@@ -109,3 +109,12 @@ Adopt XDG Base Directory layout for stockroom-owned data on all Unix-like platfo
     - No substantive findings; no trivial debris to fix
 * Insights
     - Dropping migration at plan time kept build small and pattern-consistent
+
+## 2026-07-09 - REFLECT - COMPLETE
+
+* Work completed
+    - Lifecycle reflection written; persistent file reconcile (no further edits needed)
+* Decisions made
+    - None beyond documenting the mid-plan migration waiver lesson
+* Insights
+    - Confirm issue-acceptance waivers before deep creative on migration UX

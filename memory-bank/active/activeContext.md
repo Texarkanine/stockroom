@@ -1,11 +1,11 @@
 # Active Context
 
 ## Current Task: xdg-base-directory-layout
-**Phase:** QA - COMPLETE
+**Phase:** REFLECT - COMPLETE
 
 ## What Was Done
-- Semantic QA PASS: KISS/YAGNI/completeness/docs all green
-- No migration debris; resolve_home + doctor facts match plan
+- Wrote `reflection/reflection-xdg-base-directory-layout.md`
+- Persistent files already current from build (systemPatterns/techContext); productContext unchanged
 
 ## Next Step
-- `/niko-reflect`
+- Run `/niko-archive` to create the archive document and finalize
