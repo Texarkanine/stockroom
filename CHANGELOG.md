@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.5](https://github.com/Texarkanine/stockroom/compare/v0.1.4...v0.1.5) (2026-07-10)
+
+
+### Bug Fixes
+
+* **format:** make format ([d30bb94](https://github.com/Texarkanine/stockroom/commit/d30bb941f2e9dbacd4b63a8a3c0f2c4a6e987305))
+* **heal:** stdlib-only shim import after plugin move ([#27](https://github.com/Texarkanine/stockroom/issues/27)) ([098befa](https://github.com/Texarkanine/stockroom/commit/098befa934e5cdbcebdc850c1ed9825bc843dea8))
+
 ## [0.1.4](https://github.com/Texarkanine/stockroom/compare/v0.1.3...v0.1.4) (2026-07-10)
 
 
