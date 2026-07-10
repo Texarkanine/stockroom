@@ -1,11 +1,10 @@
 # Active Context
 
 ## Current Task: fix-plugin-env-heal-after-move
-**Phase:** QA - COMPLETE
+**Phase:** REFLECT COMPLETE
 
 ## What Was Done
-- Semantic QA against plan: KISS/DRY/YAGNI/completeness/regression/docs.
-- Trivial fixes: rectify docstring; surface ensure failures on stderr from rectify; `systemPatterns.md` + `docs/using.md` heal notes.
+- Reflection written; persistent files reconciled (`systemPatterns` already updated in QA; no further product/tech changes needed).
 
 ## Next Step
-- Reflect phase.
+- Run `/niko-archive` to archive and finalize.

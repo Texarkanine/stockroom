@@ -63,3 +63,13 @@ Heal engine-env staleness after plugin-root moves so one session/workspace-open 
     - No substantive redesign; heal design held under review
 * Insights
     - Ignoring ensure failures inside rectify would hide manual-debug signal; stderr print is cheap and hook-silenced
+
+## 2026-07-10 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `reflection/reflection-fix-plugin-env-heal-after-move.md`
+    - Reconciled persistent files (systemPatterns already current)
+* Decisions made
+    - Standalone task → next operator step is `/niko-archive`
+* Insights
+    - Inexact `--check` is the torch-safe readiness probe; exact `--check` is a footgun after torch
