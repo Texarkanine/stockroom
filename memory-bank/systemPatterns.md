@@ -20,7 +20,7 @@ One shared set of tables (`sessions`, `messages`, `tool_calls`, `embeddings`, `_
 
 `.cursor-plugin/plugin.json` and `.claude-plugin/plugin.json` over a shared `skills/` tree; committed layout equals install layout. release-please syncs version into both manifests. The full engine (`pyproject.toml`, `uv.lock`, `src/stockroom/`, migrations, tests) lives under `skills/sr-search/`.
 
-Harness hooks are **not** the same JSON shape or event: Cursor native hooks (`hooks/cursor-hooks.json`) use flat `{ "version": 1, "hooks": { "workspaceOpen": [{ "command": "..." }] } }` per [Cursor Hooks](https://cursor.com/docs/hooks); Claude Code hooks (`hooks/claude-hooks.json`) keep nested `SessionStart` / `hooks[]` / `type: "command"`. Do not copy Claude structure into the Cursor file. Cursor plugin hooks also require **Include third-party Plugins, Skills, and other configs** until [plugin hooks not loading](https://forum.cursor.com/t/plugin-hooks-not-loading-into-cursor-ide/156702) is fixed.
+Harness hooks are **not** the same JSON shape or event: Cursor native hooks (`hooks/cursor-hooks.json`) use flat `{ "version": 1, "hooks": { "sessionStart": [{ "command": "..." }] } }` per [Cursor Hooks](https://cursor.com/docs/hooks); Claude Code hooks (`hooks/claude-hooks.json`) keep nested `SessionStart` / `hooks[]` / `type: "command"`. Do not copy Claude structure into the Cursor file. Both harnesses bootstrap rectify with `uv python find --project … --no-config` (not bare `python3`, not `uv run --no-sync`). Cursor plugin hooks also require **Include third-party Plugins, Skills, and other configs** until [plugin hooks not loading](https://forum.cursor.com/t/plugin-hooks-not-loading-into-cursor-ide/156702) is fixed.
 
 ## The shim owns the invocation contract
 
@@ -56,7 +56,7 @@ Both read surfaces print only through [`stockroom.render`](../skills/sr-search/s
 
 ## Baked-only succeed-or-refuse shim
 
-The shim has a baked engine dir and zero resolution logic — succeed correctly or refuse with a one-line remedy (including when the engine env cannot import locked deps). Session/workspace hooks run `shim rectify`, which re-bakes owned shims after plugin updates **and** ensures the engine uv env via torch-safe inexact sync plus torch reinstall from the hashed freeze at `{stockroom_home}/torch-requirements.txt` (`stockroom.torch_source`); `make shim` installs owner `dev` for checkouts. `make torch` / `sr-initialize` / `stockroom torch freeze` write that freeze (plus a `torch-index` sidecar).
+The shim has a baked engine dir and zero resolution logic — succeed correctly or refuse with a one-line remedy (including when the engine env cannot import locked deps). Session-start hooks run `shim rectify`, which re-bakes owned shims after plugin updates **and** ensures the engine uv env via torch-safe inexact sync plus torch reinstall from the hashed freeze at `{stockroom_home}/torch-requirements.txt` (`stockroom.torch_source`); `make shim` installs owner `dev` for checkouts. `make torch` / `sr-initialize` / `stockroom torch freeze` write that freeze (plus a `torch-index` sidecar).
 
 ## Layered licensing
 

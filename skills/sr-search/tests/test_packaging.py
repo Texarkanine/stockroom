@@ -130,11 +130,11 @@ def test_manifests_point_at_hook_configs(
 def _hook_command_entries(config: dict, harness: str) -> list[dict]:
     """Extract the auto-dashboard command-hook entries per harness schema.
 
-    Cursor (native): ``{"version": 1, "hooks": {"workspaceOpen": [{"command": "..."}]}}``.
+    Cursor (native): ``{"version": 1, "hooks": {"sessionStart": [{"command": "..."}]}}``.
     Claude: ``{"hooks": {"SessionStart": [{"hooks": [{"type": "command", ...}]}]}}``.
     """
     if harness == "cursor":
-        return list(config["hooks"]["workspaceOpen"])
+        return list(config["hooks"]["sessionStart"])
     groups = config["hooks"]["SessionStart"]
     return [entry for group in groups for entry in group["hooks"]]
 
@@ -148,16 +148,20 @@ def _assert_combined_rectify_then_dashboard(
 ) -> None:
     """Shared shape for the single auto-dashboard command per harness.
 
-    Rectify uses a stdlib ``python3`` + ``PYTHONPATH`` bootstrap (no
-    ``uv run --no-sync``, which would create an empty project venv before
-    ensure runs). Dashboard launch is on-path ``stockroom dashboard`` after
-    rectify.
+    Rectify bootstraps via ``uv python find --project … --no-config`` then
+    ``"$PY" -m stockroom`` (honors ``requires-python``; avoids bare system
+    ``python3``). Must not use ``uv run --no-sync``, which would create an
+    empty project venv before ensure runs. Dashboard launch is on-path
+    ``stockroom dashboard`` after rectify.
     """
     assert plugin_root_token in cmd
     assert "shim rectify" in cmd
     assert f"--owner {owner}" in cmd
     assert "stockroom dashboard" in cmd
-    assert "python3 -m stockroom" in cmd
+    assert "uv python find --project" in cmd
+    assert "--no-config" in cmd
+    assert '"$PY" -m stockroom' in cmd or "'$PY' -m stockroom" in cmd
+    assert "python3 -m stockroom" not in cmd, "must not use bare system python3"
     rectify_at = cmd.find("shim rectify")
     dashboard_at = cmd.find("stockroom dashboard")
     assert 0 <= rectify_at < dashboard_at, "rectify must precede dashboard launch"
@@ -176,24 +180,24 @@ def _assert_combined_rectify_then_dashboard(
 
 
 def test_cursor_hook_schema_and_combined_command(cursor_hooks: dict) -> None:
-    """Cursor workspaceOpen uses native flat schema: one timed command that
+    """Cursor sessionStart uses native flat schema: one timed command that
     drains stdin, sets PATH, then rectifies and launches the dashboard.
 
-    Cursor docs require ``workspaceOpen: [{ "command": "..." }]`` — not Claude's
+    Cursor docs use ``sessionStart: [{ "command": "..." }]`` — not Claude's
     nested ``matcher`` / ``hooks`` / ``type`` layout. Timeout is seconds.
     Stderr stays visible for Hooks-channel diagnosis.
     """
     assert cursor_hooks.get("version") == 1
-    assert "sessionStart" not in cursor_hooks["hooks"], (
-        "Cursor auto-dashboard is workspaceOpen, not sessionStart"
+    assert "workspaceOpen" not in cursor_hooks["hooks"], (
+        "Cursor auto-dashboard is sessionStart, not workspaceOpen"
     )
     entries = _hook_command_entries(cursor_hooks, "cursor")
-    assert len(entries) == 1, "exactly one combined workspaceOpen command"
+    assert len(entries) == 1, "exactly one combined sessionStart command"
     entry = entries[0]
     assert "command" in entry, "Cursor entries carry top-level command"
     assert "hooks" not in entry, "Cursor entries must not nest Claude-style hooks[]"
     assert "type" not in entry, "Cursor command type is implicit; omit type"
-    assert "matcher" not in entry, "workspaceOpen does not use a matcher"
+    assert "matcher" not in entry, "sessionStart does not use a matcher"
     timeout = entry.get("timeout")
     assert timeout == 300, "hook budget must allow cold ensure sync + torch wheel"
     cmd = entry["command"]

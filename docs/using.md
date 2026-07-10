@@ -39,7 +39,7 @@ rsync -a --delete \
   /path/to/stockroom/ ~/.cursor/plugins/local/stockroom/
 ```
 
-Reload the window (**Developer: Reload Window**). `.cursor-plugin/plugin.json` must sit at `~/.cursor/plugins/local/stockroom/.cursor-plugin/plugin.json`. Excluding `.venv` is intentional — the next `workspaceOpen` hook runs `shim rectify`, which ensures locked deps and reinstalls torch from the hashed freeze under stockroom home (written by `sr-initialize` / `make torch`). If you never froze a stack, run `sr-initialize` once (or see [`docs/torch.md`](torch.md)).
+Reload the window (**Developer: Reload Window**). `.cursor-plugin/plugin.json` must sit at `~/.cursor/plugins/local/stockroom/.cursor-plugin/plugin.json`. Excluding `.venv` is intentional — the next `sessionStart` hook runs `shim rectify`, which ensures locked deps and reinstalls torch from the hashed freeze under stockroom home (written by `sr-initialize` / `make torch`). If you never froze a stack, run `sr-initialize` once (or see [`docs/torch.md`](torch.md)).
 
 **Claude Code** ([create plugins](https://code.claude.com/docs/en/plugins)):
 
@@ -71,7 +71,7 @@ Invocation forms differ by harness. Engine calls after setup are always `stockro
 - Prefer **`/sr-search`** (Cursor) or **`/stockroom:sr-search`** (Claude Code) when you are unsure whether the question is structured or meaning-based.
 - Use **`/sr-query`** / **`/stockroom:sr-query`** for exact SQL, filters, and counts.
 - Use **`/sr-semantic`** / **`/stockroom:sr-semantic`** for recall by meaning.
-- Use **`/sr-dashboard`** / **`/stockroom:sr-dashboard`** for the at-a-glance UI (also launched automatically: Cursor on `workspaceOpen`, Claude Code on `SessionStart`).
+- Use **`/sr-dashboard`** / **`/stockroom:sr-dashboard`** for the at-a-glance UI (also launched automatically: Cursor on `sessionStart`, Claude Code on `SessionStart`).
 
 The dashboard is a **machine-scoped** singleton on port 6767: it stays up across harness sessions and is not stopped when one IDE closes. After a plugin update moves the engine path, the next session/workspace start replaces a stale owned listener with one from the healed engine. A dashboard started before that identity tracking existed may need one manual stop (`kill` the old `stockroom.dashboard` process) before automatic replace can take over.
 
