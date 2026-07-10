@@ -1,0 +1,16 @@
+# Progress
+
+Restore session-start auto-heal after marketplace plugin-hash moves by breaking the duckdb-before-ensure_engine_env chicken-and-egg, per [issue #25](https://github.com/Texarkanine/stockroom/issues/25).
+
+**Complexity:** Level 2
+
+## 2026-07-10 - COMPLEXITY-ANALYSIS - COMPLETE
+
+* Work completed
+    - Validated intent against issue #25 (operator approved)
+    - Classified as Level 2: multi-component bug fix with a preferred dep-light import-graph approach
+* Decisions made
+    - Level 2 (not L1): touches heal import graph, Cursor + Claude hooks, and packaging/hook tests
+    - Preferred direction from the issue: dep-light heal import graph over shell-sync-first duplication
+* Insights
+    - Heal logic already works when reachable via `uv run --no-sync` after sync; bootstrap cannot reach it today
