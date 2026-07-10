@@ -45,3 +45,12 @@ Add top-bar date-range selector wired to windowed `since`/`until` (prior-period 
     - No rearchitect; server remains out of scope for m1
 * Insights
     - Advisory: URL-synced range would help shareable views but was explicitly deferred in creative — leave for a later issue
+
+## 2026-07-10 - BUILD - IN-PROGRESS
+
+* Work completed
+    - Preflight PASS confirmed; entering build for m1 top controls
+* Decisions made
+    - Execute plan steps 1–4 in order with TDD (tests before code on 1–3; adapter glue last)
+* Insights
+    - None yet
