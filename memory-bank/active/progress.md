@@ -37,3 +37,24 @@ Fix Cursor plugin `sessionStart` so it loads and runs: restructure `hooks/cursor
     - No code fixes needed in QA
 * Insights
     - Cursor vs Claude hook schemas must stay deliberately divergent; packaging tests now encode that
+
+## 2026-07-10 - BUILD (rework) - COMPLETE
+
+* Work completed
+    - Cursor hook event → `workspaceOpen`; filename stays `cursor-hooks.json`
+    - Stderr left visible; stdout still silenced
+    - Docs: third-party toggle + screenshot + forum bug link
+    - Suite green; Claude hooks untouched
+* Decisions made
+    - No rename to `hooks/hooks.json` (operator correction)
+    - Minimal surface only
+* Insights
+    - Plugin hooks require third-party setting until Cursor fixes loader bug
+
+## 2026-07-10 - QA (rework) - COMPLETE
+
+* Work completed
+    - Semantic review: workspaceOpen + docs + keep filename; no over-scope
+    - `.qa-validation-status` = PASS
+* Decisions made
+    - No further code changes

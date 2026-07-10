@@ -11,7 +11,11 @@ The committed repo is the install layout — dual manifests over a shared `skill
 1. Open **Cursor Settings → Plugins**.
 2. Paste `https://github.com/Texarkanine/txrk9-agent-plugins` into the search/paste-link box.
 3. Install the `stockroom` plugin from that marketplace.
-4. Run first-time setup (`/sr-initialize`).
+4. Enable **Include third-party Plugins, Skills, and other configs** (Cursor Settings). Plugin hooks do not register without this until [Cursor’s plugin-hooks bug](https://forum.cursor.com/t/plugin-hooks-not-loading-into-cursor-ide/156702) is fixed:
+
+   ![Include third-party Plugins, Skills, and other configs — toggle on](img/3rd-party-configs.png)
+
+5. Run first-time setup (`/sr-initialize`).
 
 **Claude Code** ([discover plugins](https://code.claude.com/docs/en/discover-plugins)):
 
@@ -67,6 +71,6 @@ Invocation forms differ by harness. Engine calls after setup are always `stockro
 - Prefer **`/sr-search`** (Cursor) or **`/stockroom:sr-search`** (Claude Code) when you are unsure whether the question is structured or meaning-based.
 - Use **`/sr-query`** / **`/stockroom:sr-query`** for exact SQL, filters, and counts.
 - Use **`/sr-semantic`** / **`/stockroom:sr-semantic`** for recall by meaning.
-- Use **`/sr-dashboard`** / **`/stockroom:sr-dashboard`** for the at-a-glance UI (also launched by the session-start hook where the harness PATH is complete).
+- Use **`/sr-dashboard`** / **`/stockroom:sr-dashboard`** for the at-a-glance UI (also launched automatically: Cursor on `workspaceOpen`, Claude Code on `SessionStart`).
 
-On some Cursor/WSL hosts the session-start hook’s PATH omits `~/.local/bin`, so auto-dashboard may not start — see [#12](https://github.com/Texarkanine/stockroom/issues/12). Use `/sr-dashboard` or `stockroom dashboard` instead.
+If the Cursor auto-dashboard never starts, confirm the third-party setting above is on, then use `/sr-dashboard` or `stockroom dashboard`.

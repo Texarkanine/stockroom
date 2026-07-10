@@ -1,9 +1,9 @@
 {
   "version": 1,
   "hooks": {
-    "sessionStart": [
+    "workspaceOpen": [
       {
-        "command": "cat >/dev/null; PATH=\"$HOME/.local/bin:/usr/bin:/bin:$PATH\"; { PYTHONPATH=\"${CURSOR_PLUGIN_ROOT}/skills/sr-search/src\" uv run --project \"${CURSOR_PLUGIN_ROOT}/skills/sr-search\" --no-sync --no-config python -m stockroom shim rectify --owner cursor --app-dir \"${CURSOR_PLUGIN_ROOT}/skills/sr-search\"; stockroom dashboard; } >/dev/null 2>&1 || true",
+        "command": "cat >/dev/null; PATH=\"$HOME/.local/bin:/usr/bin:/bin:$PATH\"; { PYTHONPATH=\"${CURSOR_PLUGIN_ROOT}/skills/sr-search/src\" uv run --project \"${CURSOR_PLUGIN_ROOT}/skills/sr-search\" --no-sync --no-config python -m stockroom shim rectify --owner cursor --app-dir \"${CURSOR_PLUGIN_ROOT}/skills/sr-search\"; stockroom dashboard; } >/dev/null || true",
         "timeout": 10
       }
     ]

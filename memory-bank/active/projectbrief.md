@@ -27,10 +27,13 @@ On both WSL2 (Cursor via WSL) and native macOS, the same Cursor-native hook sche
 2. Prefer clean-break schema fix over backwards-compatible dual-format support.
 3. Follow TDD for all code/config contract changes.
 
-## Acceptance Criteria
+## Rework
 
-1. `hooks/cursor-hooks.json` matches Cursor's documented `{ "version": 1, "hooks": { "sessionStart": [{ "command": "..." }] } }` shape.
-2. Packaging tests assert that Cursor shape (not Claude nested `hooks[]` / `type: "command"`).
-3. Hook command includes explicit PATH, drains stdin, and uses a seconds-scale timeout.
-4. Claude hooks file and Claude-specific packaging assertions remain unchanged in behavior.
-5. Full test suite passes.
+### Additional requirements (2026-07-10)
+
+1. Cursor hook event: `workspaceOpen` (not `sessionStart`) — [Cursor Hooks](https://cursor.com/docs/hooks#workspaceopen).
+2. Document **Include third-party Plugins, Skills, and other configs** until [plugin hooks not loading](https://forum.cursor.com/t/plugin-hooks-not-loading-into-cursor-ide/156702) is fixed; include `docs/img/3rd-party-configs.png`.
+3. Keep filename `hooks/cursor-hooks.json` (no rename).
+4. Leave Cursor hook stderr visible (stdout may stay quiet).
+5. Minimal diff — Claude hooks untouched; no drive-by renames.
+

@@ -128,21 +128,25 @@ def test_manifests_point_at_hook_configs(
 
 
 def _hook_command_entries(config: dict, harness: str) -> list[dict]:
-    """Extract the sessionStart command-hook entries per harness schema.
+    """Extract the auto-dashboard command-hook entries per harness schema.
 
-    Cursor (native): ``{"version": 1, "hooks": {"sessionStart": [{"command": "..."}]}}``.
+    Cursor (native): ``{"version": 1, "hooks": {"workspaceOpen": [{"command": "..."}]}}``.
     Claude: ``{"hooks": {"SessionStart": [{"hooks": [{"type": "command", ...}]}]}}``.
     """
     if harness == "cursor":
-        return list(config["hooks"]["sessionStart"])
+        return list(config["hooks"]["workspaceOpen"])
     groups = config["hooks"]["SessionStart"]
     return [entry for group in groups for entry in group["hooks"]]
 
 
 def _assert_combined_rectify_then_dashboard(
-    cmd: str, *, plugin_root_token: str, owner: str
+    cmd: str,
+    *,
+    plugin_root_token: str,
+    owner: str,
+    silence_stderr: bool = True,
 ) -> None:
-    """Shared shape for the single session-start command per harness.
+    """Shared shape for the single auto-dashboard command per harness.
 
     Rectify keeps the plugin-root bootstrap (chicken-egg heal). Dashboard
     launch is on-path ``stockroom dashboard`` after rectify, not folded into
@@ -159,25 +163,33 @@ def _assert_combined_rectify_then_dashboard(
     assert "uv run" not in launch_half
     assert "PYTHONPATH=" not in launch_half
     assert "python -m stockroom" not in launch_half
-    assert ">/dev/null 2>&1" in cmd, "hook output must be silenced"
-    assert "|| true" in cmd, "hook must never fail session start"
+    assert ">/dev/null" in cmd, "hook stdout must be silenced"
+    if silence_stderr:
+        assert "2>&1" in cmd, "Claude hook stderr is silenced with stdout"
+    else:
+        assert "2>&1" not in cmd, "Cursor hook must leave stderr visible"
+    assert "|| true" in cmd, "hook must never fail the triggering event"
 
 
 def test_cursor_hook_schema_and_combined_command(cursor_hooks: dict) -> None:
-    """Cursor sessionStart uses native flat schema: one timed command that
+    """Cursor workspaceOpen uses native flat schema: one timed command that
     drains stdin, sets PATH, then rectifies and launches the dashboard.
 
-    Cursor docs require ``sessionStart: [{ "command": "..." }]`` — not Claude's
+    Cursor docs require ``workspaceOpen: [{ "command": "..." }]`` — not Claude's
     nested ``matcher`` / ``hooks`` / ``type`` layout. Timeout is seconds.
+    Stderr stays visible for Hooks-channel diagnosis.
     """
     assert cursor_hooks.get("version") == 1
+    assert "sessionStart" not in cursor_hooks["hooks"], (
+        "Cursor auto-dashboard is workspaceOpen, not sessionStart"
+    )
     entries = _hook_command_entries(cursor_hooks, "cursor")
-    assert len(entries) == 1, "exactly one combined sessionStart command"
+    assert len(entries) == 1, "exactly one combined workspaceOpen command"
     entry = entries[0]
     assert "command" in entry, "Cursor entries carry top-level command"
     assert "hooks" not in entry, "Cursor entries must not nest Claude-style hooks[]"
     assert "type" not in entry, "Cursor command type is implicit; omit type"
-    assert "matcher" not in entry, "sessionStart does not use a matcher"
+    assert "matcher" not in entry, "workspaceOpen does not use a matcher"
     timeout = entry.get("timeout")
     assert isinstance(timeout, (int, float)) and 1 <= timeout <= 60, (
         "Cursor timeout is seconds-scale (1-60)"
@@ -189,6 +201,7 @@ def test_cursor_hook_schema_and_combined_command(cursor_hooks: dict) -> None:
         cmd,
         plugin_root_token="${CURSOR_PLUGIN_ROOT}",
         owner="cursor",
+        silence_stderr=False,
     )
 
 
@@ -204,6 +217,7 @@ def test_claude_hook_schema_and_combined_command(claude_hooks: dict) -> None:
         entry["command"],
         plugin_root_token="${CLAUDE_PLUGIN_ROOT}",
         owner="claude",
+        silence_stderr=True,
     )
 
 

@@ -4,8 +4,8 @@
 **Phase:** QA - COMPLETE
 
 ## What Was Done
-- Fixed Cursor `sessionStart` hook schema (#12) and packaging contracts
-- QA PASS; reconciled `systemPatterns.md` with Cursor-vs-Claude hook schema divergence
+- Rework: `workspaceOpen` on Cursor; keep `cursor-hooks.json`; third-party docs + image; stderr visible
+- Suite/lint green; Claude untouched
 
 ## Next Step
-- Level 1 wrap-up commit; operator cleans `memory-bank/active/` when satisfied
+- L1 wrap-up commit; operator cleans `memory-bank/active/` when satisfied

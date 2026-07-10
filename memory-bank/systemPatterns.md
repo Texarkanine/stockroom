@@ -20,7 +20,7 @@ One shared set of tables (`sessions`, `messages`, `tool_calls`, `embeddings`, `_
 
 `.cursor-plugin/plugin.json` and `.claude-plugin/plugin.json` over a shared `skills/` tree; committed layout equals install layout. release-please syncs version into both manifests. The full engine (`pyproject.toml`, `uv.lock`, `src/stockroom/`, migrations, tests) lives under `skills/sr-search/`.
 
-Harness hooks are **not** the same JSON shape: Cursor native hooks (`hooks/cursor-hooks.json`) use flat `{ "version": 1, "hooks": { "sessionStart": [{ "command": "..." }] } }` per [Cursor Hooks](https://cursor.com/docs/hooks); Claude Code hooks (`hooks/claude-hooks.json`) keep the nested `SessionStart` / `hooks[]` / `type: "command"` layout. Do not copy Claude structure into the Cursor file — Cursor will list the plugin hook but not execute it.
+Harness hooks are **not** the same JSON shape or event: Cursor native hooks (`hooks/cursor-hooks.json`) use flat `{ "version": 1, "hooks": { "workspaceOpen": [{ "command": "..." }] } }` per [Cursor Hooks](https://cursor.com/docs/hooks); Claude Code hooks (`hooks/claude-hooks.json`) keep nested `SessionStart` / `hooks[]` / `type: "command"`. Do not copy Claude structure into the Cursor file. Cursor plugin hooks also require **Include third-party Plugins, Skills, and other configs** until [plugin hooks not loading](https://forum.cursor.com/t/plugin-hooks-not-loading-into-cursor-ide/156702) is fixed.
 
 ## The shim owns the invocation contract
 
