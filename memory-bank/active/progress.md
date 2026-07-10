@@ -132,3 +132,14 @@ Heal engine-env staleness after plugin-root moves so one session/workspace-open 
     - Soft-fail freeze/heal reports; ValueError only for non-https index
 * Insights
     - `make sync` still strips torch; operators need `make torch` (now freezes) after sync before embed/semantic
+
+## 2026-07-10 - QA - COMPLETE (hashed torch freeze)
+
+* Work completed
+    - Semantic review vs plan: KISS/DRY/YAGNI/completeness/docs
+    - Trivial: Makefile comment notes freeze artifact
+    - `.qa-validation-status` = PASS
+* Decisions made
+    - Doctor's floating `pip install torch --index` remedy kept (first-time provision, pre-freeze)
+* Insights
+    - Legacy index-only homes need one freeze before heal works; no silent fallback by design
