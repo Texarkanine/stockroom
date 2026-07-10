@@ -121,12 +121,12 @@ Decisions locked in plan:
 
 ## Implementation Plan
 
-1. **Shared display helper + projects labels**
+1. **Shared display helper + projects labels** ✅
     - Files: `metrics.py`, `test_dashboard_metrics.py`
     - TDD: write failing tests first — extend `test_projects_ranks_*` exact payload to expect parallel `labels` (slug fallback when no cwd); add cases for friendly basename when all non-NULL cwds share one leaf, disagreeing basenames → full ID, and ranking-still-by-id when basenames collide across projects; then implement `project_display_name(cwd, project_id)` + projects-local unique-short-name resolution + `labels` array until green.
     - Note: `_seed_session` must accept `cwd=` for these fixtures (extend helper if missing).
 
-2. **Sessions / wrapped `project_id`**
+2. **Sessions / wrapped `project_id`** ✅
     - Files: `metrics.py`, `test_dashboard_metrics.py`
     - TDD: write failing assertions first on `test_sessions_*` / `test_wrapped_*` for additive `project_id` alongside existing `project_name`; then implement field emission via `project_display_name` until green (no change to default display string).
 

@@ -17,16 +17,18 @@ def _seed_session(
     project_id: str,
     message_count: int = 1,
     started_at: datetime | None = None,
+    cwd: str | None = None,
 ) -> None:
     """Insert one main session and a deterministic run of messages."""
     con.execute(
         "INSERT INTO sessions "
-        "(harness, session_id, project_id, source_path, is_subagent, "
-        "started_at, source_mtime) VALUES (?, ?, ?, ?, false, ?, ?)",
+        "(harness, session_id, project_id, cwd, source_path, is_subagent, "
+        "started_at, source_mtime) VALUES (?, ?, ?, ?, ?, false, ?, ?)",
         [
             harness,
             session_id,
             project_id,
+            cwd,
             f"/tmp/{session_id}.jsonl",
             started_at,
             activity,
@@ -413,6 +415,7 @@ def test_projects_ranks_by_selected_total_with_aligned_harness_counts(
     )
     assert result == {
         "projects": ["pa", "pb"],
+        "labels": ["pa", "pb"],
         "sessions": {"claude": [1, 2], "cursor": [2, 0]},
     }
 
@@ -425,8 +428,113 @@ def test_projects_ranks_by_selected_total_with_aligned_harness_counts(
     )
     assert selected == {
         "projects": ["pa", "pc"],
+        "labels": ["pa", "pc"],
         "sessions": {"cursor": [2, 1]},
     }
+
+
+def test_projects_labels_use_unique_cwd_basename(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """When all non-NULL cwds share one leaf, labels use that basename."""
+    _seed_session(
+        migrated_con,
+        harness="cursor",
+        session_id="c1",
+        activity=datetime(2026, 1, 10),
+        project_id="home-me-stockroom",
+        cwd="/home/me/stockroom",
+    )
+    _seed_session(
+        migrated_con,
+        harness="claude",
+        session_id="a1",
+        activity=datetime(2026, 1, 11),
+        project_id="home-me-stockroom",
+        cwd="/home/me/stockroom",
+    )
+    result = metrics.projects(
+        migrated_con,
+        since=datetime(2026, 1, 1),
+        until=datetime(2026, 2, 1),
+    )
+    assert result["projects"] == ["home-me-stockroom"]
+    assert result["labels"] == ["stockroom"]
+
+
+def test_projects_labels_fall_back_to_id_when_short_names_disagree(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Disagreeing cwd basenames for one project_id → label is the full id."""
+    _seed_session(
+        migrated_con,
+        harness="cursor",
+        session_id="c1",
+        activity=datetime(2026, 1, 12),
+        project_id="ambiguous-slug",
+        cwd="/home/me/stockroom",
+    )
+    _seed_session(
+        migrated_con,
+        harness="claude",
+        session_id="a1",
+        activity=datetime(2026, 1, 11),
+        project_id="ambiguous-slug",
+        cwd="/tmp/other-checkout",
+    )
+    result = metrics.projects(
+        migrated_con,
+        since=datetime(2026, 1, 1),
+        until=datetime(2026, 2, 1),
+    )
+    assert result["projects"] == ["ambiguous-slug"]
+    assert result["labels"] == ["ambiguous-slug"]
+
+
+def test_projects_ranking_stays_by_id_when_basenames_collide(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Same leaf across different project_ids still ranks and labels by id order."""
+    _seed_session(
+        migrated_con,
+        harness="cursor",
+        session_id="c1",
+        activity=datetime(2026, 1, 10),
+        project_id="path-a-stockroom",
+        cwd="/path/a/stockroom",
+        message_count=1,
+    )
+    _seed_session(
+        migrated_con,
+        harness="cursor",
+        session_id="c2",
+        activity=datetime(2026, 1, 10),
+        project_id="path-a-stockroom",
+        cwd="/path/a/stockroom",
+    )
+    _seed_session(
+        migrated_con,
+        harness="claude",
+        session_id="a1",
+        activity=datetime(2026, 1, 10),
+        project_id="path-b-stockroom",
+        cwd="/path/b/stockroom",
+    )
+    result = metrics.projects(
+        migrated_con,
+        since=datetime(2026, 1, 1),
+        until=datetime(2026, 2, 1),
+    )
+    assert result["projects"] == ["path-a-stockroom", "path-b-stockroom"]
+    assert result["labels"] == ["stockroom", "stockroom"]
+    assert result["sessions"] == {"claude": [0, 1], "cursor": [2, 0]}
+
+
+def test_project_display_name_uses_cwd_basename_or_id() -> None:
+    """Shared helper: basename when cwd present, else project_id."""
+    assert metrics.project_display_name("/home/me/stockroom", "slug") == "stockroom"
+    assert metrics.project_display_name(None, "slug") == "slug"
+    assert metrics.project_display_name("", "slug") == "slug"
 
 
 def test_tools_ranks_calls_with_per_harness_breakout(
@@ -617,6 +725,7 @@ def test_sessions_are_recent_filtered_and_display_truncated(
             "started": "2026-01-02T09:00:00",
             "harness": "claude",
             "project_name": "stockroom",
+            "project_id": "claude-project",
             "msgs": 3,
             "model": "claude-sonnet",
             "prompt": f"{'x' * 120}…(+10)",
@@ -625,6 +734,7 @@ def test_sessions_are_recent_filtered_and_display_truncated(
             "started": "2026-01-01T08:00:00",
             "harness": "cursor",
             "project_name": "cursor-project",
+            "project_id": "cursor-project",
             "msgs": 1,
             "model": "gpt-5",
             "prompt": "message 0",
@@ -692,6 +802,7 @@ def test_wrapped_returns_all_time_rollups_and_ignores_selector(
         "marathon_session": {
             "messages": 5,
             "project_name": "p1",
+            "project_id": "p1",
             "harness": "claude",
         },
         "peak_hour": {"hour": 10, "count": 2},

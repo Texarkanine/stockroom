@@ -276,6 +276,50 @@ def trends(
     }
 
 
+def project_display_name(cwd: str | None, project_id: str | None) -> str | None:
+    """Return a friendly leaf name from ``cwd``, else ``project_id``.
+
+    Used by sessions, wrapped, and projects label resolution. Empty or missing
+    ``cwd`` falls back to ``project_id`` (which may itself be ``None``).
+    """
+    if cwd:
+        return Path(cwd).name
+    return project_id
+
+
+def _project_label_from_cwds(project_id: str, cwds: set[str]) -> str:
+    """Pick a display label when one unique basename exists among ``cwds``."""
+    leaves = {Path(cwd).name for cwd in cwds if cwd}
+    if len(leaves) == 1:
+        return next(iter(leaves))
+    return project_id
+
+
+def _project_cwds(
+    con: duckdb.DuckDBPyConnection,
+    start: datetime,
+    end: datetime,
+    project_ids: Sequence[str],
+) -> dict[str, set[str]]:
+    """Collect non-NULL cwds per project_id in the activity window."""
+    if not project_ids:
+        return {}
+    placeholders = ", ".join("?" for _ in project_ids)
+    rows = con.execute(
+        f"SELECT s.project_id, s.cwd FROM sessions s "
+        f"WHERE NOT s.is_subagent AND s.cwd IS NOT NULL "
+        f"AND s.project_id IN ({placeholders}) "
+        f"AND {ACTIVITY_TIME_SQL} IS NOT NULL "
+        f"AND {ACTIVITY_TIME_SQL} >= ? AND {ACTIVITY_TIME_SQL} < ?",
+        [*project_ids, start, end],
+    ).fetchall()
+    by_project: dict[str, set[str]] = {project_id: set() for project_id in project_ids}
+    for project_id, cwd in rows:
+        if project_id in by_project and cwd:
+            by_project[project_id].add(cwd)
+    return by_project
+
+
 def projects(
     con: duckdb.DuckDBPyConnection,
     harnesses: Sequence[str] | None = None,
@@ -301,8 +345,14 @@ def projects(
         counts,
         key=lambda project: (-sum(counts[project].values()), project),
     )[:limit]
+    cwds_by_project = _project_cwds(con, start, end, ranked)
+    labels = [
+        _project_label_from_cwds(project_id, cwds_by_project.get(project_id, set()))
+        for project_id in ranked
+    ]
     return {
         "projects": ranked,
+        "labels": labels,
         "sessions": {
             name: [counts[project].get(name, 0) for project in ranked] for name in names
         },
@@ -523,7 +573,8 @@ def sessions(
             {
                 "started": activity.isoformat(),
                 "harness": harness,
-                "project_name": Path(cwd).name if cwd else project_id,
+                "project_name": project_display_name(cwd, project_id),
+                "project_id": project_id,
                 "msgs": 0,
                 "model": None,
                 "prompt": "",
@@ -608,7 +659,8 @@ def wrapped(
         row = sorted(rows, key=lambda item: (-item[5], item[0], item[1]))[0]
         marathon = {
             "messages": row[5],
-            "project_name": Path(row[2]).name if row[2] else row[3],
+            "project_name": project_display_name(row[2], row[3]),
+            "project_id": row[3],
             "harness": row[0],
         }
 
