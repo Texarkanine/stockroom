@@ -146,7 +146,7 @@ Decisions locked in plan:
     - Files: `dashboard-core.mjs` (pure open/close state helpers), `dashboard.mjs` (DOM listeners)
     - TDD: write failing tests first for pure helpers (toggle, close-all, open-one-closes-other, Escape/outside modeled as close events); then implement helpers + adapter listeners (`aria-expanded` / `aria-controls`) until green. DOM listener glue stays thin over tested helpers.
 
-7. **Verification**
+7. **Verification** ✅
     - Run targeted pytest/JS tests during each TDD cycle; finish with `make ci` (pytest + `make test-js` + lint/format/REUSE).
     - Before step 1: restore unrelated dirty WIP (`metrics.py` trends granularity + `writeShare` null→0 and matching tests) to HEAD so m2 contracts stay intact.
 ## Technology Validation
@@ -176,7 +176,7 @@ No new technology — validation not required. Native ES modules, existing Chart
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight
-- [ ] Build
+- [x] Build
 - [ ] QA
 
 ## Preflight Amendments

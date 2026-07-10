@@ -47,3 +47,13 @@ Show friendly project names with `project_id` on hover (#8) and add clickable in
     - **cwd pick when sessions disagree**: show the full `project_id` if there is not one unique short name (replaces most-recent non-NULL cwd)
 * Insights
     - Unique short name = all non-NULL cwds for a ranked `project_id` share one basename; otherwise label equals id
+
+## 2026-07-10 - BUILD - COMPLETE
+
+* Work completed
+    - Steps 1–7: projects `labels` + `project_display_name`, sessions/wrapped `project_id`, panel `labelTitles`, Chart.js/session/marathon hover, `PANEL_HELP` + two-panel info chrome, help toggle
+    - `make ci` green: ruff, 48 JS tests, 485 pytest passed / 3 skipped, REUSE compliant
+* Decisions made
+    - Applied operator unique-short-name rule; series alignment stays on ranked ids while chart ticks use friendly labels
+* Insights
+    - Projects-local cwd query avoided widening `_session_rows`; help copy stays static in JS with thresholds documented against Python constants
