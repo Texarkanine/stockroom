@@ -28,3 +28,14 @@ Implement start-time identity-aware replace for the machine-scoped dashboard so 
     - No further creative phase
 * Insights
     - Fix belongs entirely in `stockroom dashboard`; hooks already call the right entrypoint after rectify
+
+## 2026-07-10 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated plan against codebase (dashboard CLI, home_dir, no overlapping identity module)
+    - Strengthened TDD encoding per unit; added port-scoped identity amendment
+    - Wrote `.preflight-status` = PASS
+* Decisions made
+    - Identity records include port; only SIGTERM pid from our identity file
+* Insights
+    - First upgrade from a pre-identity dashboard remains a documented one-shot manual kill — safer than port-wide process hunting

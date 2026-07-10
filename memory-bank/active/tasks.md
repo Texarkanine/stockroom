@@ -37,36 +37,32 @@ Design authority: `memory-bank/active/creative/creative-dashboard-lifecycle-afte
 
 ## Implementation Plan
 
-1. **Identity module (TDD: B8)**
-   - Files: `skills/sr-search/src/stockroom/dashboard/identity.py` (new), `tests/test_dashboard_identity.py` (new)
-   - Changes: `IDENTITY_FILENAME` under `warehouse.home_dir()`; dataclass `DashboardIdentity(pid, app_dir, version)`; `path()`, `read()`, `write()`, `clear()`; atomic write pattern consistent with shim/torch durable files
+Each numbered unit is one TDD cycle: **write/extend failing tests → implement → refactor**. Do not implement a unit before its tests exist and fail for the right reason.
 
-2. **Resolve current engine identity**
-   - Files: `identity.py` (or small helper used by `__main__.py`)
-   - Changes: `current_app_dir()` from `Path(stockroom.__file__).resolve()` → engine root (`…/src/stockroom` → parents[1] = `src`, parents[2] = app dir); version from `stockroom.__version__`
+1. **Identity module + current engine resolution (TDD: B8)**
+   - Tests first: `tests/test_dashboard_identity.py` — round-trip write/read/clear; missing/corrupt → None; `current_app_dir()` resolves to engine root; identity record includes `port`
+   - Then implement: `skills/sr-search/src/stockroom/dashboard/identity.py` — `IDENTITY_FILENAME` (or port-scoped name) under `warehouse.home_dir()`; dataclass `DashboardIdentity(pid, app_dir, version, port)`; `path()`, `read()`, `write()`, `clear()`; atomic write (`temp + os.replace`); `current_app_dir()` via `Path(stockroom.__file__).resolve().parents[2]`; version from `stockroom.__version__`
+   - Port must be part of identity so `--port` overrides cannot clobber or mis-replace the default 6767 listener
 
-3. **Launcher decision matrix (TDD: B2–B5)**
-   - Files: `skills/sr-search/src/stockroom/dashboard/__main__.py`, `tests/test_dashboard_cli.py`
-   - Changes: injectable `read_identity` / `write_identity` / `kill_fn` / `verify_owned_fn` / `wait_port_free_fn`; when probe true, classify reuse vs replace vs leave; replace = verify owned → kill → wait → spawn; all paths print URL and return 0
+2. **Launcher decision matrix + verify-before-kill (TDD: B2–B5)**
+   - Tests first: extend `tests/test_dashboard_cli.py` — same identity → no kill/spawn; stale owned + verify true → kill/wait/spawn; foreign/unverified → no kill; kill failure → exit 0; preserve B1 free-port spawn
+   - Then implement in `skills/sr-search/src/stockroom/dashboard/__main__.py`: injectable `read_identity` / `write_identity` / `kill_fn` / `verify_owned_fn` / `wait_port_free_fn`; default `verify_owned(pid)` reads `/proc/{pid}/cmdline` for `stockroom.dashboard` when available; **only SIGTERM pid from our identity file** when port matches and identity is stale; detach spawn unchanged (child writes identity in unit 3)
 
-4. **Foreground writes identity (TDD: B6)**
-   - Files: `__main__.py`, tests
-   - Changes: after successful `serve_impl` bind (before `serve_forever`), write identity for `os.getpid()` + current app_dir/version; on clean shutdown optionally clear (nice-to-have; not required for heal — next start can overwrite)
+3. **Foreground writes identity on bind (TDD: B6, B7)**
+   - Tests first: extend `test_dashboard_cli.py` — successful foreground bind writes identity (pid/app_dir/version/port); EADDRINUSE path unchanged (no identity write required)
+   - Then implement: after successful `serve_impl` bind, `write()` identity for `os.getpid()` + current app_dir/version/port before `serve_forever`
 
-5. **Spawn returns / records pid**
-   - Files: `__main__.py`
-   - Changes: keep detached `Popen`; child is authoritative writer on bind (step 4). Parent does not need to write if child always does. After replace spawn, no parent-side identity write required.
-
-6. **Ownership verify before kill**
-   - Files: `__main__.py` (or `identity.py`)
-   - Changes: default `verify_owned(pid)` checks Linux `/proc/{pid}/cmdline` contains `stockroom.dashboard` (WSL/Linux primary); if unverifiable, do not kill (B4). Keep injectable for tests.
-
-7. **Docs**
-   - Files: `docs/using.md` (and `docs/development.md` only if launch contract is documented there)
+4. **Docs**
+   - Files: `docs/using.md`
    - Changes: one short note — dashboard is machine-scoped; after plugin moves, next session start replaces a stale owned listener; no stop-on-close; pre-identity leftovers may need one manual kill
 
-8. **Verification**
-   - Run targeted dashboard tests, then full `make test` / lint as required by build phase
+5. **Verification**
+   - Run targeted dashboard tests, then full suite / lint per build phase
+
+## Preflight Amendments
+
+- Folded former “resolve app_dir” / “spawn pid” / “verify” steps into TDD-ordered units 1–3 (blocking TDD encoding fix).
+- Identity is **port-scoped** (field and/or filename) so non-default `--port` cannot corrupt the 6767 singleton record.
 
 ## Technology Validation
 
@@ -103,6 +99,6 @@ None — creative resolved architecture; no further creative phase needed.
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
 - [ ] QA

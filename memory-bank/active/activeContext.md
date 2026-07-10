@@ -1,13 +1,12 @@
 # Active Context
 
 ## Current Task: dashboard-lifecycle-after-plugin-move
-**Phase:** PLAN - COMPLETE
+**Phase:** PREFLIGHT - COMPLETE
 
 ## What Was Done
-- Level 2 plan written: identity under stockroom home + launcher decision matrix (reuse / replace / leave foreign)
-- Creative Option B confirmed as design authority; no open questions / no further creative
-- TDD behaviors B1–B8 mapped to `test_dashboard_cli.py` + `test_dashboard_identity.py`
-- Touchpoints: `dashboard/identity.py` (new), `dashboard/__main__.py`, docs/using.md
+- Preflight PASS: plan aligns with system patterns (durable home artifact, launcher owns contract, no close hooks)
+- Amended plan for explicit per-unit TDD ordering and port-scoped identity
+- Advisory: pre-identity running dashboards need one manual kill (accepted)
 
 ## Next Step
-- Preflight validation (autonomous for L2)
+- Build phase (TDD implementation)
