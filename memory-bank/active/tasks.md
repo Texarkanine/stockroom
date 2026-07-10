@@ -94,7 +94,7 @@ flowchart LR
 1. [x] **Request-plan bounds (TDD)** — write failing tests in `dashboard-data.test.mjs` for null vs preset bounds (including `fetchSnapshot` URL assertions); then implement `buildRequestPlan` optional bounds + `fetchSnapshot` forwarding via `options.window`.
     - Files: `tests-js/dashboard-data.test.mjs`, `static/dashboard-data.mjs`
     - Changes: append `since`/`until` when bounds provided; never on `wrapped`.
-2. [ ] **View-state + label helpers (TDD)** — write failing tests in `dashboard-core.test.mjs` for date-range transitions and label mapping; then implement preset constants, bounds resolver (`until=now`, `since=until−duration`), `transitionViewState` action, `panelRangeLabels(preset)` (or equivalent).
+2. [x] **View-state + label helpers (TDD)** — write failing tests in `dashboard-core.test.mjs` for date-range transitions and label mapping; then implement preset constants, bounds resolver (`until=now`, `since=until−duration`), `transitionViewState` action, `panelRangeLabels(preset)` (or equivalent).
     - Files: `tests-js/dashboard-core.test.mjs`, `static/dashboard-core.mjs`
     - Creative ref: `creative-date-range-ux.md`
 3. [ ] **Static shell contracts (TDD)** — write failing assertions in `test_dashboard_static.py` for `#date-range-selector` fieldset + segmented mode markup/classes; then update `index.html` CSS/markup for date presets and mode pill.

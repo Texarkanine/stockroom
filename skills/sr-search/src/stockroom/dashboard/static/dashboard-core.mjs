@@ -141,24 +141,147 @@ export function harnessColors(harnesses) {
   );
 }
 
+/** Supported date-range preset ids for the top controls strip. */
+export const DATE_RANGE_PRESETS = Object.freeze([
+  "default",
+  "7d",
+  "30d",
+  "90d",
+  "1y",
+]);
+
+const DATE_RANGE_DURATIONS_MS = Object.freeze({
+  "7d": 7 * 24 * 60 * 60 * 1000,
+  "30d": 30 * 24 * 60 * 60 * 1000,
+  "90d": 90 * 24 * 60 * 60 * 1000,
+  "1y": 365 * 24 * 60 * 60 * 1000,
+});
+
+const DATE_RANGE_WINDOW_LABELS = Object.freeze({
+  "7d": "Last 7 days",
+  "30d": "Last 30 days",
+  "90d": "Last 90 days",
+  "1y": "Last 1 year",
+});
+
+const DEFAULT_PANEL_RANGE_LABELS = Object.freeze({
+  overviewAria: "Thirty-day overview",
+  daily: "Last 14 days",
+  projects: "Last 30 days",
+  tools: "Last 30 days",
+  writeRead: "Last 12 weeks",
+  efficiency: "Last 30 days",
+  models: "Last 30 days",
+  firstPrompt: "Average session length by prompt detail · 30 days",
+});
+
+/**
+ * Normalize a date-range preset id.
+ *
+ * @param {unknown} preset Raw preset id.
+ * @returns {"default"|"7d"|"30d"|"90d"|"1y"} Known preset, else default.
+ */
+export function normalizeDateRangePreset(preset) {
+  return DATE_RANGE_PRESETS.includes(preset) ? preset : "default";
+}
+
+/**
+ * Resolve ISO window bounds for a date-range preset.
+ *
+ * @param {unknown} preset Preset id (`default` omits bounds).
+ * @param {Date|string|number} [now] Clock used for `until` (injectable for tests).
+ * @returns {{since: string, until: string} | null} Encoded bounds, or null when unset.
+ */
+export function resolveWindowBounds(preset, now = new Date()) {
+  const id = normalizeDateRangePreset(preset);
+  const durationMs = DATE_RANGE_DURATIONS_MS[id];
+  if (!durationMs) {
+    return null;
+  }
+  const untilDate = now instanceof Date ? new Date(now.getTime()) : new Date(now);
+  if (Number.isNaN(untilDate.getTime())) {
+    return null;
+  }
+  const sinceDate = new Date(untilDate.getTime() - durationMs);
+  return {
+    since: sinceDate.toISOString(),
+    until: untilDate.toISOString(),
+  };
+}
+
+/**
+ * Panel-range and overview aria copy for the active date-range preset.
+ *
+ * @param {unknown} preset Preset id.
+ * @returns {{
+ *   overviewAria: string,
+ *   daily: string,
+ *   projects: string,
+ *   tools: string,
+ *   writeRead: string,
+ *   efficiency: string,
+ *   models: string,
+ *   firstPrompt: string,
+ * }} Label map for windowed panels.
+ */
+export function panelRangeLabels(preset) {
+  const id = normalizeDateRangePreset(preset);
+  if (id === "default") {
+    return { ...DEFAULT_PANEL_RANGE_LABELS };
+  }
+  const windowLabel = DATE_RANGE_WINDOW_LABELS[id];
+  return {
+    overviewAria: `${windowLabel} overview`,
+    daily: windowLabel,
+    projects: windowLabel,
+    tools: windowLabel,
+    writeRead: windowLabel,
+    efficiency: windowLabel,
+    models: windowLabel,
+    firstPrompt: `Average session length by prompt detail · ${windowLabel}`,
+  };
+}
+
+function normalizeViewState(state) {
+  const dateRange = normalizeDateRangePreset(state?.dateRange);
+  const window =
+    dateRange === "default"
+      ? null
+      : state?.window &&
+          typeof state.window === "object" &&
+          typeof state.window.since === "string" &&
+          typeof state.window.until === "string"
+        ? { since: state.window.since, until: state.window.until }
+        : resolveWindowBounds(dateRange);
+  return {
+    harnesses: sortedHarnesses(state?.harnesses ?? []),
+    selected: sortedHarnesses(state?.selected ?? []),
+    mode: state?.mode === "compare" ? "compare" : "aggregate",
+    dateRange,
+    window,
+  };
+}
+
 /**
  * Apply one deterministic dashboard state transition.
  *
- * @param {{harnesses: string[], selected: string[], mode: string}} state Current state.
+ * @param {{harnesses: string[], selected: string[], mode: string, dateRange?: string, window?: {since: string, until: string}|null}} state Current state.
  * @param {Record<string, unknown>} action Transition description.
  * @returns {{state: object, effect: "none"|"render"|"refetch"}} Next state and effect.
  */
 export function transitionViewState(state, action) {
-  const current = {
-    harnesses: sortedHarnesses(state?.harnesses ?? []),
-    selected: sortedHarnesses(state?.selected ?? []),
-    mode: state?.mode === "compare" ? "compare" : "aggregate",
-  };
+  const current = normalizeViewState(state);
   const type = action?.type;
   if (type === "discover") {
     const harnesses = sortedHarnesses(action.harnesses ?? []);
     return {
-      state: { harnesses, selected: [...harnesses], mode: current.mode },
+      state: {
+        harnesses,
+        selected: [...harnesses],
+        mode: current.mode,
+        dateRange: current.dateRange,
+        window: current.window,
+      },
       effect: "render",
     };
   }
@@ -167,6 +290,17 @@ export function transitionViewState(state, action) {
     return {
       state: { ...current, mode },
       effect: mode === current.mode ? "none" : "render",
+    };
+  }
+  if (type === "daterange") {
+    const dateRange = normalizeDateRangePreset(action.preset);
+    if (dateRange === current.dateRange) {
+      return { state: current, effect: "none" };
+    }
+    const window = resolveWindowBounds(dateRange, action.now ?? new Date());
+    return {
+      state: { ...current, dateRange, window },
+      effect: "refetch",
     };
   }
   if (type === "toggle") {

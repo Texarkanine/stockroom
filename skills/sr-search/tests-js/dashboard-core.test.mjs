@@ -16,6 +16,8 @@ import {
   displayHarness,
   formatDelta,
   harnessColors,
+  panelRangeLabels,
+  resolveWindowBounds,
   sortedHarnesses,
   sumAligned,
   summarizeChartPanel,
@@ -266,7 +268,13 @@ test("derives deterministic chart heights from label counts", () => {
 });
 
 test("defaults discovered harnesses and rejects an empty selection", () => {
-  const initial = { harnesses: [], selected: [], mode: "aggregate" };
+  const initial = {
+    harnesses: [],
+    selected: [],
+    mode: "aggregate",
+    dateRange: "default",
+    window: null,
+  };
   const discovered = transitionViewState(initial, {
     type: "discover",
     harnesses: ["cursor", "claude-code", "cursor"],
@@ -276,15 +284,29 @@ test("defaults discovered harnesses and rejects an empty selection", () => {
       harnesses: ["claude-code", "cursor"],
       selected: ["claude-code", "cursor"],
       mode: "aggregate",
+      dateRange: "default",
+      window: null,
     },
     effect: "render",
   });
   const refused = transitionViewState(
-    { harnesses: ["cursor"], selected: ["cursor"], mode: "aggregate" },
+    {
+      harnesses: ["cursor"],
+      selected: ["cursor"],
+      mode: "aggregate",
+      dateRange: "default",
+      window: null,
+    },
     { type: "toggle", harness: "cursor" },
   );
   assert.deepEqual(refused, {
-    state: { harnesses: ["cursor"], selected: ["cursor"], mode: "aggregate" },
+    state: {
+      harnesses: ["cursor"],
+      selected: ["cursor"],
+      mode: "aggregate",
+      dateRange: "default",
+      window: null,
+    },
     effect: "none",
   });
 });
@@ -294,6 +316,8 @@ test("distinguishes mode redraws from selection refetches", () => {
     harnesses: ["claude-code", "cursor"],
     selected: ["claude-code", "cursor"],
     mode: "aggregate",
+    dateRange: "default",
+    window: null,
   };
   assert.equal(
     transitionViewState(state, { type: "mode", mode: "compare" }).effect,
@@ -306,6 +330,104 @@ test("distinguishes mode redraws from selection refetches", () => {
   assert.equal(
     transitionViewState(state, { type: "mode", mode: "aggregate" }).effect,
     "none",
+  );
+});
+
+test("date-range changes refetch and identical presets are no-ops", () => {
+  const now = new Date("2026-07-10T18:00:00.000Z");
+  const state = {
+    harnesses: ["cursor"],
+    selected: ["cursor"],
+    mode: "aggregate",
+    dateRange: "default",
+    window: null,
+  };
+  const changed = transitionViewState(state, {
+    type: "daterange",
+    preset: "7d",
+    now,
+  });
+  assert.equal(changed.effect, "refetch");
+  assert.equal(changed.state.dateRange, "7d");
+  assert.deepEqual(changed.state.window, resolveWindowBounds("7d", now));
+  assert.equal(changed.state.mode, "aggregate");
+
+  const same = transitionViewState(changed.state, {
+    type: "daterange",
+    preset: "7d",
+    now,
+  });
+  assert.equal(same.effect, "none");
+  assert.equal(same.state.dateRange, "7d");
+
+  const backToDefault = transitionViewState(changed.state, {
+    type: "daterange",
+    preset: "default",
+    now,
+  });
+  assert.equal(backToDefault.effect, "refetch");
+  assert.equal(backToDefault.state.dateRange, "default");
+  assert.equal(backToDefault.state.window, null);
+
+  const modeStillRenderOnly = transitionViewState(changed.state, {
+    type: "mode",
+    mode: "compare",
+  });
+  assert.equal(modeStillRenderOnly.effect, "render");
+  assert.equal(modeStillRenderOnly.state.dateRange, "7d");
+  assert.deepEqual(modeStillRenderOnly.state.window, changed.state.window);
+});
+
+test("resolveWindowBounds omits default and computes ISO since/until for presets", () => {
+  const now = new Date("2026-07-10T18:00:00.000Z");
+  assert.equal(resolveWindowBounds("default", now), null);
+  assert.equal(resolveWindowBounds("nope", now), null);
+
+  const week = resolveWindowBounds("7d", now);
+  assert.equal(week.until, "2026-07-10T18:00:00.000Z");
+  assert.equal(week.since, "2026-07-03T18:00:00.000Z");
+
+  const year = resolveWindowBounds("1y", now);
+  assert.equal(year.until, "2026-07-10T18:00:00.000Z");
+  assert.equal(year.since, "2025-07-10T18:00:00.000Z");
+
+  assert.equal(resolveWindowBounds("30d", now).since, "2026-06-10T18:00:00.000Z");
+  assert.equal(resolveWindowBounds("90d", now).since, "2026-04-11T18:00:00.000Z");
+});
+
+test("panelRangeLabels keep per-panel defaults and share preset window copy", () => {
+  const defaults = panelRangeLabels("default");
+  assert.equal(defaults.overviewAria, "Thirty-day overview");
+  assert.equal(defaults.daily, "Last 14 days");
+  assert.equal(defaults.projects, "Last 30 days");
+  assert.equal(defaults.tools, "Last 30 days");
+  assert.equal(defaults.writeRead, "Last 12 weeks");
+  assert.equal(defaults.efficiency, "Last 30 days");
+  assert.equal(defaults.models, "Last 30 days");
+  assert.equal(
+    defaults.firstPrompt,
+    "Average session length by prompt detail · 30 days",
+  );
+
+  const week = panelRangeLabels("7d");
+  assert.equal(week.overviewAria, "Last 7 days overview");
+  assert.equal(week.daily, "Last 7 days");
+  assert.equal(week.projects, "Last 7 days");
+  assert.equal(week.tools, "Last 7 days");
+  assert.equal(week.writeRead, "Last 7 days");
+  assert.equal(week.efficiency, "Last 7 days");
+  assert.equal(week.models, "Last 7 days");
+  assert.equal(
+    week.firstPrompt,
+    "Average session length by prompt detail · Last 7 days",
+  );
+
+  const year = panelRangeLabels("1y");
+  assert.equal(year.overviewAria, "Last 1 year overview");
+  assert.equal(year.daily, "Last 1 year");
+  assert.equal(
+    year.firstPrompt,
+    "Average session length by prompt detail · Last 1 year",
   );
 });
 
