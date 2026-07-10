@@ -44,3 +44,17 @@ Hook/session cycle is a no-op for env when a usable synced venv already exists; 
 3. Torch-safe sync rules from `sr-initialize` / `docs/development.md` are preserved.
 4. Claude and Cursor hooks share the same healing contract (or a documented, justified difference).
 5. Chosen design is justified against verified root cause and stockroom goals (not merely “what #17 suggested”).
+
+## Rework
+
+### Operator feedback (2026-07-10)
+
+Durable torch installation source must persist on disk and be used to self-heal torch after plugin-root moves. Scenario: initialize + pick torch → works → plugin updates → rectify recreates venv → torch missing → overnight embed fails unnoticed → semantic breaks. Manual torch reinstall on every plugin update is a nonstarter; fixing that is part of [#17](https://github.com/Texarkanine/stockroom/issues/17).
+
+### Rework requirements
+
+1. Persist the chosen torch wheel index outside the disposable plugin/engine tree (stockroom home / XDG).
+2. Record the index when torch is provisioned via the guided path (`sr-initialize`) and `make torch`.
+3. On env heal (`ensure_engine_env` / `shim rectify`), if torch is missing in the engine venv and a recorded index exists, reinstall torch from that index.
+4. If torch is missing and no index is recorded, fail soft with an explicit remedy (run `sr-initialize`) — do not guess a wheel.
+5. After a plugin-root move with a prior recorded index, one heal cycle leaves torch importable again (embed/semantic path viable without manual re-pick).

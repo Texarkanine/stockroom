@@ -1,10 +1,11 @@
 # Active Context
 
 ## Current Task: fix-plugin-env-heal-after-move
-**Phase:** REFLECT COMPLETE
+**Phase:** COMPLEXITY-ANALYSIS - COMPLETE (rework)
 
 ## What Was Done
-- Reflection written; persistent files reconciled (`systemPatterns` already updated in QA; no further product/tech changes needed).
+- Rework initiated from operator feedback: torch source must be durable and self-healed on plugin moves.
+- Complexity remains **Level 2** (extend existing ensure/heal path; no architecture redesign).
 
 ## Next Step
-- Run `/niko-archive` to archive and finalize.
+- Plan + build torch-index persistence and heal.

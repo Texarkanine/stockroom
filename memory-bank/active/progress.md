@@ -73,3 +73,8 @@ Heal engine-env staleness after plugin-root moves so one session/workspace-open 
     - Standalone task → next operator step is `/niko-archive`
 * Insights
     - Inexact `--check` is the torch-safe readiness probe; exact `--check` is a footgun after torch
+
+## 2026-07-10 - REWORK INITIATED
+
+* Operator feedback: durable torch-index record is **in scope for #17**. After plugin update, rectify recreates venv without torch → overnight embed fails silently → semantic breaks. Manual torch reinstall every plugin update is a nonstarter.
+* Cleared tasks/activeContext/preflight/qa status; preserving projectbrief, progress, reflection.
