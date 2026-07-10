@@ -1,11 +1,12 @@
 # Active Context
 
 ## Current Task: fix-session-start-heal-after-plugin-move
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Intent clarified against [issue #25](https://github.com/Texarkanine/stockroom/issues/25); operator approved restatement
-- Complexity determined: **Level 2** — bug fix spanning multiple components (heal import graph across shim/engine_env/torch_source/warehouse, both harness hooks, packaging/hook tests); preferred direction already stated (dep-light heal imports); not a single-file L1 and not an architectural L3/L4 redesign
+- Level 2 plan written for [issue #25](https://github.com/Texarkanine/stockroom/issues/25)
+- Root cause confirmed: `shim` → `engine_env` → `torch_source` → `warehouse` → `import duckdb` dies on bare `uv python find` before `ensure_engine_env`
+- Approach: extract XDG/`STOCKROOM_HOME` resolution to dep-light `stockroom.home`; point `torch_source` at it; warehouse re-exports; pin with subprocess import-graph test; leave hook JSON thin/unchanged
 
 ## Next Step
-- Load Level 2 workflow and execute the plan phase
+- Preflight validation (automatic)

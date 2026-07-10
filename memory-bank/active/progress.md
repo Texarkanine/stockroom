@@ -14,3 +14,13 @@ Restore session-start auto-heal after marketplace plugin-hash moves by breaking 
     - Preferred direction from the issue: dep-light heal import graph over shell-sync-first duplication
 * Insights
     - Heal logic already works when reachable via `uv run --no-sync` after sync; bootstrap cannot reach it today
+
+## 2026-07-10 - PLAN - COMPLETE
+
+* Work completed
+    - Mapped import graph and test infrastructure; wrote Level 2 TDD plan into `tasks.md`
+* Decisions made
+    - Preferred fix: dep-light `stockroom.home` extract; hooks unchanged (no shell sync-first)
+    - Pin with subprocess import-graph test so suite pollution cannot false-pass
+* Insights
+    - `__main__` already lazy-imports subcommands; the load-bearing edge is `torch_source` → `warehouse.home_dir`
