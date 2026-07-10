@@ -1,3 +1,86 @@
-# Tasks: dashboard-polish-m2-write-read-ratio
+# Task: dashboard-polish-m2-write-read-ratio
 
-Change Write/Read panel to plot ratio series in Aggregate and Compare modes with honest zero-denominator handling (#6).
+* Task ID: dashboard-polish-m2-write-read-ratio
+* Complexity: Level 2
+* Type: simple enhancement
+
+Change the Write/Read panel so it plots a true write-share ratio series (`writes / (writes + reads)`) in Aggregate (one blended line) and Compare (one line per selected harness), with honest `null` gaps for zero-denominator weeks — not absolute write/read volume dual-series. Server `/api/trends` weekly absolute counts stay as substrate; no Python metrics change.
+
+## Test Plan (TDD)
+
+### Behaviors to Verify
+
+- Aggregate ratio: weekly payload with selected harnesses → exactly one line dataset whose points are blended `sum(writes) / (sum(writes)+sum(reads))` per week.
+- Compare ratio: same payload → one line per selected harness (positional colors), each point `writes[h] / (writes[h]+reads[h])`.
+- Zero denominator: week where writes+reads === 0 (aggregate or per harness) → `null` at that index (gap), never a fake `0` ratio.
+- Meaningful zero ratio: writes=0 and reads>0 → `0` (not null); panel is not marked empty solely because ratios are zero.
+- Empty panel: all weeks null / no activity → `empty: true`; any finite ratio (including 0) → `empty: false`.
+- Presentation: line chart, not stacked; aggregate legend label reflects ratio (not "Writes"/"Reads"); compare legends use display harness names.
+- Aria/title: render path uses ratio-oriented chart title; `summarizeChartPanel` shows `—` (or equivalent) for `null` points instead of coercing them to `0`.
+- Static shell: `#write-read-chart` default aria/text no longer claims absolute "write and read tool calls" quantities.
+- Regression: other panel builders and existing dashboard-core/data/static contracts stay green; Python trends API unchanged.
+
+### Edge Cases
+
+- Missing/partial harness series → treat missing as 0 counts for that harness (existing `seriesFor` / `finiteNumber` behavior) before ratio.
+- Single harness selected in compare → one ratio line.
+- Empty weeks array → empty panel.
+- Mode ignored today → after change, aggregate vs compare must diverge on dataset count/shape.
+
+### Test Infrastructure
+
+- Framework: Node 22 `node:test` (`make test-js`); pytest for static HTML (`uv run --no-sync pytest`).
+- Test location: `skills/sr-search/tests-js/`, `skills/sr-search/tests/`.
+- Conventions: `test("…")` in `dashboard-*.test.mjs`; `test_*` in `test_dashboard_*.py`.
+- New test files: none (extend `dashboard-core.test.mjs`, `test_dashboard_static.py` as needed).
+
+## Implementation Plan
+
+1. **Ratio panel model (TDD)** — replace `builds blended write and read models in either mode` with aggregate + compare + zero-denominator + empty/zero-ratio cases; then rewrite `buildWriteReadPanel(payload, selected, mode, colors)` to emit ratio series (`null` on 0/0), pass `colors` in compare like sibling builders, set empty via finite-ratio presence (not `hasValues` zero-coercion). Optionally extract a small pure `writeShareSeries(writes, reads)` helper if it keeps the builder thin.
+   - Files: `tests-js/dashboard-core.test.mjs`, `static/dashboard-core.mjs`
+   - Changes: ratio math; signature gains `colors`; stop dual Writes/Reads absolute series; `panelModel` may accept optional `empty` override if cleaner than bending `hasValues`.
+
+2. **Honest nulls in aria summaries (TDD)** — update `summarizes dual-series write and read panel` (and add a null-point case) so summaries do not turn gaps into `0`; adjust `summarizeChartPanel` to render non-finite/`null` points as `—`.
+   - Files: `tests-js/dashboard-core.test.mjs`, `static/dashboard-core.mjs`
+   - Changes: display path only; other summary tests remain valid for numeric data.
+
+3. **Static + adapter glue** — assert `#write-read-chart` aria/text matches ratio semantics; update `index.html` fallback copy; in `dashboard.mjs` pass `colors` into `buildWriteReadPanel`, use ratio-oriented `renderChart` title, and if needed teach `chartOptions` a model flag (e.g. `yMax: 1`) so the Y-axis is a 0–1 ratio scale (`beginAtZero`, `max: 1`). No fill dual-area styling for absolute volumes.
+   - Files: `tests/test_dashboard_static.py`, `static/index.html`, `static/dashboard.mjs`
+   - Changes: presentation only; no request-plan / server changes.
+
+4. **Verification** — `make test-js`, targeted dashboard pytest, then `make ci` at milestone boundary.
+
+## Technology Validation
+
+No new technology - validation not required (native ES modules + existing Chart.js).
+
+## Dependencies
+
+- Existing weekly trends payload shape (`weeks`, `writes`, `reads` harness-keyed arrays) from `/api/trends`.
+- Existing harness color / `displayHarness` / `orderedSelection` helpers.
+- m1 date-range wiring already supplies windowed weekly trends when a preset is active — out of scope to change.
+
+## Challenges & Mitigations
+
+- **`hasValues` treats `null` as 0 via `finiteNumber`:** Ratio panels with only gaps would look empty (good), but all-zero *ratios* (writes=0, reads>0) would also look empty (bad). Mitigation: override `empty` for write-read based on presence of any finite ratio, or teach empty-detection to distinguish `null` from `0` without changing count-panel “all zeros → empty” UX.
+- **`summarizeChartPanel` coerces null → 0:** Misleading aria for gap weeks. Mitigation: step 2 — display `—` for null/non-finite.
+- **Y-axis scale:** Counts use unbounded Y; ratio needs 0–1. Mitigation: optional `yMax` (or equivalent) on the panel model consumed by `chartOptions`.
+- **Compare without colors arg:** Today `buildWriteReadPanel` ignores mode and colors. Mitigation: add `colors` parameter and wire from adapter like other panels.
+
+## Pre-Mortem
+
+- **Plan failed by leaving absolute dual series and only renaming the title:** Acceptance requires dataset shape change; step 1 tests lock single aggregate line / per-harness compare lines and forbid Writes+Reads absolute datasets.
+- **Plan failed by plotting fake 0 on idle weeks, looking like “0% writes”:** Already covered by Challenge on null gaps + explicit zero-denominator tests.
+- **Plan failed by changing Python metrics to precompute ratios:** Unnecessary; client owns presentation. Keep server absolute counts — already in scope statement.
+- **Plan failed by breaking empty-state for other charts while fixing ratio empty detection:** Mitigation: do not globally redefine `hasValues` for count panels; scope empty override to write-read (or null-aware check only where nulls are intentional).
+
+## Status
+
+- [x] Initialization complete
+- [x] Test planning complete (TDD)
+- [x] Implementation plan complete
+- [x] Technology validation complete
+- [x] Pre-Mortem complete
+- [ ] Preflight
+- [ ] Build
+- [ ] QA

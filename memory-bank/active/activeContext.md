@@ -1,12 +1,16 @@
 # Active Context
 
 ## Current Task: dashboard-polish-m2-write-read-ratio
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Advanced L4 milestone: m1 (#4 + #5) marked complete; sub-run ephemerals cleared
-- Classified first unchecked milestone (m2: #6 Write/Read ratio) as Level 2
-- Rationale: enhancement to an existing panel over the trends substrate; self-contained Aggregate + Compare ratio series with zero-denominator handling — not multi-component architecture work
+- Planned m2 (#6): rewrite `buildWriteReadPanel` to ratio series (aggregate one line / compare per harness) with `null` on 0/0
+- TDD mapped to `dashboard-core.test.mjs` + static aria contract; adapter gets colors + 0–1 Y scale; no Python change
+
+## Decisions
+- Ratio definition: `writes / (writes + reads)`; Y-axis 0–1 via model `yMax`
+- Idle weeks → `null` gaps; write=0 with reads>0 → finite `0` (panel not empty)
+- Empty detection scoped so count panels keep “all zeros → empty”
 
 ## Next Step
-- Load Level 2 workflow and begin PLAN phase
+- Preflight validation runs automatically

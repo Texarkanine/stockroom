@@ -13,3 +13,14 @@ Change Write/Read panel to plot ratio series in Aggregate and Compare modes with
     - Aligns with milestones.md advisory estimate for m2
 * Insights
     - Zero-denominator honesty and Aggregate vs Compare series shape are the main behavioral edges; design exploration unlikely beyond plan-level choices
+
+## 2026-07-10 - PLAN - COMPLETE
+
+* Work completed
+    - Linear TDD plan for ratio panel model, null-honest aria summaries, static/adapter Y-scale glue; no new deps
+* Decisions made
+    - Client-side ratio only; server absolute weekly counts unchanged
+    - `null` gaps for 0/0; finite `0` when reads>0 and writes=0; empty override so all-zero ratios still show
+    - Y-axis 0–1 via panel model flag consumed by `chartOptions`
+* Insights
+    - Main footgun is `finiteNumber`/`hasValues` collapsing null and 0 — must not fix ratio empty-state by breaking count-panel empty UX
