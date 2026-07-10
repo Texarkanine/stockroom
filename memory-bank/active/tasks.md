@@ -13,3 +13,11 @@
 **Files affected:**
 - `docs/development.md`
 - `memory-bank/systemPatterns.md`
+
+## QA
+
+- KISS / DRY / YAGNI: minimal prose edits only; no new abstractions
+- Completeness: both rework requirements addressed
+- Regression / Integrity: no product code touched; `make ci` green (424 pytest + 32 JS)
+- Documentation: the docs *are* the change; persistent MB reconcile — `systemPatterns.md` was the fix target; `productContext.md` / `techContext.md` unchanged
+- Result: PASS

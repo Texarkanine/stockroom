@@ -97,3 +97,14 @@ PR #14 review rework: fix misleading torch-safe `uv` examples in `docs/developme
     - Expand examples in place rather than only pointing at the bootstrap footnote (copy-paste safety)
 * Insights
     - Ambiguous “no outputs” in systemPatterns was the sharper product-truth bug; the uv examples were discoverability
+
+## 2026-07-10 - QA - COMPLETE
+
+* Work completed
+    - Semantic review against rework brief (both PR #14 items)
+    - Re-verified doc assertions; make ci already green from build
+    - Wrote `.qa-validation-status` = PASS
+* Decisions made
+    - No trivial fixes required
+* Insights
+    - Docs-only L1 rework: shell assertions + make ci suffice; no plan/preflight needed
