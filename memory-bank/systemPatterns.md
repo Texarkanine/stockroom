@@ -59,7 +59,3 @@ The shim has a baked engine dir and zero resolution logic — succeed correctly 
 ## Layered licensing
 
 Root [`REUSE.toml`](../REUSE.toml): AGPL on code; PPL-S layered on prompt-shaped skill content; code-shaped paths under `skills/**` re-asserted AGPL. Enforced by `reuse lint`.
-
-## Clean-room boundary
-
-No code, schema DDL, or unique ideas from third-party `claude-warehouse`. Claude Code support is reverse-engineered from the harness's public on-disk format. Operator `cursor-warehouse` material is not copied by default; request specific original pieces from the operator when needed.

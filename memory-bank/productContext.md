@@ -21,7 +21,7 @@ Privacy- and supply-chain-conscious power users of agentic coding harnesses. The
 - Local and private: data and embedding computation stay on the machine; no telemetry; no cloud APIs for core function.
 - Supply-chain safe: locked, hash-verified `uv` project (torch held out of the lock and provisioned per-machine).
 - Doesn't break your data: migrations with concurrency-safe locking; readers degrade cleanly under writers.
-- Clean-room AGPLv3 provenance for Claude Code support; harness-labeled schema ready for additional harnesses later.
+- Harness-labeled schema ready for additional harnesses later.
 
 ## Success Criteria
 
@@ -32,7 +32,6 @@ A user can install from the marketplace, run `sr-initialize`, and use `sr-search
 - No truncation at rest; truncation only at read time.
 - Local-only: no telemetry, no cloud; network use is package fetch and the local dashboard.
 - AGPLv3 (including the network-served dashboard).
-- Clean-room with respect to third-party `claude-warehouse`; Claude support is reverse-engineered from the harness's own on-disk format.
 - uv-locked except torch (per-machine wheel).
 - Both Cursor and Claude Code ingested; both plugin manifests ship.
 - Session-start hook: idempotent, fire-and-forget, never errors; launches dashboard (and rectifies the on-path shim) — never ingests or migrates.
