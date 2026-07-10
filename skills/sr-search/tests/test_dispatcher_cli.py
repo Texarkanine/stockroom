@@ -95,6 +95,7 @@ def test_help_forwards_to_each_module(tmp_path: Path) -> None:
         "embed": "Re-embed",
         "migrate": "schema",
         "shim": "rectify",
+        "torch": "--index",
         "doctor": "probe",
         "schedule": "--time",
         "dashboard": "--foreground",

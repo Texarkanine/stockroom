@@ -195,7 +195,7 @@ def test_cursor_hook_schema_and_combined_command(cursor_hooks: dict) -> None:
     assert "type" not in entry, "Cursor command type is implicit; omit type"
     assert "matcher" not in entry, "workspaceOpen does not use a matcher"
     timeout = entry.get("timeout")
-    assert timeout == 60, "hook budget must allow cold ensure sync + dashboard"
+    assert timeout == 300, "hook budget must allow cold ensure sync + torch wheel"
     cmd = entry["command"]
     assert "cat >/dev/null" in cmd, "must drain Cursor hook stdin JSON"
     assert "export PATH=" in cmd, "must export PATH so children see ~/.local/bin"
@@ -215,7 +215,7 @@ def test_claude_hook_schema_and_combined_command(claude_hooks: dict) -> None:
     assert len(entries) == 1, "exactly one combined SessionStart command"
     entry = entries[0]
     assert entry["type"] == "command"
-    assert entry.get("timeout") == 60, "hook budget must allow cold ensure sync"
+    assert entry.get("timeout") == 300, "hook budget must allow cold ensure + torch"
     cmd = entry["command"]
     assert "export PATH=" in cmd, "Claude must export PATH like Cursor"
     assert "$HOME/.local/bin" in cmd

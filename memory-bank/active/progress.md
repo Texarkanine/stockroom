@@ -78,3 +78,15 @@ Heal engine-env staleness after plugin-root moves so one session/workspace-open 
 
 * Operator feedback: durable torch-index record is **in scope for #17**. After plugin update, rectify recreates venv without torch → overnight embed fails silently → semantic breaks. Manual torch reinstall every plugin update is a nonstarter.
 * Cleared tasks/activeContext/preflight/qa status; preserving projectbrief, progress, reflection.
+
+## 2026-07-10 - REWORK BUILD - COMPLETE
+
+* Work completed
+    - `torch_source` + `torch_cli`; ensure_engine_env heals torch from durable index
+    - `sr-initialize` / `make torch` / docs / hook timeout 300
+    - 445 passed, 3 skipped; ruff clean
+* Decisions made
+    - Record at `{stockroom_home}/torch-index` (one https URL line)
+    - Never guess an index when missing
+* Insights
+    - Existing installs need a one-time `stockroom torch record --index …` (or re-run `make torch`) before heal can restore torch

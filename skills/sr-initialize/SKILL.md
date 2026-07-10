@@ -82,12 +82,17 @@ The wheel is a **per-machine human choice**. Never pick it silently: recommend f
 
 ## Step 6: Provision and smoke-test
 
-For the guided path, install the confirmed wheel (out of band, per the torch contract — note `--no-config` and `--directory`, both required):
+For the guided path, install the confirmed wheel (out of band, per the torch contract — note `--no-config` and `--directory`, both required), then **record the index** so plugin updates can reinstall the same wheel without asking again:
 
 ```bash
 uv pip install torch --no-config --directory "$APP_DIR" \
   --index https://download.pytorch.org/whl/cu126   # ← the user's confirmed build
+
+PYTHONPATH="$APP_DIR/src" python3 -m stockroom torch record \
+  --index https://download.pytorch.org/whl/cu126   # ← same URL
 ```
+
+The record lives under stockroom home (`$STOCKROOM_HOME` or `~/.local/share/stockroom/torch-index`), outside the disposable plugin tree. Session/workspace hooks call `shim rectify` → `ensure_engine_env`, which restores torch from this record after a plugin-root move.
 
 Then verify through the production path — `smoke` prints the torch version and CUDA availability, then encodes one real string through the actual embedding encoder:
 

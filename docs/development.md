@@ -54,7 +54,7 @@ stockroom ingest --full
 stockroom query "SELECT DISTINCT harness FROM sessions"
 ```
 
-Get the shim onto your PATH with `make shim` (bakes this checkout, owner `dev`; plugin installs get theirs from `sr-initialize`). The shim is baked-only and **succeed-or-refuse**: it never guesses at an engine location — if its baked engine dir is gone, or the engine env cannot import locked deps, it refuses with a one-line remedy. Each harness's session/workspace hook runs `shim rectify`, which re-bakes an owned shim after a plugin update **and** ensures the engine uv env (torch-safe inexact sync via `shim ensure-env`).
+Get the shim onto your PATH with `make shim` (bakes this checkout, owner `dev`; plugin installs get theirs from `sr-initialize`). The shim is baked-only and **succeed-or-refuse**: it never guesses at an engine location — if its baked engine dir is gone, or the engine env cannot import locked deps, it refuses with a one-line remedy. Each harness's session/workspace hook runs `shim rectify`, which re-bakes an owned shim after a plugin update **and** ensures the engine uv env (torch-safe inexact sync via `shim ensure-env`, then torch reinstall from the durable index recorded by `sr-initialize` / `make torch` / `stockroom torch record`).
 
 For full machine onboarding — prerequisites, the per-machine torch wheel choice, the `stockroom doctor` smoke test, the shim, the nightly ingest+embed schedule (`stockroom schedule`, cron or launchd), and the first full ingest — run the [`sr-initialize`](../skills/sr-initialize/SKILL.md) skill; it re-probes on every run and only does what is still missing.
 
