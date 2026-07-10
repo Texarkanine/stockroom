@@ -59,3 +59,13 @@ Implement start-time identity-aware replace for the machine-scoped dashboard so 
     - No substantive rework; implementation matches creative Option B
 * Insights
     - Package `__version__` may lag marketplace version; `app_dir` remains the primary staleness signal after plugin hash moves
+
+## 2026-07-10 - REFLECT - COMPLETE
+
+* Work completed
+    - Reflection documented under `memory-bank/active/reflection/`
+    - Persistent memory bank left unchanged
+* Decisions made
+    - Elegant form is what we built; close hooks remain out
+* Insights
+    - Creative-before-build for post-fix reliability gaps pays off
