@@ -509,11 +509,11 @@ test("PANEL_HELP documents efficiency and first-prompt buckets", () => {
   assert.match(PANEL_HELP.efficiency, /medium/i);
   assert.match(PANEL_HELP.efficiency, /long/i);
   assert.match(PANEL_HELP.efficiency, /≤\s*2|<=\s*2|1–2|1-2|0–2|0-2/i);
-  assert.match(PANEL_HELP.firstPrompt, /short/i);
-  assert.match(PANEL_HELP.firstPrompt, /medium/i);
-  assert.match(PANEL_HELP.firstPrompt, /detailed/i);
-  assert.match(PANEL_HELP.firstPrompt, /average|avg/i);
-  assert.match(PANEL_HELP.firstPrompt, /100|500/);
+  assert.match(PANEL_HELP["first-prompt"], /short/i);
+  assert.match(PANEL_HELP["first-prompt"], /medium/i);
+  assert.match(PANEL_HELP["first-prompt"], /detailed/i);
+  assert.match(PANEL_HELP["first-prompt"], /average|avg/i);
+  assert.match(PANEL_HELP["first-prompt"], /100|500/);
 });
 
 test("togglePanelHelp opens one, re-toggles closed, and switches panels", () => {

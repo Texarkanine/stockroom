@@ -177,7 +177,13 @@ No new technology — validation not required. Native ES modules, existing Chart
 - [x] Pre-Mortem complete
 - [x] Preflight
 - [x] Build
-- [ ] QA
+- [x] QA
+
+## QA Results
+
+- PASS (trivial cleanups applied): aligned `PANEL_HELP` keys with `data-help-id` (dropped adapter `HELP_COPY`); `_project_label_from_cwds` reuses `project_display_name`
+- Completeness: #8 labels/hover + #7 two-panel help match plan (unique-short-name amendment included)
+- No substantive gaps, TODOs, or debug debris
 
 ## Preflight Amendments
 

@@ -107,7 +107,7 @@ export function tooltipTitleFromLabelTitles(labelTitles, index, fallbackLabel) {
 export const PANEL_HELP = {
   efficiency:
     "Buckets by message count per session: abandoned (≤2), short (3–10), medium (11–40), long (41+). Counts sessions in the selected window.",
-  firstPrompt:
+  "first-prompt":
     "Buckets by first user-prompt length: short (<100 chars), medium (100–500), detailed (>500). Bars show average session message count per bucket.",
 };
 

@@ -68,11 +68,6 @@ let state = {
 };
 let openHelpId = null;
 
-const HELP_COPY = {
-  efficiency: PANEL_HELP.efficiency,
-  "first-prompt": PANEL_HELP.firstPrompt,
-};
-
 function setStatus(message) {
   elements.status.textContent = message;
 }
@@ -586,7 +581,7 @@ function initPanelHelpCopy() {
   for (const button of document.querySelectorAll(".panel-info")) {
     const helpId = button.dataset.helpId;
     const panel = document.getElementById(button.getAttribute("aria-controls"));
-    const copy = HELP_COPY[helpId];
+    const copy = PANEL_HELP[helpId];
     if (panel && copy) {
       panel.textContent = copy;
     }

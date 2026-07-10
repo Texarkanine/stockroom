@@ -57,3 +57,13 @@ Show friendly project names with `project_id` on hover (#8) and add clickable in
     - Applied operator unique-short-name rule; series alignment stays on ranked ids while chart ticks use friendly labels
 * Insights
     - Projects-local cwd query avoided widening `_session_rows`; help copy stays static in JS with thresholds documented against Python constants
+
+## 2026-07-10 - QA - COMPLETE
+
+* Work completed
+    - Semantic review against plan: completeness for #7/#8 confirmed; trivial DRY/KISS cleanups applied and retested
+    - `.qa-validation-status` = PASS
+* Decisions made
+    - `PANEL_HELP` keys match `data-help-id` (`efficiency`, `first-prompt`) so the adapter reads copy directly
+* Insights
+    - Projects cwd resolution is not harness-filtered; acceptable for display metadata on ranked ids

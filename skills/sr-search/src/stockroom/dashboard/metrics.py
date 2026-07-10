@@ -289,7 +289,7 @@ def project_display_name(cwd: str | None, project_id: str | None) -> str | None:
 
 def _project_label_from_cwds(project_id: str, cwds: set[str]) -> str:
     """Pick a display label when one unique basename exists among ``cwds``."""
-    leaves = {Path(cwd).name for cwd in cwds if cwd}
+    leaves = {project_display_name(cwd, project_id) for cwd in cwds if cwd}
     if len(leaves) == 1:
         return next(iter(leaves))
     return project_id
