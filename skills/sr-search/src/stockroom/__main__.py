@@ -11,9 +11,6 @@ Dispatch is deliberately dumb: no argparse subparsers duplicating module
 flags, no option parsing beyond the first token. The target module is imported
 lazily only after dispatch resolves, so ``--help`` / error paths never pull a
 heavy import chain (torch, duckdb).
-
-Design record: ``planning/brainstorm/stockroom-on-path-cli.md`` → "The
-dispatcher".
 """
 
 import importlib

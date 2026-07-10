@@ -10,7 +10,6 @@
 # impossible environment marker (see [tool.uv] override-dependencies). It is
 # provisioned per-machine out of band. After installing torch, NEVER run an
 # exact `uv sync` (use `uv run --no-sync` / `--inexact`) or it will be removed.
-# Mechanism proven in planning/spikes/o9-torch/.
 
 [project]
 name = "stockroom"

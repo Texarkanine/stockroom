@@ -10,7 +10,7 @@ SPDX-PackageSupplier = "Texarkanine <texarkanine@protonmail.com>"
 #   5. the exact vendored Chart.js artifact retains its upstream MIT identity
 #   6. vendored dev tooling under .cursor/** has no license assertion
 
-# 1. Default: all code, docs, planning, and memory-bank content under AGPL.
+# 1. Default: all code, docs, and memory-bank content under AGPL.
 [[annotations]]
 path = ["**/*"]
 SPDX-FileCopyrightText = "Texarkanine"

@@ -17,11 +17,11 @@ Candidates come from sources that survive directory deletion (the stored
 transcript text for Cursor; the authoritative record ``cwd`` for Claude), so
 recovery does **not** consult the live filesystem and stays deterministic.
 
-The transform was locked empirically against the operator's real history (see
-``planning/spikes/cwd-recovery/``): across 84 real slugs the only
-non-alphanumeric character is ``-``, and Claude's ``encode(record_cwd)`` equals
-its dir name on every probeable case. Cursor strips the leading separator (its
-slugs start with a word, e.g. ``home-…``); Claude keeps it (e.g. ``-home-…``).
+The transform was locked empirically against real harness history: across a
+large sample of real slugs the only non-alphanumeric character is ``-``, and
+Claude's ``encode(record_cwd)`` equals its dir name on every probeable case.
+Cursor strips the leading separator (its slugs start with a word, e.g.
+``home-…``); Claude keeps it (e.g. ``-home-…``).
 """
 
 import re
