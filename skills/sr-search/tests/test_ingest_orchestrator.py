@@ -101,6 +101,44 @@ def test_second_incremental_ingest_is_noop(
     assert summary.sessions == 0
 
 
+def test_on_progress_none_emits_nothing(
+    migrated_con: duckdb.DuckDBPyConnection,
+    fixture_roots: None,
+    ai_tracking_db: Path,
+) -> None:
+    """Default ``on_progress=None`` does not require a callback and completes."""
+    summary = ingest.ingest(
+        full=True, con=migrated_con, harness="claude", ai_tracking_db=ai_tracking_db
+    )
+    assert summary.by_harness["claude"].sessions > 0
+
+
+def test_on_progress_reports_harness_start_and_session_counts(
+    migrated_con: duckdb.DuckDBPyConnection,
+    fixture_roots: None,
+    ai_tracking_db: Path,
+) -> None:
+    """``on_progress`` receives a harness-start line and ``i/N`` lines per selected conversation."""
+    lines: list[str] = []
+    ingest.ingest(
+        full=True,
+        con=migrated_con,
+        harness="claude",
+        ai_tracking_db=ai_tracking_db,
+        on_progress=lines.append,
+    )
+    assert lines, "expected progress lines"
+    start = lines[0]
+    assert start.startswith("claude: ")
+    assert start.endswith(" sessions")
+    n = int(start.removeprefix("claude: ").removesuffix(" sessions"))
+    assert n > 0
+    progress = lines[1:]
+    assert len(progress) == n
+    for i, line in enumerate(progress, start=1):
+        assert line == f"claude: {i}/{n} sessions"
+
+
 def test_subagents_link_to_parents_across_the_run(
     migrated_con: duckdb.DuckDBPyConnection,
     fixture_roots: None,

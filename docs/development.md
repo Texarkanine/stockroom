@@ -53,6 +53,8 @@ The on-path `stockroom` command (`~/.local/bin/stockroom`) is how you invoke the
 
 ```bash
 stockroom ingest --full
+stockroom ingest --full --verbose   # mid-run progress (quiet by default)
+stockroom embed --verbose           # same for embedding
 stockroom query "SELECT DISTINCT harness FROM sessions"
 ```
 
