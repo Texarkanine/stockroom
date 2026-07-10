@@ -89,3 +89,14 @@ Adopt XDG Base Directory layout for stockroom-owned data on all Unix-like platfo
     - Treat `creative-legacy-home-migration.md` as superseded exploration only
 * Insights
     - Without migration, detect-before-mkdir risk collapses; remaining risk is doc sprawl and stale installed cron log paths
+
+## 2026-07-09 - BUILD - COMPLETE
+
+* Work completed
+    - TDD: `resolve_home` / `home_dir` XDG resolution; doctor home facts
+    - Docstring + memory-bank + brainstorm O1/D7 + spike path updates
+    - Verification: `make test` 425 passed / 3 skipped + 32 JS; lint clean
+* Decisions made
+    - Pure `resolve_home()` for probe; no migration / legacy doctor keys
+* Insights
+    - Schedule needed only docstring alignment; `sr-initialize` already silent on home path

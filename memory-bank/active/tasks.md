@@ -103,8 +103,9 @@ Single tree under the XDG data home (warehouse DB, lock, and `logs/`). `STOCKROO
    - Files: `sr-initialize` if useful; spike `export_dataset.py` (+ README) default path
    - Changes: stop teaching `~/.stockroom` as current home (`sr-initialize` already had none)
 
-6. **Verification**
+6. **Verification** ✅
    - Targeted new tests, then full engine/CI test recipe; fix regressions
+   - `make test`: 425 passed, 3 skipped (JS 32 passed); `make lint` clean; ruff format applied
 
 ## Technology Validation
 
@@ -130,5 +131,5 @@ No new technology — validation not required.
 - [x] Implementation plan complete (amended)
 - [x] Technology validation complete
 - [x] Preflight PASS
-- [ ] Build
+- [x] Build
 - [ ] QA
