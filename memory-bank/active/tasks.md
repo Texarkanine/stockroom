@@ -127,6 +127,15 @@ No new technology - validation not required. Uses existing release-please, marke
 
 - **TDD encoding**: Rewrote implementation steps 1–6 so each unit is assert/verify-before-mutate (packaging tests + ephemeral asserts before any release/catalog change; runbook evidence before roadmap checkboxes; conditional defect repair is an explicit red→green cycle).
 
+## Build Progress
+
+- [x] Step 1 — release-please verify (packaging green; v0.1.0/v0.1.1; PR #11 lockstep)
+- [x] Step 2 — marketplace prerequisite on `main`
+- [x] Step 3 — E2E runbook authored (`memory-bank/active/e2e-clean-machine-runbook.md`)
+- [x] Step 4 — E2E execute: marketplace + initialize + CLI + skill slash-forms both harnesses; Cursor hook = known #12 (not fixing)
+- [x] Step 5 — Phase 5 bookkeeping (roadmap checkboxes + README status / empirical line)
+- [x] Step 6 — defect repair: **skipped for #12 per operator** (filed, out of scope)
+
 ## Status
 
 - [x] Component analysis complete
@@ -135,5 +144,5 @@ No new technology - validation not required. Uses existing release-please, marke
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Preflight
-- [ ] Build
+- [x] Build
 - [ ] QA

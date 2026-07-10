@@ -51,3 +51,28 @@ Exercise the release-please path so a cut version syncs into both stockroom plug
     - PASS with advisory: E2E remains operator-gated for marketplace UI (expected; not a plan defect)
 * Insights
     - Proof-heavy L3 plans still need per-step verify/mutate ordering or preflight fails TDD encoding
+
+## 2026-07-09 - BUILD - IN-PROGRESS
+
+* Work completed
+    - Verified release + marketplace prerequisites
+    - Operator marketplace install confirmed via `doctor probe` engine-dir in Cursor plugin cache
+    - CLI proofs: query / semantic / dashboard against dual-harness warehouse
+    - Authored `e2e-clean-machine-runbook.md`
+* Decisions made
+    - [#12](https://github.com/Texarkanine/stockroom/issues/12) Cursor sessionStart PATH issue is **known and out of scope** for this build (operator correction mid-build); do not fix; document only
+    - Reverted accidental packaging-test change that would have forced a #12 fix
+* Insights
+    - Friendly "search" is a skill, not a `stockroom search` subcommand — CLI E2E maps to query/semantic/dashboard
+
+## 2026-07-09 - BUILD - COMPLETE
+
+* Work completed
+    - Operator confirmed skill slash-forms on Cursor and Claude Code
+    - Checked off all Phase 5 roadmap milestones
+    - Updated README: listed in marketplace, forms empirically proven, #12 caveat
+    - Closed E2E runbook evidence
+* Decisions made
+    - Phase 5 done-when met without fixing Cursor sessionStart hook (#12 remains open)
+* Insights
+    - Manual `/sr-dashboard` / CLI dashboard is enough for the four-surface gate; auto-hook is a follow-up bug
