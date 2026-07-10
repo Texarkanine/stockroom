@@ -1,11 +1,13 @@
 # Active Context
 
 ## Current Task: dashboard-lifecycle-after-plugin-move
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Intent confirmed: implement start-time identity-aware dashboard replace per creative doc
-- Complexity determined: Level 2 (contained enhancement of dashboard launcher; design already resolved; process-control + identity artifact beyond a one-line L1 fix)
+- Level 2 plan written: identity under stockroom home + launcher decision matrix (reuse / replace / leave foreign)
+- Creative Option B confirmed as design authority; no open questions / no further creative
+- TDD behaviors B1–B8 mapped to `test_dashboard_cli.py` + `test_dashboard_identity.py`
+- Touchpoints: `dashboard/identity.py` (new), `dashboard/__main__.py`, docs/using.md
 
 ## Next Step
-- Load Level 2 workflow and execute plan phase
+- Preflight validation (autonomous for L2)

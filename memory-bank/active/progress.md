@@ -15,3 +15,16 @@ Implement start-time identity-aware replace for the machine-scoped dashboard so 
     - Level 2: self-contained launcher enhancement with durable identity; architecture already decided in creative
 * Insights
     - Creative Option B (start-time replace) is the implementation north star; close hooks are explicitly out of scope
+
+## 2026-07-10 - PLAN - COMPLETE
+
+* Work completed
+    - Linear TDD plan for identity module + launcher decision matrix
+    - Documented pre-identity one-shot gap (manual kill) as accepted
+    - No new dependencies; no hook changes
+* Decisions made
+    - Only SIGTERM pid recorded in our identity file; verify ownership before kill when `/proc` available
+    - Include `__version__` in identity for same-path versioned upgrades
+    - No further creative phase
+* Insights
+    - Fix belongs entirely in `stockroom dashboard`; hooks already call the right entrypoint after rectify
