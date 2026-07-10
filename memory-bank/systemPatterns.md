@@ -20,6 +20,8 @@ One shared set of tables (`sessions`, `messages`, `tool_calls`, `embeddings`, `_
 
 `.cursor-plugin/plugin.json` and `.claude-plugin/plugin.json` over a shared `skills/` tree; committed layout equals install layout. release-please syncs version into both manifests. The full engine (`pyproject.toml`, `uv.lock`, `src/stockroom/`, migrations, tests) lives under `skills/sr-search/`.
 
+Harness hooks are **not** the same JSON shape: Cursor native hooks (`hooks/cursor-hooks.json`) use flat `{ "version": 1, "hooks": { "sessionStart": [{ "command": "..." }] } }` per [Cursor Hooks](https://cursor.com/docs/hooks); Claude Code hooks (`hooks/claude-hooks.json`) keep the nested `SessionStart` / `hooks[]` / `type: "command"` layout. Do not copy Claude structure into the Cursor file — Cursor will list the plugin hook but not execute it.
+
 ## The shim owns the invocation contract
 
 The generated on-path shim (`~/.local/bin/stockroom`, from [`stockroom.shim`](../skills/sr-search/src/stockroom/shim.py)) owns engine-dir resolution, `PYTHONPATH`, and torch-safe uv flags. Wrapper skills carry no fallback incantation — missing `stockroom` on PATH means run `sr-initialize`. Regression-pinned by [`tests/test_skill_hygiene.py`](../skills/sr-search/tests/test_skill_hygiene.py). System-model rationale: [`skills/sr-search/references/system-model.md`](../skills/sr-search/references/system-model.md).

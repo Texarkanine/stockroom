@@ -27,3 +27,13 @@ Fix Cursor plugin `sessionStart` so it loads and runs: restructure `hooks/cursor
     - Omit Cursor `type` / `matcher` to match documented native examples
 * Insights
     - Issue #12's PATH theory was real defense-in-depth but not why the hook never appeared in Hooks output
+
+## 2026-07-10 - QA - COMPLETE
+
+* Work completed
+    - Semantic review against project brief: all requirements met; Claude left alone
+    - Wrote `.qa-validation-status` = PASS
+* Decisions made
+    - No code fixes needed in QA
+* Insights
+    - Cursor vs Claude hook schemas must stay deliberately divergent; packaging tests now encode that

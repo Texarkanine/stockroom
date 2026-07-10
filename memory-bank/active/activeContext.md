@@ -1,13 +1,11 @@
 # Active Context
 
 ## Current Task: fix-cursor-sessionstart-hook-schema
-**Phase:** BUILD - COMPLETE
+**Phase:** QA - COMPLETE
 
 ## What Was Done
-- Confirmed failing packaging test against Claude-shaped Cursor hooks.json
-- Fixed `hooks/cursor-hooks.json` to Cursor native flat schema + PATH/stdin/timeout hardening
-- Updated `test_packaging.py` Cursor contract; Claude assertions unchanged
-- Full suite: 424 passed, 3 skipped; lint/format clean
+- Fixed Cursor `sessionStart` hook schema (#12) and packaging contracts
+- QA PASS; reconciled `systemPatterns.md` with Cursor-vs-Claude hook schema divergence
 
 ## Next Step
-- QA phase (`/niko-qa`)
+- Level 1 wrap-up commit; operator cleans `memory-bank/active/` when satisfied

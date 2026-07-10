@@ -16,3 +16,7 @@
 **Files affected:**
 - `hooks/cursor-hooks.json`
 - `skills/sr-search/tests/test_packaging.py`
+
+## QA
+
+✅ PASS — schema matches Cursor docs; command hardening present; Claude untouched; suite green. No semantic issues found.
