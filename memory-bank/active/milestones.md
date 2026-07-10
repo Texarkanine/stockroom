@@ -22,7 +22,7 @@ m2 and m3 are independent after m1; serial order is m1 → m2 → m3.
 
 ## Milestone checklist
 
-- [ ] Add top-bar date-range selector wired to windowed `since`/`until` (prior-period % deltas + panel labels) and restyle Aggregate/Compare as an exclusive segmented toggle (#4, #5)
+- [x] Add top-bar date-range selector wired to windowed `since`/`until` (prior-period % deltas + panel labels) and restyle Aggregate/Compare as an exclusive segmented toggle (#4, #5)
 - [ ] Change Write/Read panel to plot ratio series in Aggregate and Compare modes with honest zero-denominator handling (#6)
 - [ ] Show friendly project names with `project_id` on hover (#8) and add clickable info-icon tooltips for Session Efficiency and First-Prompt Quality (#7)
 
