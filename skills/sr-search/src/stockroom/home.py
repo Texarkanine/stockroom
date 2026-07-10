@@ -2,8 +2,8 @@
 
 Stdlib-only on purpose: heal imports (``shim`` → ``engine_env`` →
 ``torch_source``) must resolve stockroom home on a bare ``uv python find``
-interpreter with no project site-packages — any third-party import 
-dies before ``ensure_engine_env`` can sync. 
+interpreter with no project site-packages — any third-party import
+dies before ``ensure_engine_env`` can sync.
 The warehouse module re-exports these names for existing callers.
 """
 
