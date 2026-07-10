@@ -1,11 +1,11 @@
 # Active Context
 
 ## Current Task: p5-m1-install-docs
-**Phase:** QA - COMPLETE
+**Phase:** REFLECT COMPLETE
 
 ## What Was Done
-- QA PASS against amended m1 plan: best-effort install docs, no docstring tests, live install/invocation deferred to m2/m3.
-- No substantive defects; no trivial debris to clean.
+- Reflection written: best-effort install docs shipped; docstring tests removed; live install/invocation deferred to m2/m3.
+- Persistent files unchanged (no factual invalidation beyond ephemeral docs).
 
 ## Next Step
-- Reflect phase (automatic per L2 workflow).
+- Run `/niko` to continue to the next milestone.

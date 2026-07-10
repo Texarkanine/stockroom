@@ -41,6 +41,16 @@ Author install/usage docs (marketplace path + local/dev loaders) and document pe
 * Insights
     - m1 packaging/doc contract amendment from L4 preflight is superseded by operator decisions
 
+## 2026-07-09 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `memory-bank/active/reflection/reflection-p5-m1-install-docs.md`
+    - Reconciled persistent files: no updates required
+* Decisions made
+    - Capture operator course-correction (no docstring tests; defer live install proof) as the durable lesson for m2/m3
+* Insights
+    - Marketplace UI ≠ plugin install; local loaders are pre-catalog only
+
 ## 2026-07-09 - QA - COMPLETE
 
 * Work completed
