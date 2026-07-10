@@ -1,11 +1,11 @@
 # Active Context
 
 ## Current Task: dashboard-polish-m3-labels-and-help
-**Phase:** PREFLIGHT - COMPLETE
+**Phase:** BUILD - IN-PROGRESS
 
 ## What Was Done
-- Preflight PASS: TDD encoding amended (per-step test-before-code); conventions and boundaries align
-- Advisory: restore dirty trends/writeShare WIP before `/niko-build`
+- Preflight PASS; out-of-scope trends/writeShare WIP restored to HEAD
+- Operator amended locked decision #1: when sessions disagree on short name, show full `project_id` (not most-recent cwd)
 
 ## Next Step
-- Operator runs `/niko-build`
+- Execute Implementation Plan steps 1–7 (TDD)

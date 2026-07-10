@@ -37,3 +37,13 @@ Show friendly project names with `project_id` on hover (#8) and add clickable in
     - Keep projects-local cwd resolution; Chart.js tooltip for slug hover; pure helpers for help toggle
 * Insights
     - `_seed_session` needs `cwd=` for #8 fixtures; existing projects exact-assert must grow `labels`
+
+## 2026-07-10 - BUILD - IN-PROGRESS
+
+* Work completed
+    - Restored out-of-scope trends/writeShare dirty WIP to HEAD before implementation
+    - Synced plan text to operator amendment of cwd-disagreement rule
+* Decisions made
+    - **cwd pick when sessions disagree**: show the full `project_id` if there is not one unique short name (replaces most-recent non-NULL cwd)
+* Insights
+    - Unique short name = all non-NULL cwds for a ranked `project_id` share one basename; otherwise label equals id

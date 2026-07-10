@@ -78,7 +78,7 @@ None — implementation approach is clear.
 
 Decisions locked in plan:
 
-1. **cwd pick when sessions disagree**: among windowed sessions for a `project_id`, take the basename of the most recent non-NULL `cwd` by activity; if none, fall back to `project_id`.
+1. **cwd pick when sessions disagree**: show the full ID if there is not one unique short name.
 2. **API shape**: keep `projects` as ranked ids; add parallel `labels`; client derives hover titles when `labels[i] !== projects[i]`.
 3. **Chart hover**: Chart.js tooltip `callbacks.title` (bar hover) surfaces the slug; canvas ticks stay friendly labels (Chart.js has no reliable tick-hover DOM).
 4. **Help UI**: click-toggle button + popover (`aria-expanded` / `aria-controls`), dismiss on Escape / outside click / re-toggle; static copy in `dashboard-core.mjs` as `PANEL_HELP`.
@@ -89,7 +89,7 @@ Decisions locked in plan:
 
 - Friendly projects: project with recoverable cwd → `labels[i]` is basename; `projects[i]` remains slug; ranking still by slug totals.
 - Fallback slug: all cwd NULL for a project → `labels[i] === projects[i]`.
-- Deterministic cwd pick: two sessions, different cwd basenames → label from most recent non-NULL cwd.
+- Ambiguous cwd: two sessions, different cwd basenames for one `project_id` → `labels[i] === projects[i]` (full ID; no unique short name).
 - Hover metadata (JS): when label ≠ id → `labelTitles[i] === id`; when equal → null/absent.
 - Aggregate/compare projects panels: chart `labels` are friendly; series still aligned to id order.
 - Sessions: row includes `project_id`; render sets `title` to slug only when `project_name !== project_id`.
@@ -123,7 +123,7 @@ Decisions locked in plan:
 
 1. **Shared display helper + projects labels**
     - Files: `metrics.py`, `test_dashboard_metrics.py`
-    - TDD: write failing tests first — extend `test_projects_ranks_*` exact payload to expect parallel `labels` (slug fallback when no cwd); add cases for friendly basename, deterministic most-recent cwd pick, and ranking-still-by-id when basenames collide; then implement `project_display_name(cwd, project_id)` + projects-local cwd resolution + `labels` array until green.
+    - TDD: write failing tests first — extend `test_projects_ranks_*` exact payload to expect parallel `labels` (slug fallback when no cwd); add cases for friendly basename when all non-NULL cwds share one leaf, disagreeing basenames → full ID, and ranking-still-by-id when basenames collide across projects; then implement `project_display_name(cwd, project_id)` + projects-local unique-short-name resolution + `labels` array until green.
     - Note: `_seed_session` must accept `cwd=` for these fixtures (extend helper if missing).
 
 2. **Sessions / wrapped `project_id`**
