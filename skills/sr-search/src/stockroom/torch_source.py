@@ -253,17 +253,18 @@ def _torch_importable(app_dir: Path, *, runner: Runner, timeout: float) -> bool:
     return proc.returncode == 0
 
 
-def _pip_install_cmd(app_dir: Path, index_url: str) -> list[str]:
+def _pip_install_freeze_cmd(app_dir: Path, freeze: Path) -> list[str]:
+    """Build ``uv pip install --require-hashes -r <freeze>`` for ``app_dir``."""
     return [
         "uv",
         "pip",
         "install",
-        "torch",
         "--no-config",
         "--directory",
         str(app_dir),
-        "--index",
-        index_url,
+        "--require-hashes",
+        "-r",
+        str(freeze),
     ]
 
 
@@ -273,41 +274,39 @@ def ensure_torch(
     runner: Runner | None = None,
     timeout: float = _DEFAULT_TORCH_TIMEOUT,
 ) -> TorchEnsureReport:
-    """Ensure torch is importable in ``app_dir``'s venv using the durable index.
+    """Ensure torch is importable in ``app_dir``'s venv from the hashed freeze.
 
-    If torch already imports, return ``noop``. If missing and a recorded
-    ``https://`` index exists, run ``uv pip install torch`` into the engine
-    directory. If missing with no record, soft-fail naming ``sr-initialize`` /
-    ``stockroom torch record`` — never guess a wheel.
+    If torch already imports, return ``noop``. If missing and a usable
+    ``torch-requirements.txt`` freeze exists, run
+    ``uv pip install --require-hashes -r <freeze>`` (indexes come from the
+    freeze via ``--emit-index-url`` at compile time). If missing with no
+    freeze, soft-fail naming ``sr-initialize`` / ``docs/torch.md`` — never
+    floating-install from the index sidecar alone.
     """
     app_dir = Path(os.path.abspath(Path(app_dir).expanduser()))
-    run = runner or (
-        lambda cmd, timeout: subprocess.run(
-            cmd, capture_output=True, text=True, timeout=timeout
-        )
-    )
+    run = runner or _default_runner
 
     if _torch_importable(app_dir, runner=run, timeout=min(timeout, 30.0)):
         return TorchEnsureReport(action="noop", reason="torch already importable")
 
-    index = read_index()
-    if index is None:
+    freeze = read_freeze_path()
+    if freeze is None:
         return TorchEnsureReport(
             action="failed",
             reason=(
-                "torch missing and no durable index at "
-                f"{index_path()} — run sr-initialize or "
-                "`stockroom torch record --index <url>`"
+                "torch missing and no hashed freeze at "
+                f"{requirements_path()} — run sr-initialize (install → smoke → "
+                "freeze) or see docs/torch.md"
             ),
         )
 
-    cmd = _pip_install_cmd(app_dir, index)
+    cmd = _pip_install_freeze_cmd(app_dir, freeze)
     try:
         proc = run(cmd, timeout=timeout)
     except subprocess.TimeoutExpired as exc:
         return TorchEnsureReport(
             action="failed",
-            reason=f"uv pip install torch timed out after {exc.timeout}s",
+            reason=f"uv pip install freeze timed out after {exc.timeout}s",
         )
     except OSError as exc:
         return TorchEnsureReport(
@@ -319,4 +318,4 @@ def ensure_torch(
         detail = (proc.stderr or proc.stdout or f"exit {proc.returncode}").strip()
         return TorchEnsureReport(action="failed", reason=detail)
 
-    return TorchEnsureReport(action="installed", reason=index)
+    return TorchEnsureReport(action="installed", reason=str(freeze))

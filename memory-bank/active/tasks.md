@@ -61,7 +61,7 @@ Each step: **tests first → implement → green**.
    - Deprecate floating install path; keep `write_index` as sidecar writer used by freeze
    - Tests F1–F2, edges
 
-2. **Heal uses freeze only**
+2. **Heal uses freeze only** ✅
    - Change `ensure_torch` / `_pip_install_cmd` to `--require-hashes -r <freeze>`
    - Remove heal-via-index-only behavior; update tests F3–F5; fix `test_engine_env` stubs
 

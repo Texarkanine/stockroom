@@ -4,8 +4,8 @@ When a marketplace/local plugin tree appears without a synced ``.venv``, path
 rectify alone leaves ``uv run --no-sync`` pointed at an empty or missing env.
 This module is the single tested owner of **env** healing: probe with
 ``uv sync --frozen --inexact --check``, heal locked deps with
-``uv sync --frozen --inexact``, then restore out-of-lock torch from the durable
-index under stockroom home (:mod:`stockroom.torch_source`).
+``uv sync --frozen --inexact``, then restore out-of-lock torch from the hashed
+freeze under stockroom home (:mod:`stockroom.torch_source`).
 
 Called from ``stockroom.shim.rectify`` / ``shim ensure-env`` so hooks inherit
 healing without duplicating shell policy in both harness JSON files.
@@ -81,11 +81,11 @@ def ensure_engine_env(
     timeout: float = _DEFAULT_TIMEOUT,
     torch_timeout: float = _DEFAULT_TORCH_TIMEOUT,
 ) -> EnsureReport:
-    """Ensure locked deps and recorded torch are present in ``app_dir``.
+    """Ensure locked deps and frozen torch are present in ``app_dir``.
 
     1. Probe/heal locked deps with ``uv sync --frozen --inexact`` (never exact).
     2. Ensure torch via :func:`stockroom.torch_source.ensure_torch` using the
-       durable index under stockroom home.
+       hashed freeze under stockroom home.
 
     Soft-fails on errors so session hooks can keep ``|| true`` semantics.
     """

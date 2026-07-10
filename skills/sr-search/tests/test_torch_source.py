@@ -53,7 +53,14 @@ def test_write_index_rejects_non_https(stockroom_home: Path) -> None:
 
 
 def test_ensure_torch_noop_when_importable(app_dir: Path, stockroom_home: Path) -> None:
-    """T2: torch already importable → noop; no pip."""
+    """F5: torch already importable → noop even if freeze present; no pip."""
+    url = "https://download.pytorch.org/whl/cpu"
+    freeze = stockroom_home / "torch-requirements.txt"
+    freeze.write_text(
+        f"--index-url {url}\ntorch==2.7.1+cpu \\\n    --hash=sha256:deadbeef\n",
+        encoding="utf-8",
+    )
+    torch_source.write_index(url)
     calls: list[list[str]] = []
 
     def runner(cmd, **kwargs):  # noqa: ANN001
@@ -72,11 +79,16 @@ def test_ensure_torch_noop_when_importable(app_dir: Path, stockroom_home: Path) 
     assert not any("pip" in c for c in calls)
 
 
-def test_ensure_torch_installs_from_record(
+def test_ensure_torch_installs_from_freeze(
     app_dir: Path, stockroom_home: Path
 ) -> None:
-    """T3: missing torch + recorded index → uv pip install with that index."""
+    """F3: missing torch + freeze present → --require-hashes -r freeze; no bare index install."""
     url = "https://download.pytorch.org/whl/cpu"
+    freeze = stockroom_home / "torch-requirements.txt"
+    freeze.write_text(
+        f"--index-url {url}\ntorch==2.7.1+cpu \\\n    --hash=sha256:deadbeef\n",
+        encoding="utf-8",
+    )
     torch_source.write_index(url)
     py = app_dir / ".venv" / "bin" / "python"
     py.parent.mkdir(parents=True)
@@ -94,18 +106,22 @@ def test_ensure_torch_installs_from_record(
     report = torch_source.ensure_torch(app_dir, runner=runner)
     assert report.action == "installed"
     pip = next(c for c in calls if "pip" in c)
-    assert pip[:4] == ["uv", "pip", "install", "torch"]
+    assert pip[:3] == ["uv", "pip", "install"]
+    assert "--require-hashes" in pip
+    assert "-r" in pip
+    assert str(freeze) in pip
     assert "--no-config" in pip
     assert "--directory" in pip
     assert str(app_dir) in pip or str(Path(os.path.abspath(app_dir))) in pip
-    assert "--index" in pip
-    assert url in pip
+    # Must not floating-install torch by name with --index alone.
+    assert not (pip[3] == "torch" and "--index" in pip and "--require-hashes" not in pip)
 
 
-def test_ensure_torch_fails_without_record(
+def test_ensure_torch_fails_without_freeze(
     app_dir: Path, stockroom_home: Path
 ) -> None:
-    """T4: missing torch + no record → failed soft; no pip."""
+    """F4: missing torch + no freeze → failed soft; no pip (even if index sidecar exists)."""
+    torch_source.write_index("https://download.pytorch.org/whl/cpu")
     py = app_dir / ".venv" / "bin" / "python"
     py.parent.mkdir(parents=True)
     py.write_text("#!/bin/sh\n")
@@ -119,7 +135,31 @@ def test_ensure_torch_fails_without_record(
 
     report = torch_source.ensure_torch(app_dir, runner=runner)
     assert report.action == "failed"
-    assert "sr-initialize" in report.reason or "record" in report.reason.lower()
+    assert "sr-initialize" in report.reason or "docs/torch.md" in report.reason
+    assert "freeze" in report.reason.lower() or "torch-requirements" in report.reason
+    assert not any("pip" in c for c in calls)
+
+
+def test_ensure_torch_fails_on_corrupt_freeze(
+    app_dir: Path, stockroom_home: Path
+) -> None:
+    """Edge: corrupt freeze (no hashes) → soft-fail; no pip."""
+    (stockroom_home / "torch-requirements.txt").write_text(
+        "torch==2.7.1+cpu\n", encoding="utf-8"
+    )
+    py = app_dir / ".venv" / "bin" / "python"
+    py.parent.mkdir(parents=True)
+    py.write_text("#!/bin/sh\n")
+    py.chmod(0o755)
+
+    calls: list[list[str]] = []
+
+    def runner(cmd, **kwargs):  # noqa: ANN001
+        calls.append(list(cmd))
+        return _fail("No module named torch")
+
+    report = torch_source.ensure_torch(app_dir, runner=runner)
+    assert report.action == "failed"
     assert not any("pip" in c for c in calls)
 
 
