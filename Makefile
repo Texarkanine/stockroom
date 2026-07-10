@@ -35,7 +35,7 @@ sync: ## Install deps from the committed lock (torch-free; re-run make torch aft
 
 torch: ## Install torch out-of-band (embed/semantic; stripped by make sync)
 	$(UV_DIR) pip install torch --index $(TORCH_INDEX)
-	PYTHONPATH=$(CURDIR)/$(ENGINE)/src $(UV_RUN) python -m stockroom torch record --index $(TORCH_INDEX)
+	PYTHONPATH=$(CURDIR)/$(ENGINE)/src $(UV_RUN) python -m stockroom torch freeze --index $(TORCH_INDEX)
 
 lock: ## Regenerate uv.lock hermetically
 	$(UV_DIR) lock

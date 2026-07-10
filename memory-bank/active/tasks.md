@@ -70,7 +70,7 @@ Each step: **tests first → implement → green**.
    - remove "record" command.
    - Tests F6; dispatcher help fingerprint
 
-4. **Writers onboard**
+4. **Writers onboard** ✅
    - `sr-initialize`: after smoke success → `torch freeze` (not index-only record); order: install → smoke → freeze
    - `Makefile` `torch`: install then `torch freeze --app-dir … --index $(TORCH_INDEX)`
    - New `docs/torch.md`: contract, freeze location, heal, failure → re-initialize or manual freeze

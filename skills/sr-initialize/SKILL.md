@@ -82,21 +82,12 @@ The wheel is a **per-machine human choice**. Never pick it silently: recommend f
 
 ## Step 6: Provision and smoke-test
 
-For the guided path, install the confirmed wheel (out of band, per the torch contract — note `--no-config` and `--directory`, both required), then **record the index** so plugin updates can reinstall the same wheel without asking again:
+For the guided path, install the confirmed wheel (out of band, per the torch contract — note `--no-config` and `--directory`, both required), then verify through the production path — `smoke` prints the torch version and CUDA availability, then encodes one real string through the actual embedding encoder:
 
 ```bash
 uv pip install torch --no-config --directory "$APP_DIR" \
   --index https://download.pytorch.org/whl/cu126   # ← the user's confirmed build
 
-PYTHONPATH="$APP_DIR/src" python3 -m stockroom torch record \
-  --index https://download.pytorch.org/whl/cu126   # ← same URL
-```
-
-The record lives under stockroom home (`$STOCKROOM_HOME` or `~/.local/share/stockroom/torch-index`), outside the disposable plugin tree. Session/workspace hooks call `shim rectify` → `ensure_engine_env`, which restores torch from this record after a plugin-root move.
-
-Then verify through the production path — `smoke` prints the torch version and CUDA availability, then encodes one real string through the actual embedding encoder:
-
-```bash
 PYTHONPATH="$APP_DIR/src" uv run --project "$APP_DIR" --no-sync --no-config \
   python -m stockroom doctor smoke
 ```
@@ -104,6 +95,16 @@ PYTHONPATH="$APP_DIR/src" uv run --project "$APP_DIR" --no-sync --no-config \
 The first run downloads the embedding model (network needed once); that also pre-warms the cache so the first real embed won't pay it. Exit 0 ends with `ok: encoded one string to a 384-dim vector`.
 
 **On failure, smoke exits 1 with one stderr line that names the next action — relay it and follow it.** The common shape is a wrong wheel (a CUDA kernel error or crash from the encode): go back to step 5, pick a different index (usually an older `cu*` build, or `cpu` as the always-works fallback), reinstall, and re-run the smoke. `uv pip install` replaces the previous build in place.
+
+**Only after smoke succeeds**, freeze the accepted torch stack so plugin updates can reinstall the *same* bits (hashed requirements under stockroom home — see [`docs/torch.md`](../../docs/torch.md)):
+
+```bash
+PYTHONPATH="$APP_DIR/src" python3 -m stockroom torch freeze \
+  --app-dir "$APP_DIR" \
+  --index https://download.pytorch.org/whl/cu126   # ← same URL that passed smoke
+```
+
+The freeze lives under stockroom home (`$STOCKROOM_HOME` or `~/.local/share/stockroom/torch-requirements.txt`, plus a `torch-index` sidecar), outside the disposable plugin tree. Session/workspace hooks call `shim rectify` → `ensure_engine_env`, which restores torch from this freeze (`uv pip install --require-hashes -r …`) after a plugin-root move. Do **not** freeze a build that failed smoke.
 
 ## Step 7: Bind the `stockroom` command
 
