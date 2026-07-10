@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{ PYTHONPATH=\"${CLAUDE_PLUGIN_ROOT}/skills/sr-search/src\" uv run --project \"${CLAUDE_PLUGIN_ROOT}/skills/sr-search\" --no-sync --no-config python -m stockroom shim rectify --owner claude --app-dir \"${CLAUDE_PLUGIN_ROOT}/skills/sr-search\"; stockroom dashboard; } >/dev/null 2>&1 || true",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

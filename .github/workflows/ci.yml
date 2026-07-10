@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  engine:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: skills/sr-search
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      # Hermetic, torch-free sync from the committed lock. --no-config keeps
+      # ambient user config from leaking into resolution.
+      - name: Sync locked environment
+        run: uv sync --frozen --no-config
+
+      - name: Lock is not stale
+        run: uv lock --locked --no-config
+
+      - name: Lint
+        run: uv run --no-sync --no-config ruff check
+
+      - name: Format check
+        run: uv run --no-sync --no-config ruff format --check
+
+      - name: Test
+        run: uv run --no-sync --no-config pytest
+
+      - name: Test dashboard JavaScript
+        run: node --test tests-js/*.test.mjs
+
+      # REUSE compliance for the whole tree (REUSE.toml lives at the repo root).
+      - name: REUSE lint
+        working-directory: ${{ github.workspace }}
+        run: uv run --project skills/sr-search --no-sync --no-config reuse lint

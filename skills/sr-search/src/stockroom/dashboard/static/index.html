@@ -1,0 +1,738 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <title>stockroom dashboard</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --page: #f6f7fb;
+        --surface: #ffffff;
+        --surface-soft: #f0f2f8;
+        --text: #171923;
+        --muted: #646b7d;
+        --border: #dfe3ec;
+        --accent: #6366f1;
+        --accent-strong: #4f46e5;
+        --positive: #15803d;
+        --negative: #b91c1c;
+        --shadow: 0 12px 32px rgb(31 41 55 / 8%);
+        --radius: 18px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-width: 320px;
+        background: var(--page);
+        color: var(--text);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        line-height: 1.5;
+      }
+
+      button,
+      input,
+      summary {
+        font: inherit;
+      }
+
+      .skip-link {
+        position: fixed;
+        z-index: 20;
+        top: 0.5rem;
+        left: 0.5rem;
+        transform: translateY(-160%);
+        border-radius: 0.5rem;
+        background: var(--accent);
+        color: #fff;
+        padding: 0.65rem 0.9rem;
+      }
+
+      .skip-link:focus {
+        transform: translateY(0);
+      }
+
+      :focus-visible {
+        outline: 3px solid color-mix(in srgb, var(--accent) 72%, white);
+        outline-offset: 3px;
+      }
+
+      .page {
+        width: min(1200px, calc(100% - 2rem));
+        margin: 0 auto;
+        padding: 2.25rem 0 4rem;
+      }
+
+      .masthead {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+      }
+
+      .eyebrow {
+        margin: 0 0 0.35rem;
+        color: var(--accent-strong);
+        font-size: 0.76rem;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      h1,
+      h2,
+      p {
+        margin-top: 0;
+      }
+
+      h1 {
+        margin-bottom: 0.25rem;
+        font-size: clamp(1.8rem, 4vw, 2.7rem);
+        letter-spacing: -0.04em;
+        line-height: 1.05;
+      }
+
+      .subtitle,
+      .sync,
+      .panel-range,
+      .metric-label,
+      .metric-delta,
+      .wrapped-subtitle {
+        color: var(--muted);
+      }
+
+      .sync {
+        margin: 0.25rem 0 0;
+        font-size: 0.86rem;
+        text-align: right;
+      }
+
+      .controls {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        padding: 0.85rem;
+        margin-bottom: 0.75rem;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+      }
+
+      details {
+        position: relative;
+      }
+
+      summary {
+        min-width: 12rem;
+        cursor: pointer;
+        list-style: none;
+        border: 1px solid var(--border);
+        border-radius: 0.65rem;
+        background: var(--surface-soft);
+        padding: 0.55rem 2.2rem 0.55rem 0.75rem;
+        font-weight: 700;
+      }
+
+      summary::-webkit-details-marker {
+        display: none;
+      }
+
+      summary::after {
+        position: absolute;
+        right: 0.8rem;
+        content: "▾";
+      }
+
+      .harness-options {
+        position: absolute;
+        z-index: 10;
+        top: calc(100% + 0.45rem);
+        left: 0;
+        display: grid;
+        min-width: 15rem;
+        gap: 0.25rem;
+        border: 1px solid var(--border);
+        border-radius: 0.75rem;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+        padding: 0.6rem;
+      }
+
+      .check-row,
+      .mode-row {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        cursor: pointer;
+      }
+
+      .check-row {
+        border-radius: 0.45rem;
+        padding: 0.45rem 0.5rem;
+      }
+
+      .check-row:hover {
+        background: var(--surface-soft);
+      }
+
+      .harness-dot {
+        width: 0.7rem;
+        height: 0.7rem;
+        flex: 0 0 auto;
+        border-radius: 50%;
+        background: var(--harness-color, var(--accent));
+      }
+
+      fieldset {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        margin: 0;
+        border: 0;
+        padding: 0;
+      }
+
+      fieldset legend {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+      }
+
+      .mode-row {
+        border-radius: 0.6rem;
+        padding: 0.5rem 0.65rem;
+        font-weight: 700;
+      }
+
+      .mode-row:has(input:checked) {
+        background: var(--accent);
+        color: #fff;
+      }
+
+      .mode-row input {
+        accent-color: var(--accent);
+      }
+
+      .status {
+        min-height: 1.5rem;
+        margin: 0.35rem 0 0.75rem;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .error {
+        margin-bottom: 1rem;
+        border: 1px solid color-mix(in srgb, var(--negative) 35%, var(--border));
+        border-radius: 0.75rem;
+        background: color-mix(in srgb, var(--negative) 8%, var(--surface));
+        color: var(--negative);
+        padding: 0.8rem 1rem;
+        font-weight: 650;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+      }
+
+      .metric-card,
+      .panel,
+      .sessions-panel {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--surface);
+        box-shadow: var(--shadow);
+      }
+
+      .metric-card {
+        padding: 1.15rem;
+      }
+
+      .metric-label {
+        margin-bottom: 0.35rem;
+        font-size: 0.78rem;
+        font-weight: 750;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .metric-value {
+        margin-bottom: 0.15rem;
+        font-size: clamp(1.7rem, 4vw, 2.35rem);
+        font-weight: 800;
+        letter-spacing: -0.04em;
+      }
+
+      .metric-delta {
+        margin-bottom: 0;
+        font-size: 0.84rem;
+        font-weight: 700;
+      }
+
+      .metric-delta[data-trend="up"] {
+        color: var(--positive);
+      }
+
+      .metric-delta[data-trend="down"] {
+        color: var(--negative);
+      }
+
+      .metric-breakdown {
+        display: grid;
+        gap: 0.4rem;
+        margin-top: 0.8rem;
+      }
+
+      .metric-bar-heading {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.5rem;
+        color: var(--muted);
+        font-size: 0.7rem;
+      }
+
+      .metric-bar-track {
+        height: 0.3rem;
+        overflow: hidden;
+        border-radius: 999px;
+        background: var(--surface-soft);
+      }
+
+      .metric-bar-fill {
+        height: 100%;
+        width: var(--share, 0%);
+        border-radius: inherit;
+        background: var(--harness-color, var(--accent));
+      }
+
+      .chart-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
+      }
+
+      .panel {
+        min-width: 0;
+        padding: 1rem;
+      }
+
+      .panel-wide {
+        grid-column: 1 / -1;
+      }
+
+      .panel-header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 0.75rem;
+      }
+
+      .panel h2,
+      .sessions-panel h2,
+      .wrapped h2 {
+        margin-bottom: 0;
+        font-size: 1rem;
+        letter-spacing: -0.01em;
+      }
+
+      .panel-range {
+        margin-bottom: 0;
+        font-size: 0.76rem;
+        white-space: nowrap;
+      }
+
+      .chart-scroll {
+        max-height: 32rem;
+        overflow: auto;
+      }
+
+      .chart-wrap {
+        position: relative;
+        min-height: 260px;
+        height: 280px;
+      }
+
+      .no-data {
+        margin: 1rem 0;
+        color: var(--muted);
+        text-align: center;
+      }
+
+      .sessions-panel {
+        margin-top: 1rem;
+        overflow: hidden;
+      }
+
+      .sessions-panel h2 {
+        padding: 1rem 1rem 0;
+      }
+
+      .table-scroll {
+        overflow-x: auto;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.86rem;
+      }
+
+      th,
+      td {
+        border-top: 1px solid var(--border);
+        padding: 0.75rem 1rem;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        color: var(--muted);
+        font-size: 0.73rem;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+      }
+
+      .prompt-cell {
+        min-width: 16rem;
+        max-width: 30rem;
+      }
+
+      .harness-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        white-space: nowrap;
+      }
+
+      .wrapped {
+        margin-top: 1rem;
+        border-radius: var(--radius);
+        background: linear-gradient(135deg, #4f46e5, #7c3aed 54%, #9333ea);
+        box-shadow: var(--shadow);
+        color: #fff;
+        padding: 1.25rem;
+      }
+
+      .wrapped > p {
+        margin: 0.2rem 0 1rem;
+        color: #f5f3ff;
+      }
+
+      .wrapped-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0.65rem;
+      }
+
+      .wrapped-cell {
+        min-width: 0;
+        border: 1px solid rgb(255 255 255 / 18%);
+        border-radius: 0.8rem;
+        background: rgb(255 255 255 / 10%);
+        padding: 0.8rem;
+      }
+
+      .wrapped-label {
+        margin-bottom: 0.2rem;
+        color: #ede9fe;
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+      }
+
+      .wrapped-value {
+        overflow-wrap: anywhere;
+        margin-bottom: 0.1rem;
+        font-size: 1.15rem;
+        font-weight: 800;
+      }
+
+      .wrapped-subtitle {
+        margin-bottom: 0;
+        color: #ede9fe;
+        font-size: 0.75rem;
+      }
+
+      @media (max-width: 900px) {
+        .kpi-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .wrapped-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 800px) {
+        .chart-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .panel-wide {
+          grid-column: auto;
+        }
+      }
+
+      @media (max-width: 600px) {
+        .page {
+          width: min(100% - 1rem, 1200px);
+          padding-top: 1rem;
+        }
+
+        .masthead {
+          display: block;
+        }
+
+        .sync {
+          text-align: left;
+        }
+
+        .controls,
+        .kpi-grid,
+        .wrapped-grid {
+          display: grid;
+          grid-template-columns: 1fr;
+        }
+
+        details,
+        summary {
+          width: 100%;
+        }
+
+        .harness-options {
+          right: 0;
+          min-width: 100%;
+        }
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --page: #10111a;
+          --surface: #171923;
+          --surface-soft: #222533;
+          --text: #f5f6fa;
+          --muted: #aab0c0;
+          --border: #303445;
+          --accent: #818cf8;
+          --accent-strong: #a5b4fc;
+          --positive: #4ade80;
+          --negative: #f87171;
+          --shadow: 0 12px 32px rgb(0 0 0 / 24%);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip-link" href="#dashboard">Skip to dashboard</a>
+    <main class="page" id="dashboard">
+      <header class="masthead">
+        <div>
+          <p class="eyebrow">Local warehouse</p>
+          <h1>stockroom dashboard</h1>
+          <p class="subtitle">A read-only view across your agentic coding history.</p>
+        </div>
+        <p class="sync">Last sync: <time id="last-sync">—</time></p>
+      </header>
+
+      <section class="controls" aria-label="Dashboard view controls">
+        <details id="harness-selector">
+          <summary><span id="harness-summary">Loading harnesses…</span></summary>
+          <div class="harness-options" id="harness-options">
+            <span>Loading harnesses…</span>
+          </div>
+        </details>
+        <fieldset id="mode-selector">
+          <legend>Presentation mode</legend>
+          <label class="mode-row">
+            <input type="radio" name="mode" value="aggregate" checked>
+            Aggregate
+          </label>
+          <label class="mode-row">
+            <input type="radio" name="mode" value="compare">
+            Compare
+          </label>
+        </fieldset>
+      </section>
+      <p class="status" id="status" aria-live="polite">Loading dashboard…</p>
+      <div class="error" id="error" role="alert" hidden></div>
+
+      <section class="kpi-grid" id="kpi-grid" aria-label="Thirty-day overview">
+        <article class="metric-card" id="kpi-sessions">
+          <p class="metric-label">Sessions</p>
+          <p class="metric-value" data-value>0</p>
+          <p class="metric-delta" data-delta data-trend="neutral">No change</p>
+          <div class="metric-breakdown" data-breakdown></div>
+        </article>
+        <article class="metric-card" id="kpi-messages">
+          <p class="metric-label">Messages</p>
+          <p class="metric-value" data-value>0</p>
+          <p class="metric-delta" data-delta data-trend="neutral">No change</p>
+          <div class="metric-breakdown" data-breakdown></div>
+        </article>
+        <article class="metric-card" id="kpi-projects">
+          <p class="metric-label">Projects</p>
+          <p class="metric-value" data-value>0</p>
+          <p class="metric-delta" data-delta data-trend="neutral">No change</p>
+          <div class="metric-breakdown" data-breakdown></div>
+        </article>
+        <article class="metric-card" id="kpi-average">
+          <p class="metric-label">Avg Msgs / Session</p>
+          <p class="metric-value" data-value>0</p>
+          <p class="metric-delta" data-delta data-trend="neutral">No change</p>
+          <div class="metric-breakdown" data-breakdown></div>
+        </article>
+      </section>
+
+      <section class="chart-grid" aria-label="Dashboard charts">
+        <article class="panel" id="daily-panel">
+          <header class="panel-header">
+            <h2>Daily Activity</h2>
+            <p class="panel-range">Last 14 days</p>
+          </header>
+          <div class="chart-scroll">
+            <div class="chart-wrap" id="daily-chart-wrap">
+              <canvas id="daily-chart" role="img" aria-label="Daily session activity chart">Daily session activity chart.</canvas>
+            </div>
+          </div>
+          <p class="no-data" id="daily-empty" hidden>No data in this period.</p>
+        </article>
+
+        <article class="panel" id="projects-panel">
+          <header class="panel-header">
+            <h2>Sessions by Project</h2>
+            <p class="panel-range">Last 30 days</p>
+          </header>
+          <div class="chart-scroll">
+            <div class="chart-wrap" id="projects-chart-wrap">
+              <canvas id="projects-chart" role="img" aria-label="Sessions by project chart">Sessions by project chart.</canvas>
+            </div>
+          </div>
+          <p class="no-data" id="projects-empty" hidden>No data in this period.</p>
+        </article>
+
+        <article class="panel" id="tools-panel">
+          <header class="panel-header">
+            <h2>Tool Distribution</h2>
+            <p class="panel-range">Last 30 days</p>
+          </header>
+          <div class="chart-scroll">
+            <div class="chart-wrap" id="tools-chart-wrap">
+              <canvas id="tools-chart" role="img" aria-label="Tool distribution chart">Tool distribution chart.</canvas>
+            </div>
+          </div>
+          <p class="no-data" id="tools-empty" hidden>No data in this period.</p>
+        </article>
+
+        <article class="panel" id="write-read-panel">
+          <header class="panel-header">
+            <h2>Write / Read Ratio</h2>
+            <p class="panel-range">Last 12 weeks</p>
+          </header>
+          <div class="chart-scroll">
+            <div class="chart-wrap" id="write-read-chart-wrap">
+              <canvas id="write-read-chart" role="img" aria-label="Weekly write and read tool calls chart">Weekly write and read tool calls chart.</canvas>
+            </div>
+          </div>
+          <p class="no-data" id="write-read-empty" hidden>No data in this period.</p>
+        </article>
+
+        <article class="panel" id="efficiency-panel">
+          <header class="panel-header">
+            <h2>Session Efficiency</h2>
+            <p class="panel-range">Last 30 days</p>
+          </header>
+          <div class="chart-scroll">
+            <div class="chart-wrap" id="efficiency-chart-wrap">
+              <canvas id="efficiency-chart" role="img" aria-label="Session efficiency buckets chart">Session efficiency buckets chart.</canvas>
+            </div>
+          </div>
+          <p class="no-data" id="efficiency-empty" hidden>No data in this period.</p>
+        </article>
+
+        <article class="panel" id="models-panel">
+          <header class="panel-header">
+            <h2>Model Distribution</h2>
+            <p class="panel-range">Last 30 days</p>
+          </header>
+          <div class="chart-scroll">
+            <div class="chart-wrap" id="models-chart-wrap">
+              <canvas id="models-chart" role="img" aria-label="Model distribution chart">Model distribution chart.</canvas>
+            </div>
+          </div>
+          <p class="no-data" id="models-empty" hidden>No data in this period.</p>
+        </article>
+
+        <article class="panel panel-wide" id="first-prompt-panel">
+          <header class="panel-header">
+            <h2>First-Prompt Quality</h2>
+            <p class="panel-range">Average session length by prompt detail · 30 days</p>
+          </header>
+          <div class="chart-scroll">
+            <div class="chart-wrap" id="first-prompt-chart-wrap">
+              <canvas id="first-prompt-chart" role="img" aria-label="First-prompt quality chart">First-prompt quality chart.</canvas>
+            </div>
+          </div>
+          <p class="no-data" id="first-prompt-empty" hidden>No data in this period.</p>
+        </article>
+      </section>
+
+      <section class="sessions-panel" id="recent-sessions" aria-labelledby="recent-sessions-title">
+        <h2 id="recent-sessions-title">Recent Sessions</h2>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Started</th>
+                <th scope="col">Harness</th>
+                <th scope="col">Project</th>
+                <th scope="col">Messages</th>
+                <th scope="col">Model</th>
+                <th scope="col">First prompt</th>
+              </tr>
+            </thead>
+            <tbody id="session-rows">
+              <tr><td colspan="6">Loading recent sessions…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="wrapped" id="wrapped-panel" aria-labelledby="wrapped-title">
+        <h2 id="wrapped-title">Your Stockroom, Wrapped</h2>
+        <p>All-time facts across every harness in the warehouse.</p>
+        <div class="wrapped-grid" id="wrapped-grid">
+          <article class="wrapped-cell"><p class="wrapped-label">Total Sessions</p><p class="wrapped-value">0</p><p class="wrapped-subtitle">—</p></article>
+          <article class="wrapped-cell"><p class="wrapped-label">Total Messages</p><p class="wrapped-value">0</p><p class="wrapped-subtitle">All time</p></article>
+          <article class="wrapped-cell"><p class="wrapped-label">Distinct Projects</p><p class="wrapped-value">0</p><p class="wrapped-subtitle">All time</p></article>
+          <article class="wrapped-cell"><p class="wrapped-label">Busiest Harness</p><p class="wrapped-value">—</p><p class="wrapped-subtitle">—</p></article>
+          <article class="wrapped-cell"><p class="wrapped-label">Best Streak</p><p class="wrapped-value">0 days</p><p class="wrapped-subtitle">—</p></article>
+          <article class="wrapped-cell"><p class="wrapped-label">Marathon Session</p><p class="wrapped-value">—</p><p class="wrapped-subtitle">—</p></article>
+          <article class="wrapped-cell"><p class="wrapped-label">Peak Hour</p><p class="wrapped-value">—</p><p class="wrapped-subtitle">0 sessions</p></article>
+          <article class="wrapped-cell"><p class="wrapped-label">Top Tool</p><p class="wrapped-value">—</p><p class="wrapped-subtitle">0 calls</p></article>
+        </div>
+      </section>
+    </main>
+
+    <script src="chart-4.5.1.umd.min.js"></script>
+    <script type="module" src="dashboard.mjs"></script>
+  </body>
+</html>

@@ -1,0 +1,35 @@
+name: Release Please
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      # A GitHub App token (rather than the default GITHUB_TOKEN) is used so the
+      # release PR triggers CI like a normal PR. The operator provisions the
+      # HELPER_APP_ID var and HELPER_APP_PRIVATE_KEY secret post-merge.
+      - name: Generate GitHub App Token
+        id: generate-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ vars.HELPER_APP_ID }}
+          private-key: ${{ secrets.HELPER_APP_PRIVATE_KEY }}
+
+      - uses: googleapis/release-please-action@v4
+        with:
+          token: ${{ steps.generate-token.outputs.token }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json

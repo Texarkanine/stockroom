@@ -1,0 +1,70 @@
+version = 1
+SPDX-PackageName = "stockroom"
+SPDX-PackageSupplier = "Texarkanine <texarkanine@protonmail.com>"
+
+# Layered licensing — order matters (last matching override wins):
+#   1. base: everything is AGPL-3.0-or-later (worst-case-AGPL is intentional)
+#   2. skills/** prompt-shaped content is layered to PPL-S
+#   3. code-shaped paths inside skills/** are re-asserted back to AGPL
+#   4. dashboard-authored browser assets/tests are re-asserted back to AGPL
+#   5. the exact vendored Chart.js artifact retains its upstream MIT identity
+#   6. vendored dev tooling under .cursor/** has no license assertion
+
+# 1. Default: all code, docs, planning, and memory-bank content under AGPL.
+[[annotations]]
+path = ["**/*"]
+SPDX-FileCopyrightText = "Texarkanine"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+
+# 2. Prompt-shaped AgentSkills content (the shipped skill payload: SKILL.md,
+#    references, etc.) is layered over with the Public Prompt License (PPL-S).
+[[annotations]]
+path = ["skills/**"]
+precedence = "override"
+SPDX-FileCopyrightText = "Texarkanine"
+SPDX-License-Identifier = "LicenseRef-PPL-S"
+
+# 3. Code-shaped paths within skills/** are re-asserted as AGPL — they are
+#    software, not prompt content. Listed AFTER the PPL-S rule so they win.
+[[annotations]]
+path = [
+    "skills/**/*.py",
+    "skills/**/*.sh",
+    "skills/**/*.sql",
+    "skills/**/pyproject.toml",
+    "skills/**/uv.lock",
+    "skills/**/tests/**",
+]
+precedence = "override"
+SPDX-FileCopyrightText = "Texarkanine"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+
+# 4. Authored dashboard assets and native JavaScript tests are software.
+[[annotations]]
+path = [
+    "skills/sr-search/src/stockroom/dashboard/static/index.html",
+    "skills/sr-search/src/stockroom/dashboard/static/dashboard.mjs",
+    "skills/sr-search/src/stockroom/dashboard/static/dashboard-core.mjs",
+    "skills/sr-search/src/stockroom/dashboard/static/dashboard-data.mjs",
+    "skills/sr-search/tests-js/**",
+]
+precedence = "override"
+SPDX-FileCopyrightText = "Texarkanine"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+
+# 5. Exact upstream Chart.js runtime artifact, vendored verbatim.
+[[annotations]]
+path = [
+    "skills/sr-search/src/stockroom/dashboard/static/chart-4.5.1.umd.min.js",
+]
+precedence = "override"
+SPDX-FileCopyrightText = "2014-2025 Chart.js Contributors"
+SPDX-License-Identifier = "MIT"
+
+# 6. Vendored agent dev tooling (rules, skills, commands installed into this
+#    repo) carries unknown/mixed upstream licensing. No claims are made.
+[[annotations]]
+path = [".cursor/**"]
+precedence = "override"
+SPDX-FileCopyrightText = "NOASSERTION"
+SPDX-License-Identifier = "LicenseRef-NOASSERTION"
