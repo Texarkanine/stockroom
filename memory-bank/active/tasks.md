@@ -47,15 +47,15 @@ Establish a single timezone contract: all warehouse timestamps are UTC (naive Du
    - Changes: replace `datetime.now()` with `utc_now()`
 
 5. **Watermark reset migration (TDD)**
-   - Files: `migrations/0005_utc_timestamps.sql` (name TBD); `tests/test_schema_0005.py` + snapshot fixture if that is the project pattern
+   - Files: `migrations/0005_utc_timestamps.sql`; `tests/test_schema_0005.py` (behavior: watermarks cleared after apply). DDL unchanged vs `0004` — do **not** invent a divergent golden; either omit a new schema snapshot or assert introspection still matches the `0004` snapshot after applying through `0005`
    - Changes: `UPDATE _sync_state SET last_mtime = NULL, last_path = NULL` (keep rows) so next incremental acts like first run and rewrites `source_mtime`; document that existing `source_mtime` / `first_seen_at` local-naive values are corrected by re-ingest / only for new observations respectively
 
 6. **API emits unambiguous UTC (TDD)**
-   - Files: `dashboard/metrics.py` (Recent Sessions `started`, overview `last_sync`, any other `.isoformat()` datetime fields returned to the UI); `tests/test_dashboard_metrics.py`
-   - Changes: serialize datetimes with a trailing `Z` (UTC); keep date-only strings as `YYYY-MM-DD` without time
+   - Files: `dashboard/metrics.py` — extend existing `_iso` (do not add a parallel serializer); route Recent Sessions `started` through `_iso` instead of raw `activity.isoformat()`; `tests/test_dashboard_metrics.py` (update expectations currently pinned without `Z`, e.g. `last_sync` / `started`)
+   - Changes: `_iso` appends `Z` for naive UTC datetimes; keep date-only / date.label strings as `YYYY-MM-DD` without time
 
 7. **Dashboard client treats warehouse datetimes as UTC (TDD)**
-   - Files: extract or export parse/format from `dashboard.mjs` into `dashboard-core.mjs` (or small shared mjs); `tests-js/dashboard-time.test.mjs`; wire `dashboard.mjs` to shared helper
+   - Files: extract or export parse/format from `dashboard.mjs` into `dashboard-core.mjs` (tested surface); `tests-js/dashboard-time.test.mjs`; wire `dashboard.mjs` to shared helper
    - Changes: for non-dateOnly values, parse as UTC (`…Z` / offset, or append `Z` when timezone absent); format with existing `Intl` local formatters
 
 8. **Docs / comments**
@@ -89,6 +89,12 @@ No new technology - validation not required
 - **Plan fails by migrating column types to timestamptz / rewriting all rows in SQL**: Unnecessary risk and DuckDB/client complexity → Scope stays naive-UTC + wire `Z` + client parse; no timestamptz migration
 - **Plan fails by treating peak_hour local display as in-scope and redesigning wrapped metrics**: Scope creep past issue #32 → Explicitly out of scope except documentation
 
+## Preflight Amendments
+
+- Use existing `metrics._iso` as the UTC wire chokepoint; update tests that assert no-`Z` ISO strings
+- `0005` is DML-only (watermark clear); schema golden stays aligned with `0004`
+- Claude message `ts` already flows through `_parse_ts` — step 3 covers message timestamps too
+
 ## Status
 
 - [x] Initialization complete
@@ -96,6 +102,6 @@ No new technology - validation not required
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
 - [ ] QA

@@ -33,3 +33,13 @@ Fix warehouse/dashboard timezone skew ([issue #32](https://github.com/Texarkanin
 * Insights
     - UI-only fix would leave SQL windowing on mixed clocks; ingest + watermark reset are load-bearing
     - UTC+ offsets make watermark clear mandatory, not optional
+
+## 2026-07-10 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated plan against codebase: existing `_iso`, schema test pattern, JS test surface (`dashboard-core.mjs`)
+    - Amended plan: extend `_iso`; DML-only `0005`; update no-`Z` metric test pins
+* Decisions made
+    - Preflight PASS — proceed to build
+* Insights
+    - Recent Sessions bypassed `_iso` with raw `isoformat()` — fixing `_iso` alone is insufficient without routing `started` through it

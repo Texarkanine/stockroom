@@ -1,12 +1,11 @@
 # Active Context
 
 ## Current Task: fix-dashboard-utc-timestamps
-**Phase:** PLAN - COMPLETE
+**Phase:** PREFLIGHT - COMPLETE
 
 ## What Was Done
-- Level 2 plan written for issue #32 UTC-at-rest / client-renders-zone contract
-- Behaviors B1–B6 + edges mapped to ingest, migration watermark reset, metrics `Z` serialization, dashboard JS UTC parse
-- Explicit non-goals: timestamptz migration; local peak-hour rebucket
+- Preflight PASS: TDD ordering per step; conventions OK; `_iso` chokepoint and DML-only `0005` amendments recorded
+- Advisory: peak_hour stays UTC hour (documented non-goal)
 
 ## Next Step
-- Preflight validation (automatic per Level 2 workflow)
+- Build phase (automatic per Level 2 workflow)
