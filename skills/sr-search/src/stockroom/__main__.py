@@ -32,7 +32,7 @@ SUBCOMMANDS: dict[str, tuple[str, str]] = {
     "shim": ("stockroom.shim", "Install or rectify the on-path stockroom shim."),
     "torch": (
         "stockroom.torch_cli",
-        "Record the per-machine torch wheel index for env heal.",
+        "Freeze the per-machine torch stack for env heal.",
     ),
     "doctor": ("stockroom.doctor", "Report environment facts / smoke-test torch."),
     "schedule": (

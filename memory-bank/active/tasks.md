@@ -65,7 +65,7 @@ Each step: **tests first → implement → green**.
    - Change `ensure_torch` / `_pip_install_cmd` to `--require-hashes -r <freeze>`
    - Remove heal-via-index-only behavior; update tests F3–F5; fix `test_engine_env` stubs
 
-3. **CLI: `freeze` replaces `record` as primary**
+3. **CLI: `freeze` replaces `record` as primary** ✅
    - `stockroom torch freeze --app-dir --index` (required)
    - remove "record" command.
    - Tests F6; dispatcher help fingerprint
