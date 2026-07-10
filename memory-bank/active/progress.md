@@ -67,3 +67,12 @@ Add `--verbose` progress logging to `python -m stockroom.ingest` and `python -m 
     - Elegant form is optional `on_progress` + CLI `--verbose` — what we shipped
 * Insights
     - Nothing notable beyond clean execution
+
+## 2026-07-10 - ARCHIVE - IN-PROGRESS
+
+* Work completed
+    - Entering archive phase
+* Decisions made
+    - Category: enhancements (existing ingest/embed CLIs extended with `--verbose` progress)
+* Insights
+    - None
