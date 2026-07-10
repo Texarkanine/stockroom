@@ -59,3 +59,13 @@ Move Cursor auto-heal/dashboard hook from `workspaceOpen` to `sessionStart`, and
     - None
 * Insights
     - Implementation matches plan; docs and packaging contracts aligned
+
+## 2026-07-10 - REFLECT - COMPLETE
+
+* Work completed
+    - Reflection documented under `memory-bank/active/reflection/`
+    - Persistent memory bank: `systemPatterns` already updated in build; no further reconcile
+* Decisions made
+    - Elegant form is uv-find bootstrap + sessionStart — what we shipped
+* Insights
+    - Bootstrap vs engine uv layers were the real diagnosis; event rename was the Mac-specific half
