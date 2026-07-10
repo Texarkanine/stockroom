@@ -1,11 +1,12 @@
 # Active Context
 
 ## Current Task: pr-14-docs-review-rework
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** BUILD - COMPLETE
 
 ## What Was Done
-- Classified as Level 1: two isolated documentation accuracy fixes from PR #14 review
-- No design decisions; prose-only edits in `docs/development.md` and `memory-bank/systemPatterns.md`
+- Expanded torch-safe `uv` examples in `docs/development.md` with `--project skills/sr-search`, `PYTHONPATH`, and `--no-config`
+- Clarified ingest/storage sentence in `memory-bank/systemPatterns.md` to match `productContext.md` (messages + tool_input kept; tool_result dropped)
+- Doc assertions green
 
 ## Next Step
-- Load Level 1 workflow → Build
+- QA

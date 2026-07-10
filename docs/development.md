@@ -25,11 +25,11 @@ The engine lives inside [`skills/sr-search/`](../skills/sr-search/) as a locked 
 After torch is installed, never run an exact `uv sync` — it would uninstall torch. Always use the inexact forms:
 
 ```bash
-# Run the engine (preserves out-of-lock torch):
-uv run --no-sync python -m stockroom.<entrypoint>
+# Run the engine from repo root (preserves out-of-lock torch):
+PYTHONPATH=skills/sr-search/src uv run --project skills/sr-search --no-sync --no-config python -m stockroom.<entrypoint>
 
 # When you genuinely need to sync (e.g. after editing deps), stay inexact:
-uv sync --inexact
+uv sync --project skills/sr-search --inexact
 ```
 
 Regenerate the lock **hermetically** so ambient user config can't leak in:

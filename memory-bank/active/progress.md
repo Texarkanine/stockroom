@@ -86,3 +86,14 @@ PR #14 review rework: fix misleading torch-safe `uv` examples in `docs/developme
     - Level 1: two isolated documentation accuracy fixes (uv example scoping; ingest/storage wording); no product code, no design exploration
 * Insights
     - Decision-tree “bug fix” path; treating the docs surface as one concern despite two files
+
+## 2026-07-10 - BUILD - COMPLETE
+
+* Work completed
+    - Fixed docs/development.md torch-safe uv examples (project + PYTHONPATH)
+    - Clarified systemPatterns.md ingest/storage split to match productContext.md
+    - Doc assertions green (red→green)
+* Decisions made
+    - Expand examples in place rather than only pointing at the bootstrap footnote (copy-paste safety)
+* Insights
+    - Ambiguous “no outputs” in systemPatterns was the sharper product-truth bug; the uv examples were discoverability
