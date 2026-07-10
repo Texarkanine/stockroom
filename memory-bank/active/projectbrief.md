@@ -33,3 +33,19 @@ The v1 roadmap (Phases 0–5) is finished. Persistent memory-bank files must sta
 3. README is slobac-comparable in length and tone, present-tense only.
 4. `planning/` is gone from the tree.
 5. No remaining references to `planning/` in kept project docs (memory-bank persistent files, README, `docs/`).
+
+## Rework
+
+### Source
+
+PR #14 review feedback (CodeRabbit), operator-directed rework 2026-07-10.
+
+### Feedback
+
+1. [discussion_r3559442136](https://github.com/Texarkanine/stockroom/pull/14#discussion_r3559442136) — `docs/development.md` torch-safe `uv` examples read as repo-root commands; need `skills/sr-search` project scope (+ PYTHONPATH for `python -m stockroom…`), or point at the bootstrap footnote.
+2. [discussion_r3559442148](https://github.com/Texarkanine/stockroom/pull/14#discussion_r3559442148) — `memory-bank/systemPatterns.md` overview says “tool inputs only, no outputs,” which can be read as omitting assistant responses; must match `productContext.md` (full prompts/responses in `messages`, whole `tool_input`, only `tool_result` dropped).
+
+### Rework Requirements
+
+1. Fix the misleading `uv` examples in `docs/development.md`.
+2. Clarify the ingest/storage sentence in `memory-bank/systemPatterns.md` so it cannot be read as omitting responses.

@@ -66,3 +66,14 @@ End-of-roadmap cutover: re-initialize persistent memory-bank files from current 
     - None beyond reflection insights
 * Insights
     - Docs-only TDD still needs red-before-green per unit for preflight; shell assertions suffice without docs CI
+
+## 2026-07-10 - REWORK INITIATED
+
+* Work completed
+    - Operator directed rework from PR #14 CodeRabbit review (not archive)
+    - Judged discussion_r3559442136 (docs/development.md uv examples) and discussion_r3559442148 (systemPatterns.md ingest wording)
+    - Both dispositioned: fix in this PR
+* Decisions made
+    - Rework scope is the two open review comments only (third comment on projectbrief.md already resolved)
+* Insights
+    - Cutover task was REFLECT COMPLETE; rework re-enters before archive
