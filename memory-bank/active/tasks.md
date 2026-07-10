@@ -99,12 +99,18 @@ No new dependencies.
 - **Compile needs network at freeze time:** only at initialize/`make torch`, not on every heal if wheels cached; heal still needs network if cache cold — same as today.
 - **Not L3:** single subsystem extension of existing torch_source/ensure; design already agreed with operator.
 
+## Preflight Amendments
+
+- CLI `freeze`: default `--app-dir` to running engine (`default_app_dir` pattern from shim) when omitted.
+- Heal install must honor indexes embedded in the freeze file (`--emit-index-url` at compile); do not rely on sidecar index alone for resolve.
+- Clear prior `.qa-validation-status` before build (stale PASS from index-only rework).
+
 ## Status
 
 - [x] Initialization complete
 - [x] Test planning complete (TDD)
 - [x] Implementation plan complete
 - [x] Technology validation complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
 - [ ] QA

@@ -1,11 +1,10 @@
 # Active Context
 
 ## Current Task: fix-plugin-env-heal-after-move
-**Phase:** PLAN - COMPLETE (rework: hashed torch freeze)
+**Phase:** PREFLIGHT - COMPLETE (hashed torch freeze rework)
 
 ## What Was Done
-- Planned upgrade from index-only torch record to machine-local hashed freeze (`uv pip compile --generate-hashes`) after smoke; heal via `--require-hashes -r`.
-- Validated compile live for `torch==2.7.1+cpu`.
+- Preflight PASS with minor amendments (default app-dir; emit-index-url for heal; clear stale QA status).
 
 ## Next Step
-- Preflight, then build.
+- `/niko-build` (L2 would auto-continue; operator invoked plan — build is next).

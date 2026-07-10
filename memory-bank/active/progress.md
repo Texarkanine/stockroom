@@ -110,3 +110,12 @@ Heal engine-env staleness after plugin-root moves so one session/workspace-open 
     - `docs/torch.md` for manual path; freeze replaces CLI `record`
 * Insights
     - Freeze will also pin some PyPI transitives of torch; install after inexact sync, document drift
+
+## 2026-07-10 - PREFLIGHT - COMPLETE (hashed torch freeze)
+
+* Work completed
+    - Validated plan vs TDD encoding, conventions, completeness
+    - Amendments: default `--app-dir`; `--emit-index-url` for heal resolve; cleared stale QA status
+    - `.preflight-status` = PASS
+* Decisions made
+    - Ready for build
