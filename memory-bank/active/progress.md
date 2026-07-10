@@ -45,3 +45,12 @@ Restore session-start auto-heal after marketplace plugin-hash moves by breaking 
     - Documented DuckDB-free heal import in `systemPatterns.md`
 * Insights
     - Load-bearing edge was exactly `torch_source` → `warehouse.home_dir`; dispatcher path was already lazy enough once that edge was cut
+
+## 2026-07-10 - QA - COMPLETE
+
+* Work completed
+    - Semantic review against plan and issue #25 acceptance criteria
+* Decisions made
+    - PASS — no trivial or substantive fixes required
+* Insights
+    - Warehouse `__all__` is justified for re-export/ruff clarity, not speculative API surface
