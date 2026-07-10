@@ -27,25 +27,13 @@ Add `stockroom` to both marketplace manifests in `Texarkanine/txrk9-agent-plugin
 
 ## Implementation Plan
 
-1. Write failing Cursor catalog assertions (TDD)
-   - Files: ephemeral assert (shell/`python -c` against `.cursor-plugin/marketplace.json`)
-   - Changes: assert stockroom entry missing → expect failure; also snapshot `slobac` / `cursor-warehouse` for later preservation checks
-2. Add Cursor marketplace entry for stockroom
-   - Files: `/home/mobaxterm/git/txrk9-agent-plugins/.cursor-plugin/marketplace.json`
-   - Changes: append `{"name": "stockroom", "source": {"source": "github", "repo": "Texarkanine/stockroom"}, "description": "Local, faithful, searchable warehouse of your agentic-coding history."}` (description from stockroom plugin manifests); re-run Cursor assertions → pass; confirm no `version` key; confirm prior entries unchanged
-3. Write failing Claude catalog assertions (TDD)
-   - Files: ephemeral assert against `.claude-plugin/marketplace.json`
-   - Changes: assert stockroom entry missing → expect failure; snapshot `slobac`
-4. Add Claude marketplace entry for stockroom
-   - Files: `/home/mobaxterm/git/txrk9-agent-plugins/.claude-plugin/marketplace.json`
-   - Changes: append same-shaped entry (do **not** backfill `cursor-warehouse`); re-run Claude assertions → pass; confirm no `version` key; confirm `slobac` unchanged
-5. README discoverability assessment
-   - Files: `/home/mobaxterm/git/txrk9-agent-plugins/README.md`
-   - Changes: **none expected** — README documents how to add the marketplace URL; the catalog UI is the plugin list. Only edit if a minimal plugin inventory is clearly warranted; default leave as-is
-6. Commit on marketplace `stockroom` branch and open PR to `main`
-   - Conventional commit (e.g. `feat: add stockroom to Cursor and Claude marketplaces`)
-   - Push `-u` and `gh pr create` from `stockroom` → `main` with summary + test plan; verify PR exists
-7. Memory-bank progress only in stockroom (this L4 parent) — no marketplace code changes in the stockroom repo beyond ephemeral tracking
+1. [x] Write failing Cursor catalog assertions (TDD)
+2. [x] Add Cursor marketplace entry for stockroom
+3. [x] Write failing Claude catalog assertions (TDD)
+4. [x] Add Claude marketplace entry for stockroom
+5. [x] README discoverability assessment — left unchanged
+6. [x] Commit on marketplace `stockroom` branch and open PR to `main` — https://github.com/Texarkanine/txrk9-agent-plugins/pull/2
+7. [x] Memory-bank progress only in stockroom
 
 ## Technology Validation
 
@@ -53,22 +41,21 @@ No new technology - validation not required
 
 ## Dependencies
 
-- Workspace checkout of `txrk9-agent-plugins` on branch `stockroom` (already present, clean, at `main` tip)
+- Workspace checkout of `txrk9-agent-plugins` on branch `stockroom`
 - `gh` authenticated for `Texarkanine/txrk9-agent-plugins`
-- Stockroom plugin description sourced from existing `.cursor-plugin/plugin.json` / `.claude-plugin/plugin.json` (already identical)
+- Stockroom plugin description sourced from existing plugin manifests
 
 ## Challenges & Mitigations
 
-- **No test harness in marketplace repo**: Do not invent a committed one; verify with ephemeral parse/shape checks during build and PR review. Live install deferred to m3.
-- **Claude catalog asymmetry** (`cursor-warehouse` missing): Leave as-is; only add stockroom.
-- **README "if needed"**: Prefer no README change; marketplace UI is the discoverability surface after the URL is added.
-- **Cross-repo commits**: Marketplace changes commit/PR in `txrk9-agent-plugins`; stockroom memory-bank commits stay on stockroom `initialdev`.
-- **Branch already named `stockroom` but empty of commits ahead of main**: First commit on this branch will be the catalog addition; push `-u` then open PR.
+- **No test harness in marketplace repo**: Ephemeral parse/shape checks during build; live install deferred to m3.
+- **Claude catalog asymmetry**: Left as-is; only added stockroom.
+- **README**: Unchanged (URL-add docs; UI lists plugins).
+- **Cross-repo commits**: Marketplace PR in `txrk9-agent-plugins`; memory-bank on stockroom `initialdev`.
 
 ## Preflight Findings
 
-- **Amended (TDD encoding)**: Split Cursor/Claude work into fail-then-implement cycles (steps 1–4). Prior plan listed production edits before verification.
-- **Advisory**: None blocking. Optional future: list plugins in marketplace README — out of default plan.
+- **Amended (TDD encoding)**: Fail-then-implement cycles for Cursor and Claude catalog entries.
+- **Advisory**: None blocking.
 
 ## Status
 
@@ -77,5 +64,5 @@ No new technology - validation not required
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Preflight
-- [ ] Build
+- [x] Build
 - [ ] QA

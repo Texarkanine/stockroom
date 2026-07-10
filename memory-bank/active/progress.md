@@ -38,3 +38,15 @@ Add stockroom to both `.cursor-plugin/marketplace.json` and `.claude-plugin/mark
     - PASS: entry shape, no version pin, no README change by default, ephemeral asserts only
 * Insights
     - Prior plan would have failed TDD encoding (implement then verify); amendment unblocks build
+
+## 2026-07-09 - BUILD - COMPLETE
+
+* Work completed
+    - Added stockroom entries to Cursor and Claude marketplace.json (TDD red/green per harness)
+    - Left README unchanged
+    - Committed and pushed `stockroom` branch; opened https://github.com/Texarkanine/txrk9-agent-plugins/pull/2
+* Decisions made
+    - Description copied from stockroom plugin manifests; no version field
+    - Did not backfill cursor-warehouse into Claude catalog
+* Insights
+    - Marketplace repo has no lint/test suite — verification was ephemeral JSON assertions only
