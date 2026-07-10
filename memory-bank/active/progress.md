@@ -69,3 +69,12 @@ Move Cursor auto-heal/dashboard hook from `workspaceOpen` to `sessionStart`, and
     - Elegant form is uv-find bootstrap + sessionStart — what we shipped
 * Insights
     - Bootstrap vs engine uv layers were the real diagnosis; event rename was the Mac-specific half
+
+## 2026-07-10 - ARCHIVE - IN-PROGRESS
+
+* Work completed
+    - Entering archive: reflection complete; working tree clean at reflect checkpoint
+* Decisions made
+    - Category: bug-fixes (Cursor hook event + Python bootstrap)
+* Insights
+    - None yet
