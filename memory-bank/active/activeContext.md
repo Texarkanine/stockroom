@@ -1,16 +1,24 @@
 # Active Context
 
 ## Current Task: dashboard-polish-m2-write-read-ratio
-**Phase:** PREFLIGHT - COMPLETE
+**Phase:** BUILD - COMPLETE
 
 ## What Was Done
-- Preflight validated m2 plan against dashboard core/adapter/static layout
-- Amended TDD encoding: required `writeShare` helper; explicit test-before-code on steps 1–3; adapter glue last
-- Wrote `.preflight-status` = PASS
+- Exported `writeShare`; rewrote `buildWriteReadPanel` for aggregate/compare ratio series with `null` gaps and `yMax: 1`
+- `summarizeChartPanel` renders null points as `—`
+- Static aria + adapter: colors, “Weekly write share” title, `chartOptions` respects `yMax`
+- Verification: `make test-js` (41), dashboard static pytest, full `make ci` green
+
+## Files modified
+- `/home/mobaxterm/git/stockroom/skills/sr-search/src/stockroom/dashboard/static/dashboard-core.mjs`
+- `/home/mobaxterm/git/stockroom/skills/sr-search/src/stockroom/dashboard/static/dashboard.mjs`
+- `/home/mobaxterm/git/stockroom/skills/sr-search/src/stockroom/dashboard/static/index.html`
+- `/home/mobaxterm/git/stockroom/skills/sr-search/tests-js/dashboard-core.test.mjs`
+- `/home/mobaxterm/git/stockroom/skills/sr-search/tests/test_dashboard_static.py`
 
 ## Decisions
-- No rearchitect; Python metrics remain absolute weekly substrate
-- Advisory only: absolute write/read tooltip enrichment deferred (issue #6 “later”)
+- Legend label “Write share”; empty via finite-ratio presence (not `hasValues`)
+- No plan deviations
 
 ## Next Step
-- Build phase runs automatically
+- QA review runs automatically

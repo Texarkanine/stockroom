@@ -33,3 +33,13 @@ Change Write/Read panel to plot ratio series in Aggregate and Compare modes with
     - Required exported `writeShare`; no Python change; tooltip absolute counts deferred (advisory)
 * Insights
     - Same core-vs-adapter split as m1 remains the right boundary for panel math
+
+## 2026-07-10 - BUILD - COMPLETE
+
+* Work completed
+    - `writeShare` + ratio `buildWriteReadPanel`; null-honest summaries; static/adapter Y-scale glue
+    - `make test-js` 41 pass; `make ci` green (480 pytest + REUSE)
+* Decisions made
+    - Aggregate legend “Write share”; `ratioSeriesEmpty` for empty detection; no Python change
+* Insights
+    - Keeping ratio math in core kept adapter to three touchpoints (colors, title, yMax)

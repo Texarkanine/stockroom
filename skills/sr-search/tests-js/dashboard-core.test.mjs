@@ -23,6 +23,7 @@ import {
   summarizeChartPanel,
   transitionViewState,
   weightedSeries,
+  writeShare,
 } from "../src/stockroom/dashboard/static/dashboard-core.mjs";
 
 const COLORS = [
@@ -473,20 +474,55 @@ test("builds aggregate doughnut and compare tool models", () => {
   assertDataset(compare, "Claude Code", [2, 4]);
 });
 
-test("builds blended write and read models in either mode", () => {
+test("writeShare returns null on zero denominator and finite ratios otherwise", () => {
+  assert.equal(writeShare(0, 0), null);
+  assert.equal(writeShare(0, 4), 0);
+  assert.equal(writeShare(3, 1), 0.75);
+  assert.equal(writeShare(2, 2), 0.5);
+});
+
+test("builds aggregate write-share ratio line with null gaps", () => {
+  const payload = {
+    weeks: ["2026-01-05", "2026-01-12", "2026-01-19"],
+    writes: { cursor: [2, 0, 0], "claude-code": [1, 0, 0] },
+    reads: { cursor: [4, 0, 5], "claude-code": [0, 0, 0] },
+  };
+  const panel = buildWriteReadPanel(payload, selected, "aggregate", colors);
+  assert.equal(panel.kind, "line");
+  assert.equal(panel.stacked, false);
+  assert.equal(panel.empty, false);
+  assert.equal(panel.yMax, 1);
+  assert.equal(panel.datasets.length, 1);
+  // week0: (2+1)/(2+1+4+0)=3/7; week1: 0/0 → null; week2: 0/(0+5)=0
+  assertDataset(panel, "Write share", [3 / 7, null, 0]);
+});
+
+test("builds compare write-share ratio lines per harness", () => {
   const payload = {
     weeks: ["2026-01-05", "2026-01-12"],
-    writes: { cursor: [2, 1], "claude-code": [1, 0] },
-    reads: { cursor: [4, 2], "claude-code": [0, 3] },
+    writes: { cursor: [2, 0], "claude-code": [1, 0] },
+    reads: { cursor: [2, 0], "claude-code": [3, 4] },
   };
-  for (const mode of ["aggregate", "compare"]) {
-    const panel = buildWriteReadPanel(payload, selected, mode);
-    assert.equal(panel.kind, "line");
-    assert.equal(panel.stacked, false);
-    assert.equal(panel.datasets.length, 2);
-    assertDataset(panel, "Writes", [3, 1]);
-    assertDataset(panel, "Reads", [4, 5]);
-  }
+  const panel = buildWriteReadPanel(payload, selected, "compare", colors);
+  assert.equal(panel.datasets.length, 2);
+  assert.equal(panel.empty, false);
+  assert.equal(panel.yMax, 1);
+  // orderedSelection sorts: claude-code, cursor
+  assertDataset(panel, "Claude Code", [0.25, 0]);
+  assertDataset(panel, "Cursor", [0.5, null]);
+  assert.equal(panel.datasets[0].borderColor, colors["claude-code"]);
+  assert.equal(panel.datasets[1].borderColor, colors.cursor);
+});
+
+test("marks write-read panel empty when every week is a zero-denominator gap", () => {
+  const payload = {
+    weeks: ["2026-01-05", "2026-01-12"],
+    writes: { cursor: [0, 0], "claude-code": [0, 0] },
+    reads: { cursor: [0, 0], "claude-code": [0, 0] },
+  };
+  const panel = buildWriteReadPanel(payload, selected, "aggregate", colors);
+  assert.equal(panel.empty, true);
+  assert.deepEqual(panel.datasets[0].data, [null, null]);
 });
 
 test("builds aggregate and compare efficiency models", () => {
@@ -639,19 +675,16 @@ test("summarizes empty panel without inventing values", () => {
   );
 });
 
-test("summarizes dual-series write and read panel", () => {
+test("summarizes write-share ratio panel including null gaps", () => {
   const model = {
     kind: "line",
     labels: ["2026-01-05", "2026-01-12"],
-    datasets: [
-      { label: "Writes", data: [3, 1] },
-      { label: "Reads", data: [4, 5] },
-    ],
+    datasets: [{ label: "Write share", data: [0.5, null] }],
     empty: false,
   };
   assert.equal(
-    summarizeChartPanel("Weekly write and read tool calls", "aggregate", model),
-    "Weekly write and read tool calls. Aggregate view. Writes: 2026-01-05 3, 2026-01-12 1; Reads: 2026-01-05 4, 2026-01-12 5.",
+    summarizeChartPanel("Weekly write share", "aggregate", model),
+    "Weekly write share. Aggregate view. Write share: 2026-01-05 0.5, 2026-01-12 —.",
   );
 });
 

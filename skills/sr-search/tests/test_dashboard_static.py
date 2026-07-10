@@ -145,3 +145,15 @@ def test_dashboard_top_controls_expose_date_range_and_segmented_mode() -> None:
     ]
     assert [radio.get("value") for radio in mode_radios] == ["aggregate", "compare"]
     assert sum(1 for radio in mode_radios if "checked" in radio) == 1
+
+
+def test_write_read_chart_aria_describes_ratio_not_absolute_volumes() -> None:
+    """Write/Read canvas fallback copy matches ratio semantics."""
+    _source, parser = _document()
+    by_id = {
+        attrs["id"]: (tag, attrs) for tag, attrs in parser.elements if attrs.get("id")
+    }
+    _tag, attrs = by_id["write-read-chart"]
+    label = (attrs.get("aria-label") or "").lower()
+    assert "ratio" in label or "share" in label
+    assert "tool calls chart" not in label

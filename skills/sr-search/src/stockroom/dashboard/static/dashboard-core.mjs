@@ -58,8 +58,9 @@ function panelModel(kind, labels, datasets, options = {}) {
     datasets,
     indexAxis: options.indexAxis ?? "x",
     stacked: options.stacked ?? false,
-    empty: !hasValues(datasets),
+    empty: options.empty ?? !hasValues(datasets),
     ...(options.height === undefined ? {} : { height: options.height }),
+    ...(options.yMax === undefined ? {} : { yMax: options.yMax }),
   };
 }
 
@@ -625,7 +626,12 @@ export function summarizeChartPanel(title, mode, model) {
     const seriesLabel = displayValue(entry.label, "Series");
     const data = Array.isArray(entry.data) ? entry.data : [];
     const pairs = labels.map((label, index) => {
-      return `${displayValue(label)} ${finiteNumber(data[index])}`;
+      const raw = data[index];
+      const rendered =
+        raw === null || raw === undefined || !Number.isFinite(Number(raw))
+          ? "—"
+          : String(Number(raw));
+      return `${displayValue(label)} ${rendered}`;
     });
     return `${seriesLabel}: ${pairs.join(", ")}`;
   });
@@ -675,27 +681,62 @@ export function buildToolsPanel(payload, selected, mode, colors) {
   return panelModel("doughnut", labels, [dataset]);
 }
 
+/**
+ * Write share of classified tool calls: writes / (writes + reads).
+ *
+ * @param {number} writes Write tool-call count.
+ * @param {number} reads Read tool-call count.
+ * @returns {number | null} Ratio in [0, 1], or null when the denominator is zero.
+ */
+export function writeShare(writes, reads) {
+  const writeCount = finiteNumber(writes);
+  const readCount = finiteNumber(reads);
+  const total = writeCount + readCount;
+  return total === 0 ? null : writeCount / total;
+}
+
+function ratioSeriesEmpty(datasets) {
+  return !datasets.some((dataset) =>
+    Array.isArray(dataset.data)
+      ? dataset.data.some((value) => value !== null && Number.isFinite(Number(value)))
+      : false,
+  );
+}
+
+function lineDataset(label, data, color) {
+  return {
+    ...aggregateDataset(label, data, color),
+    tension: 0.3,
+    fill: false,
+  };
+}
+
 /** Build the Write/Read Ratio chart model. */
-export function buildWriteReadPanel(payload, selected, mode) {
+export function buildWriteReadPanel(payload, selected, mode, colors) {
   const source = safeObject(payload);
   const labels = Array.isArray(source.weeks) ? source.weeks : [];
-  const writes = aggregateDataset(
-    "Writes",
-    sumAligned(source.writes, selected, labels.length),
-    PALETTE[0],
-  );
-  const reads = aggregateDataset(
-    "Reads",
-    sumAligned(source.reads, selected, labels.length),
-    PALETTE[2],
-  );
-  writes.backgroundColor = `${PALETTE[0]}33`;
-  reads.backgroundColor = `${PALETTE[2]}33`;
-  writes.fill = true;
-  reads.fill = true;
-  writes.tension = 0.3;
-  reads.tension = 0.3;
-  return panelModel("line", labels, [writes, reads], { stacked: false });
+  const length = labels.length;
+  let datasets;
+  if (mode === "compare") {
+    const keys = orderedSelection(selected);
+    const assigned = colors ?? harnessColors(keys);
+    datasets = keys.map((harness) => {
+      const writes = seriesFor(source.writes, harness, length);
+      const reads = seriesFor(source.reads, harness, length);
+      const data = writes.map((writeCount, index) => writeShare(writeCount, reads[index]));
+      return lineDataset(displayHarness(harness), data, assigned[harness]);
+    });
+  } else {
+    const writes = sumAligned(source.writes, selected, length);
+    const reads = sumAligned(source.reads, selected, length);
+    const data = writes.map((writeCount, index) => writeShare(writeCount, reads[index]));
+    datasets = [lineDataset("Write share", data, PALETTE[0])];
+  }
+  return panelModel("line", labels, datasets, {
+    stacked: false,
+    yMax: 1,
+    empty: ratioSeriesEmpty(datasets),
+  });
 }
 
 /** Build the Session Efficiency chart model. */

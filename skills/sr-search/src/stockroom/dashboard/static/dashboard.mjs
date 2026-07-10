@@ -251,6 +251,7 @@ function chartOptions(model) {
       y: {
         stacked: model.stacked,
         beginAtZero: true,
+        ...(model.yMax === undefined ? {} : { max: model.yMax }),
         ticks: { color: muted },
         grid: { color: border },
       },
@@ -406,8 +407,8 @@ function renderDashboard() {
   );
   renderChart(
     "write-read",
-    "Weekly write and read tool calls",
-    buildWriteReadPanel(snapshot.trends?.weekly, state.selected, state.mode),
+    "Weekly write share",
+    buildWriteReadPanel(snapshot.trends?.weekly, state.selected, state.mode, colors),
   );
   renderChart(
     "efficiency",
