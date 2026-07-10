@@ -57,3 +57,12 @@ End-of-roadmap cutover: re-initialize persistent memory-bank files from current 
     - No trivial fixes required
 * Insights
     - Cutover is documentation-only; product behavior unchanged (make ci already green at build)
+
+## 2026-07-09 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote reflection; reconciled persistent files (no further changes needed)
+* Decisions made
+    - None beyond reflection insights
+* Insights
+    - Docs-only TDD still needs red-before-green per unit for preflight; shell assertions suffice without docs CI
