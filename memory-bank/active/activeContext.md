@@ -1,14 +1,12 @@
 # Active Context
 
 ## Current Task: SLOBAC audit remediation
-**Phase:** PLAN - COMPLETE
+**Phase:** PREFLIGHT - COMPLETE (PASS)
 
 ## What Was Done
-- Level 3 plan written for 60 audit findings with verify-then-fix dispositions
-- Operator preference locked: delete prose-pin / presentation-coupled / display loose-text (dashboard + skill/docs) rather than goldenize copy
-- No open questions / no creative phase — dispositions clear from taxonomy + operator preference
-- Boundary change avoided: torch soft-fails use exact reason equality + side effects (no new reason_code API unless build forces constant extraction)
-- Scope locked to audit findings only (unlisted schedule fossils left alone)
+- Preflight validated plan against codebase and TDD encoding rules
+- Plan amendments: per-step TDD ordering; surgical session-pane strip; delete duplicate `_iso` private test
+- Status file: `memory-bank/active/.preflight-status` = PASS
 
 ## Next Step
-- Preflight phase to validate the plan
+- Operator runs `/niko-build` to implement

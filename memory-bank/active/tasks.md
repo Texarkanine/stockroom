@@ -92,22 +92,33 @@ Most work rewrites existing tests (no new product feature). Where a test is rewr
 
 ## Implementation Plan
 
+**TDD encoding:** Every numbered step below is one implementable unit. For test-only units, the remediating test edit *is* the unit — change the test first, run the targeted test(s), then proceed (green expected after strengthen/rename; green after delete). Never change production code in the same step before the corresponding test asserts the new contract. If a step discovers it needs a production constant/helper, stop, write/adjust the failing test for that contract, then implement production — do not invent SUT API ahead of the test.
+
 ### Batch 0 — Verify & disposition log
 
 1. Walk all 60 findings; confirm each still present in live code; note any already-fixed or false positive.
     - Files: audit + cited tests
     - Changes: update `tasks.md` checklist with verify ticks before edits
+    - TDD: N/A (read-only verification)
 
 ### Batch 1 — Delete presentation / prose / display-oracle tests
 
 2. Delete `tests/test_torch_writers.py` (all three prose-pin tests + F7 fossil module doc).
+    - TDD: delete file → run `pytest tests/test_torch_writers.py` (collect-empty/absent) + sibling torch behavioral tests stay green
 3. Delete `test_read_skills_document_exact_text_raw_detail` from `tests/test_skill_hygiene.py` (keep forbidden-token fitness tests).
+    - TDD: delete test → run `tests/test_skill_hygiene.py`
 4. Delete `test_skeleton_skill_front_matter` from `tests/test_packaging.py`.
+    - TDD: delete test → run `tests/test_packaging.py`
 5. Delete PANEL_HELP efficiency/first-prompt token test from `tests-js/dashboard-core.test.mjs`.
-6. Delete or strip `test_write_read_chart_aria_describes_ratio_not_absolute_volumes` presentation/token asserts in `tests/test_dashboard_static.py`.
-7. Delete or strip emoji/CSS presentation asserts in `test_session_pane_toolbar_and_bubble_layout_contracts` (prefer full test delete if nothing semantic remains).
+    - TDD: delete test → run `make test-js` (or targeted node test file)
+6. Delete `test_write_read_chart_aria_describes_ratio_not_absolute_volumes` from `tests/test_dashboard_static.py`.
+    - TDD: delete test → run `tests/test_dashboard_static.py`
+7. In `test_session_pane_toolbar_and_bubble_layout_contracts`: strip emoji copy + cosmetic CSS asserts (`width`/`align-self`/`overflow`/`42rem`); **keep** JS-coupled structure (`data-view`, `.session-turn-*`, `.session-tool`, adapter class wires).
+    - TDD: edit asserts first → run that test green
 8. Delete `test_migrate_help_mentions_migration` from `tests/test_migrate_cli.py`.
+    - TDD: delete test → run `tests/test_migrate_cli.py` (bootstrap/idempotent remain)
 9. In `test_session_api_returns_detail_and_client_errors`: keep 400 status checks; remove `"session" in error` / `"harness" in error` substring discrimination.
+    - TDD: weaken/remove substring asserts → run that test green
 
 ### Batch 2 — Deliverable fossils (Phase A renames only)
 
@@ -117,31 +128,44 @@ Most work rewrites existing tests (no new product feature). Where a test is rewr
     - `test_torch_source.py`, `test_torch_cli.py`
     - `test_schedule_cli.py`, `test_query_cli.py`
     - Do **not** expand to unlisted schedule fossils.
+    - TDD: docstring/name-only edits → smoke the touched modules
 
 ### Batch 3 — Conditional logic, naming-lies, vacuous assertion
 
 11. `test_probe_never_imports_torch_eagerly`: pin unloaded-torch precondition (or `pytest.skip` when already loaded) and assert unconditionally.
-12. `test_mtime_is_naive_utc`: after moving to public discover (Batch 4), pin non-UTC offset via monkeypatch **or** split so the UTC≠local claim always asserts; no silent body `if`.
+    - TDD: rewrite test body first → run that test
+12. `test_mtime_is_naive_utc`: rewrite onto public `discover` **and** pin non-UTC offset via monkeypatch **or** split so the UTC≠local claim always asserts; no silent body `if`. (Combines with former Batch 4 mtime work — one unit.)
+    - TDD: write the public-surface test (failing if still on `_mtime`) → only then remove private call
 13. `test_run_query_no_con_is_read_only`: replace try/flag with `pytest.raises(duckdb.Error)`.
+    - TDD: change oracle first → run that test
 14. `test_top_level_help_lists_all_subcommands`: fix docstring to "all registered subcommands" (body already asserts full `SUBCOMMANDS`).
+    - TDD: docstring-only → run that test
 15. `test_on_progress_none_emits_nothing`: rename to match body (completes without callback) — prefer rename over spy unless claim is load-bearing.
+    - TDD: rename first → run that test
 16. `test_query_happy_path_prints_result` + `test_query_reads_sql_from_stdin`: exact TSV line oracles.
+    - TDD: strengthen asserts first → run those tests
 
 ### Batch 4 — Implementation-coupled → public surface
 
-17. Replace `claude._parse_ts` tests with `parse_session` fixtures covering Z-suffix, offset, and non-string rejection.
-18. Replace `sources._mtime` with `discover(...)` + assert on `DiscoveredSession.mtime` (combine with Batch 3 mtime fix).
-19. Replace `metrics._iso` direct call with assertion on a public metrics payload datetime field (or delete if already covered by existing payload tests — prefer delete duplicate if coverage exists).
+17. Replace `claude._parse_ts` trio with `parse_session` fixtures covering Z-suffix, offset, and non-string rejection (assert on public session/message timestamps / drop behavior).
+    - TDD: add/adjust public-surface tests first (may fail while private tests still exist) → delete private-helper tests once public ones pass
+18. (folded into step 12) Sources `_mtime` → `discover`.
+19. Delete `test_iso_appends_z_for_naive_utc_datetimes` — trailing-`Z` wire contract already locked by public overview/session payload asserts (`last_sync`, `started`, `ts`).
+    - TDD: delete private `_iso` test → run `tests/test_dashboard_metrics.py`
 
 ### Batch 5 — Semantic redundancy
 
 20. Delete `test_home_dir_is_auto_created` from `test_warehouse_open.py` (keep XDG canonical).
+    - TDD: delete → run both warehouse test modules
 21. Delete `test_paths_resolve_under_stockroom_home` from `test_warehouse_open.py` (keep XDG canonical).
+    - TDD: delete → run both warehouse test modules
 
 ### Batch 6 — Code-path loose-text (torch)
 
 22. `test_ensure_torch_fails_without_freeze`: assert `action=="failed"`, no pip, and **exact** `reason` equal to the SUT template string.
+    - TDD: strengthen test oracle first → run that test; only if exact string is unmaintainable, extract a production reason constant **after** the failing/strengthened test demands it
 23. `test_freeze_torch_soft_fails_on_compile_timeout`: assert `action=="failed"`, no freeze file, and **exact** timeout `reason` equal to the SUT template.
+    - TDD: same as step 22
 
 ### Batch 7 — Verification
 
@@ -175,9 +199,15 @@ No new technology - validation not required.
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
 - [ ] QA
+
+## Preflight Amendments
+
+- Encoded per-step TDD ordering (test edit first; production only after strengthened oracle demands it).
+- Session pane: surgical strip (keep JS-coupled selectors) instead of full delete.
+- `metrics._iso` test: delete as duplicate of existing public payload Z asserts.
 
 ## Build Checklist
 
@@ -189,8 +219,8 @@ No new technology - validation not required.
 - [ ] Delete skill hygiene feature-mention test
 - [ ] Delete packaging skeleton front-matter vacuous test
 - [ ] Delete JS PANEL_HELP token test
-- [ ] Delete/strip dashboard aria ratio token test
-- [ ] Delete/strip session pane presentation-coupled asserts
+- [ ] Delete dashboard aria ratio token test
+- [ ] Strip session pane emoji/CSS; keep JS-coupled structure asserts
 - [ ] Delete migrate help loose-text test
 - [ ] Drop session API error substring discrimination
 
@@ -208,7 +238,7 @@ No new technology - validation not required.
 ### Batch 4 — Implementation-coupled
 - [ ] Claude `_parse_ts` → public parse_session
 - [ ] Sources `_mtime` → discover
-- [ ] Metrics `_iso` → public payload or delete duplicate
+- [ ] Delete private `metrics._iso` unit test (Z covered by public payloads)
 
 ### Batch 5 — Semantic redundancy
 - [ ] Delete redundant warehouse open home/path tests

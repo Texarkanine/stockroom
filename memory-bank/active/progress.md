@@ -28,3 +28,15 @@ Verify and remediate all applicable SLOBAC smells from the 2026-07-11 audit (60 
     - Audit-only scope (do not sweep unlisted fossils)
 * Insights
     - Several tests carry stacked smells (fossil + conditional, fossil + loose-text); fix once per test
+
+## 2026-07-11 - PREFLIGHT - COMPLETE (PASS)
+
+* Work completed
+    - TDD plan encoding verified and strengthened per step
+    - Convention/dependency/conflict/completeness checks passed against `skills/sr-search` test layout
+    - Plan amendments applied (session-pane surgical strip; delete `_iso` duplicate)
+* Decisions made
+    - PASS — ready for `/niko-build`
+* Insights
+    - Public metrics payloads already lock trailing-`Z`; private `_iso` unit test is pure coupling
+    - Session pane mixes presentation fossils with JS-coupled selectors worth keeping
