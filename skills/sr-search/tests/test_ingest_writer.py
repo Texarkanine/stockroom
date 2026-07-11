@@ -13,6 +13,7 @@ in-memory ``migrated_con`` (the full migration chain, i.e. the current
 from datetime import datetime
 
 import duckdb
+import pytest
 
 from stockroom.ingest import writer
 from stockroom.ingest.model import (
@@ -272,6 +273,26 @@ def test_rewriting_session_cascades_embedding_delete(
         ).fetchall()
     }
     assert remaining == {"s2#0"}
+
+
+def test_update_watermark_default_updated_at_is_utc_now(
+    migrated_con: duckdb.DuckDBPyConnection,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Default ``updated_at`` comes from ``utc_now``, not local ``datetime.now``."""
+    frozen = datetime(2026, 7, 10, 3, 22, 0)
+    monkeypatch.setattr(writer, "utc_now", lambda: frozen)
+    writer.update_watermark(
+        migrated_con,
+        harness="claude",
+        source_root="/root",
+        last_mtime=datetime(2026, 1, 1),
+        last_path="/root/a.jsonl",
+    )
+    got = migrated_con.execute(
+        "SELECT updated_at FROM _sync_state WHERE source_root = '/root'"
+    ).fetchone()[0]
+    assert got == frozen
 
 
 def test_update_watermark_upserts_one_row_per_source(

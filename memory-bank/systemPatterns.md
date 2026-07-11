@@ -16,6 +16,10 @@ Kept content is stored in full. Output truncation is applied only at read time b
 
 One shared set of tables (`sessions`, `messages`, `tool_calls`, `embeddings`, `_sync_state`); every row carries `harness`. Columns mean one thing independent of harness — extraction may differ, meaning must not. Identity is uniform (`message_id = {session_id}#{ordinal}`); native ids are provenance (`source_*`), never join keys. Typed columns for queryable metrics; JSON only for irreducible heterogeneity (`tool_calls.tool_input`). Thinking/reasoning blocks are not stored when the harness separates them.
 
+## Warehouse timestamps are UTC at rest
+
+DuckDB ``TIMESTAMP`` is timezone-naive; stockroom's contract is that every persisted value is **UTC wall clock**. Clients that display times are responsible for rendering into a timezone. Shared helpers live in [`stockroom.timestamps`](../skills/sr-search/src/stockroom/timestamps.py); the dashboard wire format marks datetimes with a trailing ``Z``.
+
 ## Dual-manifest plugin; engine inside `sr-search`
 
 `.cursor-plugin/plugin.json` and `.claude-plugin/plugin.json` over a shared `skills/` tree; committed layout equals install layout. release-please syncs version into both manifests. The full engine (`pyproject.toml`, `uv.lock`, `src/stockroom/`, migrations, tests) lives under `skills/sr-search/`.

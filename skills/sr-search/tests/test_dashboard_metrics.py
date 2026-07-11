@@ -125,6 +125,23 @@ def test_parse_window_applies_default_and_rejects_reversed_bounds() -> None:
         metrics.parse_window("2026-02-02", "2026-02-01", default_days=14)
 
 
+def test_parse_window_default_now_is_utc(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """When ``now`` is omitted, the window end comes from ``utc_now``."""
+    frozen = datetime(2026, 7, 10, 3, 22, 0)
+    monkeypatch.setattr(metrics, "utc_now", lambda: frozen)
+    since, until = metrics.parse_window(None, None, default_days=1)
+    assert until == frozen
+    assert since == datetime(2026, 7, 9, 3, 22, 0)
+
+
+def test_iso_appends_z_for_naive_utc_datetimes() -> None:
+    """Dashboard datetime wire format marks naive UTC with a trailing ``Z``."""
+    assert metrics._iso(datetime(2026, 7, 10, 3, 22, 0)) == "2026-07-10T03:22:00Z"
+    assert metrics._iso(None) is None
+
+
 def test_empty_overview_has_stable_zero_shape(
     migrated_con: duckdb.DuckDBPyConnection,
 ) -> None:
@@ -146,13 +163,7 @@ def test_trends_defaults_to_fourteen_days_and_twelve_calendar_weeks(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Default trend windows expose exactly 14 day and 12 week labels."""
-
-    class FixedDateTime(datetime):
-        @classmethod
-        def now(cls, tz=None):
-            return cls(2026, 2, 1, 12)
-
-    monkeypatch.setattr(metrics, "datetime", FixedDateTime)
+    monkeypatch.setattr(metrics, "utc_now", lambda: datetime(2026, 2, 1, 12))
     result = metrics.trends(migrated_con)
     assert result["daily"]["granularity"] == "day"
     assert result["daily"]["labels"] == [
@@ -245,7 +256,7 @@ def test_overview_returns_per_harness_counts_previous_window_and_rollups(
         until=datetime(2026, 1, 20),
     )
     assert result == {
-        "last_sync": "2026-01-15T03:04:05",
+        "last_sync": "2026-01-15T03:04:05Z",
         "per_harness": {
             "claude": {
                 "sessions": 1,
@@ -796,7 +807,7 @@ def test_sessions_are_recent_filtered_and_display_truncated(
     result = metrics.sessions(migrated_con, limit=2)
     assert result == [
         {
-            "started": "2026-01-02T09:00:00",
+            "started": "2026-01-02T09:00:00Z",
             "harness": "claude",
             "project_name": "stockroom",
             "project_id": "claude-project",
@@ -805,7 +816,7 @@ def test_sessions_are_recent_filtered_and_display_truncated(
             "prompt": f"{'x' * 120}…(+10)",
         },
         {
-            "started": "2026-01-01T08:00:00",
+            "started": "2026-01-01T08:00:00Z",
             "harness": "cursor",
             "project_name": "cursor-project",
             "project_id": "cursor-project",

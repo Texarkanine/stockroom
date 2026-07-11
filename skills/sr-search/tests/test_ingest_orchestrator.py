@@ -320,7 +320,9 @@ def test_full_ingest_persists_source_mtime_for_sessions_and_subagents(
             subagent_count += 1
             assert source_mtime == by_identity[(harness, parent_id)]
         else:
-            expected = datetime.fromtimestamp(Path(source_path).stat().st_mtime)
+            from stockroom.timestamps import utc_from_timestamp
+
+            expected = utc_from_timestamp(Path(source_path).stat().st_mtime)
             assert source_mtime == expected
     assert subagent_count > 0
 

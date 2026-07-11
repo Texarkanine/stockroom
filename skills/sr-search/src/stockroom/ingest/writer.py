@@ -30,6 +30,7 @@ from datetime import datetime
 import duckdb
 
 from stockroom.ingest.model import NormalizedSession
+from stockroom.timestamps import utc_now
 
 
 def _message_id(session_id: str, ordinal: int) -> str:
@@ -185,6 +186,6 @@ def update_watermark(
             source_root,
             last_mtime,
             last_path,
-            updated_at or datetime.now(),
+            updated_at or utc_now(),
         ],
     )

@@ -20,7 +20,7 @@ from test_schema_0004 import SNAPSHOT_PATH
 from test_schema_0003 import _introspect_schema
 
 _PRODUCT_TABLES = {"sessions", "messages", "tool_calls", "embeddings", "_sync_state"}
-_HEAD_VERSION = 4
+_HEAD_VERSION = 5
 
 
 def _table_names(con: duckdb.DuckDBPyConnection) -> set[str]:

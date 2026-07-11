@@ -29,6 +29,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
+from stockroom.timestamps import utc_from_timestamp
+
 #: Env vars overriding the harness roots (mirroring warehouse's STOCKROOM_HOME).
 CURSOR_ROOT_ENV_VAR = "STOCKROOM_CURSOR_ROOT"
 CLAUDE_ROOT_ENV_VAR = "STOCKROOM_CLAUDE_ROOT"
@@ -74,8 +76,8 @@ def claude_root() -> Path:
 
 
 def _mtime(path: Path) -> datetime:
-    """Return a file's modification time as a naive-local datetime."""
-    return datetime.fromtimestamp(path.stat().st_mtime)
+    """Return a file's modification time as a naive-UTC datetime."""
+    return utc_from_timestamp(path.stat().st_mtime)
 
 
 def _discover_cursor(root: Path) -> list[DiscoveredSession]:

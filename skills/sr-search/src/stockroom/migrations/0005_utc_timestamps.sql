@@ -1,0 +1,16 @@
+-- stockroom warehouse — UTC timestamp contract (migration 0005)
+--
+-- Establishes the UTC-at-rest contract for warehouse timestamps: every
+-- TIMESTAMP value is UTC wall clock (naive). Discovery now stamps
+-- source_mtime from UTC file mtimes; Claude authored times were already UTC.
+--
+-- Existing _sync_state watermarks may hold local-naive last_mtime values from
+-- before this contract. Comparing those to new UTC mtimes is unsafe on
+-- non-UTC machines (especially UTC+ offsets, which can skip incremental
+-- work). Clear watermarks so the next ingest re-scans and rewrites
+-- source_mtime under the UTC contract. Rows are kept; only the high-water
+-- mark is reset. Historical first_seen_at values are not rewritten (not
+-- rebuildable from sources alone).
+--
+-- DDL unchanged vs 0004. Forward-only.
+UPDATE _sync_state SET last_mtime = NULL, last_path = NULL;
