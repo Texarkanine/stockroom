@@ -15,9 +15,10 @@ Output shape is selectable with ``--format`` (``tsv`` default — a header row p
 tab-separated rows, no count trailer; ``json``; ``table`` for a human
 pretty-print; see :mod:`stockroom.render`). The ``preview`` / ``text`` field is
 truncated at read time in every format via the shared :mod:`stockroom.truncate`
-mechanism (``--detail compact|snippet|full``, default ``snippet``) — a *display*
-bound only: the full text stays whole in the store and in ``SemanticHit.text``,
-and ``--detail full`` renders it untruncated.
+mechanism (``--detail compact|snippet|full|raw``, default ``snippet``) — a
+*display* bound only: the full text stays whole in the store and in
+``SemanticHit.text``. ``--detail full`` renders it untruncated but single-line;
+``--detail raw`` preserves exact whitespace (prefer with ``--format json``).
 
 It mirrors ``stockroom.query``'s shape — a single runnable module (no
 ``__main__.py``) with a ``run_*`` library entry and a ``con``/encoder injection
@@ -26,7 +27,7 @@ so no embedding logic is duplicated::
 
     python -m stockroom.semantic "how does the warehouse lock work"
     python -m stockroom.semantic -k 5 "incremental re-embed"
-    python -m stockroom.semantic --format json --detail full "incremental re-embed"
+    python -m stockroom.semantic --format json --detail raw "incremental re-embed"
 """
 
 import argparse
@@ -190,9 +191,10 @@ def _build_parser() -> argparse.ArgumentParser:
         default=DEFAULT_DETAIL,
         help=(
             "Read-time preview detail: 'compact' (terse), 'snippet' (default, "
-            "context-safe), or 'full' (untruncated). The preview is elided with a "
-            "marker reporting how many characters were hidden; full text always "
-            "stays whole in the warehouse."
+            "context-safe), 'full' (untruncated, single-line), or 'raw' "
+            "(untruncated, exact whitespace — prefer with --format json). "
+            "The preview is elided with a marker reporting how many characters "
+            "were hidden; full text always stays whole in the warehouse."
         ),
     )
     return parser

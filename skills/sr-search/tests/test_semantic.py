@@ -325,6 +325,25 @@ def test_cli_detail_full_prints_whole_text(warehouse_home: Path, capsys) -> None
     assert truncate.ELISION in default_out
 
 
+def test_cli_detail_raw_preserves_newlines(warehouse_home: Path, capsys) -> None:
+    """``--detail raw`` with ``--format json`` keeps newlines in ``text``."""
+    text = "the unique findable phrase\n\nsecond paragraph"
+    writer = warehouse.open(read_only=False)
+    try:
+        _insert_message(writer, ordinal=0, text=text)
+        embed.embed_pending(writer, FakeEncoder())
+    finally:
+        writer.close()
+
+    code = semantic.main(
+        ["--format", "json", "--detail", "raw", "the unique findable phrase"],
+        encoder_factory=FakeEncoder,
+    )
+    assert code == 0
+    parsed = json.loads(capsys.readouterr().out)
+    assert parsed["results"][0]["text"] == text
+
+
 def test_cli_missing_warehouse_is_friendly(warehouse_home: Path, capsys) -> None:
     """No warehouse → exit 1 with a 'run ingest' hint, encoder never constructed.
     The hint names the on-path command (`stockroom ingest`), never a raw module

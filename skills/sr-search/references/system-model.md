@@ -24,7 +24,7 @@ The warehouse (a single-file DuckDB database) is rebuildable ETL output: ingesti
 
 ## No Truncation at Rest
 
-Everything is stored whole: full message text, full tool inputs. Truncation happens only at *read time*, as a display bound that keeps one fat column from flooding an agent's context window. The elision marker (`…(+N)`) reports exactly how much was withheld, which is what makes the scan-narrow-then-refetch pattern safe: the full content is always still there, one targeted re-fetch away.
+Everything is stored whole: full message text, full tool inputs. Truncation happens only at *read time*, as a display bound that keeps one fat column from flooding an agent's context window. The elision marker (`…(+N)`) reports exactly how much was withheld, which is what makes the scan-narrow-then-refetch pattern safe: the full content is always still there, one targeted re-fetch away. `--detail full` is unbounded but still single-line (table/TSV-safe); `--format json --detail raw` is the exact-whitespace escape hatch when newlines must match storage.
 
 ## Embedding Pipeline and Staleness
 

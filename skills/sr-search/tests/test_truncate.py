@@ -66,9 +66,9 @@ def test_full_level_never_truncates() -> None:
     assert ELISION not in out
 
 
-def test_collapses_whitespace_and_newlines_at_every_level() -> None:
-    """Internal whitespace runs (incl. newlines) collapse to single spaces."""
-    for level in DETAIL_LEVELS:
+def test_collapses_whitespace_and_newlines_at_bounded_and_full() -> None:
+    """Internal whitespace runs (incl. newlines) collapse for non-``raw`` levels."""
+    for level in ("compact", "snippet", "full"):
         assert truncate_cell("a\n\nb  c", level) == "a b c"
 
 
@@ -96,3 +96,16 @@ def test_exact_width_boundary_not_truncated() -> None:
 def test_empty_string() -> None:
     """An empty value renders as empty (no marker, no error)."""
     assert truncate_cell("", "snippet") == ""
+
+
+def test_raw_preserves_whitespace() -> None:
+    """``raw`` keeps newlines and multi-space runs exactly as stored."""
+    assert truncate_cell("a\n\nb  c", "raw") == "a\n\nb  c"
+
+
+def test_raw_is_unbounded() -> None:
+    """``raw`` has no width budget and never adds an elision marker."""
+    assert LEVEL_WIDTHS["raw"] is None
+    out = truncate_cell("x" * 5000, "raw")
+    assert out == "x" * 5000
+    assert ELISION not in out

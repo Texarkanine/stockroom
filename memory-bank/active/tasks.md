@@ -32,23 +32,23 @@ Add a documented first-class CLI fidelity path so `stockroom query` / `stockroom
 
 ## Implementation Plan
 
-1. **Extend truncate contract (failing tests first)**
+1. [x] **Extend truncate contract (failing tests first)**
    - Files: `skills/sr-search/tests/test_truncate.py`, `skills/sr-search/src/stockroom/truncate.py`
    - Changes: add tests for B1–B4; then add `"raw"` to `DetailLevel`, `DETAIL_LEVELS`, `LEVEL_WIDTHS` (`None`); change `truncate_cell` so collapse runs for all levels **except** `raw`; update module docstring to distinguish `full` (unbounded, single-line) vs `raw` (unbounded, exact whitespace)
 
-2. **Render fidelity for json+raw (and regression for other combos)**
+2. [x] **Render fidelity for json+raw (and regression for other combos)**
    - Files: `skills/sr-search/tests/test_render.py`, `skills/sr-search/src/stockroom/render.py`
    - Changes: add tests B5–B7, B9; update render module docstring so `--detail` axis documents `raw`; no structural change expected beyond whatever flows from `truncate_cell` (render already calls it uniformly)
 
-3. **CLI argparse + help text**
+3. [x] **CLI argparse + help text**
    - Files: `skills/sr-search/tests/test_query_cli.py`, `skills/sr-search/tests/test_semantic.py`, `skills/sr-search/src/stockroom/query.py`, `skills/sr-search/src/stockroom/semantic.py`
    - Changes: B8 — assert `--detail raw` is accepted; update `--detail` help strings to mention `raw` as the exact-whitespace escape hatch (CLIs already use `choices=DETAIL_LEVELS`, so acceptance is mostly automatic once the constant expands)
 
-4. **Document the first-class path in skills + system model**
+4. [x] **Document the first-class path in skills + system model**
    - Files: `skills/sr-query/SKILL.md`, `skills/sr-semantic/SKILL.md`, `skills/sr-search/references/system-model.md` (brief truncation note), `memory-bank/systemPatterns.md` (required: the “`--detail compact|snippet|full`” line becomes factually wrong once `raw` ships)
    - Changes: B10 — document `--format json --detail raw` as the exact-text recipe; clarify that `full` is unbounded length but still single-line; update worked-example handoffs that currently say `--detail full` for whole-field retrieval when fidelity matters; surgically update `systemPatterns.md` detail-level enumeration
 
-5. **Verify**
+5. [x] **Verify**
    - Run targeted pytest for truncate/render/query/semantic, then full `make ci` (or project-equivalent) before declaring build done
 
 ## Technology Validation
@@ -87,5 +87,5 @@ No new technology - validation not required
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight
-- [ ] Build
+- [x] Build
 - [ ] QA

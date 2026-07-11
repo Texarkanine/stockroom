@@ -55,15 +55,16 @@ Wide string fields (notably `messages.text` and `tool_calls.tool_input`) are tru
 |-------|------------------|-------------|
 | `compact` | ~40 chars | Scanning many candidate rows cheaply before picking one. |
 | `snippet` *(default)* | ~120 chars | Default. Enough to recognize a row without dumping it. |
-| `full` | unbounded | You need the **whole** field — typically a re-fetch of one row after a snippet showed `…(+N)`. |
+| `full` | unbounded, single-line | You need the whole field length, and single-line collapse is fine (tables/TSV stay safe). |
+| `raw` | unbounded, exact whitespace | You need text **as stored** — newlines and internal spaces intact. Prefer with `--format json`. |
 
-An over-budget field is elided with a marker reporting how many characters were hidden, e.g. `…(+2284)`. That marker is your signal that more exists: if you actually need it, re-fetch **just that field for the specific row** at `--detail full` (see guardrails).
+An over-budget field is elided with a marker reporting how many characters were hidden, e.g. `…(+2284)`. That marker is your signal that more exists: if you actually need it, re-fetch **just that field for the specific row** at `--detail full` (length) or `--format json --detail raw` (exact whitespace) — see guardrails.
 
 ## Guardrails
 
 These are the failure modes this skill exists to prevent:
 
-- **Don't blow out your context.** Never `SELECT *` (or a wide `text` column) at `--detail full` across many rows. Instead: scan narrow at `--detail compact`/`snippet` with an explicit column list and a `LIMIT`, identify the row you want, then re-fetch only that row's wide field at `--detail full` with a `WHERE` on its id. A single `SELECT text FROM messages WHERE message_id = '…'` at `--detail full` is cheap; `SELECT * FROM messages --detail full` is a context bomb.
+- **Don't blow out your context.** Never `SELECT *` (or a wide `text` column) at `--detail full`/`raw` across many rows. Instead: scan narrow at `--detail compact`/`snippet` with an explicit column list and a `LIMIT`, identify the row you want, then re-fetch only that row's wide field with a `WHERE` on its id. A single `SELECT text FROM messages WHERE message_id = '…'` is cheap; `SELECT * FROM messages --detail full` is a context bomb. When you need **exact** whitespace (markdown tables, code blocks), use `--format json --detail raw`.
 - **It is read-only — never attempt writes.** `INSERT` / `UPDATE` / `DELETE` / `CREATE` all fail (`query failed: …`). Do not retry a write through a different phrasing; the surface only interrogates.
 - **`tool_input` is heterogeneous JSON.** Its keys vary per tool (`Shell` has `command`, `Read` has `path`, …), so a naive `tool_input->>'key'` can raise a cast error. Extract safely by filtering `tool_name` in a subquery/CTE first and using the explicit function:
 
@@ -117,7 +118,8 @@ stockroom query "SELECT tool_name, count(*) AS calls FROM tool_calls GROUP BY to
 
 # Scan candidate messages cheaply, then re-fetch the one you want in full:
 stockroom query --detail compact "SELECT message_id, text FROM messages WHERE text ILIKE '%flaky test%' LIMIT 10"
-stockroom query --detail full    "SELECT text FROM messages WHERE message_id = '<id-from-the-scan>'"
+stockroom query --format json --detail raw \
+  "SELECT text FROM messages WHERE message_id = '<id-from-the-scan>'"
 
 # Structured output for a user/tool to consume:
 stockroom query --format json "SELECT harness, session_id, title FROM sessions WHERE title IS NOT NULL LIMIT 5"

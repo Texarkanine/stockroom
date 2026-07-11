@@ -10,7 +10,7 @@ Lock hermetically with `uv lock --no-config`. Exclude torch via an impossible en
 
 ## No truncation at rest; truncation is a read-time feature
 
-Kept content is stored in full. Output truncation is applied only at read time by [`stockroom.truncate`](../skills/sr-search/src/stockroom/truncate.py) through [`stockroom.render`](../skills/sr-search/src/stockroom/render.py) (`--detail compact|snippet|full`). Full content stays whole in the warehouse and in returned data objects; over-budget cells are elided with a hidden-character marker.
+Kept content is stored in full. Output truncation is applied only at read time by [`stockroom.truncate`](../skills/sr-search/src/stockroom/truncate.py) through [`stockroom.render`](../skills/sr-search/src/stockroom/render.py) (`--detail compact|snippet|full|raw`). `full` is unbounded but single-line; `raw` preserves exact whitespace (prefer with `--format json`). Full content stays whole in the warehouse and in returned data objects; over-budget cells are elided with a hidden-character marker.
 
 ## Harness-labeled schema, one meaning per field
 

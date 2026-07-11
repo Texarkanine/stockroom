@@ -35,3 +35,13 @@ Add a documented first-class CLI path so `stockroom query` / `stockroom semantic
     - PASS — proceed to build
 * Insights
     - Dashboard `truncate_cell(..., "snippet")` is unaffected; no parallel truncation path to conflict with
+
+## 2026-07-10 - BUILD - COMPLETE
+
+* Work completed
+    - Implemented `--detail raw` end-to-end; skills + systemPatterns updated
+    - `make ci` green (510 passed, 3 skipped)
+* Decisions made
+    - Held plan: `full` unchanged; `raw` is the fidelity escape hatch
+* Insights
+    - Extending `DETAIL_LEVELS` alone wired both CLIs; most work was tests + docs honesty
