@@ -1,12 +1,12 @@
 # Active Context
 
 ## Current Task: Session Inspection in Dashboard (#39)
-**Phase:** QA - COMPLETE
+**Phase:** REFLECT - COMPLETE
 
 ## What Was Done
-- Build complete; `make ci` green
-- QA: consolidated duplicated warehouse-open 503 handling into `_open_readonly()`
-- `.qa-validation-status` = PASS
+- Full L3 lifecycle through reflect
+- Reflection at `memory-bank/active/reflection/reflection-session-inspection-dashboard.md`
+- Surgical `techContext.md` update: vendored markdown-it + session deep-link note
 
 ## Next Step
-- Reflect phase runs automatically
+- Operator runs `/niko-archive` to archive and finalize

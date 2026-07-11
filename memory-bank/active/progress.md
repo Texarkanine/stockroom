@@ -81,3 +81,12 @@ Add a dashboard conversation-reconstruction view for any session id (Recent Sess
     - QA **PASS** (trivial DRY fix applied; no substantive blockers)
 * Insights
     - Session view + metrics background refresh is intentional, not debris
+
+## 2026-07-10 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote reflection; reconciled `techContext.md` (markdown-it + deep-link)
+* Decisions made
+    - Standalone L3 → next operator step is `/niko-archive`
+* Insights
+    - Non-windowed dashboard endpoints need an early dispatcher special-case; pure session helpers kept Node tests cheap
