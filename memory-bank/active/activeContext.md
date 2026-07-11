@@ -1,11 +1,12 @@
 # Active Context
 
 ## Current Task: dashboard-port-58008
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Intent confirmed: change default dashboard port 6767 → 58008; no migration
-- Classified as Level 2 (simple enhancement: self-contained constant/docs/tests find-replace)
+- Planned find/replace 6767 → 58008 in engine, tests, skill, docs, techContext
+- Explicit exclusions: `memory-bank/archive/`, `memory-bank/active/` narrative, `uv.lock` hash substrings
+- No migration / dual-port / identity redesign
 
 ## Next Step
-- Load Level 2 workflow and enter plan phase
+- Preflight validation, then build

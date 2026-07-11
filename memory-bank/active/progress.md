@@ -15,3 +15,14 @@ Change the dashboard default port from 6767 to 58008 via find/replace across the
     - Exclude `memory-bank/archive/` from edits
 * Insights
     - Identity/replace logic is port-scoped; changing the default leaves old 6767 listeners orphaned by design
+
+## 2026-07-10 - PLAN - COMPLETE
+
+* Work completed
+    - Wrote Level 2 TDD + implementation plan in `tasks.md`
+    - Mapped touchpoints: `__main__.DEFAULT_PORT`, `server.serve` default, dashboard tests, `sr-dashboard` skill, `docs/using.md`, `techContext.md`
+* Decisions made
+    - Dead-simple find/replace; exclude archive, active narrative, and `uv.lock`
+    - No migration path
+* Insights
+    - `uv.lock` contains incidental `6767` digit sequences inside hashes — must not be sed'd
