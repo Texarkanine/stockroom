@@ -29,6 +29,12 @@ make docs-build    # strict docs build (matches docs CI)
 
 Do not confuse the root docs stub `pyproject.toml` with the engine — the engine did not move.
 
+## Publishing the docs site
+
+CI builds the site with `properdocs build --strict` on every PR (`.github/workflows/docs.yaml`). Deploy runs on a published GitHub Release or a manual `workflow_dispatch`.
+
+**One-time operator step:** after the first successful deploy job, set the repo **Settings → Pages → Source** to **GitHub Actions**. The workflow cannot flip that switch. Until Pages is live, readers can use the markdown under [`docs/`](https://github.com/Texarkanine/stockroom/tree/main/docs) on GitHub; the README also links there.
+
 ## The torch-safe run contract
 
 The engine lives inside [`skills/sr-search/`](https://github.com/Texarkanine/stockroom/tree/main/skills/sr-search) as a locked [uv](https://docs.astral.sh/uv/) project. Everything is pinned and hash-verified through `uv.lock` — **except torch**, which is deliberately held out of the lock and provisioned per-machine (so each box gets the right CPU/CUDA build).
