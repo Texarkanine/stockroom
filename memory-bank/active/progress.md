@@ -14,3 +14,14 @@ Invert REUSE PPL-S from blanket `skills/**` to a narrow carve-out (`SKILL.md` + 
     - Prefer `skills/**/SKILL.md` + `skills/**/references/**` over blanket `skills/**/*.md`
 * Insights
     - Claw-back lists exist only because of the broad PPL-S paint; narrowing removes the need for them
+
+## 2026-07-10 - PLAN - COMPLETE
+
+* Work completed
+    - Wrote Level 2 TDD + implementation plan in `tasks.md`
+    - Behaviors: PPL-S on SKILL.md + references; AGPL on code/shell/dashboard/fixture README; Chart.js MIT; reuse lint; SPDX delta
+* Decisions made
+    - Extend `test_licensing.py` only; no new test file
+    - Verify step must script license-set diff of before/after SPDX
+* Insights
+    - Fixture README is the canary that `*.md` would be too broad

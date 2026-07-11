@@ -1,11 +1,11 @@
 # Active Context
 
 ## Current Task: reuse-ppls-narrow-carveout
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Classified as Level 2 Simple Enhancement (self-contained REUSE/test/docs invert)
-- Captured SPDX baseline at `/tmp/stockroom-reuse-spdx/before.spdx`
+- Level 2 plan written: TDD on `test_licensing.py`, REUSE invert, systemPatterns blurb, SPDX before/after
+- SPDX baseline already at `/tmp/stockroom-reuse-spdx/before.spdx`
 
 ## Next Step
-- Load Level 2 workflow → plan phase
+- Preflight validation
