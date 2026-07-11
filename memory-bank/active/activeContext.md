@@ -1,11 +1,13 @@
 # Active Context
 
 ## Current Task: exact-message-text-retrieval
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Intent clarified against [issue #30](https://github.com/Texarkanine/stockroom/issues/30)
-- Classified as Level 2: self-contained enhancement to the truncate/render presentation path within `sr-search`; design choice among issue options is narrow, not architectural
+- Planned Level 2 enhancement for [issue #30](https://github.com/Texarkanine/stockroom/issues/30)
+- Design: add `--detail raw` (unbounded, preserve whitespace); leave `full` as unbounded + single-line
+- Canonical path: `--format json --detail raw`
+- Test plan covers truncate, render, CLI acceptance, and skill-doc handoff updates
 
 ## Next Step
-- Load Level 2 workflow and enter plan phase
+- Preflight validation

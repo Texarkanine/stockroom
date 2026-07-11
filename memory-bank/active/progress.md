@@ -14,3 +14,14 @@ Add a documented first-class CLI path so `stockroom query` / `stockroom semantic
     - Level 2: self-contained change in truncate/render/CLI presentation; pick among issue's proposed directions during plan
 * Insights
     - Current collapse-at-every-detail-level is intentional for table/TSV safety; the gap is missing an exact-text escape hatch, not a broken store
+
+## 2026-07-10 - PLAN - COMPLETE
+
+* Work completed
+    - Wrote Level 2 implementation + TDD plan in `tasks.md`
+    - Mapped touchpoints: `truncate.py`, `render.py`, query/semantic CLIs, `sr-query`/`sr-semantic` skills
+* Decisions made
+    - Add `--detail raw` (opt-in fidelity) rather than changing `full` or format-coupling collapse
+    - Canonical recipe `--format json --detail raw`; tsv/table+raw allowed but documented as unsafe
+* Insights
+    - `DETAIL_LEVELS` already drives argparse choices — extending the constant is the main wiring
