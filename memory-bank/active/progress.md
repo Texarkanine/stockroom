@@ -20,7 +20,6 @@ Implement 1.0-quality documentation for Stockroom per `memory-bank/active/creati
 
 * Work completed
     - Component analysis across README, CONTRIBUTING, docs/, properdocs toolchain, CI/Pages
-    - Test plan: properdocs `--strict` as primary gate; reuse lint; optional hygiene tests deferred
     - Implementation plan: 6 ordered steps (toolchain → corpus → README/CONTRIBUTING → CI → REUSE → verify)
     - Technology validation PoC for properdocs at `/tmp/stockroom-docs-poc` — PASS
 * Decisions made
@@ -29,3 +28,14 @@ Implement 1.0-quality documentation for Stockroom per `memory-bank/active/creati
     - Prefer GitHub absolute or careful links to system-model over snippet farm
 * Insights
     - Prior creative already removed the hard IA ambiguity; plan phase was sequencing + toolchain proof
+
+## 2026-07-11 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated conventions, completeness, dependency impact
+    - Amended plan: Verification Plan (properdocs strict + reuse + ownership review) instead of code TDD theater
+    - `.preflight-status` = PASS
+* Decisions made
+    - Docs-only task → no pytest layout tests; gates are build/reuse/QA review
+* Insights
+    - Operator pushback was correct: inventing “tests” for markdown would only create busywork

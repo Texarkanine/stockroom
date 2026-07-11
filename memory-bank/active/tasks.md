@@ -76,61 +76,53 @@ graph TD
 
 None remaining — implementation approach is clear.
 
-## Test Plan (TDD)
+## Verification Plan
 
-### Behaviors to Verify
+This task is **documentation and docs tooling only** — no production Python/JS behavior. The always-tdd code cycle does **not** apply. Do not add pytest “docs layout” tests for theater.
 
-- **Strict site build**: `uv sync --group docs --frozen` + `uv run properdocs build --strict` → exit 0, no link/anchor warnings-as-errors.
-- **Required corpus present**: after migration, paths exist: `docs/user-guide/{quickstart,install,using-skills,troubleshooting}.md`, `docs/user-guide/advanced/{index,cli}.md`, `docs/architecture/index.md`, `docs/contributor-guide/{development,torch,licensing}.md`, `docs/index.md`, `CONTRIBUTING.md`.
-- **README funnel**: README contains sections/headings for product identity, quickstart, skills table, contributing/license pointers (content review + optional structural assert in a small docs hygiene test if we add one).
-- **Ownership hygiene**: no new `skills/**/references/docs/` user-guide tree; `system-model.md` remains the sole shared using-agent doctrine file.
-- **REUSE**: `make reuse` (or `reuse lint`) still passes after new files (annotate via REUSE.toml aggregates as needed).
-- **Edge — relative links**: architecture page links to system-model resolve on GitHub and do not break strict build (use repo-relative or absolute github URLs consistent with sibling validation settings).
-- **Edge — old paths**: remove or redirect stale `docs/using.md` etc. so nothing dangling; prefer delete-after-migrate over leaving stubs that confuse.
+### Gates
 
-### Test Infrastructure
+- **`uv run properdocs build --strict`** — link/anchor/nav integrity for the site corpus (primary automated gate; sibling pattern).
+- **`make reuse`** — new markdown covered by REUSE aggregates.
+- **Acceptance / ownership review** (QA) — README funnel shape; required pages exist; no `skills/**/references/docs/` user-guide dump; `system-model.md` not forked; no flag-table duplication from `SKILL.md`.
+- **CI** — docs workflow runs the same strict build on PRs.
+- **Manual** — one local `properdocs serve` smoke; Pages Settings handoff after first deploy.
 
-- Framework: **properdocs strict build** as primary docs gate (sibling pattern); Python **pytest** under `skills/sr-search/tests/` for any optional hygiene asserts; **reuse lint** via Makefile.
-- Test location: CI workflow + optional `skills/sr-search/tests/test_docs_layout.py` (only if a lightweight path-existence test is worth it — prefer CI build alone unless packaging tests already set a precedent).
-- Conventions: match slobac/ai-rizz docs CI (`uv sync --group docs --frozen`, `properdocs build --strict`).
-- New test files: optional; default **none** beyond CI — docs content correctness is human/review + strict link check.
+### Out of scope
 
-### Integration Tests
-
-- CI docs workflow green on PR (build job).
-- Manual: `uv run properdocs serve` smoke locally once during build.
-- Operator handoff: GitHub Pages source = GitHub Actions after first deploy workflow (cannot be set by YAML alone).
+- Unit/integration pytest for prose quality or “file exists” assertions.
+- Fake red/green cycles per markdown page.
 
 ## Implementation Plan
 
 Authority: `memory-bank/active/creative/creative-release-quality-docs.md`.
 
-1. **Docs toolchain scaffold**
-    - Files: `pyproject.toml` (root stub), `properdocs.yaml`, `uv.lock` (via `uv lock`), `.gitignore` (`site/`, `.venv` already), optionally `Makefile` target `docs` / `docs-serve`.
-    - Changes: dependency group `docs` matching slobac pins (properdocs, mkdocs-material, awesome-pages, pymdown-extensions); Material theme + strict validation + GitHub-compatible slugify; **no** panzoom unless needed; snippets enabled in config but unused by default.
-    - Verify: `uv sync --group docs && uv run properdocs build --strict` against a minimal `docs/index.md` placeholder, then grow content.
+Write the corpus; run gates at natural checkpoints (after toolchain up, after corpus migrate, before handoff). Prefer install / troubleshooting / README before architecture niceties.
 
-2. **Restructure docs corpus (migrate, then write)**
-    - Files: create `docs/user-guide/`, `docs/architecture/`, `docs/contributor-guide/`, `docs/user-guide/advanced/`; move `docs/img/`; delete obsolete top-level `using.md` / relocate `development.md` / `torch.md`.
-    - Changes: substantive pages per creative tree; install content from `using.md`; contributor from development/torch; new troubleshooting + advanced CLI + using-skills + architecture + licensing + index + `.pages` nav.
-    - Creative ref: ownership + advanced CLI + troubleshooting seed list.
+1. **Docs toolchain scaffold**
+    - Files: `pyproject.toml` (root stub), `properdocs.yaml`, `uv.lock`, `.gitignore` (`site/`), optional `Makefile` `docs` / `docs-serve`.
+    - Changes: docs dependency group matching slobac pins; Material + strict validation + GitHub-compatible slugify; snippets config allowed but unused by default.
+    - Gate: `uv sync --group docs && uv run properdocs build --strict` on a minimal stub, then grow content.
+
+2. **Restructure docs corpus**
+    - Files: `docs/user-guide/**`, `docs/architecture/**`, `docs/contributor-guide/**`, `docs/user-guide/advanced/**`, `docs/img/`; remove obsolete top-level pages after migrate.
+    - Changes: substantive pages per creative tree (install ← `using.md`; contributor ← development/torch; new troubleshooting, advanced CLI, using-skills, architecture, licensing, index, `.pages`).
+    - Gate: `properdocs build --strict` after migrate/link fixes.
 
 3. **README + CONTRIBUTING**
     - Files: `README.md`, `CONTRIBUTING.md` (new).
-    - Changes: funnel README; CONTRIBUTING with ownership rule, system-model vs systemPatterns, pointers to contributor-guide / make targets.
+    - Changes: funnel README; CONTRIBUTING with ownership rule, system-model vs systemPatterns, contributor-guide pointers.
 
 4. **CI / Pages**
-    - Files: `.github/workflows/docs.yaml` (+ optional reusable build workflow mirrored from slobac, or inline single workflow); ensure `site_url` / `repo_url` in `properdocs.yaml` point at `Texarkanine/stockroom`.
-    - Changes: PR build gate; deploy on release published + `workflow_dispatch`; document Pages Settings handoff in CONTRIBUTING or contributor-guide if needed.
+    - Files: `.github/workflows/docs.yaml`; `properdocs.yaml` `site_url` / `repo_url` for `Texarkanine/stockroom`.
+    - Changes: PR strict-build gate; deploy on release + `workflow_dispatch`; note Pages Settings handoff.
 
 5. **Licensing / hygiene**
-    - Files: `REUSE.toml` if new paths need aggregate annotations; run `make reuse`.
-    - Changes: ensure new markdown covered; no accidental PPL-S expansion into contributor docs.
+    - Files: `REUSE.toml` as needed.
+    - Gate: `make reuse` PASS.
 
 6. **Final verification**
-    - `uv run properdocs build --strict`
-    - `make reuse` (and existing `make ci` if unaffected / still green)
-    - Spot-check: no skill user-guide dump; system-model untouched unless a factual fix is required
+    - Gates: `properdocs build --strict`, `make reuse`, ownership/acceptance review; `make ci` if still applicable to the tree.
 
 ## Technology Validation
 
@@ -158,10 +150,10 @@ No other new runtime dependencies.
 
 - [x] Component analysis complete
 - [x] Open questions resolved
-- [x] Test planning complete (TDD)
+- [x] Verification plan complete (docs gates — not code TDD)
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
 - [ ] QA
