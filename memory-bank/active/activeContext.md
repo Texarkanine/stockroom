@@ -1,11 +1,11 @@
 # Active Context
 
 ## Current Task: dashboard-port-58008
-**Phase:** QA - COMPLETE
+**Phase:** REFLECT COMPLETE
 
 ## What Was Done
-- Semantic QA PASS; no fixes
-- Default port is 58008 end-to-end (code, tests, skill, docs, techContext)
+- Reflection written; persistent files reconciled (techContext already updated in build; product/system unchanged)
+- Default port is 58008; no migration
 
 ## Next Step
-- Reflect phase
+- Run `/niko-archive` to create the archive document and finalize

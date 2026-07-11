@@ -56,3 +56,13 @@ Change the dashboard default port from 6767 to 58008 via find/replace across the
     - PASS — no fixes required
 * Insights
     - Dual DEFAULT_PORT / serve literals remain by design (find/replace scope)
+
+## 2026-07-10 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `reflection/reflection-dashboard-port-58008.md`
+    - Reconciled persistent files (techContext already current; no further edits)
+* Decisions made
+    - Standalone L2 complete — archive is next
+* Insights
+    - Path-scope constant swaps away from lockfile hash artifacts
