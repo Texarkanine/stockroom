@@ -19,25 +19,49 @@ from pathlib import Path
 from stockroom.ingest import claude
 
 
-def test_parse_ts_z_suffix_is_naive_utc() -> None:
-    """Trailing ``Z`` stamps become naive UTC wall clock."""
-    assert claude._parse_ts("2026-07-10T03:22:00.000Z") == datetime(
-        2026, 7, 10, 3, 22, 0
+def _write_user_session(path: Path, *, timestamp: object) -> Path:
+    """Write a minimal one-user-turn Claude transcript with the given timestamp."""
+    record = {
+        "type": "user",
+        "message": {"role": "user", "content": "hello"},
+        "uuid": "a1111111-0000-4000-8000-000000000001",
+        "parentUuid": None,
+        "timestamp": timestamp,
+        "sessionId": "ts-session",
+        "cwd": "/tmp/proj",
+    }
+    path.write_text(json.dumps(record) + "\n", encoding="utf-8")
+    return path
+
+
+def test_parse_session_z_suffix_timestamp_is_naive_utc(tmp_path: Path) -> None:
+    """Trailing ``Z`` message stamps become naive UTC on the public session."""
+    path = _write_user_session(
+        tmp_path / "z.jsonl", timestamp="2026-07-10T03:22:00.000Z"
     )
+    session = claude.parse_session(path)
+    assert session.messages[0].ts == datetime(2026, 7, 10, 3, 22, 0)
+    assert session.messages[0].ts.tzinfo is None
+    assert session.started_at == datetime(2026, 7, 10, 3, 22, 0)
 
 
-def test_parse_ts_offset_converts_to_naive_utc() -> None:
-    """Offset-aware stamps convert to UTC before tzinfo is dropped."""
-    assert claude._parse_ts("2026-07-09T22:22:00-05:00") == datetime(
-        2026, 7, 10, 3, 22, 0
+def test_parse_session_offset_timestamp_converts_to_naive_utc(tmp_path: Path) -> None:
+    """Offset-aware message stamps convert to UTC before tzinfo is dropped."""
+    path = _write_user_session(
+        tmp_path / "offset.jsonl", timestamp="2026-07-09T22:22:00-05:00"
     )
+    session = claude.parse_session(path)
+    assert session.messages[0].ts == datetime(2026, 7, 10, 3, 22, 0)
+    assert session.messages[0].ts.tzinfo is None
 
 
-def test_parse_ts_rejects_non_strings() -> None:
-    """Non-string / empty values yield ``None``."""
-    assert claude._parse_ts(None) is None
-    assert claude._parse_ts("") is None
-    assert claude._parse_ts(123) is None
+def test_parse_session_rejects_non_string_timestamps(tmp_path: Path) -> None:
+    """Non-string / empty timestamps yield ``None`` on the public message."""
+    for i, bad in enumerate((None, "", 123)):
+        path = _write_user_session(tmp_path / f"bad-{i}.jsonl", timestamp=bad)
+        session = claude.parse_session(path)
+        assert session.messages[0].ts is None
+        assert session.started_at is None
 
 
 _BASE = "-home-user-project"

@@ -147,12 +147,6 @@ def test_parse_window_default_now_is_utc(
     assert since == datetime(2026, 7, 9, 3, 22, 0)
 
 
-def test_iso_appends_z_for_naive_utc_datetimes() -> None:
-    """Dashboard datetime wire format marks naive UTC with a trailing ``Z``."""
-    assert metrics._iso(datetime(2026, 7, 10, 3, 22, 0)) == "2026-07-10T03:22:00Z"
-    assert metrics._iso(None) is None
-
-
 def test_empty_overview_has_stable_zero_shape(
     migrated_con: duckdb.DuckDBPyConnection,
 ) -> None:

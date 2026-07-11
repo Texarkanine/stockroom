@@ -240,16 +240,16 @@ No new technology - validation not required.
 - [x] Strengthen query CLI vacuous TSV oracles
 
 ### Batch 4 — Implementation-coupled
-- [ ] Claude `_parse_ts` → public parse_session
+- [x] Claude `_parse_ts` → public parse_session
 - [x] Sources `_mtime` → discover
-- [ ] Delete private `metrics._iso` unit test (Z covered by public payloads)
+- [x] Delete private `metrics._iso` unit test (Z covered by public payloads)
 
 ### Batch 5 — Semantic redundancy
-- [ ] Delete redundant warehouse open home/path tests
+- [x] Delete redundant warehouse open home/path tests
 
 ### Batch 6 — Torch loose-text
-- [ ] Exact reason + side effects for missing-freeze ensure
-- [ ] Exact reason + side effects for compile timeout freeze
+- [x] Exact reason + side effects for missing-freeze ensure
+- [x] Exact reason + side effects for compile timeout freeze
 
 ### Batch 7 — Verify green
 - [ ] Targeted + full Python/JS suites pass

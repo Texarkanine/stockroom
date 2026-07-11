@@ -133,8 +133,11 @@ def test_ensure_torch_fails_without_freeze(app_dir: Path, stockroom_home: Path) 
 
     report = torch_source.ensure_torch(app_dir, runner=runner)
     assert report.action == "failed"
-    assert "sr-initialize" in report.reason or "docs/torch.md" in report.reason
-    assert "freeze" in report.reason.lower() or "torch-requirements" in report.reason
+    assert report.reason == (
+        "torch missing and no hashed freeze at "
+        f"{torch_source.requirements_path()} — run sr-initialize (install → smoke → "
+        "freeze) or see docs/torch.md"
+    )
     assert not any("pip" in c for c in calls)
 
 
@@ -278,5 +281,5 @@ def test_freeze_torch_soft_fails_on_compile_timeout(
 
     report = torch_source.freeze_torch(app_dir, url, runner=runner)
     assert report.action == "failed"
-    assert "timed out" in report.reason.lower() or "timeout" in report.reason.lower()
+    assert report.reason == "uv pip compile timed out after 1.0s"
     assert not (stockroom_home / "torch-requirements.txt").exists()
