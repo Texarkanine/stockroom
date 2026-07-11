@@ -33,3 +33,22 @@ Add a dashboard conversation-reconstruction view for any session id (Recent Sess
     - Vendor **markdown-it** UMD with `html: false`, no plugins, linkify/typographer off — basic markdown without a second sanitizer
 * Insights
     - Ingested transcript text is not fully trusted; `html: false` beats marked+DOMPurify for one-artifact simplicity
+
+## 2026-07-10 - CREATIVE (reconstruction content) - COMPLETE
+
+* Work completed
+    - Architecture creative for reconstruction content model
+* Decisions made
+    - Single `/api/session` with nested tool_calls; full-pane UI with collapsed tools; client-side MD+JSON export in scope
+* Insights
+    - Messages-only would under-serve agent sessions; parallel tool endpoint adds merge cost without benefit
+
+## 2026-07-10 - PLAN - COMPLETE
+
+* Work completed
+    - Full L3 plan in `tasks.md`: components, TDD map, 9 implementation steps, challenges, pre-mortem
+    - Validated markdown-it 14.1.0 UMD under Node (`html: false` escapes raw script)
+* Decisions made
+    - All open questions closed via creative docs; export in scope; no schema migration
+* Insights
+    - `/api/session` needs server special-casing like `sessions`/`limit`; pure `dashboard-session.mjs` keeps URL/export testable under Node

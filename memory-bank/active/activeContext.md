@@ -1,12 +1,13 @@
 # Active Context
 
 ## Current Task: Session Inspection in Dashboard (#39)
-**Phase:** PLAN - IN-PROGRESS
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Confirmed intent against [#39](https://github.com/Texarkanine/stockroom/issues/39); classified Level 3
-- Component analysis: gaps confirmed — no routing, no full-text dashboard API, `session_id` absent from `/api/sessions` wire payload
-- Flagged three open questions: deep-link/navigation, markdown library+safety, reconstruction content model
+- Component analysis across metrics, server, static UI, REUSE, skills
+- Three creatives resolved: query-param deep links; markdown-it `html: false`; nested tool_calls + MD/JSON export
+- TDD plan, 9 implementation steps, challenges, pre-mortem
+- Technology validation: markdown-it 14.1.0 UMD PoC PASS (script escaped, basic MD renders)
 
 ## Next Step
-- Creative phase for open questions, then finish plan (TDD, implementation steps, pre-mortem)
+- Preflight phase to validate the plan before `/niko-build`
