@@ -74,3 +74,10 @@ Fix warehouse/dashboard timezone skew ([issue #32](https://github.com/Texarkanin
     - Standalone L2 task → next operator step is `/niko-archive`
 * Insights
     - Time-freeze tests couple to the concrete clock helper name; renaming `datetime.now` → `utc_now` is a cross-cutting test change
+
+## 2026-07-10 - ARCHIVE - IN-PROGRESS
+
+* Work completed
+    - Reflect phase closed; entering archive
+* Decisions made
+    - Category: `bug-fixes/` (issue #32 timezone skew)

@@ -1,11 +1,10 @@
 # Active Context
 
 ## Current Task: fix-dashboard-utc-timestamps
-**Phase:** REFLECT COMPLETE
+**Phase:** ARCHIVE - IN-PROGRESS
 
 ## What Was Done
-- Reflection written; systemPatterns updated with UTC-at-rest contract
-- Ready for archive
+- Reflection complete; entering archive for issue #32 UTC timestamp contract
 
 ## Next Step
-- Run `/niko-archive` to create the archive document and finalize
+- Create archive document, clear ephemeral memory bank, commit
