@@ -85,3 +85,12 @@ Verify and remediate all applicable SLOBAC smells from the 2026-07-11 audit (60 
 * Insights
     - Docstring-local fossil strips beat whole-file whitespace normalization
     - Delete-first + bounded supplemental fossils kept build scoped
+
+## 2026-07-11 - ARCHIVE - IN-PROGRESS
+
+* Work completed
+    - Entering archive phase after reflect complete
+* Decisions made
+    - Category: enhancements (test-suite smell remediation; not a product bug or new feature)
+* Insights
+    - None yet
