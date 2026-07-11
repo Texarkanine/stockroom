@@ -14,3 +14,17 @@ Verify and remediate all applicable SLOBAC smells from the 2026-07-11 audit (60 
     - Level 3: multi-component suite remediation with verification judgment and possible small SUT changes for structured failure identity
 * Insights
     - Audit already clusters remediations by smell; planning should batch by smell type and by "delete vs strengthen" disposition
+
+## 2026-07-11 - PLAN - COMPLETE
+
+* Work completed
+    - Component analysis across doctor/torch/ingest/query/dashboard/warehouse/packaging test surfaces
+    - Implementation plan: 7 batches (verify → deletes → fossils → conditional/naming/vacuous → public-surface decoupling → semantic redundancy → torch oracles → full suite)
+    - Test plan framed as preserve-and-strengthen behavioral coverage; deletions need no replacements
+* Decisions made
+    - No creative phase — approach clear
+    - Delete presentation/prose/skill pins first
+    - No product API expansion for torch; exact reason + side effects
+    - Audit-only scope (do not sweep unlisted fossils)
+* Insights
+    - Several tests carry stacked smells (fossil + conditional, fossil + loose-text); fix once per test

@@ -1,12 +1,14 @@
 # Active Context
 
 ## Current Task: SLOBAC audit remediation
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Intent clarified and approved: verify then fix applicable smells from `.slobac/2026-07-11T14-58-48/audit.md`
-- Operator preference recorded: for dashboard display / skill contents near prose-pin, loose-text-oracle, or presentation-coupled, prefer deleting tests over locking specific output; prioritize testing actual code
-- Complexity classified Level 3 (multi-file test remediation across subsystems; verify-then-fix judgment; possible small SUT API tweaks for structured oracles)
+- Level 3 plan written for 60 audit findings with verify-then-fix dispositions
+- Operator preference locked: delete prose-pin / presentation-coupled / display loose-text (dashboard + skill/docs) rather than goldenize copy
+- No open questions / no creative phase — dispositions clear from taxonomy + operator preference
+- Boundary change avoided: torch soft-fails use exact reason equality + side effects (no new reason_code API unless build forces constant extraction)
+- Scope locked to audit findings only (unlisted schedule fossils left alone)
 
 ## Next Step
-- Load Level 3 workflow and begin PLAN phase
+- Preflight phase to validate the plan
