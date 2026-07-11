@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.3.0](https://github.com/Texarkanine/stockroom/compare/v0.2.0...v0.3.0) (2026-07-11)
+
+
+### Features
+
+* **dashboard:** polish controls, ratios, labels, and help ([#31](https://github.com/Texarkanine/stockroom/issues/31)) ([065b479](https://github.com/Texarkanine/stockroom/commit/065b479d024d8bf6823af112ba9cf9f5ce4492e2))
+* **query,semantic:** add --detail raw for exact message text ([#35](https://github.com/Texarkanine/stockroom/issues/35)) ([0feaa37](https://github.com/Texarkanine/stockroom/commit/0feaa371e02b849f7c481c847657fef60adb647a))
+
+
+### Bug Fixes
+
+* **dashboard:** store warehouse timestamps as UTC ([#34](https://github.com/Texarkanine/stockroom/issues/34)) ([e2f5039](https://github.com/Texarkanine/stockroom/commit/e2f50394a1018e80a3248e2bda3e3ea949f64afc))
+
 ## [0.2.0](https://github.com/Texarkanine/stockroom/compare/v0.1.5...v0.2.0) (2026-07-10)
 
 
