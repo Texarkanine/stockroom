@@ -12,7 +12,7 @@ An agent reconstructs a prior conversation from the warehouse. Assistant message
 
 ### Exact field dump for debugging
 
-A human runs `stockroom query` / `stockroom semantic` expecting `--detail full` (or an equivalent fidelity mode) to return whole-field text as stored, not a single flattened line.
+A human runs `stockroom query` / `stockroom semantic` with `--format json --detail raw` to return whole-field text as stored (newlines intact). `--detail full` is unbounded length but still single-line (whitespace collapsed).
 
 ## Requirements
 
