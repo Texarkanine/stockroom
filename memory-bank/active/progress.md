@@ -66,3 +66,12 @@ Change the dashboard default port from 6767 to 58008 via find/replace across the
     - Standalone L2 complete — archive is next
 * Insights
     - Path-scope constant swaps away from lockfile hash artifacts
+
+## 2026-07-10 - ARCHIVE - IN-PROGRESS
+
+* Work completed
+    - Entering archive: reflection present; working tree clean after reflect
+* Decisions made
+    - Category: enhancements (default port change on existing dashboard)
+* Insights
+    - None yet

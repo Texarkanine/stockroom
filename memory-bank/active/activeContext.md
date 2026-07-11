@@ -1,11 +1,10 @@
 # Active Context
 
 ## Current Task: dashboard-port-58008
-**Phase:** REFLECT COMPLETE
+**Phase:** ARCHIVE - IN-PROGRESS
 
 ## What Was Done
-- Reflection written; persistent files reconciled (techContext already updated in build; product/system unchanged)
-- Default port is 58008; no migration
+- Reflection complete; entering archive
 
 ## Next Step
-- Run `/niko-archive` to create the archive document and finalize
+- Create archive document, clear ephemeral memory-bank files, commit
