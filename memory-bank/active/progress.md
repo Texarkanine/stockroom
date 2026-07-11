@@ -55,3 +55,13 @@ Invert REUSE PPL-S from blanket `skills/**` to a narrow carve-out (`SKILL.md` + 
     - PASS — no fixes required
 * Insights
     - SPDX delta of zero flips is the strongest confirmation the invert is expression-only for today's tree
+
+## 2026-07-10 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `reflection/reflection-reuse-ppls-narrow-carveout.md`
+    - Reconciled persistent files: systemPatterns already current; no further edits
+* Decisions made
+    - None
+* Insights
+    - Invert's value is safer default for future software under skills/, not a license flip on today's tree

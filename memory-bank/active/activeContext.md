@@ -1,10 +1,11 @@
 # Active Context
 
 ## Current Task: reuse-ppls-narrow-carveout
-**Phase:** QA - COMPLETE
+**Phase:** REFLECT - COMPLETE
 
 ## What Was Done
-- QA PASS: narrow PPL-S carve-out matches brief; no claw-back debris; docs/tests aligned; SPDX showed zero license flips
+- Reflection written; systemPatterns already updated in build; productContext/techContext unchanged
+- SPDX audit: zero license flips
 
 ## Next Step
-- Reflect
+- Run `/niko-archive` to archive and finalize
