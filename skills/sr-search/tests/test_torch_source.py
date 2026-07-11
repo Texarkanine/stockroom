@@ -36,7 +36,7 @@ def _fail(stderr: str = "boom") -> subprocess.CompletedProcess[str]:
 
 
 def test_write_read_index_round_trip(stockroom_home: Path) -> None:
-    """T1: recorded index survives under STOCKROOM_HOME."""
+    """Recorded index survives under STOCKROOM_HOME."""
     url = "https://download.pytorch.org/whl/cu126"
     path = torch_source.write_index(url)
     assert path == stockroom_home / "torch-index"
@@ -53,7 +53,7 @@ def test_write_index_rejects_non_https(stockroom_home: Path) -> None:
 
 
 def test_ensure_torch_noop_when_importable(app_dir: Path, stockroom_home: Path) -> None:
-    """F5: torch already importable → noop even if freeze present; no pip."""
+    """Torch already importable → noop even if freeze present; no pip."""
     url = "https://download.pytorch.org/whl/cpu"
     freeze = stockroom_home / "torch-requirements.txt"
     freeze.write_text(
@@ -80,7 +80,7 @@ def test_ensure_torch_noop_when_importable(app_dir: Path, stockroom_home: Path) 
 
 
 def test_ensure_torch_installs_from_freeze(app_dir: Path, stockroom_home: Path) -> None:
-    """F3: missing torch + freeze present → --require-hashes -r freeze; no bare index install."""
+    """Missing torch + freeze present → --require-hashes -r freeze; no bare index install."""
     url = "https://download.pytorch.org/whl/cpu"
     freeze = stockroom_home / "torch-requirements.txt"
     freeze.write_text(
@@ -118,7 +118,7 @@ def test_ensure_torch_installs_from_freeze(app_dir: Path, stockroom_home: Path) 
 
 
 def test_ensure_torch_fails_without_freeze(app_dir: Path, stockroom_home: Path) -> None:
-    """F4: missing torch + no freeze → failed soft; no pip (even if index sidecar exists)."""
+    """Missing torch + no freeze → failed soft; no pip (even if index sidecar exists)."""
     torch_source.write_index("https://download.pytorch.org/whl/cpu")
     py = app_dir / ".venv" / "bin" / "python"
     py.parent.mkdir(parents=True)
@@ -172,7 +172,7 @@ def _venv_python(app_dir: Path) -> Path:
 def test_freeze_torch_writes_hashed_requirements(
     app_dir: Path, stockroom_home: Path
 ) -> None:
-    """F1: importable torch + index → hashed requirements + torch-index sidecar."""
+    """Importable torch + index → hashed requirements + torch-index sidecar."""
     url = "https://download.pytorch.org/whl/cpu"
     version = "2.7.1+cpu"
     _venv_python(app_dir)
@@ -220,7 +220,7 @@ def test_freeze_torch_writes_hashed_requirements(
 def test_freeze_torch_refuses_without_torch(
     app_dir: Path, stockroom_home: Path
 ) -> None:
-    """F2: no importable torch → failed; no freeze file written."""
+    """No importable torch → failed; no freeze file written."""
     url = "https://download.pytorch.org/whl/cpu"
     _venv_python(app_dir)
     calls: list[list[str]] = []

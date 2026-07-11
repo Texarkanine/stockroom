@@ -1,7 +1,7 @@
 """Contract tests for migration ``0002_workspace_identity.sql``.
 
 ``0002`` is the project's first real *schema-changing, data-preserving* forward
-migration — the Phase-1 "Done When" proof, dogfooding the milestone-2 framework.
+migration — the proof, dogfooding the milestone-2 framework.
 It replaces the lossy, fabricating ``sessions.project_path`` with two
 single-meaning columns: ``project_id`` (the verbatim encoded project-dir slug —
 the always-present grouping identity) and the re-semantic ``cwd`` (best-effort

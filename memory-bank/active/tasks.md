@@ -227,9 +227,9 @@ No new technology - validation not required.
 - [x] Drop session API error substring discrimination
 
 ### Batch 2 — Fossils
-- [ ] Strip audit-listed checklist/phase fossils from docstrings/names
-- [ ] Strip supplemental `test_schedule.py` B#/B17 fossils (module + tests)
-- [ ] Strip supplemental `test_schema_0002.py` Phase-1 module fossil
+- [x] Strip audit-listed checklist/phase fossils from docstrings/names
+- [x] Strip supplemental `test_schedule.py` B#/B17 fossils (module + tests)
+- [x] Strip supplemental `test_schema_0002.py` Phase-1 module fossil
 
 ### Batch 3 — Conditional / naming / vacuous
 - [ ] Fix doctor torch isolation conditional

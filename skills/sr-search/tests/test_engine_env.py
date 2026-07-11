@@ -51,7 +51,7 @@ def _fail(stderr: str = "outdated", code: int = 1) -> subprocess.CompletedProces
 
 
 def test_noop_when_inexact_check_passes(app_dir: Path) -> None:
-    """B1: usable env (check exit 0) → noop; heal sync never invoked."""
+    """Usable env (check exit 0) → noop; heal sync never invoked."""
     calls: list[list[str]] = []
 
     def runner(cmd, **kwargs):  # noqa: ANN001
@@ -69,7 +69,7 @@ def test_noop_when_inexact_check_passes(app_dir: Path) -> None:
 
 
 def test_heals_with_inexact_sync_when_check_fails(app_dir: Path) -> None:
-    """B2: incomplete env → probe then heal; heal is frozen+inexact, no exact."""
+    """Incomplete env → probe then heal; heal is frozen+inexact, no exact."""
     calls: list[list[str]] = []
 
     def runner(cmd, **kwargs):  # noqa: ANN001
@@ -90,7 +90,7 @@ def test_heals_with_inexact_sync_when_check_fails(app_dir: Path) -> None:
 
 
 def test_heal_command_never_omits_inexact(app_dir: Path) -> None:
-    """B3: torch-safe — every uv sync argv from ensure includes --inexact."""
+    """Torch-safe — every uv sync argv from ensure includes --inexact."""
     cmds = []
 
     def capture(cmd, **kwargs):  # noqa: ANN001
@@ -104,7 +104,7 @@ def test_heal_command_never_omits_inexact(app_dir: Path) -> None:
 def test_ensure_invokes_torch_ensure_after_deps(
     app_dir: Path, _stub_torch_ensure: list[Path]
 ) -> None:
-    """T5: after deps probe, ensure_torch runs against app_dir."""
+    """After deps probe, ensure_torch runs against app_dir."""
 
     def runner(cmd, **kwargs):  # noqa: ANN001
         return _ok()

@@ -275,7 +275,7 @@ class TestRectify:
         engine_dir: Path,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-        """B4: rectify always runs ensure_engine_env for app_dir first,
+        """Rectify always runs ensure_engine_env for app_dir first,
         including when the dest is absent (path noop)."""
         from stockroom.engine_env import EnsureReport
 

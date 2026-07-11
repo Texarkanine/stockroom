@@ -88,7 +88,7 @@ def test_help_documents_subactions_and_flags(tmp_path: Path) -> None:
 def test_ensure_env_exits_zero_without_owner(
     tmp_path: Path, engine_dir: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """B5: ``ensure-env`` does not require ``--owner`` and exits 0 on noop/sync.
+    """``ensure-env`` does not require ``--owner`` and exits 0 on noop/sync.
 
     Invokes ``main`` in-process so ``ensure_engine_env`` can be stubbed — the
     CLI must not shell out to a real uv here.

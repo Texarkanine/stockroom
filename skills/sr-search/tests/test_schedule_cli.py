@@ -2,7 +2,7 @@
 
 Runs ``python -m stockroom.schedule`` as a real subprocess (the
 ``test_doctor_cli.py`` convention), exercising real argv parsing and the
-action dispatch (B15). The environment is fully injected through the
+action dispatch. The environment is fully injected through the
 process seams: ``STOCKROOM_HOME`` redirects the log-path facts away from
 the operator's real home, and a stub ``crontab`` executable prepended to
 ``PATH`` stands in for the real user crontab (reporting "no crontab" so
@@ -68,7 +68,7 @@ def _run(
 
 
 def test_help_documents_actions_and_time_flag(tmp_path: Path) -> None:
-    """B15: ``--help`` exits 0 and documents install, status, remove, and
+    """``--help`` exits 0 and documents install, status, remove, and
     the ``--time`` flag with its default."""
     result = _run("--help", home=tmp_path / "home")
     assert result.returncode == 0, result.stderr
@@ -77,7 +77,7 @@ def test_help_documents_actions_and_time_flag(tmp_path: Path) -> None:
 
 
 def test_invalid_action_is_clean_error(tmp_path: Path) -> None:
-    """B15: an invalid action exits 2 with argparse's clean error (no
+    """An invalid action exits 2 with argparse's clean error (no
     traceback)."""
     result = _run("bogus", home=tmp_path / "home")
     assert result.returncode == 2
@@ -85,7 +85,7 @@ def test_invalid_action_is_clean_error(tmp_path: Path) -> None:
 
 
 def test_status_against_empty_environment(tmp_path: Path, stub_crontab: Path) -> None:
-    """B15: ``status`` through real argv parsing against an injected-empty
+    """``status`` through real argv parsing against an injected-empty
     environment (stubbed crontab, redirected home) exits 0 and reports the
     not-installed, daemon, and log facts."""
     if platform.system() != "Linux":

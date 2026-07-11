@@ -2,9 +2,9 @@
 
 Runs ``python -m stockroom.doctor`` as a real subprocess. CI is torch-free
 by construction (it never provisions torch), so ``probe`` must still exit 0
-with torch reported as a fact (B13) and ``smoke`` must produce the one-line
-ratcheted diagnosis — remedy command included — with exit 1 (B14, the
-CI-testable loud failure). B14 is the complement of the
+with torch reported as a fact and ``smoke`` must produce the one-line
+ratcheted diagnosis — remedy command included — with exit 1
+(CI-testable loud failure). This is the complement of the
 ``importorskip("torch")`` real-model smoke: on a torch-provisioned dev box
 it skips (the subprocess would genuinely succeed) while the real-model test
 runs, and vice versa on CI.
@@ -37,7 +37,7 @@ def _run(*args: str) -> subprocess.CompletedProcess:
 
 
 def test_probe_exits_zero_and_prints_fact_keys() -> None:
-    """B13: ``doctor probe`` in a torch-free env exits 0 and reports the
+    """``doctor probe`` in a torch-free env exits 0 and reports the
     always-present fact keys."""
     result = _run("probe")
     assert result.returncode == 0, result.stderr
@@ -54,7 +54,7 @@ def test_probe_exits_zero_and_prints_fact_keys() -> None:
 
 
 def test_smoke_torch_free_env_fails_loudly_with_remedy() -> None:
-    """B14: ``doctor smoke`` without torch exits 1 with the one-line
+    """``doctor smoke`` without torch exits 1 with the one-line
     ratcheted diagnosis carrying the literal provisioning command."""
     if importlib.util.find_spec("torch") is not None:
         pytest.skip("torch is provisioned here — the real-model smoke covers this env")
@@ -67,7 +67,7 @@ def test_smoke_torch_free_env_fails_loudly_with_remedy() -> None:
 
 
 def test_help_documents_both_actions() -> None:
-    """B15: ``doctor --help`` exits 0 and documents probe and smoke."""
+    """``doctor --help`` exits 0 and documents probe and smoke."""
     result = _run("--help")
     assert result.returncode == 0, result.stderr
     assert "probe" in result.stdout
