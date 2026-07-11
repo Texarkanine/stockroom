@@ -1,10 +1,11 @@
 # Active Context
 
 ## Current Task: Session Inspection in Dashboard (#39)
-**Phase:** PREFLIGHT - IN-PROGRESS
+**Phase:** PREFLIGHT - COMPLETE
 
 ## What Was Done
-- Plan complete with three creative decisions and markdown-it 14.1.0 PoC validation
+- Plan + three creatives + markdown-it PoC
+- Preflight PASS: TDD encoding strengthened; Copy deep-link added to plan; no codebase conflicts
 
 ## Next Step
-- Run preflight validation against the plan
+- Operator runs `/niko-build` to implement

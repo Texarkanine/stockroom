@@ -52,3 +52,13 @@ Add a dashboard conversation-reconstruction view for any session id (Recent Sess
     - All open questions closed via creative docs; export in scope; no schema migration
 * Insights
     - `/api/session` needs server special-casing like `sessions`/`limit`; pure `dashboard-session.mjs` keeps URL/export testable under Node
+
+## 2026-07-10 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated plan against codebase: no overlapping session-view implementation; Chart.js/REUSE/skill-hygiene patterns reusable
+    - Amended plan: explicit per-step TDD (a→d); Copy deep-link control on session header
+* Decisions made
+    - Preflight **PASS** (with advisory noted for operator)
+* Insights
+    - `sr-dashboard` is the right home for the URL template; hygiene tests still require only `stockroom dashboard` as invocation

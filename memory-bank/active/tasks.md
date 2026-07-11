@@ -96,42 +96,52 @@ flowchart TD
 
 ## Implementation Plan
 
-1. **Extend `sessions()` wire + tests** (TDD)
-    - Files: `metrics.py`, `tests/test_dashboard_metrics.py`
-    - Changes: include `session_id` in each list record; update assertions
+Each numbered step is one TDD cycle: **(a) write failing tests → (b) run and confirm fail → (c) implement → (d) run and confirm pass**. Do not start (c) before (a)/(b).
 
-2. **Add `session_detail()` + tests** (TDD)
-    - Files: `metrics.py`, `tests/test_dashboard_metrics.py`
-    - Changes: query session row + messages + tool_calls; nest tools; full text; not-found → `None`
-    - Creative ref: `creative-reconstruction-content.md`
+1. **`sessions()` includes `session_id`**
+    - Files: `tests/test_dashboard_metrics.py`, `metrics.py`
+    - (a) Extend/add assertions that each list row includes `session_id` (and existing fields still hold)
+    - (c) Add `session_id` to the `sessions()` wire dict
 
-3. **Wire HTTP `/api/session`** (TDD)
-    - Files: `server.py`, `metrics.ENDPOINTS`, `tests/test_dashboard_server.py`
-    - Changes: parse required `harness` (single) + `session`; 400/404/200; do not apply date-window defaults
+2. **`session_detail()` reconstruction query**
+    - Files: `tests/test_dashboard_metrics.py`, `metrics.py`
+    - (a) Tests: ordered messages with full text; nested tool_calls; missing → `None`; subagent addressable; no snippet markers
+    - (c) Implement `session_detail(con, harness, session_id)` per `creative-reconstruction-content.md`
+    - Register in `ENDPOINTS` only after step 3's server tests expect it (or register here and keep server tests in step 3)
 
-4. **Vendor markdown-it 14.1.0 + REUSE** (TDD on licensing/static first where possible)
-    - Files: `static/markdown-it-14.1.0.min.js` (from upstream `dist/markdown-it.min.js`), `REUSE.toml`, `tests/test_licensing.py`, `tests/test_dashboard_static.py`, `tests/test_dashboard_server.py`
+3. **HTTP `/api/session`**
+    - Files: `tests/test_dashboard_server.py`, `server.py`, `metrics.ENDPOINTS`
+    - (a) Tests: 200 payload; 400 missing params; 404 unknown; static file for markdown-it deferred to step 4
+    - (c) Special-case query parsing for required `harness` + `session` (mirror `sessions`/`limit` branch)
+
+4. **Vendor markdown-it 14.1.0 + REUSE**
+    - Files: `tests/test_licensing.py`, `tests/test_dashboard_static.py`, `tests/test_dashboard_server.py`, `REUSE.toml`, `static/markdown-it-14.1.0.min.js`, `index.html` script tag
+    - (a) Failing licensing/static/server assertions for the new artifact and load order (markdown-it before dashboard module; no CDN)
+    - (c) Copy upstream `dist/markdown-it.min.js`, REUSE MIT override, wire `<script>` in `index.html`
     - Creative ref: `creative-markdown-library.md`
 
-5. **Pure session front-end helpers + JS tests** (TDD)
-    - Files: new `static/dashboard-session.mjs`, `tests-js/dashboard-session.test.mjs`
-    - Changes: `buildSessionViewSearchParams`, `parseSessionViewParams`, `formatSessionMarkdownExport`, optional `renderMessageHtml(md, text)` wrapper
+5. **Pure session helpers (`dashboard-session.mjs`)**
+    - Files: `tests-js/dashboard-session.test.mjs`, `static/dashboard-session.mjs`
+    - (a) Node tests for `buildSessionViewSearchParams`, `parseSessionViewParams`, `formatSessionMarkdownExport`, and deep-link copy string helper
+    - (c) Implement pure helpers (no DOM)
 
-6. **Session pane UI + navigation** (TDD via static landmarks + helper tests; implement in `dashboard.mjs` / `index.html`)
-    - Files: `index.html`, `dashboard.mjs`, `dashboard-data.mjs`
-    - Changes: session pane markup; hide/show metrics vs session; fetch detail; markdown-it init; row click → `history.pushState`; boot from query; back control; collapsed tool `<details>`
+6. **Session pane UI + navigation**
+    - Files: `tests/test_dashboard_static.py` (landmarks/controls), then `index.html`, `dashboard.mjs`, `dashboard-data.mjs`
+    - (a) Static tests for session pane regions, back control, export controls, copy-link control, row affordance on Recent Sessions
+    - (c) Full-pane swap; fetch detail; markdown-it init (`html: false`); row click → `history.pushState`; boot from query; back; collapsed tool `<details>`
     - Creative refs: deep-link + content model
 
-7. **Export buttons**
-    - Files: `dashboard.mjs` / `dashboard-session.mjs`
-    - Changes: download JSON payload + markdown export blob
+7. **Export + copy-link wiring**
+    - Files: `tests-js/dashboard-session.test.mjs` (export/copy string already in step 5), `dashboard.mjs`
+    - (a) Any remaining helper assertions for JSON serialize identity; (c) wire download buttons + copy-to-clipboard for the canonical deep-link URL on the session header
 
 8. **Skills documentation**
-    - Files: `skills/sr-dashboard/SKILL.md` (primary); brief cross-link note in `sr-search`/`sr-query` only if they already discuss session ids / full-text handoff
-    - Changes: document URL template and when to offer it
+    - Files: `skills/sr-dashboard/SKILL.md` (+ light cross-link elsewhere only if needed)
+    - Document URL template: append `?view=session&harness=…&session=…` to the printed dashboard base URL; when to offer it
+    - Keep hygiene: only `stockroom dashboard` as engine invocation
 
 9. **Verification**
-    - `make test-js`, targeted pytest, then `make ci` (incl. REUSE)
+    - Targeted pytest + `make test-js`, then full `make ci` (incl. REUSE)
 
 ## Technology Validation
 
@@ -150,6 +160,11 @@ No npm/bundler runtime; no other new technology.
 - **P4 "no drill-downs" docs/comments**: update skill + any stale comments; systemPatterns only if a durable pattern statement becomes wrong
 - **JS DOM logic hard to pytest**: extract pure URL/export helpers to `dashboard-session.mjs` for Node tests
 
+## Preflight Amendments
+
+- Strengthened per-step TDD ordering `(a) failing tests → (b) confirm fail → (c) implement → (d) pass`
+- Added **Copy deep-link** control on the session header (canonical `view=session` URL) — within brief, high leverage for skills/operators
+
 ## Pre-Mortem
 
 - **Plan failed because we treated session id as globally unique**: already constrained — composite key required in URL and API
@@ -165,6 +180,6 @@ No npm/bundler runtime; no other new technology.
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
 - [ ] QA
