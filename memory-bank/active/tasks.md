@@ -98,12 +98,12 @@ flowchart TD
 
 Each numbered step is one TDD cycle: **(a) write failing tests → (b) run and confirm fail → (c) implement → (d) run and confirm pass**. Do not start (c) before (a)/(b).
 
-1. **`sessions()` includes `session_id`**
+1. **`sessions()` includes `session_id`** ✅
     - Files: `tests/test_dashboard_metrics.py`, `metrics.py`
     - (a) Extend/add assertions that each list row includes `session_id` (and existing fields still hold)
     - (c) Add `session_id` to the `sessions()` wire dict
 
-2. **`session_detail()` reconstruction query**
+2. **`session_detail()` reconstruction query** ✅
     - Files: `tests/test_dashboard_metrics.py`, `metrics.py`
     - (a) Tests: ordered messages with full text; nested tool_calls; missing → `None`; subagent addressable; no snippet markers
     - (c) Implement `session_detail(con, harness, session_id)` per `creative-reconstruction-content.md`
