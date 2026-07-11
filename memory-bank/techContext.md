@@ -10,10 +10,11 @@ Warehouse home: `$XDG_DATA_HOME/stockroom` or `~/.local/share/stockroom`, overri
 
 ## Build Tools
 
-- **uv** — dependency resolution; canonical config [`skills/sr-search/pyproject.toml`](../skills/sr-search/pyproject.toml) + [`uv.lock`](../skills/sr-search/uv.lock) (`package = false`, torch override-dependencies).
+- **uv** — dependency resolution; canonical engine config [`skills/sr-search/pyproject.toml`](../skills/sr-search/pyproject.toml) + [`uv.lock`](../skills/sr-search/uv.lock) (`package = false`, torch override-dependencies). Root stub [`pyproject.toml`](../pyproject.toml) + [`uv.lock`](../uv.lock) is docs-only (`uv sync --group docs`).
+- **properdocs** — human doc site over [`docs/`](../docs/); config [`properdocs.yaml`](../properdocs.yaml); `make docs` / `make docs-build`.
 - **release-please** — [`release-please-config.json`](../release-please-config.json) + [`.release-please-manifest.json`](../.release-please-manifest.json); syncs version into both plugin manifests.
-- **Makefile** — root [`Makefile`](../Makefile) for sync/lock/test/lint/format/reuse/ci/torch/shim.
-- **CI / release** — [`.github/workflows/ci.yml`](../.github/workflows/ci.yml), [`.github/workflows/release-please.yaml`](../.github/workflows/release-please.yaml).
+- **Makefile** — root [`Makefile`](../Makefile) for sync/lock/test/lint/format/reuse/ci/torch/shim/docs.
+- **CI / release** — [`.github/workflows/ci.yml`](../.github/workflows/ci.yml), [`.github/workflows/docs.yaml`](../.github/workflows/docs.yaml), [`.github/workflows/release-please.yaml`](../.github/workflows/release-please.yaml).
 - **Dashboard front-end** — committed native ES modules under [`stockroom/dashboard/static/`](../skills/sr-search/src/stockroom/dashboard/static/) with vendored Chart.js and markdown-it; no npm install or bundler. Node 22 runs `make test-js` only.
 
 ## Warehouse Schema

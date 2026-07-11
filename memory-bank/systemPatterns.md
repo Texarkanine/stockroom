@@ -65,3 +65,7 @@ The shim has a baked engine dir and zero resolution logic — succeed correctly 
 ## Layered licensing
 
 Root [`REUSE.toml`](../REUSE.toml): AGPL base on everything; PPL-S carved out only for prompt-shaped skill payload (`skills/**/SKILL.md`, `skills/**/references/**`); software under `skills/**` inherits AGPL. Enforced by `reuse lint`.
+
+## Docs ownership: skills vs human site
+
+Human user-guide / architecture / contributor prose lives under [`docs/`](../docs/) (properdocs site). Agents use `SKILL.md` + [`system-model.md`](../skills/sr-search/references/system-model.md) only — do not park a user-guide corpus under `skills/**/references/`. Root `pyproject.toml` is a docs-toolchain stub; the engine remains under `skills/sr-search/`. Using-agent doctrines (`system-model.md`) and this maintainer briefing are related but not one SSOT — see [`CONTRIBUTING.md`](../CONTRIBUTING.md).
