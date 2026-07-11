@@ -23,25 +23,25 @@ Change the dashboard default port from `6767` to `58008` via find/replace across
 - Framework: pytest (configured in `skills/sr-search/pyproject.toml`)
 - Test location: `skills/sr-search/tests/`
 - Conventions: `test_dashboard_cli.py`, `test_dashboard_identity.py`; inject probe/spawn/identity fakes
-- New test files: none — update existing assertions; optionally add a one-liner asserting `DEFAULT_PORT == 58008` in `test_dashboard_cli.py` if no existing constant assertion
+- New test files: none — update existing assertions; add `test_default_port_is_58008` in `test_dashboard_cli.py`
 
 ## Implementation Plan
 
 1. [x] **Failing constant assertion (TDD entry)**
    - Files: `skills/sr-search/tests/test_dashboard_cli.py`
-   - Changes: add/adjust assertion that `DEFAULT_PORT == 58008` (and/or default CLI URL uses 58008); run targeted tests — expect fail while code still says 6767
+   - Changes: add assertion that `DEFAULT_PORT == 58008`; ran red while code still said 6767
 
-2. [ ] **Find/replace port in engine + tests**
+2. [x] **Find/replace port in engine + tests**
    - Files: `skills/sr-search/src/stockroom/dashboard/__main__.py`, `skills/sr-search/src/stockroom/dashboard/server.py`, `skills/sr-search/tests/test_dashboard_cli.py`, `skills/sr-search/tests/test_dashboard_identity.py`
-   - Changes: replace `6767` → `58008` (DEFAULT_PORT, `serve` default, test fixtures/URLs). Prefer a scoped sed/script over hand edits; do not touch `uv.lock`
+   - Changes: scoped `sed` `6767` → `58008`; did not touch `uv.lock`
 
-3. [ ] **Find/replace docs, skill, tech context**
+3. [x] **Find/replace docs, skill, tech context**
    - Files: `skills/sr-dashboard/SKILL.md`, `docs/using.md`, `memory-bank/techContext.md`
-   - Changes: default URL/port prose `6767` → `58008`. Leave `memory-bank/archive/` and `memory-bank/active/` task narrative alone (active describes the *change from* 6767)
+   - Changes: default URL/port prose `6767` → `58008`. Left `memory-bank/archive/` and `memory-bank/active/` alone
 
-4. [ ] **Verify**
-   - Run targeted dashboard CLI/identity tests, then full `make ci` (or project-equivalent)
-   - Spot-check: `rg 6767` outside archive/active/uv.lock returns no hits (or only intentional non-default ports if any remain)
+4. [x] **Verify**
+   - Targeted dashboard CLI/identity tests green; `make ci` green (511 passed, 3 skipped)
+   - Spot-check: no remaining `6767` outside archive/active/uv.lock/.pytest_cache
 
 ## Technology Validation
 
@@ -76,5 +76,5 @@ No new technology - validation not required
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight
-- [ ] Build
+- [x] Build
 - [ ] QA

@@ -29,7 +29,7 @@ Authoritative DDL is the migration chain under [`skills/sr-search/src/stockroom/
 | Embed | `stockroom.embed` | Local vectors |
 | Semantic | `stockroom.semantic` / `sr-semantic` | Vector search |
 | Search | `sr-search` | Judgement router (no Python fusion module) |
-| Dashboard | `stockroom.dashboard` / `sr-dashboard` | Local metrics UI on port 6767 |
+| Dashboard | `stockroom.dashboard` / `sr-dashboard` | Local metrics UI on port 58008 |
 | CLI | `python -m stockroom` / on-path shim | Subcommand dispatcher |
 | Doctor | `stockroom.doctor` | Environment probe + torch smoke |
 | Schedule | `stockroom.schedule` | Nightly cron / launchd |

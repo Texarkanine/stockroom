@@ -36,3 +36,14 @@ Change the dashboard default port from 6767 to 58008 via find/replace across the
     - PASS — proceed to build; no plan amendments
 * Insights
     - Unrelated dirty `REUSE.toml` in worktree — leave out of this task
+
+## 2026-07-10 - BUILD - COMPLETE
+
+* Work completed
+    - TDD: `test_default_port_is_58008` red then green
+    - Scoped find/replace across engine, tests, skill, docs, techContext
+    - `make ci` green (511 passed, 3 skipped)
+* Decisions made
+    - No migration; dual port literals left as-is
+* Insights
+    - Path-scoped sed avoided `uv.lock` hash corruption

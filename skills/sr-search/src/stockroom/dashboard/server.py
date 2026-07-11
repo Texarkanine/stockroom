@@ -159,7 +159,7 @@ class _DashboardHandler(BaseHTTPRequestHandler):
 
 
 def serve(
-    port: int = 6767,
+    port: int = 58008,
     *,
     host: str = "127.0.0.1",
     open_warehouse: Callable[..., duckdb.DuckDBPyConnection] | None = None,
