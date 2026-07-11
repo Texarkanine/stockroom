@@ -1,12 +1,12 @@
 # Active Context
 
 ## Current Task: Session Inspection in Dashboard (#39)
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - IN-PROGRESS
 
 ## What Was Done
-- Confirmed intent against [#39](https://github.com/Texarkanine/stockroom/issues/39): conversation reconstruction view, Recent Sessions click-through, deep-link by any session id, optional markdown/JSON export
-- Operator clarification: vendor a basic markdown JS library; no extensions (no Mermaid, footnotes, etc.); export is the escape hatch for richer rendering
-- Classified as **Level 3** (intermediate feature): multiple components (session API/data path, new view + routing, Recent Sessions wiring, vendored markdown, optional export) without system-wide architectural redesign
+- Confirmed intent against [#39](https://github.com/Texarkanine/stockroom/issues/39); classified Level 3
+- Component analysis: gaps confirmed — no routing, no full-text dashboard API, `session_id` absent from `/api/sessions` wire payload
+- Flagged three open questions: deep-link/navigation, markdown library+safety, reconstruction content model
 
 ## Next Step
-- Load Level 3 workflow and enter the Plan phase
+- Creative phase for open questions, then finish plan (TDD, implementation steps, pre-mortem)

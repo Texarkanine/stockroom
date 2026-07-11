@@ -15,3 +15,12 @@ Add a dashboard conversation-reconstruction view for any session id (Recent Sess
 * Insights
     - Existing dashboard already vendors Chart.js offline with REUSE annotations — markdown library should follow that pattern
     - P4 archive explicitly noted "single pane, no drill-downs"; this task deliberately adds the first drill-down/session inspection surface
+
+## 2026-07-10 - CREATIVE (deep-link navigation) - COMPLETE
+
+* Work completed
+    - Architecture creative for deep-link URL & client navigation
+* Decisions made
+    - Canonical URL: `/?view=session&harness={harness}&session={session_id}` — query params on `/`, zero server routing change, skill-copy-friendly
+* Insights
+    - Hash routes are weaker for skill-offered links; path routes need SPA fallback for little gain
