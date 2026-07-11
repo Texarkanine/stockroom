@@ -232,16 +232,16 @@ No new technology - validation not required.
 - [x] Strip supplemental `test_schema_0002.py` Phase-1 module fossil
 
 ### Batch 3 — Conditional / naming / vacuous
-- [ ] Fix doctor torch isolation conditional
-- [ ] Fix mtime timezone conditional (with public discover)
-- [ ] Fix query read-only try/flag → pytest.raises
-- [ ] Fix dispatcher "five subcommands" naming-lie
-- [ ] Fix orchestrator on_progress naming-lie
-- [ ] Strengthen query CLI vacuous TSV oracles
+- [x] Fix doctor torch isolation conditional
+- [x] Fix mtime timezone conditional (with public discover)
+- [x] Fix query read-only try/flag → pytest.raises
+- [x] Fix dispatcher "five subcommands" naming-lie
+- [x] Fix orchestrator on_progress naming-lie
+- [x] Strengthen query CLI vacuous TSV oracles
 
 ### Batch 4 — Implementation-coupled
 - [ ] Claude `_parse_ts` → public parse_session
-- [ ] Sources `_mtime` → discover
+- [x] Sources `_mtime` → discover
 - [ ] Delete private `metrics._iso` unit test (Z covered by public payloads)
 
 ### Batch 5 — Semantic redundancy

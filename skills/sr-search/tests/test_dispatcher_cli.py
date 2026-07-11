@@ -56,7 +56,7 @@ def _run(
 
 
 def test_top_level_help_lists_all_subcommands(tmp_path: Path) -> None:
-    """``--help`` exits 0 and stdout names all five subcommands."""
+    """``--help`` exits 0 and stdout names all registered subcommands."""
     result = _run("--help", home=tmp_path / "home")
     assert result.returncode == 0, result.stderr
     for sub in SUBCOMMANDS:

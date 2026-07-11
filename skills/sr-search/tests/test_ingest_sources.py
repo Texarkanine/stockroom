@@ -8,7 +8,7 @@ the real ``cwd`` is recovered downstream). The incremental watermark keeps only
 files newer than ``(last_mtime, last_path)``; ``--full`` ignores it.
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -100,17 +100,23 @@ def _disc(mtime: datetime, path: str) -> sources.DiscoveredSession:
 
 
 def test_mtime_is_naive_utc(tmp_path: Path) -> None:
-    """File mtime discovery stores UTC wall clock, not local naive time."""
-    path = tmp_path / "session.jsonl"
+    """Discovered session mtime is naive UTC wall clock, not a non-UTC local wall."""
+    conv = tmp_path / "proj" / "agent-transcripts" / "sess"
+    conv.mkdir(parents=True)
+    path = conv / "sess.jsonl"
     path.write_text("{}\n", encoding="utf-8")
-    expected = utc_from_timestamp(path.stat().st_mtime)
-    got = sources._mtime(path)
+
+    found = sources.discover("cursor", tmp_path)
+    assert len(found) == 1
+    got = found[0].mtime
     assert got.tzinfo is None
-    assert got == expected
-    # Distinct from local-naive when the machine is not on UTC (and equal on UTC).
-    local_naive = datetime.fromtimestamp(path.stat().st_mtime)
-    if datetime.now().astimezone().utcoffset() != timezone.utc.utcoffset(None):
-        assert got != local_naive
+    assert got == utc_from_timestamp(path.stat().st_mtime)
+
+    eastern = timezone(timedelta(hours=-5))
+    local_as_eastern = datetime.fromtimestamp(
+        path.stat().st_mtime, tz=eastern
+    ).replace(tzinfo=None)
+    assert got != local_as_eastern
 
 
 def test_watermark_full_returns_all() -> None:

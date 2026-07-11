@@ -190,18 +190,19 @@ def test_probe_home_facts_do_not_mkdir(
 def test_probe_never_imports_torch_eagerly() -> None:
     """Importing the module and probing goes through the injected
     importer only — the real torch is never touched."""
+    if "torch" in sys.modules:
+        pytest.skip("torch already loaded in this process")
+
     calls: list[str] = []
 
     def recording_importer(name: str) -> object:
         calls.append(name)
         raise ImportError(name)
 
-    already_loaded = "torch" in sys.modules
     facts = _probe(torch_importer=recording_importer)
     assert calls == ["torch"]
     assert facts["torch"] == "not installed"
-    if not already_loaded:
-        assert "torch" not in sys.modules
+    assert "torch" not in sys.modules
 
 
 def test_format_facts_renders_key_value_lines() -> None:

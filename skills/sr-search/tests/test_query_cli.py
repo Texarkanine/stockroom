@@ -66,8 +66,7 @@ def test_query_happy_path_prints_result(
 
     result = _run_query("SELECT 1 AS n", home=home)
     assert result.returncode == 0, result.stderr
-    assert "n" in result.stdout
-    assert "1" in result.stdout
+    assert result.stdout.splitlines() == ["n", "1"]
 
 
 def test_query_after_ingest_returns_distinct_harnesses(
@@ -189,7 +188,7 @@ def test_query_reads_sql_from_stdin(
 
     result = _run_query("-", home=home, stdin="SELECT 1 AS n")
     assert result.returncode == 0, result.stderr
-    assert "1" in result.stdout
+    assert result.stdout.splitlines() == ["n", "1"]
 
 
 def test_query_default_output_is_tsv(

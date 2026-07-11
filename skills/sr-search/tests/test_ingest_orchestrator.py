@@ -101,7 +101,7 @@ def test_second_incremental_ingest_is_noop(
     assert summary.sessions == 0
 
 
-def test_on_progress_none_emits_nothing(
+def test_ingest_completes_without_progress_callback(
     migrated_con: duckdb.DuckDBPyConnection,
     fixture_roots: None,
     ai_tracking_db: Path,
