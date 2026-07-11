@@ -155,8 +155,10 @@ def test_session_pane_toolbar_and_bubble_layout_contracts() -> None:
     assert 'data-view = "session"' in source or 'dataset.view = "session"' in source
     assert 'html[data-view="session"] #metrics-pane' in source
     assert ".session-tool" in source
+    assert ".session-tool[open] summary" in source
     assert "max-height:" in source
     assert "overflow: auto" in source
+    assert "overflow: hidden" in source
     adapter = (STATIC_ROOT / "dashboard.mjs").read_text(encoding="utf-8")
     assert "session-turn-user" in adapter
     assert "session-turn-assistant" in adapter
