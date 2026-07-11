@@ -46,3 +46,12 @@ Invert REUSE PPL-S from blanket `skills/**` to a narrow carve-out (`SKILL.md` + 
     - None beyond plan
 * Insights
     - For the current tracked tree, the invert is structurally cleaner with identical per-file license outcomes
+
+## 2026-07-10 - QA - COMPLETE
+
+* Work completed
+    - Semantic review vs brief/plan: KISS/DRY/YAGNI/completeness/docs all clean
+* Decisions made
+    - PASS — no fixes required
+* Insights
+    - SPDX delta of zero flips is the strongest confirmation the invert is expression-only for today's tree
