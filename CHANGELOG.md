@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.4.0](https://github.com/Texarkanine/stockroom/compare/v0.3.0...v0.4.0) (2026-07-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* **dashboard:** change default port to 58008 ([#36](https://github.com/Texarkanine/stockroom/issues/36))
+
+### Features
+
+* **dashboard:** change default port to 58008 ([#36](https://github.com/Texarkanine/stockroom/issues/36)) ([2b41fe0](https://github.com/Texarkanine/stockroom/commit/2b41fe03a53eacf0b1da2b6292a2bf8de8323fce))
+
 ## [0.3.0](https://github.com/Texarkanine/stockroom/compare/v0.2.0...v0.3.0) (2026-07-11)
 
 
