@@ -90,3 +90,10 @@ Add a dashboard conversation-reconstruction view for any session id (Recent Sess
     - Standalone L3 → next operator step is `/niko-archive`
 * Insights
     - Non-windowed dashboard endpoints need an early dispatcher special-case; pure session helpers kept Node tests cheap
+
+## 2026-07-10 - ARCHIVE - IN-PROGRESS
+
+* Work completed
+    - Post-reflect polish committed (bubbles, ANSI, FOUC fix, tool chrome nesting)
+* Next
+    - Write archive, clear ephemeral memory bank, push PR branch
