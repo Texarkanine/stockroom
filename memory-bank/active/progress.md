@@ -74,3 +74,14 @@ Verify and remediate all applicable SLOBAC smells from the 2026-07-11 audit (60 
     - PASS — no fixes required
 * Insights
     - Automated `_mtime(` greps false-positive on `by_mtime()` — prefer token-boundary checks next time
+
+## 2026-07-11 - REFLECT - COMPLETE
+
+* Work completed
+    - Full lifecycle reflection written to `memory-bank/active/reflection/reflection-20260711-slobac-audit-remediation.md`
+    - Persistent memory bank files scanned; no surgical updates required
+* Decisions made
+    - Ready for `/niko-archive`
+* Insights
+    - Docstring-local fossil strips beat whole-file whitespace normalization
+    - Delete-first + bounded supplemental fossils kept build scoped
