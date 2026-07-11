@@ -249,3 +249,32 @@ export function renderSessionMessageHtml(text, markdownRender) {
   }
   return markdownRender(value);
 }
+
+/**
+ * True when ``sessionView`` still addresses the given identity.
+ *
+ * @param {{harness: string, sessionId: string} | null | undefined} sessionView
+ * @param {string} harness
+ * @param {string} sessionId
+ * @returns {boolean}
+ */
+export function isActiveSessionView(sessionView, harness, sessionId) {
+  return (
+    !!sessionView &&
+    sessionView.harness === harness &&
+    sessionView.sessionId === sessionId
+  );
+}
+
+/**
+ * Whether closing the session pane should call ``history.back()``.
+ *
+ * Only when the current history entry was pushed as a session view (click-through).
+ * Deep-link boots never push, so Back should ``replaceState`` instead.
+ *
+ * @param {{view?: string} | null | undefined} historyState
+ * @returns {boolean}
+ */
+export function shouldUseHistoryBackForSessionClose(historyState) {
+  return historyState?.view === "session";
+}

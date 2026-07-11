@@ -7,8 +7,10 @@ import {
   buildSessionViewSearchParams,
   formatSessionJsonExport,
   formatSessionMarkdownExport,
+  isActiveSessionView,
   parseSessionViewParams,
   renderSessionMessageHtml,
+  shouldUseHistoryBackForSessionClose,
 } from "../src/stockroom/dashboard/static/dashboard-session.mjs";
 
 test("buildSessionViewSearchParams encodes the canonical session view", () => {
@@ -121,4 +123,16 @@ test("renderSessionMessageHtml uses ANSI path when CSI present else markdown", (
   const ansiHtml = renderSessionMessageHtml("a\u001b[1mb\u001b[0m", md);
   assert.match(ansiHtml, /<strong>b<\/strong>/);
   assert.doesNotMatch(ansiHtml, /<p>/);
+});
+
+test("isActiveSessionView requires matching harness and session id", () => {
+  assert.equal(isActiveSessionView({ harness: "c", sessionId: "1" }, "c", "1"), true);
+  assert.equal(isActiveSessionView({ harness: "c", sessionId: "1" }, "c", "2"), false);
+  assert.equal(isActiveSessionView(null, "c", "1"), false);
+});
+
+test("shouldUseHistoryBackForSessionClose only when history state is session", () => {
+  assert.equal(shouldUseHistoryBackForSessionClose({ view: "session" }), true);
+  assert.equal(shouldUseHistoryBackForSessionClose({ view: "metrics" }), false);
+  assert.equal(shouldUseHistoryBackForSessionClose(null), false);
 });

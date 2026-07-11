@@ -32,8 +32,10 @@ import {
   buildSessionViewSearchParams,
   formatSessionJsonExport,
   formatSessionMarkdownExport,
+  isActiveSessionView,
   parseSessionViewParams,
   renderSessionMessageHtml,
+  shouldUseHistoryBackForSessionClose,
 } from "./dashboard-session.mjs";
 
 // Richer markdown → use export. Do not add markdown-it plugins.
@@ -737,11 +739,18 @@ async function openSessionView(harness, sessionId, { push = true } = {}) {
       { signal: request.signal },
     );
     request.commit(() => {
+      if (!isActiveSessionView(sessionView, harness, sessionId)) {
+        return;
+      }
       renderSessionDetail(detail);
       setStatus(`Loaded session ${sessionId}.`);
     });
   } catch (error) {
-    if (error?.name !== "AbortError" && request.isCurrent()) {
+    if (
+      error?.name !== "AbortError" &&
+      request.isCurrent() &&
+      isActiveSessionView(sessionView, harness, sessionId)
+    ) {
       showSessionError(error);
       elements.sessionMeta.textContent = "Session could not be loaded.";
       setStatus(
@@ -754,12 +763,22 @@ async function openSessionView(harness, sessionId, { push = true } = {}) {
 }
 
 function closeSessionView({ push = true } = {}) {
+  // Abort any in-flight session fetch and invalidate its commit generation.
+  sessionRequestGate.begin();
   sessionView = null;
   sessionDetail = null;
   clearSessionError();
   showMetricsView();
   if (push) {
-    window.history.pushState({ view: "metrics" }, "", window.location.pathname);
+    if (shouldUseHistoryBackForSessionClose(window.history.state)) {
+      window.history.back();
+      return;
+    }
+    window.history.replaceState(
+      { view: "metrics" },
+      "",
+      window.location.pathname,
+    );
   }
   if (!state.snapshot) {
     void refreshDashboard(true);
