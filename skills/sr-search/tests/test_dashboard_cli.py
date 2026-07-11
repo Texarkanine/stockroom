@@ -11,13 +11,18 @@ from stockroom.dashboard import identity as dash_identity
 from stockroom.dashboard.identity import DashboardIdentity, current_app_dir
 
 
+def test_default_port_is_58008() -> None:
+    """Default dashboard listener port is 58008."""
+    assert dashboard_cli.DEFAULT_PORT == 58008
+
+
 def test_already_serving_prints_url_without_spawn(capsys) -> None:
     """A successful probe with no usable identity leaves the listener alone."""
     spawned = []
     killed = []
     result = dashboard_cli.main(
         [],
-        probe_fn=lambda port: port == 6767,
+        probe_fn=lambda port: port == 58008,
         spawn_fn=spawned.append,
         read_identity_fn=lambda _port: None,
         kill_fn=killed.append,
@@ -25,7 +30,7 @@ def test_already_serving_prints_url_without_spawn(capsys) -> None:
     assert result == 0
     assert spawned == []
     assert killed == []
-    assert capsys.readouterr().out == "http://127.0.0.1:6767/\n"
+    assert capsys.readouterr().out == "http://127.0.0.1:58008/\n"
 
 
 def test_same_identity_reuses_without_kill_or_spawn(capsys) -> None:
@@ -36,11 +41,11 @@ def test_same_identity_reuses_without_kill_or_spawn(capsys) -> None:
         pid=99,
         app_dir=current_app_dir(),
         version=stockroom.__version__,
-        port=6767,
+        port=58008,
     )
     result = dashboard_cli.main(
         [],
-        probe_fn=lambda port: port == 6767,
+        probe_fn=lambda port: port == 58008,
         spawn_fn=spawned.append,
         read_identity_fn=lambda _port: current,
         verify_owned_fn=lambda pid: pid == 99,
@@ -49,7 +54,7 @@ def test_same_identity_reuses_without_kill_or_spawn(capsys) -> None:
     assert result == 0
     assert spawned == []
     assert killed == []
-    assert capsys.readouterr().out == "http://127.0.0.1:6767/\n"
+    assert capsys.readouterr().out == "http://127.0.0.1:58008/\n"
 
 
 def test_stale_owned_identity_kills_waits_and_spawns(capsys) -> None:
@@ -61,11 +66,11 @@ def test_stale_owned_identity_kills_waits_and_spawns(capsys) -> None:
         pid=55,
         app_dir=Path("/old/plugin/skills/sr-search"),
         version="0.0.0",
-        port=6767,
+        port=58008,
     )
     result = dashboard_cli.main(
         [],
-        probe_fn=lambda port: port == 6767,
+        probe_fn=lambda port: port == 58008,
         spawn_fn=spawned.append,
         read_identity_fn=lambda _port: stale,
         verify_owned_fn=lambda pid: pid == 55,
@@ -74,7 +79,7 @@ def test_stale_owned_identity_kills_waits_and_spawns(capsys) -> None:
     )
     assert result == 0
     assert killed == [55]
-    assert waits == [6767]
+    assert waits == [58008]
     assert spawned == [
         [
             sys.executable,
@@ -82,10 +87,10 @@ def test_stale_owned_identity_kills_waits_and_spawns(capsys) -> None:
             "stockroom.dashboard",
             "--foreground",
             "--port",
-            "6767",
+            "58008",
         ]
     ]
-    assert capsys.readouterr().out == "http://127.0.0.1:6767/\n"
+    assert capsys.readouterr().out == "http://127.0.0.1:58008/\n"
 
 
 def test_unverified_identity_is_left_alone(capsys) -> None:
@@ -96,11 +101,11 @@ def test_unverified_identity_is_left_alone(capsys) -> None:
         pid=55,
         app_dir=Path("/old/engine"),
         version="9.9.9",
-        port=6767,
+        port=58008,
     )
     result = dashboard_cli.main(
         [],
-        probe_fn=lambda port: port == 6767,
+        probe_fn=lambda port: port == 58008,
         spawn_fn=spawned.append,
         read_identity_fn=lambda _port: stale,
         verify_owned_fn=lambda _pid: False,
@@ -109,7 +114,7 @@ def test_unverified_identity_is_left_alone(capsys) -> None:
     assert result == 0
     assert killed == []
     assert spawned == []
-    assert capsys.readouterr().out == "http://127.0.0.1:6767/\n"
+    assert capsys.readouterr().out == "http://127.0.0.1:58008/\n"
 
 
 def test_kill_failure_still_exits_zero(capsys) -> None:
@@ -123,11 +128,11 @@ def test_kill_failure_still_exits_zero(capsys) -> None:
         pid=55,
         app_dir=Path("/old/engine"),
         version="9.9.9",
-        port=6767,
+        port=58008,
     )
     result = dashboard_cli.main(
         [],
-        probe_fn=lambda port: port == 6767,
+        probe_fn=lambda port: port == 58008,
         spawn_fn=spawned.append,
         read_identity_fn=lambda _port: stale,
         verify_owned_fn=lambda pid: pid == 55,
@@ -135,7 +140,7 @@ def test_kill_failure_still_exits_zero(capsys) -> None:
     )
     assert result == 0
     assert spawned == []
-    assert capsys.readouterr().out == "http://127.0.0.1:6767/\n"
+    assert capsys.readouterr().out == "http://127.0.0.1:58008/\n"
 
 
 def test_version_mismatch_same_app_dir_replaces(capsys) -> None:
@@ -146,11 +151,11 @@ def test_version_mismatch_same_app_dir_replaces(capsys) -> None:
         pid=55,
         app_dir=current_app_dir(),
         version="0.0.0-old",
-        port=6767,
+        port=58008,
     )
     result = dashboard_cli.main(
         [],
-        probe_fn=lambda port: port == 6767,
+        probe_fn=lambda port: port == 58008,
         spawn_fn=spawned.append,
         read_identity_fn=lambda _port: stale,
         verify_owned_fn=lambda pid: pid == 55,
@@ -160,7 +165,7 @@ def test_version_mismatch_same_app_dir_replaces(capsys) -> None:
     assert result == 0
     assert killed == [55]
     assert len(spawned) == 1
-    assert capsys.readouterr().out == "http://127.0.0.1:6767/\n"
+    assert capsys.readouterr().out == "http://127.0.0.1:58008/\n"
 
 
 def test_free_port_spawns_foreground_reexec_and_respects_port(capsys) -> None:
@@ -230,17 +235,17 @@ def test_foreground_bind_writes_identity(warehouse_home: Path, capsys) -> None:
             return
 
     result = dashboard_cli.main(
-        ["--foreground", "--port", "6767"],
+        ["--foreground", "--port", "58008"],
         serve_fn=lambda _port: FakeServer(),
     )
     assert result == 0
-    record = dash_identity.read(6767)
+    record = dash_identity.read(58008)
     assert record is not None
     assert record.pid == os.getpid()
     assert record.app_dir == current_app_dir()
     assert record.version == stockroom.__version__
-    assert record.port == 6767
-    assert capsys.readouterr().out == "http://127.0.0.1:6767/\n"
+    assert record.port == 58008
+    assert capsys.readouterr().out == "http://127.0.0.1:58008/\n"
     assert warehouse_home.exists()
 
 
@@ -252,7 +257,7 @@ def test_foreground_bind_race_is_success_elsewhere(capsys) -> None:
 
     result = dashboard_cli.main(["--foreground"], serve_fn=_race)
     assert result == 0
-    assert capsys.readouterr().out == "http://127.0.0.1:6767/\n"
+    assert capsys.readouterr().out == "http://127.0.0.1:58008/\n"
 
 
 def test_foreground_startup_does_not_require_a_warehouse(
@@ -277,4 +282,4 @@ def test_foreground_startup_does_not_require_a_warehouse(
     )
     assert result == 0
     assert events == ["served", "closed"]
-    assert capsys.readouterr().out == "http://127.0.0.1:6767/\n"
+    assert capsys.readouterr().out == "http://127.0.0.1:58008/\n"

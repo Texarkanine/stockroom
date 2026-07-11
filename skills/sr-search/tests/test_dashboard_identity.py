@@ -12,25 +12,25 @@ def test_identity_round_trip_under_stockroom_home(warehouse_home: Path) -> None:
         pid=4242,
         app_dir=Path("/tmp/fake-engine"),
         version="1.2.3",
-        port=6767,
+        port=58008,
     )
     written = dash_identity.write(record)
     assert written.is_file()
     assert written.parent == warehouse_home
-    assert dash_identity.read(6767) == record
+    assert dash_identity.read(58008) == record
 
 
 def test_identity_missing_file_reads_as_none(warehouse_home: Path) -> None:
     """Absent identity file yields None."""
-    assert dash_identity.read(6767) is None
+    assert dash_identity.read(58008) is None
 
 
 def test_identity_corrupt_file_reads_as_none(warehouse_home: Path) -> None:
     """Unparseable identity content yields None."""
-    path = dash_identity.path(6767)
+    path = dash_identity.path(58008)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("not-a-valid-identity\n", encoding="utf-8")
-    assert dash_identity.read(6767) is None
+    assert dash_identity.read(58008) is None
 
 
 def test_identity_clear_removes_file(warehouse_home: Path) -> None:

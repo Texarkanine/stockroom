@@ -25,7 +25,7 @@ import stockroom
 from stockroom.dashboard import identity as dash_identity
 from stockroom.dashboard import server as dashboard_server
 
-DEFAULT_PORT = 6767
+DEFAULT_PORT = 58008
 _WAIT_PORT_FREE_SECONDS = 2.0
 _WAIT_PORT_FREE_POLL = 0.05
 

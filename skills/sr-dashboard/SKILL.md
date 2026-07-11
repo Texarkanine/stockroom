@@ -13,7 +13,7 @@ enable-model-invocation: true
 Reach for `sr-dashboard` when the need is **the UI**, not a query:
 
 - The user asks to open, show, or launch the stockroom dashboard.
-- You need the local URL to hand back (`http://127.0.0.1:6767/` by default).
+- You need the local URL to hand back (`http://127.0.0.1:58008/` by default).
 - A session-start path already launched it and you only need to confirm or re-print the URL.
 
 **Do not** use `sr-dashboard` for exact SQL lookups (`sr-query`) or meaning-based recall (`sr-semantic`). When you are not sure which surface fits, that judgement belongs to the **`sr-search`** skill.
@@ -24,7 +24,7 @@ Reach for `sr-dashboard` when the need is **the UI**, not a query:
 stockroom dashboard
 ```
 
-Stdout is a single URL line (for example `http://127.0.0.1:6767/`). Relay that URL to the user; do not invent a different host or port.
+Stdout is a single URL line (for example `http://127.0.0.1:58008/`). Relay that URL to the user; do not invent a different host or port.
 
 If `command -v stockroom` fails, the machine isn't set up yet: tell the user to run the **`sr-initialize`** skill, and don't attempt any other invocation.
 
