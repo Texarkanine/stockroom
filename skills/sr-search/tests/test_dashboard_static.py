@@ -152,7 +152,7 @@ def test_session_pane_toolbar_and_bubble_layout_contracts() -> None:
     assert "width: 90%" in source
     assert "max-width: 90%" in source
     assert "42rem" not in source
-    assert 'data-view = "session"' in source or "dataset.view = \"session\"" in source
+    assert 'data-view = "session"' in source or 'dataset.view = "session"' in source
     assert 'html[data-view="session"] #metrics-pane' in source
     assert ".session-tool" in source
     assert "max-height:" in source
@@ -161,7 +161,6 @@ def test_session_pane_toolbar_and_bubble_layout_contracts() -> None:
     assert "session-turn-user" in adapter
     assert "session-turn-assistant" in adapter
     assert 'dataset.view = "session"' in adapter
-
 
 
 def test_dashboard_top_controls_expose_date_range_and_segmented_mode() -> None:
