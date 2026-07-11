@@ -13,13 +13,13 @@ output. Two public entrypoints — :func:`format_query` and :func:`format_semant
 * ``table`` — the human-facing ASCII column-aligned table (with its
   ``(N rows)`` / ``(N results)`` trailer); an opt-in pretty-print.
 
-The orthogonal ``--detail`` axis (``compact | snippet | full``, default
+The orthogonal ``--detail`` axis (``compact | snippet | full | raw``, default
 ``snippet``) governs per-string-field width in **every** format via the shared
 :func:`stockroom.truncate.truncate_cell` policy — so truncation is uniform and
-format-agnostic. Because ``truncate_cell`` collapses all whitespace (including
-tabs and newlines) to single spaces at every level, the ``tsv`` shape is
-structurally safe (no raw delimiter can leak into a field) without extra
-escaping.
+format-agnostic. Non-``raw`` levels collapse all whitespace (including tabs and
+newlines) to single spaces, so the ``tsv`` shape is structurally safe (no raw
+delimiter can leak into a field) without extra escaping. ``raw`` preserves
+stored whitespace; prefer ``--format json --detail raw`` for exact-text retrieval.
 
 Truncation lives strictly at this **print boundary**: the library entries
 (``run_query`` → ``QueryResult``, ``run_semantic_search`` → ``list[SemanticHit]``)

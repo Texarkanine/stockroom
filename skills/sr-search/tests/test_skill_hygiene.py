@@ -49,3 +49,14 @@ def test_wrapper_skill_has_no_invocation_plumbing(repo_root: Path, skill: str) -
         "skills invoke the engine only as `stockroom <subcommand>` (the shim "
         "owns the contract; on a missing command the next action is sr-initialize)"
     )
+
+
+@pytest.mark.parametrize("skill", ("sr-query", "sr-semantic"))
+def test_read_skills_document_exact_text_raw_detail(
+    repo_root: Path, skill: str
+) -> None:
+    """Read-surface skills name ``--detail raw`` as the exact-whitespace path."""
+    skill_md = repo_root / "skills" / skill / "SKILL.md"
+    text = skill_md.read_text(encoding="utf-8")
+    assert "--detail raw" in text
+    assert "--format json" in text

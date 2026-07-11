@@ -167,6 +167,19 @@ def test_query_invalid_detail_is_rejected(tmp_path: Path) -> None:
     assert result.stderr.strip() != ""
 
 
+def test_query_detail_raw_is_accepted(
+    tmp_path: Path, cursor_root: Path, claude_root: Path, ai_tracking_db: Path
+) -> None:
+    """``--detail raw`` is a valid argparse choice and preserves newlines in json."""
+    home = tmp_path / "home"
+    _ingest(home, cursor_root, claude_root, ai_tracking_db)
+    sql = "SELECT 'a' || chr(10) || 'b' AS t"
+    result = _run_query("--format", "json", "--detail", "raw", sql, home=home)
+    assert result.returncode == 0, result.stderr
+    parsed = json.loads(result.stdout)
+    assert parsed["rows"][0][0] == "a\nb"
+
+
 def test_query_reads_sql_from_stdin(
     tmp_path: Path, cursor_root: Path, claude_root: Path, ai_tracking_db: Path
 ) -> None:

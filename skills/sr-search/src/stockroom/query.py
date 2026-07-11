@@ -17,15 +17,16 @@ Invoke as a single runnable module (no ``__main__.py`` — unlike the multi-modu
     python -m stockroom.query "SELECT DISTINCT harness FROM sessions"
     echo "SELECT count(*) FROM messages" | python -m stockroom.query -
     python -m stockroom.query --format table "SELECT text FROM messages LIMIT 1"
-    python -m stockroom.query --format json --detail full "SELECT * FROM sessions"
+    python -m stockroom.query --format json --detail raw "SELECT text FROM messages WHERE message_id = '…'"
 
 Output shape is selectable with ``--format`` (``tsv`` default — a header row plus
 tab-separated data rows, no count trailer, stream-friendly for LLMs and unix
 pipes; ``json``; ``table`` for a human pretty-print). Wide fields are truncated at
-read time in every format (``--detail compact|snippet|full``, default ``snippet``)
-so a long ``text`` column can't flood the caller's context; the full content
-always stays whole in the warehouse (see :mod:`stockroom.render` and
-:mod:`stockroom.truncate`).
+read time in every format (``--detail compact|snippet|full|raw``, default
+``snippet``) so a long ``text`` column can't flood the caller's context; ``full``
+is unbounded but single-line, ``raw`` is unbounded with exact whitespace (prefer
+with ``json``). Full content always stays whole in the warehouse (see
+:mod:`stockroom.render` and :mod:`stockroom.truncate`).
 """
 
 import argparse
@@ -97,9 +98,10 @@ def _build_parser() -> argparse.ArgumentParser:
         default=DEFAULT_DETAIL,
         help=(
             "Read-time output detail: 'compact' (terse), 'snippet' (default, "
-            "context-safe), or 'full' (untruncated). Wide cells are elided with a "
-            "marker reporting how many characters were hidden; full content always "
-            "stays whole in the warehouse."
+            "context-safe), 'full' (untruncated, single-line), or 'raw' "
+            "(untruncated, exact whitespace — prefer with --format json). "
+            "Wide cells are elided with a marker reporting how many characters "
+            "were hidden; full content always stays whole in the warehouse."
         ),
     )
     return parser

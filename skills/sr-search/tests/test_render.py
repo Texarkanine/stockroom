@@ -125,6 +125,29 @@ def test_query_json_full_detail_keeps_whole_cell() -> None:
     assert parsed["rows"][0][0] == "x" * 600
 
 
+def test_query_json_raw_preserves_newlines() -> None:
+    """``detail="raw"`` keeps stored newlines in json (assert via ``json.loads``)."""
+    original = "line1\n\nline2  spaced"
+    parsed = json.loads(
+        render.format_query(["c"], [(original,)], fmt="json", detail="raw")
+    )
+    assert parsed["rows"][0][0] == original
+
+
+def test_query_json_full_still_collapses_whitespace() -> None:
+    """``detail="full"`` remains single-line even in json."""
+    parsed = json.loads(
+        render.format_query(["c"], [("a\n\nb  c",)], fmt="json", detail="full")
+    )
+    assert parsed["rows"][0][0] == "a b c"
+
+
+def test_query_json_raw_null_stays_null() -> None:
+    """SQL ``NULL`` under ``raw`` still serializes to JSON ``null``."""
+    parsed = json.loads(render.format_query(["c"], [(None,)], fmt="json", detail="raw"))
+    assert parsed["rows"] == [[None]]
+
+
 # --- format_query: table (relocated _format_table behaviors) ----------------
 
 
@@ -256,6 +279,23 @@ def test_semantic_json_full_detail_keeps_whole_text() -> None:
         render.format_semantic([_hit("z" * 600)], fmt="json", detail="full")
     )
     assert parsed["results"][0]["text"] == "z" * 600
+
+
+def test_semantic_json_raw_preserves_newlines() -> None:
+    """``detail="raw"`` keeps stored newlines in semantic json ``text``."""
+    original = "first\nsecond  line"
+    parsed = json.loads(
+        render.format_semantic([_hit(original)], fmt="json", detail="raw")
+    )
+    assert parsed["results"][0]["text"] == original
+
+
+def test_semantic_json_full_still_collapses_whitespace() -> None:
+    """``detail="full"`` collapses whitespace in semantic json ``text``."""
+    parsed = json.loads(
+        render.format_semantic([_hit("a\n\nb  c")], fmt="json", detail="full")
+    )
+    assert parsed["results"][0]["text"] == "a b c"
 
 
 # --- format_semantic: table (relocated _format_hits behaviors) --------------

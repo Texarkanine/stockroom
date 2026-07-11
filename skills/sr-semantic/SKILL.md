@@ -58,7 +58,8 @@ The `preview`/`text` field is truncated **at read time** so ranked previews can'
 |-------|--------|-------------|
 | `compact` | ~40 chars | Scanning many candidates cheaply before picking one. |
 | `snippet` *(default)* | ~120 chars | Default. Enough to recognize a hit without dumping it. |
-| `full` | unbounded | Almost never here — prefer the `sr-query` handoff below for whole text. |
+| `full` | unbounded, single-line | Almost never here — prefer the `sr-query` handoff below for whole text. |
+| `raw` | unbounded, exact whitespace | Exact stored text (newlines intact). Prefer with `--format json`; almost never on a large `-k`. |
 
 An over-budget preview is elided with a marker reporting how many characters were hidden, e.g. `…(+2539)`. That marker is your signal that more exists.
 
@@ -66,10 +67,10 @@ An over-budget preview is elided with a marker reporting how many characters wer
 
 These are the failure modes this skill exists to prevent:
 
-- **Don't blow out your context.** Never combine `--detail full` with a large `-k` — ten untruncated messages can be tens of thousands of characters. Scan at the default `snippet` (or `compact`), pick the hit you want, then fetch **just that one message's whole text** via the **`sr-query` handoff**: re-run with `--format json` to get the hit's `message_id`, then
+- **Don't blow out your context.** Never combine `--detail full`/`raw` with a large `-k` — ten untruncated messages can be tens of thousands of characters. Scan at the default `snippet` (or `compact`), pick the hit you want, then fetch **just that one message's whole text** via the **`sr-query` handoff**: re-run with `--format json` to get the hit's `message_id`, then
 
 ```bash
-stockroom query --detail full \
+stockroom query --format json --detail raw \
   "SELECT text FROM messages WHERE message_id = '<message_id-from-the-json>'"
 ```
 
@@ -119,7 +120,7 @@ And the full-text handoff pair (scan semantically, then fetch one whole message 
 ```bash
 stockroom semantic --format json -k 5 "flock sidecar lock"
 # ...pick the winning message_id from the json, then:
-stockroom query --detail full \
+stockroom query --format json --detail raw \
   "SELECT text FROM messages WHERE message_id = 'fcf35cbe-…#51'"
 ```
 
