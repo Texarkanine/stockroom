@@ -15,3 +15,17 @@ Implement 1.0-quality documentation for Stockroom per `memory-bank/active/creati
     - Stay on 0.x product version; docs quality is the deliverable
 * Insights
     - Early-adopter week still benefits from full docs because maintainer wants the map; feedback can land in an already-rigorous corpus
+
+## 2026-07-11 - PLAN - COMPLETE
+
+* Work completed
+    - Component analysis across README, CONTRIBUTING, docs/, properdocs toolchain, CI/Pages
+    - Test plan: properdocs `--strict` as primary gate; reuse lint; optional hygiene tests deferred
+    - Implementation plan: 6 ordered steps (toolchain → corpus → README/CONTRIBUTING → CI → REUSE → verify)
+    - Technology validation PoC for properdocs at `/tmp/stockroom-docs-poc` — PASS
+* Decisions made
+    - Match slobac docs dependency set (no panzoom unless needed)
+    - Root stub `pyproject.toml` for docs group only; engine lock stays under `skills/sr-search/`
+    - Prefer GitHub absolute or careful links to system-model over snippet farm
+* Insights
+    - Prior creative already removed the hard IA ambiguity; plan phase was sequencing + toolchain proof
