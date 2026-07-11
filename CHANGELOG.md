@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/Texarkanine/stockroom/compare/v0.4.0...v0.5.0) (2026-07-11)
+
+
+### Features
+
+* **dashboard:** session inspection view with deep-links and export ([#40](https://github.com/Texarkanine/stockroom/issues/40)) ([5a16ccd](https://github.com/Texarkanine/stockroom/commit/5a16ccd6770b0a1d7141630a76a4579fc77997dc))
+
 ## [0.4.0](https://github.com/Texarkanine/stockroom/compare/v0.3.0...v0.4.0) (2026-07-11)
 
 
