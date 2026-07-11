@@ -198,7 +198,7 @@ No new technology - validation not required.
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight
-- [ ] Build
+- [x] Build
 - [ ] QA
 
 ## Preflight Amendments
@@ -252,4 +252,5 @@ No new technology - validation not required.
 - [x] Exact reason + side effects for compile timeout freeze
 
 ### Batch 7 — Verify green
-- [ ] Targeted + full Python/JS suites pass
+- [x] Targeted + full Python/JS suites pass
+  - `make format` / `make lint` clean; `make test`: 509 passed, 3 skipped; JS: 61 passed

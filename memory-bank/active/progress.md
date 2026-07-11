@@ -51,3 +51,16 @@ Verify and remediate all applicable SLOBAC smells from the 2026-07-11 audit (60 
     - Bounded supplemental sweep only — no open-ended fossil hunt during build
 * Insights
     - Audit missed an entire schedule unit-test file of the same smell class already remediated for `test_schedule_cli.py`
+
+## 2026-07-11 - BUILD - COMPLETE
+
+* Work completed
+    - All 60 findings verified HOLDS; remediations applied across Batches 1–6
+    - Supplemental fossils stripped in `test_schedule.py` + `test_schema_0002.py`
+    - Full verification: format/lint clean; 509 pytest passed (3 skipped); 61 JS passed
+* Decisions made
+    - No SUT API expansion; torch oracles use exact production reason templates
+    - Doctor torch isolation: skip when already loaded; else unconditional assert
+    - mtime inequality pinned with fixed UTC-5 wall clock via public `discover`
+* Insights
+    - First fossil-strip attempt must stay docstring/phrase-local — global space-collapse corrupts Black formatting

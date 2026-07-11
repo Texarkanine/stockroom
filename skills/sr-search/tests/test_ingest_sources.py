@@ -113,9 +113,9 @@ def test_mtime_is_naive_utc(tmp_path: Path) -> None:
     assert got == utc_from_timestamp(path.stat().st_mtime)
 
     eastern = timezone(timedelta(hours=-5))
-    local_as_eastern = datetime.fromtimestamp(
-        path.stat().st_mtime, tz=eastern
-    ).replace(tzinfo=None)
+    local_as_eastern = datetime.fromtimestamp(path.stat().st_mtime, tz=eastern).replace(
+        tzinfo=None
+    )
     assert got != local_as_eastern
 
 
