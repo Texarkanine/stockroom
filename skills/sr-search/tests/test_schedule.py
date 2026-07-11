@@ -1,6 +1,6 @@
 """Unit tests for ``stockroom.schedule`` (injected-seam convention).
 
-Covers the plan's B1–B14 and B17: the shared payload renderer and time
+Covers the shared payload renderer and time
 validation, the cron half (managed-block idempotency, foreign-line
 preservation, the shim-on-PATH refusal, the daemon warning), the launchd
 half (plist shape, idempotent re-install, tolerated bootout), and the
@@ -91,12 +91,12 @@ def which_without_shim(name: str) -> str | None:
 
 
 # ---------------------------------------------------------------------------
-# B1/B2 — shared payload rendering + time validation
+# shared payload rendering + time validation
 # ---------------------------------------------------------------------------
 
 
 def test_payload_invokes_shim_with_log_redirection(tmp_path: Path) -> None:
-    """B1: the payload runs date + ingest + embed through the shim by name,
+    """The payload runs date + ingest + embed through the shim by name,
     appending stdout+stderr of the *whole* command list (not just the last
     ``&&`` operand) to ``<home>/logs/nightly.log``."""
     payload = render_payload(tmp_path)
@@ -107,7 +107,7 @@ def test_payload_invokes_shim_with_log_redirection(tmp_path: Path) -> None:
 
 
 def test_payload_is_home_aware(tmp_path: Path) -> None:
-    """B1: the log path follows the home the caller passes (STOCKROOM_HOME
+    """The log path follows the home the caller passes (STOCKROOM_HOME
     awareness lives in the caller's ``warehouse.home_dir()`` default)."""
     a = render_payload(tmp_path / "home-a")
     b = render_payload(tmp_path / "home-b")
@@ -116,7 +116,7 @@ def test_payload_is_home_aware(tmp_path: Path) -> None:
 
 
 def test_payload_contains_no_engine_path_and_no_percent(tmp_path: Path) -> None:
-    """B1: no raw engine path ever lands in a rendered entry, and the
+    """No raw engine path ever lands in a rendered entry, and the
     payload is ``%``-free (``%`` is newline in crontab syntax) — an explicit
     guard, not incidental."""
     payload = render_payload(tmp_path)
@@ -126,7 +126,7 @@ def test_payload_contains_no_engine_path_and_no_percent(tmp_path: Path) -> None:
 
 
 def test_parse_time_accepts_strict_hh_mm() -> None:
-    """B2: the default and a custom time parse to (hour, minute)."""
+    """The default and a custom time parse to (hour, minute)."""
     assert parse_time("03:30") == (3, 30)
     assert parse_time("22:15") == (22, 15)
     assert parse_time("00:00") == (0, 0)
@@ -135,14 +135,14 @@ def test_parse_time_accepts_strict_hh_mm() -> None:
 
 @pytest.mark.parametrize("bad", ["9:5", "24:00", "12:60", "abc", "1230", "12:3a", ""])
 def test_parse_time_rejects_malformed_values(bad: str) -> None:
-    """B2: anything but strict 24-hour HH:MM raises a ValueError naming
+    """Anything but strict 24-hour HH:MM raises a ValueError naming
     the expected format."""
     with pytest.raises(ValueError, match="HH:MM"):
         parse_time(bad)
 
 
 def test_cli_rejects_bad_time_with_clean_error(capsys: pytest.CaptureFixture) -> None:
-    """B2: at the CLI a malformed ``--time`` exits 2 with a clean error
+    """At the CLI a malformed ``--time`` exits 2 with a clean error
     naming the HH:MM format (argparse, no traceback)."""
     with pytest.raises(SystemExit) as excinfo:
         schedule.main(["install", "--time", "9:5"], system=lambda: "Linux")
@@ -152,14 +152,14 @@ def test_cli_rejects_bad_time_with_clean_error(capsys: pytest.CaptureFixture) ->
 
 
 # ---------------------------------------------------------------------------
-# B3–B9, B17 — the cron half
+# the cron half
 # ---------------------------------------------------------------------------
 
 
 def test_install_on_empty_crontab_writes_exactly_the_managed_block(
     tmp_path: Path,
 ) -> None:
-    """B3: with no pre-existing crontab ("no crontab for user" treated as
+    """With no pre-existing crontab ("no crontab for user" treated as
     empty) the written content is exactly the managed block: BEGIN marker,
     one schedule line (cron fields, absolute PATH= prefix from the injected
     which results, /bin/sh -c wrapper), END marker."""
@@ -191,7 +191,7 @@ def test_install_on_empty_crontab_writes_exactly_the_managed_block(
 
 
 def test_install_preserves_foreign_lines_byte_for_byte(tmp_path: Path) -> None:
-    """B4: pre-existing foreign crontab lines pass through unmodified, with
+    """Pre-existing foreign crontab lines pass through unmodified, with
     the managed block appended after them."""
     foreign = "MAILTO=me@example.com\n0 5 * * * /usr/bin/foo --bar\n@reboot /opt/baz\n"
     runner = FakeCrontab(initial=foreign)
@@ -211,7 +211,7 @@ def test_install_preserves_foreign_lines_byte_for_byte(tmp_path: Path) -> None:
 
 
 def test_reinstall_replaces_the_managed_block(tmp_path: Path) -> None:
-    """B5: installing over an existing managed block (different time) strips
+    """Installing over an existing managed block (different time) strips
     the old block and leaves exactly one fresh block — idempotent re-install."""
     foreign = "0 5 * * * /usr/bin/foo\n"
     runner = FakeCrontab(initial=None)
@@ -242,7 +242,7 @@ def test_reinstall_replaces_the_managed_block(tmp_path: Path) -> None:
 
 
 def test_install_refuses_when_shim_not_on_path(tmp_path: Path) -> None:
-    """B6: a missing on-path shim refuses (no write) with a reason naming
+    """A missing on-path shim refuses (no write) with a reason naming
     the fix — bind the shim first via sr-initialize / make shim."""
     runner = FakeCrontab(initial=None)
     report = cron_install(
@@ -260,7 +260,7 @@ def test_install_refuses_when_shim_not_on_path(tmp_path: Path) -> None:
 
 
 def test_install_with_dead_daemon_still_writes_but_warns(tmp_path: Path) -> None:
-    """B7: a not-running cron daemon still installs, but the report carries
+    """A not-running cron daemon still installs, but the report carries
     a warning naming the fix; a running daemon produces no warning."""
     dead = FakeCrontab(initial=None)
     report = cron_install(
@@ -290,7 +290,7 @@ def test_install_with_dead_daemon_still_writes_but_warns(tmp_path: Path) -> None
 
 
 def test_default_daemon_check_matches_cron_or_crond() -> None:
-    """B7: the default check accepts either daemon name (distro variance)
+    """The default check accepts either daemon name (distro variance)
     and degrades any probe failure to False."""
 
     def run_only_crond(argv, **kwargs):
@@ -309,7 +309,7 @@ def test_default_daemon_check_matches_cron_or_crond() -> None:
 
 
 def test_remove_strips_block_and_preserves_foreign_lines(tmp_path: Path) -> None:
-    """B8: remove strips exactly the managed block, leaving foreign lines
+    """Remove strips exactly the managed block, leaving foreign lines
     byte-for-byte."""
     foreign = "0 5 * * * /usr/bin/foo\n"
     runner = FakeCrontab(initial=foreign)
@@ -329,7 +329,7 @@ def test_remove_strips_block_and_preserves_foreign_lines(tmp_path: Path) -> None
 
 
 def test_remove_is_a_clean_noop_without_a_block(tmp_path: Path) -> None:
-    """B8: remove with no managed block — or no crontab at all — is a clean
+    """Remove with no managed block — or no crontab at all — is a clean
     no-op that never writes."""
     no_block = FakeCrontab(initial="0 5 * * * /usr/bin/foo\n")
     report = cron_remove(crontab_runner=no_block)
@@ -343,7 +343,7 @@ def test_remove_is_a_clean_noop_without_a_block(tmp_path: Path) -> None:
 
 
 def test_status_reports_installed_daemon_and_log_facts(tmp_path: Path) -> None:
-    """B9: status reports the schedule line when the block exists, a daemon
+    """Status reports the schedule line when the block exists, a daemon
     liveness fact, and the log location fact."""
     runner = FakeCrontab(initial=None)
     cron_install(
@@ -363,7 +363,7 @@ def test_status_reports_installed_daemon_and_log_facts(tmp_path: Path) -> None:
 
 
 def test_status_reports_not_installed_and_dead_daemon(tmp_path: Path) -> None:
-    """B9: without a managed block status says not installed; a dead daemon
+    """Without a managed block status says not installed; a dead daemon
     is reported as a fact (not an error); the log fact is always present."""
     runner = FakeCrontab(initial=None)
     lines = cron_status(
@@ -376,7 +376,7 @@ def test_status_reports_not_installed_and_dead_daemon(tmp_path: Path) -> None:
 
 
 def test_cron_install_creates_the_log_directory(tmp_path: Path) -> None:
-    """B17: install creates ``<home>/logs/`` so the entry's redirection
+    """Install creates ``<home>/logs/`` so the entry's redirection
     cannot fail on a missing directory at 03:30."""
     home = tmp_path / "fresh-home"
     assert not (home / "logs").exists()
@@ -392,7 +392,7 @@ def test_cron_install_creates_the_log_directory(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# B10–B13 — the launchd half
+# the launchd half
 # ---------------------------------------------------------------------------
 
 
@@ -403,7 +403,7 @@ def _agents(tmp_path: Path) -> Path:
 
 
 def test_launchd_install_writes_a_valid_plist(tmp_path: Path) -> None:
-    """B10: install writes a plistlib-parseable plist with the owned label,
+    """Install writes a plistlib-parseable plist with the owned label,
     the /bin/sh -c payload, an absolute PATH, the calendar interval, and
     stdout/stderr routed to the nightly log; launchctl is called
     bootout-then-bootstrap."""
@@ -428,7 +428,7 @@ def test_launchd_install_writes_a_valid_plist(tmp_path: Path) -> None:
     assert data["Label"] == PLIST_LABEL
     assert data["ProgramArguments"][:2] == ["/bin/sh", "-c"]
     payload = data["ProgramArguments"][2]
-    assert payload == render_payload(home)  # the one shared renderer (B1)
+    assert payload == render_payload(home)  # the one shared renderer
     assert data["EnvironmentVariables"]["PATH"].startswith("/")
     assert "/fake/bin" in data["EnvironmentVariables"]["PATH"]
     assert data["StartCalendarInterval"] == {"Hour": 3, "Minute": 30}
@@ -443,7 +443,7 @@ def test_launchd_install_writes_a_valid_plist(tmp_path: Path) -> None:
 
 
 def test_launchd_install_tolerates_bootout_failure(tmp_path: Path) -> None:
-    """B10: a failing bootout (job not loaded) is tolerated — bootstrap
+    """A failing bootout (job not loaded) is tolerated — bootstrap
     still runs and the install succeeds."""
     agents = _agents(tmp_path)
     launchctl = FakeLaunchctl(bootout_fails=True)
@@ -460,7 +460,7 @@ def test_launchd_install_tolerates_bootout_failure(tmp_path: Path) -> None:
 
 
 def test_launchd_reinstall_rewrites_single_plist(tmp_path: Path) -> None:
-    """B11: re-install rewrites the one owned plist in place (new time,
+    """Re-install rewrites the one owned plist in place (new time,
     still a single file)."""
     agents = _agents(tmp_path)
     home = tmp_path / "home"
@@ -488,7 +488,7 @@ def test_launchd_reinstall_rewrites_single_plist(tmp_path: Path) -> None:
 
 
 def test_launchd_remove_boots_out_and_deletes(tmp_path: Path) -> None:
-    """B11: remove calls bootout and deletes the plist; removing when
+    """Remove calls bootout and deletes the plist; removing when
     absent is a clean no-op with no launchctl calls."""
     agents = _agents(tmp_path)
     launchd_install(
@@ -512,7 +512,7 @@ def test_launchd_remove_boots_out_and_deletes(tmp_path: Path) -> None:
 
 
 def test_launchd_status_reads_the_plist(tmp_path: Path) -> None:
-    """B12: status reads the interval back from the plist when installed,
+    """Status reads the interval back from the plist when installed,
     says not installed otherwise, and always carries the log fact."""
     agents = _agents(tmp_path)
     home = tmp_path / "home"
@@ -539,7 +539,7 @@ def test_launchd_status_reads_the_plist(tmp_path: Path) -> None:
 
 
 def test_launchd_install_refuses_when_shim_not_on_path(tmp_path: Path) -> None:
-    """B13: the shim-on-PATH refusal is a shared guard — it applies on the
+    """The shim-on-PATH refusal is a shared guard — it applies on the
     launchd path too, with no plist written and no launchctl calls."""
     agents = _agents(tmp_path)
     launchctl = FakeLaunchctl()
@@ -558,14 +558,14 @@ def test_launchd_install_refuses_when_shim_not_on_path(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# B14 — platform dispatch
+# platform dispatch
 # ---------------------------------------------------------------------------
 
 
 def test_unsupported_platform_refuses_naming_wsl(
     capsys: pytest.CaptureFixture,
 ) -> None:
-    """B14: an unsupported platform exits 1 with a stderr line naming WSL
+    """An unsupported platform exits 1 with a stderr line naming WSL
     as the supported Windows path."""
     code = schedule.main(["install"], system=lambda: "Windows")
     assert code == 1

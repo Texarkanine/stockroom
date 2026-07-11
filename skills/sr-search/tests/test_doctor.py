@@ -1,12 +1,12 @@
 """Unit tests for ``stockroom.doctor`` — probe facts and the loud-failing smoke.
 
 ``probe_facts`` is exercised fully torch-free via the injectable
-``nvidia-smi`` runner and torch importer (B1–B7): facts are reported for
+``nvidia-smi`` runner and torch importer: facts are reported for
 every environment shape, and no subprocess or import failure ever raises.
-``run_smoke``'s failure shapes are covered via injected fakes (B8–B11) —
+``run_smoke``'s failure shapes are covered via injected fakes —
 each failure must print exactly one stderr line that carries the *next
 action* (the errmsg ratchet), not just name the problem. The single real
-torch/encoder path (B12) is ``importorskip("torch")``-gated per the
+torch/encoder path is ``importorskip("torch")``-gated per the
 engine-wide convention.
 """
 
@@ -94,7 +94,7 @@ class _ExplodingEncoder:
         raise RuntimeError("CUDA error: no kernel image is available")
 
 
-# --- probe: facts, torch-free, never crashes (B1–B7) ----------------------
+# --- probe: facts, torch-free, never crashes ----------------------
 
 
 def _probe(**kwargs) -> dict[str, str]:
@@ -108,7 +108,7 @@ def _probe(**kwargs) -> dict[str, str]:
 
 
 def test_probe_reports_os_and_arch() -> None:
-    """B1: os/arch come from the platform module as stable facts."""
+    """Os/arch come from the platform module as stable facts."""
     import platform
 
     facts = _probe()
@@ -117,7 +117,7 @@ def test_probe_reports_os_and_arch() -> None:
 
 
 def test_probe_reports_gpu_and_driver_when_smi_parseable() -> None:
-    """B2: a healthy nvidia-smi yields GPU name, driver, driver CUDA
+    """A healthy nvidia-smi yields GPU name, driver, driver CUDA
     ceiling, and the compute capability (the sm_ generation input)."""
     facts = _probe(smi_runner=_smi_ok)
     assert facts["gpu"] == "NVIDIA GeForce GTX 1070"
@@ -127,7 +127,7 @@ def test_probe_reports_gpu_and_driver_when_smi_parseable() -> None:
 
 
 def test_probe_reports_gpu_none_when_smi_absent() -> None:
-    """B3: no nvidia-smi on PATH is a fact (gpu: none), never an error."""
+    """No nvidia-smi on PATH is a fact (gpu: none), never an error."""
     facts = _probe(smi_runner=_smi_absent)
     assert facts["gpu"] == "none"
     assert "driver" not in facts
@@ -136,21 +136,21 @@ def test_probe_reports_gpu_none_when_smi_absent() -> None:
 
 @pytest.mark.parametrize("runner", [_smi_failing, _smi_garbage])
 def test_probe_degrades_gracefully_on_smi_failure(runner) -> None:
-    """B4: an erroring or garbage-emitting nvidia-smi degrades to an
+    """An erroring or garbage-emitting nvidia-smi degrades to an
     'unavailable' fact — no traceback, no raise."""
     facts = _probe(smi_runner=runner)
     assert facts["gpu"] == "unavailable"
 
 
 def test_probe_reports_torch_not_installed() -> None:
-    """B5: an unimportable torch is a reported fact."""
+    """An unimportable torch is a reported fact."""
     facts = _probe(torch_importer=_import_absent)
     assert facts["torch"] == "not installed"
     assert "torch-cuda" not in facts
 
 
 def test_probe_reports_torch_version_and_cuda() -> None:
-    """B6: an importable torch yields its version and CUDA availability."""
+    """An importable torch yields its version and CUDA availability."""
     facts = _probe(torch_importer=_importer_for(_fake_torch("2.11.0", cuda=True)))
     assert facts["torch"] == "2.11.0"
     assert facts["torch-cuda"] == "True"
@@ -188,20 +188,21 @@ def test_probe_home_facts_do_not_mkdir(
 
 
 def test_probe_never_imports_torch_eagerly() -> None:
-    """B7: importing the module and probing goes through the injected
+    """Importing the module and probing goes through the injected
     importer only — the real torch is never touched."""
+    if "torch" in sys.modules:
+        pytest.skip("torch already loaded in this process")
+
     calls: list[str] = []
 
     def recording_importer(name: str) -> object:
         calls.append(name)
         raise ImportError(name)
 
-    already_loaded = "torch" in sys.modules
     facts = _probe(torch_importer=recording_importer)
     assert calls == ["torch"]
     assert facts["torch"] == "not installed"
-    if not already_loaded:
-        assert "torch" not in sys.modules
+    assert "torch" not in sys.modules
 
 
 def test_format_facts_renders_key_value_lines() -> None:
@@ -215,7 +216,7 @@ def test_format_facts_renders_key_value_lines() -> None:
     assert lines[1].endswith("6.1")
 
 
-# --- smoke: loud-failing verification (B8–B12) -----------------------------
+# --- smoke: loud-failing verification -----------------------------
 
 
 def _one_stderr_line(capsys) -> str:
@@ -228,7 +229,7 @@ def _one_stderr_line(capsys) -> str:
 
 
 def test_smoke_torch_missing_is_ratcheted_diagnosis(capsys) -> None:
-    """B8: missing torch → exit 1, one stderr line that names the engine
+    """Missing torch → exit 1, one stderr line that names the engine
     environment and carries the literal provisioning command."""
     code = doctor.run_smoke(torch_importer=_import_absent, encoder_factory=_GoodEncoder)
     assert code == 1
@@ -241,7 +242,7 @@ def test_smoke_torch_missing_is_ratcheted_diagnosis(capsys) -> None:
 
 
 def test_smoke_encoder_failure_names_error_and_next_action(capsys) -> None:
-    """B9: an exploding encode (the wrong-wheel crash shape) → exit 1, one
+    """An exploding encode (the wrong-wheel crash shape) → exit 1, one
     stderr line naming the failure plus the re-pick remedy."""
     code = doctor.run_smoke(
         torch_importer=_importer_for(_fake_torch()),
@@ -255,7 +256,7 @@ def test_smoke_encoder_failure_names_error_and_next_action(capsys) -> None:
 
 
 def test_smoke_encoder_construction_failure_is_caught(capsys) -> None:
-    """B9 (construction half): an encoder factory that raises is compressed
+    """An encoder factory that raises is compressed
     to the same one-line actionable failure."""
 
     def exploding_factory() -> object:
@@ -272,7 +273,7 @@ def test_smoke_encoder_construction_failure_is_caught(capsys) -> None:
 
 
 def test_smoke_wrong_width_vector_is_a_failure(capsys) -> None:
-    """B10: a wrong-width vector is a broken setup, not success — exit 1
+    """A wrong-width vector is a broken setup, not success — exit 1
     with the actionable re-pick line."""
     code = doctor.run_smoke(
         torch_importer=_importer_for(_fake_torch()),
@@ -285,7 +286,7 @@ def test_smoke_wrong_width_vector_is_a_failure(capsys) -> None:
 
 
 def test_smoke_happy_path_reports_version_cuda_and_ok(capsys) -> None:
-    """B11: torch + encoder healthy → exit 0; stdout carries the torch
+    """Torch + encoder healthy → exit 0; stdout carries the torch
     version, the CUDA availability, and an ok summary."""
     code = doctor.run_smoke(
         torch_importer=_importer_for(_fake_torch("2.11.0", cuda=False)),
@@ -299,7 +300,7 @@ def test_smoke_happy_path_reports_version_cuda_and_ok(capsys) -> None:
 
 
 def test_smoke_real_model_end_to_end(capsys) -> None:
-    """B12: with real torch provisioned, the production BgeEncoder path
+    """With real torch provisioned, the production BgeEncoder path
     encodes one string and exits 0 (machine-local; skipped on torch-free CI)."""
     pytest.importorskip("torch")
     code = doctor.run_smoke()

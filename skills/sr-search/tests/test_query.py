@@ -9,6 +9,7 @@ lives in ``test_query_cli.py``.
 from pathlib import Path
 
 import duckdb
+import pytest
 
 from stockroom import warehouse
 from stockroom.query import QueryResult, run_query
@@ -70,9 +71,5 @@ def test_run_query_no_con_is_read_only(warehouse_home: Path) -> None:
     by DuckDB rather than mutating the warehouse."""
     warehouse.open(read_only=False).close()  # create + migrate
 
-    raised = False
-    try:
+    with pytest.raises(duckdb.Error):
         run_query("CREATE TABLE scratch (x INTEGER)")
-    except duckdb.Error:
-        raised = True
-    assert raised, "a write through the read-only query surface must raise"

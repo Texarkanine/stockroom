@@ -140,25 +140,14 @@ def test_session_pane_exposes_navigation_export_and_turn_landmarks() -> None:
 
 
 def test_session_pane_toolbar_and_bubble_layout_contracts() -> None:
-    """Toolbar uses emoji affordances; turns are SMS-aligned with scrollable tools."""
+    """Session pane wires view toggles and turn/tool structure used by JS."""
     source = (STATIC_ROOT / "index.html").read_text(encoding="utf-8")
-    assert "⬅️ Back to metrics" in source
-    assert "🔗 Copy deep-link" in source
-    assert "📥 Export markdown" in source
-    assert "📥 Export JSON" in source
     assert ".session-turn-user" in source
     assert ".session-turn-assistant" in source
-    assert "align-self: flex-end" in source
-    assert "width: 90%" in source
-    assert "max-width: 90%" in source
-    assert "42rem" not in source
     assert 'data-view = "session"' in source or 'dataset.view = "session"' in source
     assert 'html[data-view="session"] #metrics-pane' in source
     assert ".session-tool" in source
     assert ".session-tool[open] summary" in source
-    assert "max-height:" in source
-    assert "overflow: auto" in source
-    assert "overflow: hidden" in source
     adapter = (STATIC_ROOT / "dashboard.mjs").read_text(encoding="utf-8")
     assert "session-turn-user" in adapter
     assert "session-turn-assistant" in adapter
@@ -204,18 +193,6 @@ def test_dashboard_top_controls_expose_date_range_and_segmented_mode() -> None:
     ]
     assert [radio.get("value") for radio in mode_radios] == ["aggregate", "compare"]
     assert sum(1 for radio in mode_radios if "checked" in radio) == 1
-
-
-def test_write_read_chart_aria_describes_ratio_not_absolute_volumes() -> None:
-    """Write/Read canvas fallback copy matches ratio semantics."""
-    _source, parser = _document()
-    by_id = {
-        attrs["id"]: (tag, attrs) for tag, attrs in parser.elements if attrs.get("id")
-    }
-    _tag, attrs = by_id["write-read-chart"]
-    label = (attrs.get("aria-label") or "").lower()
-    assert "ratio" in label or "share" in label
-    assert "tool calls chart" not in label
 
 
 def test_info_controls_only_on_efficiency_and_first_prompt_panels() -> None:

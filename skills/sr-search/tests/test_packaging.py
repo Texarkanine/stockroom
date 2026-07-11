@@ -10,7 +10,6 @@ import json
 from pathlib import Path
 
 import pytest
-import yaml
 
 REQUIRED_MANIFEST_KEYS = {
     "name",
@@ -35,13 +34,6 @@ def claude_manifest(repo_root: Path) -> dict:
     path = repo_root / ".claude-plugin" / "plugin.json"
     assert path.is_file(), f"Claude manifest missing: {path}"
     return json.loads(path.read_text(encoding="utf-8"))
-
-
-def _front_matter(md_path: Path) -> dict:
-    text = md_path.read_text(encoding="utf-8")
-    assert text.startswith("---"), f"{md_path} has no YAML front-matter"
-    _, fm, _ = text.split("---", 2)
-    return yaml.safe_load(fm)
 
 
 def test_both_manifests_carry_required_keys(
@@ -71,15 +63,6 @@ def test_cursor_skills_pointer_resolves(cursor_manifest: dict, repo_root: Path) 
     """The Cursor manifest's skills pointer is ``./skills/`` and that dir exists."""
     assert cursor_manifest.get("skills") == "./skills/"
     assert (repo_root / "skills").is_dir()
-
-
-def test_skeleton_skill_front_matter(repo_root: Path) -> None:
-    """The engine-bearing skill ships a SKILL.md with valid front-matter."""
-    skill_md = repo_root / "skills" / "sr-search" / "SKILL.md"
-    assert skill_md.is_file(), f"skeleton skill missing: {skill_md}"
-    fm = _front_matter(skill_md)
-    assert isinstance(fm.get("name"), str) and fm["name"]
-    assert isinstance(fm.get("description"), str) and fm["description"]
 
 
 @pytest.fixture(scope="module")

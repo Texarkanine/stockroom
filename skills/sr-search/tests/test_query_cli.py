@@ -3,7 +3,7 @@
 These run the entrypoint as a real subprocess against a throwaway
 ``STOCKROOM_HOME``. The happy-path / proof tests first populate that warehouse
 by running the milestone-3 ``python -m stockroom.ingest`` against the env-pointed
-fixture roots — exercising the full Phase-1 loop (ingest → query) the way a real
+fixture roots — exercising the full ingest→query loop (ingest → query) the way a real
 user would, and proving the database is genuinely queryable end to end.
 """
 
@@ -66,14 +66,13 @@ def test_query_happy_path_prints_result(
 
     result = _run_query("SELECT 1 AS n", home=home)
     assert result.returncode == 0, result.stderr
-    assert "n" in result.stdout
-    assert "1" in result.stdout
+    assert result.stdout.splitlines() == ["n", "1"]
 
 
-def test_query_proves_end_to_end_queryability(
+def test_query_after_ingest_returns_distinct_harnesses(
     tmp_path: Path, cursor_root: Path, claude_root: Path, ai_tracking_db: Path
 ) -> None:
-    """The Phase-1 proof at the query layer: a DISTINCT-harness query over a
+    """A DISTINCT-harness query over a
     freshly-ingested warehouse names both ``cursor`` and ``claude``."""
     home = tmp_path / "home"
     _ingest(home, cursor_root, claude_root, ai_tracking_db)
@@ -189,7 +188,7 @@ def test_query_reads_sql_from_stdin(
 
     result = _run_query("-", home=home, stdin="SELECT 1 AS n")
     assert result.returncode == 0, result.stderr
-    assert "1" in result.stdout
+    assert result.stdout.splitlines() == ["n", "1"]
 
 
 def test_query_default_output_is_tsv(

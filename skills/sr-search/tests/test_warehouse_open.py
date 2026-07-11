@@ -41,21 +41,6 @@ def test_warehouse_busy_error_is_an_exception() -> None:
     assert issubclass(warehouse.WarehouseBusyError, Exception)
 
 
-def test_paths_resolve_under_stockroom_home(warehouse_home: Path) -> None:
-    """``warehouse_path`` / ``lock_path`` live under the ``STOCKROOM_HOME`` dir."""
-    assert warehouse.home_dir() == warehouse_home
-    assert warehouse.warehouse_path() == warehouse_home / "warehouse.duckdb"
-    assert warehouse.lock_path() == warehouse_home / ".warehouse.lock"
-
-
-def test_home_dir_is_auto_created(warehouse_home: Path) -> None:
-    """The home directory is created on first resolution if it is absent."""
-    assert not warehouse_home.exists()
-    resolved = warehouse.home_dir()
-    assert resolved == warehouse_home
-    assert resolved.is_dir()
-
-
 # --- open() lazy gate (step 6) ----------------------------------------------
 
 

@@ -33,7 +33,7 @@ def app_dir(tmp_path: Path) -> Path:
 def test_freeze_invokes_freeze_torch(
     app_dir: Path, stockroom_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """F6: ``torch freeze --app-dir --index`` invokes freeze_torch (stubbed)."""
+    """``torch freeze --app-dir --index`` invokes freeze_torch (stubbed)."""
     url = "https://download.pytorch.org/whl/cpu"
     seen: dict[str, object] = {}
 

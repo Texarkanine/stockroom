@@ -161,7 +161,7 @@ def test_env_not_ready_one_line_owner_remedy(
     owner: str,
     remedy_token: str,
 ) -> None:
-    """B6: pyproject present but venv cannot import duckdb → refuse with
+    """Pyproject present but venv cannot import duckdb → refuse with
     remedy before ``uv run --no-sync`` (no silent empty-venv path)."""
     engine = tmp_path / "engine-empty-env"
     (engine / "src").mkdir(parents=True)
