@@ -480,6 +480,106 @@
         padding: 1rem 1rem 0;
       }
 
+      .session-row {
+        cursor: pointer;
+      }
+
+      .session-row:hover,
+      .session-row:focus-visible {
+        background: var(--surface-soft);
+      }
+
+      .session-pane {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--surface);
+        box-shadow: var(--shadow);
+        padding: 1.25rem 1.35rem 1.75rem;
+      }
+
+      .session-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.65rem;
+        margin-bottom: 1rem;
+      }
+
+      .session-toolbar button {
+        border: 1px solid var(--border);
+        border-radius: 0.65rem;
+        background: var(--surface-soft);
+        color: var(--text);
+        padding: 0.45rem 0.8rem;
+        cursor: pointer;
+        font-weight: 650;
+      }
+
+      .session-toolbar button:hover {
+        border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+      }
+
+      .session-meta {
+        margin: 0 0 1.25rem;
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+
+      .session-meta strong {
+        color: var(--text);
+        font-weight: 700;
+      }
+
+      .session-turns {
+        display: grid;
+        gap: 1rem;
+      }
+
+      .session-turn {
+        border: 1px solid var(--border);
+        border-radius: 0.9rem;
+        background: var(--surface-soft);
+        padding: 0.9rem 1rem;
+      }
+
+      .session-turn-role {
+        margin: 0 0 0.55rem;
+        font-size: 0.8rem;
+        font-weight: 750;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .session-turn-body {
+        overflow-wrap: anywhere;
+      }
+
+      .session-turn-body pre {
+        overflow-x: auto;
+        padding: 0.75rem;
+        border-radius: 0.55rem;
+        background: color-mix(in srgb, var(--page) 70%, var(--surface));
+      }
+
+      .session-tool {
+        margin-top: 0.75rem;
+      }
+
+      .session-tool summary {
+        cursor: pointer;
+        font-weight: 650;
+      }
+
+      .session-tool pre {
+        margin: 0.55rem 0 0;
+        overflow-x: auto;
+        padding: 0.75rem;
+        border-radius: 0.55rem;
+        background: color-mix(in srgb, var(--page) 70%, var(--surface));
+        font-size: 0.85rem;
+      }
+
       .table-scroll {
         overflow-x: auto;
       }
@@ -648,6 +748,10 @@
         <p class="sync">Last sync: <time id="last-sync">—</time></p>
       </header>
 
+      <p class="status" id="status" aria-live="polite">Loading dashboard…</p>
+      <div class="error" id="error" role="alert" hidden></div>
+
+      <div id="metrics-pane">
       <section class="controls" aria-label="Dashboard view controls">
         <details id="harness-selector">
           <summary><span id="harness-summary">Loading harnesses…</span></summary>
@@ -690,8 +794,6 @@
           </label>
         </fieldset>
       </section>
-      <p class="status" id="status" aria-live="polite">Loading dashboard…</p>
-      <div class="error" id="error" role="alert" hidden></div>
 
       <section class="kpi-grid" id="kpi-grid" aria-label="Thirty-day overview">
         <article class="metric-card" id="kpi-sessions">
@@ -869,6 +971,20 @@
           <article class="wrapped-cell"><p class="wrapped-label">Peak Hour (UTC)</p><p class="wrapped-value">—</p><p class="wrapped-subtitle">0 sessions</p></article>
           <article class="wrapped-cell"><p class="wrapped-label">Top Tool</p><p class="wrapped-value">—</p><p class="wrapped-subtitle">0 calls</p></article>
         </div>
+      </section>
+      </div>
+
+      <section class="session-pane" id="session-pane" aria-labelledby="session-title" hidden>
+        <div class="session-toolbar">
+          <button type="button" id="session-back">Back to metrics</button>
+          <button type="button" id="session-copy-link">Copy deep-link</button>
+          <button type="button" id="session-export-md">Export markdown</button>
+          <button type="button" id="session-export-json">Export JSON</button>
+        </div>
+        <h2 id="session-title">Session</h2>
+        <p class="session-meta" id="session-meta"></p>
+        <div class="error" id="session-error" role="alert" hidden></div>
+        <div class="session-turns" id="session-turns" aria-live="polite"></div>
       </section>
     </main>
 

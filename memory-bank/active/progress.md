@@ -62,3 +62,12 @@ Add a dashboard conversation-reconstruction view for any session id (Recent Sess
     - Preflight **PASS** (with advisory noted for operator)
 * Insights
     - `sr-dashboard` is the right home for the URL template; hygiene tests still require only `stockroom dashboard` as invocation
+
+## 2026-07-10 - BUILD - COMPLETE
+
+* Work completed
+    - Steps 1–9: `session_id` on list, `session_detail`, `/api/session`, vendored markdown-it, pure session helpers, session pane UI/nav/export, skill docs, `make ci`
+* Decisions made
+    - Metrics refresh continues in background during deep-link session view so Back always has a snapshot
+* Insights
+    - Server special-case for `/api/session` mirrors `sessions`/`limit`; composite identity stays required end-to-end

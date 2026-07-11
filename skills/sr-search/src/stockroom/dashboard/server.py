@@ -142,7 +142,9 @@ class _DashboardHandler(BaseHTTPRequestHandler):
             con.close()
         self._send_json(200, payload)
 
-    def _serve_session(self, endpoint: Callable[..., Any], query: dict[str, list[str]]) -> None:
+    def _serve_session(
+        self, endpoint: Callable[..., Any], query: dict[str, list[str]]
+    ) -> None:
         """Serve ``/api/session`` with required ``harness`` + ``session`` identity."""
         try:
             harness = query.get("harness", [None])[-1]

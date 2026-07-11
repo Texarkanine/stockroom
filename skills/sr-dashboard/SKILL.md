@@ -28,6 +28,18 @@ Stdout is a single URL line (for example `http://127.0.0.1:58008/`). Relay that 
 
 If `command -v stockroom` fails, the machine isn't set up yet: tell the user to run the **`sr-initialize`** skill, and don't attempt any other invocation.
 
+## Session deep-links
+
+When you already know a `(harness, session_id)` pair and want to open that conversation in the dashboard (or offer a link the operator can paste), append the session view query to the printed base URL:
+
+```text
+{dashboard_base}/?view=session&harness={harness}&session={session_id}
+```
+
+Example: `http://127.0.0.1:58008/?view=session&harness=cursor&session=abc123`
+
+Both `harness` and `session` are required. URL-encode opaque session ids. Recent Sessions rows in the UI use the same template; the session pane also has **Copy deep-link**. Export markdown/JSON from that pane when basic in-dashboard rendering is not enough.
+
 ## Guardrails
 
 - **Thin launch only.** Run `stockroom dashboard` as shown. Do not pass `--foreground` from this skill — that flag is for the detached child / debugging, not the agent path.

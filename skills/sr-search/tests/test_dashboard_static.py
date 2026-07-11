@@ -104,10 +104,39 @@ def test_dashboard_resources_are_local_and_loaded_in_dependency_order() -> None:
 
 
 def test_dashboard_adapter_imports_authored_modules() -> None:
-    """The effects adapter imports core and data without extra HTML script tags."""
+    """The effects adapter imports core, data, and session helpers."""
     adapter = (STATIC_ROOT / "dashboard.mjs").read_text(encoding="utf-8")
     assert 'from "./dashboard-core.mjs"' in adapter
     assert 'from "./dashboard-data.mjs"' in adapter
+    assert 'from "./dashboard-session.mjs"' in adapter
+
+
+def test_session_pane_exposes_navigation_export_and_turn_landmarks() -> None:
+    """Session inspection pane has back, copy-link, export, and turns regions."""
+    source, parser = _document()
+    by_id = {
+        attrs["id"]: (tag, attrs) for tag, attrs in parser.elements if attrs.get("id")
+    }
+    assert "metrics-pane" in by_id
+    assert "session-pane" in by_id
+    assert (
+        by_id["session-pane"][1].get("hidden") is not None
+        or "hidden" in by_id["session-pane"][1]
+    )
+    assert by_id["session-back"][0] == "button"
+    assert by_id["session-copy-link"][0] == "button"
+    assert by_id["session-export-md"][0] == "button"
+    assert by_id["session-export-json"][0] == "button"
+    assert "session-meta" in by_id
+    assert "session-turns" in by_id
+    assert "session-error" in by_id
+    assert ".session-row" in source
+    assert "cursor: pointer" in source
+    assert "markdownit({ html: false" not in source  # init lives in JS, not HTML
+    assert "html: false" in (STATIC_ROOT / "dashboard.mjs").read_text(encoding="utf-8")
+    assert "linkify: false" in (STATIC_ROOT / "dashboard.mjs").read_text(
+        encoding="utf-8"
+    )
 
 
 def test_dashboard_top_controls_expose_date_range_and_segmented_mode() -> None:

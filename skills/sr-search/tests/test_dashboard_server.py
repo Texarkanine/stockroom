@@ -243,6 +243,7 @@ def test_dashboard_javascript_assets_have_browser_mime_types(
             "dashboard.mjs",
             "dashboard-core.mjs",
             "dashboard-data.mjs",
+            "dashboard-session.mjs",
             "chart-4.5.1.umd.min.js",
             "markdown-it-14.1.0.min.js",
         ]:

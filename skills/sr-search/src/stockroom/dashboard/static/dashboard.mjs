@@ -24,11 +24,36 @@ import {
 import {
   DashboardRequestError,
   createRequestGate,
+  fetchSessionDetail,
   fetchSnapshot,
 } from "./dashboard-data.mjs";
+import {
+  buildSessionDeepLink,
+  buildSessionViewSearchParams,
+  formatSessionJsonExport,
+  formatSessionMarkdownExport,
+  parseSessionViewParams,
+} from "./dashboard-session.mjs";
+
+// Richer markdown → use export. Do not add markdown-it plugins.
+const markdown = window.markdownit({
+  html: false,
+  linkify: false,
+  typographer: false,
+});
 
 const elements = {
   dashboard: document.querySelector("#dashboard"),
+  metricsPane: document.querySelector("#metrics-pane"),
+  sessionPane: document.querySelector("#session-pane"),
+  sessionBack: document.querySelector("#session-back"),
+  sessionCopyLink: document.querySelector("#session-copy-link"),
+  sessionExportMd: document.querySelector("#session-export-md"),
+  sessionExportJson: document.querySelector("#session-export-json"),
+  sessionTitle: document.querySelector("#session-title"),
+  sessionMeta: document.querySelector("#session-meta"),
+  sessionError: document.querySelector("#session-error"),
+  sessionTurns: document.querySelector("#session-turns"),
   selector: document.querySelector("#harness-selector"),
   harnessSummary: document.querySelector("#harness-summary"),
   harnessOptions: document.querySelector("#harness-options"),
@@ -43,6 +68,7 @@ const elements = {
 };
 
 const requestGate = createRequestGate();
+const sessionRequestGate = createRequestGate();
 const chartRegistry = new Map();
 const numberFormatter = new Intl.NumberFormat(undefined, {
   maximumFractionDigits: 1,
@@ -56,6 +82,8 @@ let state = {
   snapshot: null,
 };
 let openHelpId = null;
+let sessionDetail = null;
+let sessionView = null;
 
 function setStatus(message) {
   elements.status.textContent = message;
@@ -77,6 +105,22 @@ function showError(error) {
   elements.error.hidden = false;
 }
 
+function clearSessionError() {
+  elements.sessionError.textContent = "";
+  elements.sessionError.hidden = true;
+}
+
+function showSessionError(error) {
+  const message =
+    error instanceof DashboardRequestError
+      ? error.message
+      : "Session request failed";
+  elements.sessionError.textContent = error?.action
+    ? `${message}. ${error.action}.`
+    : `${message}.`;
+  elements.sessionError.hidden = false;
+}
+
 function setBusy(busy) {
   elements.dashboard.setAttribute("aria-busy", String(busy));
   for (const input of elements.dateRangeSelector.querySelectorAll("input")) {
@@ -85,6 +129,26 @@ function setBusy(busy) {
   for (const input of elements.modeSelector.querySelectorAll("input")) {
     input.disabled = busy;
   }
+}
+
+function showMetricsView() {
+  elements.metricsPane.hidden = false;
+  elements.sessionPane.hidden = true;
+}
+
+function showSessionView() {
+  elements.metricsPane.hidden = true;
+  elements.sessionPane.hidden = false;
+}
+
+function downloadText(filename, text, mimeType) {
+  const blob = new Blob([text], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
 }
 
 function appendHarnessRow({ harness, label, color, checked, disabled, onChange }) {
@@ -309,6 +373,14 @@ function renderSessions(sessions) {
   const colors = harnessColors(state.harnesses);
   for (const session of sessions) {
     const row = document.createElement("tr");
+    row.className = "session-row";
+    row.tabIndex = 0;
+    row.dataset.harness = session.harness ?? "";
+    row.dataset.sessionId = session.session_id ?? "";
+    row.setAttribute(
+      "aria-label",
+      `Open session ${session.session_id ?? ""} from ${displayHarness(session.harness)}`,
+    );
     const started = appendCell(row, formatDate(session.started));
     if (session.started) {
       started.title = session.started;
@@ -472,23 +544,27 @@ async function refreshDashboard(initial = false) {
       renderHarnessControls();
       renderDashboard();
       clearError();
-      setStatus(
-        state.harnesses.length === 0
-          ? "Dashboard loaded. No harness data is available yet."
-          : `Dashboard loaded for ${state.selected.length} selected harness${state.selected.length === 1 ? "" : "es"}.`,
-      );
+      if (!sessionView) {
+        setStatus(
+          state.harnesses.length === 0
+            ? "Dashboard loaded. No harness data is available yet."
+            : `Dashboard loaded for ${state.selected.length} selected harness${state.selected.length === 1 ? "" : "es"}.`,
+        );
+      }
     });
   } catch (error) {
     if (error?.name !== "AbortError" && request.isCurrent()) {
-      showError(error);
-      setStatus(
-        state.snapshot
-          ? "Refresh failed. Showing the previous successful snapshot."
-          : "Dashboard could not be loaded.",
-      );
+      if (!sessionView) {
+        showError(error);
+        setStatus(
+          state.snapshot
+            ? "Refresh failed. Showing the previous successful snapshot."
+            : "Dashboard could not be loaded.",
+        );
+      }
     }
   } finally {
-    if (request.isCurrent()) {
+    if (request.isCurrent() && !sessionView) {
       setBusy(false);
     }
   }
@@ -570,4 +646,202 @@ window
 
 initPanelHelpCopy();
 renderHarnessControls();
+
+function renderSessionDetail(detail) {
+  sessionDetail = detail;
+  const harness = detail?.harness ?? sessionView?.harness ?? "";
+  const sessionId = detail?.session_id ?? sessionView?.sessionId ?? "";
+  elements.sessionTitle.textContent = `${displayHarness(harness)} / ${sessionId}`;
+  const project = detail?.project_name || detail?.project_id || "—";
+  const started = detail?.started ? formatDate(detail.started) : "—";
+  elements.sessionMeta.innerHTML = "";
+  const metaBits = [
+    ["Harness", displayHarness(harness)],
+    ["Project", project],
+    ["Started", started],
+    ["Session", sessionId],
+  ];
+  if (detail?.is_subagent) {
+    metaBits.push(["Subagent of", detail.parent_session_id || "—"]);
+  }
+  elements.sessionMeta.append(
+    ...metaBits.flatMap(([label, value], index) => {
+      const nodes = [];
+      if (index > 0) {
+        nodes.push(document.createTextNode(" · "));
+      }
+      const strong = document.createElement("strong");
+      strong.textContent = `${label}: `;
+      nodes.push(strong, document.createTextNode(String(value)));
+      return nodes;
+    }),
+  );
+
+  elements.sessionTurns.replaceChildren();
+  for (const message of detail?.messages ?? []) {
+    const turn = document.createElement("article");
+    turn.className = "session-turn";
+    const role = document.createElement("p");
+    role.className = "session-turn-role";
+    role.textContent = message.role || "unknown";
+    const body = document.createElement("div");
+    body.className = "session-turn-body";
+    body.innerHTML = markdown.render(message.text || "");
+    turn.append(role, body);
+    for (const tool of message.tool_calls ?? []) {
+      const detailsEl = document.createElement("details");
+      detailsEl.className = "session-tool";
+      const summary = document.createElement("summary");
+      summary.textContent = tool.tool_name || "tool";
+      const pre = document.createElement("pre");
+      pre.textContent = JSON.stringify(tool.tool_input ?? {}, null, 2);
+      detailsEl.append(summary, pre);
+      turn.append(detailsEl);
+    }
+    elements.sessionTurns.append(turn);
+  }
+}
+
+async function openSessionView(harness, sessionId, { push = true } = {}) {
+  sessionView = { harness, sessionId };
+  sessionDetail = null;
+  clearSessionError();
+  showSessionView();
+  elements.sessionTurns.replaceChildren();
+  elements.sessionTitle.textContent = `${displayHarness(harness)} / ${sessionId}`;
+  elements.sessionMeta.textContent = "Loading session…";
+  if (push) {
+    const params = buildSessionViewSearchParams(harness, sessionId);
+    const next = `${window.location.pathname}?${params.toString()}`;
+    window.history.pushState({ view: "session", harness, sessionId }, "", next);
+  }
+  const request = sessionRequestGate.begin();
+  setStatus("Loading session…");
+  try {
+    const detail = await fetchSessionDetail(
+      window.fetch.bind(window),
+      harness,
+      sessionId,
+      { signal: request.signal },
+    );
+    request.commit(() => {
+      renderSessionDetail(detail);
+      setStatus(`Loaded session ${sessionId}.`);
+    });
+  } catch (error) {
+    if (error?.name !== "AbortError" && request.isCurrent()) {
+      showSessionError(error);
+      elements.sessionMeta.textContent = "Session could not be loaded.";
+      setStatus(
+        error?.status === 404
+          ? "Session not found."
+          : "Session could not be loaded.",
+      );
+    }
+  }
+}
+
+function closeSessionView({ push = true } = {}) {
+  sessionView = null;
+  sessionDetail = null;
+  clearSessionError();
+  showMetricsView();
+  if (push) {
+    window.history.pushState({ view: "metrics" }, "", window.location.pathname);
+  }
+  if (!state.snapshot) {
+    void refreshDashboard(true);
+    return;
+  }
+  setStatus(
+    `Dashboard loaded for ${state.selected.length} selected harness${state.selected.length === 1 ? "" : "es"}.`,
+  );
+}
+
+function syncViewFromLocation() {
+  const params = parseSessionViewParams(new URLSearchParams(window.location.search));
+  if (params) {
+    void openSessionView(params.harness, params.sessionId, { push: false });
+    return;
+  }
+  closeSessionView({ push: false });
+}
+
+elements.sessionRows.addEventListener("click", (event) => {
+  const row =
+    event.target instanceof Element ? event.target.closest("tr.session-row") : null;
+  if (!(row instanceof HTMLTableRowElement)) {
+    return;
+  }
+  const harness = row.dataset.harness;
+  const sessionId = row.dataset.sessionId;
+  if (harness && sessionId) {
+    void openSessionView(harness, sessionId);
+  }
+});
+
+elements.sessionRows.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" && event.key !== " ") {
+    return;
+  }
+  const row = event.target;
+  if (!(row instanceof HTMLTableRowElement) || !row.classList.contains("session-row")) {
+    return;
+  }
+  event.preventDefault();
+  const harness = row.dataset.harness;
+  const sessionId = row.dataset.sessionId;
+  if (harness && sessionId) {
+    void openSessionView(harness, sessionId);
+  }
+});
+
+elements.sessionBack.addEventListener("click", () => {
+  closeSessionView();
+});
+
+elements.sessionCopyLink.addEventListener("click", async () => {
+  if (!sessionView) {
+    return;
+  }
+  const link = buildSessionDeepLink(
+    window.location.origin + window.location.pathname,
+    sessionView.harness,
+    sessionView.sessionId,
+  );
+  try {
+    await navigator.clipboard.writeText(link);
+    setStatus("Deep-link copied to clipboard.");
+  } catch {
+    setStatus(link);
+  }
+});
+
+elements.sessionExportMd.addEventListener("click", () => {
+  if (!sessionDetail) {
+    return;
+  }
+  const name = `${sessionDetail.harness}-${sessionDetail.session_id}.md`;
+  downloadText(name, formatSessionMarkdownExport(sessionDetail), "text/markdown");
+});
+
+elements.sessionExportJson.addEventListener("click", () => {
+  if (!sessionDetail) {
+    return;
+  }
+  const name = `${sessionDetail.harness}-${sessionDetail.session_id}.json`;
+  downloadText(name, formatSessionJsonExport(sessionDetail), "application/json");
+});
+
+window.addEventListener("popstate", () => {
+  syncViewFromLocation();
+});
+
+const bootParams = parseSessionViewParams(new URLSearchParams(window.location.search));
+if (bootParams) {
+  void openSessionView(bootParams.harness, bootParams.sessionId, { push: false });
+} else {
+  showMetricsView();
+}
 void refreshDashboard(true);
+

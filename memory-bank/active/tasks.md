@@ -120,27 +120,27 @@ Each numbered step is one TDD cycle: **(a) write failing tests → (b) run and c
     - (c) Copy upstream `dist/markdown-it.min.js`, REUSE MIT override, wire `<script>` in `index.html`
     - Creative ref: `creative-markdown-library.md`
 
-5. **Pure session helpers (`dashboard-session.mjs`)**
+5. **Pure session helpers (`dashboard-session.mjs`)** ✅
     - Files: `tests-js/dashboard-session.test.mjs`, `static/dashboard-session.mjs`
     - (a) Node tests for `buildSessionViewSearchParams`, `parseSessionViewParams`, `formatSessionMarkdownExport`, and deep-link copy string helper
     - (c) Implement pure helpers (no DOM)
 
-6. **Session pane UI + navigation**
+6. **Session pane UI + navigation** ✅
     - Files: `tests/test_dashboard_static.py` (landmarks/controls), then `index.html`, `dashboard.mjs`, `dashboard-data.mjs`
     - (a) Static tests for session pane regions, back control, export controls, copy-link control, row affordance on Recent Sessions
     - (c) Full-pane swap; fetch detail; markdown-it init (`html: false`); row click → `history.pushState`; boot from query; back; collapsed tool `<details>`
     - Creative refs: deep-link + content model
 
-7. **Export + copy-link wiring**
+7. **Export + copy-link wiring** ✅
     - Files: `tests-js/dashboard-session.test.mjs` (export/copy string already in step 5), `dashboard.mjs`
     - (a) Any remaining helper assertions for JSON serialize identity; (c) wire download buttons + copy-to-clipboard for the canonical deep-link URL on the session header
 
-8. **Skills documentation**
+8. **Skills documentation** ✅
     - Files: `skills/sr-dashboard/SKILL.md` (+ light cross-link elsewhere only if needed)
     - Document URL template: append `?view=session&harness=…&session=…` to the printed dashboard base URL; when to offer it
     - Keep hygiene: only `stockroom dashboard` as engine invocation
 
-9. **Verification**
+9. **Verification** ✅
     - Targeted pytest + `make test-js`, then full `make ci` (incl. REUSE)
 
 ## Technology Validation
@@ -181,5 +181,5 @@ No npm/bundler runtime; no other new technology.
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight
-- [ ] Build
+- [x] Build
 - [ ] QA
