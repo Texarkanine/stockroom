@@ -40,3 +40,14 @@ Verify and remediate all applicable SLOBAC smells from the 2026-07-11 audit (60 
 * Insights
     - Public metrics payloads already lock trailing-`Z`; private `_iso` unit test is pure coupling
     - Session pane mixes presentation fossils with JS-coupled selectors worth keeping
+
+## 2026-07-11 - PLAN AMENDMENT - COMPLETE
+
+* Work completed
+    - Inventoried checklist-id fossils under `skills/sr-search/tests`
+    - Added supplemental deliverable-fossils: `test_schedule.py` (B1–B14, B17 + module header), `test_schema_0002.py` (Phase-1 Done When)
+    - Updated project brief, Batch 2, invariants, pre-mortem
+* Decisions made
+    - Bounded supplemental sweep only — no open-ended fossil hunt during build
+* Insights
+    - Audit missed an entire schedule unit-test file of the same smell class already remediated for `test_schedule_cli.py`

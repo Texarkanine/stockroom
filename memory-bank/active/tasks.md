@@ -4,7 +4,7 @@
 * Complexity: Level 3
 * Type: refactor (test-suite smell remediation)
 
-Verify each of the 60 findings in `.slobac/2026-07-11T14-58-48/audit.md` against live tests and the [SLOBAC taxonomy](https://texarkanine.github.io/slobac/taxonomy/), then remediate applicable smells. Prefer deleting dashboard-display / skill-docs prose pins over locking copy; keep strong behavioral coverage of product code under `skills/sr-search/`.
+Verify each of the 60 findings in `.slobac/2026-07-11T14-58-48/audit.md` against live tests and the [SLOBAC taxonomy](https://texarkanine.github.io/slobac/taxonomy/), then remediate applicable smells. Also strip obvious deliverable-fossils the audit missed in `test_schedule.py` and `test_schema_0002.py`. Prefer deleting dashboard-display / skill-docs prose pins over locking copy; keep strong behavioral coverage of product code under `skills/sr-search/`.
 
 ## Pinned Info
 
@@ -34,7 +34,8 @@ flowchart TD
 - **Dashboard** (`test_dashboard_metrics.py`, `test_dashboard_static.py`, `test_dashboard_server.py`, `tests-js/dashboard-core.test.mjs`): stop calling `metrics._iso`; delete presentation/aria/PANEL_HELP pins; drop error-message substring discrimination on session API 400s.
 - **Warehouse path tests** (`test_warehouse_home_xdg.py`, `test_warehouse_open.py`): delete redundant open-file home/path tests.
 - **Packaging / skill hygiene** (`test_packaging.py`, `test_skill_hygiene.py`): delete vacuous front-matter and feature-mention pins; keep architectural forbidden-token fitness tests.
-- **Schedule / dispatcher CLI** (`test_schedule_cli.py`, `test_dispatcher_cli.py`): strip B15 fossils; fix "five subcommands" naming-lie. (Broader `test_schedule.py` fossils **not** in the audit → out of scope.)
+- **Schedule / dispatcher CLI** (`test_schedule.py`, `test_schedule_cli.py`, `test_dispatcher_cli.py`): strip all `B#`/`B17` fossils in schedule unit tests (module header + per-test docs) and B15 fossils in schedule CLI; fix "five subcommands" naming-lie.
+- **Schema migration tests** (`test_schema_0002.py`): strip Phase-1 “Done When” module fossil; keep behavioral claims.
 
 ### Cross-Module Dependencies
 
@@ -45,7 +46,7 @@ flowchart TD
 ### Boundary Changes
 
 - **None required for product APIs** under the chosen dispositions (exact reason equality + side effects for torch; status-only for session 400 param errors; public-surface coverage for private helpers).
-- **Non-goal:** expanding remediation to unlisted fossils (e.g. many `B#` docs in `test_schedule.py`).
+- Supplemental fossil sweep is docstring/module-doc only (same Phase A rename as audit deliverable-fossils).
 
 ### Invariants & Constraints
 
@@ -53,7 +54,7 @@ flowchart TD
 - Must prefer deletion over goldenizing dashboard/skill/docs copy when smell is prose-pin, presentation-coupled, or display loose-text.
 - Must not call underscore-private helpers from other test modules after remediation.
 - Must keep suite green: `make test` / `make test-js` (or project equivalents) for `skills/sr-search`.
-- Must only claim findings from the audit as in-scope.
+- In-scope = audit findings + supplemental fossils in `test_schedule.py` and `test_schema_0002.py`.
 
 ## Open Questions
 
@@ -122,12 +123,9 @@ Most work rewrites existing tests (no new product feature). Where a test is rewr
 
 ### Batch 2 — Deliverable fossils (Phase A renames only)
 
-10. Strip `B#`/`T#`/`F#`/Phase-1 checklist prefixes from docstrings (and rename `test_query_proves_end_to_end_queryability` if needed) for **only** the audit-listed tests in:
-    - `test_doctor.py`, `test_doctor_cli.py`
-    - `test_engine_env.py`, `test_shim.py`, `test_shim_cli.py`, `test_shim_runtime.py`
-    - `test_torch_source.py`, `test_torch_cli.py`
-    - `test_schedule_cli.py`, `test_query_cli.py`
-    - Do **not** expand to unlisted schedule fossils.
+10. Strip `B#`/`T#`/`F#`/Phase-1 checklist prefixes from docstrings (and rename `test_query_proves_end_to_end_queryability` if needed) for:
+    - Audit-listed: `test_doctor.py`, `test_doctor_cli.py`, `test_engine_env.py`, `test_shim.py`, `test_shim_cli.py`, `test_shim_runtime.py`, `test_torch_source.py`, `test_torch_cli.py`, `test_schedule_cli.py`, `test_query_cli.py`
+    - Supplemental: `test_schedule.py` (module header “B1–B14 and B17” plus every per-test `B#`/`B17` docstring) and `test_schema_0002.py` (Phase-1 “Done When” module fossil)
     - TDD: docstring/name-only edits → smoke the touched modules
 
 ### Batch 3 — Conditional logic, naming-lies, vacuous assertion
@@ -181,13 +179,13 @@ No new technology - validation not required.
 - **Private-helper coverage gaps after decoupling:** Mitigation — write minimal public-surface fixtures first; if a behavior cannot be observed publicly, only then consider promoting a helper (taxonomy exception); default is public-only.
 - **Torch exact-reason brittleness:** Mitigation — copy the exact production format string into the assert; if build shows drift across paths, extract a module-level reason constant in `torch_source.py` (small, deliberate).
 - **Deleting presentation tests removes layout regression signal:** Accepted per operator — product code behavior > display copy.
-- **Audit incomplete vs remaining fossils elsewhere:** Mitigation — explicitly out of scope; do not chase unlisted `B#` in `test_schedule.py`.
+- **Supplemental fossils vs audit incompleteness:** Mitigation — bounded add of `test_schedule.py` + `test_schema_0002.py` only; same Phase A rename as audit fossils.
 - **Combined findings on one test** (e.g. doctor torch isolation = conditional + fossil; mtime = conditional + implementation-coupled): Mitigation — fix once per test addressing all listed smells.
 
 ## Pre-Mortem
 
+- **Plan failed by expanding to every fossil in the suite:** Plan response — supplemental sweep is explicit and bounded (`test_schedule.py` + `test_schema_0002.py` only); no open-ended suite grepping during build.
 - **Plan failed because we goldenized UI/skill copy "for safety" instead of deleting:** Plan response — Batch 1 is ordered first and disposition diagram pins delete for those smells; do not "strengthen" deleted items.
-- **Plan failed by expanding to every fossil in the suite:** Plan response — invariant locks audit-only scope; schedule.py leftovers stay.
 - **Plan failed because private-helper rewrites lost timezone/edge coverage:** Plan response — Batch 4 requires fixtures that still assert the same datetime outcomes on public objects before removing private calls.
 - **Plan failed by adding a torch `reason_code` API unnecessarily and widening blast radius:** Already avoided — disposition uses exact reason + side effects; Challenge covers constant extraction only if needed.
 
@@ -208,6 +206,8 @@ No new technology - validation not required.
 - Encoded per-step TDD ordering (test edit first; production only after strengthened oracle demands it).
 - Session pane: surgical strip (keep JS-coupled selectors) instead of full delete.
 - `metrics._iso` test: delete as duplicate of existing public payload Z asserts.
+- Operator follow-up: slot supplemental deliverable-fossils from `test_schedule.py` + `test_schema_0002.py` into Batch 2 (same Phase A rename; no rearchitect).
+
 
 ## Build Checklist
 
@@ -226,6 +226,8 @@ No new technology - validation not required.
 
 ### Batch 2 — Fossils
 - [ ] Strip audit-listed checklist/phase fossils from docstrings/names
+- [ ] Strip supplemental `test_schedule.py` B#/B17 fossils (module + tests)
+- [ ] Strip supplemental `test_schema_0002.py` Phase-1 module fossil
 
 ### Batch 3 — Conditional / naming / vacuous
 - [ ] Fix doctor torch isolation conditional
