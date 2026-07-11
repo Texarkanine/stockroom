@@ -54,3 +54,13 @@ Add a documented first-class CLI path so `stockroom query` / `stockroom semantic
     - PASS — no fixes required
 * Insights
     - Implementation is a one-branch change in `truncate_cell`; docs honesty was the load-bearing acceptance work
+
+## 2026-07-10 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `reflection/reflection-exact-message-text-retrieval.md`
+    - Reconciled persistent files (no further edits needed)
+* Decisions made
+    - Standalone L2 complete — archive is next
+* Insights
+    - Separating length (`full`) from fidelity (`raw`) keeps table safety without lying about exact text
