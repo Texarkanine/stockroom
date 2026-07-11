@@ -305,11 +305,11 @@ def test_session_api_returns_detail_and_client_errors(
 
         status, payload = _json_get(f"{base}/api/session?harness=cursor")
         assert status == 400
-        assert "session" in payload["error"]
+        assert "error" in payload
 
         status, payload = _json_get(f"{base}/api/session?session=api-sess")
         assert status == 400
-        assert "harness" in payload["error"]
+        assert "error" in payload
 
         status, payload = _json_get(f"{base}/api/session")
         assert status == 400

@@ -212,17 +212,19 @@ No new technology - validation not required.
 ## Build Checklist
 
 ### Batch 0 — Verify
-- [ ] All 60 findings verified against live tests
+- [x] All 60 findings verified against live tests
+  - 56 HOLDS as cited; findings 29–30/57–58 HOLDS after name-parse recheck (script false negatives only)
+  - 0 false positives / already-fixed; proceed with plan dispositions as written
 
 ### Batch 1 — Deletes
-- [ ] Delete torch writers prose-pin file
-- [ ] Delete skill hygiene feature-mention test
-- [ ] Delete packaging skeleton front-matter vacuous test
-- [ ] Delete JS PANEL_HELP token test
-- [ ] Delete dashboard aria ratio token test
-- [ ] Strip session pane emoji/CSS; keep JS-coupled structure asserts
-- [ ] Delete migrate help loose-text test
-- [ ] Drop session API error substring discrimination
+- [x] Delete torch writers prose-pin file
+- [x] Delete skill hygiene feature-mention test
+- [x] Delete packaging skeleton front-matter vacuous test
+- [x] Delete JS PANEL_HELP token test
+- [x] Delete dashboard aria ratio token test
+- [x] Strip session pane emoji/CSS; keep JS-coupled structure asserts
+- [x] Delete migrate help loose-text test
+- [x] Drop session API error substring discrimination
 
 ### Batch 2 — Fossils
 - [ ] Strip audit-listed checklist/phase fossils from docstrings/names

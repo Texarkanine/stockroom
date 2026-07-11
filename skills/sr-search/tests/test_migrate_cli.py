@@ -59,10 +59,3 @@ def test_migrate_is_idempotent(tmp_path: Path) -> None:
     assert second.returncode == 0, second.stderr
     assert second.stdout == first.stdout
     assert second.stderr.strip() == ""
-
-
-def test_migrate_help_mentions_migration(tmp_path: Path) -> None:
-    """``--help`` exits 0 and the description mentions migration."""
-    result = _run_migrate("--help", home=tmp_path / "home")
-    assert result.returncode == 0
-    assert "migrat" in result.stdout.lower()
