@@ -1,11 +1,11 @@
 # Active Context
 
 ## Current Task: reuse-ppls-narrow-carveout
-**Phase:** PLAN - COMPLETE
+**Phase:** PREFLIGHT - COMPLETE
 
 ## What Was Done
-- Level 2 plan written: TDD on `test_licensing.py`, REUSE invert, systemPatterns blurb, SPDX before/after
-- SPDX baseline already at `/tmp/stockroom-reuse-spdx/before.spdx`
+- Preflight PASS; no blocking findings
+- README licensing blurb still accurate at high level (no edit required)
 
 ## Next Step
-- Preflight validation
+- Build: TDD licensing tests, then REUSE.toml invert, then SPDX after + diff

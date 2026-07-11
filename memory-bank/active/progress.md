@@ -25,3 +25,13 @@ Invert REUSE PPL-S from blanket `skills/**` to a narrow carve-out (`SKILL.md` + 
     - Verify step must script license-set diff of before/after SPDX
 * Insights
     - Fixture README is the canary that `*.md` would be too broad
+
+## 2026-07-10 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated TDD ordering (tests before REUSE.toml), conventions, completeness
+    - Confirmed README high-level licensing blurb remains accurate without claw-back detail
+* Decisions made
+    - PASS — proceed to build; no plan amendments
+* Insights
+    - None beyond plan
