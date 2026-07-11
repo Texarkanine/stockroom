@@ -5,6 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light dark">
     <title>stockroom dashboard</title>
+    <script>
+      (() => {
+        const params = new URLSearchParams(window.location.search);
+        if (
+          params.get("view") === "session" &&
+          params.get("harness") &&
+          params.get("session")
+        ) {
+          document.documentElement.dataset.view = "session";
+        }
+      })();
+    </script>
     <style>
       :root {
         color-scheme: light dark;
@@ -281,6 +293,14 @@
         display: none !important;
       }
 
+      html[data-view="session"] #metrics-pane {
+        display: none !important;
+      }
+
+      html[data-view="session"] #session-pane[hidden] {
+        display: block !important;
+      }
+
       .kpi-grid {
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -531,15 +551,30 @@
       }
 
       .session-turns {
-        display: grid;
+        display: flex;
+        flex-direction: column;
         gap: 1rem;
       }
 
       .session-turn {
+        width: 90%;
+        max-width: 90%;
+        min-width: 0;
         border: 1px solid var(--border);
         border-radius: 0.9rem;
         background: var(--surface-soft);
         padding: 0.9rem 1rem;
+        overflow: hidden;
+      }
+
+      .session-turn-user {
+        align-self: flex-end;
+        background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+        border-color: color-mix(in srgb, var(--accent) 28%, var(--border));
+      }
+
+      .session-turn-assistant {
+        align-self: flex-start;
       }
 
       .session-turn-role {
@@ -553,10 +588,12 @@
 
       .session-turn-body {
         overflow-wrap: anywhere;
+        min-width: 0;
       }
 
       .session-turn-body pre {
-        overflow-x: auto;
+        max-width: 100%;
+        overflow: auto;
         padding: 0.75rem;
         border-radius: 0.55rem;
         background: color-mix(in srgb, var(--page) 70%, var(--surface));
@@ -564,6 +601,11 @@
 
       .session-tool {
         margin-top: 0.75rem;
+        border: 1px solid var(--border);
+        border-radius: 0.65rem;
+        background: color-mix(in srgb, var(--page) 55%, var(--surface));
+        padding: 0.55rem 0.7rem;
+        min-width: 0;
       }
 
       .session-tool summary {
@@ -573,7 +615,9 @@
 
       .session-tool pre {
         margin: 0.55rem 0 0;
-        overflow-x: auto;
+        max-width: 100%;
+        max-height: 16rem;
+        overflow: auto;
         padding: 0.75rem;
         border-radius: 0.55rem;
         background: color-mix(in srgb, var(--page) 70%, var(--surface));
@@ -976,10 +1020,10 @@
 
       <section class="session-pane" id="session-pane" aria-labelledby="session-title" hidden>
         <div class="session-toolbar">
-          <button type="button" id="session-back">Back to metrics</button>
-          <button type="button" id="session-copy-link">Copy deep-link</button>
-          <button type="button" id="session-export-md">Export markdown</button>
-          <button type="button" id="session-export-json">Export JSON</button>
+          <button type="button" id="session-back">⬅️ Back to metrics</button>
+          <button type="button" id="session-copy-link">🔗 Copy deep-link</button>
+          <button type="button" id="session-export-md">📥 Export markdown</button>
+          <button type="button" id="session-export-json">📥 Export JSON</button>
         </div>
         <h2 id="session-title">Session</h2>
         <p class="session-meta" id="session-meta"></p>

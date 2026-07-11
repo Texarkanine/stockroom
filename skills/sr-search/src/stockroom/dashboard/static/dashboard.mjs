@@ -33,6 +33,7 @@ import {
   formatSessionJsonExport,
   formatSessionMarkdownExport,
   parseSessionViewParams,
+  renderSessionMessageHtml,
 } from "./dashboard-session.mjs";
 
 // Richer markdown → use export. Do not add markdown-it plugins.
@@ -132,11 +133,13 @@ function setBusy(busy) {
 }
 
 function showMetricsView() {
+  document.documentElement.dataset.view = "metrics";
   elements.metricsPane.hidden = false;
   elements.sessionPane.hidden = true;
 }
 
 function showSessionView() {
+  document.documentElement.dataset.view = "session";
   elements.metricsPane.hidden = true;
   elements.sessionPane.hidden = false;
 }
@@ -680,13 +683,22 @@ function renderSessionDetail(detail) {
   elements.sessionTurns.replaceChildren();
   for (const message of detail?.messages ?? []) {
     const turn = document.createElement("article");
-    turn.className = "session-turn";
+    const roleName = message.role || "unknown";
+    const sideClass =
+      roleName === "user"
+        ? "session-turn-user"
+        : roleName === "assistant"
+          ? "session-turn-assistant"
+          : "";
+    turn.className = ["session-turn", sideClass].filter(Boolean).join(" ");
     const role = document.createElement("p");
     role.className = "session-turn-role";
-    role.textContent = message.role || "unknown";
+    role.textContent = roleName;
     const body = document.createElement("div");
     body.className = "session-turn-body";
-    body.innerHTML = markdown.render(message.text || "");
+    body.innerHTML = renderSessionMessageHtml(message.text || "", (value) =>
+      markdown.render(value),
+    );
     turn.append(role, body);
     for (const tool of message.tool_calls ?? []) {
       const detailsEl = document.createElement("details");

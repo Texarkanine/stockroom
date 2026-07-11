@@ -2,11 +2,13 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  ansiToHtml,
   buildSessionDeepLink,
   buildSessionViewSearchParams,
   formatSessionJsonExport,
   formatSessionMarkdownExport,
   parseSessionViewParams,
+  renderSessionMessageHtml,
 } from "../src/stockroom/dashboard/static/dashboard-session.mjs";
 
 test("buildSessionViewSearchParams encodes the canonical session view", () => {
@@ -90,4 +92,33 @@ test("formatSessionJsonExport pretty-prints the detail payload identity", () => 
     messages: [{ role: "user", text: "hi", tool_calls: [] }],
   };
   assert.equal(formatSessionJsonExport(detail), `${JSON.stringify(detail, null, 2)}\n`);
+});
+
+test("ansiToHtml renders bold SGR and escapes HTML", () => {
+  const input =
+    "<local-command-stdout>Set model to \u001b[1mSonnet 5\u001b[22m and saved</local-command-stdout>";
+  const html = ansiToHtml(input);
+  assert.match(html, /&lt;local-command-stdout&gt;/);
+  assert.match(html, /<strong>Sonnet 5<\/strong>/);
+  assert.doesNotMatch(html, /\u001b/);
+  assert.doesNotMatch(html, /\[1m/);
+});
+
+test("ansiToHtml supports colors reset and newlines", () => {
+  const html = ansiToHtml("plain\u001b[31mred\u001b[0m\nok");
+  assert.match(html, /style="color:#c00"/);
+  assert.match(html, /red/);
+  assert.match(html, /<br>/);
+  assert.match(html, /ok$/);
+});
+
+test("renderSessionMessageHtml uses ANSI path when CSI present else markdown", () => {
+  const md = (text) => `<p>${text}</p>`;
+  assert.equal(
+    renderSessionMessageHtml("hello **x**", md),
+    "<p>hello **x**</p>",
+  );
+  const ansiHtml = renderSessionMessageHtml("a\u001b[1mb\u001b[0m", md);
+  assert.match(ansiHtml, /<strong>b<\/strong>/);
+  assert.doesNotMatch(ansiHtml, /<p>/);
 });

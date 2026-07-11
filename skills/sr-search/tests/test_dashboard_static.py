@@ -139,6 +139,31 @@ def test_session_pane_exposes_navigation_export_and_turn_landmarks() -> None:
     )
 
 
+def test_session_pane_toolbar_and_bubble_layout_contracts() -> None:
+    """Toolbar uses emoji affordances; turns are SMS-aligned with scrollable tools."""
+    source = (STATIC_ROOT / "index.html").read_text(encoding="utf-8")
+    assert "⬅️ Back to metrics" in source
+    assert "🔗 Copy deep-link" in source
+    assert "📥 Export markdown" in source
+    assert "📥 Export JSON" in source
+    assert ".session-turn-user" in source
+    assert ".session-turn-assistant" in source
+    assert "align-self: flex-end" in source
+    assert "width: 90%" in source
+    assert "max-width: 90%" in source
+    assert "42rem" not in source
+    assert 'data-view = "session"' in source or "dataset.view = \"session\"" in source
+    assert 'html[data-view="session"] #metrics-pane' in source
+    assert ".session-tool" in source
+    assert "max-height:" in source
+    assert "overflow: auto" in source
+    adapter = (STATIC_ROOT / "dashboard.mjs").read_text(encoding="utf-8")
+    assert "session-turn-user" in adapter
+    assert "session-turn-assistant" in adapter
+    assert 'dataset.view = "session"' in adapter
+
+
+
 def test_dashboard_top_controls_expose_date_range_and_segmented_mode() -> None:
     """Date-range presets and Aggregate/Compare read as exclusive segmented controls."""
     _source, parser = _document()
