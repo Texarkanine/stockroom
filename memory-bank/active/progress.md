@@ -64,3 +64,13 @@ Verify and remediate all applicable SLOBAC smells from the 2026-07-11 audit (60 
     - mtime inequality pinned with fixed UTC-5 wall clock via public `discover`
 * Insights
     - First fossil-strip attempt must stay docstring/phrase-local — global space-collapse corrupts Black formatting
+
+## 2026-07-11 - QA - COMPLETE (PASS)
+
+* Work completed
+    - Semantic review vs plan: completeness, KISS/YAGNI (test-only deletions), no debris, no unexpected prod diffs
+    - Confirmed deleted presentation/prose pins absent; public-surface rewrites present; exact torch reasons locked
+* Decisions made
+    - PASS — no fixes required
+* Insights
+    - Automated `_mtime(` greps false-positive on `by_mtime()` — prefer token-boundary checks next time
