@@ -899,5 +899,6 @@ ENDPOINTS = {
     "models": models,
     "efficiency": efficiency,
     "sessions": sessions,
+    "session": session_detail,
     "wrapped": wrapped,
 }

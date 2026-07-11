@@ -110,3 +110,14 @@ def test_vendored_chartjs_resolves_only_mit(
     target = "skills/sr-search/src/stockroom/dashboard/static/chart-4.5.1.umd.min.js"
     assert target in license_map, f"{target} not in SPDX report"
     assert license_map[target] == {"MIT"}
+
+
+def test_vendored_markdown_it_resolves_only_mit(
+    license_map: dict[str, set[str]],
+) -> None:
+    """The exact upstream markdown-it artifact retains its MIT identity."""
+    target = (
+        "skills/sr-search/src/stockroom/dashboard/static/markdown-it-14.1.0.min.js"
+    )
+    assert target in license_map, f"{target} not in SPDX report"
+    assert license_map[target] == {"MIT"}

@@ -70,7 +70,7 @@ def test_dashboard_document_has_semantic_controls_panels_and_fallbacks() -> None
 
 
 def test_dashboard_resources_are_local_and_loaded_in_dependency_order() -> None:
-    """Every resource is local and Chart.js loads before the module adapter."""
+    """Every resource is local; Chart.js and markdown-it load before the module."""
     source, parser = _document()
     references = [
         attrs[name]
@@ -87,16 +87,20 @@ def test_dashboard_resources_are_local_and_loaded_in_dependency_order() -> None:
     assert "http://" not in lowered
     assert "https://" not in lowered
     chart_position = source.index('src="chart-4.5.1.umd.min.js"')
+    markdown_position = source.index('src="markdown-it-14.1.0.min.js"')
     adapter_position = source.index('src="dashboard.mjs"')
     assert chart_position < adapter_position
+    assert markdown_position < adapter_position
     scripts = [
         attrs for tag, attrs in parser.elements if tag == "script" and attrs.get("src")
     ]
     assert [script["src"] for script in scripts] == [
         "chart-4.5.1.umd.min.js",
+        "markdown-it-14.1.0.min.js",
         "dashboard.mjs",
     ]
-    assert scripts[1].get("type") == "module"
+    assert scripts[2].get("type") == "module"
+    assert (STATIC_ROOT / "markdown-it-14.1.0.min.js").is_file()
 
 
 def test_dashboard_adapter_imports_authored_modules() -> None:

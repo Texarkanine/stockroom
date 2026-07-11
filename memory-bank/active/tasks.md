@@ -109,12 +109,12 @@ Each numbered step is one TDD cycle: **(a) write failing tests → (b) run and c
     - (c) Implement `session_detail(con, harness, session_id)` per `creative-reconstruction-content.md`
     - Register in `ENDPOINTS` only after step 3's server tests expect it (or register here and keep server tests in step 3)
 
-3. **HTTP `/api/session`**
+3. **HTTP `/api/session`** ✅
     - Files: `tests/test_dashboard_server.py`, `server.py`, `metrics.ENDPOINTS`
     - (a) Tests: 200 payload; 400 missing params; 404 unknown; static file for markdown-it deferred to step 4
     - (c) Special-case query parsing for required `harness` + `session` (mirror `sessions`/`limit` branch)
 
-4. **Vendor markdown-it 14.1.0 + REUSE**
+4. **Vendor markdown-it 14.1.0 + REUSE** ✅
     - Files: `tests/test_licensing.py`, `tests/test_dashboard_static.py`, `tests/test_dashboard_server.py`, `REUSE.toml`, `static/markdown-it-14.1.0.min.js`, `index.html` script tag
     - (a) Failing licensing/static/server assertions for the new artifact and load order (markdown-it before dashboard module; no CDN)
     - (c) Copy upstream `dist/markdown-it.min.js`, REUSE MIT override, wire `<script>` in `index.html`

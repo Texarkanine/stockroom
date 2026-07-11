@@ -61,6 +61,13 @@ def test_every_api_route_returns_json_from_current_warehouse(
     with _running_server() as (httpd, base):
         assert httpd.server_address[0] == "127.0.0.1"
         for endpoint in metrics.ENDPOINTS:
+            if endpoint == "session":
+                status, payload = _json_get(
+                    f"{base}/api/session?harness=cursor&session=missing"
+                )
+                assert status == 404
+                assert payload["error"] == "not found"
+                continue
             status, payload = _json_get(f"{base}/api/{endpoint}")
             assert status == 200
             assert payload is not None
@@ -237,6 +244,7 @@ def test_dashboard_javascript_assets_have_browser_mime_types(
             "dashboard-core.mjs",
             "dashboard-data.mjs",
             "chart-4.5.1.umd.min.js",
+            "markdown-it-14.1.0.min.js",
         ]:
             status, content_type, body = _get(f"{base}/{asset}")
             assert status == 200, asset
@@ -261,6 +269,55 @@ def test_unexpected_exception_returns_clean_json_500(
         assert payload == {"error": "internal server error"}
         assert "private detail" not in json.dumps(payload)
         assert "Traceback" not in json.dumps(payload)
+
+
+def test_session_api_returns_detail_and_client_errors(
+    warehouse_home: Path,
+) -> None:
+    """GET /api/session requires harness+session; maps missing rows to 404."""
+    con = warehouse.open(read_only=False)
+    try:
+        con.execute(
+            "INSERT INTO sessions "
+            "(harness, session_id, project_id, cwd, source_path, is_subagent, "
+            "source_mtime) VALUES "
+            "('cursor', 'api-sess', 'p', '/tmp/proj', '/tmp/api-sess.jsonl', "
+            "false, ?)",
+            [datetime(2026, 3, 1, 10)],
+        )
+        con.execute(
+            "INSERT INTO messages "
+            "(harness, session_id, message_id, ordinal, role, text) "
+            "VALUES ('cursor', 'api-sess', 'api-sess#0', 0, 'user', 'hello')"
+        )
+    finally:
+        con.close()
+
+    with _running_server() as (_httpd, base):
+        status, payload = _json_get(
+            f"{base}/api/session?harness=cursor&session=api-sess"
+        )
+        assert status == 200
+        assert payload["session_id"] == "api-sess"
+        assert payload["harness"] == "cursor"
+        assert payload["messages"][0]["text"] == "hello"
+
+        status, payload = _json_get(f"{base}/api/session?harness=cursor")
+        assert status == 400
+        assert "session" in payload["error"]
+
+        status, payload = _json_get(f"{base}/api/session?session=api-sess")
+        assert status == 400
+        assert "harness" in payload["error"]
+
+        status, payload = _json_get(f"{base}/api/session")
+        assert status == 400
+
+        status, payload = _json_get(
+            f"{base}/api/session?harness=cursor&session=missing"
+        )
+        assert status == 404
+        assert payload["error"] == "not found"
 
 
 def test_ingest_to_server_integration(
