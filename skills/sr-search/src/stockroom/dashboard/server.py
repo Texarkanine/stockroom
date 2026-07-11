@@ -58,6 +58,36 @@ class _DashboardHandler(BaseHTTPRequestHandler):
     def _not_found(self) -> None:
         self._send_json(404, {"error": "not found"})
 
+    def _open_readonly(self) -> duckdb.DuckDBPyConnection | None:
+        """Open a short-lived read-only warehouse connection, or send a 503."""
+        try:
+            return self.server.open_warehouse(read_only=True, timeout=2.0)
+        except FileNotFoundError:
+            self._send_json(
+                503,
+                {
+                    "error": "no warehouse yet",
+                    "action": "run `stockroom ingest`",
+                },
+            )
+        except warehouse.WarehouseStaleError:
+            self._send_json(
+                503,
+                {
+                    "error": "warehouse schema is behind",
+                    "action": "run `stockroom migrate`",
+                },
+            )
+        except warehouse.WarehouseBusyError:
+            self._send_json(
+                503,
+                {
+                    "error": "warehouse is busy",
+                    "action": "retry shortly",
+                },
+            )
+        return None
+
     def do_GET(self) -> None:  # noqa: N802 - stdlib handler API
         """Serve an API payload or a guarded packaged static file."""
         try:
@@ -103,34 +133,8 @@ class _DashboardHandler(BaseHTTPRequestHandler):
             self._send_json(400, {"error": str(exc)})
             return
 
-        try:
-            con = self.server.open_warehouse(read_only=True, timeout=2.0)
-        except FileNotFoundError:
-            self._send_json(
-                503,
-                {
-                    "error": "no warehouse yet",
-                    "action": "run `stockroom ingest`",
-                },
-            )
-            return
-        except warehouse.WarehouseStaleError:
-            self._send_json(
-                503,
-                {
-                    "error": "warehouse schema is behind",
-                    "action": "run `stockroom migrate`",
-                },
-            )
-            return
-        except warehouse.WarehouseBusyError:
-            self._send_json(
-                503,
-                {
-                    "error": "warehouse is busy",
-                    "action": "retry shortly",
-                },
-            )
+        con = self._open_readonly()
+        if con is None:
             return
 
         try:
@@ -157,34 +161,8 @@ class _DashboardHandler(BaseHTTPRequestHandler):
             self._send_json(400, {"error": str(exc)})
             return
 
-        try:
-            con = self.server.open_warehouse(read_only=True, timeout=2.0)
-        except FileNotFoundError:
-            self._send_json(
-                503,
-                {
-                    "error": "no warehouse yet",
-                    "action": "run `stockroom ingest`",
-                },
-            )
-            return
-        except warehouse.WarehouseStaleError:
-            self._send_json(
-                503,
-                {
-                    "error": "warehouse schema is behind",
-                    "action": "run `stockroom migrate`",
-                },
-            )
-            return
-        except warehouse.WarehouseBusyError:
-            self._send_json(
-                503,
-                {
-                    "error": "warehouse is busy",
-                    "action": "retry shortly",
-                },
-            )
+        con = self._open_readonly()
+        if con is None:
             return
 
         try:

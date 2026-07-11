@@ -182,4 +182,4 @@ No npm/bundler runtime; no other new technology.
 - [x] Pre-Mortem complete
 - [x] Preflight
 - [x] Build
-- [ ] QA
+- [x] QA

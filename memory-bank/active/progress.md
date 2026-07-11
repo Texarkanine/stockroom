@@ -71,3 +71,13 @@ Add a dashboard conversation-reconstruction view for any session id (Recent Sess
     - Metrics refresh continues in background during deep-link session view so Back always has a snapshot
 * Insights
     - Server special-case for `/api/session` mirrors `sessions`/`limit`; composite identity stays required end-to-end
+
+## 2026-07-10 - QA - COMPLETE
+
+* Work completed
+    - Semantic review against plan + creatives; DRY fix: `_open_readonly()` consolidates warehouse 503 handling
+    - Re-ran server tests; wrote `.qa-validation-status` PASS
+* Decisions made
+    - QA **PASS** (trivial DRY fix applied; no substantive blockers)
+* Insights
+    - Session view + metrics background refresh is intentional, not debris
