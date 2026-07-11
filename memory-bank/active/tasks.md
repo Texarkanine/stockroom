@@ -33,19 +33,19 @@ Invert REUSE PPL-S from blanket `skills/**` to a narrow carve-out (`SKILL.md` + 
    - Files: `/tmp/stockroom-reuse-spdx/before.spdx` (already captured)
    - Changes: none in-repo
 
-2. [ ] **Failing/updated licensing assertions (TDD)**
+2. [x] **Failing/updated licensing assertions (TDD)**
    - Files: `skills/sr-search/tests/test_licensing.py`
    - Changes: update module docstring to inverted model; add assertions for `references/system-model.md` PPL-S and fixture README AGPL; keep code/shell/dashboard/Chart.js assertions; remove any implication that claw-back re-assert is required for AGPL
 
-3. [ ] **REUSE.toml invert**
+3. [x] **REUSE.toml invert**
    - Files: `REUSE.toml`
    - Changes: replace `skills/**` PPL-S with `skills/**/SKILL.md` + `skills/**/references/**`; delete rules 3 and 4; renumber comments; keep Chart.js MIT and `.cursor` NOASSERTION
 
-4. [ ] **systemPatterns blurb**
+4. [x] **systemPatterns blurb**
    - Files: `memory-bank/systemPatterns.md`
    - Changes: surgical update to "Layered licensing" to describe narrow PPL-S carve-out (no claw-back)
 
-5. [ ] **Verify**
+5. [x] **Verify**
    - Run licensing tests + `make reuse` / `reuse lint`
    - Save `/tmp/stockroom-reuse-spdx/after.spdx`; diff licenses vs before; report flips
 
@@ -78,5 +78,5 @@ No new technology - validation not required
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight
-- [ ] Build
+- [x] Build
 - [ ] QA

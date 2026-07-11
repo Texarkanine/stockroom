@@ -2,8 +2,9 @@
 
 The whole committed tree must be REUSE-compliant (``reuse lint`` clean), and
 the two-layer model must actually resolve: AGPL-3.0-or-later is the base on
-all code, while prompt-shaped skill content (SKILL.md) is PPL-S — with
-code-shaped paths inside ``skills/**`` re-asserted back to AGPL.
+all code, while prompt-shaped skill payload (``SKILL.md`` and ``references/**``)
+is carved out to PPL-S. Software under ``skills/**`` inherits base AGPL — no
+claw-back re-assert list is required.
 """
 
 import subprocess
@@ -48,7 +49,7 @@ def test_reuse_lint_passes(repo_root: Path) -> None:
 
 
 def test_code_inside_skill_resolves_agpl(license_map: dict[str, set[str]]) -> None:
-    """A .py file inside skills/** is re-asserted to AGPL, not PPL-S."""
+    """A .py file inside skills/** inherits base AGPL, not PPL-S."""
     target = "skills/sr-search/src/stockroom/__init__.py"
     assert target in license_map, f"{target} not in SPDX report"
     assert "AGPL-3.0-or-later" in license_map[target]
@@ -56,15 +57,29 @@ def test_code_inside_skill_resolves_agpl(license_map: dict[str, set[str]]) -> No
 
 
 def test_prompt_skill_resolves_ppls(license_map: dict[str, set[str]]) -> None:
-    """The skeleton SKILL.md (prompt-shaped content) resolves to PPL-S."""
+    """SKILL.md (prompt-shaped skill payload) resolves to PPL-S."""
     target = "skills/sr-search/SKILL.md"
     assert target in license_map, f"{target} not in SPDX report"
     assert "LicenseRef-PPL-S" in license_map[target]
 
 
+def test_skill_reference_resolves_ppls(license_map: dict[str, set[str]]) -> None:
+    """Agent-facing references under skills/** are prompt payload: PPL-S."""
+    target = "skills/sr-search/references/system-model.md"
+    assert target in license_map, f"{target} not in SPDX report"
+    assert "LicenseRef-PPL-S" in license_map[target]
+    assert "AGPL-3.0-or-later" not in license_map[target]
+
+
+def test_fixture_readme_stays_agpl(license_map: dict[str, set[str]]) -> None:
+    """Test fixture READMEs are not prompt payload — they stay AGPL."""
+    target = "skills/sr-search/tests/fixtures/transcripts/README.md"
+    assert target in license_map, f"{target} not in SPDX report"
+    assert license_map[target] == {"AGPL-3.0-or-later"}
+
+
 def test_shell_inside_skill_resolves_agpl(license_map: dict[str, set[str]]) -> None:
-    """The shim template (.sh inside skills/**) is software: re-asserted to
-    AGPL, not PPL-S."""
+    """The shim template (.sh inside skills/**) is software: base AGPL."""
     target = "skills/sr-search/src/stockroom/shim_template.sh"
     assert target in license_map, f"{target} not in SPDX report"
     assert "AGPL-3.0-or-later" in license_map[target]

@@ -35,3 +35,14 @@ Invert REUSE PPL-S from blanket `skills/**` to a narrow carve-out (`SKILL.md` + 
     - PASS — proceed to build; no plan amendments
 * Insights
     - None beyond plan
+
+## 2026-07-10 - BUILD - COMPLETE
+
+* Work completed
+    - Inverted REUSE PPL-S carve-out; dropped AGPL claw-backs; updated licensing tests + systemPatterns
+    - SPDX before/after: zero LicenseInfoInFile flips; only new memory-bank active files appeared
+    - `make ci` green (512 passed, 3 skipped; 52 JS; reuse compliant)
+* Decisions made
+    - None beyond plan
+* Insights
+    - For the current tracked tree, the invert is structurally cleaner with identical per-file license outcomes

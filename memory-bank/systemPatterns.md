@@ -64,4 +64,4 @@ The shim has a baked engine dir and zero resolution logic — succeed correctly 
 
 ## Layered licensing
 
-Root [`REUSE.toml`](../REUSE.toml): AGPL on code; PPL-S layered on prompt-shaped skill content; code-shaped paths under `skills/**` re-asserted AGPL. Enforced by `reuse lint`.
+Root [`REUSE.toml`](../REUSE.toml): AGPL base on everything; PPL-S carved out only for prompt-shaped skill payload (`skills/**/SKILL.md`, `skills/**/references/**`); software under `skills/**` inherits AGPL. Enforced by `reuse lint`.
