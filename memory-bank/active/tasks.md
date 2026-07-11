@@ -16,8 +16,8 @@ Add a documented first-class CLI fidelity path so `stockroom query` / `stockroom
 - [B2 raw is unbounded]: `truncate_cell("x" * 5000, "raw")` → full string, no elision marker
 - [B3 existing levels still collapse]: `truncate_cell("a\n\nb  c", level)` → `"a b c"` for `compact`/`snippet`/`full`
 - [B4 DETAIL_LEVELS includes raw]: `DETAIL_LEVELS` / `LEVEL_WIDTHS` / `DetailLevel` advertise `raw` with width `None`
-- [B5 query json+raw fidelity]: `format_query(..., fmt="json", detail="raw")` with a cell containing newlines → JSON string value contains real newlines (round-trip via `json.loads`)
-- [B6 semantic json+raw fidelity]: `format_semantic(..., fmt="json", detail="raw")` preserves newlines in `text`
+- [B5 query json+raw fidelity]: `format_query(..., fmt="json", detail="raw")` with a cell containing newlines → after `json.loads`, the cell string equals the original (stdout may show JSON-escaped `\n`; assert on the decoded value)
+- [B6 semantic json+raw fidelity]: `format_semantic(..., fmt="json", detail="raw")` → after `json.loads`, `text` equals the original including newlines
 - [B7 tsv/table non-raw unchanged]: `format_query` / `format_semantic` at `full`/`snippet` still collapse whitespace (regression)
 - [B8 CLI accepts raw]: `stockroom query --detail raw …` and `stockroom semantic --detail raw …` exit 0 (argparse accepts the choice)
 - [B9 empty/null edge]: empty string → `""`; SQL `NULL` still renders as JSON `null` / TSV `"NULL"` under `raw`
@@ -45,8 +45,8 @@ Add a documented first-class CLI fidelity path so `stockroom query` / `stockroom
    - Changes: B8 — assert `--detail raw` is accepted; update `--detail` help strings to mention `raw` as the exact-whitespace escape hatch (CLIs already use `choices=DETAIL_LEVELS`, so acceptance is mostly automatic once the constant expands)
 
 4. **Document the first-class path in skills + system model**
-   - Files: `skills/sr-query/SKILL.md`, `skills/sr-semantic/SKILL.md`, `skills/sr-search/references/system-model.md` (brief truncation note), optionally `memory-bank/systemPatterns.md` only if the existing “`--detail compact|snippet|full`” line becomes factually wrong
-   - Changes: B10 — document `--format json --detail raw` as the exact-text recipe; clarify that `full` is unbounded length but still single-line; update worked-example handoffs that currently say `--detail full` for whole-field retrieval when fidelity matters
+   - Files: `skills/sr-query/SKILL.md`, `skills/sr-semantic/SKILL.md`, `skills/sr-search/references/system-model.md` (brief truncation note), `memory-bank/systemPatterns.md` (required: the “`--detail compact|snippet|full`” line becomes factually wrong once `raw` ships)
+   - Changes: B10 — document `--format json --detail raw` as the exact-text recipe; clarify that `full` is unbounded length but still single-line; update worked-example handoffs that currently say `--detail full` for whole-field retrieval when fidelity matters; surgically update `systemPatterns.md` detail-level enumeration
 
 5. **Verify**
    - Run targeted pytest for truncate/render/query/semantic, then full `make ci` (or project-equivalent) before declaring build done
@@ -74,6 +74,11 @@ No new technology - validation not required
 - **Plan failed because agents still refetch with `--detail full` and think newlines are missing from the DB:** Covered by Challenge on skill/docs — treat skill handoff updates as load-bearing acceptance work, not optional polish.
 - **Plan failed because we over-scoped into TSV escaping / a separate `--exact` flag / format-coupled collapse:** Cut scope: one new detail level through the existing chokepoint; no new CLI flag axis; no TSV escape scheme.
 
+## Preflight Amendments
+
+- B5/B6 assert fidelity on `json.loads` decoded values (not raw stdout bytes).
+- `memory-bank/systemPatterns.md` detail-level line update is required, not optional.
+
 ## Status
 
 - [x] Initialization complete
@@ -81,6 +86,6 @@ No new technology - validation not required
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
 - [ ] QA

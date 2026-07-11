@@ -25,3 +25,13 @@ Add a documented first-class CLI path so `stockroom query` / `stockroom semantic
     - Canonical recipe `--format json --detail raw`; tsv/table+raw allowed but documented as unsafe
 * Insights
     - `DETAIL_LEVELS` already drives argparse choices — extending the constant is the main wiring
+
+## 2026-07-10 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated TDD encoding, conventions, dependency impact, completeness
+    - Amended plan: json.loads fidelity assertions; required systemPatterns update
+* Decisions made
+    - PASS — proceed to build
+* Insights
+    - Dashboard `truncate_cell(..., "snippet")` is unaffected; no parallel truncation path to conflict with
