@@ -1,0 +1,6 @@
+nav:
+  - Home: index.md
+  - User Guide: user-guide
+  - Architecture: architecture
+  - Contributor Guide: contributor-guide
+  - ...

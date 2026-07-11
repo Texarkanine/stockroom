@@ -39,3 +39,16 @@ Implement 1.0-quality documentation for Stockroom per `memory-bank/active/creati
     - Docs-only task → no pytest layout tests; gates are build/reuse/QA review
 * Insights
     - Operator pushback was correct: inventing “tests” for markdown would only create busywork
+
+## 2026-07-11 - BUILD - COMPLETE
+
+* Work completed
+    - Docs toolchain at repo root (properdocs 1.6.7, Material, awesome-pages)
+    - Full Option A corpus under `docs/`; README + CONTRIBUTING; Pages workflow
+    - Path hygiene for moved torch/dev docs; reuse + strict build + full engine suite green
+* Decisions made
+    - GitHub absolute links for system-model / Makefile / skills (no fragile out-of-`docs_dir` relatives)
+    - Single docs workflow for PR gate + deploy (no reusable workflow split — stockroom is simpler than ai-rizz)
+    - Snippets enabled in config but unused (snippets ≈ 0)
+* Insights
+    - Root docs `uv.lock` coexists cleanly with engine lock under `skills/sr-search/`

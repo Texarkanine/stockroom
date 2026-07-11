@@ -1,0 +1,38 @@
+# stockroom — docs-build toolchain only
+#
+# The Python engine lives under skills/sr-search/ (its own pyproject.toml +
+# uv.lock). This root [project] table is a minimal stub so `uv` has an
+# unambiguous Python floor when resolving the docs-build dependency group.
+# It is not a publishable package and does not replace the engine project.
+#
+# Local preview and CI:
+#
+#     uv sync --group docs --frozen
+#     uv run properdocs serve
+#     uv run properdocs build --strict
+#
+# See: https://github.com/ProperDocs/properdocs
+
+[project]
+name = "stockroom-docs"
+version = "0"
+description = "Docs-build toolchain for stockroom (not a published package)."
+requires-python = ">=3.10"
+
+[dependency-groups]
+# Loose-compatible pins (~= on major.minor) — reproducibility without locking
+# out security patches. `uv.lock` provides the exact reproducibility gate.
+#
+# properdocs is oprypin's (the last active MkDocs maintainer) drop-in
+# continuation of MkDocs 1.x. mkdocs-* plugins keep their names and work
+# unchanged; only the CLI command becomes `properdocs`.
+# See: https://github.com/ProperDocs/properdocs
+docs = [
+    "properdocs ~= 1.6",
+    "mkdocs-material ~= 9.5",
+    "mkdocs-awesome-pages-plugin ~= 2.9",
+    "pymdown-extensions ~= 10.7",
+]
+
+[tool.uv]
+required-version = ">=0.5"

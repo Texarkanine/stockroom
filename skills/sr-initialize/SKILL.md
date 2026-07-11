@@ -44,7 +44,7 @@ PYTHONPATH="$APP_DIR/src" python3 -m stockroom shim ensure-env --app-dir "$APP_D
 
 This is the tested env-heal path (`stockroom.engine_env`): probe with `uv sync --frozen --inexact --check`, and when incomplete run `uv sync --frozen --inexact`. It never exact-syncs, so it is safe whether or not torch is already present. Session/workspace hooks call the same logic via `shim rectify` after a plugin-root move.
 
-**Ordering still matters for torch.** Provision torch only after locked deps exist (steps 4–5). After torch is installed, never run an exact `uv sync` yourself — use `--inexact` / `uv run --no-sync` (see `docs/development.md`).
+**Ordering still matters for torch.** Provision torch only after locked deps exist (steps 4–5). After torch is installed, never run an exact `uv sync` yourself — use `--inexact` / `uv run --no-sync` (see `docs/contributor-guide/development.md`).
 
 ## Step 4: Probe the environment
 
@@ -96,7 +96,7 @@ The first run downloads the embedding model (network needed once); that also pre
 
 **On failure, smoke exits 1 with one stderr line that names the next action — relay it and follow it.** The common shape is a wrong wheel (a CUDA kernel error or crash from the encode): go back to step 5, pick a different index (usually an older `cu*` build, or `cpu` as the always-works fallback), reinstall, and re-run the smoke. `uv pip install` replaces the previous build in place.
 
-**Only after smoke succeeds**, freeze the accepted torch stack so plugin updates can reinstall the *same* bits (hashed requirements under stockroom home — see [`docs/torch.md`](../../docs/torch.md)):
+**Only after smoke succeeds**, freeze the accepted torch stack so plugin updates can reinstall the *same* bits (hashed requirements under stockroom home — see [`docs/contributor-guide/torch.md`](../../docs/contributor-guide/torch.md)):
 
 ```bash
 PYTHONPATH="$APP_DIR/src" python3 -m stockroom torch freeze \

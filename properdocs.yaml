@@ -1,0 +1,95 @@
+site_name: stockroom
+site_description: >-
+  A local, faithful, searchable warehouse of your agentic-coding history.
+site_url: https://texarkanine.github.io/stockroom/
+site_author: Texarkanine
+
+repo_url: https://github.com/Texarkanine/stockroom
+repo_name: Texarkanine/stockroom
+edit_uri: edit/main/docs/
+
+docs_dir: docs
+site_dir: site
+
+# Strict mode = warnings become errors. Combined with the explicit `validation:`
+# block below, this is the integrity gate for the cross-linked docs/ tree.
+strict: true
+
+validation:
+  omitted_files: warn
+  absolute_links: warn
+  unrecognized_links: warn
+  anchors: warn
+
+theme:
+  name: material
+  language: en
+  features:
+    - navigation.indexes
+    - navigation.instant
+    - navigation.sections
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.top
+    - navigation.tracking
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.action.edit
+    - content.action.view
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search
+  - awesome-pages
+
+markdown_extensions:
+  - admonition
+  - footnotes
+  - tables
+  - toc:
+      permalink: true
+      permalink_title: Permanent link to this section
+      # GitHub-compatible slugifier so docs/ markdown renders identically on
+      # github.com and the mkdocs site.
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  # Enabled for rare use; the corpus is real pages, not a snippet farm.
+  - pymdownx.snippets:
+      base_path:
+        - .
+      check_paths: true
+      auto_append: []
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/Texarkanine/stockroom
+  generator: false

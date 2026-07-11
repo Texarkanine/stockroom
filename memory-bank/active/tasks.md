@@ -146,6 +146,15 @@ No other new runtime dependencies.
 - **Plan failed because docs are beautiful but friends still can't install:** mitigate by prioritizing accurate install + troubleshooting + README quickstart in step 2/3 ordering (write those before architecture niceties).
 - **Plan failed because root docs pyproject / lock fights engine uv workflow:** already covered by Challenge (clear stub comments; separate lock at root is fine — engine keeps its own lock under `skills/sr-search/`).
 
+## Build checklist
+
+- [x] 1. Docs toolchain scaffold (`pyproject.toml`, `properdocs.yaml`, `uv.lock`, `.gitignore` `site/`, Makefile `docs` / `docs-build`)
+- [x] 2. Restructure docs corpus (user-guide / architecture / contributor-guide; removed obsolete top-level pages)
+- [x] 3. README + CONTRIBUTING
+- [x] 4. CI / Pages (`.github/workflows/docs.yaml`)
+- [x] 5. Licensing / hygiene (`make reuse` PASS; live path refs updated)
+- [x] 6. Final verification (`properdocs build --strict`, reuse, engine tests)
+
 ## Status
 
 - [x] Component analysis complete
@@ -155,5 +164,5 @@ No other new runtime dependencies.
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight
-- [ ] Build
+- [x] Build
 - [ ] QA

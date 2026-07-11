@@ -14,10 +14,10 @@ UV_RUN := $(UV_DIR) run --no-sync
 # Per-machine torch wheel index + hashed freeze (--no-config bypasses the lock override).
 # Override for CUDA, e.g.: make torch TORCH_INDEX=https://download.pytorch.org/whl/cu126
 # CPU-only (default): https://download.pytorch.org/whl/cpu
-# After install, freezes the accepted stack under stockroom home (see docs/torch.md).
+# After install, freezes the accepted stack under stockroom home (see docs/contributor-guide/torch.md).
 TORCH_INDEX ?= https://download.pytorch.org/whl/cpu
 
-.PHONY: help sync lock lock-check test test-js lint format format-check reuse ci torch localdev shim
+.PHONY: help sync lock lock-check test test-js lint format format-check reuse ci torch localdev shim docs docs-build
 
 # localdev: mirror skills/ into .cursor/skills/stockroom-local so a harness can
 # load them "normally", without ever letting the mirror land in a commit.
@@ -70,6 +70,15 @@ reuse: sync ## Run reuse lint on the whole repo (REUSE.toml at root)
 	$(UV) run --project $(ENGINE) --no-sync $(UV_NO_CFG) reuse lint
 
 ci: sync lock-check lint format-check test reuse ## Full gate (matches CI)
+
+# Docs site (root pyproject.toml docs group — separate from the engine project).
+# Requires uv: https://docs.astral.sh/uv/
+docs: ## Local docs preview (properdocs serve)
+	uv run properdocs serve
+
+docs-build: ## Strict docs build (matches docs CI)
+	uv sync --group docs --frozen
+	uv run properdocs build --strict
 
 localdev: ## Symlink skills/* into .cursor/skills/stockroom-local for in-harness testing (kept out of commits)
 	@mkdir -p $(LOCAL_SKILLS_DIR)

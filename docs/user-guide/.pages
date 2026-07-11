@@ -1,0 +1,7 @@
+nav:
+  - Quickstart: quickstart.md
+  - Install: install.md
+  - Using skills: using-skills.md
+  - Troubleshooting: troubleshooting.md
+  - Advanced: advanced
+  - ...

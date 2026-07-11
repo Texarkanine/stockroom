@@ -1,6 +1,6 @@
 # Development
 
-From the **repo root**, the [`Makefile`](../Makefile) is the dev entrypoint — it handles the `skills/sr-search/` cd'ing and the `--no-config` / `--no-sync` flags:
+From the **repo root**, the [`Makefile`](https://github.com/Texarkanine/stockroom/blob/main/Makefile) is the dev entrypoint — it handles the `skills/sr-search/` cd'ing and the `--no-config` / `--no-sync` flags:
 
 ```bash
 make help          # list targets
@@ -14,13 +14,24 @@ make format        # ruff format
 make reuse         # whole-tree reuse lint
 make ci            # full gate (matches CI)
 make shim          # install the on-path stockroom shim baking this checkout
+make docs          # local docs preview (properdocs serve)
+make docs-build    # strict docs build (matches docs CI)
 ```
 
 **Node 22** is required for the full test gate: `make test` and `make ci` run the dashboard's native ES-module contracts through Node's built-in test runner (no npm packages).
 
+## Two uv projects
+
+| Project | Path | Purpose |
+| --- | --- | --- |
+| Engine | `skills/sr-search/` | Runtime + tests; torch held out of lock |
+| Docs | repo root | `properdocs` site only (`uv sync --group docs`) |
+
+Do not confuse the root docs stub `pyproject.toml` with the engine — the engine did not move.
+
 ## The torch-safe run contract
 
-The engine lives inside [`skills/sr-search/`](../skills/sr-search/) as a locked [uv](https://docs.astral.sh/uv/) project. Everything is pinned and hash-verified through `uv.lock` — **except torch**, which is deliberately held out of the lock and provisioned per-machine (so each box gets the right CPU/CUDA build).
+The engine lives inside [`skills/sr-search/`](https://github.com/Texarkanine/stockroom/tree/main/skills/sr-search) as a locked [uv](https://docs.astral.sh/uv/) project. Everything is pinned and hash-verified through `uv.lock` — **except torch**, which is deliberately held out of the lock and provisioned per-machine (so each box gets the right CPU/CUDA build).
 
 After torch is installed, never run an exact `uv sync` — it would uninstall torch. Always use the inexact forms:
 
@@ -45,7 +56,7 @@ make torch                                    # CPU wheels (default)
 make torch TORCH_INDEX=https://download.pytorch.org/whl/cu126   # CUDA example
 ```
 
-`make torch` installs the wheel and freezes the accepted stack under stockroom home so plugin-root heal can replay the same bits (`--require-hashes`). Details: [`docs/torch.md`](torch.md).
+`make torch` installs the wheel and freezes the accepted stack under stockroom home so plugin-root heal can replay the same bits (`--require-hashes`). Details: [Torch](torch.md).
 
 ## Ad-hoc engine invocation: the `stockroom` command
 
@@ -60,7 +71,7 @@ stockroom query "SELECT DISTINCT harness FROM sessions"
 
 Get the shim onto your PATH with `make shim` (bakes this checkout, owner `dev`; plugin installs get theirs from `sr-initialize`). The shim is baked-only and **succeed-or-refuse**: it never guesses at an engine location — if its baked engine dir is gone, or the engine env cannot import locked deps, it refuses with a one-line remedy. Each harness's session/workspace hook runs `shim rectify`, which re-bakes an owned shim after a plugin update **and** ensures the engine uv env (torch-safe inexact sync via `shim ensure-env`, then torch reinstall from the hashed freeze written by `sr-initialize` / `make torch` / `stockroom torch freeze`).
 
-For full machine onboarding — prerequisites, the per-machine torch wheel choice, the `stockroom doctor` smoke test, the shim, the nightly ingest+embed schedule (`stockroom schedule`, cron or launchd), and the first full ingest — run the [`sr-initialize`](../skills/sr-initialize/SKILL.md) skill; it re-probes on every run and only does what is still missing.
+For full machine onboarding — prerequisites, the per-machine torch wheel choice, the `stockroom doctor` smoke test, the shim, the nightly ingest+embed schedule (`stockroom schedule`, cron or launchd), and the first full ingest — run the [`sr-initialize`](https://github.com/Texarkanine/stockroom/blob/main/skills/sr-initialize/SKILL.md) skill; it re-probes on every run and only does what is still missing.
 
 <details>
 <summary>Bootstrap footnote: invoking the engine without the shim</summary>
