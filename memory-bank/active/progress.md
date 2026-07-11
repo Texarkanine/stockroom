@@ -24,3 +24,12 @@ Add a dashboard conversation-reconstruction view for any session id (Recent Sess
     - Canonical URL: `/?view=session&harness={harness}&session={session_id}` — query params on `/`, zero server routing change, skill-copy-friendly
 * Insights
     - Hash routes are weaker for skill-offered links; path routes need SPA fallback for little gain
+
+## 2026-07-10 - CREATIVE (markdown library) - COMPLETE
+
+* Work completed
+    - Generic creative for markdown library & HTML safety
+* Decisions made
+    - Vendor **markdown-it** UMD with `html: false`, no plugins, linkify/typographer off — basic markdown without a second sanitizer
+* Insights
+    - Ingested transcript text is not fully trusted; `html: false` beats marked+DOMPurify for one-artifact simplicity

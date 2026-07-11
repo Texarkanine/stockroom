@@ -40,7 +40,7 @@ Add a dashboard conversation-reconstruction view reachable from Recent Sessions 
 ## Open Questions
 
 - [x] **Deep-link URL & client navigation** → Resolved: query params on `/` — `?view=session&harness=&session=` (see `memory-bank/active/creative/creative-deep-link-navigation.md`)
-- [ ] **Markdown library & HTML safety** — Which JS library to vendor, in what module shape (UMD/ESM), and whether to sanitize HTML before DOM insert? Ambiguous because several small libraries fit "basic markdown," Chart.js set a UMD precedent, and markdown→HTML has XSS implications even on loopback. Constraints: offline vendor; basic markdown only (no extension ecosystem); REUSE-annotatable; no npm/bundler at runtime.
+- [x] **Markdown library & HTML safety** → Resolved: vendored markdown-it UMD with `html: false`, no plugins (see `memory-bank/active/creative/creative-markdown-library.md`)
 - [ ] **Reconstruction content model** — What does the conversation view include (messages only vs messages + tool_calls; subagent sessions; export formats)? Ambiguous because "reconstruct a conversation" can mean chat turns only or the full agent turn including tools, and export is optional in the issue. Constraints: ordered by existing schema contracts; useful for skill deep-links; export is markdown and/or JSON if included.
 
 ## Status
