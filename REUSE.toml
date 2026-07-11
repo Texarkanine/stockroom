@@ -25,13 +25,21 @@ precedence = "override"
 SPDX-FileCopyrightText = "Texarkanine"
 SPDX-License-Identifier = "LicenseRef-PPL-S"
 
-# 3. Exact upstream Chart.js runtime artifact, vendored verbatim.
+# 3. Exact upstream Chart.js / markdown-it runtime artifacts, vendored verbatim.
 [[annotations]]
 path = [
     "skills/sr-search/src/stockroom/dashboard/static/chart-4.5.1.umd.min.js",
 ]
 precedence = "override"
 SPDX-FileCopyrightText = "2014-2025 Chart.js Contributors"
+SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = [
+    "skills/sr-search/src/stockroom/dashboard/static/markdown-it-14.1.0.min.js",
+]
+precedence = "override"
+SPDX-FileCopyrightText = "2014 Vitaly Puzrin, Alex Kocharin"
 SPDX-License-Identifier = "MIT"
 
 # 4. Vendored agent dev tooling (rules, skills, commands installed into this

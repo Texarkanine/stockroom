@@ -14,6 +14,7 @@ Tool classification is intentionally explicit and tunable. Write tools are
 unknown future tools are neither until deliberately classified.
 """
 
+import json
 from collections import Counter
 from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
@@ -655,6 +656,7 @@ def sessions(
             {
                 "started": _iso(activity),
                 "harness": harness,
+                "session_id": session_id,
                 "project_name": project_display_name(cwd, project_id),
                 "project_id": project_id,
                 "msgs": 0,
@@ -678,6 +680,99 @@ def sessions(
         elif session_models[key]:
             record["model"] = session_models[key][0]
     return list(ordered.values())
+
+
+def _parse_tool_input(value: Any) -> Any:
+    """Normalize DuckDB JSON cells to JSON-compatible Python values."""
+    if value is None:
+        return {}
+    if isinstance(value, (dict, list)):
+        return value
+    if isinstance(value, (bytes, bytearray)):
+        value = value.decode("utf-8")
+    if isinstance(value, str):
+        return json.loads(value)
+    return value
+
+
+def session_detail(
+    con: duckdb.DuckDBPyConnection,
+    harness: str,
+    session_id: str,
+) -> dict[str, Any] | None:
+    """Return one session's metadata plus ordered messages with nested tool_calls.
+
+    Unlike :func:`sessions`, this path does not truncate message text and does
+    not exclude subagents — any ``(harness, session_id)`` present in the
+    warehouse is addressable. Missing identity returns ``None``.
+    """
+    row = con.execute(
+        f"SELECT s.harness, s.session_id, s.project_id, s.cwd, "
+        f"{ACTIVITY_TIME_SQL}, s.is_subagent, s.parent_session_id "
+        "FROM sessions s WHERE s.harness = ? AND s.session_id = ?",
+        [harness, session_id],
+    ).fetchone()
+    if row is None:
+        return None
+
+    (
+        row_harness,
+        row_session_id,
+        project_id,
+        cwd,
+        activity,
+        is_subagent,
+        parent_session_id,
+    ) = row
+
+    message_rows = con.execute(
+        "SELECT message_id, ordinal, role, text, model, ts "
+        "FROM messages WHERE harness = ? AND session_id = ? "
+        "ORDER BY ordinal",
+        [harness, session_id],
+    ).fetchall()
+
+    tool_rows = con.execute(
+        "SELECT message_id, ordinal, tool_name, tool_input "
+        "FROM tool_calls WHERE harness = ? AND session_id = ? "
+        "ORDER BY message_id, ordinal",
+        [harness, session_id],
+    ).fetchall()
+
+    tools_by_message: dict[str, list[dict[str, Any]]] = {}
+    for message_id, ordinal, tool_name, tool_input in tool_rows:
+        tools_by_message.setdefault(message_id, []).append(
+            {
+                "ordinal": ordinal,
+                "tool_name": tool_name,
+                "tool_input": _parse_tool_input(tool_input),
+            }
+        )
+
+    messages = [
+        {
+            "message_id": message_id,
+            "ordinal": ordinal,
+            "role": role,
+            "text": text,
+            "model": model,
+            "ts": _iso(ts),
+            "tool_calls": tools_by_message.get(message_id, []),
+        }
+        for message_id, ordinal, role, text, model, ts in message_rows
+    ]
+
+    return {
+        "harness": row_harness,
+        "session_id": row_session_id,
+        "project_id": project_id,
+        "project_name": project_display_name(cwd, project_id),
+        "cwd": cwd,
+        "started": _iso(activity),
+        "is_subagent": bool(is_subagent),
+        "parent_session_id": parent_session_id,
+        "messages": messages,
+    }
 
 
 def wrapped(
@@ -804,5 +899,6 @@ ENDPOINTS = {
     "models": models,
     "efficiency": efficiency,
     "sessions": sessions,
+    "session": session_detail,
     "wrapped": wrapped,
 }

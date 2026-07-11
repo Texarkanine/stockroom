@@ -70,7 +70,7 @@ def test_dashboard_document_has_semantic_controls_panels_and_fallbacks() -> None
 
 
 def test_dashboard_resources_are_local_and_loaded_in_dependency_order() -> None:
-    """Every resource is local and Chart.js loads before the module adapter."""
+    """Every resource is local; Chart.js and markdown-it load before the module."""
     source, parser = _document()
     references = [
         attrs[name]
@@ -87,23 +87,82 @@ def test_dashboard_resources_are_local_and_loaded_in_dependency_order() -> None:
     assert "http://" not in lowered
     assert "https://" not in lowered
     chart_position = source.index('src="chart-4.5.1.umd.min.js"')
+    markdown_position = source.index('src="markdown-it-14.1.0.min.js"')
     adapter_position = source.index('src="dashboard.mjs"')
     assert chart_position < adapter_position
+    assert markdown_position < adapter_position
     scripts = [
         attrs for tag, attrs in parser.elements if tag == "script" and attrs.get("src")
     ]
     assert [script["src"] for script in scripts] == [
         "chart-4.5.1.umd.min.js",
+        "markdown-it-14.1.0.min.js",
         "dashboard.mjs",
     ]
-    assert scripts[1].get("type") == "module"
+    assert scripts[2].get("type") == "module"
+    assert (STATIC_ROOT / "markdown-it-14.1.0.min.js").is_file()
 
 
 def test_dashboard_adapter_imports_authored_modules() -> None:
-    """The effects adapter imports core and data without extra HTML script tags."""
+    """The effects adapter imports core, data, and session helpers."""
     adapter = (STATIC_ROOT / "dashboard.mjs").read_text(encoding="utf-8")
     assert 'from "./dashboard-core.mjs"' in adapter
     assert 'from "./dashboard-data.mjs"' in adapter
+    assert 'from "./dashboard-session.mjs"' in adapter
+
+
+def test_session_pane_exposes_navigation_export_and_turn_landmarks() -> None:
+    """Session inspection pane has back, copy-link, export, and turns regions."""
+    source, parser = _document()
+    by_id = {
+        attrs["id"]: (tag, attrs) for tag, attrs in parser.elements if attrs.get("id")
+    }
+    assert "metrics-pane" in by_id
+    assert "session-pane" in by_id
+    assert (
+        by_id["session-pane"][1].get("hidden") is not None
+        or "hidden" in by_id["session-pane"][1]
+    )
+    assert by_id["session-back"][0] == "button"
+    assert by_id["session-copy-link"][0] == "button"
+    assert by_id["session-export-md"][0] == "button"
+    assert by_id["session-export-json"][0] == "button"
+    assert "session-meta" in by_id
+    assert "session-turns" in by_id
+    assert "session-error" in by_id
+    assert ".session-row" in source
+    assert "cursor: pointer" in source
+    assert "markdownit({ html: false" not in source  # init lives in JS, not HTML
+    assert "html: false" in (STATIC_ROOT / "dashboard.mjs").read_text(encoding="utf-8")
+    assert "linkify: false" in (STATIC_ROOT / "dashboard.mjs").read_text(
+        encoding="utf-8"
+    )
+
+
+def test_session_pane_toolbar_and_bubble_layout_contracts() -> None:
+    """Toolbar uses emoji affordances; turns are SMS-aligned with scrollable tools."""
+    source = (STATIC_ROOT / "index.html").read_text(encoding="utf-8")
+    assert "⬅️ Back to metrics" in source
+    assert "🔗 Copy deep-link" in source
+    assert "📥 Export markdown" in source
+    assert "📥 Export JSON" in source
+    assert ".session-turn-user" in source
+    assert ".session-turn-assistant" in source
+    assert "align-self: flex-end" in source
+    assert "width: 90%" in source
+    assert "max-width: 90%" in source
+    assert "42rem" not in source
+    assert 'data-view = "session"' in source or 'dataset.view = "session"' in source
+    assert 'html[data-view="session"] #metrics-pane' in source
+    assert ".session-tool" in source
+    assert ".session-tool[open] summary" in source
+    assert "max-height:" in source
+    assert "overflow: auto" in source
+    assert "overflow: hidden" in source
+    adapter = (STATIC_ROOT / "dashboard.mjs").read_text(encoding="utf-8")
+    assert "session-turn-user" in adapter
+    assert "session-turn-assistant" in adapter
+    assert 'dataset.view = "session"' in adapter
 
 
 def test_dashboard_top_controls_expose_date_range_and_segmented_mode() -> None:

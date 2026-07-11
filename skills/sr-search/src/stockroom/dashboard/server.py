@@ -58,6 +58,36 @@ class _DashboardHandler(BaseHTTPRequestHandler):
     def _not_found(self) -> None:
         self._send_json(404, {"error": "not found"})
 
+    def _open_readonly(self) -> duckdb.DuckDBPyConnection | None:
+        """Open a short-lived read-only warehouse connection, or send a 503."""
+        try:
+            return self.server.open_warehouse(read_only=True, timeout=2.0)
+        except FileNotFoundError:
+            self._send_json(
+                503,
+                {
+                    "error": "no warehouse yet",
+                    "action": "run `stockroom ingest`",
+                },
+            )
+        except warehouse.WarehouseStaleError:
+            self._send_json(
+                503,
+                {
+                    "error": "warehouse schema is behind",
+                    "action": "run `stockroom migrate`",
+                },
+            )
+        except warehouse.WarehouseBusyError:
+            self._send_json(
+                503,
+                {
+                    "error": "warehouse is busy",
+                    "action": "retry shortly",
+                },
+            )
+        return None
+
     def do_GET(self) -> None:  # noqa: N802 - stdlib handler API
         """Serve an API payload or a guarded packaged static file."""
         try:
@@ -76,6 +106,10 @@ class _DashboardHandler(BaseHTTPRequestHandler):
             return
 
         query = parse_qs(query_string, keep_blank_values=True)
+        if endpoint_name == "session":
+            self._serve_session(endpoint, query)
+            return
+
         harnesses = query.get("harness")
         raw_since = query.get("since", [None])[-1]
         raw_until = query.get("until", [None])[-1]
@@ -99,34 +133,8 @@ class _DashboardHandler(BaseHTTPRequestHandler):
             self._send_json(400, {"error": str(exc)})
             return
 
-        try:
-            con = self.server.open_warehouse(read_only=True, timeout=2.0)
-        except FileNotFoundError:
-            self._send_json(
-                503,
-                {
-                    "error": "no warehouse yet",
-                    "action": "run `stockroom ingest`",
-                },
-            )
-            return
-        except warehouse.WarehouseStaleError:
-            self._send_json(
-                503,
-                {
-                    "error": "warehouse schema is behind",
-                    "action": "run `stockroom migrate`",
-                },
-            )
-            return
-        except warehouse.WarehouseBusyError:
-            self._send_json(
-                503,
-                {
-                    "error": "warehouse is busy",
-                    "action": "retry shortly",
-                },
-            )
+        con = self._open_readonly()
+        if con is None:
             return
 
         try:
@@ -136,6 +144,34 @@ class _DashboardHandler(BaseHTTPRequestHandler):
                 payload = endpoint(con, harnesses, since, until)
         finally:
             con.close()
+        self._send_json(200, payload)
+
+    def _serve_session(
+        self, endpoint: Callable[..., Any], query: dict[str, list[str]]
+    ) -> None:
+        """Serve ``/api/session`` with required ``harness`` + ``session`` identity."""
+        try:
+            harness = query.get("harness", [None])[-1]
+            session_id = query.get("session", [None])[-1]
+            if not harness:
+                raise ValueError("missing required parameter: harness")
+            if not session_id:
+                raise ValueError("missing required parameter: session")
+        except ValueError as exc:
+            self._send_json(400, {"error": str(exc)})
+            return
+
+        con = self._open_readonly()
+        if con is None:
+            return
+
+        try:
+            payload = endpoint(con, harness, session_id)
+        finally:
+            con.close()
+        if payload is None:
+            self._not_found()
+            return
         self._send_json(200, payload)
 
     def _serve_static(self, raw_path: str) -> None:

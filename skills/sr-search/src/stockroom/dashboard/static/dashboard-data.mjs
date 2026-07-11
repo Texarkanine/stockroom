@@ -141,6 +141,56 @@ export async function fetchSnapshot(fetchImpl, selectedHarnesses, options = {}) 
 }
 
 /**
+ * Fetch one session reconstruction payload.
+ *
+ * @param {typeof fetch} fetchImpl Injectable fetch implementation.
+ * @param {string} harness Harness identity.
+ * @param {string} sessionId Session identity.
+ * @param {{signal?: AbortSignal}} [options] Request options.
+ * @returns {Promise<object>} Session detail payload.
+ */
+export async function fetchSessionDetail(fetchImpl, harness, sessionId, options = {}) {
+  if (typeof fetchImpl !== "function") {
+    throw new TypeError("fetchImpl must be a function");
+  }
+  const url =
+    `/api/session?harness=${encodeURIComponent(harness)}` +
+    `&session=${encodeURIComponent(sessionId)}`;
+  let response;
+  try {
+    response = await fetchImpl(url, { signal: options.signal });
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      throw error;
+    }
+    throw new DashboardRequestError("Dashboard request failed", { endpoint: "session" });
+  }
+
+  let payload;
+  try {
+    payload = await response.json();
+  } catch {
+    throw new DashboardRequestError(
+      response.ok ? "Invalid dashboard response" : "Dashboard request failed",
+      { endpoint: "session", status: response.status },
+    );
+  }
+
+  if (!response.ok) {
+    const details = payload && typeof payload === "object" ? payload : {};
+    throw new DashboardRequestError(
+      safeText(details.error) ?? "Dashboard request failed",
+      {
+        action: safeText(details.action),
+        endpoint: "session",
+        status: response.status,
+      },
+    );
+  }
+  return payload;
+}
+
+/**
  * Create a generation/abort gate for overlapping dashboard refreshes.
  *
  * @returns {object} Request gate.

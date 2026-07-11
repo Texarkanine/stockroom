@@ -14,7 +14,7 @@ Warehouse home: `$XDG_DATA_HOME/stockroom` or `~/.local/share/stockroom`, overri
 - **release-please** — [`release-please-config.json`](../release-please-config.json) + [`.release-please-manifest.json`](../.release-please-manifest.json); syncs version into both plugin manifests.
 - **Makefile** — root [`Makefile`](../Makefile) for sync/lock/test/lint/format/reuse/ci/torch/shim.
 - **CI / release** — [`.github/workflows/ci.yml`](../.github/workflows/ci.yml), [`.github/workflows/release-please.yaml`](../.github/workflows/release-please.yaml).
-- **Dashboard front-end** — committed native ES modules under [`stockroom/dashboard/static/`](../skills/sr-search/src/stockroom/dashboard/static/) with vendored Chart.js; no npm install or bundler. Node 22 runs `make test-js` only.
+- **Dashboard front-end** — committed native ES modules under [`stockroom/dashboard/static/`](../skills/sr-search/src/stockroom/dashboard/static/) with vendored Chart.js and markdown-it; no npm install or bundler. Node 22 runs `make test-js` only.
 
 ## Warehouse Schema
 
@@ -43,4 +43,4 @@ Test-first per `.cursor/rules/shared/always-tdd.mdc`; run discipline in `.cursor
 
 ## Design System
 
-Dashboard UI authority is the shipped static surface: [`skills/sr-search/src/stockroom/dashboard/static/`](../skills/sr-search/src/stockroom/dashboard/static/) (`index.html`, `dashboard-core.mjs`, `dashboard-data.mjs`, `dashboard.mjs`, vendored Chart.js). Offline, no CDN; Aggregate/Compare and presentation policy live in the browser layer. API semantics and accessibility constraints in the dashboard package take precedence over any external mockups.
+Dashboard UI authority is the shipped static surface: [`skills/sr-search/src/stockroom/dashboard/static/`](../skills/sr-search/src/stockroom/dashboard/static/) (`index.html`, `dashboard-core.mjs`, `dashboard-data.mjs`, `dashboard-session.mjs`, `dashboard.mjs`, vendored Chart.js + markdown-it). Offline, no CDN; Aggregate/Compare and presentation policy live in the browser layer. Session inspection uses query-param deep links (`?view=session&harness=&session=`). API semantics and accessibility constraints in the dashboard package take precedence over any external mockups.

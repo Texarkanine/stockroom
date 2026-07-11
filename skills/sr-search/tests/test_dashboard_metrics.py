@@ -1,5 +1,6 @@
 """Unit contracts for mode-agnostic dashboard metric payloads."""
 
+import json
 from datetime import datetime
 
 import duckdb
@@ -58,12 +59,22 @@ def _seed_tool(
     session_id: str,
     ordinal: int,
     tool_name: str,
+    message_ordinal: int = 0,
+    tool_input: object | None = None,
 ) -> None:
+    payload = "{}" if tool_input is None else json.dumps(tool_input)
     con.execute(
         "INSERT INTO tool_calls "
         "(harness, session_id, message_id, ordinal, tool_name, tool_input) "
-        "VALUES (?, ?, ?, ?, ?, '{}')",
-        [harness, session_id, f"{session_id}#0", ordinal, tool_name],
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        [
+            harness,
+            session_id,
+            f"{session_id}#{message_ordinal}",
+            ordinal,
+            tool_name,
+            payload,
+        ],
     )
 
 
@@ -809,6 +820,7 @@ def test_sessions_are_recent_filtered_and_display_truncated(
         {
             "started": "2026-01-02T09:00:00Z",
             "harness": "claude",
+            "session_id": "a-new",
             "project_name": "stockroom",
             "project_id": "claude-project",
             "msgs": 3,
@@ -818,6 +830,7 @@ def test_sessions_are_recent_filtered_and_display_truncated(
         {
             "started": "2026-01-01T08:00:00Z",
             "harness": "cursor",
+            "session_id": "c-old",
             "project_name": "cursor-project",
             "project_id": "cursor-project",
             "msgs": 1,
@@ -892,4 +905,116 @@ def test_wrapped_returns_all_time_rollups_and_ignores_selector(
         },
         "peak_hour": {"hour": 10, "count": 2},
         "top_tool": {"name": "Read", "calls": 3},
+    }
+
+
+def test_session_detail_reconstructs_ordered_messages_and_nested_tools(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Detail returns full text, ordinal-ordered messages, and nested tool_calls."""
+    long_prompt = "x" * 200
+    _seed_session(
+        migrated_con,
+        harness="cursor",
+        session_id="detail-1",
+        activity=datetime(2026, 1, 5, 12),
+        project_id="proj-a",
+        message_count=2,
+        cwd="/home/me/stockroom",
+    )
+    migrated_con.execute(
+        "UPDATE messages SET text = ?, model = 'gpt-5', ts = ? "
+        "WHERE session_id = 'detail-1' AND ordinal = 0",
+        [long_prompt, datetime(2026, 1, 5, 12, 0, 1)],
+    )
+    migrated_con.execute(
+        "UPDATE messages SET text = ?, model = 'gpt-5', ts = ? "
+        "WHERE session_id = 'detail-1' AND ordinal = 1",
+        ["assistant reply", datetime(2026, 1, 5, 12, 0, 2)],
+    )
+    _seed_tool(
+        migrated_con,
+        harness="cursor",
+        session_id="detail-1",
+        message_ordinal=1,
+        ordinal=1,
+        tool_name="Shell",
+        tool_input={"command": "ls"},
+    )
+    _seed_tool(
+        migrated_con,
+        harness="cursor",
+        session_id="detail-1",
+        message_ordinal=1,
+        ordinal=0,
+        tool_name="Read",
+        tool_input={"path": "a.py"},
+    )
+
+    result = metrics.session_detail(migrated_con, "cursor", "detail-1")
+    assert result is not None
+    assert result["harness"] == "cursor"
+    assert result["session_id"] == "detail-1"
+    assert result["project_id"] == "proj-a"
+    assert result["project_name"] == "stockroom"
+    assert result["cwd"] == "/home/me/stockroom"
+    assert result["started"] == "2026-01-05T12:00:00Z"
+    assert result["is_subagent"] is False
+    assert result["parent_session_id"] is None
+    assert [message["ordinal"] for message in result["messages"]] == [0, 1]
+    assert result["messages"][0] == {
+        "message_id": "detail-1#0",
+        "ordinal": 0,
+        "role": "user",
+        "text": long_prompt,
+        "model": "gpt-5",
+        "ts": "2026-01-05T12:00:01Z",
+        "tool_calls": [],
+    }
+    assert "…(+" not in result["messages"][0]["text"]
+    assert result["messages"][1]["text"] == "assistant reply"
+    assert result["messages"][1]["tool_calls"] == [
+        {"ordinal": 0, "tool_name": "Read", "tool_input": {"path": "a.py"}},
+        {"ordinal": 1, "tool_name": "Shell", "tool_input": {"command": "ls"}},
+    ]
+
+
+def test_session_detail_missing_session_returns_none(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Unknown (harness, session_id) yields None for the server to map to 404."""
+    assert metrics.session_detail(migrated_con, "cursor", "missing") is None
+
+
+def test_session_detail_serves_subagent_when_addressed_directly(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Subagent sessions are excluded from the list but available by detail id."""
+    _seed_session(
+        migrated_con,
+        harness="claude",
+        session_id="parent",
+        activity=datetime(2026, 1, 4, 8),
+        project_id="p",
+    )
+    _seed_session(
+        migrated_con,
+        harness="claude",
+        session_id="child",
+        activity=datetime(2026, 1, 4, 9),
+        project_id="p",
+        message_count=1,
+    )
+    migrated_con.execute(
+        "UPDATE sessions SET is_subagent = true, parent_session_id = 'parent' "
+        "WHERE session_id = 'child'"
+    )
+
+    result = metrics.session_detail(migrated_con, "claude", "child")
+    assert result is not None
+    assert result["is_subagent"] is True
+    assert result["parent_session_id"] == "parent"
+    assert len(result["messages"]) == 1
+    assert "child" not in {
+        row["session_id"] for row in metrics.sessions(migrated_con, limit=50)
     }
