@@ -64,6 +64,10 @@ No new technology - validation not required
 - **Plan failed because we “migrated” identity/launcher behavior instead of a constant swap:** hold the brief — no cross-port kill, no dual-port logic; orphaned 6767 listeners are accepted.
 - **Plan failed because docs/skills still teach 6767 after code changed:** covered by implementation step 3 as required acceptance work, not optional polish.
 
+## Preflight Amendments
+
+- None required. Advisory only: `DEFAULT_PORT` in `__main__.py` and the `serve(port=6767)` default remain two literals after find/replace — acceptable under dead-simple scope; do not refactor to a single source in this task.
+
 ## Status
 
 - [x] Initialization complete
@@ -71,6 +75,6 @@ No new technology - validation not required
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
 - [ ] QA

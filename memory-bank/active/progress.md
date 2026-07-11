@@ -26,3 +26,13 @@ Change the dashboard default port from 6767 to 58008 via find/replace across the
     - No migration path
 * Insights
     - `uv.lock` contains incidental `6767` digit sequences inside hashes — must not be sed'd
+
+## 2026-07-10 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated TDD encoding, conventions, dependency impact, completeness
+    - Confirmed hooks invoke `stockroom dashboard` without `--port` (pick up new default)
+* Decisions made
+    - PASS — proceed to build; no plan amendments
+* Insights
+    - Unrelated dirty `REUSE.toml` in worktree — leave out of this task
