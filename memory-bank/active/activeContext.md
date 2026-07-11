@@ -1,12 +1,11 @@
 # Active Context
 
 ## Current Task: release-quality-docs
-**Phase:** PREFLIGHT - COMPLETE (PASS)
+**Phase:** BUILD - IN-PROGRESS
 
 ## What Was Done
-- Preflight validated plan against creative Option A and sibling docs patterns
-- Operator correction: this is all docs — dropped fake TDD/pytest framing; plan now uses verification gates only
-- Wrote `.preflight-status` PASS
+- Preflight PASS (docs gates, not code TDD)
+- Entering Build per Option A creative + implementation plan steps 1–6
 
 ## Next Step
-- Operator runs `/niko-build` to implement
+- Step 1: Docs toolchain scaffold (root pyproject, properdocs.yaml, uv.lock, Makefile targets)
