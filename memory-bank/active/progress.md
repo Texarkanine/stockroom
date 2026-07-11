@@ -47,3 +47,12 @@ Change the dashboard default port from 6767 to 58008 via find/replace across the
     - No migration; dual port literals left as-is
 * Insights
     - Path-scoped sed avoided `uv.lock` hash corruption
+
+## 2026-07-10 - QA - COMPLETE
+
+* Work completed
+    - Semantic review: KISS/DRY/YAGNI/completeness/regression/integrity/docs
+* Decisions made
+    - PASS — no fixes required
+* Insights
+    - Dual DEFAULT_PORT / serve literals remain by design (find/replace scope)
