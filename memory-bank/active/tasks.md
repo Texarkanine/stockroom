@@ -177,5 +177,12 @@ No new technology — validation not required. Makefile extensions use existing 
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight
-- [ ] Build
+- [x] Build
+  - [x] Step 1: `localdev-clean` (M1 green)
+  - [x] Step 2: `plugin-local` + `shim TAKEOVER` + torch comment (M2/M3 green)
+  - [x] Step 3: `localdev-status` (M4 green)
+  - [x] Step 4: `local-workflow.md`
+  - [x] Step 5: slim development.md + nav + CONTRIBUTING
+  - [x] Step 6: cross-links
+  - [x] Step 7: final gates (M1–M4, docs-build, reuse; ci skipped — no Python)
 - [ ] QA

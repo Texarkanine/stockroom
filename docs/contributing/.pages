@@ -1,4 +1,5 @@
 nav:
+  - Local workflow: local-workflow.md
   - Development: development.md
   - Licensing: licensing.md
   - ...

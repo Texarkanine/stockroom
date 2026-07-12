@@ -1,21 +1,29 @@
 # Development
 
-From the **repo root**, the [`Makefile`](https://github.com/Texarkanine/stockroom/blob/main/Makefile) is the dev entrypoint — it handles the `skills/sr-search/` cd'ing and the `--no-config` / `--no-sync` flags:
+From the **repo root**, the [`Makefile`](https://github.com/Texarkanine/stockroom/blob/main/Makefile) is the day-to-day checkout entrypoint — it handles the `skills/sr-search/` cd'ing and the `--no-config` / `--no-sync` flags.
+
+For the full enter → verify → exit localdev round-trip (plugin copy, skills mirror, shim takeover, undoing localdev), see [Local workflow](local-workflow.md).
 
 ```bash
-make help          # list targets
-make sync          # install from the committed lock (torch-free)
-make lock          # regenerate uv.lock hermetically
-make lock-check    # fail if the lock is stale vs pyproject.toml
-make test          # Node 22 dashboard tests + pytest
-make test-js       # Node 22 built-in tests only (`node --test`)
-make lint          # ruff check
-make format        # ruff format
-make reuse         # whole-tree reuse lint
-make ci            # full gate (matches CI)
-make shim          # install the on-path stockroom shim baking this checkout
-make docs          # local docs preview (properdocs serve)
-make docs-build    # strict docs build (matches docs CI)
+make help             # list targets
+make sync             # install from the committed lock (torch-free)
+make torch            # install torch out-of-band + freeze under stockroom home
+make lock             # regenerate uv.lock hermetically
+make lock-check       # fail if the lock is stale vs pyproject.toml
+make test             # Node 22 dashboard tests + pytest
+make test-js          # Node 22 built-in tests only (`node --test`)
+make lint             # ruff check
+make format           # ruff format
+make reuse            # whole-tree reuse lint
+make ci               # full gate (matches CI)
+make shim             # bake this checkout onto PATH (owner: dev)
+make shim TAKEOVER=1  # same, with --takeover (dead foreign bake only)
+make plugin-local     # rsync checkout → ~/.cursor/plugins/local/stockroom/
+make localdev         # skills symlink farm + managed pre-commit guard
+make localdev-clean   # undo make localdev
+make localdev-status  # read-only localdev / plugin-local hints
+make docs             # local docs preview (properdocs serve)
+make docs-build       # strict docs build (matches docs CI)
 ```
 
 **Node 22** is required for the full test gate: `make test` and `make ci` run the dashboard's native ES-module contracts through Node's built-in test runner (no npm packages).
@@ -91,34 +99,9 @@ stockroom embed --verbose           # same for embedding
 stockroom query "SELECT DISTINCT harness FROM sessions"
 ```
 
-Get the shim onto your PATH with `make shim` (bakes this checkout, owner `dev`; plugin installs get theirs from `sr-initialize`). The shim is baked-only and **succeed-or-refuse**: it never guesses at an engine location — if its baked engine dir is gone, or the engine env cannot import locked deps, it refuses with a one-line remedy. Each harness's session/workspace hook runs `shim rectify`, which re-bakes an owned shim after a plugin update **and** ensures the engine uv env (torch-safe inexact sync via `shim ensure-env`, then torch reinstall from the hashed freeze written by `sr-initialize` / `make torch` / `stockroom torch freeze`).
+Get the shim onto your PATH with `make shim` (bakes this checkout, owner `dev`; plugin installs get theirs from `sr-initialize`). Use `make shim TAKEOVER=1` only when a dead foreign bake still owns the path — details in [Local workflow](local-workflow.md). The shim is baked-only and **succeed-or-refuse**: it never guesses at an engine location — if its baked engine dir is gone, or the engine env cannot import locked deps, it refuses with a one-line remedy. Each harness's session/workspace hook runs `shim rectify`, which re-bakes an owned shim after a plugin update **and** ensures the engine uv env (torch-safe inexact sync via `shim ensure-env`, then torch reinstall from the hashed freeze written by `sr-initialize` / `make torch` / `stockroom torch freeze`).
 
 For full machine onboarding — prerequisites, the per-machine torch wheel choice, the `stockroom doctor` smoke test, the shim, the nightly ingest+embed schedule (`stockroom schedule`, cron or launchd), and the first full ingest — run the [`sr-initialize`](https://github.com/Texarkanine/stockroom/blob/main/skills/sr-initialize/SKILL.md) skill; it re-probes on every run and only does what is still missing.
-
-## Local plugin load
-
-Use these while iterating on the plugin itself. They are not the supported end-user path — end users follow the [Quickstart](../user-guide/quickstart.md).
-
-### Cursor
-
-```bash
-mkdir -p ~/.cursor/plugins/local
-# Prefer a real copy; symlinks to a repo outside this tree are often rejected.
-rsync -a --delete \
-  --exclude .git --exclude .venv --exclude '**/__pycache__' \
-  /path/to/stockroom/ ~/.cursor/plugins/local/stockroom/
-```
-
-Reload the window (**Developer: Reload Window**). `.cursor-plugin/plugin.json` must sit at `~/.cursor/plugins/local/stockroom/.cursor-plugin/plugin.json`. Excluding `.venv` is intentional — the next `sessionStart` hook runs `shim rectify`, which ensures locked deps and reinstalls torch from the hashed freeze under stockroom home (written by `sr-initialize` / `make torch`). If you never froze a stack, run `sr-initialize` once (or see [Torch](../user-guide/troubleshooting/torch.md)).
-
-### Claude Code
-
-```bash
-# Session-scoped load from a checkout (no marketplace, no install cache):
-claude --plugin-dir /path/to/stockroom
-```
-
-For a longer-lived Claude install you still go through a marketplace (local or remote) that lists the plugin.
 
 <details>
 <summary>Bootstrap footnote: invoking the engine without the shim</summary>

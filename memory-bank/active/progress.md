@@ -45,3 +45,14 @@ Bring Contributing docs to user-guide quality with a complete localdev enter/hac
     - Preflight PASS (with amendments applied in `tasks.md`)
 * Insights
     - Docs Verification Plan alone is insufficient when Make targets are in scope — each atom needs check-before-implement encoding
+
+## 2026-07-12 - BUILD - COMPLETE
+
+* Work completed
+    - Makefile: `localdev-clean`, `plugin-local`, `shim TAKEOVER=1`, `localdev-status`; torch comment → user-guide path
+    - Docs: `local-workflow.md` owns Enter/Verify/Exit; development slimmed; CONTRIBUTING funnel + nav; troubleshooting links
+    - Verified M1–M4, docs-build, reuse; skipped engine ci (no Python)
+* Decisions made
+    - No deviations from hybrid creative / plan
+* Insights
+    - `localdev-status` caught a pre-existing half-state (managed pre-commit block without skills-mirror) — Exit/status prose earns its keep

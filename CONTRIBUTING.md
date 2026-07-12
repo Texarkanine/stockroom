@@ -1,12 +1,13 @@
 # Contributing
 
-Thanks for contributing to Stockroom. This page orients you; procedural depth lives under [`docs/contributing/`](docs/contributing/development.md).
+Thanks for contributing to Stockroom. This page orients you; procedural depth lives under [`docs/contributing/`](docs/contributing/local-workflow.md).
 
 ## Before you change code
 
-1. Read [Development](docs/contributing/development.md) — Makefile targets, torch-safe `uv` contract, on-path shim.
-2. If you touch embeddings or heal: [Torch](docs/user-guide/troubleshooting/torch.md) (operator contract) and the torch sections in [Development](docs/contributing/development.md) (`make torch`, manual freeze).
-3. Licensing is layered — [Licensing](docs/contributing/licensing.md) and root [`REUSE.toml`](REUSE.toml). Prefer path aggregates over per-file SPDX headers when adding many files.
+1. Read [Local workflow](docs/contributing/local-workflow.md) — enter / verify / exit so you hack exclusively from this checkout and can return to a normal install.
+2. Read [Development](docs/contributing/development.md) — Makefile day-to-day targets, torch-safe `uv` contract, on-path shim.
+3. If you touch embeddings or heal: [Torch](docs/user-guide/troubleshooting/torch.md) (operator contract) and the torch sections in [Development](docs/contributing/development.md) (`make torch`, manual freeze).
+4. Licensing is layered — [Licensing](docs/contributing/licensing.md) and root [`REUSE.toml`](REUSE.toml). Prefer path aggregates over per-file SPDX headers when adding many files.
 
 ## Documentation ownership
 

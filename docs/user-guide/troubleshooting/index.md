@@ -22,7 +22,7 @@ Expected — stockroom is a **plugin**, not a marketplace. Install via [`txrk9-a
 
 ### Local Cursor copy does not load
 
-Ensure `.cursor-plugin/plugin.json` is at `~/.cursor/plugins/local/stockroom/.cursor-plugin/plugin.json`. Prefer `rsync` over a symlink to a path outside that tree — details in [Development](../../contributing/development.md).
+Ensure `.cursor-plugin/plugin.json` is at `~/.cursor/plugins/local/stockroom/.cursor-plugin/plugin.json`. Prefer `rsync` over a symlink to a path outside that tree — details in [Local workflow](../../contributing/local-workflow.md).
 
 ## Installed layout
 
@@ -80,4 +80,4 @@ Third-party plugins setting ([Quickstart](#cursor-hooks--auto-dashboard-never-fi
 
 - Ask the agent with `/sr-search` (or Claude `/stockroom:sr-search`) and describe the error text — [Skill index](../skills.md).
 - Torch / embeddings / heal soft-fails: [Torch](torch.md).
-- Contributors debugging from a checkout: [Development](../../contributing/development.md).
+- Contributors debugging from a checkout: [Local workflow](../../contributing/local-workflow.md) · [Development](../../contributing/development.md).
