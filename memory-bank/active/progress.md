@@ -222,3 +222,14 @@ Rework 3 of release-quality-docs: draft `docs/user-guide/ingest.md` (ingest / em
     - Level 2 — not L1 (substantive content, not a typo); not L3 (no toolchain, no multi-section corpus redesign)
 * Insights
     - Filling stub pages against settled style examples is the same shape as prior IA reworks on this task id
+
+## 2026-07-12 - PLAN - COMPLETE (rework 3)
+
+* Work completed
+    - Implementation plan: draft ingest.md → reconcile WIP torch/troubleshooting links for strict build → verify
+    - Behaviors B1–B5 + edge cases E1–E3
+* Decisions made
+    - User-guide owns mental model; Advanced CLI owns flag escape hatch; do not reverse operator torch→troubleshooting WIP
+    - Docs gates only (no pytest)
+* Insights
+    - Operator WIP already moved torch under troubleshooting/; plan must retarget broken inbound links or verification cannot pass

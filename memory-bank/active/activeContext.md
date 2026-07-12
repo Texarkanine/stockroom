@@ -1,11 +1,12 @@
 # Active Context
 
 ## Current Task: release-quality-docs
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Rework 3 initiated: draft `docs/user-guide/ingest.md`
-- Classified **Level 2** — self-contained user-guide content enhancement; style settled by finished example pages; no docs toolchain / corpus architecture reopen
+- Level 2 plan for Rework 3: draft `docs/user-guide/ingest.md` (ingest / embed / scheduling)
+- Behaviors B1–B5 + WIP torch-path edge case; docs-build verification only
+- Implementation: draft page → surgical WIP link reconcile → `make docs-build`
 
 ## Next Step
-- Load Level 2 workflow and enter PLAN
+- Preflight validation (autonomous per Level 2 workflow)
