@@ -97,3 +97,21 @@ Bring Contributing docs to user-guide quality with a complete localdev enter/hac
     - Level 3 (not L2): FORCE alters succeed-or-refuse ownership policy; localdev grows hooks+shim claim; multi-surface docs rewrite
 * Insights
     - Prior hybrid creative still useful history; FORCE + hooks-in-localdev supersede "takeover only for dead" and `plugin-local`
+
+## 2026-07-12 - CREATIVE - COMPLETE (localdev-hooks-and-force)
+
+* Work completed
+    - Architecture creative for hooks + FORCE surface
+* Decisions made
+    - PATH-based project hooks (no PLUGIN_ROOT); FORCE+TAKEOVER for live; dead still TAKEOVER-only
+* Insights
+    - Cursor project hooks may be experiment-gated — localdev still bounces dashboard at enter
+
+## 2026-07-12 - PLAN - COMPLETE (rework)
+
+* Work completed
+    - Full rework plan in tasks.md (S1–S5, M1–M4, docs B1–B3)
+* Decisions made
+    - Implementation order: shim FORCE → Makefile → docs → gates
+* Insights
+    - Claude hooks land in settings.local.json (gitignored); Cursor uses managed .cursor/hooks.json markers

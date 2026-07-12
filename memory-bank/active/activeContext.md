@@ -1,11 +1,11 @@
 # Active Context
 
 ## Current Task: contributing-localdev-guide
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Rework initiated from REFLECT-COMPLETE; disposition = rework (operator: `/niko build it!`).
-- Classified as Level 3: FORCE changes shim ownership policy; `localdev` expands to skills+hooks+shim+dashboard bounce; docs rewrite; delete `plugin-local`.
+- Creative: PATH-based project hooks + FORCE two-key (`creative-localdev-hooks-and-force.md`).
+- Plan: shim FORCE TDD → Makefile localdev one-shot + delete plugin-local → docs rip-it-out → gates.
 
 ## Next Step
-- Load Level 3 workflow → Plan phase.
+- Preflight, then operator `/niko-build`.
