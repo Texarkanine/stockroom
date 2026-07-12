@@ -345,7 +345,7 @@ Rework 5 of release-quality-docs: alphabetical skill index in `skills.md` with d
     - Link sr-search/query/semantic → search.md anchors; sr-dashboard → dashboard; sr-initialize → quickstart/ingest as appropriate
     - Operator already renamed using-skills.md → skills.md; retarget inbound links
 
-## 2026-07-12 - BUILD / QA / REFLECT - COMPLETE (rework 5)
+## 2026-07-12 - REFLECT - COMPLETE (rework 5)
 
 * Work completed
     - Alphabetical skill index; deep links; README / advanced / dashboard retarget; nav “Skill index”
@@ -354,3 +354,14 @@ Rework 5 of release-quality-docs: alphabetical skill index in `skills.md` with d
     - Index stays thin; depth pages remain SSOT
 * Insights
     - Material heading ids for backticked skill names are bare `sr-*` fragments
+
+## 2026-07-12 - REWORK 6 INITIATED
+
+* Trigger: fixup troubleshooting catalog for deep-linking
+* Agreed direction (from chat):
+    - Dedicated troubleshooting section (not bottom-of-page on every guide page)
+    - No symptom tables — each symptom is a proper heading so URLs deep-link
+    - Section order matches user-guide nav (Quickstart → Installed layout → Ingest → Search → Dashboard → Skill index as needed; Torch remains sibling with index headings pointing at torch.md)
+    - Move “weak semantic results for recent work” out of Torch into Ingest/search-quality
+    - Convert torch.md Failure remedy table to headings too (same troubleshooting/ folder, same deep-link rule)
+    - Optional thin “Stuck?” back-links from guide pages only if cheap; primary deliverable is troubleshooting/*

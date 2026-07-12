@@ -161,3 +161,25 @@ As a reader scanning the user guide, I want a single alphabetical skill index wi
 2. Search/dashboard/initialize entries link to canonical depth pages (not a second essay).
 3. No stale `using-skills.md` links in docs/README that properdocs or humans would hit.
 4. Strict docs build passes.
+
+## Rework 6 — Troubleshooting deep-link catalog
+
+Fix up `docs/user-guide/troubleshooting/` so every symptom is deep-linkable via headings, ordered like the user-guide nav.
+
+### Rework 6 user story
+
+As a stuck operator (or someone pasting a docs link), I want each troubleshooting symptom to have a stable heading URL, in sections that follow the same order as the user guide — so I can land on the exact failure without scanning tables.
+
+### Rework 6 requirements
+
+1. Rewrite `troubleshooting/index.md`: no symptom tables; `##` sections aligned to user-guide nav order; `###` (or equivalent) per symptom with short remedy + links to canonical pages.
+2. Keep `torch.md` as the torch contract sibling; index Torch/embeddings symptoms are short headings that point at `torch.md` (and convert `torch.md` Failure remedy from a table to headings for the same deep-link rule).
+3. Relocate “weak semantic results for recent work” under Ingest (staleness), not Torch.
+4. `properdocs build --strict` PASS; inbound links that pointed at old anchors/tables still resolve or are updated.
+
+### Rework 6 acceptance criteria
+
+1. No markdown tables used as the symptom catalog on troubleshooting index (or torch failure remedies).
+2. Section order mirrors user-guide nav topics that have failures.
+3. Each former table row is a heading with a deep-linkable id.
+4. Strict docs build passes.
