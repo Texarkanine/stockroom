@@ -88,3 +88,12 @@ Bring Contributing docs to user-guide quality with a complete localdev enter/hac
     - `make localdev` one-shot: local skills + local hooks (this project) + claim shim (TAKEOVER+FORCE) + bounce dashboard via `stockroom dashboard` (no new stop/restart subcommand).
     - Keep `localdev-clean` / `localdev-status`; status visually separates localdev-managed state from shim info.
     - Prerequisite: marketplace plugin uninstalled from harness so next launch uses project wiring.
+
+## 2026-07-12 - COMPLEXITY-ANALYSIS - COMPLETE (rework)
+
+* Work completed
+    - Classified rework as Level 3
+* Decisions made
+    - Level 3 (not L2): FORCE alters succeed-or-refuse ownership policy; localdev grows hooks+shim claim; multi-surface docs rewrite
+* Insights
+    - Prior hybrid creative still useful history; FORCE + hooks-in-localdev supersede "takeover only for dead" and `plugin-local`
