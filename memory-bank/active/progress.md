@@ -115,3 +115,13 @@ Bring Contributing docs to user-guide quality with a complete localdev enter/hac
     - Implementation order: shim FORCE → Makefile → docs → gates
 * Insights
     - Claude hooks land in settings.local.json (gitignored); Cursor uses managed .cursor/hooks.json markers
+
+## 2026-07-12 - PREFLIGHT - COMPLETE (rework)
+
+* Work completed
+    - Validated rework plan vs shim/Makefile/docs; creative B still fits
+    - Amended: ensure-env in localdev; M1–M4 check-before-implement
+* Decisions made
+    - Preflight PASS
+* Insights
+    - sr-initialize / skills must not grow FORCE recommendations
