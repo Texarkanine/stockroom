@@ -1,6 +1,6 @@
 # Progress
 
-Rework 4 of release-quality-docs: draft `docs/user-guide/search.md` and `docs/user-guide/dashboard.md`. Prior ingest / torch / IA reworks remain.
+Rework 5 of release-quality-docs: alphabetical skill index in `skills.md` with deep links to canonical pages. Prior search/dashboard/ingest/torch/IA reworks remain.
 
 **Complexity:** Level 2
 
@@ -344,3 +344,13 @@ Rework 4 of release-quality-docs: draft `docs/user-guide/search.md` and `docs/us
     - Overview of each skill (alphabetical), brief what-for
     - Link sr-search/query/semantic → search.md anchors; sr-dashboard → dashboard; sr-initialize → quickstart/ingest as appropriate
     - Operator already renamed using-skills.md → skills.md; retarget inbound links
+
+## 2026-07-12 - BUILD / QA / REFLECT - COMPLETE (rework 5)
+
+* Work completed
+    - Alphabetical skill index; deep links; README / advanced / dashboard retarget; nav “Skill index”
+    - docs-build PASS; reflection written
+* Decisions made
+    - Index stays thin; depth pages remain SSOT
+* Insights
+    - Material heading ids for backticked skill names are bare `sr-*` fragments

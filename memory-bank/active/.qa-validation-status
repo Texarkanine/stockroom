@@ -1,0 +1,5 @@
+PASS
+
+# QA — rework 5 skill index
+
+PASS — alphabetical index, deep links verified in built HTML (`#sr-search` etc.), using-skills inbound retargeted, docs-build green.

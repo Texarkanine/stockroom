@@ -7,7 +7,7 @@ This is an escape hatch for power users — not a second onboarding track. Boots
 ## What you need
 
 - A completed first-time setup (`stockroom` on `PATH`)
-- Familiarity with [Using skills](../user-guide/using-skills.md) for the agent path when you want it back
+- Familiarity with [Skill index](../user-guide/skills.md) for the agent path when you want it back
 
 ## Surfaces
 

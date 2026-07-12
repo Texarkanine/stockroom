@@ -20,7 +20,7 @@ Example:
 /sr-search "What was the most-recent time I had to correct an agent's behavior?"
 ```
 
-Operational flags and recovery tables live in each skill’s `SKILL.md` — this page does not duplicate them. To run the engine without another agent turn, see [CLI](../advanced/cli.md) (`stockroom query` / `stockroom semantic`).
+Operational flags and recovery tables live in each skill’s `SKILL.md` — this page does not duplicate them. To run the engine without another agent turn, see [Advanced >CLI](../advanced/cli.md) (`stockroom query` / `stockroom semantic`).
 
 ## The three search skills
 
@@ -60,4 +60,4 @@ Phrase the query as a short description of the content you want. Embedding/searc
 
 - Prefer **`sr-search`** unless you already know you want pure SQL or pure vectors.
 - Browse metrics and past conversations in the UI: [Dashboard](dashboard.md).
-- Skill discovery table for all `sr-*` surfaces: [Using skills](using-skills.md).
+- Skill index for all `sr-*` surfaces: [Skill index](skills.md).

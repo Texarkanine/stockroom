@@ -5,5 +5,6 @@ nav:
   - ingest.md
   - search.md
   - dashboard.md
+  - Skill index: skills.md
   - troubleshooting
   - ...

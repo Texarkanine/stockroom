@@ -35,7 +35,7 @@ What landed on disk: [Installed layout](docs/user-guide/installed-layout.md).
 | `sr-semantic` | Meaning-based (vector) search |
 | `sr-dashboard` | Local metrics dashboard |
 
-Harness-specific slash forms: [Using skills](docs/user-guide/using-skills.md).
+Harness-specific slash forms: [Skill index](docs/user-guide/skills.md).
 
 ## Documentation
 

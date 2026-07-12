@@ -47,4 +47,4 @@ http://127.0.0.1:58008/?view=session&harness={harness}&session={session_id}
 - A dashboard started before that identity tracking existed may need one manual stop (`kill` the old `stockroom.dashboard` process) before automatic replace can take over.
 - Port conflicts and auto-start misses: [Troubleshooting](troubleshooting/index.md).
 
-For search (not browsing), see [Search](search.md). For skill slash forms across the whole plugin, see [Using skills](using-skills.md).
+For search (not browsing), see [Search](search.md). For every skill at a glance, see [Skill index](skills.md).
