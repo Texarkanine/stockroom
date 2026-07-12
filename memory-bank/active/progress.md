@@ -233,3 +233,13 @@ Rework 3 of release-quality-docs: draft `docs/user-guide/ingest.md` (ingest / em
     - Docs gates only (no pytest)
 * Insights
     - Operator WIP already moved torch under troubleshooting/; plan must retarget broken inbound links or verification cannot pass
+
+## 2026-07-12 - PREFLIGHT - COMPLETE (rework 3)
+
+* Work completed
+    - Validated plan against docs-only conventions; `.preflight-status` = PASS
+    - Amended Verification Plan wording + optional coverage-query one-liner in draft step
+* Decisions made
+    - TDD N/A (same as prior docs reworks); do not reverse torch→troubleshooting WIP
+* Insights
+    - Strict build cannot validate ingest until WIP inbound torch/troubleshooting links match on-disk paths

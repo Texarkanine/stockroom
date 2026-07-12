@@ -8,11 +8,13 @@ Draft `docs/user-guide/ingest.md` to finished user-guide quality (ingest / embed
 
 ## Test Plan (TDD)
 
-Docs-only — always-tdd code cycle does **not** apply. Verification Plan:
+Docs-only — always-tdd code cycle does **not** apply (same as prior reworks on this task id). **Verification Plan** is the gate:
 
-1. Acceptance sweep against behaviors B1–B5.
+1. Acceptance sweep against behaviors B1–B5 (and edge cases E1–E3) **before** claiming build complete.
 2. `make docs-build` (`properdocs build --strict`).
-3. Spot-check relative links from ingest page resolve in the built site / source tree.
+3. Spot-check relative links from ingest page resolve in the source tree.
+
+Ordered build discipline: draft + link reconcile first, then run the Verification Plan (do not treat a green build alone as acceptance).
 
 ### Behaviors to Verify
 
@@ -43,7 +45,7 @@ Docs-only — always-tdd code cycle does **not** apply. Verification Plan:
      - **Ingest** — harness history → DuckDB (`sessions` / `messages` / `tool_calls`); incremental vs `--full`; Cursor + Claude; points at warehouse path via Installed layout
      - **Embed** — message text → vectors; needs torch; incremental vs `--full`; first-run timing expectations; link Torch troubleshooting
      - **Scheduling** — nightly `ingest && embed` via cron/launchd; consent via `sr-initialize`; `schedule status|install|remove`; log path under stockroom home; warn about cron daemon not running
-     - Short “re-run anytime” command block + link to Advanced CLI for env overrides / `--help`
+     - Short “re-run anytime” command block + optional coverage check (`stockroom query` session/message/embedding counts, same idea as `sr-initialize` step 9) + link to Advanced CLI for env overrides / `--help`
    - Ground facts in `sr-initialize` SKILL + engine modules; do not invent flags.
 
 2. **Reconcile WIP path moves for strict build**
@@ -85,6 +87,6 @@ No new technology - validation not required
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
 - [ ] QA

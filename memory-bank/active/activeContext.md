@@ -1,12 +1,11 @@
 # Active Context
 
 ## Current Task: release-quality-docs
-**Phase:** PLAN - COMPLETE
+**Phase:** PREFLIGHT - COMPLETE
 
 ## What Was Done
-- Level 2 plan for Rework 3: draft `docs/user-guide/ingest.md` (ingest / embed / scheduling)
-- Behaviors B1–B5 + WIP torch-path edge case; docs-build verification only
-- Implementation: draft page → surgical WIP link reconcile → `make docs-build`
+- Preflight PASS for Rework 3 ingest draft
+- Amended plan: docs-only Verification Plan = TDD gate; optional coverage-query one-liner in draft
 
 ## Next Step
-- Preflight validation (autonomous per Level 2 workflow)
+- Build (autonomous per Level 2 workflow)
