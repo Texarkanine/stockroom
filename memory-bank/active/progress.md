@@ -1,6 +1,6 @@
 # Progress
 
-Rework 2 of release-quality-docs: move torch operator contract to user-guide; shrink/remove contributing torch page; retarget links. Prior IA rework (Quickstart / Installed layout) remains.
+Rework 3 of release-quality-docs: draft `docs/user-guide/ingest.md` (ingest / embed / scheduling) to finished user-guide quality, matching Quickstart / Installed layout / Torch troubleshooting style. Prior IA + torch reworks remain.
 
 **Complexity:** Level 2
 
@@ -213,3 +213,12 @@ Rework 2 of release-quality-docs: move torch operator contract to user-guide; sh
     - Draft `docs/user-guide/ingest.md` as a finished-quality user-guide page (replace todo placeholders)
     - Match style/vibes of finished examples: `quickstart.md`, `installed-layout.md`, `troubleshooting/torch.md`
     - Page already stubs Ingest / Embed / Scheduling sections; flesh those out from product behavior (`sr-initialize`, CLI, nightly schedule)
+
+## 2026-07-12 - COMPLEXITY-ANALYSIS - COMPLETE (rework 3)
+
+* Work completed
+    - Classified rework 3 as Level 2 (simple enhancement): one user-guide page draft + light link DRY; style/IA already exemplified by finished pages
+* Decisions made
+    - Level 2 — not L1 (substantive content, not a typo); not L3 (no toolchain, no multi-section corpus redesign)
+* Insights
+    - Filling stub pages against settled style examples is the same shape as prior IA reworks on this task id
