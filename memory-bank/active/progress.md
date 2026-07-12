@@ -1,6 +1,6 @@
 # Progress
 
-Rework of release-quality-docs: split Quickstart (self-contained get-running) from Installed layout (what landed where); move local/dev plugin load to contributor docs; fix nav/inbound links. Original Level 3 docs ship remains; this delta is review feedback.
+Rework 2 of release-quality-docs: move torch operator contract to user-guide; shrink/remove contributing torch page; retarget links. Prior IA rework (Quickstart / Installed layout) remains.
 
 **Complexity:** Level 2
 
@@ -151,3 +151,12 @@ Rework of release-quality-docs: split Quickstart (self-contained get-running) fr
     - Shrink/remove `docs/contributing/torch.md` to contributor-only (`make torch`, manual freeze, shared deps) or fold into development.md
     - Troubleshooting + Installed layout + CONTRIBUTING + skill links retarget
     - Architecture at most a pointer; not Advanced-owned
+
+## 2026-07-12 - COMPLEXITY-ANALYSIS - COMPLETE (rework 2)
+
+* Work completed
+    - Classified rework 2 as Level 2 (docs page move + link cascade; settled IA)
+* Decisions made
+    - Same level as prior IA rework; not L3 (no toolchain / corpus reopen)
+* Insights
+    - Second rework on same task id before archive is fine; progress history preserves both
