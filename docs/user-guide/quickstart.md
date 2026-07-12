@@ -22,5 +22,3 @@ Get Stockroom installed and running in a few minutes.
 - Prefer **`sr-search`** when you are unsure whether the question is structured SQL or meaning-based recall.
 - Open the local metrics UI with **`sr-dashboard`** (also launched automatically on session start when hooks are registered).
 - If something fails, see [Troubleshooting](troubleshooting.md).
-
-Harness-specific slash forms and post-setup habits: [Using skills](using-skills.md).

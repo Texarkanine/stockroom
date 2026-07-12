@@ -1,8 +1,8 @@
 # Progress
 
-Implement 1.0-quality documentation for Stockroom per `memory-bank/active/creative/creative-release-quality-docs.md`: README funnel, CONTRIBUTING, restructured `docs/` corpus, properdocs site + CI/Pages — while remaining on major version 0 and keeping skills lean.
+Rework of release-quality-docs: split Quickstart (self-contained get-running) from Installed layout (what landed where); move local/dev plugin load to contributor docs; fix nav/inbound links. Original Level 3 docs ship remains; this delta is review feedback.
 
-**Complexity:** Level 3
+**Complexity:** Level 2
 
 ## 2026-07-11 - COMPLEXITY-ANALYSIS - COMPLETE
 
@@ -84,3 +84,12 @@ Implement 1.0-quality documentation for Stockroom per `memory-bank/active/creati
     - Preferred direction from chat: rename toward **Installed layout**; Quickstart owns the get-running ritual (marketplace + Cursor third-party toggle screenshot + `sr-initialize` + first try); layout page owns dual-manifest/skills tree, runtime home (XDG/`STOCKROOM_HOME`, shim, torch freeze, schedule), plugin≠marketplace gotcha
     - Local/dev plugin load (`rsync` / `--plugin-dir`) fits contributor-guide better than the post-install layout page
     - Cascade: `.pages`, README, troubleshooting, using-skills, contributing/torch inbound links
+
+## 2026-07-12 - COMPLEXITY-ANALYSIS - COMPLETE
+
+* Work completed
+    - Classified rework as Level 2 (simple enhancement): self-contained docs IA fix across user-guide pages + link cascade; design settled in chat; does not reopen Option A corpus architecture
+* Decisions made
+    - Level 2 — not L1 (multi-file rename + content ownership change, not a typo/link fix); not L3 (no new subsystem / docs toolchain)
+* Insights
+    - Review-time IA splits are often L2 even when the original task was L3

@@ -2,7 +2,7 @@
 
 The committed repo is the install layout — dual manifests over a shared `skills/` tree, no build or bundle step for the plugin payload.
 
-End-user setup is **marketplace install → `sr-initialize`**. Do not treat `make` / `uv` from a git clone as an alternate onboarding path; those are for contributors (see the [contributor guide](../contributor-guide/development.md)).
+End-user setup is **marketplace install → `sr-initialize`**. Do not treat `make` / `uv` from a git clone as an alternate onboarding path; those are for contributors (see the [contributor guide](contributing/development.md)).
 
 ## Marketplace
 
@@ -15,7 +15,7 @@ Cursor [marketplace docs](https://cursor.com/docs/plugins):
 3. Install the `stockroom` plugin from that marketplace.
 4. Enable **Include third-party Plugins, Skills, and other configs** (Cursor Settings). Plugin hooks do not register without this until [Cursor’s plugin-hooks bug](https://forum.cursor.com/t/plugin-hooks-not-loading-into-cursor-ide/156702) is fixed:
 
-   ![Include third-party Plugins, Skills, and other configs — toggle on](../img/3rd-party-configs.png)
+   ![Include third-party Plugins, Skills, and other configs — toggle on](img/3rd-party-configs.png)
 
 5. Run first-time setup (`/sr-initialize`).
 
@@ -49,7 +49,7 @@ rsync -a --delete \
   /path/to/stockroom/ ~/.cursor/plugins/local/stockroom/
 ```
 
-Reload the window (**Developer: Reload Window**). `.cursor-plugin/plugin.json` must sit at `~/.cursor/plugins/local/stockroom/.cursor-plugin/plugin.json`. Excluding `.venv` is intentional — the next `sessionStart` hook runs `shim rectify`, which ensures locked deps and reinstalls torch from the hashed freeze under stockroom home (written by `sr-initialize` / contributor `make torch`). If you never froze a stack, run `sr-initialize` once (or see the [torch contributor docs](../contributor-guide/torch.md)).
+Reload the window (**Developer: Reload Window**). `.cursor-plugin/plugin.json` must sit at `~/.cursor/plugins/local/stockroom/.cursor-plugin/plugin.json`. Excluding `.venv` is intentional — the next `sessionStart` hook runs `shim rectify`, which ensures locked deps and reinstalls torch from the hashed freeze under stockroom home (written by `sr-initialize` / contributor `make torch`). If you never froze a stack, run `sr-initialize` once (or see the [torch contributor docs](contributing/torch.md)).
 
 ### Claude Code
 

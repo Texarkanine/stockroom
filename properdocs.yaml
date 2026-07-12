@@ -59,11 +59,14 @@ theme:
 plugins:
   - search
   - awesome-pages
+  - glightbox
 
 markdown_extensions:
   - admonition
+  - attr_list
   - footnotes
   - tables
+  - pymdownx.blocks.caption
   - toc:
       permalink: true
       permalink_title: Permanent link to this section
