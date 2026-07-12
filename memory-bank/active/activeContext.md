@@ -1,13 +1,11 @@
 # Active Context
 
 ## Current Task: release-quality-docs
-**Phase:** BUILD - COMPLETE
+**Phase:** REFLECT - COMPLETE
 
 ## What Was Done
-- Created `docs/user-guide/torch.md` (operator SSOT)
-- Deleted `docs/contributing/torch.md`; folded manual freeze + shared deps into `development.md`
-- Retargeted troubleshooting, installed-layout, CONTRIBUTING, sr-initialize, techContext, systemPatterns
-- Gates: `make docs-build` PASS; `make reuse` PASS
+- QA PASS; reflection `reflection-release-quality-docs-torch.md`
+- Persistent files already pointed at user-guide/torch during build
 
 ## Next Step
-- QA
+- Operator runs `/niko-archive`

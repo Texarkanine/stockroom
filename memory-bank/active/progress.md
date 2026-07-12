@@ -187,3 +187,21 @@ Rework 2 of release-quality-docs: move torch operator contract to user-guide; sh
     - User-guide owns contract + failure table; development owns make torch / manual freeze / shared deps
 * Insights
     - Installed layout torch rows now deep-link to Torch page
+
+## 2026-07-12 - QA - COMPLETE (rework 2)
+
+* Work completed
+    - Semantic review PASS; no fixes
+* Decisions made
+    - Skip architecture one-liner (YAGNI)
+* Insights
+    - None
+
+## 2026-07-12 - REFLECT - COMPLETE (rework 2)
+
+* Work completed
+    - Wrote `reflection-release-quality-docs-torch.md`
+* Decisions made
+    - Ready for archive (third reflect on this task id)
+* Insights
+    - Audience mis-home for mixed make/heal docs is a recurring smell
