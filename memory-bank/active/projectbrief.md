@@ -44,3 +44,26 @@ While drafting Contributing, material that belongs in Architecture or Advanced i
 3. Script-vs-recipe decision is explicit and reflected in the shipped guide (and code, if scripts win).
 4. `make docs-build` (and other applicable gates) pass; Contributing pages are presentation-quality; Architecture/Advanced notes (if any) are clearly rough and do not break finished surfaces.
 5. Operator accepts the Contributing section quality bar (same spirit as user-guide acceptance).
+
+## Rework
+
+Post-reflect design revision (operator, 2026-07-12). Implement the locked localdev model below; supersedes the shipped hybrid atoms where they conflict (notably `plugin-local` and takeover-only-for-dead).
+
+### Rework user story
+
+As a contributor, I want a rip-it-out enter path and a one-shot `make localdev` that wires skills, hooks, and the on-path shim to this checkout, so after uninstalling the marketplace plugin I am running exclusively from the checkout on next harness launch.
+
+### Rework requirements
+
+1. **Docs:** Rewrite `docs/contributing/local-workflow.md` — canonical "rip it out" story first (warehouse backup → uninstall plugin → stop dashboard → `make localdev` / ensure-env), then appendix for modular bits (engine-only shim claim, clean/status semantics, FORCE warnings).
+2. **Delete `plugin-local`** from Makefile, docs, troubleshooting/cross-links, techContext/systemPatterns if they mention it.
+3. **Shim FORCE:** Add force capability so `make shim TAKEOVER=1 FORCE=1` can replace a *live* foreign bake. Two-key turn; downplayed outside localdev/recovery; not agent-default.
+4. **`make localdev`:** Skills + project hooks + claim shim (TAKEOVER+FORCE) + bounce dashboard (`stockroom dashboard` after claim). Cross-harness: Cursor now; Claude skills/hooks as needed for "local" in this project.
+5. **`localdev-clean` / `localdev-status`:** Clean undoes only localdev-managed artifacts (not warehouse, not marketplace). Status has a visual separator between localdev-managed vs shim informational.
+6. **No** `stockroom dashboard stop/restart` in this rework — rely on existing identity-aware dashboard replace.
+
+### Rework constraints
+
+- Preserve end-user succeed-or-refuse shim policy for agents/skills (FORCE is opt-in and warned).
+- Preserve unrelated `creative-embedding-invalidation.md`.
+- Prior reflection remains historical; new creative/plan as needed for FORCE + hooks-in-localdev.

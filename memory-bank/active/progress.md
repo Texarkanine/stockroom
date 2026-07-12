@@ -76,3 +76,15 @@ Bring Contributing docs to user-guide quality with a complete localdev enter/hac
     - productContext unchanged
 * Insights
     - Preflight Make-check amendment was the highest-leverage process catch this run
+
+## 2026-07-12 - REWORK INITIATED
+
+* Operator chose rework (not archive) via `/niko build it!` after post-reflect design discussion.
+* Rework feedback (locked design):
+    - Doc story: full "rip it out" first (backup warehouse → uninstall plugin → stop dashboard → wire checkout), then modular "bits separately" appendix.
+    - Always backup warehouse before enter (migration forward-compat risk).
+    - Delete `plugin-local` entirely.
+    - `make shim TAKEOVER=1 FORCE=1` — both flags required to claim a live foreign bake (deliberate two-key turn). FORCE is for localdev / recovering a broken install; downplayed elsewhere; not agent-default.
+    - `make localdev` one-shot: local skills + local hooks (this project) + claim shim (TAKEOVER+FORCE) + bounce dashboard via `stockroom dashboard` (no new stop/restart subcommand).
+    - Keep `localdev-clean` / `localdev-status`; status visually separates localdev-managed state from shim info.
+    - Prerequisite: marketplace plugin uninstalled from harness so next launch uses project wiring.
