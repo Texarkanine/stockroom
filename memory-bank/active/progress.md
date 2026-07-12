@@ -103,3 +103,13 @@ Rework of release-quality-docs: split Quickstart (self-contained get-running) fr
     - Docs gates only (no pytest); do not reopen Option A or redesign using-skills vs ingest/search/dashboard in this rework
 * Insights
     - Review WIP already renamed contributor-guide; rework link cascade must repair README/CONTRIBUTING or strict build / readers break
+
+## 2026-07-12 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated plan against docs-only conventions; amended Verification Plan + explicit Installed layout nav title
+    - `.preflight-status` = PASS
+* Decisions made
+    - TDD N/A (same as original docs task); do not redesign using-skills IA in this rework
+* Insights
+    - Review WIP path rename is a latent acceptance failure until link cascade runs

@@ -8,7 +8,15 @@ Split Quickstart vs Installed layout per `projectbrief.md` Rework: self-containe
 
 ## Test Plan (TDD)
 
-Docs-only rework — no production code under test. Do **not** invent pytest theater. Gates below are the verification plan.
+Docs-only rework — no production code under test. The always-tdd code cycle does **not** apply. Do **not** invent pytest theater.
+
+### Verification Plan
+
+Gates (in order; run after content steps, before calling build done):
+
+1. Manual acceptance sweep against behaviors B1–B6 (Quickstart alone; layout page job; DRY; local/dev moved; link cascade).
+2. `make docs-build` (`properdocs build --strict`) — primary automated gate.
+3. `make reuse` if new paths fall outside existing REUSE aggregates (expected: no change).
 
 ### Behaviors to Verify
 
@@ -53,7 +61,7 @@ Docs-only rework — no production code under test. Do **not** invent pytest the
 
 5. **Verify gates**
    - Files: none (run commands)
-   - Changes: `make docs-build` (or `uv run properdocs build --strict`); `make reuse` if path aggregates need a glance; spot-check Quickstart alone satisfies B1–B2.
+   - Changes: Acceptance sweep B1–B6; `make docs-build`; `make reuse` if needed. Do not mark build complete until strict build PASS.
 
 ## Technology Validation
 
@@ -72,6 +80,11 @@ No new technology - validation not required
 - **`using-skills.md` vs new ingest/search/dashboard pages**: Do not redesign that IA in this rework; only fix Install links inside using-skills.
 - **Persistent memory-bank still cites `docs/contributor-guide/`**: Out of product docs gate; optional one-line fix in techContext/systemPatterns only if we already touch path hygiene — prefer not expanding scope; note for reflect.
 
+## Preflight Amendments
+
+- **TDD encoding**: N/A — documentation only. Plan uses Verification Plan (acceptance + properdocs `--strict`), not pytest. Same pattern as original release-quality-docs preflight.
+- **Nav title**: Prefer explicit awesome-pages entry `Installed layout: installed-layout.md` so the sidebar label is correct even if the filename is jargon-y.
+
 ## Pre-Mortem
 
 - **Plan failed because Quickstart still links out to Cursor/Claude plugin docs and feels incomplete without Install**: Cut those links from the happy path; txrk9-agent-plugins + inline stockroom steps only (Challenge 1).
@@ -85,6 +98,6 @@ No new technology - validation not required
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
 - [ ] QA

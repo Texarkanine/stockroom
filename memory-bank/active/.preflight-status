@@ -1,0 +1,23 @@
+PASS
+
+# Preflight validation — release-quality-docs rework (Level 2)
+
+Validated: 2026-07-12
+
+## Result
+
+PASS (with advisory)
+
+## Checks
+
+- Prerequisites: plan complete; Rework section in projectbrief; Level 2 progress
+- TDD encoding: **N/A for this task** — documentation only. Plan amended to Verification Plan (acceptance B1–B6 + properdocs `--strict`). Do not invent pytest theater.
+- Conventions: human docs under `docs/`; committed layout vocabulary matches systemPatterns; local/dev belongs in contributing (not end-user ritual)
+- Dependency impact: README, CONTRIBUTING, troubleshooting, using-skills, torch inbound links accounted for; WIP `contributor-guide` → `contributing` breakage called out
+- Conflicts: none — retargets install page job, does not reopen Option A
+- Completeness: rework requirements 1–5 map to implementation steps 1–5
+
+## Advisory
+
+- Explicit nav title `Installed layout: installed-layout.md` (amended into plan).
+- Leave `using-skills.md` vs ingest/search/dashboard IA alone in this rework.
