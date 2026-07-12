@@ -79,5 +79,5 @@ Third-party plugins setting ([Quickstart](#cursor-hooks--auto-dashboard-never-fi
 ## Still stuck
 
 - Ask the agent with `/sr-search` (or Claude `/stockroom:sr-search`) and describe the error text — [Skill index](../skills.md).
-- Torch / embeddings / heal soft-fails: [Torch](torch.md) (own page — not duplicated here).
+- Torch / embeddings / heal soft-fails: [Torch](torch.md).
 - Contributors debugging from a checkout: [Development](../../contributing/development.md).
