@@ -385,3 +385,14 @@ Rework 6 of release-quality-docs: deep-linkable troubleshooting catalog (heading
     - Added schedule-daemon symptom under Ingest (from ingest mental model)
 * Insights
     - Material slugifies `/` in headings to `--`
+
+## 2026-07-12 - POST-REFLECT POLISH (nk-save flush)
+
+* Work completed
+    - Torch troubleshooting kept only on `torch.md` (removed duplicated section from main troubleshooting index)
+    - `docs/user-guide/index.md` seeded with lite architectural mental model: Install once / Use it / Stay fresh + sequence diagrams (operator selected/polished from Option D splits)
+* Decisions made
+    - Main troubleshooting catalog does not re-host torch failure headings
+    - User-guide index is mental-model seeding, not Architecture.md
+* Insights
+    - Sequence splits mirroring the three “what you do” bullets read clearer than one first-week megadiagram
