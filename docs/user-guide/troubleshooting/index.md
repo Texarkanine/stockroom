@@ -64,7 +64,7 @@ Truncation is read-time only; use a higher `--detail` (or refetch a targeted row
 
 ### Semantic search returns nothing useful
 
-Confirm the warehouse has embeddings (ingest + embed), then decide structured vs meaning-based — [Search](../search.md). If the error cites torch / the environment, see [Torch](#torch) below.
+Confirm the warehouse has embeddings (ingest + embed), then decide structured vs meaning-based — [Search](../search.md). If the error cites torch / the environment, see [Torch](torch.md).
 
 ## Dashboard
 
@@ -76,23 +76,8 @@ Session start should replace an owned listener. If a pre-identity-tracking proce
 
 Third-party plugins setting ([Quickstart](#cursor-hooks--auto-dashboard-never-fire) above); then `/sr-dashboard` or `stockroom dashboard` — [Dashboard](../dashboard.md).
 
-## Torch
-
-Torch is out of the lockfile and per-machine. Full contract (install → smoke → freeze, heal): **[Torch](torch.md)**.
-
-### Semantic search or embed fails citing torch / environment
-
-Re-run `sr-initialize` (do not retry the query hoping torch appears). Details: [Torch](torch.md).
-
-### Heal soft-fails: no freeze / corrupt freeze
-
-Re-run `sr-initialize` (pick → install → smoke → freeze). Details: [Torch](torch.md).
-
-### Heal soft-fails: hash mismatch / yanked wheel
-
-Re-pick a working index, reinstall, smoke, freeze again — do not edit hashes by hand. Details: [Torch](torch.md).
-
 ## Still stuck
 
 - Ask the agent with `/sr-search` (or Claude `/stockroom:sr-search`) and describe the error text — [Skill index](../skills.md).
+- Torch / embeddings / heal soft-fails: [Torch](torch.md) (own page — not duplicated here).
 - Contributors debugging from a checkout: [Development](../../contributing/development.md).
