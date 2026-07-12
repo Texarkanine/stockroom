@@ -1,11 +1,12 @@
 # Active Context
 
 ## Current Task: release-quality-docs
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Rework initiated from review feedback (quickstart vs install IA)
-- Complexity determined: **Level 2** — self-contained docs enhancement (two page jobs + rename + link cascade); settled in `/nk-chat`, no architectural reopen of Option A
+- Level 2 plan for quickstart / installed-layout rework written to `tasks.md`
+- Base tree includes review WIP (`docs/contributing/`, expanded user-guide); plan does not revert it
+- Verification = properdocs `--strict` + link/acceptance review (no pytest theater)
 
 ## Next Step
-- Load Level 2 workflow and execute next phase (PLAN)
+- Preflight validation (autonomous for L2)

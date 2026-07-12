@@ -93,3 +93,13 @@ Rework of release-quality-docs: split Quickstart (self-contained get-running) fr
     - Level 2 — not L1 (multi-file rename + content ownership change, not a typo/link fix); not L3 (no new subsystem / docs toolchain)
 * Insights
     - Review-time IA splits are often L2 even when the original task was L3
+
+## 2026-07-12 - PLAN - COMPLETE
+
+* Work completed
+    - Implementation plan: rewrite Quickstart → create `installed-layout.md` → move local/dev to `docs/contributing/development.md` → link cascade → properdocs strict
+    - Behaviors B1–B7 + edge cases for WIP `contributor-guide` → `contributing` breakage
+* Decisions made
+    - Docs gates only (no pytest); do not reopen Option A or redesign using-skills vs ingest/search/dashboard in this rework
+* Insights
+    - Review WIP already renamed contributor-guide; rework link cascade must repair README/CONTRIBUTING or strict build / readers break
