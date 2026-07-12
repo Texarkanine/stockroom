@@ -88,9 +88,9 @@ Docs:
 ## Implementation Plan
 
 1. **Shim FORCE (TDD)** — S1–S5 in `test_shim.py` / `test_shim_cli.py` → implement `force` in `install` + CLI → green
-2. **Makefile: FORCE + delete plugin-local + localdev expansion** — M1–M4 fail then implement: `FORCE`; remove `plugin-local`; `localdev` does skills + Cursor/Claude managed hooks + `shim TAKEOVER=1 FORCE=1` + `stockroom dashboard`; clean/status updated per creative
+2. **Makefile: FORCE + delete plugin-local + localdev expansion** — Check M1–M4 expect fail/wrong first → then implement: `FORCE`; remove `plugin-local`; `localdev` does skills + Cursor/Claude managed hooks + `shim TAKEOVER=1 FORCE=1` + `stockroom shim ensure-env` + `stockroom dashboard`; clean/status updated per creative → re-check M1–M4
 3. **Docs rewrite** — `local-workflow.md` rip-it-out + appendix; scrub plugin-local from development/CONTRIBUTING/troubleshooting/techContext/systemPatterns
-4. **Gates** — pytest shim suites; M1–M4; docs-build; reuse; `make ci` if Python changed (yes)
+4. **Gates** — pytest shim suites; M1–M4; docs-build; reuse; `make ci` (Python changed)
 
 ## Challenges & Mitigations
 
@@ -109,6 +109,11 @@ Docs:
 
 No new technology — validation not required.
 
+## Preflight Amendments
+
+- `make localdev` also runs `stockroom shim ensure-env` after claiming the shim (operator enter draft; needed so checkout `.venv` + torch heal before dashboard/engine use)
+- Makefile step explicitly orders check-fail → implement → re-check (M1–M4)
+
 ## Status
 
 - [x] Component analysis complete
@@ -117,6 +122,6 @@ No new technology — validation not required.
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
 - [ ] QA

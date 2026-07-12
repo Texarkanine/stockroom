@@ -1,11 +1,11 @@
 # Active Context
 
 ## Current Task: contributing-localdev-guide
-**Phase:** PLAN - COMPLETE
+**Phase:** PREFLIGHT - COMPLETE
 
 ## What Was Done
-- Creative: PATH-based project hooks + FORCE two-key (`creative-localdev-hooks-and-force.md`).
-- Plan: shim FORCE TDD → Makefile localdev one-shot + delete plugin-local → docs rip-it-out → gates.
+- Preflight PASS with amendments: `ensure-env` in localdev after shim claim; explicit M1–M4 TDD ordering.
+- Build is operator-gated.
 
 ## Next Step
-- Preflight, then operator `/niko-build`.
+- Operator: run `/niko-build` (L3 after preflight PASS).
