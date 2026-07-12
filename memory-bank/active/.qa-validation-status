@@ -1,0 +1,26 @@
+PASS
+
+# QA validation — release-quality-docs rework 3 (Level 2)
+
+Validated: 2026-07-12
+
+## Result
+
+PASS
+
+## Checks
+
+- Completeness: ingest.md covers ingest / embed / scheduling + coverage check; no todo placeholders on that page
+- DRY: points at Quickstart, Installed layout, Torch troubleshooting, Advanced CLI, Troubleshooting
+- Style: matches finished user-guide density/voice
+- Gates: docs-build PASS after QA fix; reuse already green at build
+- WIP cascade: torch under troubleshooting/ + link retargets coherent
+
+## Fixes applied
+
+- Re-run section: prefer incremental `ingest`+`embed` for staleness; reserve `--full` for skipped first load / forced re-read
+
+## Advisory
+
+- search.md / dashboard.md remain TODO stubs (explicitly out of scope)
+- Model id / 384-dim detail on embed section is denser than Quickstart but consistent with Torch page technicality

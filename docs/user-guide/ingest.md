@@ -57,7 +57,14 @@ The optional schedule entry is also called out under [Installed layout](installe
 
 ## Re-run and check coverage
 
-When search feels stale, or you skipped the first full load, run the same commands initialize used:
+When search feels stale, catch up incrementally first:
+
+```bash
+stockroom ingest
+stockroom embed
+```
+
+If you skipped the first full load (or want to force a full re-read), use the same commands initialize used:
 
 ```bash
 stockroom ingest --full

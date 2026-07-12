@@ -253,3 +253,13 @@ Rework 3 of release-quality-docs: draft `docs/user-guide/ingest.md` (ingest / em
     - Also retargeted CONTRIBUTING / systemPatterns / techContext / sr-initialize torch paths (outside properdocs but broken after WIP move)
 * Insights
     - Moving a page into a subdirectory silently breaks sibling-relative links in the old parent file
+
+## 2026-07-12 - QA - COMPLETE (rework 3)
+
+* Work completed
+    - Semantic review against Rework 3 brief; trivial fix: incremental catch-up before `--full` for staleness
+    - docs-build re-PASS; `.qa-validation-status` = PASS
+* Decisions made
+    - No substantive rework required
+* Insights
+    - “Same as initialize” is easy to over-apply to the everyday stale path

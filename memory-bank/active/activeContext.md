@@ -1,12 +1,11 @@
 # Active Context
 
 ## Current Task: release-quality-docs
-**Phase:** BUILD - COMPLETE
+**Phase:** QA - COMPLETE
 
 ## What Was Done
-- Drafted `docs/user-guide/ingest.md` (ingest / embed / scheduling / coverage check)
-- Reconciled torch→troubleshooting WIP links (docs + CONTRIBUTING + persistent + sr-initialize)
-- Stub H1s for empty search/dashboard; `make docs-build` + `make reuse` PASS
+- QA PASS; trivial fix on re-run section (incremental before `--full`)
+- docs-build re-PASS
 
 ## Next Step
-- QA review (autonomous per Level 2 workflow)
+- Reflect (autonomous per Level 2 workflow)
