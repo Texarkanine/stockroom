@@ -1,6 +1,6 @@
 # Progress
 
-Rework 3 of release-quality-docs: draft `docs/user-guide/ingest.md` (ingest / embed / scheduling) to finished user-guide quality, matching Quickstart / Installed layout / Torch troubleshooting style. Prior IA + torch reworks remain.
+Rework 4 of release-quality-docs: draft `docs/user-guide/search.md` and `docs/user-guide/dashboard.md`. Prior ingest / torch / IA reworks remain.
 
 **Complexity:** Level 2
 
@@ -280,3 +280,31 @@ Rework 3 of release-quality-docs: draft `docs/user-guide/ingest.md` (ingest / em
     - `docs/user-guide/search.md`: how to search (prefer `sr-search`) + overview of the three search skills (`sr-search`, `sr-query`, `sr-semantic`)
     - `docs/user-guide/dashboard.md`: what the dashboard is, what `sr-dashboard` is; optionally use screenshots under `docs/img/`
     - Match finished user-guide style (ingest / quickstart / installed-layout / torch)
+
+## 2026-07-12 - COMPLEXITY-ANALYSIS - COMPLETE (rework 4)
+
+* Work completed
+    - Classified Level 2: two user-guide page drafts + light DRY with using-skills; style settled
+* Decisions made
+    - Not L1 (substantive content); not L3 (no toolchain / IA reopen)
+* Insights
+    - Same shape as ingest rework
+
+## 2026-07-12 - PLAN - COMPLETE (rework 4)
+
+* Work completed
+    - Plan: draft search.md → draft dashboard.md (with screenshots) → DRY using-skills pointers → docs-build
+* Decisions made
+    - Docs gates only; use top + convo dashboard screenshots; skip duckdb CLI shot on these pages (Advanced owns DuckDB)
+    - using-skills keeps discovery table; defers search/dashboard depth to new pages
+* Insights
+    - using-skills already duplicates some dashboard notes — slim those to links
+
+## 2026-07-12 - PREFLIGHT - COMPLETE (rework 4)
+
+* Work completed
+    - `.preflight-status` = PASS
+* Decisions made
+    - TDD N/A; skip duckdb shot on these pages
+* Insights
+    - None beyond plan
