@@ -263,3 +263,12 @@ Rework 3 of release-quality-docs: draft `docs/user-guide/ingest.md` (ingest / em
     - No substantive rework required
 * Insights
     - “Same as initialize” is easy to over-apply to the everyday stale path
+
+## 2026-07-12 - REFLECT - COMPLETE (rework 3)
+
+* Work completed
+    - Wrote `reflection-release-quality-docs-ingest.md`
+* Decisions made
+    - Ready for archive (fourth reflect on this task id)
+* Insights
+    - Subdirectory page moves need a full inbound+outbound relative-link pass in the same change

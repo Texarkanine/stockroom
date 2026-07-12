@@ -1,11 +1,11 @@
 # Active Context
 
 ## Current Task: release-quality-docs
-**Phase:** QA - COMPLETE
+**Phase:** REFLECT - COMPLETE
 
 ## What Was Done
-- QA PASS; trivial fix on re-run section (incremental before `--full`)
-- docs-build re-PASS
+- QA PASS; reflection `reflection-release-quality-docs-ingest.md`
+- Persistent torch paths already retargeted during build; no further reconcile edits
 
 ## Next Step
-- Reflect (autonomous per Level 2 workflow)
+- Operator runs `/niko-archive`
