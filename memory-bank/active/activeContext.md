@@ -1,11 +1,11 @@
 # Active Context
 
 ## Current Task: contributing-localdev-guide
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - IN-PROGRESS
 
 ## What Was Done
-- Intent clarified and approved: presentation-quality Contributing focused on install → localdev → verify → back, with script-vs-recipe open; Architecture/Advanced may accrete notes only; finished surfaces stay presentation-quality.
-- Complexity determined: **Level 3** — multi-surface docs (+ possible scripts/Makefile), open design question needing creative, research from archives + `/sr-search`.
+- Creative resolved: Hybrid thin Makefile atoms + narrative Contributing (`creative-contributor-localdev-round-trip.md`).
+- Research complete (archives + warehouse + live torch-strip footgun).
 
 ## Next Step
-- Load Level 3 workflow and enter Plan phase.
+- Finish Level 3 plan document in `tasks.md`, then preflight.
