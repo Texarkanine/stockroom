@@ -18,16 +18,9 @@ Operational flags, recovery tables, and procedures live in each skill’s `SKILL
 
 ## After setup
 
-- Prefer **`/sr-search`** (Cursor) or **`/stockroom:sr-search`** (Claude Code) when you are unsure whether the question is structured or meaning-based.
-- Use **`/sr-query`** / **`/stockroom:sr-query`** for exact SQL, filters, and counts.
-- Use **`/sr-semantic`** / **`/stockroom:sr-semantic`** for recall by meaning.
-- Use **`/sr-dashboard`** / **`/stockroom:sr-dashboard`** for the at-a-glance UI (also launched automatically: Cursor on `sessionStart`, Claude Code on `SessionStart`).
-
-## Dashboard notes
-
-The dashboard is a **machine-scoped** singleton on port 58008: it stays up across harness sessions and is not stopped when one IDE closes. After a plugin update moves the engine path, the next session/workspace start replaces a stale owned listener with one from the healed engine. A dashboard started before that identity tracking existed may need one manual stop (`kill` the old `stockroom.dashboard` process) before automatic replace can take over.
-
-If the Cursor auto-dashboard never starts, confirm the third-party plugins setting on the [Quickstart](quickstart.md) page is on, then use `/sr-dashboard` or `stockroom dashboard`.
+- Prefer **`sr-search`** when you are unsure whether the question is structured or meaning-based — details: [Search](search.md).
+- Use **`sr-query`** / **`sr-semantic`** when you already know you want pure SQL or pure vectors ([Search](search.md)).
+- Open the metrics UI with **`sr-dashboard`** (also auto-launched on session start when hooks are registered) — details: [Dashboard](dashboard.md).
 
 ## Escape hatch
 

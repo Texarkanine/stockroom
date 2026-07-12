@@ -308,3 +308,31 @@ Rework 4 of release-quality-docs: draft `docs/user-guide/search.md` and `docs/us
     - TDD N/A; skip duckdb shot on these pages
 * Insights
     - None beyond plan
+
+## 2026-07-12 - BUILD - COMPLETE (rework 4)
+
+* Work completed
+    - Drafted search.md + dashboard.md (screenshots); slimmed using-skills; linked from quickstart
+    - `make docs-build` PASS; `make reuse` PASS
+* Decisions made
+    - Metrics + session screenshots only; duckdb CLI image left for Advanced
+* Insights
+    - Discovery table + depth pages need the slim pass in the same build
+
+## 2026-07-12 - QA - COMPLETE (rework 4)
+
+* Work completed
+    - Semantic review PASS; no fixes
+* Decisions made
+    - None
+* Insights
+    - None
+
+## 2026-07-12 - REFLECT - COMPLETE (rework 4)
+
+* Work completed
+    - Wrote `reflection-release-quality-docs-search-dashboard.md`
+* Decisions made
+    - Ready for archive
+* Insights
+    - Slim discovery pages when depth pages land, or they compete as SSOT

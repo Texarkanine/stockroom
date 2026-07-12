@@ -25,7 +25,7 @@ Get Stockroom installed and running in a few minutes.
 
 ## What to try next
 
-- Prefer **`sr-search`** when you are unsure whether the question is structured SQL or meaning-based recall.
-- Open the local metrics UI with **`sr-dashboard`** (also launched automatically on session start - [click here!](http://localhost:58008) - when hooks are registered).
+- Prefer **`sr-search`** when you are unsure whether the question is structured SQL or meaning-based recall — [Search](search.md).
+- Open the local metrics UI with **`sr-dashboard`** (also launched automatically on session start - [click here!](http://localhost:58008) - when hooks are registered) — [Dashboard](dashboard.md).
 - Curious what landed on disk? See [Installed layout](installed-layout.md).
 - If something fails *and your agent can't figure it out*, see [Troubleshooting](troubleshooting/index.md).
