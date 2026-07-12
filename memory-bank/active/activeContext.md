@@ -1,11 +1,11 @@
 # Active Context
 
 ## Current Task: contributing-localdev-guide
-**Phase:** PLAN - IN-PROGRESS
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Creative resolved: Hybrid thin Makefile atoms + narrative Contributing (`creative-contributor-localdev-round-trip.md`).
-- Research complete (archives + warehouse + live torch-strip footgun).
+- Creative: Hybrid thin Makefile atoms + narrative Contributing.
+- Plan written: `local-workflow.md` + slim development.md; Makefile `localdev-clean` / `plugin-local` / `shim TAKEOVER=1`; Verification Plan (docs-build + M1–M3).
 
 ## Next Step
-- Finish Level 3 plan document in `tasks.md`, then preflight.
+- Preflight phase to validate the plan.

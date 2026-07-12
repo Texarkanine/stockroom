@@ -24,3 +24,14 @@ Bring Contributing docs to user-guide quality with a complete localdev enter/hac
     - No silent mega `contrib-enter` target
 * Insights
     - `make localdev` and `plugins/local` rsync are different surfaces; conflating them is a docs footgun
+
+## 2026-07-12 - PLAN - COMPLETE
+
+* Work completed
+    - Full L3 plan in `tasks.md`: components, hybrid atoms implementation steps, Verification Plan (docs-build + manual Make checks M1–M3), challenges, pre-mortem
+* Decisions made
+    - Target names: `localdev-clean`, `plugin-local`, `make shim TAKEOVER=1`
+    - New page `docs/contributing/local-workflow.md` owns Enter/Verify/Exit; development.md stays day-to-day
+    - No new pytest files for Makefile (consistent with prior docs Verification Plan)
+* Insights
+    - Warehouse `aef4448b` is the golden Enter narrative; `bb1e3895` motivates `localdev-clean`
