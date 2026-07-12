@@ -205,3 +205,11 @@ Rework 2 of release-quality-docs: move torch operator contract to user-guide; sh
     - Ready for archive (third reflect on this task id)
 * Insights
     - Audience mis-home for mixed make/heal docs is a recurring smell
+
+## 2026-07-12 - REWORK 3 INITIATED
+
+* Trigger: continuation of docs polish — fill stub user-guide pages with solid drafts
+* Feedback / agreed direction:
+    - Draft `docs/user-guide/ingest.md` as a finished-quality user-guide page (replace todo placeholders)
+    - Match style/vibes of finished examples: `quickstart.md`, `installed-layout.md`, `troubleshooting/torch.md`
+    - Page already stubs Ingest / Embed / Scheduling sections; flesh those out from product behavior (`sr-initialize`, CLI, nightly schedule)

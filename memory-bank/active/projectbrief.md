@@ -94,3 +94,26 @@ As a marketplace user who hits heal soft-fails or sees torch artifacts under sto
 2. Troubleshooting torch rows point at the user-guide page (not contributing).
 3. Contributor-only torch mechanics remain available from contributing/development without duplicating the user contract.
 4. Strict docs build and inbound links resolve.
+
+## Rework 3 — Ingest page draft
+
+Fill in a solid draft of the Load the Warehouse / ingest user-guide page, matching finished page style.
+
+### Rework 3 user story
+
+As a marketplace user who has finished Quickstart, I want a clear user-guide page that explains how warehouse data gets loaded (ingest), how meaning-based search gets vectors (embed), and how nightly freshness stays scheduled — so I understand what `sr-initialize` and the `stockroom` CLI are doing after install without reading contributor docs or skill source.
+
+### Rework 3 requirements
+
+1. Replace the placeholder body of `docs/user-guide/ingest.md` with a finished-quality draft covering Ingest, Embed, and Scheduling (existing section skeleton is a starting point, not a constraint if structure needs a light tweak for clarity).
+2. Match the style and vibes of the finished user-guide examples: `docs/user-guide/quickstart.md`, `docs/user-guide/installed-layout.md`, and `docs/user-guide/troubleshooting/torch.md` (direct prose, one job per section, tables where they clarify, links to sibling pages instead of forking their contracts).
+3. Ground content in actual product behavior (`sr-initialize`, `stockroom ingest` / `embed` / `schedule`, incremental + idempotent runs, first-run expectations). Do not invent CLI flags or behaviors.
+4. Stay DRY: point at Quickstart for the get-running ritual, Installed layout for on-disk paths, Torch troubleshooting for torch/heal — do not re-own those pages.
+5. `properdocs build --strict` PASS; nav entry for ingest remains coherent.
+
+### Rework 3 acceptance criteria
+
+1. `docs/user-guide/ingest.md` is a readable operator page (no todo placeholders).
+2. A reader can tell what ingest vs embed vs schedule each do, when they run, and how to recover / re-run without opening contributing.
+3. Tone and density match the cited finished examples.
+4. Strict docs build passes; inbound links from this page resolve.
