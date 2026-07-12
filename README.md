@@ -23,7 +23,7 @@ It ships as a **dual-manifest plugin** (one shared `skills/` tree for Cursor and
     - **Claude Code:** `/stockroom:sr-initialize`
 3. Ask the agent about past work, or slash-invoke `/sr-search` (Claude: `/stockroom:sr-search`).
 
-What landed on disk (and local/dev plugin load): [Installed layout](docs/user-guide/installed-layout.md).
+What landed on disk: [Installed layout](docs/user-guide/installed-layout.md).
 
 ## Skills
 
@@ -39,7 +39,7 @@ Harness-specific slash forms: [Using skills](docs/user-guide/using-skills.md).
 
 ## Documentation
 
-- [User guide](docs/user-guide/quickstart.md) — install, skills, troubleshooting, advanced CLI
+- [User guide](docs/user-guide/quickstart.md) — quickstart, installed layout, troubleshooting, advanced CLI
 - [Architecture](docs/architecture/index.md) — human tour; agent doctrines stay in `system-model.md`
 - [Contributing](CONTRIBUTING.md) — how to land a change
 

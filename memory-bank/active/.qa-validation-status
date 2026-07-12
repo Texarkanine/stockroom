@@ -1,0 +1,25 @@
+PASS
+
+# QA validation — release-quality-docs rework (Level 2)
+
+Validated: 2026-07-12
+
+## Result
+
+PASS (trivial fix applied)
+
+## Checks
+
+- Completeness: rework requirements 1–5 met (self-contained Quickstart; Installed layout; local/dev moved; link cascade; DRY sr-initialize)
+- KISS/YAGNI: layout page has pointer-only for local/dev; no second marketplace matrix
+- DRY: single sr-initialize what-it-does on Quickstart
+- Regression: properdocs ownership / no skill flag-table fork preserved
+- Documentation: README/CONTRIBUTING/inbound links updated; persistent path hygiene for contributing/
+
+## Fix applied
+
+- README: drop “local/dev” from Installed layout blurb (pointer lives on that page); Documentation line no longer says “install”
+
+## Gates re-run
+
+- `make docs-build` after fix

@@ -122,3 +122,13 @@ Rework of release-quality-docs: split Quickstart (self-contained get-running) fr
     - Discovery link from Quickstart to Installed layout OK; ritual not deferred
 * Insights
     - WIP `contributing/` / `advanced/` moves left relative links that only fail under properdocs strict
+
+## 2026-07-12 - QA - COMPLETE
+
+* Work completed
+    - Semantic review against rework brief; trivial README wording fix; docs-build re-PASS
+    - `.qa-validation-status` = PASS
+* Decisions made
+    - No substantive rework required
+* Insights
+    - README blurb can over-claim “local/dev” after content moves to contributor guide
