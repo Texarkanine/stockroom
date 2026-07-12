@@ -26,13 +26,28 @@ uv pip install --no-config --directory <engine> --require-hashes -r <stockroom_h
 
 Indexes embedded in the freeze (from `--emit-index-url` at compile time) resolve pytorch + PyPI deps. The `torch-index` sidecar is for debug / re-freeze input — not heal resolve.
 
-## Failure remedy
+## Failure remedies
 
-| Symptom | What to do |
-| --- | --- |
-| Semantic search or embed fails citing torch / environment | Re-run `sr-initialize` (do not retry the query hoping torch appears) |
-| Heal soft-fails: no freeze / corrupt freeze | Re-run `sr-initialize` (pick → install → smoke → freeze) |
-| Heal soft-fails: hash mismatch / yanked wheel | Re-pick a working index, reinstall, smoke, freeze again — do not edit hashes by hand |
-| Freeze soft-fails: torch not importable | Install torch into the engine venv first, then freeze |
-| Freeze soft-fails: compile error / timeout | Check network / index URL; retry; see `uv pip compile` stderr |
-| `stockroom semantic` fails w/ missing torch | Run `stockroom shim ensure-env` to re-install the frozen Torch into the `stockroom` engine |
+### Semantic search or embed fails citing torch / environment
+
+Re-run `sr-initialize` (do not retry the query hoping torch appears).
+
+### Heal soft-fails: no freeze / corrupt freeze
+
+Re-run `sr-initialize` (pick → install → smoke → freeze).
+
+### Heal soft-fails: hash mismatch / yanked wheel
+
+Re-pick a working index, reinstall, smoke, freeze again — do not edit hashes by hand.
+
+### Freeze soft-fails: torch not importable
+
+Install torch into the engine venv first, then freeze.
+
+### Freeze soft-fails: compile error / timeout
+
+Check network / index URL; retry; see `uv pip compile` stderr.
+
+### `stockroom semantic` fails with missing torch
+
+Run `stockroom shim ensure-env` to re-install the frozen Torch into the `stockroom` engine.

@@ -1,6 +1,6 @@
 # Progress
 
-Rework 5 of release-quality-docs: alphabetical skill index in `skills.md` with deep links to canonical pages. Prior search/dashboard/ingest/torch/IA reworks remain.
+Rework 6 of release-quality-docs: deep-linkable troubleshooting catalog (headings, nav-ordered sections). Prior skill-index / search / dashboard / ingest / torch reworks remain.
 
 **Complexity:** Level 2
 
@@ -365,3 +365,23 @@ Rework 5 of release-quality-docs: alphabetical skill index in `skills.md` with d
     - Move “weak semantic results for recent work” out of Torch into Ingest/search-quality
     - Convert torch.md Failure remedy table to headings too (same troubleshooting/ folder, same deep-link rule)
     - Optional thin “Stuck?” back-links from guide pages only if cheap; primary deliverable is troubleshooting/*
+
+## 2026-07-12 - COMPLEXITY-ANALYSIS / PLAN / PREFLIGHT - COMPLETE (rework 6)
+
+* Work completed
+    - Classified Level 2; plan = rewrite index headings + torch failure headings; docs-build gate
+* Decisions made
+    - Sections: Quickstart → Installed layout → Ingest → Search → Dashboard → Torch (pointer headings) → Still stuck
+    - No Skill index failure section (skills-missing stays under Quickstart)
+* Insights
+    - Same shape as prior docs reworks
+
+## 2026-07-12 - BUILD / QA / REFLECT - COMPLETE (rework 6)
+
+* Work completed
+    - Heading-per-symptom index; torch Failure remedies as headings; thin Stuck? links on guide pages
+    - docs-build + reuse PASS
+* Decisions made
+    - Added schedule-daemon symptom under Ingest (from ingest mental model)
+* Insights
+    - Material slugifies `/` in headings to `--`

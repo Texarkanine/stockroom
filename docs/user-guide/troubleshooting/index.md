@@ -4,48 +4,95 @@ Human-oriented recovery for common failure modes. Agents already carry short rec
 
 When in doubt: re-run **`sr-initialize`**. It re-probes and only does what is still missing.
 
-## Plugin / hooks
+Sections follow the [user guide](../index.md) order. Each symptom is its own heading so you can deep-link it.
 
-| Symptom | What to check |
-| --- | --- |
-| Skills missing after marketplace install | Reload the window; confirm the plugin is enabled in the harness plugin UI |
-| Cursor hooks / auto-dashboard never fire | Enable **Include third-party Plugins, Skills, and other configs** (see [Quickstart](../quickstart.md) screenshot) |
-| “Add plugins from folder” rejects this repo | Expected — stockroom is a plugin, not a marketplace. Install via `txrk9-agent-plugins` |
-| Local Cursor copy does not load | Ensure `.cursor-plugin/plugin.json` is at `~/.cursor/plugins/local/stockroom/.cursor-plugin/plugin.json`; prefer `rsync` over a symlink to a path outside that tree |
+## Quickstart
 
-## `stockroom` command / shim
+### Skills missing after marketplace install
 
-| Symptom | What to do |
-| --- | --- |
-| `stockroom: command not found` | Machine is not initialized — run `sr-initialize` |
-| Shim refuses with a one-line remedy | Follow the remedy (usually re-init or open a new session so `shim rectify` can heal after a plugin path move) |
-| Engine env cannot import locked deps | Let session-start heal run, or re-run `sr-initialize` |
+Reload the window; confirm the plugin is enabled in the harness plugin UI.
 
-## Torch / embeddings
+### Cursor hooks / auto-dashboard never fire
 
-| Symptom | What to do |
-| --- | --- |
-| Semantic search or embed fails citing torch / environment | Torch is out-of-lock and per-machine — re-run `sr-initialize` (do not retry the query hoping torch appears). Details: [Torch](torch.md) |
-| Heal soft-fails: no freeze / corrupt freeze | Re-run `sr-initialize` (pick → install → smoke → freeze). Details: [Torch](torch.md) |
-| Heal soft-fails: hash mismatch / yanked wheel | Re-pick a working index, reinstall, smoke, freeze again — do not edit hashes by hand ([Torch](torch.md)) |
-| Weak semantic results for *recent* work | Silent staleness is possible: ingest may have new messages that are not embedded yet. Check coverage / run embed before concluding the content is absent |
+Enable **Include third-party Plugins, Skills, and other configs** (see the [Quickstart](../quickstart.md) screenshot). Then reload.
 
-## Warehouse / search quality
+### “Add plugins from folder” rejects this repo
 
-| Symptom | What to do |
-| --- | --- |
-| Empty or sparse results after first install | Confirm first ingest+embed finished (`sr-initialize`); wait for nightly schedule or run ingest/embed via the agent / [CLI](../../advanced/cli.md) |
-| SQL errors on write-looking statements | Read surfaces open the warehouse read-only by construction — use ingest/embed for writes |
-| Truncated-looking cells in output | Truncation is read-time only; use a higher `--detail` (or refetch a targeted row). Full content remains in the warehouse |
+Expected — stockroom is a **plugin**, not a marketplace. Install via [`txrk9-agent-plugins`](https://github.com/Texarkanine/txrk9-agent-plugins).
+
+### Local Cursor copy does not load
+
+Ensure `.cursor-plugin/plugin.json` is at `~/.cursor/plugins/local/stockroom/.cursor-plugin/plugin.json`. Prefer `rsync` over a symlink to a path outside that tree — details in [Development](../../contributing/development.md).
+
+## Installed layout
+
+### `stockroom: command not found`
+
+The machine is not initialized — run `sr-initialize` ([Quickstart](../quickstart.md)). What lands on disk: [Installed layout](../installed-layout.md).
+
+### Shim refuses with a one-line remedy
+
+Follow the remedy. Usually: re-run `sr-initialize`, or open a new session so `shim rectify` can heal after a plugin path move.
+
+### Engine env cannot import locked deps
+
+Let session-start heal run, or re-run `sr-initialize`.
+
+## Ingest
+
+### Empty or sparse results after first install
+
+Confirm the first ingest + embed finished (`sr-initialize`). Wait for the nightly schedule, or run ingest/embed yourself — [Load the Warehouse](../ingest.md) · [CLI](../../advanced/cli.md).
+
+### Weak semantic results for recent work
+
+Silent staleness is possible: ingest may have new messages that are not embedded yet. Catch up with `stockroom ingest` then `stockroom embed` before concluding the content is absent — [Load the Warehouse](../ingest.md).
+
+### Nightly schedule installed but nothing updates
+
+Check `stockroom schedule status`. If the cron daemon is not running, the entry is written but will not fire (WSL: `sudo service cron start`, or enable systemd). See [Scheduling](../ingest.md#scheduling).
+
+## Search
+
+### SQL errors on write-looking statements
+
+Read surfaces open the warehouse read-only by construction — use ingest/embed for writes ([Search](../search.md) · [CLI](../../advanced/cli.md)).
+
+### Truncated-looking cells in output
+
+Truncation is read-time only; use a higher `--detail` (or refetch a targeted row). Full content remains in the warehouse ([CLI](../../advanced/cli.md)).
+
+### Semantic search returns nothing useful
+
+Confirm the warehouse has embeddings (ingest + embed), then decide structured vs meaning-based — [Search](../search.md). If the error cites torch / the environment, see [Torch](#torch) below.
 
 ## Dashboard
 
-| Symptom | What to do |
-| --- | --- |
-| Port 58008 already in use / stale UI after plugin update | Session start should replace an owned listener; if a pre-identity-tracking process remains, stop the old `stockroom.dashboard` process once, then `/sr-dashboard` |
-| Auto-start missing on Cursor | Third-party plugins setting (above); then `/sr-dashboard` or `stockroom dashboard` |
+### Port 58008 already in use / stale UI after plugin update
+
+Session start should replace an owned listener. If a pre-identity-tracking process remains, stop the old `stockroom.dashboard` process once, then `/sr-dashboard` — [Dashboard](../dashboard.md).
+
+### Auto-start missing on Cursor
+
+Third-party plugins setting ([Quickstart](#cursor-hooks--auto-dashboard-never-fire) above); then `/sr-dashboard` or `stockroom dashboard` — [Dashboard](../dashboard.md).
+
+## Torch
+
+Torch is out of the lockfile and per-machine. Full contract (install → smoke → freeze, heal): **[Torch](torch.md)**.
+
+### Semantic search or embed fails citing torch / environment
+
+Re-run `sr-initialize` (do not retry the query hoping torch appears). Details: [Torch](torch.md).
+
+### Heal soft-fails: no freeze / corrupt freeze
+
+Re-run `sr-initialize` (pick → install → smoke → freeze). Details: [Torch](torch.md).
+
+### Heal soft-fails: hash mismatch / yanked wheel
+
+Re-pick a working index, reinstall, smoke, freeze again — do not edit hashes by hand. Details: [Torch](torch.md).
 
 ## Still stuck
 
-- Ask the agent with `/sr-search` (or Claude `/stockroom:sr-search`) and describe the error text.
-- Contributors debugging from a checkout: [Development](../../contributing/development.md). Torch contract for everyone: [Torch](torch.md).
+- Ask the agent with `/sr-search` (or Claude `/stockroom:sr-search`) and describe the error text — [Skill index](../skills.md).
+- Contributors debugging from a checkout: [Development](../../contributing/development.md).

@@ -45,6 +45,6 @@ http://127.0.0.1:58008/?view=session&harness={harness}&session={session_id}
 
 - After a plugin update moves the engine path, the next session start should replace a stale owned listener with one from the healed engine.
 - A dashboard started before that identity tracking existed may need one manual stop (`kill` the old `stockroom.dashboard` process) before automatic replace can take over.
-- Port conflicts and auto-start misses: [Troubleshooting](troubleshooting/index.md).
+- Port conflicts and auto-start misses: [Troubleshooting · Dashboard](troubleshooting/index.md#dashboard).
 
 For search (not browsing), see [Search](search.md). For every skill at a glance, see [Skill index](skills.md).

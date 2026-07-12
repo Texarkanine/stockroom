@@ -61,3 +61,4 @@ Phrase the query as a short description of the content you want. Embedding/searc
 - Prefer **`sr-search`** unless you already know you want pure SQL or pure vectors.
 - Browse metrics and past conversations in the UI: [Dashboard](dashboard.md).
 - Skill index for all `sr-*` surfaces: [Skill index](skills.md).
+- Stuck on empty/thin results or read-only SQL errors? [Troubleshooting · Search](troubleshooting/index.md#search) · [Torch](troubleshooting/torch.md).

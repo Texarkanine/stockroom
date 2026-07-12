@@ -80,3 +80,5 @@ stockroom query "SELECT (SELECT count(*) FROM sessions) AS sessions, (SELECT cou
 ```
 
 Non-zero in all three columns means the warehouse is populated and searchable.
+
+Stuck on empty results, staleness, or schedule? [Troubleshooting · Ingest](troubleshooting/index.md#ingest).
