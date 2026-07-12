@@ -142,3 +142,12 @@ Rework of release-quality-docs: split Quickstart (self-contained get-running) fr
     - Keep original L3 reflection alongside rework reflection
 * Insights
     - Relative link fallout after docs section renames is the recurring lesson
+
+## 2026-07-12 - REWORK 2 INITIATED
+
+* Trigger: review feedback — torch docs belong in user-guide, not contributing-only
+* Feedback / agreed direction:
+    - Create `docs/user-guide/torch.md` as operator SSOT (why out of lock, smoke→freeze, heal, artifacts, failure remedies)
+    - Shrink/remove `docs/contributing/torch.md` to contributor-only (`make torch`, manual freeze, shared deps) or fold into development.md
+    - Troubleshooting + Installed layout + CONTRIBUTING + skill links retarget
+    - Architecture at most a pointer; not Advanced-owned

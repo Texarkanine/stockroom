@@ -71,3 +71,26 @@ As a new reader of the user guide, I want Quickstart to get me running without b
 2. No duplicate full marketplace procedure or duplicate full `sr-initialize` essay across the two pages.
 3. Page title/nav no longer implies a second install ritual; content matches "what landed where."
 4. `properdocs build --strict` still passes; inbound links resolve.
+
+## Rework 2 — Torch docs placement
+
+Move the torch contract out of contributing into the user guide, per review discussion.
+
+### Rework 2 user story
+
+As a marketplace user who hits heal soft-fails or sees torch artifacts under stockroom home, I want the torch/freeze/heal contract documented in the user guide (not under contributing), so I can understand and recover without being sent into contributor docs.
+
+### Rework 2 requirements
+
+1. Create `docs/user-guide/torch.md` as the operator SSOT: why torch is out of lock; install → smoke → freeze; heal from hashed freeze; artifact roles (link Installed layout where helpful); user-facing failure remedies.
+2. Shrink or remove `docs/contributing/torch.md`: keep only contributor-only material (`make torch`, torch-safe / inexact sync pointers already in development.md, manual `PYTHONPATH` freeze, shared deps with `uv.lock`) — or fold that into `development.md` and delete the contributing torch page. Prefer no forked copy of the operator contract.
+3. Update nav (`.pages`), troubleshooting (link user-guide torch), Installed layout torch rows, CONTRIBUTING, development.md, `sr-initialize` skill paths, and any other inbound links.
+4. Architecture may get at most a one-line pointer; Advanced does not own this unless documenting `stockroom torch` as CLI later.
+5. `properdocs build --strict` PASS; no duplicate full heal-contract essay across user-guide and contributing.
+
+### Rework 2 acceptance criteria
+
+1. Operator torch contract is reachable from user-guide nav without opening contributing.
+2. Troubleshooting torch rows point at the user-guide page (not contributing).
+3. Contributor-only torch mechanics remain available from contributing/development without duplicating the user contract.
+4. Strict docs build and inbound links resolve.
