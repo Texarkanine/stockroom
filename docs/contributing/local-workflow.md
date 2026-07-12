@@ -85,7 +85,7 @@ rm -rf ~/.cursor/plugins/local/stockroom   # or your PLUGIN_LOCAL_DEST
 Then get a normal on-path shim again:
 
 - Reinstall / enable the marketplace plugin and let session-start `shim rectify` rebake, **or**
-- Re-run [`sr-initialize`](../user-guide/troubleshooting/index.md) (re-probes; only does what is still missing).
+- Re-run [`sr-initialize`](../user-guide/quickstart.md) (re-probes; only does what is still missing).
 
 Exit cannot fully automate marketplace UI reinstall or IDE reload — those stay human steps. Goal: no leftover skills-mirror, no stray `plugins/local` copy you still treat as “the” install, and a shim owned by the released/plugin path rather than a half-dead `dev` bake.
 

@@ -185,4 +185,5 @@ No new technology — validation not required. Makefile extensions use existing 
   - [x] Step 5: slim development.md + nav + CONTRIBUTING
   - [x] Step 6: cross-links
   - [x] Step 7: final gates (M1–M4, docs-build, reuse; ci skipped — no Python)
-- [ ] QA
+- [x] QA
+  - PASS (trivial: Exit `sr-initialize` link → quickstart for consistency with Enter)
