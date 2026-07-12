@@ -139,3 +139,25 @@ As a marketplace user who can already install and load the warehouse, I want cle
 2. A reader can choose among the three search skills and understand the dashboard's job.
 3. Tone matches finished examples; screenshots (if used) clarify rather than decorate.
 4. Strict docs build passes; links resolve.
+
+## Rework 5 — Skill index
+
+Refactor `docs/user-guide/skills.md` into an alphabetical skill index.
+
+### Rework 5 user story
+
+As a reader scanning the user guide, I want a single alphabetical skill index with a one-line “what it’s for” and links into the canonical how-to pages — so I can find the right skill without reading every SKILL.md.
+
+### Rework 5 requirements
+
+1. Rewrite `docs/user-guide/skills.md` as a skill index: every shipped `sr-*` skill, alphabetical, brief description.
+2. Deep-link to canonical pages where they exist (`search.md` anchors for search trio; `dashboard.md`; initialize → Quickstart / Load the Warehouse as appropriate).
+3. Retarget inbound `using-skills.md` links to `skills.md`; keep nav coherent.
+4. `properdocs build --strict` PASS.
+
+### Rework 5 acceptance criteria
+
+1. Index lists all five skills alphabetically with brief purpose + slash forms.
+2. Search/dashboard/initialize entries link to canonical depth pages (not a second essay).
+3. No stale `using-skills.md` links in docs/README that properdocs or humans would hit.
+4. Strict docs build passes.

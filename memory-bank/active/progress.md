@@ -336,3 +336,11 @@ Rework 4 of release-quality-docs: draft `docs/user-guide/search.md` and `docs/us
     - Ready for archive
 * Insights
     - Slim discovery pages when depth pages land, or they compete as SSOT
+
+## 2026-07-12 - REWORK 5 INITIATED
+
+* Trigger: refactor skills.md into alphabetical skill index with deep links to canonical pages
+* Direction:
+    - Overview of each skill (alphabetical), brief what-for
+    - Link sr-search/query/semantic → search.md anchors; sr-dashboard → dashboard; sr-initialize → quickstart/ingest as appropriate
+    - Operator already renamed using-skills.md → skills.md; retarget inbound links
