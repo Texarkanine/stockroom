@@ -243,3 +243,13 @@ Rework 3 of release-quality-docs: draft `docs/user-guide/ingest.md` (ingest / em
     - TDD N/A (same as prior docs reworks); do not reverse torch→troubleshooting WIP
 * Insights
     - Strict build cannot validate ingest until WIP inbound torch/troubleshooting links match on-disk paths
+
+## 2026-07-12 - BUILD - COMPLETE (rework 3)
+
+* Work completed
+    - Drafted `docs/user-guide/ingest.md`; reconciled WIP torch/troubleshooting links; stub H1s for search/dashboard
+    - `make docs-build` PASS; `make reuse` PASS; acceptance B1–B5
+* Decisions made
+    - Also retargeted CONTRIBUTING / systemPatterns / techContext / sr-initialize torch paths (outside properdocs but broken after WIP move)
+* Insights
+    - Moving a page into a subdirectory silently breaks sibling-relative links in the old parent file

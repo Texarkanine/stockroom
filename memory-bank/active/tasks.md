@@ -18,17 +18,17 @@ Ordered build discipline: draft + link reconcile first, then run the Verificatio
 
 ### Behaviors to Verify
 
-- **B1 Mental model**: Reader opening `docs/user-guide/ingest.md` → understands ingest vs embed vs schedule as three distinct jobs (ETL → vectors → nightly freshness), without opening contributing.
-- **B2 First-run vs ongoing**: Page explains `sr-initialize` already ran first `ingest --full` + `embed`, and ongoing freshness is incremental nightly (or manual CLI) — does not re-own the Quickstart marketplace ritual.
-- **B3 Operator commands**: Page shows the common re-run commands (`stockroom ingest`, `stockroom embed`, `stockroom schedule status|install|remove`) with accurate defaults (`--full` / `--verbose` as optional; schedule default 03:30) grounded in product behavior — not a SKILL.md flag encyclopedia.
-- **B4 DRY links**: Points at Quickstart (get running), Installed layout (warehouse / schedule on disk), Torch troubleshooting (embed needs torch), Advanced CLI (escape hatch / env overrides), Troubleshooting (staleness) — does not fork those contracts.
-- **B5 Style + build**: Tone/density matches finished examples; no todo placeholders; `make docs-build` PASS.
+- **B1 Mental model**: Reader opening `docs/user-guide/ingest.md` → understands ingest vs embed vs schedule as three distinct jobs (ETL → vectors → nightly freshness), without opening contributing. ✅
+- **B2 First-run vs ongoing**: Page explains `sr-initialize` already ran first `ingest --full` + `embed`, and ongoing freshness is incremental nightly (or manual CLI) — does not re-own the Quickstart marketplace ritual. ✅
+- **B3 Operator commands**: Page shows the common re-run commands (`stockroom ingest`, `stockroom embed`, `stockroom schedule status|install|remove`) with accurate defaults (`--full` / `--verbose` as optional; schedule default 03:30) grounded in product behavior — not a SKILL.md flag encyclopedia. ✅
+- **B4 DRY links**: Points at Quickstart (get running), Installed layout (warehouse / schedule on disk), Torch troubleshooting (embed needs torch), Advanced CLI (escape hatch / env overrides), Troubleshooting (staleness) — does not fork those contracts. ✅
+- **B5 Style + build**: Tone/density matches finished examples; no todo placeholders; `make docs-build` PASS. ✅
 
 ### Edge cases
 
-- **E1 WIP torch path**: Working tree has torch at `troubleshooting/torch.md` (not `user-guide/torch.md`). Ingest links and any blocked inbound links from installed-layout / quickstart / contributing must match files that exist, or strict build fails.
-- **E2 Empty sibling stubs**: `search.md` / `dashboard.md` remain empty stubs — do not flesh them in this rework; ensure they do not break strict build (minimal H1 if required).
-- **E3 No warehouse prune**: Document that ingest does not delete orphaned rows when source transcripts vanish (faithful warehouse outlives sources) — one accurate sentence, not a schema essay.
+- **E1 WIP torch path**: Retargeted inbound links to `troubleshooting/torch.md`; fixed troubleshooting/ relative parents. ✅
+- **E2 Empty sibling stubs**: `search.md` / `dashboard.md` got minimal H1 + TODO (not fleshed). ✅
+- **E3 No warehouse prune**: Documented in Ingest section. ✅
 
 ### Test Infrastructure
 
@@ -38,24 +38,12 @@ Ordered build discipline: draft + link reconcile first, then run the Verificatio
 
 ## Implementation Plan
 
-1. **Draft ingest page body**
+1. **Draft ingest page body** ✅
    - Files: `docs/user-guide/ingest.md`
-   - Changes: Replace stub with finished draft. Suggested structure (adjust lightly if prose flows better):
-     - Title + short lead (what this page is for — post-Quickstart mental model)
-     - **Ingest** — harness history → DuckDB (`sessions` / `messages` / `tool_calls`); incremental vs `--full`; Cursor + Claude; points at warehouse path via Installed layout
-     - **Embed** — message text → vectors; needs torch; incremental vs `--full`; first-run timing expectations; link Torch troubleshooting
-     - **Scheduling** — nightly `ingest && embed` via cron/launchd; consent via `sr-initialize`; `schedule status|install|remove`; log path under stockroom home; warn about cron daemon not running
-     - Short “re-run anytime” command block + optional coverage check (`stockroom query` session/message/embedding counts, same idea as `sr-initialize` step 9) + link to Advanced CLI for env overrides / `--help`
-   - Ground facts in `sr-initialize` SKILL + engine modules; do not invent flags.
-
-2. **Reconcile WIP path moves for strict build**
-   - Files (only if still broken): `docs/user-guide/installed-layout.md`, `docs/user-guide/quickstart.md`, `docs/contributing/development.md`, optionally `docs/user-guide/.pages` / empty `search.md`/`dashboard.md` H1s
-   - Changes: Retarget `torch.md` → `troubleshooting/torch.md` (or relative equivalent); `troubleshooting.md` → `troubleshooting/` or `troubleshooting/index.md`; do **not** reverse the torch→troubleshooting move.
-   - Out of scope: fleshing search/dashboard, rewriting troubleshooting index content, README/CONTRIBUTING torch path outside docs unless needed for this task’s acceptance.
-
-3. **Verify**
-   - Files: none (commands only)
-   - Changes: Acceptance sweep B1–B5; `make docs-build`; fix any new link breakage introduced by the draft.
+2. **Reconcile WIP path moves for strict build** ✅
+   - Files: installed-layout, quickstart, troubleshooting/index, development.md, CONTRIBUTING, systemPatterns, techContext, sr-initialize; search/dashboard H1 stubs
+3. **Verify** ✅
+   - `make docs-build` PASS; `make reuse` PASS; acceptance B1–B5
 
 ## Technology Validation
 
@@ -88,5 +76,5 @@ No new technology - validation not required
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight
-- [ ] Build
+- [x] Build
 - [ ] QA

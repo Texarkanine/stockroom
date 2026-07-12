@@ -1,11 +1,12 @@
 # Active Context
 
 ## Current Task: release-quality-docs
-**Phase:** PREFLIGHT - COMPLETE
+**Phase:** BUILD - COMPLETE
 
 ## What Was Done
-- Preflight PASS for Rework 3 ingest draft
-- Amended plan: docs-only Verification Plan = TDD gate; optional coverage-query one-liner in draft
+- Drafted `docs/user-guide/ingest.md` (ingest / embed / scheduling / coverage check)
+- Reconciled torch→troubleshooting WIP links (docs + CONTRIBUTING + persistent + sr-initialize)
+- Stub H1s for empty search/dashboard; `make docs-build` + `make reuse` PASS
 
 ## Next Step
-- Build (autonomous per Level 2 workflow)
+- QA review (autonomous per Level 2 workflow)

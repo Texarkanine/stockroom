@@ -62,7 +62,7 @@ make torch                                    # CPU wheels (default)
 make torch TORCH_INDEX=https://download.pytorch.org/whl/cu126   # CUDA example
 ```
 
-`make torch` installs the wheel and freezes the accepted stack under stockroom home so plugin-root heal can replay the same bits (`--require-hashes`). Operator-facing contract (why out of lock, heal, failure remedies): [Torch](../user-guide/torch.md).
+`make torch` installs the wheel and freezes the accepted stack under stockroom home so plugin-root heal can replay the same bits (`--require-hashes`). Operator-facing contract (why out of lock, heal, failure remedies): [Torch](../user-guide/troubleshooting/torch.md).
 
 ### Manual freeze
 
@@ -109,7 +109,7 @@ rsync -a --delete \
   /path/to/stockroom/ ~/.cursor/plugins/local/stockroom/
 ```
 
-Reload the window (**Developer: Reload Window**). `.cursor-plugin/plugin.json` must sit at `~/.cursor/plugins/local/stockroom/.cursor-plugin/plugin.json`. Excluding `.venv` is intentional — the next `sessionStart` hook runs `shim rectify`, which ensures locked deps and reinstalls torch from the hashed freeze under stockroom home (written by `sr-initialize` / `make torch`). If you never froze a stack, run `sr-initialize` once (or see [Torch](../user-guide/torch.md)).
+Reload the window (**Developer: Reload Window**). `.cursor-plugin/plugin.json` must sit at `~/.cursor/plugins/local/stockroom/.cursor-plugin/plugin.json`. Excluding `.venv` is intentional — the next `sessionStart` hook runs `shim rectify`, which ensures locked deps and reinstalls torch from the hashed freeze under stockroom home (written by `sr-initialize` / `make torch`). If you never froze a stack, run `sr-initialize` once (or see [Torch](../user-guide/troubleshooting/torch.md)).
 
 ### Claude Code
 

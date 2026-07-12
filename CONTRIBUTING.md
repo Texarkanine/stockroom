@@ -5,7 +5,7 @@ Thanks for contributing to Stockroom. This page orients you; procedural depth li
 ## Before you change code
 
 1. Read [Development](docs/contributing/development.md) — Makefile targets, torch-safe `uv` contract, on-path shim.
-2. If you touch embeddings or heal: [Torch](docs/user-guide/torch.md) (operator contract) and the torch sections in [Development](docs/contributing/development.md) (`make torch`, manual freeze).
+2. If you touch embeddings or heal: [Torch](docs/user-guide/troubleshooting/torch.md) (operator contract) and the torch sections in [Development](docs/contributing/development.md) (`make torch`, manual freeze).
 3. Licensing is layered — [Licensing](docs/contributing/licensing.md) and root [`REUSE.toml`](REUSE.toml). Prefer path aggregates over per-file SPDX headers when adding many files.
 
 ## Documentation ownership

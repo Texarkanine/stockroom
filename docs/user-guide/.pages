@@ -1,9 +1,9 @@
 nav:
+  - index.md
   - quickstart.md
-  - Installed layout: installed-layout.md
-  - Torch: torch.md
+  - installed-layout.md
   - ingest.md
   - search.md
   - dashboard.md
-  - troubleshooting.md
+  - troubleshooting
   - ...

@@ -6,7 +6,7 @@ Stockroom is a dual-manifest Cursor/Claude Code plugin whose Python engine lives
 
 ## Locked uv project, torch held out of the lock
 
-Lock hermetically with `uv lock --no-config`. Exclude torch via an impossible environment-marker override in `skills/sr-search/pyproject.toml` so it never enters the lock, then provision it per-machine (`uv pip install torch --no-config --index <wheel-url>`), smoke-test, and freeze the accepted stack under stockroom home. After torch is installed, never run an exact sync — use `uv run --no-sync` or `--inexact`. Local iteration is via the root [`Makefile`](../Makefile). See [`docs/user-guide/torch.md`](../docs/user-guide/torch.md).
+Lock hermetically with `uv lock --no-config`. Exclude torch via an impossible environment-marker override in `skills/sr-search/pyproject.toml` so it never enters the lock, then provision it per-machine (`uv pip install torch --no-config --index <wheel-url>`), smoke-test, and freeze the accepted stack under stockroom home. After torch is installed, never run an exact sync — use `uv run --no-sync` or `--inexact`. Local iteration is via the root [`Makefile`](../Makefile). See [`docs/user-guide/troubleshooting/torch.md`](../docs/user-guide/troubleshooting/torch.md).
 
 ## No truncation at rest; truncation is a read-time feature
 
