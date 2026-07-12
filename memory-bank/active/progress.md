@@ -113,3 +113,12 @@ Rework of release-quality-docs: split Quickstart (self-contained get-running) fr
     - TDD N/A (same as original docs task); do not redesign using-skills IA in this rework
 * Insights
     - Review WIP path rename is a latent acceptance failure until link cascade runs
+
+## 2026-07-12 - BUILD - COMPLETE
+
+* Work completed
+    - Quickstart / Installed layout split; local/dev → contributing; link cascade; docs-build + reuse green
+* Decisions made
+    - Discovery link from Quickstart to Installed layout OK; ritual not deferred
+* Insights
+    - WIP `contributing/` / `advanced/` moves left relative links that only fail under properdocs strict

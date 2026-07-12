@@ -27,8 +27,8 @@ Operational flags, recovery tables, and procedures live in each skill’s `SKILL
 
 The dashboard is a **machine-scoped** singleton on port 58008: it stays up across harness sessions and is not stopped when one IDE closes. After a plugin update moves the engine path, the next session/workspace start replaces a stale owned listener with one from the healed engine. A dashboard started before that identity tracking existed may need one manual stop (`kill` the old `stockroom.dashboard` process) before automatic replace can take over.
 
-If the Cursor auto-dashboard never starts, confirm the third-party plugins setting on the [Install](install.md) page is on, then use `/sr-dashboard` or `stockroom dashboard`.
+If the Cursor auto-dashboard never starts, confirm the third-party plugins setting on the [Quickstart](quickstart.md) page is on, then use `/sr-dashboard` or `stockroom dashboard`.
 
 ## Escape hatch
 
-To run query/semantic (and other subcommands) without another agent turn, see [Advanced usage](advanced/index.md).
+To run query/semantic (and other subcommands) without another agent turn, see [Advanced usage](../advanced/index.md).

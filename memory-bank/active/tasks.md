@@ -43,25 +43,25 @@ Gates (in order; run after content steps, before calling build done):
 
 ## Implementation Plan
 
-1. **Rewrite Quickstart (ritual owner)**
+1. **Rewrite Quickstart (ritual owner)** ✅
    - Files: `docs/user-guide/quickstart.md`
    - Changes: Self-contained steps — (1) add marketplace via link to [txrk9-agent-plugins](https://github.com/Texarkanine/txrk9-agent-plugins) + install `stockroom` (short Cursor/Claude slash forms inline, no harness-doc deep links required for happy path), (2) Cursor third-party toggle + move screenshot here from install, (3) `sr-initialize` with the single what-it-does paragraph, (4) first try / what next. Remove “details: Install” deferral.
 
-2. **Create Installed layout; remove Install**
-   - Files: add `docs/user-guide/installed-layout.md`; delete `docs/user-guide/install.md`; update `docs/user-guide/.pages` (`install.md` → `installed-layout.md`, title from filename or explicit “Installed layout”)
+2. **Create Installed layout; remove Install** ✅
+   - Files: add `docs/user-guide/installed-layout.md`; delete `docs/user-guide/install.md`; update `docs/user-guide/.pages` (`Installed layout: installed-layout.md`)
    - Changes: Content = committed layout = install layout; dual manifests + shared `skills/`; runtime home / shim / freeze / schedule; plugin≠marketplace; pointer to Quickstart for the ritual; pointer to contributing for local/dev load. No marketplace click matrix.
 
-3. **Move local/dev plugin load to contributor docs**
-   - Files: `docs/contributing/development.md` (new section); strip from former install content
-   - Changes: Cursor `rsync` into `~/.cursor/plugins/local/stockroom/` + Claude `--plugin-dir`; keep “not end-user path” framing; fix any torch cross-links.
+3. **Move local/dev plugin load to contributor docs** ✅
+   - Files: `docs/contributing/development.md` (new “Local plugin load” section); stripped from former install content
+   - Changes: Cursor `rsync` into `~/.cursor/plugins/local/stockroom/` + Claude `--plugin-dir`; keep “not end-user path” framing; torch cross-links updated.
 
-4. **Link + pointer cascade**
-   - Files: `README.md`, `CONTRIBUTING.md`, `docs/user-guide/troubleshooting.md`, `docs/user-guide/using-skills.md`, `docs/contributing/torch.md`, any other `install.md` / `contributor-guide` refs under `docs/`
-   - Changes: Install → Installed layout; `contributor-guide` → `contributing`; README quickstart blurb points at Quickstart for ritual, Installed layout only for layout/local-dev as needed.
+4. **Link + pointer cascade** ✅
+   - Files: `README.md`, `CONTRIBUTING.md`, `docs/user-guide/troubleshooting.md`, `docs/user-guide/using-skills.md`, `docs/contributing/torch.md`, `docs/advanced/index.md`, `skills/sr-initialize/SKILL.md`, `memory-bank/systemPatterns.md`, `memory-bank/techContext.md`
+   - Changes: Install → Installed layout / Quickstart; `contributor-guide` → `contributing`; relative link fixes for moved advanced/contributing trees.
 
-5. **Verify gates**
+5. **Verify gates** ✅
    - Files: none (run commands)
-   - Changes: Acceptance sweep B1–B6; `make docs-build`; `make reuse` if needed. Do not mark build complete until strict build PASS.
+   - Changes: Acceptance sweep B1–B6; `make docs-build` PASS; `make reuse` PASS.
 
 ## Technology Validation
 
@@ -99,5 +99,5 @@ No new technology - validation not required
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight
-- [ ] Build
+- [x] Build
 - [ ] QA

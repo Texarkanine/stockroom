@@ -79,6 +79,31 @@ Get the shim onto your PATH with `make shim` (bakes this checkout, owner `dev`; 
 
 For full machine onboarding — prerequisites, the per-machine torch wheel choice, the `stockroom doctor` smoke test, the shim, the nightly ingest+embed schedule (`stockroom schedule`, cron or launchd), and the first full ingest — run the [`sr-initialize`](https://github.com/Texarkanine/stockroom/blob/main/skills/sr-initialize/SKILL.md) skill; it re-probes on every run and only does what is still missing.
 
+## Local plugin load
+
+Use these while iterating on the plugin itself. They are not the supported end-user path — end users follow the [Quickstart](../user-guide/quickstart.md).
+
+### Cursor
+
+```bash
+mkdir -p ~/.cursor/plugins/local
+# Prefer a real copy; symlinks to a repo outside this tree are often rejected.
+rsync -a --delete \
+  --exclude .git --exclude .venv --exclude '**/__pycache__' \
+  /path/to/stockroom/ ~/.cursor/plugins/local/stockroom/
+```
+
+Reload the window (**Developer: Reload Window**). `.cursor-plugin/plugin.json` must sit at `~/.cursor/plugins/local/stockroom/.cursor-plugin/plugin.json`. Excluding `.venv` is intentional — the next `sessionStart` hook runs `shim rectify`, which ensures locked deps and reinstalls torch from the hashed freeze under stockroom home (written by `sr-initialize` / `make torch`). If you never froze a stack, run `sr-initialize` once (or see [Torch](torch.md)).
+
+### Claude Code
+
+```bash
+# Session-scoped load from a checkout (no marketplace, no install cache):
+claude --plugin-dir /path/to/stockroom
+```
+
+For a longer-lived Claude install you still go through a marketplace (local or remote) that lists the plugin.
+
 <details>
 <summary>Bootstrap footnote: invoking the engine without the shim</summary>
 

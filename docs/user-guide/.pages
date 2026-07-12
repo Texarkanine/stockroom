@@ -1,6 +1,6 @@
 nav:
   - quickstart.md
-  - install.md
+  - Installed layout: installed-layout.md
   - ingest.md
   - search.md
   - dashboard.md

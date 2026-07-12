@@ -23,7 +23,7 @@ It ships as a **dual-manifest plugin** (one shared `skills/` tree for Cursor and
     - **Claude Code:** `/stockroom:sr-initialize`
 3. Ask the agent about past work, or slash-invoke `/sr-search` (Claude: `/stockroom:sr-search`).
 
-Full marketplace and local/dev install paths: [Install](docs/user-guide/install.md).
+What landed on disk (and local/dev plugin load): [Installed layout](docs/user-guide/installed-layout.md).
 
 ## Skills
 
@@ -45,4 +45,4 @@ Harness-specific slash forms: [Using skills](docs/user-guide/using-skills.md).
 
 ## License
 
-Layered, and enforced by `reuse lint` (see [`REUSE.toml`](REUSE.toml)): code is [AGPL-3.0-or-later](LICENSES/AGPL-3.0-or-later.txt); prompt-shaped skill content is layered under the Public Prompt License (PPL-S). Details: [Licensing](docs/contributor-guide/licensing.md).
+Layered, and enforced by `reuse lint` (see [`REUSE.toml`](REUSE.toml)): code is [AGPL-3.0-or-later](LICENSES/AGPL-3.0-or-later.txt); prompt-shaped skill content is layered under the Public Prompt License (PPL-S). Details: [Licensing](docs/contributing/licensing.md).

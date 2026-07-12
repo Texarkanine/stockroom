@@ -57,5 +57,6 @@ The freeze also pins some PyPI transitives of torch (e.g. `filelock`) that appea
 ## See also
 
 - [Development](development.md) — torch-safe sync / `make torch`
-- [Install](../install.md) — local plugin install without `.venv`
+- [Local plugin load](development.md#local-plugin-load) — load a checkout without `.venv`
+- [Installed layout](../user-guide/installed-layout.md) — what marketplace install + `sr-initialize` put on disk
 - [`sr-initialize`](https://github.com/Texarkanine/stockroom/blob/main/skills/sr-initialize/SKILL.md) — guided onboard

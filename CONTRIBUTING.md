@@ -1,12 +1,12 @@
 # Contributing
 
-Thanks for contributing to Stockroom. This page orients you; procedural depth lives under [`docs/contributor-guide/`](docs/contributor-guide/development.md).
+Thanks for contributing to Stockroom. This page orients you; procedural depth lives under [`docs/contributing/`](docs/contributing/development.md).
 
 ## Before you change code
 
-1. Read [Development](docs/contributor-guide/development.md) — Makefile targets, torch-safe `uv` contract, on-path shim.
-2. If you touch embeddings or heal: [Torch](docs/contributor-guide/torch.md).
-3. Licensing is layered — [Licensing](docs/contributor-guide/licensing.md) and root [`REUSE.toml`](REUSE.toml). Prefer path aggregates over per-file SPDX headers when adding many files.
+1. Read [Development](docs/contributing/development.md) — Makefile targets, torch-safe `uv` contract, on-path shim.
+2. If you touch embeddings or heal: [Torch](docs/contributing/torch.md).
+3. Licensing is layered — [Licensing](docs/contributing/licensing.md) and root [`REUSE.toml`](REUSE.toml). Prefer path aggregates over per-file SPDX headers when adding many files.
 
 ## Documentation ownership
 

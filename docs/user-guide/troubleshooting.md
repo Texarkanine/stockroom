@@ -9,7 +9,7 @@ When in doubt: re-run **`sr-initialize`**. It re-probes and only does what is st
 | Symptom | What to check |
 | --- | --- |
 | Skills missing after marketplace install | Reload the window; confirm the plugin is enabled in the harness plugin UI |
-| Cursor hooks / auto-dashboard never fire | Enable **Include third-party Plugins, Skills, and other configs** (see [Install](install.md) screenshot) |
+| Cursor hooks / auto-dashboard never fire | Enable **Include third-party Plugins, Skills, and other configs** (see [Quickstart](quickstart.md) screenshot) |
 | “Add plugins from folder” rejects this repo | Expected — stockroom is a plugin, not a marketplace. Install via `txrk9-agent-plugins` |
 | Local Cursor copy does not load | Ensure `.cursor-plugin/plugin.json` is at `~/.cursor/plugins/local/stockroom/.cursor-plugin/plugin.json`; prefer `rsync` over a symlink to a path outside that tree |
 
@@ -26,7 +26,7 @@ When in doubt: re-run **`sr-initialize`**. It re-probes and only does what is st
 | Symptom | What to do |
 | --- | --- |
 | Semantic search or embed fails citing torch / environment | Torch is out-of-lock and per-machine — re-run `sr-initialize` (do not retry the query hoping torch appears) |
-| Heal soft-fails: no freeze / corrupt freeze | Re-run `sr-initialize` (pick → install → smoke → freeze). Contributors: see [torch](contributing/torch.md) |
+| Heal soft-fails: no freeze / corrupt freeze | Re-run `sr-initialize` (pick → install → smoke → freeze). Contributors: see [torch](../contributing/torch.md) |
 | Heal soft-fails: hash mismatch / yanked wheel | Re-pick a working index, reinstall, smoke, freeze again — do not edit hashes by hand |
 | Weak semantic results for *recent* work | Silent staleness is possible: ingest may have new messages that are not embedded yet. Check coverage / run embed before concluding the content is absent |
 
@@ -34,7 +34,7 @@ When in doubt: re-run **`sr-initialize`**. It re-probes and only does what is st
 
 | Symptom | What to do |
 | --- | --- |
-| Empty or sparse results after first install | Confirm first ingest+embed finished (`sr-initialize`); wait for nightly schedule or run ingest/embed via the agent / [CLI](advanced/cli.md) |
+| Empty or sparse results after first install | Confirm first ingest+embed finished (`sr-initialize`); wait for nightly schedule or run ingest/embed via the agent / [CLI](../advanced/cli.md) |
 | SQL errors on write-looking statements | Read surfaces open the warehouse read-only by construction — use ingest/embed for writes |
 | Truncated-looking cells in output | Truncation is read-time only; use a higher `--detail` (or refetch a targeted row). Full content remains in the warehouse |
 
@@ -48,4 +48,4 @@ When in doubt: re-run **`sr-initialize`**. It re-probes and only does what is st
 ## Still stuck
 
 - Ask the agent with `/sr-search` (or Claude `/stockroom:sr-search`) and describe the error text.
-- Contributors debugging from a checkout: [Development](contributing/development.md) and [Torch](contributing/torch.md).
+- Contributors debugging from a checkout: [Development](../contributing/development.md) and [Torch](../contributing/torch.md).
