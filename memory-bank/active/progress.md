@@ -132,3 +132,13 @@ Rework of release-quality-docs: split Quickstart (self-contained get-running) fr
     - No substantive rework required
 * Insights
     - README blurb can over-claim “local/dev” after content moves to contributor guide
+
+## 2026-07-12 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `memory-bank/active/reflection/reflection-release-quality-docs-rework.md`
+    - Persistent reconcile: no further edits (contributing paths already fixed in build)
+* Decisions made
+    - Keep original L3 reflection alongside rework reflection
+* Insights
+    - Relative link fallout after docs section renames is the recurring lesson

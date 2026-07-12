@@ -1,11 +1,11 @@
 # Active Context
 
 ## Current Task: release-quality-docs
-**Phase:** QA - COMPLETE
+**Phase:** REFLECT - COMPLETE
 
 ## What Was Done
-- QA PASS; trivial README wording fix
-- Ready for reflect
+- Rework reflection written (`reflection-release-quality-docs-rework.md`)
+- Persistent files already path-hygiened during build; no further reconcile
 
 ## Next Step
-- Reflect phase (autonomous for L2)
+- Operator runs `/niko-archive`
