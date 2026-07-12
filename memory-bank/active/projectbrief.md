@@ -48,3 +48,26 @@ The doc IA matches the creative decision so future feedback has an obvious file 
 4. `properdocs build --strict` succeeds; CI gates docs; Pages deploy path is in place (or documented operator handoff if Settings require a manual click).
 5. Skills and `system-model.md` are not bloated with human user-guide prose; ownership rule is stated in CONTRIBUTING.
 6. Creative decision document remains the IA authority; no competing "docs in references/docs/" tree.
+
+## Rework
+
+Review feedback on the shipped quickstart/install split. Original brief above still stands; this section scopes the delta.
+
+### Rework user story
+
+As a new reader of the user guide, I want Quickstart to get me running without bouncing to a second "Install" page (or out to harness docs), and a separate page that explains what landed on disk / where things live — so the two pages have one job each and do not duplicate the marketplace → `sr-initialize` ritual.
+
+### Rework requirements
+
+1. Make `docs/user-guide/quickstart.md` self-contained for the happy path: add marketplace + install `stockroom`, Cursor third-party toggle (keep screenshot), run `sr-initialize`, first try. Link https://github.com/Texarkanine/txrk9-agent-plugins for marketplace-add mechanics; do not defer the ritual to another user-guide page.
+2. Retarget the current `install.md` page as **Installed layout** (`installed-layout.md` or equivalent): dual-manifest / shared `skills/` (committed = install layout), runtime home (`STOCKROOM_HOME` / XDG warehouse, on-path shim, torch freeze, schedule), plugin≠marketplace gotcha. One short `sr-initialize` "what it creates" blurb is fine; do not re-own the click path.
+3. Move local/dev plugin load (`rsync` / Claude `--plugin-dir`) to contributor docs; leave at most a pointer from the layout page.
+4. Update nav (`.pages`), README, and all inbound links (troubleshooting, using-skills, contributing/torch, etc.).
+5. Keep DRY: one owner for the `sr-initialize` what-it-does paragraph (Quickstart for the ritual; layout page only for on-disk outcomes if needed).
+
+### Rework acceptance criteria
+
+1. Quickstart alone is enough to install and initialize without opening Installed layout.
+2. No duplicate full marketplace procedure or duplicate full `sr-initialize` essay across the two pages.
+3. Page title/nav no longer implies a second install ritual; content matches "what landed where."
+4. `properdocs build --strict` still passes; inbound links resolve.

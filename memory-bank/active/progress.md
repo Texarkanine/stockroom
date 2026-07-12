@@ -73,3 +73,14 @@ Implement 1.0-quality documentation for Stockroom per `memory-bank/active/creati
     - productContext unchanged (docs polish does not change product picture)
 * Insights
     - Docs-only Level 3 wants verification gates, not pytest theater; operator handoffs need checklist boxes
+
+## 2026-07-12 - REWORK INITIATED
+
+* Trigger: PR/review feedback during docs review — operator chose rework over archive
+* Feedback (from `/nk-chat` review of `docs/user-guide/quickstart.md` + `install.md`):
+    - Quickstart and Install duplicate the marketplace → `sr-initialize` path; Quickstart currently defers to Install instead of being self-contained
+    - Operator does not want Quickstart sending readers to external harness docs for the happy path; outbound marketplace how-to may link to https://github.com/Texarkanine/txrk9-agent-plugins (that README owns marketplace add)
+    - Install's distinctive value is "what landed where" (layout / on-disk topology), not a second install ritual — "Install" is the wrong name
+    - Preferred direction from chat: rename toward **Installed layout**; Quickstart owns the get-running ritual (marketplace + Cursor third-party toggle screenshot + `sr-initialize` + first try); layout page owns dual-manifest/skills tree, runtime home (XDG/`STOCKROOM_HOME`, shim, torch freeze, schedule), plugin≠marketplace gotcha
+    - Local/dev plugin load (`rsync` / `--plugin-dir`) fits contributor-guide better than the post-install layout page
+    - Cascade: `.pages`, README, troubleshooting, using-skills, contributing/torch inbound links
