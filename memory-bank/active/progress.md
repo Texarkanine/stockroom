@@ -160,3 +160,21 @@ Rework 2 of release-quality-docs: move torch operator contract to user-guide; sh
     - Same level as prior IA rework; not L3 (no toolchain / corpus reopen)
 * Insights
     - Second rework on same task id before archive is fine; progress history preserves both
+
+## 2026-07-12 - PLAN - COMPLETE (rework 2)
+
+* Work completed
+    - Plan: user-guide/torch.md SSOT; delete contributing/torch.md; fold make-torch into development.md; link cascade; docs-build
+* Decisions made
+    - Prefer delete contributing torch page over thin zombie duplicate
+* Insights
+    - Operator Installed layout WIP is base; torch links are surgical
+
+## 2026-07-12 - PREFLIGHT - COMPLETE (rework 2)
+
+* Work completed
+    - PASS; Verification Plan amendment; prefer delete contributing/torch
+* Decisions made
+    - Docs-only TDD N/A
+* Insights
+    - None beyond plan

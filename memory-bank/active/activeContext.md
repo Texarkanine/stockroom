@@ -1,11 +1,10 @@
 # Active Context
 
 ## Current Task: release-quality-docs
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Rework 2 initiated: move torch operator contract to user-guide
-- Complexity: **Level 2** — self-contained docs IA move + link cascade; design settled in chat
+- Level 2 plan for torch → user-guide move; prefer delete contributing/torch and fold make-torch into development.md
 
 ## Next Step
-- Load Level 2 workflow → PLAN
+- Preflight (autonomous)
