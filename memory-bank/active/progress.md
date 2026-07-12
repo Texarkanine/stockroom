@@ -66,3 +66,13 @@ Bring Contributing docs to user-guide quality with a complete localdev enter/hac
     - QA PASS; `.qa-validation-status` = PASS
 * Insights
     - No substantive drift from hybrid decision — atoms stayed thin
+
+## 2026-07-12 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `memory-bank/active/reflection/reflection-contributing-localdev-guide.md`
+    - Reconciled techContext + systemPatterns (local-workflow pointer; localdev ≠ plugin-local)
+* Decisions made
+    - productContext unchanged
+* Insights
+    - Preflight Make-check amendment was the highest-leverage process catch this run

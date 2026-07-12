@@ -187,3 +187,4 @@ No new technology — validation not required. Makefile extensions use existing 
   - [x] Step 7: final gates (M1–M4, docs-build, reuse; ci skipped — no Python)
 - [x] QA
   - PASS (trivial: Exit `sr-initialize` link → quickstart for consistency with Enter)
+- [x] Reflect
