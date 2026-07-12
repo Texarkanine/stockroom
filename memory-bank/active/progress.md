@@ -272,3 +272,11 @@ Rework 3 of release-quality-docs: draft `docs/user-guide/ingest.md` (ingest / em
     - Ready for archive (fourth reflect on this task id)
 * Insights
     - Subdirectory page moves need a full inbound+outbound relative-link pass in the same change
+
+## 2026-07-12 - REWORK 4 INITIATED
+
+* Trigger: continuation — draft search.md + dashboard.md
+* Feedback / agreed direction:
+    - `docs/user-guide/search.md`: how to search (prefer `sr-search`) + overview of the three search skills (`sr-search`, `sr-query`, `sr-semantic`)
+    - `docs/user-guide/dashboard.md`: what the dashboard is, what `sr-dashboard` is; optionally use screenshots under `docs/img/`
+    - Match finished user-guide style (ingest / quickstart / installed-layout / torch)

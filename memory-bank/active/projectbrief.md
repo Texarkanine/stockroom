@@ -117,3 +117,25 @@ As a marketplace user who has finished Quickstart, I want a clear user-guide pag
 2. A reader can tell what ingest vs embed vs schedule each do, when they run, and how to recover / re-run without opening contributing.
 3. Tone and density match the cited finished examples.
 4. Strict docs build passes; inbound links from this page resolve.
+
+## Rework 4 — Search + Dashboard drafts
+
+Fill in finished drafts for the search and dashboard user-guide pages.
+
+### Rework 4 user story
+
+As a marketplace user who can already install and load the warehouse, I want clear pages on how to search history (via skills) and what the local dashboard is for — so I know which skill to reach for and what the metrics UI shows, without reading SKILL.md flag tables.
+
+### Rework 4 requirements
+
+1. Replace the placeholder body of `docs/user-guide/search.md` with a finished draft: prefer `sr-search` as the default entrypoint; overview of `sr-search`, `sr-query`, and `sr-semantic` (when to use each; slash forms; no SKILL flag encyclopedia).
+2. Replace the placeholder body of `docs/user-guide/dashboard.md` with a finished draft: what the dashboard is (local read-only metrics UI, port 58008, auto-launch), what `sr-dashboard` does, and optionally include relevant screenshots from `docs/img/`.
+3. Match finished user-guide style; stay DRY with `using-skills.md` / Quickstart / Advanced CLI / Troubleshooting (point, don't fork).
+4. `properdocs build --strict` PASS.
+
+### Rework 4 acceptance criteria
+
+1. Both pages are readable operator docs (no todo placeholders).
+2. A reader can choose among the three search skills and understand the dashboard's job.
+3. Tone matches finished examples; screenshots (if used) clarify rather than decorate.
+4. Strict docs build passes; links resolve.
