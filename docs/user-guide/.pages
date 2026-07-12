@@ -1,6 +1,7 @@
 nav:
   - quickstart.md
   - Installed layout: installed-layout.md
+  - Torch: torch.md
   - ingest.md
   - search.md
   - dashboard.md

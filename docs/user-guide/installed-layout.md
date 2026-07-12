@@ -26,6 +26,6 @@ After `sr-initialize`, machine-local state lives under stockroom home — `$XDG_
 | Path | What it is |
 | --- | --- |
 | `$STOCKROOM_HOME/warehouse.duckdb` | **DuckDB warehouse:** session/message/tool/embedding tables |
-| `$STOCKROOM_HOME/torch-requirements.txt` | **Torch freeze:** hashed requirements so heal can reinstall the same wheel |
-| `$STOCKROOM_HOME/torch-index` | **Torch index sidecar:** https wheel index URL used when the freeze was written |
+| `$STOCKROOM_HOME/torch-requirements.txt` | **Torch freeze:** hashed requirements so heal can reinstall the same wheel ([Torch](torch.md)) |
+| `$STOCKROOM_HOME/torch-index` | **Torch index sidecar:** https wheel index URL used when the freeze was written ([Torch](torch.md)) |
 | `~/.local/bin/stockroom` | **On-path shim:** bakes the correct `uv` invocation to run Stockroom + Torch offline, from the plugin payload directory |

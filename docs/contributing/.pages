@@ -1,5 +1,4 @@
 nav:
   - Development: development.md
-  - Torch: torch.md
   - Licensing: licensing.md
   - ...

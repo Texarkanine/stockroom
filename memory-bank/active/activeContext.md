@@ -1,10 +1,13 @@
 # Active Context
 
 ## Current Task: release-quality-docs
-**Phase:** PLAN - COMPLETE
+**Phase:** BUILD - COMPLETE
 
 ## What Was Done
-- Level 2 plan for torch → user-guide move; prefer delete contributing/torch and fold make-torch into development.md
+- Created `docs/user-guide/torch.md` (operator SSOT)
+- Deleted `docs/contributing/torch.md`; folded manual freeze + shared deps into `development.md`
+- Retargeted troubleshooting, installed-layout, CONTRIBUTING, sr-initialize, techContext, systemPatterns
+- Gates: `make docs-build` PASS; `make reuse` PASS
 
 ## Next Step
-- Preflight (autonomous)
+- QA

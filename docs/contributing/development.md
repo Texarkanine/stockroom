@@ -62,7 +62,23 @@ make torch                                    # CPU wheels (default)
 make torch TORCH_INDEX=https://download.pytorch.org/whl/cu126   # CUDA example
 ```
 
-`make torch` installs the wheel and freezes the accepted stack under stockroom home so plugin-root heal can replay the same bits (`--require-hashes`). Details: [Torch](torch.md).
+`make torch` installs the wheel and freezes the accepted stack under stockroom home so plugin-root heal can replay the same bits (`--require-hashes`). Operator-facing contract (why out of lock, heal, failure remedies): [Torch](../user-guide/torch.md).
+
+### Manual freeze
+
+If you already have an importable torch in the engine venv and only need the durable freeze (e.g. legacy index-only home):
+
+```bash
+stockroom torch freeze --index https://download.pytorch.org/whl/cpu
+# or, before the shim exists:
+PYTHONPATH=skills/sr-search/src python3 -m stockroom torch freeze \
+  --app-dir skills/sr-search \
+  --index https://download.pytorch.org/whl/cpu
+```
+
+### Shared deps with `uv.lock`
+
+The freeze also pins some PyPI transitives of torch (e.g. `filelock`) that appear in `uv.lock`. Heal installs the freeze **after** the torch-safe inexact deps sync. Inexact sync will not strip torch; minor version drift of those shared deps between lock and freeze is acceptable.
 
 ## Ad-hoc engine invocation: the `stockroom` command
 
@@ -93,7 +109,7 @@ rsync -a --delete \
   /path/to/stockroom/ ~/.cursor/plugins/local/stockroom/
 ```
 
-Reload the window (**Developer: Reload Window**). `.cursor-plugin/plugin.json` must sit at `~/.cursor/plugins/local/stockroom/.cursor-plugin/plugin.json`. Excluding `.venv` is intentional — the next `sessionStart` hook runs `shim rectify`, which ensures locked deps and reinstalls torch from the hashed freeze under stockroom home (written by `sr-initialize` / `make torch`). If you never froze a stack, run `sr-initialize` once (or see [Torch](torch.md)).
+Reload the window (**Developer: Reload Window**). `.cursor-plugin/plugin.json` must sit at `~/.cursor/plugins/local/stockroom/.cursor-plugin/plugin.json`. Excluding `.venv` is intentional — the next `sessionStart` hook runs `shim rectify`, which ensures locked deps and reinstalls torch from the hashed freeze under stockroom home (written by `sr-initialize` / `make torch`). If you never froze a stack, run `sr-initialize` once (or see [Torch](../user-guide/torch.md)).
 
 ### Claude Code
 

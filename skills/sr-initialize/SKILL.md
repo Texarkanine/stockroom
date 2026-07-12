@@ -96,7 +96,7 @@ The first run downloads the embedding model (network needed once); that also pre
 
 **On failure, smoke exits 1 with one stderr line that names the next action — relay it and follow it.** The common shape is a wrong wheel (a CUDA kernel error or crash from the encode): go back to step 5, pick a different index (usually an older `cu*` build, or `cpu` as the always-works fallback), reinstall, and re-run the smoke. `uv pip install` replaces the previous build in place.
 
-**Only after smoke succeeds**, freeze the accepted torch stack so plugin updates can reinstall the *same* bits (hashed requirements under stockroom home — see [`docs/contributing/torch.md`](../../docs/contributing/torch.md)):
+**Only after smoke succeeds**, freeze the accepted torch stack so plugin updates can reinstall the *same* bits (hashed requirements under stockroom home — see [`docs/user-guide/torch.md`](../../docs/user-guide/torch.md)):
 
 ```bash
 PYTHONPATH="$APP_DIR/src" python3 -m stockroom torch freeze \

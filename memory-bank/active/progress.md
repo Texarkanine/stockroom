@@ -178,3 +178,12 @@ Rework 2 of release-quality-docs: move torch operator contract to user-guide; sh
     - Docs-only TDD N/A
 * Insights
     - None beyond plan
+
+## 2026-07-12 - BUILD - COMPLETE (rework 2)
+
+* Work completed
+    - user-guide/torch.md; deleted contributing/torch.md; development.md contributor bits; link cascade; docs-build + reuse green
+* Decisions made
+    - User-guide owns contract + failure table; development owns make torch / manual freeze / shared deps
+* Insights
+    - Installed layout torch rows now deep-link to Torch page
