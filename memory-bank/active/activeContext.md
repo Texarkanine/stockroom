@@ -1,11 +1,11 @@
 # Active Context
 
 ## Current Task: contributing-localdev-guide
-**Phase:** PLAN - COMPLETE
+**Phase:** PREFLIGHT - COMPLETE
 
 ## What Was Done
-- Creative: Hybrid thin Makefile atoms + narrative Contributing.
-- Plan written: `local-workflow.md` + slim development.md; Makefile `localdev-clean` / `plugin-local` / `shim TAKEOVER=1`; Verification Plan (docs-build + M1–M3).
+- Preflight PASS with amendments: verify-before-implement for Makefile atoms (M1–M4); added `localdev-status`.
+- Plan ready for build: `localdev-clean`, `plugin-local`, `shim TAKEOVER=1`, `localdev-status`, `local-workflow.md`, slim development.md, funnel/cross-links.
 
 ## Next Step
-- Preflight phase to validate the plan.
+- Operator: run `/niko-build` (L3 build is operator-gated after preflight PASS).

@@ -80,11 +80,12 @@ Docs / site (gates, not pytest):
 - B3: local-workflow documents Enter / Verify / Exit with the hybrid atoms and human gates (reload, marketplace)
 - B4: development.md no longer owns the lifecycle story (no competing SSOT)
 
-Makefile atoms (manual / shell checks — no existing Makefile test harness; do not invent pytest theater):
+Makefile atoms (executable checks before code — no pytest theater; shell assertions against Make targets):
 
 - M1: `make localdev` then `make localdev-clean` → no `stockroom-local` symlinks; managed pre-commit marker block removed; idempotent second clean
-- M2: `make plugin-local` (or chosen name) rsyncs to `~/.cursor/plugins/local/stockroom/` with excludes; `.cursor-plugin/plugin.json` present at destination (dry-run or DEST override for safety during CI-less verify)
-- M3: `make shim TAKEOVER=1` passes `--takeover` to `shim install` (inspect recipe / dry command echo); default `make shim` does not
+- M2: `make plugin-local` rsyncs to `PLUGIN_LOCAL_DEST` (default `~/.cursor/plugins/local/stockroom/`) with excludes; `.cursor-plugin/plugin.json` present at destination
+- M3: `make -n shim TAKEOVER=1` shows `--takeover`; `make -n shim` does not
+- M4: `make localdev-status` prints enough to see skills-mirror / plugin-local / shim ownership hints without changing state
 
 Engine (regression only if Make wrapper touches Python — expected: none):
 
@@ -92,41 +93,56 @@ Engine (regression only if Make wrapper touches Python — expected: none):
 
 ### Test Infrastructure
 
-- Framework: pytest under `skills/sr-search/tests/` for engine; properdocs `--strict` for docs; no Makefile unit suite
-- New test files: **none** (Verification Plan style, matching prior docs L3)
-- Integration: operator/manual checks M1–M3 on the build machine; full `make docs-build`; `make ci` only if Makefile/engine touch warrants (Make-only + docs: docs-build + reuse if needed)
+- Framework: pytest under `skills/sr-search/tests/` for engine; properdocs `--strict` for docs; Makefile behaviors verified by ordered shell checks (M1–M4), not a new pytest suite
+- New test files: **none**
+- Integration: during build, each Make unit runs its check expecting failure → implement → re-run; then `make docs-build`; `make reuse` if needed; `make ci` only if Python changed
 
 ### Integration Tests
 
 - I1: Documented Enter recipe uses only named atoms + human steps (review against creative)
 - I2: Exit recipe includes localdev-clean + plugin copy removal + shim rebake guidance
+- I3: `localdev-status` usable in Verify / Exit sections of local-workflow
 
 ## Implementation Plan
 
-1. **Makefile: `localdev-clean`**
+1. **`localdev-clean` (TDD)**
+    - Check first: run M1 against current tree (expect missing target / fail)
     - Files: `Makefile`
-    - Changes: remove `LOCAL_SKILLS_DIR` contents/symlinks; strip managed pre-commit marker block (mirror install awk); idempotent; help text
+    - Then: implement remove of `LOCAL_SKILLS_DIR` symlinks; strip managed pre-commit marker block (same markers as `localdev`); idempotent; help text
+    - Re-run M1 to green
     - Creative ref: hybrid atoms
 
-2. **Makefile: `plugin-local` + `shim` TAKEOVER passthrough + comment fix**
+2. **`plugin-local` + `shim TAKEOVER` + comment fix (TDD)**
+    - Check first: M2/M3 expect fail / no `--takeover` in `make -n shim`
     - Files: `Makefile`
-    - Changes: `plugin-local` rsync with documented excludes and overridable `PLUGIN_LOCAL_DEST`; `shim` accepts `TAKEOVER=1` → `--takeover`; fix stale `docs/contributor-guide/torch.md` comment → user-guide torch / contributing development
+    - Then: `plugin-local` rsync with documented excludes and overridable `PLUGIN_LOCAL_DEST`; `shim` accepts `TAKEOVER=1` → `--takeover`; fix stale `docs/contributor-guide/torch.md` comment → user-guide torch path
+    - Re-run M2/M3 to green
     - Creative ref: hybrid atoms
 
-3. **Docs: add `docs/contributing/local-workflow.md`**
+3. **`localdev-status` (TDD)**
+    - Check first: M4 expect fail
+    - Files: `Makefile`
+    - Then: read-only status target (skills-mirror present?, `PLUGIN_LOCAL_DEST` plugin.json?, remind to run `stockroom doctor` / show how to inspect shim bake) — no mutations
+    - Re-run M4 to green
+    - Preflight amendment: Verify/Exit observability without expanding to mega enter/exit
+
+4. **Docs: add `docs/contributing/local-workflow.md`**
     - Files: new page
-    - Changes: presentation-quality Enter / Verify / Exit; distinguish `localdev` vs `plugins/local` vs Claude `--plugin-dir`; footguns (torch after sync/ci, takeover, no symlink for Cursor plugin, third-party hooks toggle pointer to user-guide troubleshooting); link torch SSOT
+    - Changes: presentation-quality Enter / Verify / Exit; distinguish `localdev` vs `plugins/local` vs Claude `--plugin-dir`; footguns (torch after sync/ci, takeover, no symlink for Cursor plugin, third-party hooks toggle → user-guide troubleshooting); use status/clean/plugin-local atoms; link torch SSOT
+    - Verify: content review against B3 + `make docs-build` (with step 5)
 
-4. **Docs: slim `development.md` + nav + CONTRIBUTING funnel**
+5. **Docs: slim `development.md` + nav + CONTRIBUTING funnel**
     - Files: `docs/contributing/development.md`, `docs/contributing/.pages`, `CONTRIBUTING.md`
-    - Changes: move lifecycle out of development; keep Makefile day-to-day, torch-safe contract, two uv projects, ad-hoc invocation; nav order local-workflow → development → licensing; CONTRIBUTING points hackers at local-workflow first
+    - Changes: move lifecycle out of development into links to local-workflow; keep Makefile day-to-day, torch-safe contract, two uv projects, ad-hoc invocation; list new targets in help-oriented sections; nav order local-workflow → development → licensing; CONTRIBUTING points hackers at local-workflow first
+    - Verify: B2/B4 + docs-build
 
-5. **Cross-links + notes sinks**
-    - Files: `docs/user-guide/troubleshooting/index.md` (link retarget); optionally `docs/architecture/index.md` / `docs/advanced/index.md` for rough notes only if orphan content appears
-    - Changes: surgical; no WIP on finished user-guide body copy beyond link targets
+6. **Cross-links + notes sinks**
+    - Files: `docs/user-guide/troubleshooting/index.md` (retarget rsync/local details to local-workflow); optionally Architecture/Advanced notes-only if orphan content appears
+    - Changes: surgical; no WIP dumps onto finished user-guide prose
+    - Verify: B1/B2 via `make docs-build`
 
-6. **Verification**
-    - Run M1–M3 manual checks; `make docs-build`; `make reuse` if license-relevant paths touched; engine `make ci` only if Python changed (expected skip)
+7. **Final gates**
+    - Re-run M1–M4; `make docs-build`; `make reuse` if license-relevant paths touched; engine `make ci` only if Python changed (expected skip)
 
 ## Technology Validation
 
@@ -142,10 +158,15 @@ No new technology — validation not required. Makefile extensions use existing 
 
 ## Pre-Mortem
 
-- **Plan fails because we still wrote a mega enter target**: Prevented by creative Decision + Implementation step 2 scoped to atoms only
+- **Plan fails because we still wrote a mega enter target**: Prevented by creative Decision + Implementation steps scoped to atoms only
 - **Plan fails because docs stay kitchen-sink and nobody finds Exit**: Plan response — local-workflow is mandatory new page with Exit as first-class section; funnel updated in CONTRIBUTING
-- **Plan fails because Make targets are untested and break pre-commit**: Already covered by Challenge on marked-block-only clean + M1 verification
-- **Plan fails by dumping WIP into user-guide**: Constraint + step 5 surgical links only
+- **Plan fails because Make targets are untested and break pre-commit**: Covered by marked-block-only clean + M1/M4 verify-before-implement ordering (preflight amendment)
+- **Plan fails by dumping WIP into user-guide**: Constraint + cross-link step surgical only
+
+## Preflight Amendments
+
+- TDD: each Makefile unit now orders check-fail → implement → re-check (M1–M4)
+- Added thin `localdev-status` atom for Verify/Exit observability (still not a mega enter/exit)
 
 ## Status
 
@@ -155,6 +176,6 @@ No new technology — validation not required. Makefile extensions use existing 
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
 - [ ] QA

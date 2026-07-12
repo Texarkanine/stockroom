@@ -35,3 +35,13 @@ Bring Contributing docs to user-guide quality with a complete localdev enter/hac
     - No new pytest files for Makefile (consistent with prior docs Verification Plan)
 * Insights
     - Warehouse `aef4448b` is the golden Enter narrative; `bb1e3895` motivates `localdev-clean`
+
+## 2026-07-12 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated plan against Makefile/docs reality; creative hybrid still fits
+    - Amended TDD ordering for Make atoms; added `localdev-status` to plan
+* Decisions made
+    - Preflight PASS (with amendments applied in `tasks.md`)
+* Insights
+    - Docs Verification Plan alone is insufficient when Make targets are in scope — each atom needs check-before-implement encoding
