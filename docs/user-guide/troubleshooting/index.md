@@ -20,9 +20,9 @@ Enable **Include third-party Plugins, Skills, and other configs** (see the [Quic
 
 Expected — stockroom is a **plugin**, not a marketplace. Install via [`txrk9-agent-plugins`](https://github.com/Texarkanine/txrk9-agent-plugins).
 
-### Local Cursor copy does not load
+### Local checkout skills / hooks do not load
 
-Ensure `.cursor-plugin/plugin.json` is at `~/.cursor/plugins/local/stockroom/.cursor-plugin/plugin.json`. Prefer `rsync` over a symlink to a path outside that tree — details in [Local workflow](../../contributing/local-workflow.md).
+Contributor localdev wires a skills mirror and PATH-based **project** hooks after you uninstall the marketplace plugin — see [Local workflow](../../contributing/local-workflow.md). Confirm `make localdev-status` shows the skills mirror and managed hook markers, reload the window, and remember Cursor project hooks may be experiment-gated (dashboard remains reachable via `stockroom dashboard`).
 
 ## Installed layout
 

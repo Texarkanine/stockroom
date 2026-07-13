@@ -87,9 +87,9 @@ Docs:
 
 ## Implementation Plan
 
-1. **Shim FORCE (TDD)** — S1–S5 in `test_shim.py` / `test_shim_cli.py` → implement `force` in `install` + CLI → green
-2. **Makefile: FORCE + delete plugin-local + localdev expansion** — Check M1–M4 expect fail/wrong first → then implement: `FORCE`; remove `plugin-local`; `localdev` does skills + Cursor/Claude managed hooks + `shim TAKEOVER=1 FORCE=1` + `stockroom shim ensure-env` + `stockroom dashboard`; clean/status updated per creative → re-check M1–M4
-3. **Docs rewrite** — `local-workflow.md` rip-it-out + appendix; scrub plugin-local from development/CONTRIBUTING/troubleshooting/techContext/systemPatterns
+1. **Shim FORCE (TDD)** — S1–S5 in `test_shim.py` / `test_shim_cli.py` → implement `force` in `install` + CLI → green ✅
+2. **Makefile: FORCE + delete plugin-local + localdev expansion** — Check M1–M4 expect fail/wrong first → then implement: `FORCE`; remove `plugin-local`; `localdev` does skills + Cursor/Claude managed hooks + `shim TAKEOVER=1 FORCE=1` + `stockroom shim ensure-env` + `stockroom dashboard`; clean/status updated per creative → re-check M1–M4 ✅
+3. **Docs rewrite** — `local-workflow.md` rip-it-out + appendix; scrub plugin-local from development/CONTRIBUTING/troubleshooting/techContext/systemPatterns ✅
 4. **Gates** — pytest shim suites; M1–M4; docs-build; reuse; `make ci` (Python changed)
 
 ## Challenges & Mitigations
@@ -126,6 +126,6 @@ No new technology — validation not required.
 - [ ] Build
   - [x] Shim FORCE (S1–S5)
   - [x] Makefile FORCE + delete plugin-local + localdev expansion (M1–M4)
-  - [ ] Docs rewrite + plugin-local scrub (B1–B3)
+  - [x] Docs rewrite + plugin-local scrub (B1–B3)
   - [ ] Gates
 - [ ] QA
