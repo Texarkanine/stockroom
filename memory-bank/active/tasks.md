@@ -94,6 +94,15 @@ No new technology - validation not required
 - [x] 3. Light cross-link pass (`index.md`, `CONTRIBUTING.md`; local-workflow unchanged)
 - [x] 4. Verification: `make docs-build` PASS; content checklist PASS (entry check: Local workflow linked; rip-it-out named only as pointer, not a second ritual)
 
+## QA Results
+
+- Completeness: all brief requirements covered; make table includes full `make help` set
+- KISS/DRY: trivial polish — `HARNESS` cell wording, `ensure-env` language consistency, added `help` row
+- YAGNI: no speculative surfaces
+- Regression: local-workflow remains SSOT for enter/exit; torch.md remains operator remedies
+- Integrity: no scaffolding
+- Documentation: primary deliverable; funnel pages updated
+
 ## Status
 
 - [x] Initialization complete
@@ -103,4 +112,4 @@ No new technology - validation not required
 - [x] Pre-Mortem complete
 - [x] Preflight
 - [x] Build
-- [ ] QA
+- [x] QA

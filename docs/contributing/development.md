@@ -31,6 +31,7 @@ make help
 
 | Target | Role |
 | --- | --- |
+| `help` | List targets |
 | `sync` | Install deps from the committed lock (torch-free; strips a previously installed torch) |
 | `lock` | Regenerate `uv.lock` hermetically |
 | `lock-check` | Fail if the lock is stale vs `pyproject.toml` |
@@ -45,7 +46,7 @@ make help
 | `torch` | Install torch out-of-band + freeze under stockroom home |
 | `docs` | Local docs preview (`properdocs serve`) |
 | `docs-build` | Strict docs build (matches docs CI) |
-| `local-skills` | Wire checkout skills (`HARNESS=cursor\|claude` required) |
+| `local-skills` | Wire checkout skills (`HARNESS` must be `cursor` or `claude`) |
 | `local-engine` | Claim shim + `ensure-env` for this checkout |
 | `local-dashboard` | Bounce `stockroom dashboard` |
 | `localdev` | Compose the three local atoms |
@@ -79,7 +80,7 @@ When you genuinely need to sync without stripping torch:
 uv sync --project skills/sr-search --inexact --no-config
 ```
 
-Prefer `make sync` + restore torch via heal when you want lock fidelity; use `--inexact` when you must keep an already-installed torch in the venv during dep iteration.
+Prefer `make sync` + restore torch via `stockroom shim ensure-env` when you want lock fidelity; use `--inexact` when you must keep an already-installed torch in the venv during dep iteration.
 
 ### Ad-hoc invocation
 

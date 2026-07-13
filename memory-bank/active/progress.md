@@ -48,3 +48,13 @@ Rework `docs/contributing/development.md` into a day-to-day contributor guide (p
     - Built to plan; no local-workflow edits required
 * Insights
     - Prior development.md buried dashboard/skills; section-first layout matches how contributors actually ask questions
+
+## 2026-07-12 - QA - PASS
+
+* Work completed
+    - Semantic review against plan/brief; trivial doc polish applied
+    - docs-build re-verified
+* Decisions made
+    - PASS; proceed to reflect
+* Insights
+    - Ensure-env vs heal wording drift is easy to reintroduce — prefer the concrete command in contributor docs
