@@ -154,5 +154,6 @@ No new technology.
 - [x] Build step 1: delete hook automation (M8/M9)
 - [x] Build step 2: Makefile atoms + HARNESS (M3–M7)
 - [x] Build step 3: docs + memory-bank
-- [ ] Build step 4: gates
+- [x] Build step 4: gates (shim pytest, M1–M9, docs-build, format, ci)
+- [x] Build
 - [ ] QA

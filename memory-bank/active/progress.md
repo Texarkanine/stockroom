@@ -165,3 +165,15 @@ Bring Contributing docs to user-guide quality with a complete localdev enter/hac
     - Follow tasks.md only for hooks (creative Hooks automation superseded)
 * Insights
     - (in progress)
+
+## 2026-07-12 - BUILD - COMPLETE (rework²)
+
+* Work completed
+    - Deleted hook automation helper + tests; Makefile atoms with required `HARNESS`
+    - Docs/troubleshooting/techContext/systemPatterns rewritten for thin atoms + manual hooks note
+    - Verified: M1–M9, B2/B3, docs-build, `make format`, `make ci` (512 passed, 3 skipped)
+* Decisions made
+    - Claude skills: single-shell if/else (not per-line `exit 0`)
+    - No deviations from binding plan; ignored stale creative Hooks install notes
+* Insights
+    - Make’s one-shell-per-recipe-line makes early `exit` a footgun for harness branches
