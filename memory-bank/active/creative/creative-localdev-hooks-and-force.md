@@ -60,7 +60,11 @@ flowchart TD
 
 **Selected**: Option B — PATH-based project hooks + FORCE two-key on shim  
 **Rationale**: Once localdev claims the shim, hooks should use the same on-path surface contributors already trust; no second engine-path SSOT in hook JSON.  
-**Tradeoff**: Cursor project-hooks gating may mean hooks no-op on some builds; localdev still bounces dashboard once at enter.
+**Tradeoff**: Cursor project-hooks gating may mean hooks no-op on some builds; localdev still bounces dashboard once at enter via `local-dashboard`.
+
+### Composition amendment (operator 2026-07-12)
+
+Supersedes mega-`localdev` inlining. Make exposes `local-skills`, `local-hooks`, `local-engine`, `local-dashboard`; `make localdev` only composes them. Harness-dependent targets require `HARNESS=cursor|claude`. See `tasks.md` rework² and troubleshooting-20260712-191942.
 
 ### Implementation Notes
 

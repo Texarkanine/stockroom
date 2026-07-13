@@ -55,12 +55,13 @@ As a contributor, I want a rip-it-out enter path and a one-shot `make localdev` 
 
 ### Rework requirements
 
-1. **Docs:** Rewrite `docs/contributing/local-workflow.md` — canonical "rip it out" story first (warehouse backup → uninstall plugin → stop dashboard → `make localdev` / ensure-env), then appendix for modular bits (engine-only shim claim, clean/status semantics, FORCE warnings).
+1. **Docs:** Rewrite `docs/contributing/local-workflow.md` — canonical "rip it out" story first (warehouse backup → uninstall plugin → stop dashboard → `HARNESS=… make localdev`), then appendix for modular `local-*` atoms and FORCE warnings.
 2. **Delete `plugin-local`** from Makefile, docs, troubleshooting/cross-links, techContext/systemPatterns if they mention it.
-3. **Shim FORCE:** Add force capability so `make shim TAKEOVER=1 FORCE=1` can replace a *live* foreign bake. Two-key turn; downplayed outside localdev/recovery; not agent-default.
-4. **`make localdev`:** Skills + project hooks + claim shim (TAKEOVER+FORCE) + bounce dashboard (`stockroom dashboard` after claim). Cross-harness: Cursor now; Claude skills/hooks as needed for "local" in this project.
-5. **`localdev-clean` / `localdev-status`:** Clean undoes only localdev-managed artifacts (not warehouse, not marketplace). Status has a visual separator between localdev-managed vs shim informational.
+3. **Shim FORCE:** Add force capability so `make shim TAKEOVER=1 FORCE=1` / `make local-engine` can replace a *live* foreign bake. Two-key turn; downplayed outside localdev/recovery; not agent-default.
+4. **Thin Make atoms:** `local-skills`, `local-hooks`, `local-engine`, `local-dashboard`; `make localdev` only composes them. Harness-dependent targets require `HARNESS=cursor|claude` and error if unset.
+5. **`localdev-clean` / `localdev-status`:** Clean undoes only that harness’s localdev-managed artifacts (not warehouse, not marketplace, not shim). Status separates localdev-managed vs shim informational.
 6. **No** `stockroom dashboard stop/restart` in this rework — rely on existing identity-aware dashboard replace.
+7. **Throw out** mega-`localdev` inlined recipe and dual-harness silent writes (nk-refresh 2026-07-12).
 
 ### Rework constraints
 

@@ -2,130 +2,161 @@
 
 * Task ID: contributing-localdev-guide
 * Complexity: Level 3
-* Type: enhancement (rework — localdev one-shot + FORCE + docs)
+* Type: enhancement (rework² — thin `local-*` atoms + `HARNESS`)
 
-Rework the contributor localdev path: rip-it-out docs story, delete `plugin-local`, add shim FORCE (two-key with TAKEOVER), grow `make localdev` to skills + PATH-based project hooks + claim shim + dashboard bounce, split `localdev-status` sections.
+Throw out the mega-`localdev` recipe. Keep shim FORCE + deleted `plugin-local`. Reshape Make into named atoms; `localdev` only composes them. Harness-dependent atoms require `HARNESS=cursor|claude` and error if unset/invalid.
 
 ## Pinned Info
 
-### Localdev one-shot
+### Enter composition
 
 ```mermaid
 flowchart TD
   Backup["backup warehouse"] --> Uninstall["uninstall marketplace plugin"]
-  Uninstall --> StopDash["stop dashboard / close harness"]
-  StopDash --> LD["make localdev"]
-  LD --> Skills["skills mirror"]
-  LD --> Hooks["project hooks PATH-based"]
-  LD --> Shim["shim --takeover --force owner=dev"]
-  LD --> Bounce["stockroom dashboard"]
+  Uninstall --> Close["close harness / old dashboard"]
+  Close --> LD["HARNESS=… make localdev"]
+  LD --> Skills["local-skills"]
+  LD --> Hooks["local-hooks"]
+  LD --> Engine["local-engine"]
+  LD --> Dash["local-dashboard"]
 ```
+
+### Locked atom inventory
+
+| Target | `HARNESS`? | Role |
+| --- | --- | --- |
+| `local-skills` | required | Wire checkout skills for that harness |
+| `local-hooks` | required | PATH project hooks for that harness only |
+| `local-engine` | no | `shim TAKEOVER=1 FORCE=1` + `ensure-env` (owner `dev`) |
+| `local-dashboard` | no | Bounce `stockroom dashboard` |
+| `localdev` | required | Invokes the four atoms above |
+| `localdev-clean` | required | Undo that harness’s managed bits (not warehouse/shim) |
+| `localdev-status` | optional | Report managed vs shim sections |
+
+Usage: `HARNESS=cursor make localdev`
+
+## Cruft to throw out
+
+- Fat inlined `localdev` recipe (skills+hooks+shim+ensure-env+dashboard as one opaque body)
+- Dual-harness hook install in one call (install Cursor *and* Claude always)
+- Docs that present `make localdev` without `HARNESS`
+- Any leftover `plugin-local` references (already scrubbed; keep B2 gate)
+- Preflight amendment that justified stuffing ensure-env *inside* an opaque localdev — ensure-env lives in **`local-engine`** atom instead
+
+## Keep (already done / still valid)
+
+- Shim `force` policy + CLI `--force` + tests S1–S5
+- `make shim` low-level bake with optional `TAKEOVER=1` / `FORCE=1`
+- `plugin-local` deleted
+- PATH-based hooks (creative B) — no PLUGIN_ROOT
+- Status section separator (localdev-managed vs shim)
+- `hooks/localdev_hooks.py` — **slim**: require `--harness`, touch only that harness’s file
 
 ## Component Analysis
 
 ### Affected Components
 
-- **`stockroom.shim`**: add `force=` to `install`; CLI `--force`; alive foreign requires takeover∧force
-- **`Makefile`**: FORCE passthrough; delete `plugin-local`; expand `localdev` / `localdev-clean` / `localdev-status`
-- **`docs/contributing/local-workflow.md`**: full rewrite (rip-it-out + modular appendix)
-- **`docs/contributing/development.md`**, **CONTRIBUTING.md**, **troubleshooting**: drop plugin-local; point at new story
-- **`memory-bank/techContext.md` / `systemPatterns.md`**: drop plugin-local mentions if present
-- **Tests**: `tests/test_shim.py`, `tests/test_shim_cli.py`
+- **`Makefile`**: replace mega-`localdev` with atoms + composer; `HARNESS` guard helper; clean/status per inventory
+- **`hooks/localdev_hooks.py`**: `--harness {cursor,claude}` required; install/clean one harness
+- **`docs/contributing/local-workflow.md`**: rip-it-out uses `HARNESS=… make localdev`; appendix documents each `local-*` atom
+- **`docs/contributing/development.md`**, troubleshooting: match new targets / `HARNESS`
+- **`memory-bank/techContext.md` / `systemPatterns.md`**: point at atom composition
+- **Tests**: keep S1–S5; rewrite `test_localdev_hooks.py` for harness-scoped API; shell checks M1–M7 below
 
 ### Cross-Module Dependencies
 
-- localdev → shim install (Python) → dashboard CLI
-- hooks assume on-path shim already claimed (order: skills → hooks → shim → dashboard, or shim before hooks — **shim before hooks write is fine; hooks run later at sessionStart**. Order in make: skills, hooks files, shim claim, dashboard bounce.)
+Order inside `localdev`: `local-skills` → `local-hooks` → `local-engine` → `local-dashboard`  
+(hooks files may be written before shim claim; they run later at sessionStart against on-path `stockroom`.)
 
 ### Boundary Changes
 
-- Public CLI: new `--force` on `shim install` (dangerous; warned)
-- Make: remove `plugin-local`; `FORCE=1` on `shim` / implied by `localdev`
-- Docs: new enter narrative
+- Make: public atom targets + required `HARNESS` for harness-scoped ones
+- Unchanged: shim CLI `--force` contract
 
 ### Invariants & Constraints
 
 - Must preserve: succeed-or-refuse without FORCE; agents/skills never recommend FORCE
 - Must preserve: TAKEOVER alone insufficient for live foreign
 - Must hold: warehouse backup in rip-it-out story
-- Must hold: localdev-clean does not touch warehouse or marketplace installs
-- Non-goal: dashboard stop/restart subcommands this rework
+- Must hold: `localdev-clean` does not touch warehouse, marketplace, or on-path shim
+- Must hold: harness atoms error clearly when `HARNESS` unset or not `cursor`/`claude`
+- Non-goal: `dashboard stop/restart` subcommands
 
 ## Open Questions
 
-- [x] Project hooks + FORCE surface → **Option B PATH-based hooks + FORCE two-key** (`memory-bank/active/creative/creative-localdev-hooks-and-force.md`)
+- [x] Project hooks + FORCE → creative B (PATH + two-key) — still binding for hook *content*
+- [x] Mega one-shot vs atoms → **atoms + composer** (operator 2026-07-12; nk-refresh)
+- [x] Atom inventory → table above (operator confirmed)
+- [ ] Claude `local-skills`: what filesystem wiring is real today?
+
+### Claude skills (minor — resolve in build with default)
+
+If no stable Claude project-skills mirror exists: `HARNESS=claude make local-skills` prints a short “use `claude --plugin-dir $(CURDIR)` for session skills” and exits 0 (documented no-op), **or** exits nonzero asking for `--plugin-dir` — **prefer exit 0 + message** so `localdev` still completes hooks/engine/dashboard for Claude. Flag in docs appendix.
 
 ## Test Plan (TDD)
 
-### Behaviors to Verify
+### Already green (do not regress)
 
-Engine (pytest):
+- S1–S5 shim FORCE
+- M1: `TAKEOVER=1 FORCE=1` vs plain `shim`
+- M2: `plugin-local` gone
+- B2: no `plugin-local` in user-facing docs
 
-- S1: alive foreign + takeover + force → installed (owner replaced)
-- S2: alive foreign + takeover without force → refused
-- S3: alive foreign + force without takeover → refused
-- S4: dead foreign + takeover (no force) → installed (unchanged)
-- S5: CLI `--force` accepted and wired (argparse + install call)
+### New / revised Make checks
 
-Makefile (shell):
+- M3: `make local-skills` / `local-hooks` / `localdev` / `localdev-clean` without `HARNESS` → nonzero + message
+- M4: `HARNESS=nope make local-hooks` → nonzero
+- M5: `make -n local-engine` shows takeover+force and ensure-env; no `HARNESS` required
+- M6: `make -n HARNESS=cursor localdev` shows it invoking local-skills, local-hooks, local-engine, local-dashboard
+- M7: `localdev-status` still has `=== localdev-managed ===` / `=== shim ===` separator
+- M8: `HARNESS=cursor make -n localdev-clean` touches cursor hooks path / skills mirror; not warehouse
 
-- M1: `make -n shim TAKEOVER=1 FORCE=1` shows `--takeover` and `--force`; plain `make -n shim` shows neither
-- M2: `make -n plugin-local` fails (target gone)
-- M3: `make localdev-status` prints a clear separator between localdev-managed vs shim sections
-- M4: `make localdev-clean` removes skills symlinks, managed hook markers, managed pre-commit block; does not require plugin-local
+### Hooks helper (pytest)
 
-Docs:
+- H1: `--harness cursor` install writes only `.cursor/hooks.json` managed marker; no PLUGIN_ROOT
+- H2: `--harness claude` install writes only settings.local.json
+- H3: clean for one harness preserves the other
+- H4: missing `--harness` → nonzero
+
+### Docs
 
 - B1: `make docs-build` green
-- B2: no remaining `plugin-local` in user-facing docs
-- B3: local-workflow has rip-it-out first + modular appendix + FORCE warning
-
-### Test Infrastructure
-
-- pytest under `skills/sr-search/tests/` (existing shim suites)
-- Shell checks for Make; docs-build for docs
+- B3: rip-it-out first; `HARNESS=… make localdev`; appendix lists atoms; FORCE warned
 
 ## Implementation Plan
 
-1. **Shim FORCE (TDD)** — S1–S5 in `test_shim.py` / `test_shim_cli.py` → implement `force` in `install` + CLI → green ✅
-2. **Makefile: FORCE + delete plugin-local + localdev expansion** — Check M1–M4 expect fail/wrong first → then implement: `FORCE`; remove `plugin-local`; `localdev` does skills + Cursor/Claude managed hooks + `shim TAKEOVER=1 FORCE=1` + `stockroom shim ensure-env` + `stockroom dashboard`; clean/status updated per creative → re-check M1–M4 ✅
-3. **Docs rewrite** — `local-workflow.md` rip-it-out + appendix; scrub plugin-local from development/CONTRIBUTING/troubleshooting/techContext/systemPatterns ✅
-4. **Gates** — pytest shim suites; M1–M4; docs-build; reuse; `make ci` (Python changed)
+1. **Slim `hooks/localdev_hooks.py` (TDD)** — H1–H4; drop dual-install; require `--harness`
+2. **Makefile atoms** — check M3–M8 fail against current mega-recipe → implement:
+   - `require-harness` guard
+   - `local-skills` / `local-hooks` / `local-engine` / `local-dashboard`
+   - `localdev` composer; `localdev-clean` / `localdev-status`
+   - Delete inlined mega body
+3. **Docs + memory-bank pointers** — rewrite local-workflow / development / troubleshooting snippets for atoms + `HARNESS`; techContext/systemPatterns
+4. **Gates** — pytest (shim + localdev_hooks); M1–M8; docs-build; `make format` / `make ci`
 
 ## Challenges & Mitigations
 
-- **Cursor project hooks experiment-gated**: Document; localdev still bounces dashboard once
-- **FORCE abuse**: Two-key Make flags; CLI help scare text; no skill mentions
-- **Hook merge into existing `.cursor/hooks.json`**: Managed markers only; don't wipe unrelated hooks
-- **Claude settings.local.json JSON merge**: Read-modify-write carefully; markers in a comment-free JSON world — use a dedicated key path or sibling file if markers impossible; prefer writing a stockroom-owned fragment file referenced if needed, else replace only SessionStart entries tagged via a distinctive command substring match for clean
+- **Claude skills mirror unclear**: default no-op+message (open question default above)
+- **Cursor project hooks experiment-gated**: document; `local-dashboard` still bounces once via composer
+- **FORCE abuse**: unchanged two-key; only via `local-engine` / explicit `shim` flags
+- **Pre-commit guard**: keep only on Cursor `local-skills` (skills mirror); do not over-guard unrelated project hooks forever
 
 ## Pre-Mortem
 
-- **Plan fails by shipping PLUGIN_ROOT hooks**: Prevented by creative B
-- **Plan fails by making FORCE easy**: Two-key + downplay in docs
-- **Plan fails leaving plugin-local half-referenced**: Explicit scrub step + B2 grep gate
+- **Plan fails by shipping another mega-recipe**: inventoried atoms; composer-only `localdev`
+- **Plan fails by silent dual-harness writes**: `HARNESS` required
+- **Plan fails leaving docs on old one-shot**: B3 + development target list
 
 ## Technology Validation
 
-No new technology — validation not required.
-
-## Preflight Amendments
-
-- `make localdev` also runs `stockroom shim ensure-env` after claiming the shim (operator enter draft; needed so checkout `.venv` + torch heal before dashboard/engine use)
-- Makefile step explicitly orders check-fail → implement → re-check (M1–M4)
+No new technology.
 
 ## Status
 
-- [x] Component analysis complete
-- [x] Open questions resolved (creative-localdev-hooks-and-force)
-- [x] Test planning complete (TDD)
-- [x] Implementation plan complete
-- [x] Technology validation complete
-- [x] Pre-Mortem complete
-- [x] Preflight
-- [ ] Build
-  - [x] Shim FORCE (S1–S5)
-  - [x] Makefile FORCE + delete plugin-local + localdev expansion (M1–M4)
-  - [x] Docs rewrite + plugin-local scrub (B1–B3)
-  - [ ] Gates
+- [x] Prior rework: shim FORCE, plugin-local deleted, PATH hooks concept
+- [x] nk-refresh: mega-recipe rejected; atoms + `HARNESS` locked
+- [x] Atom inventory confirmed
+- [x] Implementation plan (rework²) complete
+- [ ] Preflight on this plan
+- [ ] Build (atoms reshape)
 - [ ] QA

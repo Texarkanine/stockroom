@@ -126,11 +126,23 @@ Bring Contributing docs to user-guide quality with a complete localdev enter/hac
 * Insights
     - sr-initialize / skills must not grow FORCE recommendations
 
-## 2026-07-12 - BUILD - IN-PROGRESS (rework)
+## 2026-07-12 - BUILD - INTERRUPTED (rework)
 
 * Work completed
-    - Entering build after preflight PASS; operator invoked `/niko-build`
+    - Shim FORCE S1–S5; mega-Makefile localdev; docs scrub; docs-build OK
+    - `make ci` hit ruff format on test_localdev_hooks; operator interrupted
 * Decisions made
-    - Follow plan order: shim FORCE → Makefile → docs → gates
+    - nk-refresh: mega-recipe is over-automation
 * Insights
-    - Creative B (PATH hooks + FORCE two-key) is binding for build
+    - One-shot for the operator ≠ one opaque Make body
+
+## 2026-07-12 - PLAN - COMPLETE (rework² thin atoms)
+
+* Work completed
+    - Locked atom inventory + `HARNESS` contract; rewrote `tasks.md` plan; cruft discard list
+* Decisions made
+    - `local-skills` / `local-hooks` / `local-engine` / `local-dashboard`; `localdev` composes only
+    - Harness atoms require `HARNESS=cursor|claude`
+    - Claude `local-skills` default: exit 0 + `--plugin-dir` message if no mirror
+* Insights
+    - Keep FORCE + deleted plugin-local; throw out dual-harness silent install and fat recipe
