@@ -125,3 +125,12 @@ Bring Contributing docs to user-guide quality with a complete localdev enter/hac
     - Preflight PASS
 * Insights
     - sr-initialize / skills must not grow FORCE recommendations
+
+## 2026-07-12 - BUILD - IN-PROGRESS (rework)
+
+* Work completed
+    - Entering build after preflight PASS; operator invoked `/niko-build`
+* Decisions made
+    - Follow plan order: shim FORCE → Makefile → docs → gates
+* Insights
+    - Creative B (PATH hooks + FORCE two-key) is binding for build

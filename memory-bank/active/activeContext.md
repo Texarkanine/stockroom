@@ -1,11 +1,11 @@
 # Active Context
 
 ## Current Task: contributing-localdev-guide
-**Phase:** PREFLIGHT - COMPLETE
+**Phase:** BUILD - IN-PROGRESS (rework)
 
 ## What Was Done
-- Preflight PASS with amendments: `ensure-env` in localdev after shim claim; explicit M1–M4 TDD ordering.
-- Build is operator-gated.
+- Preflight PASS; operator invoked `/niko-build`.
+- Entering implementation: shim FORCE → Makefile → docs → gates.
 
 ## Next Step
-- Operator: run `/niko-build` (L3 after preflight PASS).
+- TDD shim FORCE (S1–S5), then Makefile M1–M4, then docs rewrite.

@@ -1,12 +1,77 @@
-# Local workflow
+# Local Workflow
+
+## Exit Normal Install
+
+To get out of a normal Stockroom install in preparation for local development...
+
+### 1. Make a Backup
+
+```bash
+cp -r ~/.local/share/stockroom/warehouse.db ~/warehouse.db.backup
+```
+
+### 2. Uninstall the Plugin
+
+Un-install the Stockroom plugin from your harness(es). Close the harnesses.
+
+### 3. Stop the Dashboard
+
+```bash
+stockroom dashboard stop
+```
+
+## Prepare Local Checkout
+
+Once you do not have an active Stockroom engine hooked into a harness, nor pointed at by the Stockroom CLI shim, you're ready to hook up a local checkout.
+
+### 1. Shim Takeover
+
+```bash
+make shim TAKEOVER=1 FORCE=1
+```
+
+Now, the `stockroom` CLI points at the engine in your local checkout. Python code changes you make *will* be reflected.
+
+### 2. Harness Wiring
+
+TODO: We need the harness to find the skills from the local checkout AND THE HOOKS.
+
+Skills is easy, `make localdev` does skills (TODO: make one for Cursor).
+
+Hooks is harder. Maybe we have localdev ALSO put hooks into the CURRENT PROJECT, also gitignored? But those only fire in THIS project... BUT ALSO the hook uses the existing shim, so once the shim is taken over, the hook would work. But we can't JUST install the hook w/out the skills...
+
+### 3. Dependency Sync
+
+```bash
+stockroom shim ensure-env
+```
+
+This will re-create the python virtual environment in the new location, including re-installing the correct version of PyTorch.
+
+### 4. Done!
+
+Now, you have
+
+1. `stockroom` CLI pointing at your local checkout's python code
+2. When working in the Stockroom project,
+    - your `/sr-*` skills go to the local checkout copies
+    - your sessionStart hook fires to start the dashboard
+
+You are now ready to start developing!
+
+---
+
+OLD CONTENTS BELOW: 
 
 This page is the contributor round-trip: leave a normal install, hack exclusively from a checkout, verify, and return to the released/plugin install without a hybrid half-state.
 
 End users stay on [`sr-initialize`](../user-guide/quickstart.md) / the marketplace. The Makefile is the **checkout** entrypoint — not an alternate bootstrap for operators who only want Stockroom installed.
 
-Day-to-day targets, the torch-safe `uv` contract, and ad-hoc engine invocation live in [Development](development.md).
+Day-to-day targets, the torch-safe `uv` contract, and ad-hoc engine invocation - and everything else you need once you've switched to a local checkout - live in [Development](development.md).
 
-## Surfaces (do not conflate)
+## Surfaces
+
+Depending on what you want to hack on, 
 
 | Surface | What it is | When to use it |
 | --- | --- | --- |
@@ -14,8 +79,6 @@ Day-to-day targets, the torch-safe `uv` contract, and ad-hoc engine invocation l
 | `make plugin-local` | `rsync` of this repo into `~/.cursor/plugins/local/stockroom/` (overridable `PLUGIN_LOCAL_DEST`) | Cursor: load hooks/skills/plugin.json as an installed **local plugin** |
 | `claude --plugin-dir /path/to/stockroom` | Session-scoped Claude Code plugin load | Claude: try the checkout without a marketplace install |
 | On-path shim (`make shim`) | Baked `stockroom` on `PATH` with owner `dev` | Every enter path that needs ad-hoc CLI from this checkout |
-
-`make localdev` and `make plugin-local` solve different problems. Skills-mirror is not a substitute for a Cursor local plugin copy. Cursor prefers a **real copy** under `plugins/local` — do not symlink the repo into that tree.
 
 ## Enter
 
