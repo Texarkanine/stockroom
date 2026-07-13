@@ -3,10 +3,11 @@
 The shim is baked-only and succeed-or-refuse (no runtime resolution — an
 operator hard constraint), so *all* policy lives in this tested Python layer:
 what gets rendered, who may write the destination (ownership), when a takeover
-of a foreign shim is permitted (dead incumbent + explicit flag only), and when
-the hook-driven ``rectify`` may act (owner match + content drift only, never
-creating). Everything writes to tmp destinations via explicit ``dest`` — the
-real ``~/.local/bin`` is never touched.
+of a foreign shim is permitted (dead incumbent + ``takeover``, or live
+incumbent + ``takeover`` and ``force``), and when the hook-driven ``rectify``
+may act (owner match + content drift only, never creating). Everything writes
+to tmp destinations via explicit ``dest`` — the real ``~/.local/bin`` is never
+touched.
 """
 
 import os
@@ -149,16 +150,39 @@ class TestInstall:
     def test_foreign_owner_alive_dir_refuses_even_with_takeover(
         self, dest: Path, engine_dir: Path, other_engine_dir: Path
     ) -> None:
-        """--takeover never clobbers a *working* foreign shim."""
+        """--takeover alone never clobbers a *working* foreign shim (S2)."""
         shim.install(dest, engine_dir, "cursor")
+        before = dest.read_text()
         report = shim.install(dest, other_engine_dir, "claude", takeover=True)
         assert report.action == "refused"
+        assert dest.read_text() == before
+
+    def test_foreign_owner_alive_dir_takeover_and_force_installs(
+        self, dest: Path, engine_dir: Path, other_engine_dir: Path
+    ) -> None:
+        """Alive foreign + takeover + force → installed; owner replaced (S1)."""
+        shim.install(dest, engine_dir, "cursor")
+        report = shim.install(
+            dest, other_engine_dir, "claude", takeover=True, force=True
+        )
+        assert report.action == "installed"
+        assert dest.read_text() == shim.render(other_engine_dir, "claude")
+
+    def test_foreign_owner_alive_dir_force_without_takeover_refuses(
+        self, dest: Path, engine_dir: Path, other_engine_dir: Path
+    ) -> None:
+        """Alive foreign + force without takeover → refused (S3)."""
+        shim.install(dest, engine_dir, "cursor")
+        before = dest.read_text()
+        report = shim.install(dest, other_engine_dir, "claude", force=True)
+        assert report.action == "refused"
+        assert dest.read_text() == before
 
     def test_foreign_owner_dead_dir_requires_explicit_takeover(
         self, dest: Path, dead_dir: Path, engine_dir: Path
     ) -> None:
         """A dead incumbent is still refused by default; takeover succeeds
-        only with the explicit flag."""
+        only with the explicit flag (S4: force not required for dead)."""
         shim.install(dest, dead_dir, "cursor")
         refused = shim.install(dest, engine_dir, "claude")
         assert refused.action == "refused"

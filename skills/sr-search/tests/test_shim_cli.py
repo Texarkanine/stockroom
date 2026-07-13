@@ -81,8 +81,43 @@ def test_help_documents_subactions_and_flags(tmp_path: Path) -> None:
         "--dest",
         "--owner",
         "--takeover",
+        "--force",
     ):
         assert token in result.stdout
+
+
+def test_install_force_flag_accepted_and_wired(
+    tmp_path: Path, dest: Path, engine_dir: Path, other_engine_dir: Path
+) -> None:
+    """CLI ``--force`` with ``--takeover`` replaces a live foreign bake (S5)."""
+    first = _run(
+        "install",
+        "--dest",
+        str(dest),
+        "--app-dir",
+        str(engine_dir),
+        "--owner",
+        "cursor",
+        tmp_path=tmp_path,
+    )
+    assert first.returncode == 0, first.stderr
+    second = _run(
+        "install",
+        "--dest",
+        str(dest),
+        "--app-dir",
+        str(other_engine_dir),
+        "--owner",
+        "dev",
+        "--takeover",
+        "--force",
+        tmp_path=tmp_path,
+    )
+    assert second.returncode == 0, second.stderr
+    assert dest.is_file()
+    text = dest.read_text()
+    assert "# STOCKROOM_OWNER=dev" in text
+    assert f"# STOCKROOM_APP_DIR={other_engine_dir}" in text
 
 
 def test_ensure_env_exits_zero_without_owner(

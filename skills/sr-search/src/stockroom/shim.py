@@ -16,10 +16,11 @@ Three writers drive this module (all through the same code):
 * ``make shim`` — ``stockroom shim install --owner dev`` (dev-checkout parity)
 
 Ownership is explicit (a ``# STOCKROOM_OWNER=`` header marker): only the
-owner may rewrite an existing shim; a foreign shim is replaced only when its
-baked engine dir is dead *and* ``--takeover`` is passed. ``rectify`` is the
-hook-safe subset: ensures the engine env, then owner-match + content-diff
-rebake only, never creates.
+owner may rewrite an existing shim; a foreign shim whose baked engine is
+**dead** is replaced only when ``--takeover`` is passed; a foreign shim whose
+baked engine is **alive** is replaced only when both ``--takeover`` and
+``--force`` are passed. ``rectify`` is the hook-safe subset: ensures the
+engine env, then owner-match + content-diff rebake only, never creates.
 
 Design records: ``memory-bank/active/creative/creative-shim-staleness-resolution.md``
 and ``creative-shim-generation-surface.md`` (both revised 2026-07-08).
@@ -170,17 +171,24 @@ def _verify_via_path() -> tuple[bool, str]:
 
 
 def install(
-    dest: Path | str, app_dir: Path | str, owner: str, *, takeover: bool = False
+    dest: Path | str,
+    app_dir: Path | str,
+    owner: str,
+    *,
+    takeover: bool = False,
+    force: bool = False,
 ) -> ShimReport:
     """Write the shim to ``dest``, guarded by the ownership policy.
 
-    Policy (see the staleness-resolution creative doc):
+    Policy (see the staleness-resolution creative doc; FORCE amended by
+    localdev-hooks-and-force):
 
     * dest absent → write (mode ``0o755``, atomic temp-file + ``os.replace``).
     * dest present, same owner → rewrite (idempotent).
-    * dest present, different owner, incumbent's baked dir **alive** → refuse.
+    * dest present, different owner, incumbent's baked dir **alive** → refuse
+      unless ``takeover`` and ``force`` are both set.
     * dest present, different owner, incumbent's baked dir **dead** → refuse
-      unless ``takeover`` is set.
+      unless ``takeover`` is set (``force`` optional).
     * corrupt/unreadable header → treated as foreign with a dead baked dir.
 
     On a successful write the report also carries PATH membership of the dest
@@ -195,15 +203,16 @@ def install(
         if header is None or header["owner"] != owner:
             incumbent_alive = header is not None and _alive(header["app_dir"])
             if incumbent_alive:
-                return ShimReport(
-                    action="refused",
-                    dest=dest,
-                    reason=(
-                        f"{dest} is owned by '{incumbent_owner}' and its engine "
-                        "is alive — refusing to replace a working foreign shim"
-                    ),
-                )
-            if not takeover:
+                if not (takeover and force):
+                    return ShimReport(
+                        action="refused",
+                        dest=dest,
+                        reason=(
+                            f"{dest} is owned by '{incumbent_owner}' and its engine "
+                            "is alive — refusing to replace a working foreign shim"
+                        ),
+                    )
+            elif not takeover:
                 return ShimReport(
                     action="refused",
                     dest=dest,
@@ -301,6 +310,14 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="install only: replace a foreign shim whose baked engine is dead",
     )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help=(
+            "install only: with --takeover, also replace a *working* foreign "
+            "shim (dangerous; for localdev / recovery — not the default)"
+        ),
+    )
     return parser
 
 
@@ -335,7 +352,9 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     if args.action == "install":
-        report = install(args.dest, app_dir, args.owner, takeover=args.takeover)
+        report = install(
+            args.dest, app_dir, args.owner, takeover=args.takeover, force=args.force
+        )
         if report.action == "refused":
             print(f"stockroom shim: {report.reason}", file=sys.stderr)
             return 1
