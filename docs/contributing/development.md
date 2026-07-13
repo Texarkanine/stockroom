@@ -2,27 +2,30 @@
 
 From the **repo root**, the [`Makefile`](https://github.com/Texarkanine/stockroom/blob/main/Makefile) is the day-to-day checkout entrypoint — it handles the `skills/sr-search/` cd'ing and the `--no-config` / `--no-sync` flags.
 
-For the full enter → verify → exit localdev round-trip (rip-it-out, `make localdev`, undoing localdev), see [Local workflow](local-workflow.md).
+For the full enter → verify → exit localdev round-trip (rip-it-out, `HARNESS=… make localdev`, undoing localdev), see [Local workflow](local-workflow.md).
 
 ```bash
-make help             # list targets
-make sync             # install from the committed lock (torch-free)
-make torch            # install torch out-of-band + freeze under stockroom home
-make lock             # regenerate uv.lock hermetically
-make lock-check       # fail if the lock is stale vs pyproject.toml
-make test             # Node 22 dashboard tests + pytest
-make test-js          # Node 22 built-in tests only (`node --test`)
-make lint             # ruff check
-make format           # ruff format
-make reuse            # whole-tree reuse lint
-make ci               # full gate (matches CI)
-make shim             # bake this checkout onto PATH (owner: dev)
-make shim TAKEOVER=1  # replace a dead foreign bake (--takeover)
-make localdev         # one-shot: skills + PATH hooks + shim claim + ensure-env + dashboard
-make localdev-clean   # undo make localdev (not warehouse / marketplace)
-make localdev-status  # read-only: localdev-managed vs shim sections
-make docs             # local docs preview (properdocs serve)
-make docs-build       # strict docs build (matches docs CI)
+make help                          # list targets
+make sync                          # install from the committed lock (torch-free)
+make torch                         # install torch out-of-band + freeze under stockroom home
+make lock                          # regenerate uv.lock hermetically
+make lock-check                    # fail if the lock is stale vs pyproject.toml
+make test                          # Node 22 dashboard tests + pytest
+make test-js                       # Node 22 built-in tests only (`node --test`)
+make lint                          # ruff check
+make format                        # ruff format
+make reuse                         # whole-tree reuse lint
+make ci                            # full gate (matches CI)
+make shim                          # bake this checkout onto PATH (owner: dev)
+make shim TAKEOVER=1               # replace a dead foreign bake (--takeover)
+make local-skills                  # requires HARNESS=cursor|claude
+make local-engine                  # shim TAKEOVER+FORCE + ensure-env
+make local-dashboard               # bounce stockroom dashboard
+HARNESS=cursor make localdev       # compose skills + engine + dashboard
+HARNESS=cursor make localdev-clean # undo harness-managed bits (not warehouse / shim)
+make localdev-status               # read-only: localdev-managed vs shim sections
+make docs                          # local docs preview (properdocs serve)
+make docs-build                    # strict docs build (matches docs CI)
 ```
 
 **Node 22** is required for the full test gate: `make test` and `make ci` run the dashboard's native ES-module contracts through Node's built-in test runner (no npm packages).
@@ -98,7 +101,7 @@ stockroom embed --verbose           # same for embedding
 stockroom query "SELECT DISTINCT harness FROM sessions"
 ```
 
-Get the shim onto your PATH with `make shim` (bakes this checkout, owner `dev`; plugin installs get theirs from `sr-initialize`). Use `make shim TAKEOVER=1` for a dead foreign bake, or `make localdev` / `TAKEOVER=1 FORCE=1` when claiming a live foreign bake during localdev — details in [Local workflow](local-workflow.md). The shim is baked-only and **succeed-or-refuse**: it never guesses at an engine location — if its baked engine dir is gone, or the engine env cannot import locked deps, it refuses with a one-line remedy. Each harness's session/workspace hook runs `shim rectify`, which re-bakes an owned shim after a plugin update **and** ensures the engine uv env (torch-safe inexact sync via `shim ensure-env`, then torch reinstall from the hashed freeze written by `sr-initialize` / `make torch` / `stockroom torch freeze`).
+Get the shim onto your PATH with `make shim` (bakes this checkout, owner `dev`; plugin installs get theirs from `sr-initialize`). Use `make shim TAKEOVER=1` for a dead foreign bake, or `make local-engine` / `TAKEOVER=1 FORCE=1` when claiming a live foreign bake during localdev — details in [Local workflow](local-workflow.md). The shim is baked-only and **succeed-or-refuse**: it never guesses at an engine location — if its baked engine dir is gone, or the engine env cannot import locked deps, it refuses with a one-line remedy. Each harness's session/workspace hook runs `shim rectify`, which re-bakes an owned shim after a plugin update **and** ensures the engine uv env (torch-safe inexact sync via `shim ensure-env`, then torch reinstall from the hashed freeze written by `sr-initialize` / `make torch` / `stockroom torch freeze`).
 
 For full machine onboarding — prerequisites, the per-machine torch wheel choice, the `stockroom doctor` smoke test, the shim, the nightly ingest+embed schedule (`stockroom schedule`, cron or launchd), and the first full ingest — run the [`sr-initialize`](https://github.com/Texarkanine/stockroom/blob/main/skills/sr-initialize/SKILL.md) skill; it re-probes on every run and only does what is still missing.
 

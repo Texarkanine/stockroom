@@ -151,5 +151,8 @@ No new technology.
 - [x] nk-refresh → thin atoms; hooks removed from automation
 - [x] Plan (rework²) updated
 - [x] Preflight PASS (amendments applied)
-- [ ] Build
+- [x] Build step 1: delete hook automation (M8/M9)
+- [x] Build step 2: Makefile atoms + HARNESS (M3–M7)
+- [x] Build step 3: docs + memory-bank
+- [ ] Build step 4: gates
 - [ ] QA

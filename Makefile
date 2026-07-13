@@ -21,18 +21,19 @@ TORCH_INDEX ?= https://download.pytorch.org/whl/cpu
 TAKEOVER ?=
 FORCE ?=
 
-.PHONY: help sync lock lock-check test test-js lint format format-check reuse ci torch localdev localdev-clean localdev-status shim docs docs-build
+# Harness-scoped localdev atoms require HARNESS=cursor|claude.
+HARNESS ?=
 
-# localdev: mirror skills/ into .cursor/skills/stockroom-local so a harness can
-# load them "normally", without ever letting the mirror land in a commit.
+.PHONY: help sync lock lock-check test test-js lint format format-check reuse ci torch \
+	local-skills local-engine local-dashboard localdev localdev-clean localdev-status shim \
+	docs docs-build require-harness
+
+# local-skills: mirror skills/ into .cursor/skills/stockroom-local (Cursor) so a
+# harness can load them "normally", without ever letting the mirror land in a commit.
 LOCAL_SKILLS_DIR := .cursor/skills/stockroom-local
 PRE_COMMIT_HOOK := .git/hooks/pre-commit
 LOCALDEV_MARKER_BEGIN := \# BEGIN stockroom-local (managed by 'make localdev')
 LOCALDEV_MARKER_END := \# END stockroom-local
-LOCALDEV_HOOK_MARKER := stockroom-localdev-managed
-CURSOR_HOOKS_JSON := .cursor/hooks.json
-CLAUDE_SETTINGS_LOCAL := .claude/settings.local.json
-LOCALDEV_HOOKS_PY := hooks/localdev_hooks.py
 
 help: ## List targets
 	@printf "stockroom dev targets (engine: %s)\n\n" "$(ENGINE)"
@@ -88,58 +89,75 @@ docs-build: ## Strict docs build (matches docs CI)
 	uv sync --group docs --frozen
 	uv run properdocs build --strict
 
-localdev: ## One-shot enter: skills + PATH hooks + shim claim + ensure-env + dashboard bounce
-	@mkdir -p $(LOCAL_SKILLS_DIR)
-	@for link in $(LOCAL_SKILLS_DIR)/*; do \
-		[ -L "$$link" ] || continue; \
-		name=$$(basename "$$link"); \
-		[ -d "skills/$$name" ] || rm -f "$$link"; \
-	done
-	@for d in skills/*/; do \
-		name=$$(basename "$$d"); \
-		ln -sfn "../../../skills/$$name" "$(LOCAL_SKILLS_DIR)/$$name"; \
-	done
-	@touch $(PRE_COMMIT_HOOK)
-	@head -1 $(PRE_COMMIT_HOOK) 2>/dev/null | grep -q '^#!' || \
-		{ printf '#!/bin/sh\n' | cat - $(PRE_COMMIT_HOOK) > $(PRE_COMMIT_HOOK).tmp && mv $(PRE_COMMIT_HOOK).tmp $(PRE_COMMIT_HOOK); }
-	@awk -v b="$(LOCALDEV_MARKER_BEGIN)" -v e="$(LOCALDEV_MARKER_END)" \
-		'$$0==b{skip=1} !skip{print} $$0==e{skip=0}' $(PRE_COMMIT_HOOK) > $(PRE_COMMIT_HOOK).tmp && \
-		mv $(PRE_COMMIT_HOOK).tmp $(PRE_COMMIT_HOOK)
-	@{ \
-		echo "$(LOCALDEV_MARKER_BEGIN)"; \
-		echo 'if git diff --cached --name-only -- $(LOCAL_SKILLS_DIR) | grep -q .; then git reset --quiet HEAD -- $(LOCAL_SKILLS_DIR); fi'; \
-		echo 'if git diff --cached --name-only -- $(CURSOR_HOOKS_JSON) | grep -q .; then'; \
-		echo '  if grep -qF "$(LOCALDEV_HOOK_MARKER)" $(CURSOR_HOOKS_JSON) 2>/dev/null; then git reset --quiet HEAD -- $(CURSOR_HOOKS_JSON); fi'; \
-		echo 'fi'; \
-		echo "$(LOCALDEV_MARKER_END)"; \
-	} >> $(PRE_COMMIT_HOOK)
-	@chmod +x $(PRE_COMMIT_HOOK)
-	@python3 $(LOCALDEV_HOOKS_PY) install \
-		--cursor-hooks $(CURSOR_HOOKS_JSON) \
-		--claude-settings $(CLAUDE_SETTINGS_LOCAL)
-	@$(MAKE) --no-print-directory shim TAKEOVER=1 FORCE=1
-	@PYTHONPATH=$(CURDIR)/$(ENGINE)/src $(UV_RUN) python -m stockroom shim ensure-env --app-dir $(CURDIR)/$(ENGINE)
-	@PYTHONPATH=$(CURDIR)/$(ENGINE)/src $(UV_RUN) python -m stockroom dashboard
-	@echo "localdev ready: skills mirror, PATH hooks, shim claimed (dev+takeover+force), ensure-env, dashboard bounced"
+require-harness:
+	@case "$(HARNESS)" in \
+		cursor|claude) ;; \
+		*) echo "HARNESS must be set to 'cursor' or 'claude' (got: '$(HARNESS)')"; exit 1 ;; \
+	esac
 
-localdev-clean: ## Undo localdev (skills, managed hooks, pre-commit); not warehouse/marketplace
-	@if [ -d "$(LOCAL_SKILLS_DIR)" ]; then \
+local-skills: require-harness ## Wire checkout skills for HARNESS=cursor|claude
+	@if [ "$(HARNESS)" = "claude" ]; then \
+		echo "local-skills (claude): no skills mirror; use \`claude --plugin-dir $(CURDIR)\` for a session-scoped plugin load"; \
+	else \
+		mkdir -p $(LOCAL_SKILLS_DIR); \
 		for link in $(LOCAL_SKILLS_DIR)/*; do \
-			[ -e "$$link" ] || [ -L "$$link" ] || continue; \
-			[ -L "$$link" ] && rm -f "$$link"; \
+			[ -L "$$link" ] || continue; \
+			name=$$(basename "$$link"); \
+			[ -d "skills/$$name" ] || rm -f "$$link"; \
 		done; \
-		rmdir "$(LOCAL_SKILLS_DIR)" 2>/dev/null || true; \
-	fi
-	@if [ -f "$(PRE_COMMIT_HOOK)" ]; then \
+		for d in skills/*/; do \
+			name=$$(basename "$$d"); \
+			ln -sfn "../../../skills/$$name" "$(LOCAL_SKILLS_DIR)/$$name"; \
+		done; \
+		touch $(PRE_COMMIT_HOOK); \
+		head -1 $(PRE_COMMIT_HOOK) 2>/dev/null | grep -q '^#!' || \
+			{ printf '#!/bin/sh\n' | cat - $(PRE_COMMIT_HOOK) > $(PRE_COMMIT_HOOK).tmp && mv $(PRE_COMMIT_HOOK).tmp $(PRE_COMMIT_HOOK); }; \
 		awk -v b="$(LOCALDEV_MARKER_BEGIN)" -v e="$(LOCALDEV_MARKER_END)" \
 			'$$0==b{skip=1} !skip{print} $$0==e{skip=0}' $(PRE_COMMIT_HOOK) > $(PRE_COMMIT_HOOK).tmp && \
 			mv $(PRE_COMMIT_HOOK).tmp $(PRE_COMMIT_HOOK); \
+		{ \
+			echo "$(LOCALDEV_MARKER_BEGIN)"; \
+			echo 'if git diff --cached --name-only -- $(LOCAL_SKILLS_DIR) | grep -q .; then git reset --quiet HEAD -- $(LOCAL_SKILLS_DIR); fi'; \
+			echo "$(LOCALDEV_MARKER_END)"; \
+		} >> $(PRE_COMMIT_HOOK); \
 		chmod +x $(PRE_COMMIT_HOOK); \
+		echo "local-skills (cursor): mirrored skills into $(LOCAL_SKILLS_DIR)"; \
 	fi
-	@python3 $(LOCALDEV_HOOKS_PY) clean \
-		--cursor-hooks $(CURSOR_HOOKS_JSON) \
-		--claude-settings $(CLAUDE_SETTINGS_LOCAL)
-	@echo "localdev-clean: removed skills mirror, managed hooks, and pre-commit block (idempotent)"
+
+local-engine: ## Claim shim (TAKEOVER+FORCE) + ensure-env for this checkout
+	@$(MAKE) --no-print-directory shim TAKEOVER=1 FORCE=1
+	@PYTHONPATH=$(CURDIR)/$(ENGINE)/src $(UV_RUN) python -m stockroom shim ensure-env --app-dir $(CURDIR)/$(ENGINE)
+	@echo "local-engine: shim claimed (dev+takeover+force) and ensure-env run"
+
+local-dashboard: ## Bounce stockroom dashboard (identity-aware replace)
+	@PYTHONPATH=$(CURDIR)/$(ENGINE)/src $(UV_RUN) python -m stockroom dashboard
+	@echo "local-dashboard: dashboard bounced"
+
+localdev: require-harness ## Compose local-skills + local-engine + local-dashboard
+	@$(MAKE) --no-print-directory local-skills HARNESS=$(HARNESS)
+	@$(MAKE) --no-print-directory local-engine
+	@$(MAKE) --no-print-directory local-dashboard
+	@echo "localdev ready (HARNESS=$(HARNESS)): skills, engine, dashboard"
+
+localdev-clean: require-harness ## Undo harness-managed localdev bits (not warehouse/shim)
+	@if [ "$(HARNESS)" = "claude" ]; then \
+		echo "localdev-clean (claude): nothing managed to remove"; \
+	else \
+		if [ -d "$(LOCAL_SKILLS_DIR)" ]; then \
+			for link in $(LOCAL_SKILLS_DIR)/*; do \
+				[ -e "$$link" ] || [ -L "$$link" ] || continue; \
+				[ -L "$$link" ] && rm -f "$$link"; \
+			done; \
+			rmdir "$(LOCAL_SKILLS_DIR)" 2>/dev/null || true; \
+		fi; \
+		if [ -f "$(PRE_COMMIT_HOOK)" ]; then \
+			awk -v b="$(LOCALDEV_MARKER_BEGIN)" -v e="$(LOCALDEV_MARKER_END)" \
+				'$$0==b{skip=1} !skip{print} $$0==e{skip=0}' $(PRE_COMMIT_HOOK) > $(PRE_COMMIT_HOOK).tmp && \
+				mv $(PRE_COMMIT_HOOK).tmp $(PRE_COMMIT_HOOK); \
+			chmod +x $(PRE_COMMIT_HOOK); \
+		fi; \
+		echo "localdev-clean (cursor): removed skills mirror and pre-commit block (idempotent)"; \
+	fi
 
 localdev-status: ## Read-only: localdev-managed vs shim sections (no mutations)
 	@echo "=== localdev-managed ==="
@@ -148,16 +166,6 @@ localdev-status: ## Read-only: localdev-managed vs shim sections (no mutations)
 		ls -la "$(LOCAL_SKILLS_DIR)" | sed 's/^/    /'; \
 	else \
 		echo "  skills-mirror: absent ($(LOCAL_SKILLS_DIR))"; \
-	fi
-	@if [ -f "$(CURSOR_HOOKS_JSON)" ] && grep -qF "$(LOCALDEV_HOOK_MARKER)" "$(CURSOR_HOOKS_JSON)" 2>/dev/null; then \
-		echo "  cursor hooks: PRESENT managed marker in $(CURSOR_HOOKS_JSON)"; \
-	else \
-		echo "  cursor hooks: absent managed marker ($(CURSOR_HOOKS_JSON))"; \
-	fi
-	@if [ -f "$(CLAUDE_SETTINGS_LOCAL)" ] && grep -qF "$(LOCALDEV_HOOK_MARKER)" "$(CLAUDE_SETTINGS_LOCAL)" 2>/dev/null; then \
-		echo "  claude hooks: PRESENT managed marker in $(CLAUDE_SETTINGS_LOCAL)"; \
-	else \
-		echo "  claude hooks: absent managed marker ($(CLAUDE_SETTINGS_LOCAL))"; \
 	fi
 	@if [ -f "$(PRE_COMMIT_HOOK)" ] && grep -qF "$(LOCALDEV_MARKER_BEGIN)" "$(PRE_COMMIT_HOOK)" 2>/dev/null; then \
 		echo "  pre-commit managed block: PRESENT"; \
