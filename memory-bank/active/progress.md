@@ -156,3 +156,12 @@ Bring Contributing docs to user-guide quality with a complete localdev enter/hac
     - Preflight PASS (amendments applied in tasks.md)
 * Insights
     - Current tree still has mega-localdev + localdev_hooks.py — that is expected pre-build cruft, not a plan conflict
+
+## 2026-07-12 - BUILD - IN-PROGRESS (rework²)
+
+* Work completed
+    - Entered build after operator `/niko-build`
+* Decisions made
+    - Follow tasks.md only for hooks (creative Hooks automation superseded)
+* Insights
+    - (in progress)

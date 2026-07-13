@@ -1,11 +1,11 @@
 # Active Context
 
 ## Current Task: contributing-localdev-guide
-**Phase:** PREFLIGHT - COMPLETE (rework²)
+**Phase:** BUILD - IN-PROGRESS (rework² thin atoms, no hook automation)
 
 ## What Was Done
-- Preflight PASS with amendments: TDD check-fail→implement on delete + Makefile atoms; ignore stale creative Hooks notes; status drops hook markers; Claude skills no-op default locked.
-- Build is operator-gated.
+- Preflight PASS; operator invoked `/niko-build`.
+- Binding design: thin atoms + `HARNESS`; no Make hook install (ignore stale creative Hooks automation notes).
 
 ## Next Step
-- Operator: `/niko-build`
+- Execute plan steps 1–4 (delete hooks → Makefile atoms → docs → gates).
