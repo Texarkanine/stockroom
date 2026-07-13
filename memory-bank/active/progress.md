@@ -177,3 +177,13 @@ Bring Contributing docs to user-guide quality with a complete localdev enter/hac
     - No deviations from binding plan; ignored stale creative Hooks install notes
 * Insights
     - Make’s one-shell-per-recipe-line makes early `exit` a footgun for harness branches
+
+## 2026-07-12 - QA - COMPLETE (rework²)
+
+* Work completed
+    - Semantic review vs thin-atoms / no-hook-automation plan + creative amendments
+    - Trivial fix: projectbrief constraint no longer claims hooks-in-localdev as open design
+* Decisions made
+    - QA PASS
+* Insights
+    - Inventory, HARNESS guards, docs rip-it-out, and gates all matched plan; no substantive drift

@@ -156,4 +156,4 @@ No new technology.
 - [x] Build step 3: docs + memory-bank
 - [x] Build step 4: gates (shim pytest, M1–M9, docs-build, format, ci)
 - [x] Build
-- [ ] QA
+- [x] QA PASS (trivial: projectbrief constraint line un-staled re hooks-in-localdev)

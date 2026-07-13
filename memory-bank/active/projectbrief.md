@@ -67,4 +67,4 @@ As a contributor, I want a rip-it-out enter path and a one-shot `HARNESS=… mak
 
 - Preserve end-user succeed-or-refuse shim policy for agents/skills (FORCE is opt-in and warned).
 - Preserve unrelated `creative-embedding-invalidation.md`.
-- Prior reflection remains historical; new creative/plan as needed for FORCE + hooks-in-localdev.
+- Prior reflection remains historical; creative Hooks *automation* was later dropped — binding design is thin atoms + manual hooks footnote only.
