@@ -68,6 +68,7 @@ You should now have:
 
 ```bash
 make localdev-status    # read-only status report
+stockroom doctor probe  # show shim & system info
 stockroom doctor smoke  # ensure Torch actually works
 ```
 
@@ -77,28 +78,34 @@ You are now ready to start developing!
 
 ## Done Developing
 
-Undo localdev-managed bits and clear the live `dev` shim claim:
+### 1. No More Local
 
 ```bash
 HARNESS=cursor make localdev-clean    # or HARNESS=claude
 ```
 
-That removes the Cursor skills mirror / pre-commit guard (Claude: nothing to mirror) and **deletes `~/.local/bin/stockroom` only if its header says `owner=dev`**. Harness-owned shims are left alone. Warehouse and marketplace installs are untouched.
+That removes the Cursor skills mirror / pre-commit guard (Claude: nothing to mirror) and deletes `~/.local/bin/stockroom` **only if** its header says `owner=dev`. Harness-owned shims are left alone. Warehouse untouched.
 
-`stockroom` is now off PATH on purpose. SessionStart `shim rectify` will **not** recreate it (rectify never creates a missing shim). Finish exit like this:
+### 2. Restore Database
+
+Wherever you backed up your database, restore it now.
+
+### 3. Re-Install Marketplace Plugin
+
+Then restore a normal install:
 
 1. Reinstall / enable the marketplace plugin in the harness UI.
-2. Launch the harness so plugin hooks and skills load.
-3. Run [`sr-initialize`](../user-guide/quickstart.md) once — if torch/schedule/env are already fine it should mostly just bind the on-path shim for the plugin.
+2. Launch the harness — sessionStart `shim rectify` recreates the on-path shim for the plugin (and rebakes after path moves).
 
-Then confirm:
+Confirm:
 
 ```bash
 make localdev-status
-stockroom doctor
+stockroom doctor probe
+stockroom doctor smoke
 ```
 
-Goal: no leftover skills mirror (Cursor), and a shim owned by the released/plugin path — not a half-dead `dev` bake.
+You're back running the released Stockroom!
 
 ## Appendix: Modular Atoms
 
@@ -107,36 +114,36 @@ Use these when you do not need the full rip-it-out path. Harness-scoped targets 
 | Target | `HARNESS`? | Role |
 | --- | --- | --- |
 | `local-skills` | required | Wire checkout skills for that harness |
-| `local-engine` | no | `shim TAKEOVER=1 FORCE=1` + `ensure-env` |
+| `local-engine` | no | `stockroom` CLI points at local python code |
 | `local-dashboard` | no | Bounce `stockroom dashboard` |
 | `localdev` | required | Invokes the three atoms above |
 | `localdev-clean` | required | Undo harness-managed bits + remove `owner=dev` shim (not warehouse) |
 | `localdev-status` | optional | Report managed vs shim sections |
 
-### Engine-only shim claim
+### Engine-only Shim Claim
 
 ```bash
 make shim                      # bake this checkout (owner: dev)
 make shim TAKEOVER=1           # replace a *dead* foreign bake
 make shim TAKEOVER=1 FORCE=1   # replace a *live* foreign bake (dangerous)
-# or:
-make local-engine              # takeover+force + ensure-env (no HARNESS)
 ```
 
-`FORCE=1` is for localdev and recovery of a broken install. It is not the agent default — skills and initialize must not recommend it casually. Prefer `HARNESS=… make localdev` when you want skills + engine + dashboard together.
+`FORCE=1` is for localdev and recovery of a broken install. You run the risk of pointing python code at a different migration level than your DB, at your DB, which may corrupt your data if you don't know what you're doing.
 
-### Status semantics
+### Status Semantics
 
 `make localdev-status` prints two sections (read-only; no mutations):
 
 1. **localdev-managed** — skills mirror and pre-commit block (when present)
 2. **shim** — on-PATH location, default dest (`~/.local/bin/stockroom`), owner + baked `app-dir` from the shim header, whether that engine dir is alive, and torch version in that engine’s `.venv` (or “not installed”)
 
-### Clean semantics
+### Clean Semantics
 
-`HARNESS=… make localdev-clean` removes that harness’s localdev-managed artifacts (Cursor skills mirror + pre-commit block; Claude has none) and deletes `~/.local/bin/stockroom` **only when** the shim header is `owner=dev`. It does **not** touch the warehouse, marketplace installs, or a harness-owned (`cursor` / `claude`) shim. After a `dev` unclaim, reinstall the plugin, launch, and run `sr-initialize` once to bind a normal shim — rectify alone will not recreate it.
+`HARNESS=… make localdev-clean` removes that harness’s localdev-managed artifacts and deletes `~/.local/bin/stockroom` **only when** the shim header is `owner=dev`. 
 
-### Claude without marketplace
+It does **not** touch the warehouse, marketplace installs, or a harness-owned shim. After a `dev` unclaim, reinstall the marketplace plugin and launch — sessionStart `shim rectify` creates the missing on-path shim for the plugin.
+
+### Claude Without Marketplace
 
 For a session-scoped Claude load of the whole plugin tree (skills + committed plugin hooks):
 
@@ -146,14 +153,16 @@ claude --plugin-dir /path/to/stockroom
 
 `HARNESS=claude make local-skills` prints that reminder and does not create a Cursor-style skills mirror.
 
-### Hooks when changing the bootstrap surface
+### Skip Marketplace Uninstall
 
-Committed plugin hooks under `hooks/*.json` use `CURSOR_PLUGIN_ROOT` / `CLAUDE_PLUGIN_ROOT`. After you uninstall the marketplace plugin those variables are unset, so copying those files into the project does **not** restore sessionStart. Make does not install project hooks. Only edit hooks by hand if you are changing the hook bootstrap surface itself; for day-to-day localdev, use `local-dashboard` / `stockroom dashboard`.
+If you are only going to work with the engine (the python code), you can leave the marketplace plugin installed in your harness: all its skills and hooks will use the `stockroom` CLI shim (which now points at your local checkout's python code).
 
-### Enter footguns
+### Changing the Hooks
+
+Committed plugin hooks under `hooks/*.json` use `CURSOR_PLUGIN_ROOT` / `CLAUDE_PLUGIN_ROOT`. After you uninstall the marketplace plugin those variables are unset, so copying those files into the project does **not** restore sessionStart. Make does not install project hooks. Only edit hooks by hand if you are changing the hook bootstrap surface itself; for day-to-day localdev, use `local-dashboard` / `stockroom dashboard` to launch the dashboard.
+
+### Footguns
 
 - **`make sync` / `make ci` strips torch.** Restore with `stockroom shim ensure-env` (hashed freeze) — not `make torch`, which picks `TORCH_INDEX` and rewrites the freeze. Use `make torch` only when deliberately choosing/changing the accepted stack ([Development](development.md), [Torch](../user-guide/troubleshooting/torch.md)).
 - **Shim is succeed-or-refuse.** It never guesses an engine location. `TAKEOVER=1` alone is for dead foreign bakes; live foreign needs `TAKEOVER=1 FORCE=1`.
-- **Always backup the warehouse** before enter (see Rip It Out).
-- **Marketplace plugin must be uninstalled** so the next harness launch in this repo uses project wiring, not the old plugin root.
-- **`HARNESS` is required** for `local-skills`, `localdev`, and `localdev-clean`.
+- **Always backup the warehouse** before local development.

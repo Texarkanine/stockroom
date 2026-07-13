@@ -212,7 +212,7 @@ unclaim_dev_shim() {
 
 	rm -f "${uds_dest}"
 	echo "localdev-clean: removed localdev shim (${uds_dest}, owner=dev)"
-	echo "localdev-clean: stockroom is off PATH until you reinstall the marketplace plugin and run sr-initialize (shim install)"
+	echo "localdev-clean: reinstall the marketplace plugin and launch — sessionStart rectify will recreate stockroom on PATH"
 }
 
 # Print localdev-managed + shim status (read-only).

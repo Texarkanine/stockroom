@@ -198,15 +198,24 @@ Bring Contributing docs to user-guide quality with a complete localdev enter/hac
 * Insights
     - Thin composer vs mega-recipe; Make shell-per-line; PLUGIN_ROOT cannot be automated away
 
-## 2026-07-12 - POST-REFLECT POLISH - IN PROGRESS
+## 2026-07-12 - POST-REFLECT POLISH - COMPLETE
 
 * Work completed
-    - Docs: enter uses freeze heal not `make torch`; exit path corrected (clean unclaims `dev` shim; initialize binds again)
-    - Makefile: thin orchestration; `scripts/localdev.sh` owns skills/clean/status (POSIX, shellcheck clean)
-    - `localdev-status` reads shim header + engine venv torch
-    - `localdev-clean` deletes `~/.local/bin/stockroom` only when `owner=dev`
+    - Docs: enter uses freeze heal not `make torch`; exit path = clean → restore DB → reinstall plugin → launch (rectify recreates shim)
+    - Makefile thin orchestration; `scripts/localdev.sh` owns skills/clean/status
+    - `localdev-status` reports shim path/owner/app-dir/torch; `localdev-clean` unclaims `owner=dev` only
+    - `shim rectify` now creates when dest absent (hook heal); tests + docs updated
 * Decisions made
-    - Claude skills stay `--plugin-dir` (no flat `.claude/skills` farm) — docs need equal Cursor/Claude branches (operator still editing page)
-    - Open: change `shim rectify` to create when dest absent (heal), so exit can skip initialize
+    - Claude skills stay `--plugin-dir` (no flat `.claude/skills` farm)
+    - Rectify-creates-when-absent: yes — closes the exit-path initialize footgun
 * Insights
-    - Rectify never-create forces an initialize step after localdev exit; hooks cannot recreate a missing shim
+    - With rectify create-on-absent, localdev exit no longer needs `sr-initialize` just to bind the shim
+
+## 2026-07-12 - ARCHIVE - IN PROGRESS
+
+* Work completed
+    - Entering archive after operator `/niko-archive`
+* Decisions made
+    - Park nothing further; polish + rectify heal ship with this archive
+* Insights
+    - (in progress)

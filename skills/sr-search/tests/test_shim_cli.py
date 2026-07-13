@@ -3,7 +3,8 @@
 Runs ``python -m stockroom.shim`` (and the dispatcher-forwarded form) as a
 real subprocess against tmp destinations and fixture engine dirs — never the
 real ``~/.local/bin``. Exit-code contract: ``install`` refusals are nonzero
-(the caller must notice), ``rectify`` no-ops are zero (the hook's designed
+(the caller must notice), ``rectify`` create/rebake/noop exits are zero (the
+hook's designed
 steady state must never look like a failure).
 """
 
@@ -195,8 +196,10 @@ def test_install_refusal_exits_nonzero(
     assert "cursor" in second.stderr
 
 
-def test_rectify_noop_exits_zero(tmp_path: Path, dest: Path, engine_dir: Path) -> None:
-    """rectify against an absent dest is the hook steady state: exit 0."""
+def test_rectify_absent_dest_creates_and_exits_zero(
+    tmp_path: Path, dest: Path, engine_dir: Path
+) -> None:
+    """rectify against an absent dest creates the shim (hook heal); exit 0."""
     result = _run(
         "rectify",
         "--dest",
@@ -208,7 +211,9 @@ def test_rectify_noop_exits_zero(tmp_path: Path, dest: Path, engine_dir: Path) -
         tmp_path=tmp_path,
     )
     assert result.returncode == 0, result.stderr
-    assert not dest.exists()
+    assert dest.exists()
+    assert "# STOCKROOM_OWNER=cursor" in dest.read_text()
+    assert f"# STOCKROOM_APP_DIR={engine_dir}" in dest.read_text()
 
 
 def test_rectify_rebakes_moved_root(

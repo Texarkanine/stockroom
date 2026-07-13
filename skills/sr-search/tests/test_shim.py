@@ -5,9 +5,9 @@ operator hard constraint), so *all* policy lives in this tested Python layer:
 what gets rendered, who may write the destination (ownership), when a takeover
 of a foreign shim is permitted (dead incumbent + ``takeover``, or live
 incumbent + ``takeover`` and ``force``), and when the hook-driven ``rectify``
-may act (owner match + content drift only, never creating). Everything writes
-to tmp destinations via explicit ``dest`` — the real ``~/.local/bin`` is never
-touched.
+may act (create when absent; owner match + content drift; never foreign).
+Everything writes to tmp destinations via explicit ``dest`` — the real
+``~/.local/bin`` is never touched.
 """
 
 import os
@@ -287,11 +287,12 @@ class TestRectify:
         assert report.action == "noop"
         assert dest.read_text() == before
 
-    def test_absent_dest_never_creates(self, dest: Path, engine_dir: Path) -> None:
-        """rectify never creates a missing shim — install is the only gate."""
+    def test_absent_dest_creates_shim(self, dest: Path, engine_dir: Path) -> None:
+        """rectify creates a missing shim (hook heal after wipe / localdev exit)."""
         report = shim.rectify(dest, engine_dir, "cursor")
-        assert report.action == "noop"
-        assert not dest.exists()
+        assert report.action == "installed"
+        assert dest.exists()
+        assert dest.read_text() == shim.render(engine_dir, "cursor")
 
     def test_always_ensures_engine_env(
         self,
@@ -300,7 +301,7 @@ class TestRectify:
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """Rectify always runs ensure_engine_env for app_dir first,
-        including when the dest is absent (path noop)."""
+        including when the dest is absent (then creates the shim)."""
         from stockroom.engine_env import EnsureReport
 
         calls: list[Path] = []
@@ -311,6 +312,7 @@ class TestRectify:
 
         monkeypatch.setattr(shim, "ensure_engine_env", fake_ensure)
         report = shim.rectify(dest, engine_dir, "cursor")
-        assert report.action == "noop"
+        assert report.action == "installed"
+        assert dest.exists()
         assert len(calls) == 1
         assert Path(os.path.abspath(calls[0])) == Path(os.path.abspath(engine_dir))
