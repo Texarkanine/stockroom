@@ -2,9 +2,9 @@
 
 This page is day-to-day work **after** your checkout is wired. For enter → verify → exit (rip-it-out, `HARNESS=… make localdev`, clean), see [Local workflow](local-workflow.md).
 
-From the **repo root**, the [`Makefile`](https://github.com/Texarkanine/stockroom/blob/main/Makefile) is the usual entrypoint — it handles the `skills/sr-search/` directory and the `--no-config` / `--no-sync` flags.
+From the **repo root**, the [`Makefile`](https://github.com/Texarkanine/stockroom/blob/main/Makefile) is the usual entrypoint — it handles the `skills/sr-search/` directory and the `--no-config` / `--no-sync` flags. Run `make help` anytime for the full target list; the sections below only name the targets that matter for that surface.
 
-**Jump to a surface:** [Prerequisites](#prerequisites) · [Make targets](#make-targets) · [Engine](#engine) · [Torch](#torch) · [Docs site](#docs-site) · [Dashboard](#dashboard) · [Skills](#skills)
+**Jump to a surface:** [Prerequisites](#prerequisites) · [Engine](#engine) · [Torch](#torch) · [Docs site](#docs-site) · [Dashboard](#dashboard) · [Skills](#skills)
 
 ## Prerequisites
 
@@ -23,50 +23,30 @@ Machine onboarding for a *released* install (torch pick, doctor smoke, schedule,
 
 Do not confuse the root docs stub `pyproject.toml` with the engine — the engine did not move.
 
-## Make targets
-
-```bash
-make help
-```
-
-| Target | Role |
-| --- | --- |
-| `help` | List targets |
-| `sync` | Install deps from the committed lock (torch-free; strips a previously installed torch) |
-| `lock` | Regenerate `uv.lock` hermetically |
-| `lock-check` | Fail if the lock is stale vs `pyproject.toml` |
-| `test` | Node 22 dashboard tests + pytest (runs `sync` first) |
-| `test-js` | Dashboard ES-module tests only (`node --test`) |
-| `lint` | `ruff check` |
-| `format` | `ruff format` |
-| `format-check` | `ruff format --check` (no writes) |
-| `reuse` | Whole-tree REUSE lint |
-| `ci` | Full engine gate (matches CI) |
-| `shim` | Bake this checkout onto PATH (owner `dev`; `TAKEOVER=1` / `FORCE=1` as needed — see Local workflow) |
-| `torch` | Install torch out-of-band + freeze under stockroom home |
-| `docs` | Local docs preview (`properdocs serve`) |
-| `docs-build` | Strict docs build (matches docs CI) |
-| `local-skills` | Wire checkout skills (`HARNESS` must be `cursor` or `claude`) |
-| `local-engine` | Claim shim + `ensure-env` for this checkout |
-| `local-dashboard` | Bounce `stockroom dashboard` |
-| `localdev` | Compose the three local atoms |
-| `localdev-clean` | Undo localdev bits + drop `owner=dev` shim |
-| `localdev-status` | Read-only localdev vs shim report |
-
-Localdev atoms are documented in [Local workflow](local-workflow.md). This page focuses on engine / torch / docs / dashboard / skills loops.
-
 ## Engine
 
 The Python engine lives under [`skills/sr-search/`](https://github.com/Texarkanine/stockroom/tree/main/skills/sr-search) as a locked [uv](https://docs.astral.sh/uv/) project (`[tool.uv] package = false` — run-in-place). Everything is pinned through `uv.lock` **except torch**.
 
 With a `dev` shim baked to this checkout, edits under `skills/sr-search/src/` are what `stockroom` runs — no separate install step for Python sources.
 
-### Day-to-day commands
+### Relevant Make targets
+
+| Target | Role |
+| --- | --- |
+| `sync` | Install deps from the committed lock (torch-free; strips torch — see [Torch](#torch)) |
+| `lock` | Regenerate `uv.lock` hermetically |
+| `lock-check` | Fail if the lock is stale vs `pyproject.toml` |
+| `test` | pytest + dashboard JS tests (runs `sync` first) |
+| `lint` / `format` / `format-check` | ruff check / format / format --check |
+| `reuse` | Whole-tree REUSE lint |
+| `ci` | Full engine gate (matches CI) |
+| `shim` | Bake this checkout onto PATH (owner `dev`; takeover flags in Local workflow) |
+| `local-engine` | Claim shim + `ensure-env` for this checkout |
 
 ```bash
-make sync          # lock-faithful env (strips torch — see Torch)
+make sync
 make lock          # after editing engine pyproject.toml deps
-make test          # pytest + test-js
+make test
 make lint
 make format
 make ci            # full gate before you push
@@ -113,11 +93,16 @@ You should only need this to bootstrap (e.g. what `make shim` runs under the hoo
 
 Torch is held out of the lock on purpose so each machine gets a CPU or CUDA wheel that actually works. Operator contract (why, heal, failure remedies): [Torch](../user-guide/troubleshooting/torch.md).
 
+### Relevant Make targets
+
+| Target | Role |
+| --- | --- |
+| `torch` | Install torch out-of-band + freeze under stockroom home |
+| `sync` / `test` / `ci` | Lock-faithful installs that **strip** a previously installed torch |
+
 ### Restore after sync
 
-`make sync`, `make test`, and `make ci` install from the lock and **strip** a previously installed torch.
-
-To restore the machine’s **accepted** stack from the hashed freeze (do this after sync when you still want the same torch):
+After `make sync`, `make test`, or `make ci`, restore the machine’s **accepted** stack from the hashed freeze:
 
 ```bash
 stockroom shim ensure-env
@@ -155,9 +140,16 @@ The freeze also pins some PyPI transitives of torch that appear in `uv.lock`. He
 
 Human docs live under [`docs/`](https://github.com/Texarkanine/stockroom/tree/main/docs). The repo-root stub `pyproject.toml` is the **docs toolchain only** (`properdocs` + Material); it is not the engine.
 
+### Relevant Make targets
+
+| Target | Role |
+| --- | --- |
+| `docs` | Local preview (`properdocs serve`) |
+| `docs-build` | Strict build — matches docs CI |
+
 ```bash
-make docs          # properdocs serve (preview)
-make docs-build    # strict build — matches docs CI
+make docs
+make docs-build
 ```
 
 Config: [`properdocs.yaml`](https://github.com/Texarkanine/stockroom/blob/main/properdocs.yaml). Contributing nav order is controlled by [`docs/contributing/.pages`](https://github.com/Texarkanine/stockroom/blob/main/docs/contributing/.pages).
@@ -178,8 +170,16 @@ Product behavior and URL: [Dashboard](../user-guide/dashboard.md) (default [http
 | --- | --- |
 | Front-end | `skills/sr-search/src/stockroom/dashboard/static/` — native ES modules, vendored Chart.js + markdown-it, no bundler / no npm install |
 | Server / CLI | `skills/sr-search/src/stockroom/dashboard/` + `stockroom dashboard` |
-| JS tests | `skills/sr-search/tests-js/*.test.mjs` via `make test-js` |
-| Python tests | `skills/sr-search/tests/test_dashboard_*.py` via `make test` |
+| JS tests | `skills/sr-search/tests-js/*.test.mjs` |
+| Python tests | `skills/sr-search/tests/test_dashboard_*.py` |
+
+### Relevant Make targets
+
+| Target | Role |
+| --- | --- |
+| `test-js` | Dashboard ES-module tests only (`node --test`; Node 22) |
+| `test` | JS + pytest (runs `sync` first — restore torch afterward if you need embed) |
+| `local-dashboard` | Bounce `stockroom dashboard` for this checkout |
 
 ### Develop loop
 
@@ -197,13 +197,20 @@ stockroom dashboard
 4. Run contracts:
 
 ```bash
-make test-js       # Node 22 required
-make test          # JS + pytest (syncs first — restore torch afterward if you need embed)
+make test-js
+make test
 ```
 
 ## Skills
 
 Wrapper skills live under [`skills/`](https://github.com/Texarkanine/stockroom/tree/main/skills): `sr-query`, `sr-semantic`, `sr-search`, `sr-dashboard`, `sr-initialize`. Each skill’s agent-facing instructions are `SKILL.md` (plus optional `references/`).
+
+### Relevant Make targets
+
+| Target | Role |
+| --- | --- |
+| `local-skills` | Wire checkout skills (`HARNESS` must be `cursor` or `claude`) |
+| `localdev` / `localdev-clean` / `localdev-status` | Full enter/clean/status composition — see [Local workflow](local-workflow.md) |
 
 ### Edit and reload
 

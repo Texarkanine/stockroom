@@ -68,3 +68,11 @@ Rework `docs/contributing/development.md` into a day-to-day contributor guide (p
     - Standalone L2 complete; archive is next
 * Insights
     - Surface-first Development + Local workflow enter/exit is the durable Contributing split
+
+## 2026-07-12 - POST-REFLECT - Make targets inlined per section
+
+* Work completed
+    - Removed standalone Make table; added small relevant-target tables under Engine / Torch / Docs / Dashboard / Skills
+    - Intro points at `make help` for the full list
+* Decisions made
+    - localdev composer targets live under Skills with a Local workflow pointer (not a second localdev chapter)
