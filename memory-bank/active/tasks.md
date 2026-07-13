@@ -124,4 +124,8 @@ No new technology — validation not required.
 - [x] Pre-Mortem complete
 - [x] Preflight
 - [ ] Build
+  - [x] Shim FORCE (S1–S5)
+  - [x] Makefile FORCE + delete plugin-local + localdev expansion (M1–M4)
+  - [ ] Docs rewrite + plugin-local scrub (B1–B3)
+  - [ ] Gates
 - [ ] QA

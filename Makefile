@@ -17,13 +17,11 @@ UV_RUN := $(UV_DIR) run --no-sync
 # After install, freezes the accepted stack under stockroom home (see docs/user-guide/troubleshooting/torch.md).
 TORCH_INDEX ?= https://download.pytorch.org/whl/cpu
 
-# Cursor local-plugin rsync destination (contributor enter path; not marketplace).
-PLUGIN_LOCAL_DEST ?= $(HOME)/.cursor/plugins/local/stockroom
-
-# Optional: make shim TAKEOVER=1 → passes --takeover (dead foreign bake only).
+# Optional: make shim TAKEOVER=1 → --takeover; FORCE=1 → --force (both for live foreign).
 TAKEOVER ?=
+FORCE ?=
 
-.PHONY: help sync lock lock-check test test-js lint format format-check reuse ci torch localdev localdev-clean localdev-status plugin-local shim docs docs-build
+.PHONY: help sync lock lock-check test test-js lint format format-check reuse ci torch localdev localdev-clean localdev-status shim docs docs-build
 
 # localdev: mirror skills/ into .cursor/skills/stockroom-local so a harness can
 # load them "normally", without ever letting the mirror land in a commit.
@@ -31,6 +29,10 @@ LOCAL_SKILLS_DIR := .cursor/skills/stockroom-local
 PRE_COMMIT_HOOK := .git/hooks/pre-commit
 LOCALDEV_MARKER_BEGIN := \# BEGIN stockroom-local (managed by 'make localdev')
 LOCALDEV_MARKER_END := \# END stockroom-local
+LOCALDEV_HOOK_MARKER := stockroom-localdev-managed
+CURSOR_HOOKS_JSON := .cursor/hooks.json
+CLAUDE_SETTINGS_LOCAL := .claude/settings.local.json
+LOCALDEV_HOOKS_PY := hooks/localdev_hooks.py
 
 help: ## List targets
 	@printf "stockroom dev targets (engine: %s)\n\n" "$(ENGINE)"
@@ -69,8 +71,8 @@ format-check: sync ## Check ruff format (no writes)
 
 # Absolute paths are load-bearing: `uv --directory` moves the cwd into the
 # engine dir, so relative PYTHONPATH/--app-dir values would resolve wrong.
-shim: ## Install the on-path stockroom shim baking this checkout (owner: dev; TAKEOVER=1 for --takeover)
-	PYTHONPATH=$(CURDIR)/$(ENGINE)/src $(UV_RUN) python -m stockroom shim install --owner dev --app-dir $(CURDIR)/$(ENGINE) $(if $(filter 1,$(TAKEOVER)),--takeover)
+shim: ## Install on-path shim for this checkout (owner: dev; TAKEOVER=1 / FORCE=1 as needed)
+	PYTHONPATH=$(CURDIR)/$(ENGINE)/src $(UV_RUN) python -m stockroom shim install --owner dev --app-dir $(CURDIR)/$(ENGINE) $(if $(filter 1,$(TAKEOVER)),--takeover) $(if $(filter 1,$(FORCE)),--force)
 
 reuse: sync ## Run reuse lint on the whole repo (REUSE.toml at root)
 	$(UV) run --project $(ENGINE) --no-sync $(UV_NO_CFG) reuse lint
@@ -86,7 +88,7 @@ docs-build: ## Strict docs build (matches docs CI)
 	uv sync --group docs --frozen
 	uv run properdocs build --strict
 
-localdev: ## Symlink skills/* into .cursor/skills/stockroom-local for in-harness testing (kept out of commits)
+localdev: ## One-shot enter: skills + PATH hooks + shim claim + ensure-env + dashboard bounce
 	@mkdir -p $(LOCAL_SKILLS_DIR)
 	@for link in $(LOCAL_SKILLS_DIR)/*; do \
 		[ -L "$$link" ] || continue; \
@@ -106,12 +108,21 @@ localdev: ## Symlink skills/* into .cursor/skills/stockroom-local for in-harness
 	@{ \
 		echo "$(LOCALDEV_MARKER_BEGIN)"; \
 		echo 'if git diff --cached --name-only -- $(LOCAL_SKILLS_DIR) | grep -q .; then git reset --quiet HEAD -- $(LOCAL_SKILLS_DIR); fi'; \
+		echo 'if git diff --cached --name-only -- $(CURSOR_HOOKS_JSON) | grep -q .; then'; \
+		echo '  if grep -qF "$(LOCALDEV_HOOK_MARKER)" $(CURSOR_HOOKS_JSON) 2>/dev/null; then git reset --quiet HEAD -- $(CURSOR_HOOKS_JSON); fi'; \
+		echo 'fi'; \
 		echo "$(LOCALDEV_MARKER_END)"; \
 	} >> $(PRE_COMMIT_HOOK)
 	@chmod +x $(PRE_COMMIT_HOOK)
-	@echo "localdev ready: $(LOCAL_SKILLS_DIR)/* -> skills/*, pre-commit hook installed at $(PRE_COMMIT_HOOK)"
+	@python3 $(LOCALDEV_HOOKS_PY) install \
+		--cursor-hooks $(CURSOR_HOOKS_JSON) \
+		--claude-settings $(CLAUDE_SETTINGS_LOCAL)
+	@$(MAKE) --no-print-directory shim TAKEOVER=1 FORCE=1
+	@PYTHONPATH=$(CURDIR)/$(ENGINE)/src $(UV_RUN) python -m stockroom shim ensure-env --app-dir $(CURDIR)/$(ENGINE)
+	@PYTHONPATH=$(CURDIR)/$(ENGINE)/src $(UV_RUN) python -m stockroom dashboard
+	@echo "localdev ready: skills mirror, PATH hooks, shim claimed (dev+takeover+force), ensure-env, dashboard bounced"
 
-localdev-clean: ## Undo make localdev (remove stockroom-local symlinks + managed pre-commit block)
+localdev-clean: ## Undo localdev (skills, managed hooks, pre-commit); not warehouse/marketplace
 	@if [ -d "$(LOCAL_SKILLS_DIR)" ]; then \
 		for link in $(LOCAL_SKILLS_DIR)/*; do \
 			[ -e "$$link" ] || [ -L "$$link" ] || continue; \
@@ -125,34 +136,34 @@ localdev-clean: ## Undo make localdev (remove stockroom-local symlinks + managed
 			mv $(PRE_COMMIT_HOOK).tmp $(PRE_COMMIT_HOOK); \
 		chmod +x $(PRE_COMMIT_HOOK); \
 	fi
-	@echo "localdev-clean: removed $(LOCAL_SKILLS_DIR) symlinks and managed pre-commit block (idempotent)"
+	@python3 $(LOCALDEV_HOOKS_PY) clean \
+		--cursor-hooks $(CURSOR_HOOKS_JSON) \
+		--claude-settings $(CLAUDE_SETTINGS_LOCAL)
+	@echo "localdev-clean: removed skills mirror, managed hooks, and pre-commit block (idempotent)"
 
-plugin-local: ## Rsync this checkout into Cursor plugins/local (PLUGIN_LOCAL_DEST; not a symlink)
-	@mkdir -p "$(PLUGIN_LOCAL_DEST)"
-	rsync -a --delete \
-		--exclude .git --exclude .venv --exclude '**/__pycache__' \
-		--exclude .cursor/skills/stockroom-local \
-		"$(CURDIR)/" "$(PLUGIN_LOCAL_DEST)/"
-	@test -f "$(PLUGIN_LOCAL_DEST)/.cursor-plugin/plugin.json" || { \
-		echo "plugin-local: missing $(PLUGIN_LOCAL_DEST)/.cursor-plugin/plugin.json"; exit 1; }
-	@echo "plugin-local: synced to $(PLUGIN_LOCAL_DEST) (reload the window; does not touch marketplace installs)"
-
-localdev-status: ## Read-only: skills-mirror / plugin-local / shim hints (no mutations)
-	@echo "localdev-status (read-only)"
+localdev-status: ## Read-only: localdev-managed vs shim sections (no mutations)
+	@echo "=== localdev-managed ==="
 	@if [ -d "$(LOCAL_SKILLS_DIR)" ] && ls -A "$(LOCAL_SKILLS_DIR)" >/dev/null 2>&1; then \
 		echo "  skills-mirror: PRESENT ($(LOCAL_SKILLS_DIR))"; \
 		ls -la "$(LOCAL_SKILLS_DIR)" | sed 's/^/    /'; \
 	else \
 		echo "  skills-mirror: absent ($(LOCAL_SKILLS_DIR))"; \
 	fi
-	@if [ -f "$(PLUGIN_LOCAL_DEST)/.cursor-plugin/plugin.json" ]; then \
-		echo "  plugin-local: PRESENT ($(PLUGIN_LOCAL_DEST)/.cursor-plugin/plugin.json)"; \
+	@if [ -f "$(CURSOR_HOOKS_JSON)" ] && grep -qF "$(LOCALDEV_HOOK_MARKER)" "$(CURSOR_HOOKS_JSON)" 2>/dev/null; then \
+		echo "  cursor hooks: PRESENT managed marker in $(CURSOR_HOOKS_JSON)"; \
 	else \
-		echo "  plugin-local: absent ($(PLUGIN_LOCAL_DEST))"; \
+		echo "  cursor hooks: absent managed marker ($(CURSOR_HOOKS_JSON))"; \
+	fi
+	@if [ -f "$(CLAUDE_SETTINGS_LOCAL)" ] && grep -qF "$(LOCALDEV_HOOK_MARKER)" "$(CLAUDE_SETTINGS_LOCAL)" 2>/dev/null; then \
+		echo "  claude hooks: PRESENT managed marker in $(CLAUDE_SETTINGS_LOCAL)"; \
+	else \
+		echo "  claude hooks: absent managed marker ($(CLAUDE_SETTINGS_LOCAL))"; \
 	fi
 	@if [ -f "$(PRE_COMMIT_HOOK)" ] && grep -qF "$(LOCALDEV_MARKER_BEGIN)" "$(PRE_COMMIT_HOOK)" 2>/dev/null; then \
 		echo "  pre-commit managed block: PRESENT"; \
 	else \
 		echo "  pre-commit managed block: absent"; \
 	fi
-	@echo "  shim: run \`stockroom doctor\` (or \`stockroom shim --help\`) to inspect bake/owner; make does not mutate here"
+	@echo ""
+	@echo "=== shim ==="
+	@echo "  run \`stockroom doctor\` (or \`stockroom shim --help\`) to inspect bake/owner; make does not mutate here"

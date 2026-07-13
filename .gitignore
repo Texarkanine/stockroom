@@ -9,3 +9,6 @@ __pycache__/
 
 # properdocs / MkDocs build output
 site/
+
+# Claude Code local settings (may contain localdev-managed SessionStart hooks)
+.claude/settings.local.json
