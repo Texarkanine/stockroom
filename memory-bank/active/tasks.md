@@ -157,3 +157,5 @@ No new technology.
 - [x] Build step 4: gates (shim pytest, M1–M9, docs-build, format, ci)
 - [x] Build
 - [x] QA PASS (trivial: projectbrief constraint line un-staled re hooks-in-localdev)
+- [x] Reflect
+- [ ] Archive

@@ -4,36 +4,38 @@ date: 2026-07-12
 complexity_level: 3
 ---
 
-# Reflection: contributing-localdev-guide
+# Reflection: contributing-localdev-guide (rework²)
 
 ## Summary
 
-Delivered a hybrid contributor localdev round-trip: thin Makefile atoms (`localdev-clean`, `plugin-local`, `shim TAKEOVER=1`, `localdev-status`) plus presentation-quality Enter/Verify/Exit docs under `docs/contributing/local-workflow.md`, with development.md slimmed to day-to-day. Succeeded against plan and creative Option D.
+Delivered thin Makefile atoms (`local-skills`, `local-engine`, `local-dashboard` + composer `localdev`) with required `HARNESS`, deleted project-hook automation, and rewrote Contributing for rip-it-out + modular appendix. Succeeded against the binding rework² plan after nk-refresh threw out the mega-recipe.
 
 ## Requirements vs Outcome
 
-All acceptance criteria covered: end-to-end Contributing path, footguns from warehouse/archives captured, script-vs-recipe decided as hybrid and shipped, docs-build/reuse green, no WIP dumped onto finished user-guide surfaces. Architecture/Advanced notes sink unused (no orphan content appeared). Leftover unrelated creative left untouched.
+Met: rip-it-out docs, delete `plugin-local` (already gone), shim FORCE (already green), thin atoms + `HARNESS`, no Make hook install, `localdev-clean`/`status` semantics, manual PLUGIN_ROOT footnote. Nothing descoped. No extras beyond the Make recipe-line fix for Claude branches.
 
 ## Plan Accuracy
 
-Plan sequence and file list matched reality. Preflight amendment (`localdev-status` + verify-before-implement for Make) was the only material plan change and proved useful. Challenges anticipated (plugin-local outside repo, marked-block-only clean, competing SSOTs, incomplete marketplace exit) were the ones that mattered; no surprise blockers during build.
+Rework² plan (atoms inventory + M3–M9 + delete helper) matched the tree. Preflight’s check-fail→implement amendment kept TDD honest. The surprise was operational, not planning: Make’s one-shell-per-line made Claude’s early `exit 0` a no-op — caught during build verification, not by the plan.
 
 ## Creative Phase Review
 
-Option D Hybrid held up cleanly: named atoms translated 1:1 into Makefile targets; prose owned ordering and human gates. No pressure toward a mega `contrib-enter`. Distinguishing `localdev` vs `plugin-local` in docs prevented the exact conflation the creative flagged.
+FORCE two-key held. Composition amendment (atoms + `HARNESS`) held. Hooks *automation* (creative Option B) did **not** hold once PLUGIN_ROOT-after-uninstall was understood — operator + nk-refresh correctly superseded it; build ignored stale creative install notes per preflight. PATH-based hook *content* remains a valid manual pattern only.
 
 ## Build & QA Observations
 
-Build was linear TDD on Make (fail checks → implement → re-check) then docs. QA was clean aside from one trivial Exit link inconsistency. `make reuse` stripping torch during gates remains an operator footgun — already documented in Enter.
+Build was mostly mechanical once atoms were clear. Full `make ci` and docs-build stayed green. QA found no substantive drift — only a stale projectbrief constraint line about “hooks-in-localdev.”
 
 ## Cross-Phase Analysis
 
-Warehouse search + creative correctly identified mechanical gaps (no undo, ad-hoc rsync) that prose alone could not fix. Preflight's insistence on M1–M4 check-before-implement prevented shipping untested Make targets. No creative→QA conflict: hybrid stayed thin.
+nk-refresh during the interrupted mega-`localdev` build was the high-leverage intervention: it prevented shipping over-automation that matched the letter of an earlier rework §4 but violated the first creative’s anti-mega-enter principle. Preflight’s “ignore stale creative Hooks notes” amendment prevented build from re-introducing deleted automation from creative Implementation Notes.
 
 ## Insights
 
 ### Technical
-- `make localdev` and Cursor `plugins/local` are different surfaces; status that reports both halves of the state (skills-mirror vs plugin-local vs pre-commit block) surfaces half-states that either surface alone would hide.
+- Make recipe lines are separate shells; harness branching must be one compound `if/else`, not `exit 0` then more lines.
+- Copying `hooks/*.json` into a project cannot fix missing `*_PLUGIN_ROOT` after marketplace uninstall — automation cannot paper over that.
 
 ### Process
-- When a Verification Plan is docs-gated but the plan also adds Makefile targets, encode shell assertions (M1–Mn) in the plan before build — preflight caught this; it would have been expensive as a post-hoc QA FAIL.
+- “One-shot for the operator” must mean a thin composer, not one opaque recipe body — nk-refresh should fire when enter path grows side effects without named atoms.
+- When creative Implementation Notes diverge from a later operator amendment, preflight must name the binding text explicitly or build will resurrect dead design.

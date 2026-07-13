@@ -187,3 +187,13 @@ Bring Contributing docs to user-guide quality with a complete localdev enter/hac
     - QA PASS
 * Insights
     - Inventory, HARNESS guards, docs rip-it-out, and gates all matched plan; no substantive drift
+
+## 2026-07-12 - REFLECT - COMPLETE (rework²)
+
+* Work completed
+    - Wrote `memory-bank/active/reflection/reflection-contributing-localdev-guide.md` (rework²)
+    - Persistent files already reconciled in build; productContext unchanged
+* Decisions made
+    - Archive is operator-gated next
+* Insights
+    - Thin composer vs mega-recipe; Make shell-per-line; PLUGIN_ROOT cannot be automated away
