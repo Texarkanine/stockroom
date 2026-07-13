@@ -1,12 +1,11 @@
 # Active Context
 
 ## Current Task: contributing-localdev-guide
-**Phase:** PLAN - COMPLETE (rework²: atoms, no hook automation)
+**Phase:** PREFLIGHT - COMPLETE (rework²)
 
 ## What Was Done
-- Dropped `local-hooks` and all hook-install automation from the plan.
-- Rationale: committed hooks need `*_PLUGIN_ROOT`; unset after marketplace uninstall — copying `hooks/` into the project does not help.
-- Docs will note manual hook work only when changing the bootstrap surface.
+- Preflight PASS with amendments: TDD check-fail→implement on delete + Makefile atoms; ignore stale creative Hooks notes; status drops hook markers; Claude skills no-op default locked.
+- Build is operator-gated.
 
 ## Next Step
-- `/niko-preflight` then `/niko-build`.
+- Operator: `/niko-build`

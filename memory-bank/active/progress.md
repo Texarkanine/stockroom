@@ -146,3 +146,13 @@ Bring Contributing docs to user-guide quality with a complete localdev enter/hac
     - Docs: manual hooks note only when changing bootstrap surface
 * Insights
     - Copying `hooks/` into the project still leaves PLUGIN_ROOT unset after uninstall — automation cannot paper over that
+
+## 2026-07-12 - PREFLIGHT - COMPLETE (rework²)
+
+* Work completed
+    - Validated thin-atoms / no-hook-automation plan against Makefile + docs reality
+    - Amended TDD ordering on delete + Makefile units; closed Claude skills default; flagged stale creative Hooks notes
+* Decisions made
+    - Preflight PASS (amendments applied in tasks.md)
+* Insights
+    - Current tree still has mega-localdev + localdev_hooks.py — that is expected pre-build cruft, not a plan conflict

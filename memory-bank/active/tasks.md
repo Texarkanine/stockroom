@@ -89,7 +89,7 @@ Order inside `localdev`: `local-skills` → `local-engine` → `local-dashboard`
 - [x] FORCE → creative B two-key (binding)
 - [x] Mega one-shot → atoms + composer
 - [x] Hooks in automation → **out** (operator 2026-07-12; PLUGIN_ROOT after uninstall)
-- [ ] Claude `local-skills`: no-op + `--plugin-dir` message if no mirror (default in build)
+- [x] Claude `local-skills`: no-op + `--plugin-dir` message if no mirror (**locked default**)
 
 ## Test Plan (TDD)
 
@@ -106,7 +106,7 @@ Order inside `localdev`: `local-skills` → `local-engine` → `local-dashboard`
 - M4: `HARNESS=nope make local-skills` → nonzero
 - M5: `make -n local-engine` shows takeover+force and ensure-env; no `HARNESS`
 - M6: `make -n HARNESS=cursor localdev` invokes local-skills, local-engine, local-dashboard — **not** hooks
-- M7: `localdev-status` has managed vs shim separator
+- M7: `localdev-status` has managed vs shim separator; **no** managed-hooks lines
 - M8: no `local-hooks` / `localdev_hooks` target or recipe references
 - M9: `hooks/localdev_hooks.py` absent
 
@@ -117,10 +117,17 @@ Order inside `localdev`: `local-skills` → `local-engine` → `local-dashboard`
 
 ## Implementation Plan
 
-1. **Delete hook automation** — remove `hooks/localdev_hooks.py`, `tests/test_localdev_hooks.py`, Makefile hook recipes
-2. **Makefile atoms** — `require-harness`; `local-skills` / `local-engine` / `local-dashboard`; composer `localdev`; clean/status; verify M3–M9
-3. **Docs + memory-bank** — rewrite for atoms without hooks automation; manual hooks footnote
-4. **Gates** — pytest shim; M1–M9; docs-build; `make ci`
+1. **Delete hook automation (TDD)** — Confirm M8/M9 currently fail (helper + test exist; Makefile references `localdev_hooks`) → delete `hooks/localdev_hooks.py` + `tests/test_localdev_hooks.py` and strip all Makefile hook recipes/vars → re-check M8/M9 pass
+2. **Makefile atoms (TDD)** — Confirm M3–M7 fail/wrong against current mega-`localdev` → implement `require-harness`, `local-skills`, `local-engine`, `local-dashboard`, composer `localdev`, harness-scoped `localdev-clean`, slim `localdev-status` → re-check M3–M7
+3. **Docs + memory-bank** — rewrite local-workflow / development / troubleshooting for atoms + `HARNESS` + manual hooks footnote; fix techContext/systemPatterns one-liners that still claim PATH hooks in localdev; fix projectbrief rework user-story if it still says “hooks”
+4. **Gates** — pytest shim suites; M1–M9; docs-build; `make format` / `make ci`
+
+## Preflight Amendments
+
+- TDD ordering made explicit per unit (steps 1–2: check-fail → implement → re-check). Previous step 2 was implement-then-verify only — would have blocked build.
+- Build must **ignore** stale creative “Implementation Notes → Hooks” (lines that still describe installing project hooks). Binding text is the **Hooks amendment** + this `tasks.md` only.
+- `localdev-status` must not report managed hook markers after hook automation is removed.
+- Claude `local-skills` open question closed with no-op + message default.
 
 ## Challenges & Mitigations
 
@@ -143,6 +150,6 @@ No new technology.
 - [x] Shim FORCE; plugin-local deleted
 - [x] nk-refresh → thin atoms; hooks removed from automation
 - [x] Plan (rework²) updated
-- [ ] Preflight
+- [x] Preflight PASS (amendments applied)
 - [ ] Build
 - [ ] QA

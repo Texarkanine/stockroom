@@ -51,7 +51,7 @@ Post-reflect design revision (operator, 2026-07-12). Implement the locked locald
 
 ### Rework user story
 
-As a contributor, I want a rip-it-out enter path and a one-shot `make localdev` that wires skills, hooks, and the on-path shim to this checkout, so after uninstalling the marketplace plugin I am running exclusively from the checkout on next harness launch.
+As a contributor, I want a rip-it-out enter path and a one-shot `HARNESS=… make localdev` that wires checkout skills and the on-path shim (plus a dashboard bounce), so after uninstalling the marketplace plugin I am running exclusively from the checkout.
 
 ### Rework requirements
 
