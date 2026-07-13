@@ -26,3 +26,14 @@ Rework `docs/contributing/development.md` into a day-to-day contributor guide (p
     - ensure-env restores freeze; `make torch` only when changing accepted stack
 * Insights
     - Current `development.md` is still Makefile-first and under-covers dashboard/skills as first-class surfaces
+
+## 2026-07-12 - PREFLIGHT - PASS
+
+* Work completed
+    - Validated plan against Makefile, docs ownership split, torch/dashboard/skills surfaces
+    - Amended Implementation Plan for checklist-before-edit TDD ordering
+    - Adopted intro surface jump list (in-scope radical improvement)
+* Decisions made
+    - PASS with amendments; proceed to build
+* Insights
+    - Leftover `creative/creative-embedding-invalidation.md` is unrelated stale creative; leave alone this task

@@ -38,31 +38,31 @@ Rework `docs/contributing/development.md` into a day-to-day contributor guide as
 
 ## Implementation Plan
 
-1. **Rewrite `docs/contributing/development.md` structure** (content-first draft in place)
-   - Files: `docs/contributing/development.md`
-   - Changes: Replace current Makefile-dump-first layout with ordered sections:
-     1. Short intro + Local workflow pointer
-     2. Prerequisites
-     3. Make targets (table grouped: env/quality, torch, docs, localdev pointer)
-     4. Engine (`skills/sr-search/`, sync/lock/test/lint/format, `stockroom` invocation, keep bootstrap footnote lean)
-     5. Torch (contract summary, ensure-env vs `make torch`, try new index + smoke + freeze, link `../user-guide/troubleshooting/torch.md`)
-     6. Docs site (root stub project, `make docs` / `docs-build`, publishing / Pages note)
-     7. Dashboard (static under `skills/sr-search/src/stockroom/dashboard/static/`, Python package tests, `make test-js`, bounce, link user-guide dashboard)
-     8. Skills (`skills/*/SKILL.md`, Cursor `local-skills` mirror, Claude `--plugin-dir`, hygiene + `tests/test_skill_hygiene.py`)
-   - Preserve accurate facts already present (two uv projects, torch-safe flags, publishing Pages step) while cutting localdev narrative duplication
+1. **Lock acceptance gate (before content edits)**
+   - Files: `memory-bank/active/tasks.md` (Test Plan behaviors — already written)
+   - Changes: Treat each Behavior / Edge Case as a must-pass assertion. Do not edit `development.md` until this gate is explicit. (Docs-only TDD: checklist = tests.)
 
-2. **Align Make table with live Makefile**
+2. **Rewrite `docs/contributing/development.md` to satisfy the checklist**
    - Files: `docs/contributing/development.md`
-   - Changes: Sync target names/descriptions to `make help` (include `format-check`; do not invent targets). Localdev rows: one-line role + “see Local workflow” rather than full atom docs
+   - Changes: Replace Makefile-dump-first layout with ordered sections that map 1:1 to behaviors:
+     1. Short intro + Local workflow pointer + **surface jump list** (Engine / Torch / Docs / Dashboard / Skills)
+     2. Prerequisites
+     3. Make targets (table grouped: env/quality, torch, docs, localdev pointer — matched to live `make help`)
+     4. Engine (`skills/sr-search/`, sync/lock/test/lint/format/`format-check`, `stockroom` invocation, lean bootstrap footnote)
+     5. Torch (contract summary, ensure-env vs `make torch`, try new index + smoke + freeze, link torch.md)
+     6. Docs site (root stub project, `make docs` / `docs-build`, publishing / Pages note)
+     7. Dashboard (static under `…/dashboard/static/`, Python tests, `make test-js`, bounce, user-guide link)
+     8. Skills (`skills/*/SKILL.md`, Cursor mirror / Claude `--plugin-dir`, hygiene + `test_skill_hygiene`)
+   - Preserve accurate facts (two uv projects, torch-safe flags, Pages step); cut localdev narrative duplication
 
 3. **Light cross-link pass**
-   - Files: `docs/contributing/index.md` (only if funnel text still implies Development owns localdev), `docs/contributing/local-workflow.md` (Torch footgun already links Development — keep consistent wording)
-   - Changes: Minimal edits only if wording would contradict the new Development shape; prefer leave local-workflow alone if already correct
+   - Files: `docs/contributing/index.md` and/or `local-workflow.md` only if wording contradicts the new Development shape
+   - Changes: Minimal; prefer leave alone when already correct
 
-4. **Verify**
+4. **Execute verification (must fail any unmet checklist item → fix → re-run)**
    - Run `make docs-build`
-   - Walk Test Plan behaviors checklist against rendered/source markdown
-   - Spot-check `make help` vs Make table
+   - Walk every Test Plan behavior and edge case against the rewritten page
+   - Spot-check Make table against `make help`
 
 ## Technology Validation
 
@@ -87,6 +87,11 @@ No new technology - validation not required
 - [Plan failed because skills/dashboard advice assumed marketplace hooks still install]: Point at Local workflow for wiring; dashboard bounce via CLI; skills via mirror / `--plugin-dir`
 - [Wrong level — needed creative for IA]: Unlikely; section order is given by operator; FAIL-to-relevel only if build reveals conflicting SSOT requirements across many docs
 
+## Preflight Amendments
+
+- **TDD encoding:** Added explicit step 1 (lock checklist before content edits) and step 4 as execute-verification; content rewrite is step 2.
+- **Radical innovation (in scope):** Add a short surface jump list under the intro so readers can skip to Engine / Torch / Docs / Dashboard / Skills without scrolling a Makefile wall.
+
 ## Status
 
 - [x] Initialization complete
@@ -94,6 +99,6 @@ No new technology - validation not required
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
 - [ ] QA
