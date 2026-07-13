@@ -1,11 +1,12 @@
 # Active Context
 
 ## Current Task: contributing-development-guide
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Intent clarified and approved: rework `docs/contributing/development.md` for day-to-day contribute (prereqs, engine, Torch, docs site, dashboard, skills) assuming local setup; refresh `make` table; localdev owned by `local-workflow.md`
-- Complexity determined: **Level 2** — self-contained documentation enhancement of one primary surface, moderate risk, no architectural change
+- Surveyed Makefile, contributing docs, torch.md, dashboard/static, skills layout, skill hygiene tests
+- Wrote Level 2 plan: rewrite `development.md` as day-to-day guide (prereqs → make table → engine → torch → docs → dashboard → skills); verify via checklist + `make docs-build`
+- Hard split: localdev SSOT stays in `local-workflow.md`; torch operator remedies stay in user-guide torch.md
 
 ## Next Step
-- Load Level 2 workflow and execute the next phase (PLAN)
+- Preflight validation (automatic for Level 2)

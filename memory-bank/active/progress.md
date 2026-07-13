@@ -15,9 +15,14 @@ Rework `docs/contributing/development.md` into a day-to-day contributor guide (p
 * Insights
     - Prior L3 localdev work already split Contributing into workflow vs development; this task finishes the development half
 
-## 2026-07-12 - PLAN - READY
+## 2026-07-12 - PLAN - COMPLETE
 
 * Work completed
-    - Leaving COMPLEXITY-ANALYSIS; Level 2 workflow loaded
+    - Level 2 plan written to `tasks.md` (behaviors, implementation steps, challenges, pre-mortem)
+    - Touchpoints: primarily `docs/contributing/development.md`; light cross-link pass if needed
 * Decisions made
-    - Next phase: PLAN (`level2-plan.md`)
+    - Section order: intro → prerequisites → make table → engine → torch → docs → dashboard → skills
+    - Verification: content checklist + `make docs-build` (docs-only; no new pytest)
+    - ensure-env restores freeze; `make torch` only when changing accepted stack
+* Insights
+    - Current `development.md` is still Makefile-first and under-covers dashboard/skills as first-class surfaces
