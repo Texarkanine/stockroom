@@ -8,4 +8,6 @@ You might want to switch off of that to run your local checkout, in order to dev
 
 ... and then be able to switch back to the released version without data loss, once your changes are incorporated.
 
-On top of that, there are some tips, tricks, techniques, and best practices to keep in mind while developing...
+That round-trip lives in [Local workflow](local-workflow.md).
+
+Day-to-day once you are wired — engine, Torch, docs site, dashboard, skills, and Make targets — lives in [Development](development.md).

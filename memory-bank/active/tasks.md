@@ -87,10 +87,12 @@ No new technology - validation not required
 - [Plan failed because skills/dashboard advice assumed marketplace hooks still install]: Point at Local workflow for wiring; dashboard bounce via CLI; skills via mirror / `--plugin-dir`
 - [Wrong level — needed creative for IA]: Unlikely; section order is given by operator; FAIL-to-relevel only if build reveals conflicting SSOT requirements across many docs
 
-## Preflight Amendments
+## Build Progress
 
-- **TDD encoding:** Added explicit step 1 (lock checklist before content edits) and step 4 as execute-verification; content rewrite is step 2.
-- **Radical innovation (in scope):** Add a short surface jump list under the intro so readers can skip to Engine / Torch / Docs / Dashboard / Skills without scrolling a Makefile wall.
+- [x] 1. Lock acceptance gate
+- [x] 2. Rewrite `development.md` (jump list + five surfaces + make table)
+- [x] 3. Light cross-link pass (`index.md`, `CONTRIBUTING.md`; local-workflow unchanged)
+- [x] 4. Verification: `make docs-build` PASS; content checklist PASS (entry check: Local workflow linked; rip-it-out named only as pointer, not a second ritual)
 
 ## Status
 
@@ -100,5 +102,5 @@ No new technology - validation not required
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight
-- [ ] Build
+- [x] Build
 - [ ] QA

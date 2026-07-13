@@ -5,8 +5,8 @@ Thanks for contributing to Stockroom. This page orients you; procedural depth li
 ## Before you change code
 
 1. Read [Local workflow](docs/contributing/local-workflow.md) — enter / verify / exit so you hack exclusively from this checkout and can return to a normal install.
-2. Read [Development](docs/contributing/development.md) — Makefile day-to-day targets, torch-safe `uv` contract, on-path shim.
-3. If you touch embeddings or heal: [Torch](docs/user-guide/troubleshooting/torch.md) (operator contract) and the torch sections in [Development](docs/contributing/development.md) (`make torch`, manual freeze).
+2. Read [Development](docs/contributing/development.md) — day-to-day engine / Torch / docs / dashboard / skills loops and Make targets.
+3. If you touch embeddings or heal: [Torch](docs/user-guide/troubleshooting/torch.md) (operator contract) and the Torch section in [Development](docs/contributing/development.md) (restore via `ensure-env` vs `make torch` when changing the stack).
 4. Licensing is layered — [Licensing](docs/contributing/licensing.md) and root [`REUSE.toml`](REUSE.toml). Prefer path aggregates over per-file SPDX headers when adding many files.
 
 ## Documentation ownership

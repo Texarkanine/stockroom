@@ -37,3 +37,14 @@ Rework `docs/contributing/development.md` into a day-to-day contributor guide (p
     - PASS with amendments; proceed to build
 * Insights
     - Leftover `creative/creative-embedding-invalidation.md` is unrelated stale creative; leave alone this task
+
+## 2026-07-12 - BUILD - COMPLETE
+
+* Work completed
+    - Rewrote `docs/contributing/development.md` around five surfaces + make table
+    - Funnel updates: `docs/contributing/index.md`, `CONTRIBUTING.md`
+    - `make docs-build` PASS
+* Decisions made
+    - Built to plan; no local-workflow edits required
+* Insights
+    - Prior development.md buried dashboard/skills; section-first layout matches how contributors actually ask questions
