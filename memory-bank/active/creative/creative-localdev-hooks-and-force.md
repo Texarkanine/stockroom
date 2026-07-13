@@ -64,7 +64,9 @@ flowchart TD
 
 ### Composition amendment (operator 2026-07-12)
 
-Supersedes mega-`localdev` inlining. Make exposes `local-skills`, `local-hooks`, `local-engine`, `local-dashboard`; `make localdev` only composes them. Harness-dependent targets require `HARNESS=cursor|claude`. See `tasks.md` rework² and troubleshooting-20260712-191942.
+Supersedes mega-`localdev` inlining. Make exposes `local-skills`, `local-engine`, `local-dashboard`; `make localdev` only composes them. Harness-dependent targets require `HARNESS=cursor|claude`.
+
+**Hooks amendment (same day):** Project-hook *automation* dropped entirely. Committed `hooks/*.json` depend on `*_PLUGIN_ROOT`, which is unset after marketplace uninstall — copying them into the project does not fix that. Enter path does not install hooks; docs note manual work only when changing the hook bootstrap surface. PATH-based hook *content* (rectify + dashboard via on-path `stockroom`) remains a valid *manual* pattern if someone edits hooks by hand — not a Make target.
 
 ### Implementation Notes
 

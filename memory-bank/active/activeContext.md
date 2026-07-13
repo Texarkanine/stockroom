@@ -1,12 +1,12 @@
 # Active Context
 
 ## Current Task: contributing-localdev-guide
-**Phase:** PLAN - COMPLETE (rework² thin atoms) — awaiting preflight/build
+**Phase:** PLAN - COMPLETE (rework²: atoms, no hook automation)
 
 ## What Was Done
-- Operator confirmed atom inventory + `HARNESS` requirement; mega-`localdev` rejected.
-- Rewrote `tasks.md` / projectbrief rework requirements; progress logged.
-- Troubleshooting note updated with locked direction.
+- Dropped `local-hooks` and all hook-install automation from the plan.
+- Rationale: committed hooks need `*_PLUGIN_ROOT`; unset after marketplace uninstall — copying `hooks/` into the project does not help.
+- Docs will note manual hook work only when changing the bootstrap surface.
 
 ## Next Step
-- Operator: `/niko-preflight` on the thin-atoms plan, then `/niko-build` to reshape Makefile/docs and finish gates.
+- `/niko-preflight` then `/niko-build`.

@@ -91,20 +91,16 @@ Locked direction (supersedes mega-recipe and A/B/C sketch):
 
 | Target | `HARNESS`? | Does |
 | --- | --- | --- |
-| `local-skills` | required | Wire checkout skills for that harness (Cursor: symlink farm + pre-commit guard; Claude: whatever discoverable local path we support, or clear error if N/A) |
-| `local-hooks` | required | PATH-based project hooks for that harness only |
-| `local-engine` | no | `shim TAKEOVER=1 FORCE=1` + `ensure-env` for this checkout (owner `dev`) |
+| `local-skills` | required | Wire checkout skills for that harness |
+| `local-engine` | no | `shim TAKEOVER=1 FORCE=1` + `ensure-env` |
 | `local-dashboard` | no | Bounce `stockroom dashboard` |
-| `localdev` | required (propagates) | `local-skills` + `local-hooks` + `local-engine` + `local-dashboard` |
-| `localdev-clean` | required | Undo harness-managed bits for that `HARNESS`; does not touch warehouse/shim |
-| `localdev-status` | optional | Report managed state (all harnesses if unset; filter if set) |
+| `localdev` | required | Composes the three above |
+| `localdev-clean` | required | Undo harness-managed bits |
+| `localdev-status` | optional | Report state |
+
+**Hooks:** not automated. Operator insight: putting `hooks/` in the local project still leaves `CURSOR_PLUGIN_ROOT` unset after uninstall. Manual docs note only for bootstrap-surface changes.
 
 Usage: `HARNESS=cursor make localdev`
-
-### Open naming nits (operator can override)
-
-- Keep existing `make shim` for low-level bake; `local-engine` is the localdev takeover wrapper (FORCE+ensure-env).
-- Drop inlined mega-recipe; keep `hooks/localdev_hooks.py` but call it from `local-hooks` with harness switch.
 
 ## Status
 

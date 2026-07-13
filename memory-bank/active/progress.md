@@ -136,13 +136,13 @@ Bring Contributing docs to user-guide quality with a complete localdev enter/hac
 * Insights
     - One-shot for the operator ≠ one opaque Make body
 
-## 2026-07-12 - PLAN - COMPLETE (rework² thin atoms)
+## 2026-07-12 - PLAN - COMPLETE (rework² thin atoms, no hook automation)
 
 * Work completed
-    - Locked atom inventory + `HARNESS` contract; rewrote `tasks.md` plan; cruft discard list
+    - Locked atoms + `HARNESS`; then removed hooks from automation after PLUGIN_ROOT insight
 * Decisions made
-    - `local-skills` / `local-hooks` / `local-engine` / `local-dashboard`; `localdev` composes only
-    - Harness atoms require `HARNESS=cursor|claude`
-    - Claude `local-skills` default: exit 0 + `--plugin-dir` message if no mirror
+    - Atoms: `local-skills`, `local-engine`, `local-dashboard` (+ clean/status); `localdev` composes
+    - No `local-hooks`; delete `hooks/localdev_hooks.py` in build
+    - Docs: manual hooks note only when changing bootstrap surface
 * Insights
-    - Keep FORCE + deleted plugin-local; throw out dual-harness silent install and fat recipe
+    - Copying `hooks/` into the project still leaves PLUGIN_ROOT unset after uninstall — automation cannot paper over that

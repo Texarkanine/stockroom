@@ -58,10 +58,10 @@ As a contributor, I want a rip-it-out enter path and a one-shot `make localdev` 
 1. **Docs:** Rewrite `docs/contributing/local-workflow.md` — canonical "rip it out" story first (warehouse backup → uninstall plugin → stop dashboard → `HARNESS=… make localdev`), then appendix for modular `local-*` atoms and FORCE warnings.
 2. **Delete `plugin-local`** from Makefile, docs, troubleshooting/cross-links, techContext/systemPatterns if they mention it.
 3. **Shim FORCE:** Add force capability so `make shim TAKEOVER=1 FORCE=1` / `make local-engine` can replace a *live* foreign bake. Two-key turn; downplayed outside localdev/recovery; not agent-default.
-4. **Thin Make atoms:** `local-skills`, `local-hooks`, `local-engine`, `local-dashboard`; `make localdev` only composes them. Harness-dependent targets require `HARNESS=cursor|claude` and error if unset.
+4. **Thin Make atoms:** `local-skills`, `local-engine`, `local-dashboard`; `make localdev` only composes them. Harness-dependent targets require `HARNESS=cursor|claude` and error if unset. **No hook-install automation** — committed hooks need `*_PLUGIN_ROOT`; after uninstall that is unset. Docs carry a manual note for contributors changing the hook bootstrap surface only.
 5. **`localdev-clean` / `localdev-status`:** Clean undoes only that harness’s localdev-managed artifacts (not warehouse, not marketplace, not shim). Status separates localdev-managed vs shim informational.
 6. **No** `stockroom dashboard stop/restart` in this rework — rely on existing identity-aware dashboard replace.
-7. **Throw out** mega-`localdev` inlined recipe and dual-harness silent writes (nk-refresh 2026-07-12).
+7. **Throw out** mega-`localdev` inlined recipe, `hooks/localdev_hooks.py`, and dual-harness/project-hook Make wiring (nk-refresh 2026-07-12).
 
 ### Rework constraints
 
