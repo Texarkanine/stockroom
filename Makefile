@@ -24,16 +24,12 @@ FORCE ?=
 # Harness-scoped localdev atoms require HARNESS=cursor|claude.
 HARNESS ?=
 
+SCRIPTS := scripts
+LOCALDEV_SH := $(SCRIPTS)/localdev.sh
+
 .PHONY: help sync lock lock-check test test-js lint format format-check reuse ci torch \
 	local-skills local-engine local-dashboard localdev localdev-clean localdev-status shim \
 	docs docs-build require-harness
-
-# local-skills: mirror skills/ into .cursor/skills/stockroom-local (Cursor) so a
-# harness can load them "normally", without ever letting the mirror land in a commit.
-LOCAL_SKILLS_DIR := .cursor/skills/stockroom-local
-PRE_COMMIT_HOOK := .git/hooks/pre-commit
-LOCALDEV_MARKER_BEGIN := \# BEGIN stockroom-local (managed by 'make localdev')
-LOCALDEV_MARKER_END := \# END stockroom-local
 
 help: ## List targets
 	@printf "stockroom dev targets (engine: %s)\n\n" "$(ENGINE)"
@@ -96,33 +92,7 @@ require-harness:
 	esac
 
 local-skills: require-harness ## Wire checkout skills for HARNESS=cursor|claude
-	@if [ "$(HARNESS)" = "claude" ]; then \
-		echo "local-skills (claude): no skills mirror; use \`claude --plugin-dir $(CURDIR)\` for a session-scoped plugin load"; \
-	else \
-		mkdir -p $(LOCAL_SKILLS_DIR); \
-		for link in $(LOCAL_SKILLS_DIR)/*; do \
-			[ -L "$$link" ] || continue; \
-			name=$$(basename "$$link"); \
-			[ -d "skills/$$name" ] || rm -f "$$link"; \
-		done; \
-		for d in skills/*/; do \
-			name=$$(basename "$$d"); \
-			ln -sfn "../../../skills/$$name" "$(LOCAL_SKILLS_DIR)/$$name"; \
-		done; \
-		touch $(PRE_COMMIT_HOOK); \
-		head -1 $(PRE_COMMIT_HOOK) 2>/dev/null | grep -q '^#!' || \
-			{ printf '#!/bin/sh\n' | cat - $(PRE_COMMIT_HOOK) > $(PRE_COMMIT_HOOK).tmp && mv $(PRE_COMMIT_HOOK).tmp $(PRE_COMMIT_HOOK); }; \
-		awk -v b="$(LOCALDEV_MARKER_BEGIN)" -v e="$(LOCALDEV_MARKER_END)" \
-			'$$0==b{skip=1} !skip{print} $$0==e{skip=0}' $(PRE_COMMIT_HOOK) > $(PRE_COMMIT_HOOK).tmp && \
-			mv $(PRE_COMMIT_HOOK).tmp $(PRE_COMMIT_HOOK); \
-		{ \
-			echo "$(LOCALDEV_MARKER_BEGIN)"; \
-			echo 'if git diff --cached --name-only -- $(LOCAL_SKILLS_DIR) | grep -q .; then git reset --quiet HEAD -- $(LOCAL_SKILLS_DIR); fi'; \
-			echo "$(LOCALDEV_MARKER_END)"; \
-		} >> $(PRE_COMMIT_HOOK); \
-		chmod +x $(PRE_COMMIT_HOOK); \
-		echo "local-skills (cursor): mirrored skills into $(LOCAL_SKILLS_DIR)"; \
-	fi
+	@$(LOCALDEV_SH) skills --harness "$(HARNESS)" --repo-root "$(CURDIR)"
 
 local-engine: ## Claim shim (TAKEOVER+FORCE) + ensure-env for this checkout
 	@$(MAKE) --no-print-directory shim TAKEOVER=1 FORCE=1
@@ -139,39 +109,8 @@ localdev: require-harness ## Compose local-skills + local-engine + local-dashboa
 	@$(MAKE) --no-print-directory local-dashboard
 	@echo "localdev ready (HARNESS=$(HARNESS)): skills, engine, dashboard"
 
-localdev-clean: require-harness ## Undo harness-managed localdev bits (not warehouse/shim)
-	@if [ "$(HARNESS)" = "claude" ]; then \
-		echo "localdev-clean (claude): nothing managed to remove"; \
-	else \
-		if [ -d "$(LOCAL_SKILLS_DIR)" ]; then \
-			for link in $(LOCAL_SKILLS_DIR)/*; do \
-				[ -e "$$link" ] || [ -L "$$link" ] || continue; \
-				[ -L "$$link" ] && rm -f "$$link"; \
-			done; \
-			rmdir "$(LOCAL_SKILLS_DIR)" 2>/dev/null || true; \
-		fi; \
-		if [ -f "$(PRE_COMMIT_HOOK)" ]; then \
-			awk -v b="$(LOCALDEV_MARKER_BEGIN)" -v e="$(LOCALDEV_MARKER_END)" \
-				'$$0==b{skip=1} !skip{print} $$0==e{skip=0}' $(PRE_COMMIT_HOOK) > $(PRE_COMMIT_HOOK).tmp && \
-				mv $(PRE_COMMIT_HOOK).tmp $(PRE_COMMIT_HOOK); \
-			chmod +x $(PRE_COMMIT_HOOK); \
-		fi; \
-		echo "localdev-clean (cursor): removed skills mirror and pre-commit block (idempotent)"; \
-	fi
+localdev-clean: require-harness ## Undo localdev bits + drop owner=dev shim (not warehouse)
+	@$(LOCALDEV_SH) clean --harness "$(HARNESS)" --repo-root "$(CURDIR)"
 
 localdev-status: ## Read-only: localdev-managed vs shim sections (no mutations)
-	@echo "=== localdev-managed ==="
-	@if [ -d "$(LOCAL_SKILLS_DIR)" ] && ls -A "$(LOCAL_SKILLS_DIR)" >/dev/null 2>&1; then \
-		echo "  skills-mirror: PRESENT ($(LOCAL_SKILLS_DIR))"; \
-		ls -la "$(LOCAL_SKILLS_DIR)" | sed 's/^/    /'; \
-	else \
-		echo "  skills-mirror: absent ($(LOCAL_SKILLS_DIR))"; \
-	fi
-	@if [ -f "$(PRE_COMMIT_HOOK)" ] && grep -qF "$(LOCALDEV_MARKER_BEGIN)" "$(PRE_COMMIT_HOOK)" 2>/dev/null; then \
-		echo "  pre-commit managed block: PRESENT"; \
-	else \
-		echo "  pre-commit managed block: absent"; \
-	fi
-	@echo ""
-	@echo "=== shim ==="
-	@echo "  run \`stockroom doctor\` (or \`stockroom shim --help\`) to inspect bake/owner; make does not mutate here"
+	@$(LOCALDEV_SH) status --repo-root "$(CURDIR)"

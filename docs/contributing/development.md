@@ -22,7 +22,7 @@ make local-skills                  # requires HARNESS=cursor|claude
 make local-engine                  # shim TAKEOVER+FORCE + ensure-env
 make local-dashboard               # bounce stockroom dashboard
 HARNESS=cursor make localdev       # compose skills + engine + dashboard
-HARNESS=cursor make localdev-clean # undo harness-managed bits (not warehouse / shim)
+HARNESS=cursor make localdev-clean # undo localdev bits + drop owner=dev shim
 make localdev-status               # read-only: localdev-managed vs shim sections
 make docs                          # local docs preview (properdocs serve)
 make docs-build                    # strict docs build (matches docs CI)

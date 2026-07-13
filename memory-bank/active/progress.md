@@ -197,3 +197,16 @@ Bring Contributing docs to user-guide quality with a complete localdev enter/hac
     - Archive is operator-gated next
 * Insights
     - Thin composer vs mega-recipe; Make shell-per-line; PLUGIN_ROOT cannot be automated away
+
+## 2026-07-12 - POST-REFLECT POLISH - IN PROGRESS
+
+* Work completed
+    - Docs: enter uses freeze heal not `make torch`; exit path corrected (clean unclaims `dev` shim; initialize binds again)
+    - Makefile: thin orchestration; `scripts/localdev.sh` owns skills/clean/status (POSIX, shellcheck clean)
+    - `localdev-status` reads shim header + engine venv torch
+    - `localdev-clean` deletes `~/.local/bin/stockroom` only when `owner=dev`
+* Decisions made
+    - Claude skills stay `--plugin-dir` (no flat `.claude/skills` farm) — docs need equal Cursor/Claude branches (operator still editing page)
+    - Open: change `shim rectify` to create when dest absent (heal), so exit can skip initialize
+* Insights
+    - Rectify never-create forces an initialize step after localdev exit; hooks cannot recreate a missing shim
