@@ -37,6 +37,7 @@ flowchart LR
 - **`ingest/__init__.py` / orchestrator**: ensure key set after cwd stamped (writer-side compute is enough if writer always derives)
 - **`migrations/0006_workspace_key.sql`**: `ALTER TABLE sessions ADD COLUMN workspace_key TEXT`; header documents contract
 - **Schema tests + golden**: `test_schema_0006.py` + cumulative snapshot; update head schema expectations
+- **Migration runner tests**: `tests/test_migrate_runner.py` pins head version `5` / applied `[1..5]` → bump to `6` when 0006 lands
 - **Ingest golden** `expected_rows.json`: add `workspace_key` per session when cwd known
 - **`dashboard/metrics.py` `projects()`**: group/rank by rollup key (`workspace_key` else `project_id` fallback for display continuity); wire `projects` array = those keys; labels from cwd leaf among sessions in bucket
 - **JS**: `buildProjectsPanel` likely unchanged if payload shape keeps `projects` + `labels` (+ optional labelTitles from key≠label)
@@ -45,6 +46,7 @@ flowchart LR
 ### Cross-Module Dependencies
 - paths strategies → writer INSERT → warehouse column → metrics SELECT/GROUP → chart
 - Re-ingest (`--full`) backfills NULL keys on existing rows (no DML backfill in migration — same pattern as 0002)
+- `test_migrate_runner` / any head-version pin must track 0006 (preflight amendment)
 
 ### Boundary Changes
 - Schema: new nullable column
@@ -103,8 +105,9 @@ flowchart LR
     - Creative ref: per-harness T + convergence contract
 
 2. **Migration 0006 (TDD)**
-    - Files: `migrations/0006_workspace_key.sql`, `tests/test_schema_0006.py`, `tests/fixtures/schema/0006_snapshot.json` (+ update any “head schema” tests that pin latest)
-    - Changes: ADD COLUMN; document contract in SQL header; structural only (no backfill DML)
+    - Files: `migrations/0006_workspace_key.sql`, `tests/test_schema_0006.py`, `tests/fixtures/schema/0006_snapshot.json`, `tests/test_migrate_runner.py` (head version 5→6)
+    - Changes: ADD COLUMN; document contract in SQL header; structural only (no backfill DML); update runner “fresh DB lands at head” assertions
+    - TDD: failing schema/runner expectations first, then migration file
 
 3. **Model + writer (TDD)**
     - Files: `ingest/model.py`, `ingest/writer.py`, writer/ingest tests, `fixtures/ingest/expected_rows.json`
@@ -146,6 +149,6 @@ No new technology - validation not required.
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight — PASS (amended: migrate_runner head pins; TDD ordering explicit on steps 1–4)
 - [ ] Build
 - [ ] QA

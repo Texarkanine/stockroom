@@ -27,3 +27,13 @@ Add nullable `sessions.workspace_key` with extensible per-harness ETL transforms
     - Migration `0006_workspace_key.sql`; no DML backfill
 * Insights
     - Existing basename-collide metrics test must be reinterpreted under workspace_key semantics
+
+## 2026-07-14 - PREFLIGHT - COMPLETE (PASS)
+
+* Work completed
+    - Validated TDD encoding, conventions, dependency blast radius (incl. migrate_runner head pins)
+    - Amended plan for `test_migrate_runner.py` 5→6
+* Decisions made
+    - Preflight PASS; Build awaits `/niko-build`
+* Insights
+    - Advisory only: optional multi-`project_id` hover list out of scope
