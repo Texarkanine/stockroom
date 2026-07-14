@@ -151,4 +151,4 @@ No new technology - validation not required.
 - [x] Pre-Mortem complete
 - [x] Preflight — PASS (amended: migrate_runner head pins; TDD ordering explicit on steps 1–4)
 - [x] Build
-- [ ] QA
+- [x] QA — PASS (trivial: workspace_key helper uses harness-neutral encode, not encode_for("cursor"))

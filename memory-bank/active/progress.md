@@ -48,3 +48,14 @@ Add nullable `sessions.workspace_key` with extensible per-harness ETL transforms
     - Head pins also updated in warehouse open/concurrency tests + locked snapshot → 0006
 * Insights
     - Preflight’s migrate_runner-only head note under-scoped warehouse open/concurrency pins
+
+## 2026-07-14 - QA - COMPLETE (PASS)
+
+* Work completed
+    - Semantic review vs plan/creative; trivial fix: private key helper uses `encode` + leading-sep strip (not `encode_for("cursor")`)
+    - `.qa-validation-status` = PASS
+* Decisions made
+    - Keep thin per-harness strategy wrappers (registry extensibility clarity)
+    - Overview distinct_projects by `project_id` left unchanged (out of plan scope)
+* Insights
+    - Creative’s “Cursor-form” wording is easy to reify as `encode_for("cursor")`; neutral helper should stay harness-agnostic

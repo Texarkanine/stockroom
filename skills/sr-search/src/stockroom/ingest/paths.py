@@ -83,18 +83,20 @@ def _ancestors(path: str) -> Iterator[str]:
 def _key_from_cwd_leading_sep_stripped(
     *,
     cwd: str | None,
-    project_id: str | None,
+    project_id: str | None = None,
 ) -> str | None:
     """Private path helper: leading-separator-stripped encode of ``cwd``.
 
     Shared by today's Cursor and Claude strategies so same absolute ``cwd``
     converges; kept private so a third harness can diverge without stretching
-    an untyped global munge. ``project_id`` unused today.
+    an untyped global munge. ``project_id`` is accepted for strategy signature
+    parity and unused today.
     """
-    del project_id
+    _ = project_id
     if not cwd:
         return None
-    return encode_for("cursor", cwd)
+    path = cwd[1:] if cwd.startswith("/") else cwd
+    return encode(path)
 
 
 def _strategy_cursor(*, cwd: str | None, project_id: str | None) -> str | None:
