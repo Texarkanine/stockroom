@@ -11,6 +11,7 @@ import {
   buildWrappedPanel,
   buildWriteReadPanel,
   chartHeight,
+  chartInteractionOptions,
   closePanelHelp,
   deriveHarnessBreakdown,
   deriveOverviewCards,
@@ -500,6 +501,33 @@ test("tooltipTitleFromLabelTitles surfaces slug when present", () => {
   );
   assert.equal(tooltipTitleFromLabelTitles(["home-me-stockroom", null], 1, "other"), "other");
   assert.equal(tooltipTitleFromLabelTitles(undefined, 0, "friendly"), "friendly");
+});
+
+test("chartInteractionOptions uses y axis for horizontal bars", () => {
+  /**
+   * Horizontal charts (indexAxis "y") must search along y for index-mode
+   * hover/tooltip; Chart.js defaults index mode to axis "x", which tracks
+   * the value axis and misses swimlanes.
+   */
+  assert.deepEqual(chartInteractionOptions("y"), {
+    mode: "index",
+    intersect: false,
+    axis: "y",
+  });
+});
+
+test("chartInteractionOptions uses x axis for vertical bars", () => {
+  /** Vertical charts keep category search on x (Chart.js index-mode default). */
+  assert.deepEqual(chartInteractionOptions("x"), {
+    mode: "index",
+    intersect: false,
+    axis: "x",
+  });
+  assert.deepEqual(chartInteractionOptions(), {
+    mode: "index",
+    intersect: false,
+    axis: "x",
+  });
 });
 
 test("togglePanelHelp opens one, re-toggles closed, and switches panels", () => {

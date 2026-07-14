@@ -98,6 +98,24 @@ export function tooltipTitleFromLabelTitles(labelTitles, index, fallbackLabel) {
 }
 
 /**
+ * Chart.js ``interaction`` / tooltip settings for a given category axis.
+ *
+ * Index mode defaults to ``axis: "x"``. Horizontal bars (``indexAxis: "y"``)
+ * must search along ``y`` or hover tracks the value axis instead of the row.
+ * See https://www.chartjs.org/docs/latest/configuration/interactions.html
+ *
+ * @param {string} [indexAxis="x"] Panel category axis (``"x"`` or ``"y"``).
+ * @returns {{mode: string, intersect: boolean, axis: string}}
+ */
+export function chartInteractionOptions(indexAxis = "x") {
+  return {
+    mode: "index",
+    intersect: false,
+    axis: indexAxis === "y" ? "y" : "x",
+  };
+}
+
+/**
  * Static help copy for Session Efficiency and First-Prompt Quality.
  *
  * Thresholds mirror metrics.EFFICIENCY_BUCKETS / FIRST_PROMPT_BUCKETS

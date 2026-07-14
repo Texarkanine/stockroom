@@ -68,3 +68,13 @@ Add nullable `sessions.workspace_key` with extensible per-harness ETL transforms
     - Archive awaits operator `/niko-archive`
 * Insights
     - Head-version pin sprawl is the durable process lesson from this task
+
+## 2026-07-14 - POST-REFLECT - SAVED (hover fix + operator validation)
+
+* Work completed
+    - Operator confirmed warehouse + chart merge after kill/restart (local-dashboard bounce was a no-op; #48 filed)
+    - Chart.js horizontal hover fix: `chartInteractionOptions` + wire into `chartOptions`; `make test-dashboard-js` green
+* Decisions made
+    - Hover fix landed on `feat/workspace-key` before archive (same branch, out-of-plan but operator-requested)
+* Insights
+    - `make local-dashboard` success line is unconditional; identity “current” ignores in-memory staleness
