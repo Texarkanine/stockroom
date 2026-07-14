@@ -1,12 +1,24 @@
 # stockroom
 
-A local, faithful, searchable warehouse of your agentic-coding history.
+**A local, faithful, searchable warehouse of your agentic-coding history.**
 
-Stockroom captures prompts, responses, and tool inputs from Cursor and Claude Code into a single-file [DuckDB](https://duckdb.org/) warehouse with local [`sentence-transformers`](https://www.sbert.net/) embeddings. Kept content is stored **whole** — truncation is a read-time convenience, never a storage-time loss.
+[Documentation](https://texarkanine.github.io/stockroom/) · [Quickstart](https://texarkanine.github.io/stockroom/user-guide/quickstart/) · [Contributing](https://texarkanine.github.io/stockroom/contributing/)
+
+Stockroom captures prompts, responses, and tool inputs from [Cursor](https://cursor.com/) and [Claude Code](https://code.claude.com/) into a single-file [DuckDB](https://duckdb.org/) warehouse with local [`sentence-transformers`](https://www.sbert.net/) embeddings. Kept content is stored **whole** — truncation is a read-time convenience, never a storage-time loss.
 
 It ships as a **dual-manifest plugin** (one shared `skills/` tree for Cursor and Claude Code) with **no build step**: the committed layout is the install layout.
 
-> **Docs:** [texarkanine.github.io/stockroom](https://texarkanine.github.io/stockroom/) · source under [`docs/`](docs/)
+![Stockroom dashboard — at-a-glance metrics](docs/img/stockroom-dashboard-top-light.png)
+
+Drill into past sessions and reconstruct conversations:
+
+![Stockroom dashboard — conversation reconstruction](docs/img/stockroom-dashboard-convo-light.png)
+
+After setup it can run **fully offline** — query the warehouse with the local `stockroom` or `duckdb` CLIs, no agent required:
+
+![Querying the warehouse with the DuckDB CLI](docs/img/stockroom-duckdb-query.png)
+
+Day-to-day use is still agent-native: ask about past work, or slash-invoke `/sr-search` and companions so the harness can assemble the right lookup for you.
 
 ## Why stockroom?
 
@@ -18,12 +30,13 @@ It ships as a **dual-manifest plugin** (one shared `skills/` tree for Cursor and
 ## Quickstart
 
 1. Add the [`txrk9-agent-plugins`](https://github.com/Texarkanine/txrk9-agent-plugins) marketplace and install `stockroom`.
-2. Run first-time setup:
-    - **Cursor:** `/sr-initialize`
-    - **Claude Code:** `/stockroom:sr-initialize`
-3. Ask the agent about past work, or slash-invoke `/sr-search` (Claude: `/stockroom:sr-search`).
+2. **Cursor only:** enable **Include third-party Plugins, Skills, and other configs** (Settings → Rules, Skills, Subagents) so plugin hooks register.
+3. Run first-time setup:
+   - **Cursor:** `/sr-initialize`
+   - **Claude Code:** `/stockroom:sr-initialize`
+4. Ask the agent about past work, or slash-invoke `/sr-search` (Claude: `/stockroom:sr-search`).
 
-What landed on disk: [Installed layout](docs/user-guide/installed-layout.md).
+Full walkthrough (prerequisites, what landed on disk, what to try next): [Quickstart](https://texarkanine.github.io/stockroom/user-guide/quickstart/).
 
 ## Skills
 
@@ -35,14 +48,15 @@ What landed on disk: [Installed layout](docs/user-guide/installed-layout.md).
 | `sr-semantic` | Meaning-based (vector) search |
 | `sr-dashboard` | Local metrics dashboard |
 
-Harness-specific slash forms: [Skill index](docs/user-guide/skills.md).
+Harness-specific slash forms and when to use each: [Skill index](https://texarkanine.github.io/stockroom/user-guide/skills/).
 
 ## Documentation
 
-- [User guide](docs/user-guide/quickstart.md) — quickstart, installed layout, troubleshooting, advanced CLI
-- [Architecture](docs/architecture/index.md) — human tour; agent doctrines stay in `system-model.md`
-- [Contributing](CONTRIBUTING.md) — how to land a change
+- [User guide](https://texarkanine.github.io/stockroom/user-guide/) — quickstart, search, dashboard, ingest, troubleshooting
+- [Architecture](https://texarkanine.github.io/stockroom/architecture/) — human tour of the system
+- [Advanced](https://texarkanine.github.io/stockroom/advanced/) — CLI escape hatches, DuckDB tips
+- [Contributing](https://texarkanine.github.io/stockroom/contributing/) — preparation & iteration ([GitHub PR notes](CONTRIBUTING.md))
 
 ## License
 
-Layered, and enforced by `reuse lint` (see [`REUSE.toml`](REUSE.toml)): code is [AGPL-3.0-or-later](LICENSES/AGPL-3.0-or-later.txt); prompt-shaped skill content is layered under the Public Prompt License (PPL-S). Details: [Licensing](docs/contributing/licensing.md).
+Layered, and enforced by `reuse lint` (see [`REUSE.toml`](REUSE.toml)): code is [AGPL-3.0-or-later](LICENSES/AGPL-3.0-or-later.txt); prompt-shaped skill content is layered under the Public Prompt License (PPL-S). Details: [Licensing](https://texarkanine.github.io/stockroom/contributing/licensing/).

@@ -38,3 +38,14 @@ Polish the root `README.md` into a sales-forward first impression: pitch, graphi
     - Adopt top docs-site CTA as in-scope polish (not a scope expansion)
 * Insights
     - Current README already has a light pitch and one site URL, but still routes deep dives through raw `docs/` paths and has zero graphics
+
+## 2026-07-14 - BUILD - COMPLETE
+
+* Work completed
+    - Rewrote `README.md` (pitch + 3 screenshots + site CTAs/links + lean quickstart/skills/docs/license)
+    - Acceptance checklist B1–B8 all green; image paths verified on disk
+* Decisions made
+    - Included Cursor third-party-plugins note in quickstart (one line) — matches live quickstart without embedding the settings screenshot
+    - Linked `CONTRIBUTING.md` only as “GitHub PR notes” under site Contributing
+* Insights
+    - Existing docs homepage graphics transfer cleanly to GitHub README via relative `docs/img/` paths

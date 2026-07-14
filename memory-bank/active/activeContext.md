@@ -1,12 +1,12 @@
 # Active Context
 
 ## Current Task: polish-readme-sales-pitch
-**Phase:** PREFLIGHT - COMPLETE
+**Phase:** BUILD - COMPLETE
 
 ## What Was Done
-- Preflight PASS: TDD ordering amended (baseline red → rewrite → retarget links → checklist green)
-- Baseline: current README fails B2 (no graphics) and B3 (relative `docs/` deep links); B1 is weak vs “perfect” sales bar
-- Advisory folded in: top docs-site CTA
+- Rewrote `/home/mobaxterm/git/stockroom/README.md`: sales pitch, three `docs/img/` screenshots, top docs CTAs, github.io deep links
+- Baseline red → full checklist green (B1–B8); no `docs/` tree edits; no new screenshots needed
+- Kept `CONTRIBUTING.md` / `REUSE.toml` as in-repo GitHub convention pointers
 
 ## Next Step
-- Build phase: rewrite README per plan
+- QA review (autonomous for L2)

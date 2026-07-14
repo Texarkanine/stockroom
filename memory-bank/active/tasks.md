@@ -90,10 +90,14 @@ No new technology - validation not required
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight
-- [ ] Build
+- [x] Build
 - [ ] QA
 
-## Preflight Amendments
+## Build progress
 
-- TDD encoding: added explicit baseline-red step (B1–B8 against current README) before any rewrite; split green into pitch/graphics then link retarget then full checklist
-- Advisory adopted into plan: prominent docs-site CTA near the top (sell-and-route, not a second docs corpus)
+- [x] 1. Baseline red (B2/B3 fail confirmed; images exist)
+- [x] 2. Inventory graphics (reuse three product PNGs)
+- [x] 3. Rewrite README (pitch, graphics, CTA, structure)
+- [x] 4. Retarget links to github.io
+- [x] 5. Full checklist green (B1–B8)
+
