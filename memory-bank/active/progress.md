@@ -32,3 +32,21 @@ Implement dashboard Sessions browse: capped glanceable Sessions panel on metrics
     - `/api/sessions_ends` for panel; enriched `/api/sessions` page envelope; `limit=0` = show-all
 * Insights
     - Panel “ends” is not a page — keep it as its own contract
+
+## 2026-07-14 - CREATIVE (per-page control) - COMPLETE
+
+* Work completed
+    - UI/UX creative for list per-page control
+* Decisions made
+    - Radio presets 25/50/100/All (All last); default 50; URL `per_page=`
+* Insights
+    - Matching Aggregate/Compare radios keeps the replaced slot familiar
+
+## 2026-07-14 - PLAN - COMPLETE
+
+* Work completed
+    - Full Level 3 implementation plan in `tasks.md`
+* Decisions made
+    - Three-view SPA (`metrics` / `sessions` / `session`); list URL-owned filters; omit since/until for default range
+* Insights
+    - Existing `test_dashboard_static` session-back assertion must flip to a negative contract

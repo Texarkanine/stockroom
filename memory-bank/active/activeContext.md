@@ -1,12 +1,14 @@
 # Active Context
 
 ## Current Task: dashboard-sessions-browse
-**Phase:** PLAN - IN-PROGRESS (creative: sessions API shape)
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Intent confirmed; Level 3 classified
-- Plan research: metrics Sessions is client `limit=50` via `GET /api/sessions`; filters are JS-memory only; reconstruct is `view=session`; no count/offset/order API yet
-- Open questions flagged: (1) sessions retrieval API shape, (2) per-page control UX
+- Component analysis across metrics/server/static/docs
+- Creative decisions:
+  - API: `/api/sessions_ends` + enriched `/api/sessions` (`limit=0` = show-all)
+  - Per-page UX: radios 25/50/100/All; URL `per_page=`; default 50
+- Full L3 plan written to `tasks.md` (11 implementation steps, TDD map, pre-mortem)
 
 ## Next Step
-- Creative phase for API shape, then per-page UX, then finalize plan
+- Preflight phase to validate the plan

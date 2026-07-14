@@ -6,27 +6,185 @@
 
 Close the loop on visual conversation exploration per [#49](https://github.com/Texarkanine/stockroom/issues/49): capped glanceable **Sessions** panel on metrics, deep-linkable paginated sessions-list SPA view, browser-Back-only navigation, efficient COUNT/window retrieval.
 
+## Pinned Info
+
+### Navigation & data flow
+
+Why pinned: three SPA views and two session list APIs must stay consistent through build and QA.
+
+```mermaid
+flowchart TD
+  Metrics["view=metrics<br/>in-memory filters"] -->|"… N more pushState"| List["view=sessions<br/>URL filters"]
+  Metrics -->|"row click pushState"| Reconstruct["view=session"]
+  List -->|"row click pushState"| Reconstruct
+  Metrics -->|"GET /api/sessions_ends"| EndsAPI["total + newest/oldest"]
+  List -->|"GET /api/sessions<br/>offset/limit/order"| PageAPI["total + page window"]
+  Reconstruct -->|"GET /api/session"| DetailAPI["session_detail"]
+  BrowserBack["Browser Back"] --> Metrics
+  BrowserBack --> List
+```
+
+## Component Analysis
+
+### Affected Components
+
+- **`metrics.py`**: Today `sessions()` returns newest-N array (limit clamp 500). → Extract shared filter/row helpers; add `sessions_ends()`; change `sessions()` to page envelope `{total, sessions}` with `offset`/`order`/`limit` (`limit=0` = no LIMIT); register `sessions_ends` in `ENDPOINTS`.
+- **`server.py`**: Parse `limit`/`offset`/`order` for sessions; wire `sessions_ends` like other filter endpoints; allow `limit=0` for show-all; drop silent 500 truncation for show-all path.
+- **`dashboard-data.mjs`**: `buildRequestPlan` currently hard-codes `limit=50` for sessions. → Metrics fan-out uses `sessions_ends`; add list-page fetch helper for paged `/api/sessions`.
+- **`dashboard-session.mjs`**: Session URL helpers + `shouldUseHistoryBackForSessionClose`. → Add sessions-list URL parse/build (`view=sessions`, harnesses, since/until, page, per_page); remove or narrow history-back helper usage once `#session-back` is gone.
+- **`dashboard-core.mjs` / `dashboard.mjs`**: Metrics state, `renderSessions`, `openSessionView`, pane swap. → Cap/ellipsis render; open list view; third pane; list filters URL-owned; remove session-back wiring.
+- **`index.html`**: “Recent Sessions”, `#session-back`, FOUC CSS for `data-view=session`. → Rename Sessions; ellipsis row affordance; `#sessions-pane` + per-page radios; FOUC for `view=sessions`; remove back button.
+- **Docs/skills**: `skills/sr-dashboard/SKILL.md`, `docs/user-guide/dashboard.md` (+ local skill mirror if tracked) — document list deep links; Sessions naming; no custom back.
+
+### Cross-Module Dependencies
+
+- Static client → HTTP API → `metrics.*` → DuckDB `open_current()`
+- Metrics pane and list pane both navigate to reconstruct via shared `openSessionView`
+- List URL is independent of metrics in-memory filters; `… more` copies filters at navigate time only
+
+### Boundary Changes
+
+- `/api/sessions` response: array → `{total, sessions}` (sole consumer: this SPA)
+- New `/api/sessions_ends` → `{total, newest, oldest}`
+- New SPA `view=sessions` query contract
+- Remove `#session-back` public chrome
+
+### Invariants & Constraints
+
+- Must preserve reconstruct deep links (`view=session&harness&session`) and row fields
+- Must preserve read-only `open_current()`, no schema migration
+- Must not fetch-all to build panel ends or a single page
+- Must keep list filter state URL-scoped and independent of metrics filters
+- Must use browser history as the only back navigation
+- Out of scope: reconstruct content/export, search-within-list, collaboration
+
 ## Open Questions
 
-- [x] Sessions retrieval API shape → Resolved: `/api/sessions_ends` for panel `{total,newest,oldest}`; enrich `/api/sessions` to `{total,sessions}` with `offset`/`order`/`limit` (`limit=0` = show-all). See `memory-bank/active/creative/creative-sessions-api-shape.md`
-- [ ] Per-page control UX on sessions list → In progress
+- [x] Sessions retrieval API shape → Resolved: `/api/sessions_ends` + enriched `/api/sessions` (`limit=0` = show-all). See `memory-bank/active/creative/creative-sessions-api-shape.md`
+- [x] Per-page control UX → Resolved: radio presets 25/50/100/All (All last); URL `per_page=`; default 50. See `memory-bank/active/creative/creative-per-page-control.md`
 
-### Per-page control UX on sessions list
+## Test Plan (TDD)
 
-**Problem:** The list page replaces Aggregate/Compare with a per-page control that must include a no-pagination / show-all option; exact UX is left to implementer.
+### Behaviors to Verify
 
-**Why ambiguous:** Fixed presets vs typed custom vs computed-from-total (or mix) all satisfy acceptance criteria but differ in chrome density and URL encoding (`per_page=all` vs omit vs sentinel).
+- Panel ≤20: `sessions_ends` returns all in `newest`, empty `oldest`; UI shows all, no ellipsis
+- Panel >20: newest 10 + oldest 10 + `total`; UI shows `… N more` with `N = total − 20`
+- Panel / list rows: same fields; click opens reconstruct
+- `… N more`: pushState to `view=sessions` seeded with current harnesses + window
+- List URL parse/build: harness (repeated), since/until optional, page, per_page ∈ {25,50,100,all}
+- List fetch: numeric per_page → limit/offset; `all` → `limit=0`
+- Pagination chrome visible top+bottom only when paging active (`per_page≠all` and total > per_page)
+- List filter changes update list URL only (metrics in-memory filters unchanged)
+- Reconstruct: no `#session-back`; browser Back restores prior view
+- Efficient path: ends uses COUNT + bounded queries (assert via SQL behavior / result sizes, not full dump)
+- Invalid API params → 400; show-all not silently capped at 500
+- Static contracts: Sessions title, sessions pane landmarks, FOUC `data-view=sessions`, no session-back
+- Docs/skill mention list deep-link template
 
-**Constraints:** Must live in the Aggregate/Compare slot; must include show-all at bottom of control; tall pages are acceptable; pagination UI top+bottom when paging is active; URL-owned independent of metrics filters; API uses `limit=0` for show-all (creative-sessions-api-shape).
+### Edge Cases
+
+- total = 0, 20, 21
+- `per_page=all` with large total (returns all; no pager)
+- Missing/invalid `per_page` → default 50
+- `page` beyond last → empty sessions or clamp (pick clamp-to-last in impl; test it)
+- Deep-link boot directly to `view=sessions` (no metrics visit)
+- `default` date range: omit since/until on list URL (match metrics sessions unwindowed behavior)
+- popstate across metrics ↔ list ↔ session
+
+### Test Infrastructure
+
+- Framework: pytest (`skills/sr-search/tests/`), Node 22 `node:test` (`skills/sr-search/tests-js/`)
+- Conventions: `test_<behavior>_…` with short docstrings; JS `test("…", …)`
+- Run: `make test-dashboard-py`, `make test-dashboard-js`, full `make ci` before done
+- New/extended files:
+  - `tests/test_dashboard_metrics.py` — `sessions_ends`, paged `sessions`
+  - `tests/test_dashboard_server.py` — new endpoint + param validation
+  - `tests/test_dashboard_static.py` — HTML/FOUC/chrome contracts
+  - `tests-js/dashboard-data.test.mjs` — request plan for ends + list fetch
+  - `tests-js/dashboard-session.test.mjs` — list URL helpers; drop/adjust back-button tests
+  - `tests-js/dashboard-core.test.mjs` — panel cap/ellipsis pure helpers if extracted
+  - Skill hygiene / docs assertions if existing patterns cover SKILL.md strings
+
+### Integration Tests
+
+- Server: `/api/sessions_ends` and `/api/sessions` against migrated fixture DB
+- Static + JS: URL helpers + request plan compose a valid list deep link an agent would emit
+
+## Implementation Plan
+
+1. **Metrics: shared filter + `sessions_ends` (TDD)**
+    - Files: `metrics.py`, `test_dashboard_metrics.py`
+    - Changes: extract filter/row helpers; implement `sessions_ends`; register in `ENDPOINTS`
+    - Creative ref: `creative-sessions-api-shape.md`
+
+2. **Metrics: paged `sessions` envelope (TDD)**
+    - Files: `metrics.py`, `test_dashboard_metrics.py`
+    - Changes: `{total, sessions}`, `offset`, `order`, `limit=0` show-all; update existing sessions tests
+
+3. **Server wiring (TDD)**
+    - Files: `server.py`, `test_dashboard_server.py`
+    - Changes: parse offset/order/limit=0; serve `sessions_ends`; adjust limit=501 expectations
+
+4. **Pure JS: list URL + panel model helpers (TDD)**
+    - Files: `dashboard-session.mjs` (and/or `dashboard-core.mjs`), `tests-js/dashboard-session.test.mjs`, `dashboard-core.test.mjs`
+    - Changes: `build/parseSessionsListParams`; `buildSessionsEndsModel` / ellipsis `N`; map per_page → API params
+    - Creative ref: `creative-per-page-control.md`
+
+5. **Data layer: request plan + list fetch (TDD)**
+    - Files: `dashboard-data.mjs`, `tests-js/dashboard-data.test.mjs`
+    - Changes: metrics uses `/api/sessions_ends`; `fetchSessionsPage(...)` for list
+
+6. **HTML shell + FOUC (TDD static)**
+    - Files: `index.html`, `test_dashboard_static.py`
+    - Changes: rename Sessions; `#sessions-pane` with harness/date/per-page; pagination slots; remove `#session-back`; `html[data-view=sessions]` FOUC
+
+7. **Adapter: metrics panel cap + navigate to list (TDD where pure; manual smoke later)**
+    - Files: `dashboard.mjs`
+    - Changes: render newest / `… N more` / oldest; `… more` → pushState list URL; row click unchanged
+
+8. **Adapter: sessions list view + pagination**
+    - Files: `dashboard.mjs`, `dashboard-core.mjs`
+    - Changes: sync list from URL; refetch on filter/per-page/page; pager top+bottom; row → reconstruct; popstate
+
+9. **Remove reconstruct custom back**
+    - Files: `dashboard.mjs`, `dashboard-session.mjs`, tests
+    - Changes: delete `#session-back` handlers; rely on browser Back / popstate
+
+10. **Docs & skill**
+    - Files: `skills/sr-dashboard/SKILL.md`, `docs/user-guide/dashboard.md`, local mirror if present/tracked
+    - Changes: Sessions naming; list deep-link template; remove back-button mentions
+
+11. **Verification**
+    - `make test-dashboard-py`, `make test-dashboard-js`, then `make ci`
+
+## Technology Validation
+
+No new technology - validation not required (extend existing dashboard static ESM + metrics/server).
+
+## Challenges & Mitigations
+
+- **`/api/sessions` wire break**: Update all client + tests in the same build sequence; grep for bare array assumptions.
+- **Show-all memory pressure**: Accepted by issue; keep `limit=0` explicit; do not use show-all for the metrics panel path.
+- **Oldest block ordering**: Return oldest ASC; render after ellipsis so the table reads newest…ellipsis…oldest.
+- **Metrics filters not in URL**: List seeding copies selected harnesses + `state.window` ISO bounds (omit when `default`); Back restores prior history entry without mutating list URL into metrics.
+- **FOUC for third view**: Mirror session head-script/`data-view` pattern for `view=sessions`.
+- **test_dashboard_static asserts `#session-back`**: Replace with negative assertion + list-pane contracts.
+
+## Pre-Mortem
+
+- **Treated list filters as shared with metrics (single global state)**: Plan response — keep metrics in-memory; list state only from URL; navigate copies, never two-way binds.
+- **Implemented panel cap client-side from a fat `/api/sessions` dump**: Already covered by Challenge/API creative — build must use `sessions_ends` only for the panel.
+- **Left “Back to metrics” as a soft dependency (e.g. keyboard shortcut only)**: Plan response — delete the control and any close-via-button path; popstate + browser Back only.
+- **Encoded `default` range as synthetic since/until that drift on revisit**: Plan response — omit since/until when window is null; document in URL helpers tests.
 
 ## Status
 
-- [ ] Component analysis complete
-- [ ] Open questions resolved
-- [ ] Test planning complete (TDD)
-- [ ] Implementation plan complete
-- [ ] Technology validation complete
-- [ ] Pre-Mortem complete
+- [x] Component analysis complete
+- [x] Open questions resolved
+- [x] Test planning complete (TDD)
+- [x] Implementation plan complete
+- [x] Technology validation complete
+- [x] Pre-Mortem complete
 - [ ] Preflight
 - [ ] Build
 - [ ] QA
