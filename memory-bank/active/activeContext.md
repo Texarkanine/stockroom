@@ -1,12 +1,11 @@
 # Active Context
 
 ## Current Task: advanced-usage-docs
-**Phase:** QA - COMPLETE (PASS)
+**Phase:** REFLECT COMPLETE
 
 ## What Was Done
-- Semantic QA against brief, creatives, and B1–B6
-- Trivial fixes: removed meta “Advanced-owned depth” line; aligned DuckDB one-shot path with fallback expression
-- Re-ran `make docs-build` — PASS
+- Reflection written: `memory-bank/active/reflection/reflection-advanced-usage-docs.md`
+- Persistent MB reconcile: no updates (Advanced ownership not claimed in product/system/tech context sentences that needed change)
 
 ## Next Step
-- Reflect phase (automatic after QA PASS)
+- Operator runs `/niko-archive` to archive and clear ephemeral state

@@ -74,3 +74,13 @@ Bring the Advanced docs section to presentation quality: power-user escape hatch
     - PASS — no substantive plan or creative drift
 * Insights
     - Meta process-speak (“Advanced-owned depth”) is easy to leave in docs; catch in QA
+
+## 2026-07-14 - REFLECT - COMPLETE
+
+* Work completed
+    - Full L3 reflection written for advanced-usage-docs
+    - Persistent files scanned — no surgical updates required
+* Decisions made
+    - Standalone task → next operator step is `/niko-archive`
+* Insights
+    - Creative dual lock (topics + IA) made Build a translation; docs QA should watch for process meta leaking into user prose
