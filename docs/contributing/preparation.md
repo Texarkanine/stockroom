@@ -1,4 +1,4 @@
-# Local Workflow
+# Preparing for Local Development
 
 ## Rip it Out
 

@@ -1,6 +1,6 @@
 nav:
   - index.md
-  - local-workflow.md
-  - development.md
+  - Preparation: preparation.md
+  - Iteration: iteration.md
   - licensing.md
   - ...

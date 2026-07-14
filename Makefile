@@ -27,14 +27,14 @@ HARNESS ?=
 SCRIPTS := scripts
 LOCALDEV_SH := $(SCRIPTS)/localdev.sh
 
-.PHONY: help sync lock lock-check test test-js lint format format-check reuse ci torch \
+.PHONY: help sync lock lock-check test test-dashboard-js test-dashboard-py lint format format-check reuse ci torch \
 	local-skills local-engine local-dashboard localdev localdev-clean localdev-status shim \
 	docs docs-build require-harness
 
 help: ## List targets
 	@printf "stockroom dev targets (engine: %s)\n\n" "$(ENGINE)"
 	@grep -E '^[a-zA-Z0-9_.-]+:.*##' $(MAKEFILE_LIST) | sort \
-		| awk 'BEGIN {FS = ":.*## "}; {printf "  %-14s %s\n", $$1, $$2}'
+		| awk 'BEGIN {FS = ":.*## "}; {printf "  %-22s %s\n", $$1, $$2}'
 
 sync: ## Install deps from the committed lock (torch-free; re-run make torch after)
 	$(UV_DIR) sync --frozen
@@ -49,13 +49,17 @@ lock: ## Regenerate uv.lock hermetically
 lock-check: ## Fail if uv.lock is stale vs pyproject.toml
 	$(UV_DIR) lock --locked
 
-test: sync test-js ## Run pytest and JavaScript unit tests
+test: sync test-dashboard-js ## Run pytest and JavaScript unit tests
 	$(UV_RUN) pytest
 
-test-js: ## Run native dashboard tests under Node 22
+test-dashboard-js: ## Dashboard ES-module tests (Node 22; no sync)
 	@command -v $(NODE) >/dev/null 2>&1 || { echo "Node 22 is required for dashboard tests"; exit 1; }
 	@version="$$($(NODE) --version)"; case "$$version" in v22.*) ;; *) echo "Node 22 is required for dashboard tests (found $$version)"; exit 1;; esac
 	cd $(ENGINE) && $(NODE) --test tests-js/*.test.mjs
+
+# No sync: preserves out-of-lock torch. Full gate remains `make test` / `make ci`.
+test-dashboard-py: ## Dashboard pytest (tests/test_dashboard_*.py; torch-safe; no sync)
+	cd $(ENGINE) && $(UV) run --no-sync $(UV_NO_CFG) pytest tests/test_dashboard_*.py
 
 lint: sync ## Run ruff check
 	$(UV_RUN) ruff check
