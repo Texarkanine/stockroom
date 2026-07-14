@@ -78,3 +78,13 @@ Write the Architecture documentation section: systems-level mental model for adv
     - No substantive FAIL findings; Architecture corpus complete against page contracts
 * Insights
     - Docs QA still catches factual narrowing (“Cursor-only”) even when the build checklist is green
+
+## 2026-07-14 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `memory-bank/active/reflection/reflection-architecture-docs.md`
+    - Reconciled persistent files: Contributing path renames in `systemPatterns.md` / `techContext.md`
+* Decisions made
+    - Architecture remains human atlas; agent system-model stays linked compact form
+* Insights
+    - Docs TDD checklists work for prose; never race MB edits with git commit

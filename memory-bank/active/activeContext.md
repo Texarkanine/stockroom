@@ -1,12 +1,12 @@
 # Active Context
 
 ## Current Task: architecture-docs
-**Phase:** QA - COMPLETE (PASS)
+**Phase:** REFLECT - COMPLETE
 
 ## What Was Done
-- Semantic QA against plan, creatives, and brief
-- Trivial fix: lifecycle hook-timeout wording is harness-agnostic
-- Strict docs-build re-verified; `.qa-validation-status` = PASS
+- Reflection written (`reflection/reflection-architecture-docs.md`)
+- Reconciled persistent MB: fixed stale Contributing paths in `systemPatterns.md` / `techContext.md` (`local-workflow`→`preparation`, `development`→`iteration`)
+- QA PASS carried forward; Build complete
 
 ## Next Step
-- Reflect phase (autonomous per L3 workflow)
+- Operator: run `/niko-archive` to archive and finalize
