@@ -68,3 +68,13 @@ Write the Architecture documentation section: systems-level mental model for adv
     - Change-surfaces table on index as preflight advisory
 * Insights
     - Strict docs gate surfaces rename debt outside the Architecture corpus; fix surgically rather than widening Architecture scope
+
+## 2026-07-14 - QA - COMPLETE (PASS)
+
+* Work completed
+    - Semantic review vs plan/creatives/brief; one trivial accuracy fix (hook timeouts are harness-agnostic)
+    - `make docs-build` re-verified strict PASS; `.qa-validation-status` = PASS
+* Decisions made
+    - No substantive FAIL findings; Architecture corpus complete against page contracts
+* Insights
+    - Docs QA still catches factual narrowing (“Cursor-only”) even when the build checklist is green
