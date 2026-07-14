@@ -1,12 +1,12 @@
 # Active Context
 
 ## Current Task: architecture-docs
-**Phase:** PLAN - COMPLETE
+**Phase:** PREFLIGHT - COMPLETE (PASS)
 
 ## What Was Done
-- Creative: scope & ownership (systems atlas + inclusion bar)
-- Creative: page IA (overview + packaging / lifecycle / warehouse / embeddings)
-- Full L3 plan written: behaviors, implementation steps, challenges, pre-mortem
+- Plan validated against docs conventions, creatives, brief
+- Amended Implementation Plan for docs TDD: checklist → stubs → fill → `make docs-build`
+- Adopted within-scope radical improvement: “change surfaces” table on Architecture index
 
 ## Next Step
-- Preflight phase to validate the plan
+- Operator: run `/niko-build` to implement

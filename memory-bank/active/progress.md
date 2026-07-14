@@ -46,3 +46,14 @@ Write the Architecture documentation section: systems-level mental model for adv
     - Docs verification via content checklist + `make docs-build` (no new pytest)
 * Insights
     - Ground prose in hooks JSON / shim / systemPatterns to avoid inventing constraints
+
+## 2026-07-14 - PREFLIGHT - COMPLETE (PASS)
+
+* Work completed
+    - Validated plan vs conventions, creatives, brief, dependency blast radius (docs-only)
+    - Amended Implementation Plan for explicit test-before-prose ordering
+    - Added change-surfaces table to index implementation step
+* Decisions made
+    - Preflight PASS; Build awaits operator `/niko-build`
+* Insights
+    - Docs TDD encoding must put the acceptance checklist before page prose, not after

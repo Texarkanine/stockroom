@@ -95,35 +95,43 @@ Docs-only feature: verification is content contracts + strict site build (no pyt
 
 ## Implementation Plan
 
-1. **Rewrite Architecture overview**
-    - Files: `docs/architecture/index.md`, `docs/architecture/.pages`
-    - Changes: audience; control-flow Mermaid (pinned); piece list; satellite links; pointers to system-model / UG / Contributing / Advanced / licensing; replace stub doctrines list
-    - Creative ref: page IA + scope
+1. **Author the verification checklist (tests first)**
+    - Files: `memory-bank/active/tasks.md` (Build checklist section)
+    - Changes: Expand Behaviors into a page-by-page acceptance checklist of required claims/sections (seed + inventory topics). Checklist starts unchecked — the failing “tests.”
+    - Creative ref: scope required-topic table + page contracts
 
-2. **Write packaging page**
-    - Files: `docs/architecture/packaging.md` (new)
-    - Changes: dual-manifest / run-in-place; engine in `sr-search` (prose+code sync; lock vs PyPI); torch out of lock + freeze/heal implications; shim baked-only (`rectify`, `ensure-env`); link UG torch troubleshooting / Contributing for procedures
+2. **Stub Architecture pages and nav**
+    - Files: `docs/architecture/index.md`, `packaging.md`, `lifecycle.md`, `warehouse.md`, `embeddings.md`, `.pages`
+    - Changes: Create/overwrite stubs with H1 + section headings matching the checklist (empty bodies or one-line placeholders). Wire `.pages` nav order. No substantive prose yet.
 
-3. **Write lifecycle page**
-    - Files: `docs/architecture/lifecycle.md` (new)
-    - Changes: hook doctrine (F&F, idempotent, concurrent, fault-tolerant; never ingest/migrate/error); scheduled ingest+embed via shim; dashboard session-hook launch, offline static assets, torch-safe env; cite hook timeouts as WHY ingest is not on session-start
+3. **Fill overview (`index.md`)**
+    - Files: `docs/architecture/index.md`
+    - Changes: Audience; control-flow Mermaid; piece list; satellite links; “change surfaces” table (if you change X → read page Y); pointers to system-model / UG / Contributing / Advanced / licensing
+    - Check off overview checklist items as claims land
 
-4. **Write warehouse page**
-    - Files: `docs/architecture/warehouse.md` (new)
-    - Changes: rebuildable ETL; RO readers; no truncation at rest; harness-labeled identity/provenance; two-layer lock / `open` vs `open_current`; parsers→writer; warehouse outlives sources; verify-don’t-invert; UTC; migration chokepoint (not DDL dump)
+4. **Fill packaging**
+    - Files: `docs/architecture/packaging.md`
+    - Changes: dual-manifest / run-in-place; engine in `sr-search`; lock hermeticity; torch out of lock; shim `rectify`/`ensure-env`; outbound procedure links
+    - Check off packaging checklist items
 
-5. **Write embeddings page**
-    - Files: `docs/architecture/embeddings.md` (new)
-    - Changes: sentence-transformers / BAAI/bge-small-en-v1.5 / 384-dim; VSS/HNSW; ingest vs embed lag; search-surface split (engine power / skill judgement / no fusion); brief render/truncate chokepoint
+5. **Fill lifecycle**
+    - Files: `docs/architecture/lifecycle.md`
+    - Changes: hook doctrine; scheduled ingest; dashboard hook launch / offline / torch-safe
+    - Check off lifecycle checklist items
 
-6. **Nav + light cross-links**
-    - Files: `docs/architecture/.pages`; optional one-line pointers from `docs/index.md` / Contributing index / Advanced index if missing Architecture entry
-    - Changes: nav order Overview → Packaging → Lifecycle → Warehouse → Embeddings; fix any stale Architecture stub wording elsewhere that claims doctrines live only on index
+6. **Fill warehouse**
+    - Files: `docs/architecture/warehouse.md`
+    - Changes: ETL/RO; truncation; identity; concurrency; ingest outlives sources; verify-don’t-invert; UTC; migration chokepoint
+    - Check off warehouse checklist items
 
-7. **Verify**
-    - Run content checklist against behaviors + seed list
-    - `make docs-build`
-    - Fix link/nav issues
+7. **Fill embeddings**
+    - Files: `docs/architecture/embeddings.md`
+    - Changes: ST/BGE/384; VSS/HNSW; staleness; search-surface split; render note
+    - Check off embeddings checklist items
+
+8. **Light cross-links + strict build**
+    - Files: optional Home / Contributing / Advanced index pointers; all Architecture pages
+    - Changes: ensure entry points discover Architecture; run `make docs-build`; fix link/nav failures; confirm checklist fully checked and exclusions still hold
 
 ## Technology Validation
 
@@ -152,6 +160,6 @@ No new technology - validation not required (properdocs already in use).
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight — PASS (TDD ordering amended: checklist → stubs → fill → build; advisory: change-surfaces table on index)
 - [ ] Build
 - [ ] QA
