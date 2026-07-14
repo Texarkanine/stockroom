@@ -32,23 +32,13 @@ Prefer, in order:
 
 1. **`sr-initialize`** when you can spend an agent turn — it re-probes and only does what is still missing ([Quickstart](../quickstart.md)).
 2. **New harness session** — session-start hooks run `shim rectify`, which can create a missing on-path shim or rebake an owned one after a plugin path move.
-3. **Bind the shim yourself** — [Manual shim bind](#manual-shim-bind) below.
+3. **Last resort: bind the shim yourself** — when the marketplace plugin is already installed and you cannot spend an agent turn ([recipe below](#last-resort-bind-the-shim-yourself)).
 
 What lands on disk: [Installed layout](../installed-layout.md).
 
-### Shim refuses with a one-line remedy
+#### Last resort: bind the shim yourself
 
-Follow the remedy printed on stderr. Often that is: open a new session so `shim rectify` can heal, re-run `sr-initialize`, or [bind the shim yourself](#manual-shim-bind) when you cannot use an agent turn.
-
-### Engine env cannot import locked deps
-
-Let session-start heal run, or re-run `sr-initialize`.
-
-### Manual shim bind
-
-Use this when the marketplace plugin is installed but `stockroom` is not on `PATH` (or the bake is wrong), and you do not want to spend an agent turn on `sr-initialize`.
-
-The shim is **baked** to one engine directory (`…/skills/sr-search`). You must bind the install that is already on disk — not a random git clone. The same recipe lives in your installed plugin under `skills/sr-initialize/SKILL.md` (Step 7: Bind the `stockroom` command).
+The shim is **baked** to one engine directory (`…/skills/sr-search`). Bind the install that is already on disk — not a random git clone. The same recipe lives in your installed plugin under `skills/sr-initialize/SKILL.md` (Step 7: Bind the `stockroom` command).
 
 1. Find the engine dir (pick the marketplace/plugin tree you actually run — not a contributor checkout unless that is intentional):
 
@@ -80,6 +70,14 @@ If the installer warns that `~/.local/bin` is not on `PATH`, add it and retry th
 **Ownership:** if install refuses because another owner’s shim is alive, read the refusal line. Replacing a live foreign shim needs explicit `--takeover` (and usually a reason you are sure) — prefer `sr-initialize` or consent carefully. Contributor checkouts use `make shim` (owner `dev`) from [Preparation](../../contributing/preparation.md), not this recipe.
 
 Torch / env heal beyond binding the launcher: [Torch](torch.md) · `sr-initialize`.
+
+### Shim refuses with a one-line remedy
+
+Follow the remedy printed on stderr. Often that is: open a new session so `shim rectify` can heal, or re-run `sr-initialize`. If you cannot use an agent turn and the remedy is effectively “rebind the launcher,” use the [last-resort bind](#last-resort-bind-the-shim-yourself) under `stockroom: command not found`.
+
+### Engine env cannot import locked deps
+
+Let session-start heal run, or re-run `sr-initialize`.
 
 ## Ingest
 
