@@ -1,12 +1,11 @@
 # Active Context
 
 ## Current Task: architecture-docs
-**Phase:** PREFLIGHT - COMPLETE (PASS)
+**Phase:** BUILD - IN-PROGRESS
 
 ## What Was Done
-- Plan validated against docs conventions, creatives, brief
-- Amended Implementation Plan for docs TDD: checklist → stubs → fill → `make docs-build`
-- Adopted within-scope radical improvement: “change surfaces” table on Architecture index
+- Preflight PASS; entered Build per `/niko-build`
+- Reviewing creative decisions (systems atlas + thematic IA) before authoring
 
 ## Next Step
-- Operator: run `/niko-build` to implement
+- Implementation plan step 1: author page-by-page verification checklist in `tasks.md`
