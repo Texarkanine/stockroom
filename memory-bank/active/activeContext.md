@@ -1,12 +1,11 @@
 # Active Context
 
 ## Current Task: advanced-usage-docs
-**Phase:** PREFLIGHT - COMPLETE (PASS)
+**Phase:** BUILD - IN-PROGRESS
 
 ## What Was Done
-- Plan validated against conventions, ownership, inbound links, docs-only TDD
-- Amended Implementation Plan: checklist → page stubs → fill → verify per B* → build
-- Advisory only: optional home-page DuckDB caption/link (not applied)
+- Preflight PASS; entered Build
+- Creative decisions confirmed: Option B duo (CLI OOB + DuckDB); IA Option B (index + cli.md + duckdb.md)
 
 ## Next Step
-- Operator runs `/niko-build` to implement
+- Execute Implementation Plan: stubs → fill per satellite → inbound audit → `make docs-build`
