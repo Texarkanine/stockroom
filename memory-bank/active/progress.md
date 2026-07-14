@@ -1,0 +1,29 @@
+# Progress
+
+Add nullable `sessions.workspace_key` with extensible per-harness ETL transforms so same-cwd cross-harness sessions share a queryable rollup key; wire Sessions by Project to that key; document the contract.
+
+**Complexity:** Level 3
+
+## 2026-07-14 - COMPLEXITY-ANALYSIS - COMPLETE
+
+* Work completed
+    - Intent restatement approved (including per-harness T extensibility)
+    - Ephemeral memory-bank files created; prior creative retained
+    - Complexity classified as Level 3
+* Decisions made
+    - Level 3: schema + ingest strategies + metrics + docs (multiple components)
+    - Creative already done standalone — plan should treat rollup-layer questions as resolved
+* Insights
+    - Column name `workspace_key`; convergence on same cwd/machine; identity `project_id` unchanged
+
+## 2026-07-14 - PLAN - COMPLETE
+
+* Work completed
+    - Component analysis, test plan, implementation steps, challenges, pre-mortem
+    - Branched `feat/workspace-key` from main
+* Decisions made
+    - metrics groups by `coalesce(workspace_key, project_id)`; column itself stays NULL when underivable
+    - `projects[]` API values are rollup keys
+    - Migration `0006_workspace_key.sql`; no DML backfill
+* Insights
+    - Existing basename-collide metrics test must be reinterpreted under workspace_key semantics
