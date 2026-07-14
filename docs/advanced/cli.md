@@ -27,8 +27,6 @@ The shim owns the torch-safe run contract and dispatches into the engine. Prefer
 
 ## Read surfaces
 
-These are the Advanced-owned depth for terminal use:
-
 ```bash
 stockroom query "SELECT DISTINCT harness FROM sessions"
 stockroom query --format table --detail full "SELECT message_id, role FROM messages LIMIT 5"

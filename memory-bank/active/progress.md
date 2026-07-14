@@ -64,3 +64,13 @@ Bring the Advanced docs section to presentation quality: power-user escape hatch
     - Home-page DuckDB caption advisory still deferred
 * Insights
     - Pointer table for other subcommands satisfies orientation without encyclopedia regress
+
+## 2026-07-14 - QA - COMPLETE (PASS)
+
+* Work completed
+    - Semantic review: KISS/DRY/YAGNI/completeness/ownership/integrity
+    - Fixed two trivial voice/consistency issues; docs-build re-verified
+* Decisions made
+    - PASS — no substantive plan or creative drift
+* Insights
+    - Meta process-speak (“Advanced-owned depth”) is easy to leave in docs; catch in QA

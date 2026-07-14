@@ -21,7 +21,7 @@ duckdb -readonly "${STOCKROOM_HOME:-${XDG_DATA_HOME:-$HOME/.local/share}/stockro
 Then run SQL interactively, or pass a one-shot statement:
 
 ```bash
-duckdb -readonly "$STOCKROOM_HOME/warehouse.duckdb" -c "SELECT COUNT(*) FROM sessions"
+duckdb -readonly "${STOCKROOM_HOME:-${XDG_DATA_HOME:-$HOME/.local/share}/stockroom}/warehouse.duckdb" -c "SELECT COUNT(*) FROM sessions"
 ```
 
 (`-readonly` is a DuckDB CLI flag — see `duckdb --help`.)

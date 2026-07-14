@@ -173,4 +173,4 @@ No new technology — validation not required (properdocs already in tree).
 - [x] Pre-Mortem complete
 - [x] Preflight (PASS — TDD ordering amended checklist→stubs→fill→verify; advisory home DuckDB caption not applied)
 - [x] Build
-- [ ] QA
+- [x] QA
