@@ -1,11 +1,12 @@
 # Active Context
 
 ## Current Task: dashboard-sessions-browse
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - IN-PROGRESS (creative: sessions API shape)
 
 ## What Was Done
-- Intent confirmed against [#49](https://github.com/Texarkanine/stockroom/issues/49)
-- Complexity determined: **Level 3** — complete multi-component feature (metrics Sessions panel, new sessions-list SPA view, reconstruct chrome, new efficient dashboard API endpoints); extends #39 `view=` pattern; no schema migration / not system-wide architecture
+- Intent confirmed; Level 3 classified
+- Plan research: metrics Sessions is client `limit=50` via `GET /api/sessions`; filters are JS-memory only; reconstruct is `view=session`; no count/offset/order API yet
+- Open questions flagged: (1) sessions retrieval API shape, (2) per-page control UX
 
 ## Next Step
-- Load Level 3 workflow and begin PLAN phase
+- Creative phase for API shape, then per-page UX, then finalize plan

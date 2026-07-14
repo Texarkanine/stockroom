@@ -18,7 +18,17 @@ Implement dashboard Sessions browse: capped glanceable Sessions panel on metrics
 
 * Work completed
     - Entering Level 3 plan phase for dashboard-sessions-browse (#49)
+    - Mapped dashboard Sessions / view=session / filter ownership / test paths
 * Decisions made
-    - None yet
+    - Open questions: API shape + per-page UX
 * Insights
-    - None yet
+    - Metrics filters are JS-memory only today; list page must be URL-owned
+
+## 2026-07-14 - CREATIVE (sessions API shape) - COMPLETE
+
+* Work completed
+    - Architecture creative for sessions retrieval API
+* Decisions made
+    - `/api/sessions_ends` for panel; enriched `/api/sessions` page envelope; `limit=0` = show-all
+* Insights
+    - Panel “ends” is not a page — keep it as its own contract
