@@ -86,7 +86,7 @@ flowchart TD
 - total = 0, 20, 21
 - `per_page=all` with large total (returns all; no pager)
 - Missing/invalid `per_page` → default 50
-- `page` beyond last → empty sessions or clamp (pick clamp-to-last in impl; test it)
+- `page` beyond last → clamp to last non-empty page (or page 1 when total=0)
 - Deep-link boot directly to `view=sessions` (no metrics visit)
 - `default` date range: omit since/until on list URL (match metrics sessions unwindowed behavior)
 - popstate across metrics ↔ list ↔ session
@@ -112,47 +112,49 @@ flowchart TD
 
 ## Implementation Plan
 
-1. **Metrics: shared filter + `sessions_ends` (TDD)**
-    - Files: `metrics.py`, `test_dashboard_metrics.py`
-    - Changes: extract filter/row helpers; implement `sessions_ends`; register in `ENDPOINTS`
+Each numbered unit is one TDD cycle: **(a) write/adjust failing tests → (b) run and confirm failure → (c) implement production code → (d) run and confirm pass**. Do not start (c) before (a)/(b) for that unit.
+
+1. **Metrics: shared filter + `sessions_ends`**
+    - (a) Tests first: `test_dashboard_metrics.py` — empty/≤20/>20 ends shapes, filter window, harness filter, field parity with today’s row dict
+    - (c) Then: `metrics.py` — extract filter/row helpers; implement `sessions_ends`; register in `ENDPOINTS`
     - Creative ref: `creative-sessions-api-shape.md`
 
-2. **Metrics: paged `sessions` envelope (TDD)**
-    - Files: `metrics.py`, `test_dashboard_metrics.py`
-    - Changes: `{total, sessions}`, `offset`, `order`, `limit=0` show-all; update existing sessions tests
+2. **Metrics: paged `sessions` envelope**
+    - (a) Tests first: rewrite existing `sessions()` assertions for `{total, sessions}`; add offset/order/`limit=0` show-all cases
+    - (c) Then: `metrics.py` — envelope + offset/order/limit semantics
 
-3. **Server wiring (TDD)**
-    - Files: `server.py`, `test_dashboard_server.py`
-    - Changes: parse offset/order/limit=0; serve `sessions_ends`; adjust limit=501 expectations
+3. **Server wiring**
+    - (a) Tests first: `test_dashboard_server.py` — `/api/sessions_ends`; `offset`/`order`/`limit=0`; update clamp/`limit=501` expectations; keep `limit=-1` → 400
+    - (c) Then: `server.py` — parse and dispatch
 
-4. **Pure JS: list URL + panel model helpers (TDD)**
-    - Files: `dashboard-session.mjs` (and/or `dashboard-core.mjs`), `tests-js/dashboard-session.test.mjs`, `dashboard-core.test.mjs`
-    - Changes: `build/parseSessionsListParams`; `buildSessionsEndsModel` / ellipsis `N`; map per_page → API params
+4. **Pure JS: list URL + panel model helpers**
+    - (a) Tests first: `tests-js/dashboard-session.test.mjs`, `dashboard-core.test.mjs` — parse/build list URL; per_page map; ellipsis `N`; invalid defaults
+    - (c) Then: `dashboard-session.mjs` / `dashboard-core.mjs` helpers
     - Creative ref: `creative-per-page-control.md`
 
-5. **Data layer: request plan + list fetch (TDD)**
-    - Files: `dashboard-data.mjs`, `tests-js/dashboard-data.test.mjs`
-    - Changes: metrics uses `/api/sessions_ends`; `fetchSessionsPage(...)` for list
+5. **Data layer: request plan + list fetch**
+    - (a) Tests first: `tests-js/dashboard-data.test.mjs` — metrics plan hits `/api/sessions_ends` (no `limit=50`); list fetch builds offset/limit/all
+    - (c) Then: `dashboard-data.mjs`
 
-6. **HTML shell + FOUC (TDD static)**
-    - Files: `index.html`, `test_dashboard_static.py`
-    - Changes: rename Sessions; `#sessions-pane` with harness/date/per-page; pagination slots; remove `#session-back`; `html[data-view=sessions]` FOUC
+6. **HTML shell + FOUC**
+    - (a) Tests first: `test_dashboard_static.py` — Sessions title; `#sessions-pane` + per-page radios; pagination slots; FOUC `data-view=sessions`; **assert `#session-back` absent**
+    - (c) Then: `index.html` markup/CSS/head FOUC script
 
-7. **Adapter: metrics panel cap + navigate to list (TDD where pure; manual smoke later)**
-    - Files: `dashboard.mjs`
-    - Changes: render newest / `… N more` / oldest; `… more` → pushState list URL; row click unchanged
+7. **Adapter: metrics panel cap + navigate to list**
+    - (a) Tests first: extend JS helpers/tests for render model (newest / more / oldest) if not fully covered in step 4; any extractable pure functions get tests before `dashboard.mjs` wiring
+    - (c) Then: `dashboard.mjs` — render capped panel; `… more` → pushState list URL; row click unchanged
 
 8. **Adapter: sessions list view + pagination**
-    - Files: `dashboard.mjs`, `dashboard-core.mjs`
-    - Changes: sync list from URL; refetch on filter/per-page/page; pager top+bottom; row → reconstruct; popstate
+    - (a) Tests first: pure transition/URL sync helpers in `dashboard-core` / `dashboard-session` tests for page/per_page/filter changes
+    - (c) Then: `dashboard.mjs` — list pane fetch/render; pager top+bottom; row → reconstruct; popstate
 
 9. **Remove reconstruct custom back**
-    - Files: `dashboard.mjs`, `dashboard-session.mjs`, tests
-    - Changes: delete `#session-back` handlers; rely on browser Back / popstate
+    - (a) Tests first: remove/replace `shouldUseHistoryBackForSessionClose` / static back-button tests with popstate-only expectations
+    - (c) Then: delete `#session-back` handlers and dead helpers from `dashboard.mjs` / `dashboard-session.mjs`
 
 10. **Docs & skill**
-    - Files: `skills/sr-dashboard/SKILL.md`, `docs/user-guide/dashboard.md`, local mirror if present/tracked
-    - Changes: Sessions naming; list deep-link template; remove back-button mentions
+    - (a) Tests first: only if existing skill-hygiene/docs tests assert old strings — update those assertions first
+    - (c) Then: `skills/sr-dashboard/SKILL.md`, `docs/user-guide/dashboard.md` (engine tree only; do not hand-edit untracked `.cursor/skills/stockroom-local/` mirrors)
 
 11. **Verification**
     - `make test-dashboard-py`, `make test-dashboard-js`, then `make ci`
@@ -177,6 +179,12 @@ No new technology - validation not required (extend existing dashboard static ES
 - **Left “Back to metrics” as a soft dependency (e.g. keyboard shortcut only)**: Plan response — delete the control and any close-via-button path; popstate + browser Back only.
 - **Encoded `default` range as synthetic since/until that drift on revisit**: Plan response — omit since/until when window is null; document in URL helpers tests.
 
+## Preflight Amendments
+
+- Explicit (a) tests → (b) fail → (c) implement → (d) pass ordering added to every implementation unit (TDD plan encoding).
+- Docs step scoped to tracked engine/docs paths; untracked `.cursor/skills/stockroom-local/` is localdev output, not a plan touchpoint.
+- Page-beyond-last behavior fixed for build: **clamp `page` to last non-empty page** (or page 1 when total=0).
+
 ## Status
 
 - [x] Component analysis complete
@@ -185,6 +193,6 @@ No new technology - validation not required (extend existing dashboard static ES
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
 - [ ] QA

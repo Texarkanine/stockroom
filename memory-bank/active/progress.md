@@ -50,3 +50,13 @@ Implement dashboard Sessions browse: capped glanceable Sessions panel on metrics
     - Three-view SPA (`metrics` / `sessions` / `session`); list URL-owned filters; omit since/until for default range
 * Insights
     - Existing `test_dashboard_static` session-back assertion must flip to a negative contract
+
+## 2026-07-14 - PREFLIGHT - COMPLETE (PASS)
+
+* Work completed
+    - Validated TDD encoding, conventions, dependency impact, conflicts, completeness
+    - Amended plan with explicit per-unit test-before-code steps; page-clamp rule; localdev mirror non-touchpoint
+* Decisions made
+    - Preflight PASS — build gated on operator `/niko-build`
+* Insights
+    - Existing server tests assert array payloads and limit clamp 500 — must be rewritten in build units 2–3

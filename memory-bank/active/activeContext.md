@@ -1,14 +1,12 @@
 # Active Context
 
 ## Current Task: dashboard-sessions-browse
-**Phase:** PLAN - COMPLETE
+**Phase:** PREFLIGHT - COMPLETE (PASS)
 
 ## What Was Done
-- Component analysis across metrics/server/static/docs
-- Creative decisions:
-  - API: `/api/sessions_ends` + enriched `/api/sessions` (`limit=0` = show-all)
-  - Per-page UX: radios 25/50/100/All; URL `per_page=`; default 50
-- Full L3 plan written to `tasks.md` (11 implementation steps, TDD map, pre-mortem)
+- Preflight validated plan against codebase (metrics/server/static/tests/docs)
+- Amended plan: per-unit TDD (a→d) ordering; docs scoped to tracked paths; page clamp rule
+- Creative docs present for API shape + per-page UX
 
 ## Next Step
-- Preflight phase to validate the plan
+- Operator runs `/niko-build` to start implementation
