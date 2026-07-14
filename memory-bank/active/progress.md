@@ -89,3 +89,10 @@ Rework `docs/contributing/development.md` into a day-to-day contributor guide (p
     - Archive still pending (`/niko-archive`)
 * Insights
     - Contributor docs IA settled on Preparation (enter/exit) + Iteration (day-to-day surfaces)
+
+## 2026-07-14 - ARCHIVE - READY
+
+* Work completed
+    - Leaving REFLECT; operator invoked `/niko-archive`
+* Decisions made
+    - Archive category: enhancements
