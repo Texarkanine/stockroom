@@ -94,3 +94,14 @@ Bring the Advanced docs section to presentation quality: power-user escape hatch
     - Shim bind is recovery (UG troubleshooting), not Advanced escape-hatch depth
 * Insights
     - Name-only env lists fail the “actionable” bar; put recipes where the command is owned
+
+## 2026-07-14 - POST-REFLECT POLISH (heading consistency + ownership)
+
+* Work completed
+    - Nested last-resort shim bind under `command not found` (####); H3s remain symptoms only
+    - Operator edits on troubleshooting recipe + Advanced landing saved via `/nk-save`
+* Decisions made
+    - Intentional shim bind for end users is not a happy Advanced path; Contributing owns `make shim` / localdev
+    - Do not split troubleshooting into more siblings yet (torch bar not met)
+* Insights
+    - Troubleshooting H3s = problems; remedies nest — procedures must not peer with symptoms
