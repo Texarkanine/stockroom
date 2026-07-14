@@ -49,3 +49,13 @@ Polish the root `README.md` into a sales-forward first impression: pitch, graphi
     - Linked `CONTRIBUTING.md` only as “GitHub PR notes” under site Contributing
 * Insights
     - Existing docs homepage graphics transfer cleanly to GitHub README via relative `docs/img/` paths
+
+## 2026-07-14 - QA - COMPLETE
+
+* Work completed
+    - Semantic review against plan/brief: PASS
+    - Wrote `.qa-validation-status` = PASS
+* Decisions made
+    - No trivial fixes required
+* Insights
+    - README-only L2 QA is mostly completeness + docs-ownership (sell-and-route), not code style
