@@ -50,7 +50,7 @@ Everything that runs Stockroom on a machine goes through the on-path `stockroom`
 
 - **Dual-manifest plugin** — Cursor and Claude Code each have a manifest; both point at one shared `skills/` tree. The committed layout is the install layout.
 - **Skills** — `sr-*` agent procedures. Sibling skills have no Python of their own; they invoke `stockroom <subcommand>`.
-- **Shim** — generated `~/.local/bin/stockroom`. Owns engine-dir resolution, `PYTHONPATH`, and torch-safe uv flags. Baked-only: succeed correctly or refuse with a one-line remedy.
+- **Shim** — generated `~/.local/bin/stockroom`. Owns engine-dir resolution, `PYTHONPATH`, and torch-safe uv flags. Baked-only: succeed correctly or refuse with a one-line remedy. See [The stockroom shim](packaging.md#the-stockroom-shim) and [Heal](packaging.md#heal).
 - **Engine** — locked uv project under `skills/sr-search/` (`src/stockroom/`, migrations, tests). Run-in-place; not an installed Python package.
 - **Warehouse** — single-file DuckDB under stockroom home. Rebuildable ETL from harness session records.
 - **Embeddings** — local `sentence-transformers` vectors; torch is provisioned per-machine and held out of the dependency lock.
@@ -62,11 +62,11 @@ Everything that runs Stockroom on a machine goes through the on-path `stockroom`
 
 | If you change… | Read first |
 | --- | --- |
-| Plugin manifests, skill layout, engine packaging, uv lock, torch provisioning, or the shim | [Packaging](packaging.md) |
+| Plugin manifests, skill layout, engine packaging, uv lock, torch provisioning, the shim, or heal | [Packaging](packaging.md) — especially [shim](packaging.md#the-stockroom-shim) and [heal](packaging.md#heal) |
 | Session-start hooks, nightly schedule, or dashboard process lifecycle | [Lifecycle](lifecycle.md) |
 | Schema, ingest parsers/writer, warehouse open paths, or identity/provenance | [Warehouse](warehouse.md) |
 | Embedding model, VSS/HNSW, semantic search, or how skills route over query/semantic | [Embeddings](embeddings.md) |
-| Human install/heal recipes, torch troubleshooting steps | [User Guide](../user-guide/index.md) |
+| Human install/heal *recipes*, torch troubleshooting steps | [User Guide](../user-guide/index.md) |
 | Make / localdev / iteration loops | [Contributing](../contributing/index.md) |
 | Raw CLI / DuckDB escape hatches | [Advanced](../advanced/index.md) |
 

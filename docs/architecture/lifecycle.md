@@ -2,7 +2,11 @@
 
 When Stockroom work runs on a live machine: hooks, the nightly schedule, and the dashboard process. This is *when* things fire — not how to install or how to write SQL.
 
-## Hook doctrine
+## Session-start hooks
+
+Constraints on the hook, and what it actually runs. Heavy ETL does not belong here — see [Scheduled ingest and embed](#scheduled-ingest-and-embed).
+
+### Hook doctrine
 
 Harness session-start hooks are designed to be:
 
@@ -13,11 +17,11 @@ Harness session-start hooks are designed to be:
 
 Hooks are short-budget work. Session-start hook commands carry an explicit timeout (hundreds of seconds, not “as long as ETL needs”). Anything that can run for minutes does not belong on session start.
 
-## Session start
+### Session start
 
 On session start, Stockroom does two things through the shim:
 
-1. **`shim rectify`** — heal the on-path shim and ensure the engine environment (see [Packaging](packaging.md)).
+1. **`shim rectify`** — heal the on-path shim and ensure the engine environment (see [Heal](packaging.md#heal) and [The stockroom shim](packaging.md#the-stockroom-shim)).
 2. **`stockroom dashboard`** — launch (or re-print) the local dashboard URL.
 
 Session start does **not** ingest, embed, or migrate as its primary work. Those are heavier, longer, and already owned by the schedule and explicit CLI/skill paths. Putting them on the hook would fight timeout limits and turn every new chat into an inelegant ETL termination race.
@@ -32,7 +36,7 @@ Freshness is a nightly `stockroom ingest && stockroom embed` (incremental) on th
 
 The dashboard is a **local, read-only, fully offline** metrics UI (default port 58008). Front-end assets are vendored — no CDN or external web requests at runtime. It does not ingest, embed, or migrate; freshness is owned by ingest/embed.
 
-Session-start hooks attempt to launch it automatically. The CLI is idempotent: if something already listens on the port, the command still prints the URL and exits cleanly. The process uses a torch-safe engine env (same shim contract as other subcommands) and opens the warehouse through `open_current()` so a UI process never becomes the migrator — see [Warehouse](warehouse.md).
+Session-start hooks attempt to launch it automatically. The CLI is idempotent: if something already listens on the port, the command still prints the URL and exits cleanly. The process uses a torch-safe engine env (same shim contract as other subcommands) and opens the warehouse through `open_current()` so a UI process never becomes the migrator — see [Warehouse](warehouse.md#concurrency-and-open-paths).
 
 ## Rendered-out artifacts
 
