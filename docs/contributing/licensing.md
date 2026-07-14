@@ -1,24 +1,40 @@
 # Licensing
 
-Stockroom uses layered licensing, enforced by `reuse lint` (see [`REUSE.toml`](https://github.com/Texarkanine/stockroom/blob/main/REUSE.toml) at the repo root).
+Stockroom uses [REUSE](https://reuse.software/) for licensing, allowing multiple licenses to be assigned & attributed throughout the codebase.
 
-## Layers
+## Licensing Intent
 
-| Layer | What | License |
+| Target | What | License |
 | --- | --- | --- |
-| Default | Code, docs, memory-bank, and everything else | [AGPL-3.0-or-later](https://github.com/Texarkanine/stockroom/blob/main/LICENSES/AGPL-3.0-or-later.txt) |
-| Prompt carveout | `skills/**/SKILL.md` and `skills/**/references/**` only | Public Prompt License (PPL-S) |
-| Vendored Chart.js / markdown-it | Exact upstream dashboard artifacts | MIT (upstream) |
-| `.cursor/**` | Vendored agent tooling | NOASSERTION |
-
-The PPL-S carveout is intentionally **narrow**: skill prompts and agent references, not the whole `skills/**` tree. Contributor and human user-guide prose under `docs/` stays AGPL with the rest of the tree.
+| Default | Code, docs, memory-bank, and everything else | [GNU Affero General Public License v3](https://www.gnu.org/licenses/agpl-3.0.en.html) |
+| Prompt/Skill Text | `skills/**/SKILL.md` and `skills/**/references/**` only | [Public Prompt License (PPL-S)](https://shipfail.github.io/public-prompt-license/) |
+| Vendored Chart.js / markdown-it | Exact upstream dashboard artifacts | MIT (reiteratd from upstream) |
+| `.cursor/**` | Vendored agent tooling | None Specified (check upstream) |
 
 ## Checks
 
-From a checkout:
+Is every file licensed?
 
 ```bash
 make reuse
+```
+
+What license does a file fall under?
+
+```bash
+reuse spdx | grep -A 5 <path>
+```
+
+e.g. 
+
+```
+$ reuse spdx | grep -A 5 skills/sr-search/src/stockroom/dashboard/static/chart-4.5.1.umd.min.js
+FileName: ./skills/sr-search/src/stockroom/dashboard/static/chart-4.5.1.umd.min.js
+SPDXID: SPDXRef-67d5565acf332d4d6accfe56e67873b1
+FileChecksum: SHA1: cb555814104cfb8bf88e4d1b21033b495c3c5a77
+LicenseConcluded: NOASSERTION
+LicenseInfoInFile: MIT
+FileCopyrightText: <text>SPDX-FileCopyrightText: 2014-2025 Chart.js Contributors</text>
 ```
 
 Prefer path aggregates in `REUSE.toml` over per-file SPDX headers when adding many new files.
