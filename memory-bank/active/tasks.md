@@ -113,7 +113,7 @@ flowchart LR
     - Files: `ingest/model.py`, `ingest/writer.py`, writer/ingest tests, `fixtures/ingest/expected_rows.json`
     - Changes: field on `NormalizedSession`; writer computes via `workspace_key_for` at insert; golden includes keys
 
-4. **metrics.projects rollup (TDD)**
+4. [x] **metrics.projects rollup (TDD)**
     - Files: `dashboard/metrics.py`, `tests/test_dashboard_metrics.py`
     - Changes: aggregate by `coalesce(workspace_key, project_id)`; labels from cwd leaves in bucket; add same-cwd cross-harness merge test; adjust collide-by-basename test for key semantics
 

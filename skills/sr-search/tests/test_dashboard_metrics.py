@@ -19,17 +19,20 @@ def _seed_session(
     message_count: int = 1,
     started_at: datetime | None = None,
     cwd: str | None = None,
+    workspace_key: str | None = None,
 ) -> None:
     """Insert one main session and a deterministic run of messages."""
     con.execute(
         "INSERT INTO sessions "
-        "(harness, session_id, project_id, cwd, source_path, is_subagent, "
-        "started_at, source_mtime) VALUES (?, ?, ?, ?, ?, false, ?, ?)",
+        "(harness, session_id, project_id, cwd, workspace_key, source_path, "
+        "is_subagent, started_at, source_mtime) "
+        "VALUES (?, ?, ?, ?, ?, ?, false, ?, ?)",
         [
             harness,
             session_id,
             project_id,
             cwd,
+            workspace_key,
             f"/tmp/{session_id}.jsonl",
             started_at,
             activity,
@@ -581,10 +584,10 @@ def test_projects_labels_fall_back_to_id_when_short_names_disagree(
     assert result["labels"] == ["ambiguous-slug"]
 
 
-def test_projects_ranking_stays_by_id_when_basenames_collide(
+def test_projects_ranking_stays_by_key_when_basenames_collide(
     migrated_con: duckdb.DuckDBPyConnection,
 ) -> None:
-    """Same leaf across different project_ids still ranks and labels by id order."""
+    """Same leaf, different cwds → distinct workspace_keys; labels may collide."""
     _seed_session(
         migrated_con,
         harness="cursor",
@@ -592,6 +595,7 @@ def test_projects_ranking_stays_by_id_when_basenames_collide(
         activity=datetime(2026, 1, 10),
         project_id="path-a-stockroom",
         cwd="/path/a/stockroom",
+        workspace_key="path-a-stockroom",
         message_count=1,
     )
     _seed_session(
@@ -601,6 +605,7 @@ def test_projects_ranking_stays_by_id_when_basenames_collide(
         activity=datetime(2026, 1, 10),
         project_id="path-a-stockroom",
         cwd="/path/a/stockroom",
+        workspace_key="path-a-stockroom",
     )
     _seed_session(
         migrated_con,
@@ -609,6 +614,7 @@ def test_projects_ranking_stays_by_id_when_basenames_collide(
         activity=datetime(2026, 1, 10),
         project_id="path-b-stockroom",
         cwd="/path/b/stockroom",
+        workspace_key="path-b-stockroom",
     )
     result = metrics.projects(
         migrated_con,
@@ -618,6 +624,70 @@ def test_projects_ranking_stays_by_id_when_basenames_collide(
     assert result["projects"] == ["path-a-stockroom", "path-b-stockroom"]
     assert result["labels"] == ["stockroom", "stockroom"]
     assert result["sessions"] == {"claude": [0, 1], "cursor": [2, 0]}
+
+
+def test_projects_merges_same_cwd_across_harnesses(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Different project_ids, same cwd/workspace_key → one ranked rollup key."""
+    _seed_session(
+        migrated_con,
+        harness="cursor",
+        session_id="c1",
+        activity=datetime(2026, 1, 10),
+        project_id="home-me-stockroom",
+        cwd="/home/me/stockroom",
+        workspace_key="home-me-stockroom",
+    )
+    _seed_session(
+        migrated_con,
+        harness="claude",
+        session_id="a1",
+        activity=datetime(2026, 1, 11),
+        project_id="-home-me-stockroom",
+        cwd="/home/me/stockroom",
+        workspace_key="home-me-stockroom",
+    )
+    _seed_session(
+        migrated_con,
+        harness="cursor",
+        session_id="c2",
+        activity=datetime(2026, 1, 12),
+        project_id="home-me-other",
+        cwd="/home/me/other",
+        workspace_key="home-me-other",
+    )
+    result = metrics.projects(
+        migrated_con,
+        since=datetime(2026, 1, 1),
+        until=datetime(2026, 2, 1),
+    )
+    assert result["projects"] == ["home-me-stockroom", "home-me-other"]
+    assert result["labels"] == ["stockroom", "other"]
+    assert result["sessions"] == {"claude": [1, 0], "cursor": [1, 1]}
+
+
+def test_projects_falls_back_to_project_id_when_workspace_key_null(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """NULL workspace_key still groups via coalesce to project_id."""
+    _seed_session(
+        migrated_con,
+        harness="cursor",
+        session_id="c1",
+        activity=datetime(2026, 1, 10),
+        project_id="orphan-slug",
+        cwd=None,
+        workspace_key=None,
+    )
+    result = metrics.projects(
+        migrated_con,
+        since=datetime(2026, 1, 1),
+        until=datetime(2026, 2, 1),
+    )
+    assert result["projects"] == ["orphan-slug"]
+    assert result["labels"] == ["orphan-slug"]
+    assert result["sessions"] == {"cursor": [1]}
 
 
 def test_project_display_name_uses_cwd_basename_or_id() -> None:
