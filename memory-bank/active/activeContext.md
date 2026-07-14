@@ -1,13 +1,12 @@
 # Active Context
 
 ## Current Task: advanced-usage-docs
-**Phase:** PLAN - COMPLETE
+**Phase:** PREFLIGHT - COMPLETE (PASS)
 
 ## What Was Done
-- Component analysis + two creatives (high confidence)
-- Topic cut: escape-hatch duo (CLI OOB + DuckDB); omit `uv` and UG-covered recipes
-- Page IA: `index.md` + `cli.md` + new `duckdb.md`
-- Full L3 plan with docs-only TDD checklist (B1–B6) and `make docs-build` gate
+- Plan validated against conventions, ownership, inbound links, docs-only TDD
+- Amended Implementation Plan: checklist → page stubs → fill → verify per B* → build
+- Advisory only: optional home-page DuckDB caption/link (not applied)
 
 ## Next Step
-- Preflight phase to validate the plan
+- Operator runs `/niko-build` to implement

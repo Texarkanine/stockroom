@@ -42,3 +42,13 @@ Bring the Advanced docs section to presentation quality: power-user escape hatch
     - DuckDB CLI recipe uses `-readonly` against `$STOCKROOM_HOME/warehouse.duckdb`
 * Insights
     - Keep `cli.md` slug; add `duckdb.md`; rewrite scaffold encyclopedia away
+
+## 2026-07-14 - PREFLIGHT - COMPLETE (PASS)
+
+* Work completed
+    - Validated plan vs brief, creatives, systemPatterns docs ownership, inbound Advanced links
+    - Amended Implementation Plan for explicit docs TDD ordering
+* Decisions made
+    - PASS; advisory home DuckDB caption deferred (out of Advanced-section focus)
+* Insights
+    - Same checklist→stubs→fill gate that worked for architecture-docs applies here

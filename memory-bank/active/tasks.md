@@ -91,39 +91,51 @@ Docs-only verification (same pattern as architecture-docs / contributing guides)
 
 ## Implementation Plan
 
-1. **Stub content checklist** (fail closed until prose lands)
-    - Files: `memory-bank/active/tasks.md` (this Build checklist)
-    - Changes: unchecked B1–B6 items below
+Docs TDD ordering (preflight amendment): **checklist → page stubs → fill one page at a time → verify that page’s B* → inbound audit → strict build**. Do not write finished prose before stubs exist; do not mark a B* until that page’s prose is read against the behavior.
 
-2. **Rewrite landing**
+1. **Stub content checklist** (failing tests)
+    - Files: `memory-bank/active/tasks.md` (Build checklist below — already unchecked)
+    - Changes: none further; B1–B6 remain unchecked until verified
+
+2. **Stub page shells + nav** (empty implementations)
+    - Files: `docs/advanced/index.md`, `cli.md`, `duckdb.md` (new), `.pages`
+    - Changes: title + section headings only (no finished prose); `.pages` = Overview → CLI → DuckDB
+    - Gate: stubs committed/saved before fill steps
+
+3. **Fill landing → verify B1**
     - Files: `docs/advanced/index.md`
     - Changes: power-user audience; is/isn’t; TOC to CLI + DuckDB; outbound Architecture / UG; no encyclopedia
     - Creative ref: page-IA Option B; topic-inventory Option B
+    - Then: mark B1 only if behavior holds
 
-3. **Rewrite CLI satellite**
+4. **Fill CLI satellite → verify B2**
     - Files: `docs/advanced/cli.md`
     - Changes: OOB stockroom invocation; `query`/`semantic` + format/detail; env overrides with Installed-layout links; short “other commands” pointer (not heal recipes); see-also DuckDB
     - Creative ref: topic-inventory include list; page-IA `cli.md` contract
+    - Then: mark B2 only if behavior holds
 
-4. **Add DuckDB satellite**
-    - Files: `docs/advanced/duckdb.md` (new)
-    - Changes: path → Installed layout; `duckdb -readonly "$STOCKROOM_HOME/warehouse.duckdb"` (or equivalent); prefer `stockroom query`; locks / migrations / presentation caveats; see-also CLI
+5. **Fill DuckDB satellite → verify B3**
+    - Files: `docs/advanced/duckdb.md`
+    - Changes: path → Installed layout; `duckdb -readonly` against `$STOCKROOM_HOME/warehouse.duckdb`; prefer `stockroom query`; locks / migrations / presentation caveats; see-also CLI
     - Creative ref: page-IA Option B
+    - Then: mark B3 only if behavior holds
 
-5. **Nav**
-    - Files: `docs/advanced/.pages`
-    - Changes: Overview → CLI → DuckDB
-
-6. **Inbound link audit**
+6. **Inbound link audit → verify B4 + B5**
     - Files: grep-driven updates under `docs/` (Architecture warehouse/embeddings, UG search/ingest/troubleshooting, etc.)
-    - Changes: DuckDB-specific “escape hatch” pointers → `duckdb.md`; CLI OOB stays on `cli.md`; fix any broken relatives from prior renames only if they block strict build
+    - Changes: DuckDB-specific escape-hatch pointers → `duckdb.md`; CLI OOB stays on `cli.md`; fix only relatives that block strict build
+    - Then: mark B4/B5 only if ownership + nav/links hold
 
-7. **Fill checklist + strict build**
+7. **Strict build → verify B6**
     - Run: `make docs-build`
-    - Mark B1–B6 complete only after reading pages against behaviors
+    - Mark B6 only on PASS
 
 8. **Persistent MB** (conditional)
     - Only if Advanced ownership sentence in `systemPatterns.md` / `techContext.md` is factually wrong — surgical fix, no drive-by
+
+### Preflight amendments
+
+- **TDD encoding**: Reordered to checklist → stubs → fill → verify per satellite (blocks write-then-invent-tests).
+- **Advisory (not applied)**: Home `docs/index.md` already shows a DuckDB CLI screenshot — a one-line “Advanced → DuckDB” caption/link would improve discoverability but is outside the brief’s Advanced-section focus; leave for operator polish if desired.
 
 ### Build checklist
 
@@ -159,6 +171,6 @@ No new technology — validation not required (properdocs already in tree).
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight (PASS — TDD ordering amended checklist→stubs→fill→verify; advisory home DuckDB caption not applied)
 - [ ] Build
 - [ ] QA
