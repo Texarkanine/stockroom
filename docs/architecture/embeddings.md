@@ -10,7 +10,7 @@ The model, the index path, and why semantic recall can lag ingest.
 
 Embeddings use [`sentence-transformers`](https://www.sbert.net/) with [`BAAI/bge-small-en-v1.5`](https://huggingface.co/BAAI/bge-small-en-v1.5) at **384 dimensions**. The model is local after first fetch: once provisioned, semantic search does not need the network.
 
-BGE-small is an *asymmetric* retrieval model: stored passages and incoming queries get different prefixes, applied automatically by the engine on each side. Mixing prefixes, or thresholding on an absolute cosine score as if it were a universal quality meter, will mislead you — scores are meaningful only **relative to each other within one query**.
+BGE-small is an *asymmetric* retrieval model: stored passages are embedded with **no** prefix; only incoming queries get the engine’s query instruction prefix. Mixing a prefixed query against wrongly-prefixed passages, or thresholding on an absolute cosine score as if it were a universal quality meter, will mislead you — scores are meaningful only **relative to each other within one query**.
 
 Torch is required to encode; it is held out of the lock for machine-specific builds — see [Packaging](packaging.md#torch-held-out-of-the-lock).
 

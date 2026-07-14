@@ -44,7 +44,7 @@ PYTHONPATH="$APP_DIR/src" python3 -m stockroom shim ensure-env --app-dir "$APP_D
 
 This is the tested env-heal path (`stockroom.engine_env`): probe with `uv sync --frozen --inexact --check`, and when incomplete run `uv sync --frozen --inexact`. It never exact-syncs, so it is safe whether or not torch is already present. Session/workspace hooks call the same logic via `shim rectify` after a plugin-root move.
 
-**Ordering still matters for torch.** Provision torch only after locked deps exist (steps 4–5). After torch is installed, never run an exact `uv sync` yourself — use `--inexact` / `uv run --no-sync` (see `docs/contributing/development.md`).
+**Ordering still matters for torch.** Provision torch only after locked deps exist (steps 4–5). After torch is installed, never run an exact `uv sync` yourself — use `--inexact` / `uv run --no-sync` (see `docs/contributing/iteration.md`).
 
 ## Step 4: Probe the environment
 

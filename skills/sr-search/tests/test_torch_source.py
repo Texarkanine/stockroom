@@ -136,7 +136,7 @@ def test_ensure_torch_fails_without_freeze(app_dir: Path, stockroom_home: Path) 
     assert report.reason == (
         "torch missing and no hashed freeze at "
         f"{torch_source.requirements_path()} — run sr-initialize (install → smoke → "
-        "freeze) or see docs/contributor-guide/torch.md"
+        "freeze) or see docs/user-guide/troubleshooting/torch.md"
     )
     assert not any("pip" in c for c in calls)
 

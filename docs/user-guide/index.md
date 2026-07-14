@@ -10,9 +10,9 @@ Just want to get it working? Head over to the [Quickstart](quickstart.md) page.
 
 ### Install Once
 
-Install the plugin from the marketplace and run the `sr-initialize` skilli.
+Install the plugin from the marketplace and run the `sr-initialize` skill.
 
-That does a one-time dependency sync, selects the correct [PyTorch]() for your machine, does the initial load of the warehouse and offers to schedule a nightly warehouse refresh.
+That does a one-time dependency sync, selects the correct [PyTorch](troubleshooting/torch.md) for your machine, does the initial load of the warehouse and offers to schedule a nightly warehouse refresh.
 
 ---
 

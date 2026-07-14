@@ -8,7 +8,7 @@ Stockroom uses [REUSE](https://reuse.software/) for licensing, allowing multiple
 | --- | --- | --- |
 | Default | Code, docs, memory-bank, and everything else | [GNU Affero General Public License v3](https://www.gnu.org/licenses/agpl-3.0.en.html) |
 | Prompt/Skill Text | `skills/**/SKILL.md` and `skills/**/references/**` only | [Public Prompt License (PPL-S)](https://shipfail.github.io/public-prompt-license/) |
-| Vendored Chart.js / markdown-it | Exact upstream dashboard artifacts | MIT (reiteratd from upstream) |
+| Vendored Chart.js / markdown-it | Exact upstream dashboard artifacts | MIT (reiterated from upstream) |
 | `.cursor/**` | Vendored agent tooling | None Specified (check upstream) |
 
 ## Checks

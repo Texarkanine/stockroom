@@ -53,7 +53,7 @@ Full flag semantics: `stockroom query --help` / `stockroom semantic --help`.
 
 	Semantic search just outputs data - nothing that works as a foreign key into other rows or an SQL query, *except* with `--format json`.
 
-	Additionally, their output is truncated.
+	Additionally, its output is truncated.
 
 `stockroom semantic` was designed for agents to cast a wide net and find something promising, which they'd then do a fuller-detail JSON dump on. For you as a human (who doesn't care about the "context window" of your terminal), you probably always want to use
 

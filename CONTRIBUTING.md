@@ -1,36 +1,24 @@
 # Contributing
 
-Thanks for contributing to Stockroom. This page orients you; procedural depth lives under [`docs/contributing/`](docs/contributing/local-workflow.md).
+Thanks for contributing to Stockroom.
 
-## Before you change code
+Day-to-day checkout work (localdev enter/exit, engine/Torch/docs loops, licensing) lives on the docs site:
 
-1. Read [Local workflow](docs/contributing/local-workflow.md) — enter / verify / exit so you hack exclusively from this checkout and can return to a normal install.
-2. Read [Development](docs/contributing/development.md) — day-to-day engine / Torch / docs / dashboard / skills loops and Make targets.
-3. If you touch embeddings or heal: [Torch](docs/user-guide/troubleshooting/torch.md) (operator contract) and the Torch section in [Development](docs/contributing/development.md) (restore via `ensure-env` vs `make torch` when changing the stack).
-4. Licensing is layered — [Licensing](docs/contributing/licensing.md) and root [`REUSE.toml`](REUSE.toml). Prefer path aggregates over per-file SPDX headers when adding many files.
+* [Contributing](https://texarkanine.github.io/stockroom/contributing/) - the landing page
+	1. [Preparation](https://texarkanine.github.io/stockroom/contributing/preparation/) - to get ready to hack on Stockroom
+	2. [Iteration](https://texarkanine.github.io/stockroom/contributing/iteration/) - how to actually make and validate changes to the various parts of Stockroom
 
-## Documentation ownership
+## Pull requests
 
-One owner per fact — do not fork operational manuals into a second copy.
-
-| Home | Owns |
-| --- | --- |
-| `skills/*/SKILL.md` | Agent operational how + short recovery tables |
-| `skills/sr-search/references/system-model.md` | Shared *why* for the **using** agent (plugin runtime) |
-| `memory-bank/systemPatterns.md` | Maintainer briefing for the **maintaining** agent (checkout / Niko work) |
-| `docs/**` | Human user-guide, architecture tour, advanced CLI, contributor guide |
-| `README.md` / this file | Funnel and contributor entry — not a second skill manual |
-
-**`system-model.md` vs `systemPatterns.md`:** same thematic doctrines, different audience and altitude. Do not merge, snippet, or treat them as one SSOT. Update both deliberately when a *doctrine* changes; update only systemPatterns (and code/docs) when an *implementation* detail changes. Do not point plugin agents at `memory-bank/`.
-
-Do **not** add a human user-guide corpus under `skills/**/references/`. Do **not** copy `SKILL.md` flag tables into `docs/`.
-
-## Engine vs docs toolchain
-
-- **Engine:** `skills/sr-search/` (`pyproject.toml` + `uv.lock`) — runtime and tests.
-- **Docs site:** repo-root stub `pyproject.toml` + docs dependency group + `properdocs.yaml` — `make docs` / `make docs-build`.
+1. Fork (or use a branch on a write-enabled clone) and open a PR against `main`.
+2. Keep the change focused: one concern per PR when practical.
+3. Use [conventional commits](https://www.conventionalcommits.org/) (`feat`, `fix`, `chore`, `docs` only!).
+4. Update the docs site (under `docs/`) when behavior or contributor contracts change — preview with `make docs`, gate with `make docs-build`.
+5. Prefer path aggregates in [`REUSE.toml`](REUSE.toml) over per-file SPDX headers when adding many files. Licensing detail: [Licensing](https://texarkanine.github.io/stockroom/contributing/licensing/).
 
 ## Checks
+
+CI runs the engine gate and a strict docs build. Locally:
 
 ```bash
 make ci          # engine gate (matches CI)
@@ -38,6 +26,10 @@ make docs-build  # strict properdocs build
 make reuse       # licensing lint
 ```
 
-## Pull requests
+## Reviews
 
-Use conventional commits (`feat`, `fix`, `chore`, `docs`, `refactor`, `test`, …). Keep changes focused; update docs when behavior or contributor contracts change.
+Expect review on correctness, docs ownership (do not fork a second SSOT), and whether the PR stays in its stated scope. Link related issues in the PR body (`#N`).
+
+## Niko & memory-bank
+
+The [Niko agentic workflow engine](https://github.com/Texarkanine/.cursor-rules/tree/main/rulesets/niko) manages the [memory-bank](memory-bank/) in this repository. You're welcome to use any development process you like, but please ensure you and/or your agents abide by the [relevant rules](.cursor/rules/shared/niko/memory-bank/) and [procedures](.cursor/skills/shared/niko/references/core/reconcile-persistent.md) if you modify memory-bank files.

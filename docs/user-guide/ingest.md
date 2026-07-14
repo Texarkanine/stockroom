@@ -30,13 +30,13 @@ STOCKROOM_AI_TRACKING_DB=/path/to/ai-code-tracking.db stockroom ingest
 
 Defaults are `~/.cursor/projects`, `~/.claude/projects`, and Cursor’s usual `ai-tracking` DB under `~/.cursor/`.
 
-`sr-initialize` runs `stockroom ingest --full` once so you are not waiting for the first nightly job. On years of history that first pass can many minutes (varying greatly depending on your machine's CPU and disk speed); it prints per-harness session/message/tool_call counts when done.
+`sr-initialize` runs `stockroom ingest --full` once so you are not waiting for the first nightly job. On years of history that first pass can take many minutes (varying greatly depending on your machine's CPU and disk speed); it prints per-harness session/message/tool_call counts when done.
 
 ## Embed
 
 Embed turns non-empty message text into local vectors ([BAAI/bge-small-en-v1.5](https://huggingface.co/BAAI/bge-small-en-v1.5), 384-dim, one row per chunk in `embeddings`). SQL query works without embeddings; **meaning-based recall does not.**
 
-Embedding needs a working PyTorch install in the engine venv. Ingest does not. If embed or semantic search fails citing torch / the environment, fix torch first — [Troubleshooting >Torch](troubleshooting/torch.md).
+Embedding needs a working PyTorch install in the engine venv. Ingest does not. If embed or semantic search fails citing torch / the environment, fix torch first — [Troubleshooting > Torch](troubleshooting/torch.md).
 
 **Default is incremental.** Only messages that still lack an embedding for the current model are processed. Re-runs resume cleanly after interruption.
 

@@ -4,7 +4,11 @@
 
 Do this once when you want the harness and on-path CLI to run **only** from your local checkout.
 
-### 1. Make a Backup
+### 1. Stop Writers
+
+Close the dashboard, your harness(es), and any other process that might have `warehouse.db` open. A copy taken while DuckDB still has writers can be an inconsistent recovery image.
+
+### 2. Make a Backup
 
 Always back up your data before switching off of the normal plugin-marketplace install. Forward migrations can make it hard to go back to an older released engine against the same DB.
 
@@ -12,9 +16,9 @@ Always back up your data before switching off of the normal plugin-marketplace i
 cp -r ~/.local/share/stockroom/warehouse.db ~/warehouse.db.backup
 ```
 
-### 2. Uninstall the Plugin
+### 3. Uninstall the Plugin
 
-Un-install the Stockroom plugin from your harness(es). Close the harnesses.
+Un-install the Stockroom plugin from your harness(es).
 
 ## Run a Local Checkout
 
