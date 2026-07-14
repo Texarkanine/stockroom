@@ -1,11 +1,12 @@
 # Active Context
 
 ## Current Task: workspace-key
-**Phase:** QA - COMPLETE (PASS)
+**Phase:** REFLECT - COMPLETE
 
 ## What Was Done
-- Build complete; QA PASS with one trivial fix (harness-neutral encode in private key helper)
-- `.qa-validation-status` written
+- Reflection written: `memory-bank/active/reflection/reflection-workspace-key.md`
+- Persistent files: systemPatterns already current; productContext/techContext unchanged
+- Build + QA PASS; ready to archive
 
 ## Next Step
-- Reflect phase (automatic Level 3 transition)
+- Operator: `/niko-archive`

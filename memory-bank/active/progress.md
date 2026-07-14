@@ -59,3 +59,12 @@ Add nullable `sessions.workspace_key` with extensible per-harness ETL transforms
     - Overview distinct_projects by `project_id` left unchanged (out of plan scope)
 * Insights
     - Creative’s “Cursor-form” wording is easy to reify as `encode_for("cursor")`; neutral helper should stay harness-agnostic
+
+## 2026-07-14 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `reflection/reflection-workspace-key.md`; reconciled persistent files (no further edits)
+* Decisions made
+    - Archive awaits operator `/niko-archive`
+* Insights
+    - Head-version pin sprawl is the durable process lesson from this task
