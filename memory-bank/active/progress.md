@@ -100,3 +100,13 @@ Write the Architecture documentation section: systems-level mental model for adv
     - Section parents OK; leaf anchors preserved for deep links
 * Insights
     - Forced joins (timestamps+migrations, rendering under search surfaces) are easy to inherit from leftover H2s — scan after regroup
+
+## 2026-07-14 - ARCHIVE - IN-PROGRESS
+
+* Work completed
+    - Reflect phase left complete (including post-reflect polish)
+    - Entering Archive to inline ephemeral MB content and clear active/
+* Decisions made
+    - Archive category: features (new Architecture systems atlas on the human docs site)
+* Insights
+    - None yet (archive in progress)
