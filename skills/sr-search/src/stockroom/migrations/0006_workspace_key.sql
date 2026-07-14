@@ -1,0 +1,20 @@
+-- stockroom warehouse — cross-harness workspace rollup key (migration 0006)
+--
+-- Adds nullable `sessions.workspace_key`: a derived ETL rollup key so sessions
+-- that share the same absolute project path on this machine can be grouped
+-- across harnesses (chart + `GROUP BY workspace_key`) without rewriting
+-- harness-native `project_id`.
+--
+-- Contract:
+--   * Same machine + same absolute `cwd` ⇒ same `workspace_key` when both
+--     registered harness strategies can derive it (convergence).
+--   * Different on-disk paths ⇒ different keys (even if humans share a repo).
+--   * Cannot derive (unknown harness, missing `cwd`, …) ⇒ NULL (honest).
+--   * `project_id` stays the verbatim harness slug; this column is not identity.
+--
+-- Derivation is per-harness (extensible registry in `stockroom.ingest.paths`);
+-- see `workspace_key_for`. Structural only — NO backfill DML. Pre-existing rows
+-- keep `workspace_key = NULL` until a `--full` re-ingest repopulates them
+-- (warehouse is derived ETL output). Forward-only: earlier migrations and their
+-- golden snapshots stay untouched.
+ALTER TABLE sessions ADD COLUMN workspace_key TEXT;

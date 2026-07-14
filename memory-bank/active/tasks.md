@@ -104,7 +104,7 @@ flowchart LR
     - Changes: public `workspace_key_for(harness, *, cwd=None, project_id=None)`; private path helper for “leading-sep-stripped encode”; register `cursor` and `claude` strategies that use cwd when present; unknown harness → None
     - Creative ref: per-harness T + convergence contract
 
-2. **Migration 0006 (TDD)**
+2. [x] **Migration 0006 (TDD)**
     - Files: `migrations/0006_workspace_key.sql`, `tests/test_schema_0006.py`, `tests/fixtures/schema/0006_snapshot.json`, `tests/test_migrate_runner.py` (head version 5→6)
     - Changes: ADD COLUMN; document contract in SQL header; structural only (no backfill DML); update runner “fresh DB lands at head” assertions
     - TDD: failing schema/runner expectations first, then migration file

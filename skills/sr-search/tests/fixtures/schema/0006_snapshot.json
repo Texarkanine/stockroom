@@ -1,0 +1,316 @@
+{
+  "indexes": [
+    {
+      "expressions": "[vector]",
+      "name": "embeddings_vector_hnsw",
+      "table": "embeddings"
+    }
+  ],
+  "tables": {
+    "_sync_state": {
+      "columns": [
+        {
+          "name": "harness",
+          "nullable": false,
+          "type": "VARCHAR"
+        },
+        {
+          "name": "source_root",
+          "nullable": false,
+          "type": "VARCHAR"
+        },
+        {
+          "name": "last_mtime",
+          "nullable": true,
+          "type": "TIMESTAMP"
+        },
+        {
+          "name": "last_path",
+          "nullable": true,
+          "type": "VARCHAR"
+        },
+        {
+          "name": "updated_at",
+          "nullable": false,
+          "type": "TIMESTAMP"
+        }
+      ],
+      "primary_key": [
+        "harness",
+        "source_root"
+      ]
+    },
+    "embeddings": {
+      "columns": [
+        {
+          "name": "harness",
+          "nullable": false,
+          "type": "VARCHAR"
+        },
+        {
+          "name": "owner_table",
+          "nullable": false,
+          "type": "VARCHAR"
+        },
+        {
+          "name": "owner_id",
+          "nullable": false,
+          "type": "VARCHAR"
+        },
+        {
+          "name": "chunk_index",
+          "nullable": false,
+          "type": "INTEGER"
+        },
+        {
+          "name": "embed_model",
+          "nullable": false,
+          "type": "VARCHAR"
+        },
+        {
+          "name": "vector",
+          "nullable": true,
+          "type": "FLOAT[384]"
+        }
+      ],
+      "primary_key": [
+        "harness",
+        "owner_table",
+        "owner_id",
+        "chunk_index"
+      ]
+    },
+    "messages": {
+      "columns": [
+        {
+          "name": "harness",
+          "nullable": false,
+          "type": "VARCHAR"
+        },
+        {
+          "name": "session_id",
+          "nullable": false,
+          "type": "VARCHAR"
+        },
+        {
+          "name": "message_id",
+          "nullable": false,
+          "type": "VARCHAR"
+        },
+        {
+          "name": "parent_id",
+          "nullable": true,
+          "type": "VARCHAR"
+        },
+        {
+          "name": "ordinal",
+          "nullable": false,
+          "type": "INTEGER"
+        },
+        {
+          "name": "role",
+          "nullable": false,
+          "type": "VARCHAR"
+        },
+        {
+          "name": "text",
+          "nullable": true,
+          "type": "VARCHAR"
+        },
+        {
+          "name": "model",
+          "nullable": true,
+          "type": "VARCHAR"
+        },
+        {
+          "name": "ts",
+          "nullable": true,
+          "type": "TIMESTAMP"
+        },
+        {
+          "name": "input_tokens",
+          "nullable": true,
+          "type": "BIGINT"
+        },
+        {
+          "name": "output_tokens",
+          "nullable": true,
+          "type": "BIGINT"
+        },
+        {
+          "name": "cache_creation_tokens",
+          "nullable": true,
+          "type": "BIGINT"
+        },
+        {
+          "name": "cache_read_tokens",
+          "nullable": true,
+          "type": "BIGINT"
+        },
+        {
+          "name": "source_uuid",
+          "nullable": true,
+          "type": "VARCHAR"
+        },
+        {
+          "name": "first_seen_at",
+          "nullable": true,
+          "type": "TIMESTAMP"
+        }
+      ],
+      "primary_key": [
+        "harness",
+        "session_id",
+        "message_id"
+      ]
+    },
+    "sessions": {
+      "columns": [
+        {
+          "name": "harness",
+          "nullable": false,
+          "type": "VARCHAR"
+        },
+        {
+          "name": "session_id",
+          "nullable": false,
+          "type": "VARCHAR"
+        },
+        {
+          "name": "cwd",
+          "nullable": true,
+          "type": "VARCHAR"
+        },
+        {
+          "name": "git_branch",
+          "nullable": true,
+          "type": "VARCHAR"
+        },
+        {
+          "name": "source_path",
+          "nullable": false,
+          "type": "VARCHAR"
+        },
+        {
+          "name": "is_subagent",
+          "nullable": false,
+          "type": "BOOLEAN"
+        },
+        {
+          "name": "parent_session_id",
+          "nullable": true,
+          "type": "VARCHAR"
+        },
+        {
+          "name": "agent_id",
+          "nullable": true,
+          "type": "VARCHAR"
+        },
+        {
+          "name": "agent_type",
+          "nullable": true,
+          "type": "VARCHAR"
+        },
+        {
+          "name": "spawning_tool_use_id",
+          "nullable": true,
+          "type": "VARCHAR"
+        },
+        {
+          "name": "agent_name",
+          "nullable": true,
+          "type": "VARCHAR"
+        },
+        {
+          "name": "models",
+          "nullable": true,
+          "type": "VARCHAR[]"
+        },
+        {
+          "name": "title",
+          "nullable": true,
+          "type": "VARCHAR"
+        },
+        {
+          "name": "harness_version",
+          "nullable": true,
+          "type": "VARCHAR"
+        },
+        {
+          "name": "started_at",
+          "nullable": true,
+          "type": "TIMESTAMP"
+        },
+        {
+          "name": "ended_at",
+          "nullable": true,
+          "type": "TIMESTAMP"
+        },
+        {
+          "name": "project_id",
+          "nullable": true,
+          "type": "VARCHAR"
+        },
+        {
+          "name": "source_mtime",
+          "nullable": true,
+          "type": "TIMESTAMP"
+        },
+        {
+          "name": "workspace_key",
+          "nullable": true,
+          "type": "VARCHAR"
+        }
+      ],
+      "primary_key": [
+        "harness",
+        "session_id"
+      ]
+    },
+    "tool_calls": {
+      "columns": [
+        {
+          "name": "harness",
+          "nullable": false,
+          "type": "VARCHAR"
+        },
+        {
+          "name": "session_id",
+          "nullable": false,
+          "type": "VARCHAR"
+        },
+        {
+          "name": "message_id",
+          "nullable": false,
+          "type": "VARCHAR"
+        },
+        {
+          "name": "ordinal",
+          "nullable": false,
+          "type": "INTEGER"
+        },
+        {
+          "name": "tool_name",
+          "nullable": false,
+          "type": "VARCHAR"
+        },
+        {
+          "name": "tool_input",
+          "nullable": false,
+          "type": "JSON"
+        },
+        {
+          "name": "source_tool_use_id",
+          "nullable": true,
+          "type": "VARCHAR"
+        }
+      ],
+      "primary_key": [
+        "harness",
+        "session_id",
+        "message_id",
+        "ordinal"
+      ]
+    }
+  }
+}
