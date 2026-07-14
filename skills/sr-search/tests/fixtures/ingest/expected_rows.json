@@ -659,7 +659,8 @@
       "source_path": "claude/-home-user-project/simple-conversation.jsonl",
       "spawning_tool_use_id": null,
       "started_at": "2026-01-01T00:00:00",
-      "title": "Add hello function to utils"
+      "title": "Add hello function to utils",
+      "workspace_key": "home-user-project"
     },
     {
       "agent_id": null,
@@ -678,7 +679,8 @@
       "source_path": "claude/-home-user-project/22222222-2222-4222-8222-222222222222.jsonl",
       "spawning_tool_use_id": null,
       "started_at": "2026-01-04T00:00:00",
-      "title": null
+      "title": null,
+      "workspace_key": "home-user-project"
     },
     {
       "agent_id": null,
@@ -697,7 +699,8 @@
       "source_path": "claude/-home-user-project/pathological-multi-model.jsonl",
       "spawning_tool_use_id": null,
       "started_at": "2026-01-02T00:00:00",
-      "title": null
+      "title": null,
+      "workspace_key": "home-user-project"
     },
     {
       "agent_id": null,
@@ -716,7 +719,8 @@
       "source_path": "claude/-home-user-project/pathological-huge-tool-input.jsonl",
       "spawning_tool_use_id": null,
       "started_at": "2026-01-03T00:00:00",
-      "title": null
+      "title": null,
+      "workspace_key": "home-user-project"
     },
     {
       "agent_id": null,
@@ -735,7 +739,8 @@
       "source_path": "claude/-home-user-project/robustness-record-types.jsonl",
       "spawning_tool_use_id": null,
       "started_at": "2026-01-05T00:00:01",
-      "title": "Rename helper + callers"
+      "title": "Rename helper + callers",
+      "workspace_key": "home-user-project"
     },
     {
       "agent_id": null,
@@ -754,7 +759,8 @@
       "source_path": "claude/-home-user-project/pathological-user-content-shapes.jsonl",
       "spawning_tool_use_id": null,
       "started_at": "2026-01-06T00:00:00",
-      "title": null
+      "title": null,
+      "workspace_key": "home-user-project"
     },
     {
       "agent_id": "aaa111",
@@ -773,7 +779,8 @@
       "source_path": "claude/-home-user-project/22222222-2222-4222-8222-222222222222/subagents/agent-aaa111.jsonl",
       "spawning_tool_use_id": "toolu_task1",
       "started_at": "2026-01-04T00:00:02",
-      "title": null
+      "title": null,
+      "workspace_key": "home-user-project"
     },
     {
       "agent_id": null,
@@ -794,7 +801,8 @@
       "source_path": "cursor/home-user-project/agent-transcripts/00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000001.jsonl",
       "spawning_tool_use_id": null,
       "started_at": null,
-      "title": null
+      "title": null,
+      "workspace_key": null
     },
     {
       "agent_id": "00000000-0000-4000-8000-0000000000a1",
@@ -813,7 +821,8 @@
       "source_path": "cursor/home-user-project/agent-transcripts/00000000-0000-4000-8000-000000000001/subagents/00000000-0000-4000-8000-0000000000a1.jsonl",
       "spawning_tool_use_id": null,
       "started_at": null,
-      "title": null
+      "title": null,
+      "workspace_key": null
     },
     {
       "agent_id": null,
@@ -832,7 +841,8 @@
       "source_path": "cursor/home-user-cursor-rules/agent-transcripts/ambiguous-nopath/ambiguous-nopath.jsonl",
       "spawning_tool_use_id": null,
       "started_at": null,
-      "title": null
+      "title": null,
+      "workspace_key": null
     },
     {
       "agent_id": null,
@@ -851,7 +861,8 @@
       "source_path": "cursor/home-user-project/agent-transcripts/pathological-many-tools/pathological-many-tools.jsonl",
       "spawning_tool_use_id": null,
       "started_at": null,
-      "title": null
+      "title": null,
+      "workspace_key": null
     },
     {
       "agent_id": null,
@@ -870,7 +881,8 @@
       "source_path": "cursor/home-user-project/agent-transcripts/pathological-turn-ended-error/pathological-turn-ended-error.jsonl",
       "spawning_tool_use_id": null,
       "started_at": null,
-      "title": null
+      "title": null,
+      "workspace_key": null
     },
     {
       "agent_id": null,
@@ -889,7 +901,8 @@
       "source_path": "cursor/home-user-lite-rpg/agent-transcripts/recover-inband/recover-inband.jsonl",
       "spawning_tool_use_id": null,
       "started_at": null,
-      "title": null
+      "title": null,
+      "workspace_key": "home-user-lite-rpg"
     },
     {
       "agent_id": null,
@@ -911,7 +924,8 @@
       "source_path": "cursor/home-user-project/agent-transcripts/simple-conversation/simple-conversation.jsonl",
       "spawning_tool_use_id": null,
       "started_at": null,
-      "title": null
+      "title": null,
+      "workspace_key": null
     }
   ],
   "tool_calls": [

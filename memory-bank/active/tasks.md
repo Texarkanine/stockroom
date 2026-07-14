@@ -109,7 +109,7 @@ flowchart LR
     - Changes: ADD COLUMN; document contract in SQL header; structural only (no backfill DML); update runner “fresh DB lands at head” assertions
     - TDD: failing schema/runner expectations first, then migration file
 
-3. **Model + writer (TDD)**
+3. [x] **Model + writer (TDD)**
     - Files: `ingest/model.py`, `ingest/writer.py`, writer/ingest tests, `fixtures/ingest/expected_rows.json`
     - Changes: field on `NormalizedSession`; writer computes via `workspace_key_for` at insert; golden includes keys
 
