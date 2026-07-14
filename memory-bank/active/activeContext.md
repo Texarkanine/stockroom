@@ -1,11 +1,12 @@
 # Active Context
 
 ## Current Task: polish-readme-sales-pitch
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Intent clarified and approved: polish root README (sales pitch, graphics, docs-site links); operator will screenshot if other graphics are needed
-- Complexity determined: Level 2 (simple enhancement — self-contained README/docs-facing change)
+- Level 2 plan written: rewrite README pitch + reuse three `docs/img/` screenshots + retarget reader links to github.io
+- No new graphics requested (dashboard / convo / duckdb cover the sales surface); skip Cursor-settings shot in README
+- Verification: acceptance checklist B1–B8 (no automated README suite — same docs-L2 pattern)
 
 ## Next Step
-- Load Level 2 workflow and enter PLAN phase
+- Preflight validation (autonomous for L2)

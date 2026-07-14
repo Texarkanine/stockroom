@@ -14,3 +14,16 @@ Polish the root `README.md` into a sales-forward first impression: pitch, graphi
     - Reuse existing docs screenshots first; ask operator only for missing shots
 * Insights
     - Docs homepage (`docs/index.md`) already has pitch + graphics; README should align without duplicating the whole site
+
+## 2026-07-14 - PLAN - COMPLETE
+
+* Work completed
+    - Implementation plan: rewrite README (pitch → graphics → why → quickstart → skills → docs site → license)
+    - Test plan: B1–B8 acceptance checklist; no new automated tests
+    - Graphics: reuse three existing `docs/img/` product shots; no operator screenshots needed for the planned layout
+* Decisions made
+    - Prefer github.io URLs with trailing slashes (match `CONTRIBUTING.md`)
+    - Plain GitHub Markdown images only (no MkDocs attr_list syntax)
+    - Keep README a sell-and-route surface; do not fork the docs homepage
+* Insights
+    - Prior docs L2 tasks verify with content checklist + docs-build when `docs/` changes; README-only expects checklist + path checks
