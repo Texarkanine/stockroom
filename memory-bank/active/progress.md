@@ -57,3 +57,14 @@ Write the Architecture documentation section: systems-level mental model for adv
     - Preflight PASS; Build awaits operator `/niko-build`
 * Insights
     - Docs TDD encoding must put the acceptance checklist before page prose, not after
+
+## 2026-07-14 - BUILD - COMPLETE
+
+* Work completed
+    - Build checklist authored; Architecture stubs + nav; filled five pages; entry cross-links; strict `make docs-build` PASS
+    - Fixed stale renamed Contributing links that blocked strict build
+* Decisions made
+    - Kept WHAT-first voice; procedures outbound-only; agent system-model linked not forked
+    - Change-surfaces table on index as preflight advisory
+* Insights
+    - Strict docs gate surfaces rename debt outside the Architecture corpus; fix surgically rather than widening Architecture scope

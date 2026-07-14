@@ -11,3 +11,5 @@ You might want to [switch off of that](preparation.md#rip-it-out) to run your lo
 That round-trip lives in [Preparation](preparation.md).
 
 Day-to-day once you are wired — how to hack on each part of Stockroom, where it lives, how to validate, etc. — lives in [Iteration](iteration.md).
+
+Before changing packaging, hooks, warehouse doctrines, or embeddings, load the systems atlas in [Architecture](../architecture/index.md) — that section owns the design model; these pages own the loops.

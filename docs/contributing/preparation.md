@@ -163,6 +163,6 @@ Committed plugin hooks under `hooks/*.json` use `CURSOR_PLUGIN_ROOT` / `CLAUDE_P
 
 ### Footguns
 
-- **`make sync` / `make ci` strips torch.** Restore with `stockroom shim ensure-env` (hashed freeze) — not `make torch`, which picks `TORCH_INDEX` and rewrites the freeze. Use `make torch` only when deliberately choosing/changing the accepted stack ([Development](development.md), [Torch](../user-guide/troubleshooting/torch.md)).
+- **`make sync` / `make ci` strips torch.** Restore with `stockroom shim ensure-env` (hashed freeze) — not `make torch`, which picks `TORCH_INDEX` and rewrites the freeze. Use `make torch` only when deliberately choosing/changing the accepted stack ([Iteration](iteration.md), [Torch](../user-guide/troubleshooting/torch.md)).
 - **Shim is succeed-or-refuse.** It never guesses an engine location. `TAKEOVER=1` alone is for dead foreign bakes; live foreign needs `TAKEOVER=1 FORCE=1`.
 - **Always backup the warehouse** before local development.

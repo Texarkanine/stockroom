@@ -22,7 +22,7 @@ Expected — stockroom is a **plugin**, not a marketplace. Install via [`txrk9-a
 
 ### Local checkout skills do not load
 
-Contributor localdev wires a Cursor skills mirror after you uninstall the marketplace plugin — see [Local workflow](../../contributing/local-workflow.md). Confirm `make localdev-status` shows the skills mirror, reload the window, and use `HARNESS=cursor make localdev` (Claude uses `claude --plugin-dir` instead of a skills mirror). Marketplace sessionStart hooks are gone after uninstall; the dashboard remains reachable via `stockroom dashboard` / `make local-dashboard`.
+Contributor localdev wires a Cursor skills mirror after you uninstall the marketplace plugin — see [Preparation](../../contributing/preparation.md). Confirm `make localdev-status` shows the skills mirror, reload the window, and use `HARNESS=cursor make localdev` (Claude uses `claude --plugin-dir` instead of a skills mirror). Marketplace sessionStart hooks are gone after uninstall; the dashboard remains reachable via `stockroom dashboard` / `make local-dashboard`.
 
 ## Installed layout
 
@@ -80,4 +80,4 @@ Third-party plugins setting ([Quickstart](#cursor-hooks--auto-dashboard-never-fi
 
 - Ask the agent with `/sr-search` (or Claude `/stockroom:sr-search`) and describe the error text — [Skill index](../skills.md).
 - Torch / embeddings / heal soft-fails: [Torch](torch.md).
-- Contributors debugging from a checkout: [Local workflow](../../contributing/local-workflow.md) · [Development](../../contributing/development.md).
+- Contributors debugging from a checkout: [Preparation](../../contributing/preparation.md) · [Iteration](../../contributing/iteration.md).

@@ -21,3 +21,5 @@ Of course, you *can* use AI tools: day-to-day use is expected to go through the 
 ## Where to Go from Here
 
 - Want it? [Quickstart](user-guide/quickstart.md)
+- Want the systems mental model? [Architecture](architecture/index.md)
+- Contributing or changing the product? [Contributing](contributing/index.md)

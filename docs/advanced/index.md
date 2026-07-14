@@ -2,7 +2,7 @@
 
 Operate Stockroom **after** `sr-initialize` without another agent turn: the on-path `stockroom` shim and, when useful, the DuckDB CLI against the warehouse file.
 
-This is an escape hatch for power users — not a second onboarding track. Bootstrap and heal still belong to `sr-initialize`. Do not use `make` / `uv` from a git clone as an end-user substitute for initialize.
+This is an escape hatch for power users — not a second onboarding track. Bootstrap and heal still belong to `sr-initialize`. Do not use `make` / `uv` from a git clone as an end-user substitute for initialize. For the systems mental model (not CLI recipes), see [Architecture](../architecture/index.md).
 
 ## What you need
 

@@ -158,66 +158,66 @@ Unchecked items are the failing “tests.” Check each claim off only when the 
 
 ### Overview (`docs/architecture/index.md`)
 
-- [ ] Audience framing: systems atlas for advanced users/contributors; not product how-to
-- [ ] Control-flow Mermaid matching pinned diagram (User/skills/hooks/schedule → shim → engine → warehouse/embeddings/dashboard)
-- [ ] Short piece list (plugin, skills, shim, engine, warehouse, embeddings, hooks, schedule, dashboard)
-- [ ] Satellites framed as atlas body (“read these to load the model”), not optional appendices
-- [ ] Links to packaging / lifecycle / warehouse / embeddings
-- [ ] Change-surfaces table (if you change X → read page Y)
-- [ ] Pointer to agent `system-model.md` (link; do not fork)
-- [ ] Mention of maintainer `systemPatterns.md` (do not mirror)
-- [ ] Ownership pointers to User Guide / Contributing / Advanced / licensing (outbound only)
-- [ ] No thin “Doctrines worth knowing” duplicate of satellite content
+- [x] Audience framing: systems atlas for advanced users/contributors; not product how-to
+- [x] Control-flow Mermaid matching pinned diagram (User/skills/hooks/schedule → shim → engine → warehouse/embeddings/dashboard)
+- [x] Short piece list (plugin, skills, shim, engine, warehouse, embeddings, hooks, schedule, dashboard)
+- [x] Satellites framed as atlas body (“read these to load the model”), not optional appendices
+- [x] Links to packaging / lifecycle / warehouse / embeddings
+- [x] Change-surfaces table (if you change X → read page Y)
+- [x] Pointer to agent `system-model.md` (link; do not fork)
+- [x] Mention of maintainer `systemPatterns.md` (do not mirror)
+- [x] Ownership pointers to User Guide / Contributing / Advanced / licensing (outbound only)
+- [x] No thin “Doctrines worth knowing” duplicate of satellite content
 
 ### Packaging (`docs/architecture/packaging.md`)
 
-- [ ] Dual-manifest / run-in-place / committed layout = install layout
-- [ ] Engine lives inside `sr-search`; sibling skills have no Python of their own
-- [ ] uv lock hermeticity; no downloads of engine deps at runtime; prose+code sync implication
-- [ ] Torch held out of lock; per-machine provision; freeze + heal; no exact sync
-- [ ] Shim baked-only succeed-or-refuse; owns invocation contract
-- [ ] Shim `rectify` / `ensure-env` roles (WHAT + unusual WHY)
-- [ ] Outbound links to UG/Contributing procedures (no recipe dumps)
-- [ ] Licensing one-liner + link to Contributing licensing (or from index)
+- [x] Dual-manifest / run-in-place / committed layout = install layout
+- [x] Engine lives inside `sr-search`; sibling skills have no Python of their own
+- [x] uv lock hermeticity; no downloads of engine deps at runtime; prose+code sync implication
+- [x] Torch held out of lock; per-machine provision; freeze + heal; no exact sync
+- [x] Shim baked-only succeed-or-refuse; owns invocation contract
+- [x] Shim `rectify` / `ensure-env` roles (WHAT + unusual WHY)
+- [x] Outbound links to UG/Contributing procedures (no recipe dumps)
+- [x] Licensing one-liner + link to Contributing licensing (or from index)
 
 ### Lifecycle (`docs/architecture/lifecycle.md`)
 
-- [ ] Hook doctrine: fire-and-forget, idempotent, concurrent, fault-tolerant
-- [ ] Session-start does rectify + dashboard — never ingest/migrate as primary work
-- [ ] Why ingest is scheduled (not session-start): hook timeout / inelegant termination
-- [ ] Periodic ingest+embed via shim on platform scheduler
-- [ ] Dashboard: session-hook launch; offline/static (no CDN); torch-safe env; port idempotency
-- [ ] Rendered-out artifacts note: hooks/shim/schedule each have one tested owner (brief or cross-link)
+- [x] Hook doctrine: fire-and-forget, idempotent, concurrent, fault-tolerant
+- [x] Session-start does rectify + dashboard — never ingest/migrate as primary work
+- [x] Why ingest is scheduled (not session-start): hook timeout / inelegant termination
+- [x] Periodic ingest+embed via shim on platform scheduler
+- [x] Dashboard: session-hook launch; offline/static (no CDN); torch-safe env; port idempotency
+- [x] Rendered-out artifacts note: hooks/shim/schedule each have one tested owner (brief or cross-link)
 
 ### Warehouse (`docs/architecture/warehouse.md`)
 
-- [ ] Rebuildable ETL; not system of record
-- [ ] Readers RO by construction (`query` / `semantic`)
-- [ ] No truncation at rest; read-time elision via render/truncate
-- [ ] Harness-labeled identity & provenance (`harness` column; uniform ids; `source_*`)
-- [ ] Two-layer lock; `open()` vs `open_current()` (dashboard exception)
-- [ ] Ingest: parsers → writer; warehouse outlives sources
-- [ ] Workspace identity: verify-don’t-invert
-- [ ] UTC timestamps at rest
-- [ ] Migration chokepoint (forward-only; numbered SQL; no DDL dump)
+- [x] Rebuildable ETL; not system of record
+- [x] Readers RO by construction (`query` / `semantic`)
+- [x] No truncation at rest; read-time elision via render/truncate
+- [x] Harness-labeled identity & provenance (`harness` column; uniform ids; `source_*`)
+- [x] Two-layer lock; `open()` vs `open_current()` (dashboard exception)
+- [x] Ingest: parsers → writer; warehouse outlives sources
+- [x] Workspace identity: verify-don’t-invert
+- [x] UTC timestamps at rest
+- [x] Migration chokepoint (forward-only; numbered SQL; no DDL dump)
 
 ### Embeddings (`docs/architecture/embeddings.md`)
 
-- [ ] sentence-transformers / BGE-small / 384-dim (WHAT + unusual WHY)
-- [ ] VSS / HNSW index path
-- [ ] Embed vs ingest lag / silent staleness
-- [ ] Search-surface split: engine power / skill judgement / no fusion module
-- [ ] Brief render/truncate chokepoint note
+- [x] sentence-transformers / BGE-small / 384-dim (WHAT + unusual WHY)
+- [x] VSS / HNSW index path
+- [x] Embed vs ingest lag / silent staleness
+- [x] Search-surface split: engine power / skill judgement / no fusion module
+- [x] Brief render/truncate chokepoint note
 
 ### Cross-cutting / integration
 
-- [ ] `docs/architecture/.pages` order: Overview → Packaging → Lifecycle → Warehouse → Embeddings
-- [ ] Seed topics from project brief all present at correct depth
-- [ ] Exclusions hold (no torch heal recipes, Make tables, CLI flag tables as Architecture body)
-- [ ] Voice: WHAT-first; WHY only for unusual / Chesterton’s-fence designs; no design-diary phrasing
-- [ ] Light entry-point cross-links from Home and/or Contributing/Advanced as needed
-- [ ] `make docs-build` succeeds strict
-- [ ] No broken internal links among Architecture pages and to UG/Contributing/Advanced/Home
+- [x] `docs/architecture/.pages` order: Overview → Packaging → Lifecycle → Warehouse → Embeddings
+- [x] Seed topics from project brief all present at correct depth
+- [x] Exclusions hold (no torch heal recipes, Make tables, CLI flag tables as Architecture body)
+- [x] Voice: WHAT-first; WHY only for unusual / Chesterton’s-fence designs; no design-diary phrasing
+- [x] Light entry-point cross-links from Home and/or Contributing/Advanced as needed
+- [x] `make docs-build` succeeds strict
+- [x] No broken internal links among Architecture pages and to UG/Contributing/Advanced/Home
 
 ## Status
 
@@ -228,5 +228,5 @@ Unchecked items are the failing “tests.” Check each claim off only when the 
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight — PASS (TDD ordering amended: checklist → stubs → fill → build; advisory: change-surfaces table on index)
-- [ ] Build — step 1 checklist authored; stubs/fill pending
+- [x] Build — complete (checklist green; `make docs-build` strict PASS)
 - [ ] QA

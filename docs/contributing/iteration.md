@@ -23,7 +23,7 @@ From the **repo root**, the [`Makefile`](https://github.com/Texarkanine/stockroo
 
 ## Engine
 
-The Stockroom Engine is the python code that powers [ingestion](../user-guide/ingestion.md), database migration, and serves the data to the [Dashboard](../user-guide/dashboard.md).
+The Stockroom Engine is the python code that powers [ingestion](../user-guide/ingest.md), database migration, and serves the data to the [Dashboard](../user-guide/dashboard.md).
 
 The Python engine lives under [`skills/sr-search/`](https://github.com/Texarkanine/stockroom/tree/main/skills/sr-search) as a locked [uv](https://docs.astral.sh/uv/) project (`[tool.uv] package = false` — run-in-place). Everything is pinned through `uv.lock` **except torch**.
 
