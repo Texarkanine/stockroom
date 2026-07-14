@@ -1,11 +1,11 @@
 # Active Context
 
 ## Current Task: workspace-key
-**Phase:** PREFLIGHT - COMPLETE (PASS)
+**Phase:** BUILD - IN-PROGRESS
 
 ## What Was Done
-- Preflight PASS; plan amended for `test_migrate_runner` head-version bump
-- Build awaits operator `/niko-build`
+- Preflight PASS; entered Level 3 Build
+- Creative review: Option C `workspace_key`, per-harness registry, NULL when underivable, metrics coalesce for chart orphans
 
 ## Next Step
-- Operator: `/niko-build`
+- TDD step 1: `workspace_key_for` + harness registry in `ingest/paths.py`

@@ -99,7 +99,7 @@ flowchart LR
 
 ## Implementation Plan
 
-1. **paths: workspace_key_for + harness registry (TDD)**
+1. [x] **paths: workspace_key_for + harness registry (TDD)**
     - Files: `ingest/paths.py`, `tests/test_ingest_paths.py` (or dedicated)
     - Changes: public `workspace_key_for(harness, *, cwd=None, project_id=None)`; private path helper for “leading-sep-stripped encode”; register `cursor` and `claude` strategies that use cwd when present; unknown harness → None
     - Creative ref: per-harness T + convergence contract
