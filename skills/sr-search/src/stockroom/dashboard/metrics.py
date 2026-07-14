@@ -370,37 +370,41 @@ def project_display_name(cwd: str | None, project_id: str | None) -> str | None:
     return project_id
 
 
-def _project_label_from_cwds(project_id: str, cwds: set[str]) -> str:
+def _project_label_from_cwds(rollup_key: str, cwds: set[str]) -> str:
     """Pick a display label when one unique basename exists among ``cwds``."""
-    leaves = {project_display_name(cwd, project_id) for cwd in cwds if cwd}
+    leaves = {project_display_name(cwd, rollup_key) for cwd in cwds if cwd}
     if len(leaves) == 1:
         return next(iter(leaves))
-    return project_id
+    return rollup_key
+
+
+#: Rollup key for Sessions by Project: prefer ``workspace_key``, else ``project_id``.
+_PROJECT_ROLLUP_SQL = "coalesce(s.workspace_key, s.project_id)"
 
 
 def _project_cwds(
     con: duckdb.DuckDBPyConnection,
     start: datetime,
     end: datetime,
-    project_ids: Sequence[str],
+    rollup_keys: Sequence[str],
 ) -> dict[str, set[str]]:
-    """Collect non-NULL cwds per project_id in the activity window."""
-    if not project_ids:
+    """Collect non-NULL cwds per rollup key in the activity window."""
+    if not rollup_keys:
         return {}
-    placeholders = ", ".join("?" for _ in project_ids)
+    placeholders = ", ".join("?" for _ in rollup_keys)
     rows = con.execute(
-        f"SELECT s.project_id, s.cwd FROM sessions s "
+        f"SELECT {_PROJECT_ROLLUP_SQL}, s.cwd FROM sessions s "
         f"WHERE NOT s.is_subagent AND s.cwd IS NOT NULL "
-        f"AND s.project_id IN ({placeholders}) "
+        f"AND {_PROJECT_ROLLUP_SQL} IN ({placeholders}) "
         f"AND {ACTIVITY_TIME_SQL} IS NOT NULL "
         f"AND {ACTIVITY_TIME_SQL} >= ? AND {ACTIVITY_TIME_SQL} < ?",
-        [*project_ids, start, end],
+        [*rollup_keys, start, end],
     ).fetchall()
-    by_project: dict[str, set[str]] = {project_id: set() for project_id in project_ids}
-    for project_id, cwd in rows:
-        if project_id in by_project and cwd:
-            by_project[project_id].add(cwd)
-    return by_project
+    by_key: dict[str, set[str]] = {key: set() for key in rollup_keys}
+    for rollup_key, cwd in rows:
+        if rollup_key in by_key and cwd:
+            by_key[rollup_key].add(cwd)
+    return by_key
 
 
 def projects(
@@ -411,27 +415,37 @@ def projects(
     *,
     limit: int = 10,
 ) -> dict[str, Any]:
-    """Return top projects; Cursor sessions use transcript-mtime last activity."""
+    """Return top projects ranked by rollup key for Sessions by Project.
+
+    ``projects`` holds rollup keys: ``workspace_key`` when set, else
+    ``project_id`` (display/grouping fallback for underivable rows). Labels are
+    cwd leaf names when a bucket shares one basename. Cursor sessions use
+    transcript-mtime last activity.
+    """
     start, end = parse_window(since, until, default_days=30)
     names = _active_harnesses(con, harnesses)
     active = set(names)
     counts: dict[str, dict[str, int]] = {}
-    for harness, _session_id, project_id, _activity, _messages in _session_rows(
-        con, start, end
-    ):
-        if not _is_selected(harness, active) or project_id is None:
+    rows = con.execute(
+        f"SELECT s.harness, {_PROJECT_ROLLUP_SQL} "
+        "FROM sessions s "
+        f"WHERE NOT s.is_subagent AND {ACTIVITY_TIME_SQL} IS NOT NULL "
+        f"AND {ACTIVITY_TIME_SQL} >= ? AND {ACTIVITY_TIME_SQL} < ?",
+        [start, end],
+    ).fetchall()
+    for harness, rollup_key in rows:
+        if not _is_selected(harness, active) or rollup_key is None:
             continue
-        per_harness = counts.setdefault(project_id, {})
+        per_harness = counts.setdefault(rollup_key, {})
         per_harness[harness] = per_harness.get(harness, 0) + 1
 
     ranked = sorted(
         counts,
         key=lambda project: (-sum(counts[project].values()), project),
     )[:limit]
-    cwds_by_project = _project_cwds(con, start, end, ranked)
+    cwds_by_key = _project_cwds(con, start, end, ranked)
     labels = [
-        _project_label_from_cwds(project_id, cwds_by_project.get(project_id, set()))
-        for project_id in ranked
+        _project_label_from_cwds(key, cwds_by_key.get(key, set())) for key in ranked
     ]
     return {
         "projects": ranked,

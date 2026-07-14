@@ -16,11 +16,11 @@ import pytest
 
 from stockroom import migrate, warehouse
 from stockroom.migrations import discover
-from test_schema_0004 import SNAPSHOT_PATH
 from test_schema_0003 import _introspect_schema
+from test_schema_0006 import SNAPSHOT_PATH
 
 _PRODUCT_TABLES = {"sessions", "messages", "tool_calls", "embeddings", "_sync_state"}
-_HEAD_VERSION = 5
+_HEAD_VERSION = 6
 
 
 def _table_names(con: duckdb.DuckDBPyConnection) -> set[str]:
@@ -193,8 +193,8 @@ def test_open_current_refuses_stale_schema_without_migrating(
 def test_migrated_warehouse_matches_locked_snapshot(warehouse_home: Path) -> None:
     """A freshly opened warehouse's product schema byte-matches the head snapshot.
 
-    Reuses the schema-introspection helper against the *cumulative* post-``0004``
-    golden (``0004_snapshot.json``: columns + PKs + the HNSW index). The
+    Reuses the schema-introspection helper against the *cumulative* post-``0006``
+    golden (``0006_snapshot.json``: columns + PKs + the HNSW index). The
     runner-owned ``schema_version`` bookkeeping table is excluded by the helper
     (it is not part of any product migration), proving the migration framework
     produces precisely the locked product DDL — including the VSS index — at the

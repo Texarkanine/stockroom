@@ -141,6 +141,38 @@ def test_write_session_persists_source_mtime(
     assert stored == expected
 
 
+def test_write_session_persists_computed_workspace_key(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Writer derives ``workspace_key`` from harness/cwd via ``workspace_key_for``."""
+    writer.write_session(
+        migrated_con,
+        _session(
+            harness="claude",
+            project_id="-home-user-project",
+            cwd="/home/user/project",
+        ),
+    )
+    stored = migrated_con.execute(
+        "SELECT workspace_key FROM sessions WHERE session_id = 's1'"
+    ).fetchone()[0]
+    assert stored == "home-user-project"
+
+
+def test_write_session_null_workspace_key_when_cwd_missing(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Missing cwd yields NULL ``workspace_key`` (honest underivable)."""
+    writer.write_session(
+        migrated_con,
+        _session(harness="cursor", project_id="home-user-project", cwd=None),
+    )
+    stored = migrated_con.execute(
+        "SELECT workspace_key FROM sessions WHERE session_id = 's1'"
+    ).fetchone()[0]
+    assert stored is None
+
+
 def test_first_write_seeds_message_first_seen_at(
     migrated_con: duckdb.DuckDBPyConnection,
 ) -> None:

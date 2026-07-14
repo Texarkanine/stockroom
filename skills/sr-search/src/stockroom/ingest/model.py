@@ -75,16 +75,18 @@ class NormalizedSession:
     primary-key grain; ``source_path`` is the absolute path to the ``.jsonl``
     (provenance + the watermark key), and ``source_mtime`` is that transcript's
     mtime at discovery as naive UTC (a durable, harness-uniform provenance
-    time). Workspace identity is two single-meaning fields: ``project_id`` is
+    time).     Workspace identity is three single-meaning fields: ``project_id`` is
     the harness's encoded project-dir slug stored *verbatim* (always present,
-    the grouping key), while ``cwd`` is the real project-root path — best-effort
+    the harness identity), ``cwd`` is the real project-root path — best-effort
     and honestly ``None`` when it cannot be recovered (never fabricated from
-    the lossy slug). Subagent sessions set ``is_subagent`` and their
-    parent-linkage fields (``parent_session_id`` and, for Claude,
-    ``spawning_tool_use_id``). Grain-specific fields follow the schema's
-    no-faking rule: ``models`` (session-grain, Cursor via enrichment) vs each
-    message's ``model`` (Claude); ``started_at``/``ended_at`` are Claude's
-    min/max timestamps (naive UTC) and ``None`` for Cursor.
+    the lossy slug), and ``workspace_key`` is an optional cross-harness rollup
+    key derived at write from per-harness strategies (NULL when underivable).
+    Subagent sessions set ``is_subagent`` and their parent-linkage fields
+    (``parent_session_id`` and, for Claude, ``spawning_tool_use_id``).
+    Grain-specific fields follow the schema's no-faking rule: ``models``
+    (session-grain, Cursor via enrichment) vs each message's ``model``
+    (Claude); ``started_at``/``ended_at`` are Claude's min/max timestamps
+    (naive UTC) and ``None`` for Cursor.
     """
 
     harness: str
@@ -94,6 +96,7 @@ class NormalizedSession:
     is_subagent: bool = False
     project_id: str | None = None
     cwd: str | None = None
+    workspace_key: str | None = None
     git_branch: str | None = None
     parent_session_id: str | None = None
     agent_id: str | None = None

@@ -30,6 +30,7 @@ from datetime import datetime
 import duckdb
 
 from stockroom.ingest.model import NormalizedSession
+from stockroom.ingest.paths import workspace_key_for
 from stockroom.timestamps import utc_now
 
 
@@ -85,17 +86,22 @@ def write_session(con: duckdb.DuckDBPyConnection, session: NormalizedSession) ->
     )
     _delete_session(con, session.harness, session.session_id)
 
+    workspace_key = workspace_key_for(
+        session.harness, cwd=session.cwd, project_id=session.project_id
+    )
+
     con.execute(
-        "INSERT INTO sessions (harness, session_id, project_id, cwd, git_branch, "
-        "source_path, is_subagent, parent_session_id, agent_id, agent_type, "
-        "spawning_tool_use_id, agent_name, models, title, harness_version, "
-        "started_at, ended_at, source_mtime) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO sessions (harness, session_id, project_id, cwd, workspace_key, "
+        "git_branch, source_path, is_subagent, parent_session_id, agent_id, "
+        "agent_type, spawning_tool_use_id, agent_name, models, title, "
+        "harness_version, started_at, ended_at, source_mtime) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [
             session.harness,
             session.session_id,
             session.project_id,
             session.cwd,
+            workspace_key,
             session.git_branch,
             session.source_path,
             session.is_subagent,

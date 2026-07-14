@@ -82,3 +82,38 @@ def test_resolve_is_deletion_proof_no_filesystem_access() -> None:
     slug = "home-user-deleted-proj"
     texts = ["was working in /home/user/deleted-proj before it was removed"]
     assert paths.resolve_cwd("cursor", slug, texts=texts) == "/home/user/deleted-proj"
+
+
+def test_workspace_key_for_cursor_strips_leading_separator() -> None:
+    """Cursor strategy: leading-sep-stripped path encode of cwd."""
+    assert (
+        paths.workspace_key_for("cursor", cwd="/home/x/stockroom") == "home-x-stockroom"
+    )
+
+
+def test_workspace_key_for_claude_matches_cursor_same_cwd() -> None:
+    """Claude and Cursor converge on the same key for the same absolute cwd."""
+    cwd = "/home/x/stockroom"
+    assert paths.workspace_key_for("claude", cwd=cwd) == paths.workspace_key_for(
+        "cursor", cwd=cwd
+    )
+
+
+def test_workspace_key_for_different_cwds_differ() -> None:
+    """Different on-disk paths yield different keys (lite-rpg mount case)."""
+    claude_key = paths.workspace_key_for("claude", cwd="/mnt/v/somewhere/lite-rpg")
+    cursor_key = paths.workspace_key_for("cursor", cwd="/home/x/lite-rpg")
+    assert claude_key is not None
+    assert cursor_key is not None
+    assert claude_key != cursor_key
+
+
+def test_workspace_key_for_null_cwd_returns_none() -> None:
+    """Cannot derive without cwd -> honest None."""
+    assert paths.workspace_key_for("cursor", cwd=None) is None
+    assert paths.workspace_key_for("claude", cwd=None) is None
+
+
+def test_workspace_key_for_unknown_harness_returns_none() -> None:
+    """Unregistered harness has no strategy -> None (extensibility default)."""
+    assert paths.workspace_key_for("future-unknown", cwd="/a/b") is None

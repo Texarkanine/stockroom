@@ -376,6 +376,7 @@ def _dump_ingest(con: duckdb.DuckDBPyConnection, transcripts_dir: Path) -> dict:
                 "session_id",
                 "project_id",
                 "cwd",
+                "workspace_key",
                 "git_branch",
                 "source_path",
                 "is_subagent",

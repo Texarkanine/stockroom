@@ -22,6 +22,11 @@ large sample of real slugs the only non-alphanumeric character is ``-``, and
 Claude's ``encode(record_cwd)`` equals its dir name on every probeable case.
 Cursor strips the leading separator (its slugs start with a word, e.g.
 ``home-…``); Claude keeps it (e.g. ``-home-…``).
+
+``workspace_key_for`` is a separate, extensible per-harness ETL transform that
+derives a nullable cross-harness rollup key from ``cwd`` (and optionally
+``project_id``). Same absolute ``cwd`` must converge across registered harnesses;
+unknown harness or missing inputs yield ``None``. See migration ``0006``.
 """
 
 import re
@@ -73,6 +78,65 @@ def _ancestors(path: str) -> Iterator[str]:
     yield str(pure)
     for parent in pure.parents:
         yield str(parent)
+
+
+def _key_from_cwd_leading_sep_stripped(
+    *,
+    cwd: str | None,
+    project_id: str | None = None,
+) -> str | None:
+    """Private path helper: leading-separator-stripped encode of ``cwd``.
+
+    Shared by today's Cursor and Claude strategies so same absolute ``cwd``
+    converges; kept private so a third harness can diverge without stretching
+    an untyped global munge. ``project_id`` is accepted for strategy signature
+    parity and unused today.
+    """
+    _ = project_id
+    if not cwd:
+        return None
+    path = cwd[1:] if cwd.startswith("/") else cwd
+    return encode(path)
+
+
+def _strategy_cursor(*, cwd: str | None, project_id: str | None) -> str | None:
+    """Cursor workspace_key strategy: path encode of cwd with leading sep stripped."""
+    return _key_from_cwd_leading_sep_stripped(cwd=cwd, project_id=project_id)
+
+
+def _strategy_claude(*, cwd: str | None, project_id: str | None) -> str | None:
+    """Claude workspace_key strategy: same cwd-derived key as Cursor (convergence)."""
+    return _key_from_cwd_leading_sep_stripped(cwd=cwd, project_id=project_id)
+
+
+#: Per-harness ETL transforms for ``workspace_key``. Add a harness = add a strategy.
+_WORKSPACE_KEY_STRATEGIES = {
+    "cursor": _strategy_cursor,
+    "claude": _strategy_claude,
+}
+
+
+def workspace_key_for(
+    harness: str,
+    *,
+    cwd: str | None = None,
+    project_id: str | None = None,
+) -> str | None:
+    """Derive a cross-harness rollup key for sessions that share a workspace path.
+
+    Each registered harness has its own strategy (extensible registry). The
+    shared convergence contract is: same machine + same absolute ``cwd`` ⇒ same
+    ``workspace_key`` when both sides can derive it. Returns ``None`` when the
+    harness is unknown or the strategy cannot derive a key (typically missing
+    ``cwd``). Does not mutate or replace harness-native ``project_id``.
+
+    ``project_id`` is accepted for future harness strategies that may need it;
+    today's Cursor/Claude strategies key only off ``cwd``.
+    """
+    strategy = _WORKSPACE_KEY_STRATEGIES.get(harness)
+    if strategy is None:
+        return None
+    return strategy(cwd=cwd, project_id=project_id)
 
 
 def resolve_cwd(

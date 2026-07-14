@@ -7,6 +7,7 @@ import {
   buildToolsPanel,
   buildWrappedPanel,
   buildWriteReadPanel,
+  chartInteractionOptions,
   closePanelHelp,
   deriveHarnessBreakdown,
   deriveOverviewCards,
@@ -269,11 +270,13 @@ function chartOptions(model) {
   const text = styles.getPropertyValue("--text").trim();
   const muted = styles.getPropertyValue("--muted").trim();
   const border = styles.getPropertyValue("--border").trim();
+  const interaction = chartInteractionOptions(model.indexAxis);
   const options = {
     responsive: true,
     maintainAspectRatio: false,
     indexAxis: model.indexAxis,
     animation: false,
+    interaction,
     plugins: {
       legend: {
         display:
@@ -287,8 +290,7 @@ function chartOptions(model) {
         },
       },
       tooltip: {
-        mode: "index",
-        intersect: false,
+        ...interaction,
         callbacks: {
           title(items) {
             const item = items?.[0];
