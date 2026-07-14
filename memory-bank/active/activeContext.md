@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: workspace-key
-**Phase:** REFLECT - COMPLETE
+**Phase:** ARCHIVE - IN-PROGRESS
 
 ## What Was Done
 - Reflection complete; Build + QA PASS
@@ -11,4 +11,4 @@
 - Opened GitHub issue [#48](https://github.com/Texarkanine/stockroom/issues/48) — `make local-dashboard` claims bounce but no-ops when identity app_dir+version match
 
 ## Next Step
-- Operator: `/niko-archive`
+- Create archive document, clear ephemeral memory-bank files, commit

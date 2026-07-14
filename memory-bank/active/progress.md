@@ -78,3 +78,12 @@ Add nullable `sessions.workspace_key` with extensible per-harness ETL transforms
     - Hover fix landed on `feat/workspace-key` before archive (same branch, out-of-plan but operator-requested)
 * Insights
     - `make local-dashboard` success line is unconditional; identity “current” ignores in-memory staleness
+
+## 2026-07-14 - ARCHIVE - IN-PROGRESS
+
+* Work completed
+    - Reflect + post-reflect validation complete; entering archive
+* Decisions made
+    - Category: `features/` (new `workspace_key` column + ETL strategies + metrics rollup)
+* Insights
+    - None yet

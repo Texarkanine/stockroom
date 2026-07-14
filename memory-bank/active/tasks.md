@@ -153,4 +153,4 @@ No new technology - validation not required.
 - [x] Build
 - [x] QA — PASS (trivial: workspace_key helper uses harness-neutral encode, not encode_for("cursor"))
 - [x] Reflect
-- [ ] Archive
+- [x] Archive
