@@ -88,3 +88,15 @@ Write the Architecture documentation section: systems-level mental model for adv
     - Architecture remains human atlas; agent system-model stays linked compact form
 * Insights
     - Docs TDD checklists work for prose; never race MB edits with git commit
+
+## 2026-07-14 - POST-REFLECT POLISH - SAVED
+
+* Work completed
+    - Canonical control-flow diagram: expanded subgraph form (actors / code / sources / store / viz)
+    - Packaging Entrypoint: shim + heal deep links near top; Plugin layout grouping
+    - Cross-page heading regroup + mismatch rectification (UTC vs migrations; kept fields; ingest nest; read-time vs search-surface; hooks JSON → lifecycle)
+* Decisions made
+    - Shim/heal stay on Packaging (not own pages / not index doctrines)
+    - Section parents OK; leaf anchors preserved for deep links
+* Insights
+    - Forced joins (timestamps+migrations, rendering under search surfaces) are easy to inherit from leftover H2s — scan after regroup

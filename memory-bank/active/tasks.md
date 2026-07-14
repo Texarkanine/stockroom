@@ -10,29 +10,46 @@ Human Architecture docs section: systems-level mental model for advanced users/c
 
 ### Systems control flow
 
-Primary map for `docs/architecture/index.md` — pieces and who invokes whom.
+Primary map for `docs/architecture/index.md` — pieces and who invokes whom. (Operator-chosen expanded subgraph form.)
 
 ```mermaid
 flowchart TB
-  User[Human / agent]
-  Skills[sr-* skills]
-  Hook[Session-start hooks]
-  Sched[Nightly schedule]
-  Shim[stockroom shim]
-  Eng[Engine under sr-search]
-  WH[(DuckDB warehouse)]
-  Emb[Local embeddings / torch]
-  Dash[Dashboard :58008]
+  subgraph actors["Actors"]
+    Human
+    Agent
+    Hook[Session-start hooks]
+    Sched[Nightly schedule]
+  end
 
-  User --> Skills
-  User --> Shim
-  Skills --> Shim
+  subgraph code["Code on PATH / plugin"]
+    Shim[stockroom shim]
+    Eng[Python Engine]
+  end
+
+  subgraph sources["Data sources"]
+    Logs[(Harness session logs)]
+  end
+
+  subgraph store["Warehouse & vectors"]
+    WH[(DuckDB warehouse)]
+    Emb[Local embeddings / torch]
+  end
+
+  subgraph viz["Data visualization"]
+    Dash[Dashboard :58008]
+  end
+
+  Human --> Shim
+  Agent -->|"sr-* skills"| Shim
   Hook -->|"rectify + dashboard"| Shim
   Sched -->|"ingest + embed"| Shim
-  Shim --> Eng
-  Eng --> WH
-  Eng --> Emb
-  Eng --> Dash
+  Shim -->|"safely calls"| Eng
+  Logs -->|"ingest"| Eng
+  Eng -->|"ETL write"| WH
+  Eng -->|"embed write"| Emb
+  Emb -.->|"vectors live in"| WH
+  Eng -->|"open_current"| Dash
+  Dash -->|"RO read"| WH
 ```
 
 ## Component Analysis
@@ -230,3 +247,4 @@ Unchecked items are the failing “tests.” Check each claim off only when the 
 - [x] Preflight — PASS (TDD ordering amended: checklist → stubs → fill → build; advisory: change-surfaces table on index)
 - [x] Build — complete (checklist green; `make docs-build` strict PASS)
 - [x] QA — PASS (trivial: harness-agnostic hook timeout wording; re-build green)
+- [x] Reflect — COMPLETE; post-reflect polish saved (diagram, shim/heal, groupings, join/split rectification)

@@ -58,8 +58,6 @@ How the plugin is shaped on disk: dual manifests, where the engine lives, the he
 
 Stockroom is one plugin with two manifests: `.cursor-plugin/plugin.json` and `.claude-plugin/plugin.json`, both over a shared `skills/` tree. The committed repository layout **is** the install layout — what the plugin manager copies to disk is exactly what runs. There is no separate build step that produces the plugin payload.
 
-Harness hooks are rendered into harness-specific JSON shapes (`hooks/cursor-hooks.json` vs `hooks/claude-hooks.json`). The event names and nesting differ; do not treat them as interchangeable templates.
-
 ### Engine inside sr-search
 
 The full Python engine lives under `skills/sr-search/`: `pyproject.toml`, `uv.lock`, `src/stockroom/`, migrations, and tests. Sibling `sr-*` skills have no Python of their own. Skill prose and engine behavior must stay in sync because they ship as one unit — there is no separate download of engine code at runtime.

@@ -26,17 +26,13 @@ Ingest and embed are separate passes. Embed is heavier (torch + real compute) an
 
 Nightly schedule runs both incrementally; manual catch-up is the same pair of commands — see [User Guide → Load the Warehouse](../user-guide/ingest.md).
 
-## Search surfaces
-
-Where judgement lives versus raw engine power, and how reads are rendered.
-
-### Search-surface split
+## Search-surface split
 
 Python modules are raw power surfaces (`query`, `semantic`, and friends). Each `sr-*` skill holds LLM-safe usage guidance. [`sr-search`](https://github.com/Texarkanine/stockroom/blob/main/skills/sr-search/SKILL.md) is a **judgement router** over `sr-query` / `sr-semantic` — there is no `stockroom.search` fusion module that pretends one ranking can replace that judgement.
 
 The same split shows up elsewhere: `stockroom.doctor` facts vs `sr-initialize` judgement; `stockroom.schedule` mechanism vs skill consent. Engine power stays boring and composable; skills own when to call which surface.
 
-### Read-time rendering
+## Read-time rendering
 
 Both read surfaces print only through one render chokepoint. `--detail` (compact / snippet / full / raw) is orthogonal to `--format` (tsv default; json / table opt-in). Truncation markers are display bounds, not warehouse mutation — see [Warehouse](warehouse.md#no-truncation-at-rest).
 

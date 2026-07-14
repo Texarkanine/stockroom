@@ -42,6 +42,8 @@ Session-start hooks attempt to launch it automatically. The CLI is idempotent: i
 
 Shim, harness hooks (`hooks/*.json`), and scheduler entries are each owned by one module with structural idempotency. No rendered artifact carries a raw engine path — callers invoke `stockroom` by name so plugin moves are healed by rectify rather than by rewriting every consumer.
 
+Harness hooks are not the same JSON shape or event: Cursor uses flat `sessionStart` commands; Claude Code uses nested `SessionStart` / `hooks[]` / `type: "command"`. Do not copy one harness’s structure into the other.
+
 ## Related procedures
 
 - Operating the dashboard: [User Guide → Dashboard](../user-guide/dashboard.md)
