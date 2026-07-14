@@ -33,3 +33,7 @@ A contributor needs to try a new Torch index or restore torch after `make sync`,
 2. `make` target listing matches current Makefile help/semantics for targets relevant to this page.
 3. Cross-links to Local workflow and Torch troubleshooting are correct and non-redundant where possible.
 4. Docs build / preview still works for the contributing section.
+
+## Rework
+
+Post-reflect polish (2026-07-14): Contributing day-to-day page is now `docs/contributing/iteration.md`; enter/verify/exit is `docs/contributing/preparation.md`. Make targets for dashboard iteration are `test-dashboard-js` and `test-dashboard-py` (no sync). Skills section matches the other surface sections’ style. Archive still pending.

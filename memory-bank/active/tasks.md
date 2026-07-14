@@ -93,6 +93,7 @@ No new technology - validation not required
 - [x] 2. Rewrite `development.md` (jump list + five surfaces + make table)
 - [x] 3. Light cross-link pass (`index.md`, `CONTRIBUTING.md`; local-workflow unchanged)
 - [x] 4. Verification: `make docs-build` PASS; content checklist PASS (entry check: Local workflow linked; rip-it-out named only as pointer, not a second ritual)
+- [x] Post-reflect: per-section Make targets; renamed to `preparation.md` / `iteration.md`; `test-dashboard-js` + `test-dashboard-py`; Skills restyle
 
 ## QA Results
 

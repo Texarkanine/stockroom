@@ -76,3 +76,16 @@ Rework `docs/contributing/development.md` into a day-to-day contributor guide (p
     - Intro points at `make help` for the full list
 * Decisions made
     - localdev composer targets live under Skills with a Local workflow pointer (not a second localdev chapter)
+
+## 2026-07-14 - POST-REFLECT - Iteration / Preparation rename + dashboard test split
+
+* Work completed
+    - Renamed `docs/contributing/local-workflow.md` → `preparation.md`, `development.md` → `iteration.md`
+    - Dashboard develop loop clarified for both-layer changes; torch-safe `test-dashboard-js` / `test-dashboard-py`; removed `test-js` alias
+    - Skills section rewritten in Engine/Docs/Dashboard style
+    - Operator commits landed on `docs-polish`; `/nk-save` flushes memory bank to match
+* Decisions made
+    - Full gate remains `make test` / `make ci` (sync strips torch); dashboard iteration uses the two granular targets
+    - Archive still pending (`/niko-archive`)
+* Insights
+    - Contributor docs IA settled on Preparation (enter/exit) + Iteration (day-to-day surfaces)
