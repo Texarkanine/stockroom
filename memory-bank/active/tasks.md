@@ -32,12 +32,8 @@ Human Architecture docs section: systems-level mental model for advanced users/c
 
 ## Open Questions
 
-- [ ] **Architecture scope & ownership** — Which systems topics belong in human Architecture vs agent `system-model.md` vs User Guide / Contributing / Advanced? What beyond the seed list must Architecture cover, and what must it deliberately exclude?
-  - Ambiguous because: three overlapping “system model” audiences already exist; seed list is incomplete by operator admission; risk of forking or bloating.
-  - Constraints: systems-level audience; WHAT-first; no product how-to; Advanced deferred; agent system-model remains agent SSOT for doctrines shipped with the plugin.
-- [ ] **Architecture page IA** — Given the topic set, how should `docs/architecture/` be structured (single long page vs overview + satellites; nav labels; depth per page)?
-  - Ambiguous because: Contributing uses multi-page surface-first IA; current Architecture is a thin stub; topic count from Q1 will drive structure.
-  - Constraints: loadable mental model; scannable nav; no dashboard-of-docs clutter; consistent with properdocs / existing section patterns.
+- [x] **Architecture scope & ownership** → Resolved: systems atlas with inclusion bar. See `memory-bank/active/creative/creative-architecture-scope-ownership.md`.
+- [x] **Architecture page IA** → Resolved: overview + thematic clusters (`index`, `packaging`, `lifecycle`, `warehouse`, `embeddings`). See `memory-bank/active/creative/creative-architecture-page-ia.md`.
 
 ## Status
 

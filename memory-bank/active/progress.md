@@ -26,3 +26,12 @@ Write the Architecture documentation section: systems-level mental model for adv
     - Systems atlas with inclusion bar (Option C), not MB mirror or seed-only
 * Insights
     - Human docs cover ops for shim/torch/hooks but miss concurrency, verify-don’t-invert, VSS/HNSW, embed-model rationale
+
+## 2026-07-14 - CREATIVE (page IA) - COMPLETE
+
+* Work completed
+    - Evaluated single-page vs fine-grained vs thematic cluster IA against Contributing grain and topic count
+* Decisions made
+    - Overview + thematic clusters: packaging, lifecycle, warehouse, embeddings
+* Insights
+    - ~20 include topics fit 4 satellites + map; per-topic pages would over-split
