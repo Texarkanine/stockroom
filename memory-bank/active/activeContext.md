@@ -1,11 +1,13 @@
 # Active Context
 
 ## Current Task: advanced-usage-docs
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Intent clarified and approved: Advanced docs section (CLI out-of-band + DuckDB; maybe `uv`; minimalism; landing + sub-pages shape locked, content open)
-- Complexity determined: **Level 3** — complete docs section with open IA/content decisions requiring creative, analogous to `architecture-docs`
+- Component analysis + two creatives (high confidence)
+- Topic cut: escape-hatch duo (CLI OOB + DuckDB); omit `uv` and UG-covered recipes
+- Page IA: `index.md` + `cli.md` + new `duckdb.md`
+- Full L3 plan with docs-only TDD checklist (B1–B6) and `make docs-build` gate
 
 ## Next Step
-- Load Level 3 workflow and begin PLAN / CREATIVE as prescribed
+- Preflight phase to validate the plan
