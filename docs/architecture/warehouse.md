@@ -62,5 +62,5 @@ Migrations are numbered forward-only SQL under the engine’s `migrations/` tree
 ## Related procedures
 
 - Operating ingest/embed/schedule: [User Guide → Load the Warehouse](../user-guide/ingest.md)
-- Escape-hatch SQL: [Advanced → CLI](../advanced/cli.md)
+- Escape-hatch SQL: [Advanced → DuckDB](../advanced/duckdb.md)
 - Contributor engine/schema work: [Contributing → Iteration](../contributing/iteration.md)

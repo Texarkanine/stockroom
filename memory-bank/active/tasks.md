@@ -139,12 +139,12 @@ Docs TDD ordering (preflight amendment): **checklist → page stubs → fill one
 
 ### Build checklist
 
-- [ ] B1 Landing frames Advanced
-- [ ] B2 CLI OOB depth (no encyclopedia / no uv recipe)
-- [ ] B3 DuckDB RO page
-- [ ] B4 Ownership boundaries hold
-- [ ] B5 Nav + inbound links
-- [ ] B6 `make docs-build` PASS
+- [x] B1 Landing frames Advanced
+- [x] B2 CLI OOB depth (no encyclopedia / no uv recipe)
+- [x] B3 DuckDB RO page
+- [x] B4 Ownership boundaries hold
+- [x] B5 Nav + inbound links
+- [x] B6 `make docs-build` PASS
 
 ## Technology Validation
 
@@ -172,5 +172,5 @@ No new technology — validation not required (properdocs already in tree).
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight (PASS — TDD ordering amended checklist→stubs→fill→verify; advisory home DuckDB caption not applied)
-- [ ] Build
+- [x] Build
 - [ ] QA

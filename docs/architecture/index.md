@@ -68,7 +68,8 @@ Everything that runs Stockroom on a machine goes through the on-path `stockroom`
 | Embedding model, VSS/HNSW, semantic search, or how skills route over query/semantic | [Embeddings](embeddings.md) |
 | Human install/heal *recipes*, torch troubleshooting steps | [User Guide](../user-guide/index.md) |
 | Make / localdev / iteration loops | [Contributing](../contributing/index.md) |
-| Raw CLI / DuckDB escape hatches | [Advanced](../advanced/index.md) |
+| Out-of-band `stockroom` CLI | [Advanced → CLI](../advanced/cli.md) |
+| Raw DuckDB CLI against the warehouse | [Advanced → DuckDB](../advanced/duckdb.md) |
 
 ## Related surfaces
 

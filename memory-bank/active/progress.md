@@ -52,3 +52,15 @@ Bring the Advanced docs section to presentation quality: power-user escape hatch
     - PASS; advisory home DuckDB caption deferred (out of Advanced-section focus)
 * Insights
     - Same checklist→stubs→fill gate that worked for architecture-docs applies here
+
+## 2026-07-14 - BUILD - COMPLETE
+
+* Work completed
+    - Advanced section: landing + CLI OOB + new DuckDB RO satellite; nav Overview → CLI → DuckDB
+    - Inbound: Architecture escape-hatch SQL → duckdb.md; change-surfaces split CLI vs DuckDB
+    - B1–B6 verified; `make docs-build` strict PASS
+* Decisions made
+    - Built to creative Option B (duo + two satellites); no persistent MB edits
+    - Home-page DuckDB caption advisory still deferred
+* Insights
+    - Pointer table for other subcommands satisfies orientation without encyclopedia regress
