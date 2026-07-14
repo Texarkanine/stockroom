@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/Texarkanine/stockroom/compare/v0.5.0...v0.6.0) (2026-07-14)
+
+
+### Features
+
+* **docs:** Intial release-quality documentation site. ([#44](https://github.com/Texarkanine/stockroom/issues/44)) ([7696af4](https://github.com/Texarkanine/stockroom/commit/7696af48143bccf38eeb6eaaa67dfd1a116d69ef))
+
 ## [0.5.0](https://github.com/Texarkanine/stockroom/compare/v0.4.0...v0.5.0) (2026-07-11)
 
 
