@@ -16,3 +16,13 @@ Write the Architecture documentation section: systems-level mental model for adv
     - Voice: WHAT-first; WHY only for unusual / Chesterton’s-fence designs
 * Insights
     - Prior Contributing day-to-day work was L2; Architecture needs L3 because of IA/coverage design questions and creative phase
+
+## 2026-07-14 - CREATIVE (scope & ownership) - COMPLETE
+
+* Work completed
+    - Inventoried systemPatterns / system-model / docs term coverage
+    - Documented inclusion bar, required topics, exclusions, audience relationships
+* Decisions made
+    - Systems atlas with inclusion bar (Option C), not MB mirror or seed-only
+* Insights
+    - Human docs cover ops for shim/torch/hooks but miss concurrency, verify-don’t-invert, VSS/HNSW, embed-model rationale
