@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0](https://github.com/Texarkanine/stockroom/compare/v0.6.0...v0.7.0) (2026-07-14)
+
+
+### Features
+
+* add sessions.workspace_key for cross-harness project rollup ([#50](https://github.com/Texarkanine/stockroom/issues/50)) ([e109869](https://github.com/Texarkanine/stockroom/commit/e109869eb94f33e2833628bbb9f0de36f82af67d))
+
 ## [0.6.0](https://github.com/Texarkanine/stockroom/compare/v0.5.0...v0.6.0) (2026-07-14)
 
 
