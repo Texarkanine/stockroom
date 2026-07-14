@@ -15,3 +15,14 @@ Fix dashboard horizontal bar chart hover/tooltip offset so Chart.js interaction 
     - Skip plan/creative/preflight/reflect/archive per Level 1 workflow
 * Insights
     - Prior nk-chat diagnosis: tooltip uses `mode: index` + `intersect: false` without `axis: 'y'`; hover defaults diverge from tooltip
+
+## 2026-07-14 - BUILD - COMPLETE
+
+* Work completed
+    - TDD: `chartInteraction` helper + test; wired into `dashboard.mjs` `options.interaction`
+    - Dropped tooltip-local mode/intersect so hover/tooltip share Chart.js interaction
+    - `make test-dashboard-js` 62/62 pass
+* Decisions made
+    - Pure helper in `dashboard-core.mjs` (testable); axis `"y"` only when `indexAxis === "y"`, else `"x"`
+* Insights
+    - Chart.js docs explicitly require `axis: 'y'` for index mode on horizontal bars

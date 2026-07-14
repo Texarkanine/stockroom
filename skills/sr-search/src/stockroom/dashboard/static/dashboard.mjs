@@ -16,6 +16,7 @@ import {
   PANEL_HELP,
   panelRangeLabels,
   projectHoverTitle,
+  chartInteraction,
   summarizeChartPanel,
   togglePanelHelp,
   tooltipTitleFromLabelTitles,
@@ -274,6 +275,7 @@ function chartOptions(model) {
     maintainAspectRatio: false,
     indexAxis: model.indexAxis,
     animation: false,
+    interaction: chartInteraction(model.indexAxis),
     plugins: {
       legend: {
         display:
@@ -287,8 +289,6 @@ function chartOptions(model) {
         },
       },
       tooltip: {
-        mode: "index",
-        intersect: false,
         callbacks: {
           title(items) {
             const item = items?.[0];

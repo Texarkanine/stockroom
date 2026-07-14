@@ -11,6 +11,7 @@ import {
   buildWrappedPanel,
   buildWriteReadPanel,
   chartHeight,
+  chartInteraction,
   closePanelHelp,
   deriveHarnessBreakdown,
   deriveOverviewCards,
@@ -500,6 +501,28 @@ test("tooltipTitleFromLabelTitles surfaces slug when present", () => {
   );
   assert.equal(tooltipTitleFromLabelTitles(["home-me-stockroom", null], 1, "other"), "other");
   assert.equal(tooltipTitleFromLabelTitles(undefined, 0, "friendly"), "friendly");
+});
+
+/**
+ * Horizontal bar panels must use index mode along Y so tooltips track the
+ * hovered category row; vertical charts keep axis X.
+ */
+test("chartInteraction uses Y axis for horizontal bars and X otherwise", () => {
+  assert.deepEqual(chartInteraction("y"), {
+    mode: "index",
+    intersect: false,
+    axis: "y",
+  });
+  assert.deepEqual(chartInteraction("x"), {
+    mode: "index",
+    intersect: false,
+    axis: "x",
+  });
+  assert.deepEqual(chartInteraction(undefined), {
+    mode: "index",
+    intersect: false,
+    axis: "x",
+  });
 });
 
 test("togglePanelHelp opens one, re-toggles closed, and switches panels", () => {

@@ -98,6 +98,24 @@ export function tooltipTitleFromLabelTitles(labelTitles, index, fallbackLabel) {
 }
 
 /**
+ * Chart.js hover/tooltip interaction aligned with a panel's index axis.
+ *
+ * Horizontal bars (`indexAxis: "y"`) must search along Y; vertical charts
+ * keep the Chart.js index-mode default of X. Shared via ``options.interaction``
+ * so hover highlighting and tooltips cannot diverge.
+ *
+ * @param {string | null | undefined} indexAxis Panel index axis (``x`` or ``y``).
+ * @returns {{mode: string, intersect: boolean, axis: string}}
+ */
+export function chartInteraction(indexAxis) {
+  return {
+    mode: "index",
+    intersect: false,
+    axis: indexAxis === "y" ? "y" : "x",
+  };
+}
+
+/**
  * Static help copy for Session Efficiency and First-Prompt Quality.
  *
  * Thresholds mirror metrics.EFFICIENCY_BUCKETS / FIRST_PROMPT_BUCKETS
