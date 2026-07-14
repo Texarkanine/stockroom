@@ -1,11 +1,13 @@
 # Active Context
 
 ## Current Task: advanced-usage-docs
-**Phase:** REFLECT COMPLETE
+**Phase:** REFLECT COMPLETE (post-reflect polish applied)
 
 ## What Was Done
-- Reflection written: `memory-bank/active/reflection/reflection-advanced-usage-docs.md`
-- Persistent MB reconcile: no updates (Advanced ownership not claimed in product/system/tech context sentences that needed change)
+- Struck Advanced CLI env-overrides section
+- Manual shim bind recipe → UG Troubleshooting → Installed layout
+- Ingest owns actionable transcript-root env examples (was dangling Advanced link)
+- Advanced CLI points at troubleshooting for missing/broken shim
 
 ## Next Step
-- Operator runs `/niko-archive` to archive and clear ephemeral state
+- Operator runs `/niko-archive` (or further polish) when ready

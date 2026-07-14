@@ -20,7 +20,15 @@ stockroom ingest --full       # ignore watermarks; re-read everything (still ide
 stockroom ingest --verbose    # progress lines (quiet by default)
 ```
 
-`--harness cursor` or `--harness claude` limits to one source. Custom transcript roots and the optional Cursor enrichment DB are env overrides — see [Advanced → CLI](../advanced/cli.md).
+`--harness cursor` or `--harness claude` limits to one source. Non-default transcript roots (and the optional Cursor enrichment DB) are env overrides on the same command:
+
+```bash
+STOCKROOM_CURSOR_ROOT=/path/to/cursor/projects stockroom ingest
+STOCKROOM_CLAUDE_ROOT=/path/to/claude/projects stockroom ingest
+STOCKROOM_AI_TRACKING_DB=/path/to/ai-code-tracking.db stockroom ingest
+```
+
+Defaults are `~/.cursor/projects`, `~/.claude/projects`, and Cursor’s usual `ai-tracking` DB under `~/.cursor/`.
 
 `sr-initialize` runs `stockroom ingest --full` once so you are not waiting for the first nightly job. On years of history that first pass can many minutes (varying greatly depending on your machine's CPU and disk speed); it prints per-harness session/message/tool_call counts when done.
 

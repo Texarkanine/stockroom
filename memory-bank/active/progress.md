@@ -84,3 +84,13 @@ Bring the Advanced docs section to presentation quality: power-user escape hatch
     - Standalone task → next operator step is `/niko-archive`
 * Insights
     - Creative dual lock (topics + IA) made Build a translation; docs QA should watch for process meta leaking into user prose
+
+## 2026-07-14 - POST-REFLECT POLISH
+
+* Work completed
+    - Struck Advanced env-overrides; manual shim bind moved to UG troubleshooting
+    - Ingest page carries transcript-root env recipes; `make docs-build` PASS
+* Decisions made
+    - Shim bind is recovery (UG troubleshooting), not Advanced escape-hatch depth
+* Insights
+    - Name-only env lists fail the “actionable” bar; put recipes where the command is owned

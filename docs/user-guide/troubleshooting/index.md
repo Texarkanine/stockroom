@@ -28,15 +28,58 @@ Contributor localdev wires a Cursor skills mirror after you uninstall the market
 
 ### `stockroom: command not found`
 
-The machine is not initialized — run `sr-initialize` ([Quickstart](../quickstart.md)). What lands on disk: [Installed layout](../installed-layout.md).
+Prefer, in order:
+
+1. **`sr-initialize`** when you can spend an agent turn — it re-probes and only does what is still missing ([Quickstart](../quickstart.md)).
+2. **New harness session** — session-start hooks run `shim rectify`, which can create a missing on-path shim or rebake an owned one after a plugin path move.
+3. **Bind the shim yourself** — [Manual shim bind](#manual-shim-bind) below.
+
+What lands on disk: [Installed layout](../installed-layout.md).
 
 ### Shim refuses with a one-line remedy
 
-Follow the remedy. Usually: re-run `sr-initialize`, or open a new session so `shim rectify` can heal after a plugin path move.
+Follow the remedy printed on stderr. Often that is: open a new session so `shim rectify` can heal, re-run `sr-initialize`, or [bind the shim yourself](#manual-shim-bind) when you cannot use an agent turn.
 
 ### Engine env cannot import locked deps
 
 Let session-start heal run, or re-run `sr-initialize`.
+
+### Manual shim bind
+
+Use this when the marketplace plugin is installed but `stockroom` is not on `PATH` (or the bake is wrong), and you do not want to spend an agent turn on `sr-initialize`.
+
+The shim is **baked** to one engine directory (`…/skills/sr-search`). You must bind the install that is already on disk — not a random git clone. The same recipe lives in your installed plugin under `skills/sr-initialize/SKILL.md` (Step 7: Bind the `stockroom` command).
+
+1. Find the engine dir (pick the marketplace/plugin tree you actually run — not a contributor checkout unless that is intentional):
+
+```bash
+find ~/.cursor/plugins ~/.claude/plugins -type d -path '*/skills/sr-search' 2>/dev/null
+```
+
+If a broken on-path shim still exists, its header names the bake: `grep '^# STOCKROOM_APP_DIR=' "$(command -v stockroom)"`.
+
+2. Set `APP_DIR` to that absolute path and choose the owner for this harness (`cursor` or `claude`):
+
+```bash
+APP_DIR=/absolute/path/to/skills/sr-search
+OWNER=cursor   # or: claude
+
+PYTHONPATH="$APP_DIR/src" uv run --project "$APP_DIR" --no-sync --no-config \
+  python -m stockroom shim install --owner "$OWNER"
+```
+
+3. Confirm:
+
+```bash
+command -v stockroom
+stockroom --version
+```
+
+If the installer warns that `~/.local/bin` is not on `PATH`, add it and retry the check.
+
+**Ownership:** if install refuses because another owner’s shim is alive, read the refusal line. Replacing a live foreign shim needs explicit `--takeover` (and usually a reason you are sure) — prefer `sr-initialize` or consent carefully. Contributor checkouts use `make shim` (owner `dev`) from [Preparation](../../contributing/preparation.md), not this recipe.
+
+Torch / env heal beyond binding the launcher: [Torch](torch.md) · `sr-initialize`.
 
 ## Ingest
 

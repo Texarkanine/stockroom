@@ -1,6 +1,6 @@
 # CLI
 
-The on-path `stockroom` command is the torch-safe entrypoint to the engine. After initialize it usually lives at `~/.local/bin/stockroom` (or wherever your user bin is on `PATH`). Use it when you want the same engine the skills call — without an agent turn.
+The on-path `stockroom` command is the torch-safe entrypoint to the engine. After initialization it usually lives at `~/.local/bin/stockroom` (or wherever your user bin is on `PATH`). Use it when you want the same engine the skills call — without an agent turn.
 
 ## Prerequisites
 
@@ -12,7 +12,7 @@ which stockroom
 stockroom --help
 ```
 
-If `stockroom` is missing, heal via `sr-initialize` — do not invent a clone-based `uv` bootstrap from this page.
+If `stockroom` is missing or the shim refuses, recover under [Troubleshooting → Installed layout](../user-guide/troubleshooting/index.md#installed-layout) — do not invent a clone-based `uv` bootstrap from this page.
 
 ## Invocation
 
@@ -49,30 +49,22 @@ For schema and search mental model, see [Search](../user-guide/search.md) and [A
 
 Full flag semantics: `stockroom query --help` / `stockroom semantic --help`.
 
-## Environment overrides
+!!! tip "The Default was for Agents"
 
-Default stockroom home is `$XDG_DATA_HOME/stockroom` or `~/.local/share/stockroom`, overridable with `STOCKROOM_HOME`. Path topology (warehouse file, torch freeze, logs) is owned by [Installed layout](../user-guide/installed-layout.md) — do not re-derive filenames here.
+	Semantic search just outputs data - nothing that works as a foreign key into other rows or an SQL query, *except* with `--format json`.
 
-Optional ingest-root overrides when your transcripts are not in the default places:
+	Additionally, their output is truncated.
 
-- `STOCKROOM_CURSOR_ROOT`
-- `STOCKROOM_CLAUDE_ROOT`
-- `STOCKROOM_AI_TRACKING_DB`
+`stockroom semantic` was designed for agents to cast a wide net and find something promising, which they'd then do a fuller-detail JSON dump on. For you as a human (who doesn't care about the "context window" of your terminal), you probably always want to use
 
-Catch-up ingest/embed recipes stay in [Load the Warehouse](../user-guide/ingest.md).
+```bash
+stockroom semantic --format json --detail raw "my query..."
+```
 
-## Other subcommands
-
-Ingest, embed, dashboard, doctor, schedule, migrate, shim, and torch exist on the same binary. Advanced does not deep-dive them:
-
-| Need | Go here |
-| --- | --- |
-| Catch-up ingest / embed | [Load the Warehouse](../user-guide/ingest.md) |
-| Metrics UI | [Dashboard](../user-guide/dashboard.md) |
-| Torch / PATH / heal | [Troubleshooting](../user-guide/troubleshooting/index.md) · `sr-initialize` |
-| Flag / recovery tables | each skill’s `SKILL.md`, or `stockroom <subcommand> --help` |
+instead of the default.
 
 ## See also
 
 - [DuckDB](duckdb.md) — raw DuckDB CLI when you need SQL outside the presentation layer
 - [Architecture](../architecture/index.md) — why the shim and read chokepoint exist
+- Missing / broken shim: [Troubleshooting → Installed layout](../user-guide/troubleshooting/index.md#installed-layout)
