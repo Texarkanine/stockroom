@@ -37,7 +37,7 @@ flowchart LR
 - **`ingest/__init__.py` / orchestrator**: ensure key set after cwd stamped (writer-side compute is enough if writer always derives)
 - **`migrations/0006_workspace_key.sql`**: `ALTER TABLE sessions ADD COLUMN workspace_key TEXT`; header documents contract
 - **Schema tests + golden**: `test_schema_0006.py` + cumulative snapshot; update head schema expectations
-- **Migration runner tests**: `tests/test_migrate_runner.py` pins head version `5` / applied `[1..5]` → bump to `6` when 0006 lands
+- **Migration runner / warehouse head pins**: `tests/test_migrate_runner.py`, `test_warehouse_open.py`, `test_warehouse_concurrency.py` pin head version `5` → bump to `6` (and open’s locked snapshot → `0006_snapshot.json`) when 0006 lands
 - **Ingest golden** `expected_rows.json`: add `workspace_key` per session when cwd known
 - **`dashboard/metrics.py` `projects()`**: group/rank by rollup key (`workspace_key` else `project_id` fallback for display continuity); wire `projects` array = those keys; labels from cwd leaf among sessions in bucket
 - **JS**: `buildProjectsPanel` likely unchanged if payload shape keeps `projects` + `labels` (+ optional labelTitles from key≠label)
@@ -117,12 +117,12 @@ flowchart LR
     - Files: `dashboard/metrics.py`, `tests/test_dashboard_metrics.py`
     - Changes: aggregate by `coalesce(workspace_key, project_id)`; labels from cwd leaves in bucket; add same-cwd cross-harness merge test; adjust collide-by-basename test for key semantics
 
-5. **Docs**
+5. [x] **Docs**
     - Files: `docs/architecture/warehouse.md`, `memory-bank/systemPatterns.md`, paths module docstring
     - Changes: workspace_key contract; project_id unchanged; per-harness strategies; chart/SQL share key
 
-6. **Verify**
-    - `make test` (and dashboard JS if payload unchanged — expect no JS change)
+6. [x] **Verify**
+    - `make test` (and dashboard JS if payload unchanged — expect no JS change) — 524 passed, 3 skipped; JS 61 passed
 
 ## Technology Validation
 
@@ -150,5 +150,5 @@ No new technology - validation not required.
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight — PASS (amended: migrate_runner head pins; TDD ordering explicit on steps 1–4)
-- [ ] Build
+- [x] Build
 - [ ] QA

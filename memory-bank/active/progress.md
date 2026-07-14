@@ -37,3 +37,14 @@ Add nullable `sessions.workspace_key` with extensible per-harness ETL transforms
     - Preflight PASS; Build awaits `/niko-build`
 * Insights
     - Advisory only: optional multi-`project_id` hover list out of scope
+
+## 2026-07-14 - BUILD - COMPLETE
+
+* Work completed
+    - `workspace_key_for` harness registry; migration 0006; model/writer/golden; metrics rollup; docs
+    - Full `make test` green (524 passed, 3 skipped; dashboard JS 61)
+* Decisions made
+    - Writer always computes key at insert; metrics groups by `coalesce(workspace_key, project_id)`
+    - Head pins also updated in warehouse open/concurrency tests + locked snapshot → 0006
+* Insights
+    - Preflight’s migrate_runner-only head note under-scoped warehouse open/concurrency pins

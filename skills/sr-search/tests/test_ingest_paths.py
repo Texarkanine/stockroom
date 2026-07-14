@@ -101,9 +101,7 @@ def test_workspace_key_for_claude_matches_cursor_same_cwd() -> None:
 
 def test_workspace_key_for_different_cwds_differ() -> None:
     """Different on-disk paths yield different keys (lite-rpg mount case)."""
-    claude_key = paths.workspace_key_for(
-        "claude", cwd="/mnt/v/somewhere/lite-rpg"
-    )
+    claude_key = paths.workspace_key_for("claude", cwd="/mnt/v/somewhere/lite-rpg")
     cursor_key = paths.workspace_key_for("cursor", cwd="/home/x/lite-rpg")
     assert claude_key is not None
     assert cursor_key is not None

@@ -56,7 +56,7 @@ Both read surfaces print only through [`stockroom.render`](../skills/sr-search/s
 
 ## Workspace identity: verify-don't-invert
 
-`sessions.project_id` is the harness slug verbatim; `sessions.cwd` is best-effort real path, NULL when unknown. Candidates are accepted only when `encode_for(harness, candidate) == slug` ([`stockroom.ingest.paths`](../skills/sr-search/src/stockroom/ingest/paths.py)).
+`sessions.project_id` is the harness slug verbatim; `sessions.cwd` is best-effort real path, NULL when unknown. Candidates are accepted only when `encode_for(harness, candidate) == slug` ([`stockroom.ingest.paths`](../skills/sr-search/src/stockroom/ingest/paths.py)). `sessions.workspace_key` is a separate nullable rollup key (per-harness ETL via `workspace_key_for`) so same-cwd sessions can cross-reference without mutating `project_id`.
 
 ## Baked-only succeed-or-refuse shim
 
