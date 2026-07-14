@@ -1,14 +1,11 @@
 # Active Context
 
 ## Current Task: advanced-usage-docs
-**Phase:** REFLECT COMPLETE (post-reflect polish; ready to archive)
+**Phase:** ARCHIVE - IN PROGRESS
 
 ## What Was Done
 - Advanced build/QA/reflect complete (CLI OOB + DuckDB RO)
-- Post-reflect: struck Advanced env overrides; shim bind → UG troubleshooting (not Advanced)
-- Nested bind recipe under `stockroom: command not found` as last-resort #### (H3s stay symptoms)
-- Confirmed intentional bind is initialize / Contributing localdev — not Advanced usage
-- Operator polish: Advanced landing trimmed; troubleshooting recipe wording/indent tweaks
+- Post-reflect polish included (shim bind → UG troubleshooting; heading nesting)
 
 ## Next Step
-- Operator runs `/niko-archive` when ready to archive and clear ephemeral state
+- Create archive document, clear ephemeral memory bank, commit

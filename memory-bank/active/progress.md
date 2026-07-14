@@ -105,3 +105,12 @@ Bring the Advanced docs section to presentation quality: power-user escape hatch
     - Do not split troubleshooting into more siblings yet (torch bar not met)
 * Insights
     - Troubleshooting H3s = problems; remedies nest — procedures must not peer with symptoms
+
+## 2026-07-14 - ARCHIVE - IN PROGRESS
+
+* Work completed
+    - Leaving REFLECT COMPLETE (post-reflect polish included); entering archive
+* Decisions made
+    - Category: enhancements (presentation-quality Advanced escape-hatch docs)
+* Insights
+    - None yet
