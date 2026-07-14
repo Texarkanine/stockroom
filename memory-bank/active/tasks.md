@@ -35,26 +35,29 @@ Rewrite root `README.md` into a sales-forward GitHub first impression: pitch, pr
 
 ## Implementation Plan
 
-1. **Inventory graphics (no new assets expected)**
+1. **Baseline red (checklist before any edit)**
+   - Files: `README.md` (read-only), `docs/img/*` (existence check)
+   - Changes: none — run B1–B8 against current README; record expected fails (no graphics; reader deep links still `docs/...`). Confirm the three product PNGs exist. This is the failing “test” gate before production edits.
+2. **Inventory graphics (no new assets expected)**
    - Files: `docs/img/stockroom-dashboard-top-light.png`, `docs/img/stockroom-dashboard-convo-light.png`, `docs/img/stockroom-duckdb-query.png`
    - Changes: Confirm reuse for README pitch. Do **not** request operator screenshots unless a chosen section has no suitable asset (current plan: reuse these three; skip `3rd-party-configs.png` in the sales surface — that belongs in quickstart)
-2. **Rewrite `README.md` structure**
+3. **Rewrite `README.md` for pitch + graphics + structure (green B1, B2, B4–B7)**
    - Files: `README.md`
    - Changes: Replace utilitarian index with ordered sections:
-     1. Title + tagline
+     1. Title + tagline + prominent docs-site CTA
      2. Short sales pitch (aligned with `docs/index.md` / `productContext.md`, GitHub-flavored)
-     3. Embedded graphics (dashboard → conversation → DuckDB offline query)
+     3. Embedded graphics (dashboard → conversation → DuckDB offline query) via plain `![alt](docs/img/...)`
      4. Why stockroom (compact bullets)
      5. Quickstart (accurate, lean; link out to site quickstart for detail)
      6. Skills table + site skill-index link
      7. Documentation index (site URLs)
      8. License
-3. **Retarget links to the published site**
+4. **Retarget remaining reader links to the published site (green B3, B8)**
    - Files: `README.md`
-   - Changes: Prefer `https://texarkanine.github.io/stockroom/` paths with trailing slashes (same style as `CONTRIBUTING.md`). Keep marketplace / external tool links. Keep `CONTRIBUTING.md` as the GitHub contributing entry if useful, with site contributing underneath or instead for day-to-day docs
-4. **Verify (checklist + path checks)**
+   - Changes: Prefer `https://texarkanine.github.io/stockroom/` paths with trailing slashes (same style as `CONTRIBUTING.md`). Keep marketplace / external tool links. Keep in-repo `CONTRIBUTING.md` / `REUSE.toml` where GitHub convention expects them.
+5. **Full checklist green**
    - Files: `README.md`, `docs/img/*` (read-only)
-   - Changes: none beyond fixes found by B1–B8 checklist
+   - Changes: none beyond fixes found by B1–B8; confirm image paths exist on disk
 
 ## Technology Validation
 
@@ -86,6 +89,11 @@ No new technology - validation not required
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
 - [ ] QA
+
+## Preflight Amendments
+
+- TDD encoding: added explicit baseline-red step (B1–B8 against current README) before any rewrite; split green into pitch/graphics then link retarget then full checklist
+- Advisory adopted into plan: prominent docs-site CTA near the top (sell-and-route, not a second docs corpus)

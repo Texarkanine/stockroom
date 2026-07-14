@@ -1,12 +1,12 @@
 # Active Context
 
 ## Current Task: polish-readme-sales-pitch
-**Phase:** PLAN - COMPLETE
+**Phase:** PREFLIGHT - COMPLETE
 
 ## What Was Done
-- Level 2 plan written: rewrite README pitch + reuse three `docs/img/` screenshots + retarget reader links to github.io
-- No new graphics requested (dashboard / convo / duckdb cover the sales surface); skip Cursor-settings shot in README
-- Verification: acceptance checklist B1–B8 (no automated README suite — same docs-L2 pattern)
+- Preflight PASS: TDD ordering amended (baseline red → rewrite → retarget links → checklist green)
+- Baseline: current README fails B2 (no graphics) and B3 (relative `docs/` deep links); B1 is weak vs “perfect” sales bar
+- Advisory folded in: top docs-site CTA
 
 ## Next Step
-- Preflight validation (autonomous for L2)
+- Build phase: rewrite README per plan

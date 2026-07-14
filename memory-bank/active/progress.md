@@ -27,3 +27,14 @@ Polish the root `README.md` into a sales-forward first impression: pitch, graphi
     - Keep README a sell-and-route surface; do not fork the docs homepage
 * Insights
     - Prior docs L2 tasks verify with content checklist + docs-build when `docs/` changes; README-only expects checklist + path checks
+
+## 2026-07-14 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated plan against repo: graphics exist; site URL known; docs-ownership pattern holds
+    - Amended TDD encoding: baseline-red checklist before README edits
+    - Wrote `.preflight-status` = PASS
+* Decisions made
+    - Adopt top docs-site CTA as in-scope polish (not a scope expansion)
+* Insights
+    - Current README already has a light pitch and one site URL, but still routes deep dives through raw `docs/` paths and has zero graphics
