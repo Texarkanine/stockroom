@@ -1,11 +1,12 @@
 # Active Context
 
 ## Current Task: architecture-docs
-**Phase:** PLAN - IN-PROGRESS
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Complexity Analysis COMPLETE (Level 3); ephemeral MB committed
-- Component analysis drafted; two open questions flagged (scope & ownership; page IA)
+- Creative: scope & ownership (systems atlas + inclusion bar)
+- Creative: page IA (overview + packaging / lifecycle / warehouse / embeddings)
+- Full L3 plan written: behaviors, implementation steps, challenges, pre-mortem
 
 ## Next Step
-- Creative exploration: Architecture scope & ownership (then page IA)
+- Preflight phase to validate the plan

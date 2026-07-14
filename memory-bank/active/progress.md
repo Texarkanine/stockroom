@@ -35,3 +35,14 @@ Write the Architecture documentation section: systems-level mental model for adv
     - Overview + thematic clusters: packaging, lifecycle, warehouse, embeddings
 * Insights
     - ~20 include topics fit 4 satellites + map; per-topic pages would over-split
+
+## 2026-07-14 - PLAN - COMPLETE
+
+* Work completed
+    - Finalized component analysis, test plan, implementation steps, challenges, pre-mortem
+    - Pinned control-flow diagram for Architecture index
+* Decisions made
+    - Five Architecture pages with contracts from creatives
+    - Docs verification via content checklist + `make docs-build` (no new pytest)
+* Insights
+    - Ground prose in hooks JSON / shim / systemPatterns to avoid inventing constraints
