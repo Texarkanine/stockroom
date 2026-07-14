@@ -30,3 +30,5 @@ Horizontal bar charts (Model Distribution, Sessions by Project, Tools-in-compare
 - [x] Failing test written and confirmed
 - [x] Fix implemented
 - [x] `make test-dashboard-js` green (62/62)
+- [x] `make test` green (62 JS + 512 pytest, 3 skipped)
+- [x] QA PASS — import order nits fixed; no substantive issues

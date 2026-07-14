@@ -26,3 +26,14 @@ Fix dashboard horizontal bar chart hover/tooltip offset so Chart.js interaction 
     - Pure helper in `dashboard-core.mjs` (testable); axis `"y"` only when `indexAxis === "y"`, else `"x"`
 * Insights
     - Chart.js docs explicitly require `axis: 'y'` for index mode on horizontal bars
+
+## 2026-07-14 - QA - COMPLETE (PASS)
+
+* Work completed
+    - Semantic review against brief: KISS/DRY/YAGNI/completeness OK
+    - Trivial fix: alphabetic import order for `chartInteraction` in `dashboard.mjs`
+    - Wrote `.qa-validation-status` PASS
+* Decisions made
+    - No persistent memory-bank updates (dashboard interaction detail is not system-pattern altitude)
+* Insights
+    - Sharing `options.interaction` (not tooltip-only mode) is what keeps highlight and tooltip aligned
