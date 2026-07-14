@@ -1,3 +1,6 @@
 nav:
   - Overview: index.md
-  - ...
+  - Packaging: packaging.md
+  - Lifecycle: lifecycle.md
+  - Warehouse: warehouse.md
+  - Embeddings: embeddings.md
