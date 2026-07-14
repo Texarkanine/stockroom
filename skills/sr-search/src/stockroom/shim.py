@@ -16,10 +16,12 @@ Three writers drive this module (all through the same code):
 * ``make shim`` — ``stockroom shim install --owner dev`` (dev-checkout parity)
 
 Ownership is explicit (a ``# STOCKROOM_OWNER=`` header marker): only the
-owner may rewrite an existing shim; a foreign shim is replaced only when its
-baked engine dir is dead *and* ``--takeover`` is passed. ``rectify`` is the
-hook-safe subset: ensures the engine env, then owner-match + content-diff
-rebake only, never creates.
+owner may rewrite an existing shim; a foreign shim whose baked engine is
+**dead** is replaced only when ``--takeover`` is passed; a foreign shim whose
+baked engine is **alive** is replaced only when both ``--takeover`` and
+``--force`` are passed. ``rectify`` is the hook-safe subset: ensures the
+engine env, then creates when dest is absent, or owner-match + content-diff
+rebake; never touches a foreign owner.
 
 Design records: ``memory-bank/active/creative/creative-shim-staleness-resolution.md``
 and ``creative-shim-generation-surface.md`` (both revised 2026-07-08).
@@ -61,7 +63,8 @@ class ShimReport:
     """Outcome of an :func:`install` or :func:`rectify` call.
 
     ``action`` is one of ``installed`` / ``refused`` (install) or
-    ``rectified`` / ``noop`` (rectify). ``reason`` carries the human-readable
+    ``installed`` / ``rectified`` / ``noop`` (rectify: create when absent,
+    rebake when owned and drifted). ``reason`` carries the human-readable
     explanation for refusals and no-ops. The ``path_ok`` / ``verify_*`` fields
     are install-only: PATH membership of the dest dir, and the outcome of the
     conditional install-time ``stockroom --version`` verify (attempted only
@@ -170,17 +173,24 @@ def _verify_via_path() -> tuple[bool, str]:
 
 
 def install(
-    dest: Path | str, app_dir: Path | str, owner: str, *, takeover: bool = False
+    dest: Path | str,
+    app_dir: Path | str,
+    owner: str,
+    *,
+    takeover: bool = False,
+    force: bool = False,
 ) -> ShimReport:
     """Write the shim to ``dest``, guarded by the ownership policy.
 
-    Policy (see the staleness-resolution creative doc):
+    Policy (see the staleness-resolution creative doc; FORCE amended by
+    localdev-hooks-and-force):
 
     * dest absent → write (mode ``0o755``, atomic temp-file + ``os.replace``).
     * dest present, same owner → rewrite (idempotent).
-    * dest present, different owner, incumbent's baked dir **alive** → refuse.
+    * dest present, different owner, incumbent's baked dir **alive** → refuse
+      unless ``takeover`` and ``force`` are both set.
     * dest present, different owner, incumbent's baked dir **dead** → refuse
-      unless ``takeover`` is set.
+      unless ``takeover`` is set (``force`` optional).
     * corrupt/unreadable header → treated as foreign with a dead baked dir.
 
     On a successful write the report also carries PATH membership of the dest
@@ -195,15 +205,16 @@ def install(
         if header is None or header["owner"] != owner:
             incumbent_alive = header is not None and _alive(header["app_dir"])
             if incumbent_alive:
-                return ShimReport(
-                    action="refused",
-                    dest=dest,
-                    reason=(
-                        f"{dest} is owned by '{incumbent_owner}' and its engine "
-                        "is alive — refusing to replace a working foreign shim"
-                    ),
-                )
-            if not takeover:
+                if not (takeover and force):
+                    return ShimReport(
+                        action="refused",
+                        dest=dest,
+                        reason=(
+                            f"{dest} is owned by '{incumbent_owner}' and its engine "
+                            "is alive — refusing to replace a working foreign shim"
+                        ),
+                    )
+            elif not takeover:
                 return ShimReport(
                     action="refused",
                     dest=dest,
@@ -228,12 +239,15 @@ def install(
 
 
 def rectify(dest: Path | str, app_dir: Path | str, owner: str) -> ShimReport:
-    """Re-bake ``dest`` iff it exists, ``owner`` owns it, and content differs.
+    """Heal ``dest`` for ``owner``: create if absent, rebake if owned and drifted.
 
-    The hook-safe healing path: always ensures the engine env for ``app_dir``
-    first (torch-safe inexact sync when locked deps are missing), then never
-    creates a missing shim, never touches a foreign one, and is a silent no-op
-    when the rendered content already matches (steady state).
+    The hook-safe path: always ensures the engine env for ``app_dir`` first
+    (torch-safe inexact sync when locked deps are missing). Then:
+
+    * dest absent → write (same as a first ``install`` for this owner/app-dir).
+    * dest present, this owner, content differs → rebake.
+    * dest present, this owner, content matches → noop.
+    * dest present, foreign owner → silent noop (never takeover/force).
     """
     ensure_report = ensure_engine_env(app_dir)
     if ensure_report.action == "failed":
@@ -244,7 +258,8 @@ def rectify(dest: Path | str, app_dir: Path | str, owner: str) -> ShimReport:
     dest = _absolute(dest)
 
     if not dest.exists():
-        return ShimReport(action="noop", dest=dest, reason="dest absent")
+        _write_atomic(dest, render(app_dir, owner))
+        return ShimReport(action="installed", dest=dest, reason="created missing shim")
 
     header = _read_header(dest)
     if header is None or header["owner"] != owner:
@@ -268,8 +283,9 @@ def _build_parser() -> argparse.ArgumentParser:
         prog="python -m stockroom.shim",
         description=(
             "Install, rectify, or ensure-env for the on-path stockroom shim. "
-            "install writes (ownership-guarded); rectify re-bakes an owned, "
-            "drifted shim and never creates one; ensure-env heals the engine "
+            "install writes (ownership-guarded); rectify heals — creates when "
+            "absent, rebakes an owned drifted shim, never touches a foreign "
+            "owner; ensure-env heals the engine "
             "uv environment (torch-safe inexact sync)."
         ),
     )
@@ -277,7 +293,8 @@ def _build_parser() -> argparse.ArgumentParser:
         "action",
         choices=("install", "rectify", "ensure-env"),
         help=(
-            "install: write the shim (guarded); rectify: heal an owned shim; "
+            "install: write the shim (guarded); rectify: heal (create if "
+            "missing / rebake if owned); "
             "ensure-env: sync locked deps into the engine env"
         ),
     )
@@ -300,6 +317,14 @@ def _build_parser() -> argparse.ArgumentParser:
         "--takeover",
         action="store_true",
         help="install only: replace a foreign shim whose baked engine is dead",
+    )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help=(
+            "install only: with --takeover, also replace a *working* foreign "
+            "shim (dangerous; for localdev / recovery — not the default)"
+        ),
     )
     return parser
 
@@ -335,7 +360,9 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     if args.action == "install":
-        report = install(args.dest, app_dir, args.owner, takeover=args.takeover)
+        report = install(
+            args.dest, app_dir, args.owner, takeover=args.takeover, force=args.force
+        )
         if report.action == "refused":
             print(f"stockroom shim: {report.reason}", file=sys.stderr)
             return 1
@@ -354,6 +381,8 @@ def main(argv: list[str] | None = None) -> int:
     report = rectify(args.dest, app_dir, args.owner)
     if report.action == "rectified":
         print(f"rectified {report.dest} (owner={args.owner}, app-dir={app_dir})")
+    elif report.action == "installed":
+        print(f"installed {report.dest} (owner={args.owner}, app-dir={app_dir})")
     return 0
 
 

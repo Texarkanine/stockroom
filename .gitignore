@@ -6,3 +6,9 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .ruff_cache/
+
+# properdocs / MkDocs build output
+site/
+
+# Claude Code local settings (may contain localdev-managed SessionStart hooks)
+.claude/settings.local.json

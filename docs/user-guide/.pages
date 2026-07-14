@@ -1,0 +1,10 @@
+nav:
+  - index.md
+  - quickstart.md
+  - installed-layout.md
+  - ingest.md
+  - search.md
+  - dashboard.md
+  - Skill index: skills.md
+  - troubleshooting
+  - ...

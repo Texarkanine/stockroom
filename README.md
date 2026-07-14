@@ -6,14 +6,24 @@ Stockroom captures prompts, responses, and tool inputs from Cursor and Claude Co
 
 It ships as a **dual-manifest plugin** (one shared `skills/` tree for Cursor and Claude Code) with **no build step**: the committed layout is the install layout.
 
-## Install
+> **Docs:** [texarkanine.github.io/stockroom](https://texarkanine.github.io/stockroom/) · source under [`docs/`](docs/)
 
-Add the [`txrk9-agent-plugins`](https://github.com/Texarkanine/txrk9-agent-plugins) marketplace, install `stockroom`, then run first-time setup:
+## Why stockroom?
 
-- **Cursor:** `/sr-initialize`
-- **Claude Code:** `/stockroom:sr-initialize`
+- **Faithful history** — full prompts, responses, and tool inputs in one local warehouse, not a truncated scrapbook.
+- **Skill-first** — day-to-day use is ask-the-agent or slash-invoke `sr-*`; the CLI is an escape hatch after setup.
+- **Local by design** — DuckDB + on-machine embeddings; no cloud index of your coding sessions.
+- **Two harnesses, one tree** — Cursor and Claude Code share the same skills and engine.
 
-Full install paths (marketplace and local/dev load): [docs/using.md](docs/using.md).
+## Quickstart
+
+1. Add the [`txrk9-agent-plugins`](https://github.com/Texarkanine/txrk9-agent-plugins) marketplace and install `stockroom`.
+2. Run first-time setup:
+    - **Cursor:** `/sr-initialize`
+    - **Claude Code:** `/stockroom:sr-initialize`
+3. Ask the agent about past work, or slash-invoke `/sr-search` (Claude: `/stockroom:sr-search`).
+
+What landed on disk: [Installed layout](docs/user-guide/installed-layout.md).
 
 ## Skills
 
@@ -25,12 +35,14 @@ Full install paths (marketplace and local/dev load): [docs/using.md](docs/using.
 | `sr-semantic` | Meaning-based (vector) search |
 | `sr-dashboard` | Local metrics dashboard |
 
-Harness-specific slash forms and post-setup usage: [docs/using.md](docs/using.md).
+Harness-specific slash forms: [Skill index](docs/user-guide/skills.md).
 
-## Development
+## Documentation
 
-Contributor workflow (Makefile, torch-safe run contract, on-path `stockroom` shim): [docs/development.md](docs/development.md).
+- [User guide](docs/user-guide/quickstart.md) — quickstart, installed layout, troubleshooting, advanced CLI
+- [Architecture](docs/architecture/index.md) — human tour; agent doctrines stay in `system-model.md`
+- [Contributing](CONTRIBUTING.md) — how to land a change
 
 ## License
 
-Layered, and enforced by `reuse lint` (see [`REUSE.toml`](REUSE.toml)): code is [AGPL-3.0-or-later](LICENSES/AGPL-3.0-or-later.txt); prompt-shaped skill content is layered under the Public Prompt License (PPL-S).
+Layered, and enforced by `reuse lint` (see [`REUSE.toml`](REUSE.toml)): code is [AGPL-3.0-or-later](LICENSES/AGPL-3.0-or-later.txt); prompt-shaped skill content is layered under the Public Prompt License (PPL-S). Details: [Licensing](docs/contributing/licensing.md).

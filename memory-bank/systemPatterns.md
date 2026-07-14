@@ -6,7 +6,7 @@ Stockroom is a dual-manifest Cursor/Claude Code plugin whose Python engine lives
 
 ## Locked uv project, torch held out of the lock
 
-Lock hermetically with `uv lock --no-config`. Exclude torch via an impossible environment-marker override in `skills/sr-search/pyproject.toml` so it never enters the lock, then provision it per-machine (`uv pip install torch --no-config --index <wheel-url>`), smoke-test, and freeze the accepted stack under stockroom home. After torch is installed, never run an exact sync — use `uv run --no-sync` or `--inexact`. Local iteration is via the root [`Makefile`](../Makefile). See [`docs/torch.md`](../docs/torch.md).
+Lock hermetically with `uv lock --no-config`. Exclude torch via an impossible environment-marker override in `skills/sr-search/pyproject.toml` so it never enters the lock, then provision it per-machine (`uv pip install torch --no-config --index <wheel-url>`), smoke-test, and freeze the accepted stack under stockroom home. After torch is installed, never run an exact sync — use `uv run --no-sync` or `--inexact`. Local iteration is via the root [`Makefile`](../Makefile). See [`docs/user-guide/troubleshooting/torch.md`](../docs/user-guide/troubleshooting/torch.md).
 
 ## No truncation at rest; truncation is a read-time feature
 
@@ -60,8 +60,12 @@ Both read surfaces print only through [`stockroom.render`](../skills/sr-search/s
 
 ## Baked-only succeed-or-refuse shim
 
-The shim has a baked engine dir and zero resolution logic — succeed correctly or refuse with a one-line remedy (including when the engine env cannot import locked deps). Session-start hooks run `shim rectify`, which re-bakes owned shims after plugin updates **and** ensures the engine uv env via torch-safe inexact sync plus torch reinstall from the hashed freeze at `{stockroom_home}/torch-requirements.txt` (`stockroom.torch_source`); `make shim` installs owner `dev` for checkouts. `make torch` / `sr-initialize` / `stockroom torch freeze` write that freeze (plus a `torch-index` sidecar). Heal imports stay stdlib-only: XDG/`STOCKROOM_HOME` resolution lives in [`stockroom.home`](../skills/sr-search/src/stockroom/home.py) so a bare `uv python find` interpreter (no project site-packages) can reach `ensure_engine_env` before the project `.venv` exists.
+The shim has a baked engine dir and zero resolution logic — succeed correctly or refuse with a one-line remedy (including when the engine env cannot import locked deps). Session-start hooks run `shim rectify`, which creates a missing on-path shim, re-bakes owned shims after plugin updates, **and** ensures the engine uv env via torch-safe inexact sync plus torch reinstall from the hashed freeze at `{stockroom_home}/torch-requirements.txt` (`stockroom.torch_source`); `make shim` installs owner `dev` for checkouts. `make torch` / `sr-initialize` / `stockroom torch freeze` write that freeze (plus a `torch-index` sidecar). Heal imports stay stdlib-only: XDG/`STOCKROOM_HOME` resolution lives in [`stockroom.home`](../skills/sr-search/src/stockroom/home.py) so a bare `uv python find` interpreter (no project site-packages) can reach `ensure_engine_env` before the project `.venv` exists.
 
 ## Layered licensing
 
 Root [`REUSE.toml`](../REUSE.toml): AGPL base on everything; PPL-S carved out only for prompt-shaped skill payload (`skills/**/SKILL.md`, `skills/**/references/**`); software under `skills/**` inherits AGPL. Enforced by `reuse lint`.
+
+## Docs ownership: skills vs human site
+
+Human user-guide / architecture / contributor prose lives under [`docs/`](../docs/) (properdocs site). Agents use `SKILL.md` + [`system-model.md`](../skills/sr-search/references/system-model.md) only — do not park a user-guide corpus under `skills/**/references/`. Root `pyproject.toml` is a docs-toolchain stub; the engine remains under `skills/sr-search/`. Using-agent doctrines (`system-model.md`) and this maintainer briefing are related but not one SSOT — do not merge them. Contributor enter/verify/exit is [`docs/contributing/preparation.md`](../docs/contributing/preparation.md); day-to-day engine / Torch / docs / dashboard / skills loops and Make targets are [`docs/contributing/iteration.md`](../docs/contributing/iteration.md). GitHub PR process: [`CONTRIBUTING.md`](../CONTRIBUTING.md). `HARNESS=… make localdev` composes `local-skills` + `local-engine` + `local-dashboard` (no project-hook install); it is not a marketplace install path.

@@ -1,0 +1,4 @@
+nav:
+  - Overview: index.md
+  - CLI: cli.md
+  - DuckDB: duckdb.md

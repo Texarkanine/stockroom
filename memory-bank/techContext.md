@@ -4,17 +4,18 @@ Stockroom is a local **Python** application managed with **uv**, storing agentic
 
 ## Environment Setup
 
-uv provisions the interpreter pinned by `requires-python` in [`skills/sr-search/pyproject.toml`](../skills/sr-search/pyproject.toml). Locked deps via `make sync` (or `uv sync --frozen --no-config` in the engine dir). Regenerate the lock hermetically with `make lock` (`uv lock --no-config`). Torch is held out of the lock and provisioned per-machine; after smoke (or `make torch`), a hashed freeze is written under stockroom home and heal replays it with `--require-hashes` (see [`docs/torch.md`](../docs/torch.md)). After torch is installed, never run an exact sync — use `--no-sync` / `--inexact`. The torch-safe run contract and Makefile targets are documented in [`docs/development.md`](../docs/development.md) and the root [`Makefile`](../Makefile).
+uv provisions the interpreter pinned by `requires-python` in [`skills/sr-search/pyproject.toml`](../skills/sr-search/pyproject.toml). Locked deps via `make sync` (or `uv sync --frozen --no-config` in the engine dir). Regenerate the lock hermetically with `make lock` (`uv lock --no-config`). Torch is held out of the lock and provisioned per-machine; after smoke (or `make torch`), a hashed freeze is written under stockroom home and heal replays it with `--require-hashes` (see [`docs/user-guide/troubleshooting/torch.md`](../docs/user-guide/troubleshooting/torch.md)). After torch is installed, never run an exact sync — use `--no-sync` / `--inexact`. Day-to-day engine / Torch / docs / dashboard / skills loops and Make targets: [`docs/contributing/iteration.md`](../docs/contributing/iteration.md). Enter / verify / exit localdev (atoms + recipe): [`docs/contributing/preparation.md`](../docs/contributing/preparation.md). Human docs site: root stub [`pyproject.toml`](../pyproject.toml) + [`properdocs.yaml`](../properdocs.yaml) (`make docs` / `make docs-build`).
 
 Warehouse home: `$XDG_DATA_HOME/stockroom` or `~/.local/share/stockroom`, overridable via `STOCKROOM_HOME`. Ingest roots: `STOCKROOM_CURSOR_ROOT` / `STOCKROOM_CLAUDE_ROOT`. Optional Cursor enrichment DB: `STOCKROOM_AI_TRACKING_DB`.
 
 ## Build Tools
 
-- **uv** — dependency resolution; canonical config [`skills/sr-search/pyproject.toml`](../skills/sr-search/pyproject.toml) + [`uv.lock`](../skills/sr-search/uv.lock) (`package = false`, torch override-dependencies).
+- **uv** — dependency resolution; canonical engine config [`skills/sr-search/pyproject.toml`](../skills/sr-search/pyproject.toml) + [`uv.lock`](../skills/sr-search/uv.lock) (`package = false`, torch override-dependencies). Root stub [`pyproject.toml`](../pyproject.toml) + [`uv.lock`](../uv.lock) is docs-only (`uv sync --group docs`).
+- **properdocs** — human doc site over [`docs/`](../docs/); config [`properdocs.yaml`](../properdocs.yaml); `make docs` / `make docs-build`.
 - **release-please** — [`release-please-config.json`](../release-please-config.json) + [`.release-please-manifest.json`](../.release-please-manifest.json); syncs version into both plugin manifests.
-- **Makefile** — root [`Makefile`](../Makefile) for sync/lock/test/lint/format/reuse/ci/torch/shim.
-- **CI / release** — [`.github/workflows/ci.yml`](../.github/workflows/ci.yml), [`.github/workflows/release-please.yaml`](../.github/workflows/release-please.yaml).
-- **Dashboard front-end** — committed native ES modules under [`stockroom/dashboard/static/`](../skills/sr-search/src/stockroom/dashboard/static/) with vendored Chart.js and markdown-it; no npm install or bundler. Node 22 runs `make test-js` only.
+- **Makefile** — root [`Makefile`](../Makefile) for sync/lock/test/lint/format/reuse/ci/torch/shim/docs plus contributor localdev atoms (`local-skills`, `local-engine`, `local-dashboard`, composer `localdev`, `localdev-clean`, `localdev-status`; harness-scoped targets require `HARNESS=cursor|claude`; `shim` with optional `TAKEOVER=1` / `FORCE=1`). Fat localdev shell lives in [`scripts/localdev.sh`](../scripts/localdev.sh) (POSIX); Make orchestrates.
+- **CI / release** — [`.github/workflows/ci.yml`](../.github/workflows/ci.yml), [`.github/workflows/docs.yaml`](../.github/workflows/docs.yaml), [`.github/workflows/release-please.yaml`](../.github/workflows/release-please.yaml).
+- **Dashboard front-end** — committed native ES modules under [`stockroom/dashboard/static/`](../skills/sr-search/src/stockroom/dashboard/static/) with vendored Chart.js and markdown-it; no npm install or bundler. Node 22 runs `make test-dashboard-js` only.
 
 ## Warehouse Schema
 
@@ -39,7 +40,7 @@ Shared presentation: [`stockroom.render`](../skills/sr-search/src/stockroom/rend
 
 ## Testing Process
 
-Test-first per `.cursor/rules/shared/always-tdd.mdc`; run discipline in `.cursor/rules/shared/test-running-practices.mdc`. Python contracts: `pytest` configured in [`skills/sr-search/pyproject.toml`](../skills/sr-search/pyproject.toml). Dashboard JS: Node 22 built-in runner via `make test-js`. Day-to-day: `make test` / `make lint` / `make format` / `make reuse` / `make ci` from repo root. Lint/format is `ruff`.
+Test-first per `.cursor/rules/shared/always-tdd.mdc`; run discipline in `.cursor/rules/shared/test-running-practices.mdc`. Python contracts: `pytest` configured in [`skills/sr-search/pyproject.toml`](../skills/sr-search/pyproject.toml). Dashboard JS: Node 22 built-in runner via `make test-dashboard-js`; dashboard Python slice via `make test-dashboard-py` (no sync). Day-to-day: `make test` / `make lint` / `make format` / `make reuse` / `make ci` from repo root. Lint/format is `ruff`.
 
 ## Design System
 

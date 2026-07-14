@@ -278,7 +278,7 @@ def ensure_torch(
     ``torch-requirements.txt`` freeze exists, run
     ``uv pip install --require-hashes -r <freeze>`` (indexes come from the
     freeze via ``--emit-index-url`` at compile time). If missing with no
-    freeze, soft-fail naming ``sr-initialize`` / ``docs/torch.md`` — never
+    freeze, soft-fail naming ``sr-initialize`` / ``docs/user-guide/troubleshooting/torch.md`` — never
     floating-install from the index sidecar alone.
     """
     app_dir = Path(os.path.abspath(Path(app_dir).expanduser()))
@@ -294,7 +294,7 @@ def ensure_torch(
             reason=(
                 "torch missing and no hashed freeze at "
                 f"{requirements_path()} — run sr-initialize (install → smoke → "
-                "freeze) or see docs/torch.md"
+                "freeze) or see docs/user-guide/troubleshooting/torch.md"
             ),
         )
 

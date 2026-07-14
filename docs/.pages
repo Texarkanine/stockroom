@@ -1,0 +1,7 @@
+nav:
+  - Home: index.md
+  - User Guide: user-guide
+  - advanced
+  - architecture
+  - contributing
+  - ...

@@ -3,7 +3,8 @@
 Runs ``python -m stockroom.shim`` (and the dispatcher-forwarded form) as a
 real subprocess against tmp destinations and fixture engine dirs — never the
 real ``~/.local/bin``. Exit-code contract: ``install`` refusals are nonzero
-(the caller must notice), ``rectify`` no-ops are zero (the hook's designed
+(the caller must notice), ``rectify`` create/rebake/noop exits are zero (the
+hook's designed
 steady state must never look like a failure).
 """
 
@@ -81,8 +82,43 @@ def test_help_documents_subactions_and_flags(tmp_path: Path) -> None:
         "--dest",
         "--owner",
         "--takeover",
+        "--force",
     ):
         assert token in result.stdout
+
+
+def test_install_force_flag_accepted_and_wired(
+    tmp_path: Path, dest: Path, engine_dir: Path, other_engine_dir: Path
+) -> None:
+    """CLI ``--force`` with ``--takeover`` replaces a live foreign bake (S5)."""
+    first = _run(
+        "install",
+        "--dest",
+        str(dest),
+        "--app-dir",
+        str(engine_dir),
+        "--owner",
+        "cursor",
+        tmp_path=tmp_path,
+    )
+    assert first.returncode == 0, first.stderr
+    second = _run(
+        "install",
+        "--dest",
+        str(dest),
+        "--app-dir",
+        str(other_engine_dir),
+        "--owner",
+        "dev",
+        "--takeover",
+        "--force",
+        tmp_path=tmp_path,
+    )
+    assert second.returncode == 0, second.stderr
+    assert dest.is_file()
+    text = dest.read_text()
+    assert "# STOCKROOM_OWNER=dev" in text
+    assert f"# STOCKROOM_APP_DIR={other_engine_dir}" in text
 
 
 def test_ensure_env_exits_zero_without_owner(
@@ -160,8 +196,10 @@ def test_install_refusal_exits_nonzero(
     assert "cursor" in second.stderr
 
 
-def test_rectify_noop_exits_zero(tmp_path: Path, dest: Path, engine_dir: Path) -> None:
-    """rectify against an absent dest is the hook steady state: exit 0."""
+def test_rectify_absent_dest_creates_and_exits_zero(
+    tmp_path: Path, dest: Path, engine_dir: Path
+) -> None:
+    """rectify against an absent dest creates the shim (hook heal); exit 0."""
     result = _run(
         "rectify",
         "--dest",
@@ -173,7 +211,9 @@ def test_rectify_noop_exits_zero(tmp_path: Path, dest: Path, engine_dir: Path) -
         tmp_path=tmp_path,
     )
     assert result.returncode == 0, result.stderr
-    assert not dest.exists()
+    assert dest.exists()
+    assert "# STOCKROOM_OWNER=cursor" in dest.read_text()
+    assert f"# STOCKROOM_APP_DIR={engine_dir}" in dest.read_text()
 
 
 def test_rectify_rebakes_moved_root(
