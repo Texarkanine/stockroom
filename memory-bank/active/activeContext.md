@@ -1,10 +1,11 @@
 # Active Context
 
 ## Current Task: polish-readme-sales-pitch
-**Phase:** QA - COMPLETE
+**Phase:** REFLECT COMPLETE
 
 ## What Was Done
-- Semantic QA PASS on README rewrite: complete vs brief, no over-engineering, no SSOT fork, checklist green
+- Reflection written; persistent MB unchanged (README polish did not invalidate product/system/tech context)
+- Ready for archive
 
 ## Next Step
-- Reflect phase
+- Operator: run `/niko-archive`
