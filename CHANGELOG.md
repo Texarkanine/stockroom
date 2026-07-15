@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.0](https://github.com/Texarkanine/stockroom/compare/v0.8.0...v0.9.0) (2026-07-15)
+
+
+### Features
+
+* **docs:** apply Texarkanine paper/ember Material theme ([#58](https://github.com/Texarkanine/stockroom/issues/58)) ([9229643](https://github.com/Texarkanine/stockroom/commit/9229643c39c347eea5404b0527d7f33b8f17992b))
+* **ingest:** surgically invalidate embeddings on session rewrite [[#43](https://github.com/Texarkanine/stockroom/issues/43)] ([#55](https://github.com/Texarkanine/stockroom/issues/55)) ([6469614](https://github.com/Texarkanine/stockroom/commit/646961498db41c7be450016388a4e65b21c7f0dd))
+
 ## [0.8.0](https://github.com/Texarkanine/stockroom/compare/v0.7.0...v0.8.0) (2026-07-15)
 
 
