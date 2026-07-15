@@ -52,3 +52,12 @@ Speed up `stockroom embed` with cross-message chunk batching (no accuracy penalt
     - No substantive redesign needed
 * Insights
     - Encode batching remains the leverage; write path should stay batch-aligned for memory
+
+## 2026-07-15 - REFLECT - COMPLETE
+
+* Work completed
+    - Reflection documented; persistent memory bank left unchanged
+* Decisions made
+    - Million-dollar shape ≈ what shipped (select → flatten → batch encode → write → orphan DELETE)
+* Insights
+    - ST float32-near policy; DuckDB parallel UNNEST; preflight TDD gate earned its keep
