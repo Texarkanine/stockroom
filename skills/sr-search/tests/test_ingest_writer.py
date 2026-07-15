@@ -376,6 +376,22 @@ def test_removed_message_loses_embeddings(
     assert _embedding_owner_ids(migrated_con) == {"s1#0"}
 
 
+def test_all_messages_removed_loses_all_embeddings(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Rewriting a session with zero messages deletes all its embeddings."""
+    writer.write_session(migrated_con, _session())
+    _add_embedding(migrated_con, "s1#0")
+    _add_embedding(migrated_con, "s1#1")
+    _add_embedding(migrated_con, "s2#0")
+
+    empty = _session()
+    empty.messages = []
+    writer.write_session(migrated_con, empty)
+
+    assert _embedding_owner_ids(migrated_con) == {"s2#0"}
+
+
 def test_rewrite_does_not_touch_other_session_embeddings(
     migrated_con: duckdb.DuckDBPyConnection,
 ) -> None:
