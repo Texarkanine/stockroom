@@ -47,3 +47,12 @@ Implement surgical embedding invalidation on ingest session rewrite (compare-and
     - Stale owners deleted by explicit id list (`UNNEST`) before session row delete
 * Insights
     - Other-session isolation already held under old cascade; new value is retention on unchanged/append
+
+## 2026-07-14 - QA - COMPLETE
+
+* Work completed
+    - Reviewed writer + tests + docs against plan (KISS/DRY/YAGNI/completeness/regression/integrity/documentation)
+* Decisions made
+    - PASS with no code fixes
+* Insights
+    - Overlap between other-session and unchanged-rewrite tests is acceptable AC clarity, not debris
