@@ -18,8 +18,8 @@ updates:
     assignees:
       - 'Texarkanine'
     commit-message:
-      prefix: 'chore(docs)'
-      prefix-development: 'chore(docs)'
+      prefix: 'chore(deps-docs)'
+      prefix-development: 'chore(deps-docs)'
 
   # UV — engine (skills/sr-search)
   - package-ecosystem: 'uv'
