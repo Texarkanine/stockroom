@@ -59,3 +59,13 @@ Add `.github/dependabot.yaml` for both UV roots (docs at `/`, engine at `/skills
     - QA PASS — no substantive fixes required
 * Insights
     - Operator override on tests was the right call for platform config
+
+## 2026-07-15 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `reflection/reflection-dependabot-config.md`
+    - Surgical techContext update: Dependabot path under CI/release
+* Decisions made
+    - Persistent productContext/systemPatterns unchanged
+* Insights
+    - Platform config ≠ app behavior; skip ceremony tests unless asked
