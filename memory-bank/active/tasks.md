@@ -114,16 +114,16 @@ flowchart TD
 
 Each numbered unit is one TDD cycle: **(a) write/adjust failing tests → (b) run and confirm failure → (c) implement production code → (d) run and confirm pass**. Do not start (c) before (a)/(b) for that unit.
 
-1. **Metrics: shared filter + `sessions_ends`**
+1. **Metrics: shared filter + `sessions_ends`** ✅
     - (a) Tests first: `test_dashboard_metrics.py` — empty/≤20/>20 ends shapes, filter window, harness filter, field parity with today’s row dict
     - (c) Then: `metrics.py` — extract filter/row helpers; implement `sessions_ends`; register in `ENDPOINTS`
     - Creative ref: `creative-sessions-api-shape.md`
 
-2. **Metrics: paged `sessions` envelope**
+2. **Metrics: paged `sessions` envelope** ✅
     - (a) Tests first: rewrite existing `sessions()` assertions for `{total, sessions}`; add offset/order/`limit=0` show-all cases
     - (c) Then: `metrics.py` — envelope + offset/order/limit semantics
 
-3. **Server wiring**
+3. **Server wiring** ✅
     - (a) Tests first: `test_dashboard_server.py` — `/api/sessions_ends`; `offset`/`order`/`limit=0`; update clamp/`limit=501` expectations; keep `limit=-1` → 400
     - (c) Then: `server.py` — parse and dispatch
 

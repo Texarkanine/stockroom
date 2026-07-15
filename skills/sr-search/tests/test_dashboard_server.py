@@ -134,7 +134,8 @@ def test_partial_bounds_preserve_endpoint_specific_defaults(
 
         status, sessions = _json_get(f"{base}/api/sessions?until=2026-02-01")
         assert status == 200
-        assert [row["started"] for row in sessions] == [
+        assert sessions["total"] == 2
+        assert [row["started"] for row in sessions["sessions"]] == [
             "2026-01-31T00:00:00Z",
             "2025-01-01T00:00:00Z",
         ]
@@ -144,7 +145,7 @@ def test_repeated_harness_limit_cap_and_short_timeout_are_wired(
     warehouse_home: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """HTTP preserves repeated filters, clamps limit, and opens with 2s backoff."""
+    """HTTP preserves repeated filters, clamps positive limit, and opens with 2s backoff."""
     captured: dict[str, object] = {}
 
     class FakeConnection:
@@ -155,12 +156,14 @@ def test_repeated_harness_limit_cap_and_short_timeout_are_wired(
         captured["open_kwargs"] = kwargs
         return FakeConnection()
 
-    def _sessions(_con, harnesses, since, until, *, limit):
+    def _sessions(_con, harnesses, since, until, *, limit, offset=0, order="desc"):
         return {
             "harnesses": harnesses,
             "since": since,
             "until": until,
             "limit": limit,
+            "offset": offset,
+            "order": order,
         }
 
     monkeypatch.setitem(metrics.ENDPOINTS, "sessions", _sessions)
@@ -171,10 +174,78 @@ def test_repeated_harness_limit_cap_and_short_timeout_are_wired(
     assert status == 200
     assert payload["harnesses"] == ["cursor", "claude"]
     assert payload["limit"] == 500
+    assert payload["offset"] == 0
+    assert payload["order"] == "desc"
     assert captured == {
         "open_kwargs": {"read_only": True, "timeout": 2.0},
         "closed": True,
     }
+
+
+def test_sessions_accepts_offset_order_and_show_all_limit(
+    warehouse_home: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Sessions API accepts offset/order and limit=0 (show-all, not clamped)."""
+    captured: dict[str, object] = {}
+
+    class FakeConnection:
+        def close(self) -> None:
+            pass
+
+    def _sessions(_con, harnesses, since, until, *, limit, offset=0, order="desc"):
+        captured["args"] = {
+            "limit": limit,
+            "offset": offset,
+            "order": order,
+        }
+        return {"total": 0, "sessions": []}
+
+    monkeypatch.setitem(metrics.ENDPOINTS, "sessions", _sessions)
+    with _running_server(open_warehouse=lambda **_: FakeConnection()) as (
+        _httpd,
+        base,
+    ):
+        status, payload = _json_get(
+            f"{base}/api/sessions?limit=0&offset=10&order=asc"
+        )
+        assert status == 200
+        assert payload == {"total": 0, "sessions": []}
+        assert captured["args"] == {"limit": 0, "offset": 10, "order": "asc"}
+
+        status, err = _json_get(f"{base}/api/sessions?order=sideways")
+        assert status == 400
+        assert "order" in err["error"]
+
+        status, err = _json_get(f"{base}/api/sessions?offset=-1")
+        assert status == 400
+        assert "offset" in err["error"]
+
+
+def test_sessions_ends_endpoint_returns_panel_envelope(
+    warehouse_home: Path,
+) -> None:
+    """GET /api/sessions_ends returns total + newest/oldest for the panel."""
+    con = warehouse.open(read_only=False)
+    try:
+        for i in range(3):
+            session_id = f"s{i}"
+            activity = datetime(2026, 1, 1 + i)
+            con.execute(
+                "INSERT INTO sessions "
+                "(harness, session_id, project_id, source_path, is_subagent, "
+                "source_mtime) VALUES ('cursor', ?, 'p', ?, false, ?)",
+                [session_id, f"/tmp/{session_id}.jsonl", activity],
+            )
+    finally:
+        con.close()
+
+    with _running_server() as (_httpd, base):
+        status, payload = _json_get(f"{base}/api/sessions_ends")
+    assert status == 200
+    assert payload["total"] == 3
+    assert [row["session_id"] for row in payload["newest"]] == ["s2", "s1", "s0"]
+    assert payload["oldest"] == []
 
 
 def test_missing_stale_and_busy_warehouses_return_actionable_503(
