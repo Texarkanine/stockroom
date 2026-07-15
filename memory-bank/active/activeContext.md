@@ -1,10 +1,12 @@
 # Active Context
 
 ## Current Task: dashboard-sessions-browse
-**Phase:** REFLECT - COMPLETE (post-reflect UX polish in progress / done locally)
+**Phase:** ARCHIVE - IN-PROGRESS
 
 ## What Was Done
-- Post-reflect UX rework (uncommitted unless operator asks): truncated pagination; view titles; history push only on view entry (replace for in-list page/filter); Local warehouse → `/`
+- Reflection complete; Build + QA PASS
+- Post-reflect UX polish landed in [#52](https://github.com/Texarkanine/stockroom/pull/52): truncated pagination; view titles; history push only on view entry (replace for in-list page/filter); Local warehouse → `/`
+- Operator invoked `/niko-archive`
 
 ## Next Step
-- Operator: try Back + pagination in the UI; then `/niko-archive` when satisfied (commit polish first if desired)
+- Create archive document, clear ephemeral memory-bank files, commit

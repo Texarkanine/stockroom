@@ -89,3 +89,12 @@ Implement dashboard Sessions browse: capped glanceable Sessions panel on metrics
     - Standalone L3 — next operator step is `/niko-archive`
 * Insights
     - URL-canonical vs in-memory chrome ownership is the main SPA lesson from this task
+
+## 2026-07-14 - ARCHIVE - IN-PROGRESS
+
+* Work completed
+    - Reflect + post-reflect UX polish complete; entering archive
+* Decisions made
+    - Category: `features/` (new sessions-list SPA view + `sessions_ends` API + paged `/api/sessions` envelope)
+* Insights
+    - None yet
