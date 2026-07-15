@@ -10,6 +10,7 @@ Stop cascade-deleting all session embeddings on ingest rewrite. In `write_sessio
 
 ### Behaviors to Verify
 
+- Pure compare helper: removed id / changed text → invalidate; unchanged text and both-None → keep
 - Unchanged rewrite: rewrite session with identical message texts → embeddings for those `message_id`s remain
 - Append-only growth: rewrite with prior messages unchanged + new ordinals → prior embeddings retained; new ids have no vectors until embed
 - Text change: same `message_id`, different `text` → that id's embeddings deleted; sibling unchanged ids retain theirs
@@ -28,17 +29,17 @@ Stop cascade-deleting all session embeddings on ingest rewrite. In `write_sessio
 
 ## Implementation Plan
 
-1. **Replace cascade test with surgical contract tests (failing)**
-   - Files: `skills/sr-search/tests/test_ingest_writer.py`
-   - Changes: Replace `test_rewriting_session_cascades_embedding_delete` with focused cases covering unchanged rewrite, append-only, text change (siblings retained), removal, other-session isolation, and multi-chunk invalidation. Keep a shared `_add_embedding` helper. Expect failures under current blanket cascade.
+1. **Stub pure compare helper + replace cascade tests (failing)**
+   - Files: `skills/sr-search/src/stockroom/ingest/writer.py`, `skills/sr-search/tests/test_ingest_writer.py`
+   - Changes: Add empty/stub `_embedding_owner_ids_to_invalidate(old_texts, new_texts) -> set[str]` with docstring. Replace `test_rewriting_session_cascades_embedding_delete` with: (a) pure-helper unit cases for removed / changed / unchanged / both-None text; (b) integration cases via `write_session` for unchanged rewrite, append-only, text change (siblings retained), removal, other-session isolation, and multi-chunk invalidation. Shared `_add_embedding` helper. Expect failures until step 2.
 
-2. **Surgical invalidation in `write_session`; strip blanket delete from `_delete_session`**
+2. **Implement compare-and-keep; strip blanket delete from `_delete_session`**
    - Files: `skills/sr-search/src/stockroom/ingest/writer.py`
    - Changes:
-     - When loading carry-forward state, also load `old_texts: message_id → text` (same `WHERE harness/session_id` query can select `message_id, text, first_seen_at`).
+     - Implement `_embedding_owner_ids_to_invalidate`: ids in `old_texts` missing from `new_texts`, or present in both with unequal `text` (`None` equality as Python `==`).
+     - When loading carry-forward state, also load `old_texts` (same query can select `message_id, text, first_seen_at`).
      - Build `new_texts` from `session.messages` via `_message_id`.
-     - Compute stale owner ids: in `old_texts` but missing from `new_texts`, or present in both with unequal `text` (NULL/`None` equality as Python equality).
-     - Before `_delete_session`, `DELETE FROM embeddings` for those `owner_id`s only (`owner_table = 'messages'`, scoped by `harness`).
+     - Before `_delete_session`, `DELETE FROM embeddings` for stale `owner_id`s only (`owner_table = 'messages'`, scoped by `harness`).
      - Remove the blanket embedding `DELETE` from `_delete_session`; update its docstring (children/messages/sessions only).
      - Update `write_session` / module docs to describe compare-and-keep invalidation instead of session-wide cascade.
 
@@ -48,6 +49,10 @@ Stop cascade-deleting all session embeddings on ingest rewrite. In `write_sessio
 
 4. **Verify**
    - Run targeted `test_ingest_writer` embedding cases, then full `make test` (or engine pytest suite) plus lint/format as required by project verification.
+
+## Preflight Amendments
+
+- Extract `_embedding_owner_ids_to_invalidate` as a pure helper so text-compare rules are unit-testable without DuckDB (preflight radical-innovation amendment; still within L2 / brief scope).
 
 ## Technology Validation
 
@@ -78,6 +83,6 @@ No new technology - validation not required
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
 - [ ] QA

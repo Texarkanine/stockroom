@@ -25,3 +25,13 @@ Implement surgical embedding invalidation on ingest session rewrite (compare-and
     - No embed.py or schema changes
 * Insights
     - Current cascade test asserts the *wrong* contract for #43; replace, don't merely soften
+
+## 2026-07-14 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated TDD ordering (tests before writer impl), conventions (writer-only SQL), dependency impact (embed NOT EXISTS unchanged), completeness vs #43 ACs
+    - Amended plan: pure `_embedding_owner_ids_to_invalidate` helper + unit cases
+* Decisions made
+    - Preflight PASS; advisory amendment applied within scope
+* Insights
+    - Blanket cascade is intentional today; conflict with old test/docs is the feature, not a blocker
