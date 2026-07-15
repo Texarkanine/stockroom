@@ -1,11 +1,11 @@
 # Active Context
 
 ## Current Task: Surgical embedding invalidation (#43)
-**Phase:** REFLECT COMPLETE
+**Phase:** ARCHIVE - IN-PROGRESS
 
 ## What Was Done
 - Reflection written; systemPatterns embeddings section updated for surgical invalidation
-- Ready for archive
+- Entering archive phase
 
 ## Next Step
-- Run `/niko-archive` to create the archive document and finalize the current project
+- Create archive document, clear ephemeral memory-bank files, commit

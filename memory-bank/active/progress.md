@@ -66,3 +66,12 @@ Implement surgical embedding invalidation on ingest session rewrite (compare-and
     - Foundational shape is compare-and-keep beside first_seen carry-forward; no further redesign
 * Insights
     - Cascade + embed lag is a semantic wipe failure mode, not merely wasted re-embed work
+
+## 2026-07-15 - ARCHIVE - IN-PROGRESS
+
+* Work completed
+    - Reflect complete; entering archive to inline ephemeral content and clear the memory bank
+* Decisions made
+    - Category: enhancements (existing ingest invalidation improved, not a new feature)
+* Insights
+    - None yet
