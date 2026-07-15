@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.10.0](https://github.com/Texarkanine/stockroom/compare/v0.9.0...v0.10.0) (2026-07-15)
+
+
+### Features
+
+* **embed:** cross-message batching and orphan cleanup [[#54](https://github.com/Texarkanine/stockroom/issues/54)] [[#56](https://github.com/Texarkanine/stockroom/issues/56)] ([#59](https://github.com/Texarkanine/stockroom/issues/59)) ([7097478](https://github.com/Texarkanine/stockroom/commit/7097478a562cdacc8850422fea2ea464bdc70a61))
+
+
+### Bug Fixes
+
+* **dashboard:** force-replace on make local-dashboard [[#48](https://github.com/Texarkanine/stockroom/issues/48)] ([#61](https://github.com/Texarkanine/stockroom/issues/61)) ([2166f75](https://github.com/Texarkanine/stockroom/commit/2166f751869895a999a048cd496e187cc2b2ef96))
+
 ## [0.9.0](https://github.com/Texarkanine/stockroom/compare/v0.8.0...v0.9.0) (2026-07-15)
 
 
