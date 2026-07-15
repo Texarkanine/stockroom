@@ -20,3 +20,8 @@
 - `Makefile`
 - `docs/contributing/preparation.md`
 - `docs/contributing/iteration.md`
+
+## QA
+
+- Result: PASS
+- Findings: none blocking; `--replace` only (no `--force` alias) is YAGNI-correct; docs and Make messaging match behavior

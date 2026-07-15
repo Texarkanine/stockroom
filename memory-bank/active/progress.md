@@ -33,3 +33,13 @@ Fix `make local-dashboard` / dashboard start so a matching `app_dir`+version no 
     - Outcome honesty via CLI stderr + no Make bounce claim (not a parsed exit code)
 * Insights
     - Identity match is not “fresh code”; localdev bounce must opt into replace explicitly
+
+## 2026-07-15 - QA - COMPLETE
+
+* Work completed
+    - Semantic review against project brief / issue #48 acceptance criteria
+    - Wrote `.qa-validation-status` = PASS
+* Decisions made
+    - No `--force` alias (YAGNI; `--replace` is the contract Make uses)
+* Insights
+    - Removing Make’s bounce echo plus CLI stderr `dashboard: replaced` is enough honesty without exit-code gymnastics
