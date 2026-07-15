@@ -56,3 +56,13 @@ Implement surgical embedding invalidation on ingest session rewrite (compare-and
     - PASS with no code fixes
 * Insights
     - Overlap between other-session and unchanged-rewrite tests is acceptable AC clarity, not debris
+
+## 2026-07-14 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `reflection/reflection-surgical-embedding-invalidation.md`
+    - Reconciled `systemPatterns.md` embeddings briefing with surgical invalidation
+* Decisions made
+    - Foundational shape is compare-and-keep beside first_seen carry-forward; no further redesign
+* Insights
+    - Cascade + embed lag is a semantic wipe failure mode, not merely wasted re-embed work

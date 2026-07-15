@@ -36,7 +36,7 @@ The generated on-path shim (`~/.local/bin/stockroom`, from [`stockroom.shim`](..
 
 ## Embeddings and semantic search
 
-[`stockroom.embed`](../skills/sr-search/src/stockroom/embed.py) writes one vector per chunk (`BAAI/bge-small-en-v1.5`, 384-dim) through a read-write `open()`. [`stockroom.semantic`](../skills/sr-search/src/stockroom/semantic.py) does index KNN, over-fetch, max-sim owner dedup, with an asymmetric query prefix. Scores are relative within one query.
+[`stockroom.embed`](../skills/sr-search/src/stockroom/embed.py) writes one vector per chunk (`BAAI/bge-small-en-v1.5`, 384-dim) through a read-write `open()`. [`stockroom.semantic`](../skills/sr-search/src/stockroom/semantic.py) does index KNN, over-fetch, max-sim owner dedup, with an asymmetric query prefix. Scores are relative within one query. Ingest rewrite invalidates embeddings surgically (removed or text-changed `message_id`s only); unchanged/append-only history keeps vectors so embed lag cannot empty a session's semantic coverage.
 
 ## Search-surface architecture: engine power, wrapper skills, judgement router
 

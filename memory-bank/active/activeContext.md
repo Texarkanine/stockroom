@@ -1,11 +1,11 @@
 # Active Context
 
 ## Current Task: Surgical embedding invalidation (#43)
-**Phase:** QA - COMPLETE
+**Phase:** REFLECT COMPLETE
 
 ## What Was Done
-- Semantic QA PASS against plan and #43 ACs
-- No trivial or substantive fixes required
+- Reflection written; systemPatterns embeddings section updated for surgical invalidation
+- Ready for archive
 
 ## Next Step
-- Reflect phase (automatic per Level 2 workflow)
+- Run `/niko-archive` to create the archive document and finalize the current project
