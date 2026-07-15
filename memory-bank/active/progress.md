@@ -23,3 +23,12 @@ Speed up `stockroom embed` with cross-message chunk batching (no accuracy penalt
     - Default `EMBED_BATCH_SIZE = 32`; numeric policy = float32 near-equality; orphan cleanup = all models; fold write batching into scatter path
 * Insights
     - Encode batching alone is the leverage; no CUDA on this machine — PR will document CPU timings
+
+## 2026-07-15 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Preflight PASS WITH ADVISORY; TDD ordering amended (per-unit test-before-code); pure flatten helper as first unit
+* Decisions made
+    - Keep #56 in scope; do not edit untracked `.cursor/skills/stockroom-local/` mirror
+* Insights
+    - Original step 1 was production-first — fixed before build gate

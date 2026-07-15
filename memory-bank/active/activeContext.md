@@ -1,12 +1,12 @@
 # Active Context
 
 ## Current Task: embed-batch-and-orphan-cleanup
-**Phase:** PLAN - COMPLETE
+**Phase:** PREFLIGHT - COMPLETE (PASS WITH ADVISORY)
 
 ## What Was Done
-- Level 2 plan written for [#54](https://github.com/Texarkanine/stockroom/issues/54) + [#56](https://github.com/Texarkanine/stockroom/issues/56)
-- Plan spike (CPU): 64 singles vs one batch ≈16.8×; batch size plateaus ~32–128; batched vs single vectors near-equal not bit-identical (`max_abs≈1.4e-7`)
-- Decisions: `EMBED_BATCH_SIZE=32` default; float32 near-equality numeric policy; orphan DELETE all models for dangling message owners; set-delete + executemany with scatter
+- Preflight validated plan against codebase; amended Implementation Plan for explicit per-unit TDD ordering
+- Advisory: pure `_pending_chunk_rows`-style helper first (DuckDB-free), matching surgical-invalidation pattern
+- Touchpoints: `skills/sr-search/src/stockroom/embed.py`, `tests/test_embed.py`, brief `docs/architecture/embeddings.md` — not the untracked local-skills mirror
 
 ## Next Step
-- Preflight validation (autonomous for L2)
+- Build phase (autonomous for L2)

@@ -35,37 +35,33 @@ Speed up `stockroom embed` with cross-message chunk batching (no accuracy penalt
 
 ## Implementation Plan
 
-1. **Spike-backed constants + helpers (no behavior change yet beyond stubs if needed)**
-   - Files: `skills/sr-search/src/stockroom/embed.py`
-   - Changes: add `EMBED_BATCH_SIZE = 32` (from plan spike; confirm/adjust during build measurement). Optional pure helper to flatten selected messages into `(harness, owner_id, chunk_index, chunk_text)` records after `chunk_text` (keeps `embed_pending` readable). Document numeric policy in module docstring briefly.
+Each numbered unit is one TDD cycle: stub/write failing tests → stub interface if needed → implement → green. Do not implement production behavior for a unit before its tests exist and fail for the right reason.
 
-2. **TDD: batched write path contract (FakeEncoder)**
-   - Files: `skills/sr-search/tests/test_embed.py`
-   - Changes: add tests that (a) a RecordingEncoder / call-capturing wrapper proves cross-message batches (encode called with >1 text when multiple single-chunk messages pending), (b) row contents equal single-encode FakeEncoder vectors, (c) existing incremental/`--full`/model-aware/empty/multi-chunk cases still express the same outcomes (update only if progress grain changes).
+1. **Unit: pure chunk-flatten helper (torch-free, no DuckDB)**
+   - Tests first (`test_embed.py`): empty selection → `[]`; one short message → one record `(harness, owner_id, 0, text)`; one long message → N records with ascending `chunk_index` matching `chunk_text`; mixed messages preserve owner boundaries.
+   - Then stub + implement in `embed.py`: e.g. `_pending_chunk_rows(selected) -> list[tuple[...]]` (name as fits codebase). Add `EMBED_BATCH_SIZE = 32` and brief numeric-policy note in module docs when introducing the batch path (unit 2), not as a freestanding behavior change.
 
-3. **Implement cross-message batching in `embed_pending`**
-   - Files: `skills/sr-search/src/stockroom/embed.py`
-   - Changes: after selecting messages, chunk all → accumulate windows of `EMBED_BATCH_SIZE` → `encoder.encode(batch)` → scatter to owners. Delete prior vectors by owner set (set-oriented `DELETE` / `UNNEST` or equivalent) before inserts for owners in the pending set. Prefer `executemany` (or multi-row insert) for chunk writes — natural with scatter; measure vs encode-only if cheap. Preserve return = rows written. Keep `embed_chunks` for single-text helpers/tests unless unused.
+2. **Unit: cross-message batch encode + write path**
+   - Tests first (`test_embed.py`): RecordingEncoder / call-capturing wrapper — multiple single-chunk pending messages → at least one `encode` call with `len(texts) > 1` (and ≤ `EMBED_BATCH_SIZE`); written row vectors equal FakeEncoder singles for those chunks; return count = total chunks. Re-run / keep existing incremental, empty-text, multi-chunk, model-aware, and knn cases green (update only assertions that intentionally change).
+   - Then implement in `embed_pending`: select → flatten via helper → encode in windows of `EMBED_BATCH_SIZE` → set-oriented delete of pending owners → `executemany` (or equivalent) inserts → return rows written. Keep `embed_chunks` for single-text use.
 
-4. **TDD + implement orphan cleanup (#56)**
-   - Files: `tests/test_embed.py`, `embed.py`
-   - Changes: after normal embed work (including when written=0), run set-oriented `DELETE FROM embeddings … WHERE owner_table='messages' AND NOT EXISTS (matching messages row)` for all embed models. Optional verbose line with delete count. Tests: orphans removed; valid rows kept; other-session isolation; empty pending still cleans.
+3. **Unit: orphan cleanup (#56)**
+   - Tests first: seed dangling `embeddings` rows (no matching `messages`); seed valid rows for other owners/sessions; after `embed_pending` (including when nothing pending) → orphans gone, valid rows remain; dangling rows under a non-current `embed_model` also removed (all-models scope).
+   - Then implement: after normal embed work, set-oriented `DELETE … owner_table='messages' AND NOT EXISTS (messages match)`; optional verbose delete-count line.
 
-5. **Progress grain + CLI tests**
-   - Files: `embed.py`, `test_embed.py`
-   - Changes: emit useful progress (e.g. start message count + per-batch or chunk progress). Update `test_embed_pending_on_progress_*` and CLI verbose assertions to the new grain. Quiet default unchanged.
+4. **Unit: progress grain**
+   - Tests first: update/replace `test_embed_pending_on_progress_*` and CLI verbose tests for the chosen grain (start line + per-batch or equivalent); quiet default still one final count line.
+   - Then implement progress emissions in `embed_pending` / confirm CLI wiring.
 
-6. **Torch-gated near-equality regression**
-   - Files: `test_embed.py`
-   - Changes: extend or add beside `test_bge_encoder_encodes_to_384_on_cpu`: batched vs single within `atol=1e-5` (or measured bound from spike).
+5. **Unit: BgeEncoder batched vs single near-equality (torch-gated)**
+   - Tests first: assert `encode(batch)` ≈ per-text singles within `atol≈1e-5` (spike-backed).
+   - Then no production change unless the test reveals a need (policy is documentation + test lock).
 
-7. **Measure + document**
-   - Files: PR body (and brief note in `docs/architecture/embeddings.md` only if operator-facing behavior/hygiene needs a sentence — orphan cleanup + “embed batches chunks” if docs claim per-message loop)
-   - Changes: before/after wall-clock on this CPU for a representative pending set; batch size chosen (32); whether write batching mattered; numeric policy; orphan scope = all models. GPU: this env has no CUDA — document CPU results; if operator has GPU, optional confirm in PR.
+6. **Measure + document (build/PR, not a TDD unit)**
+   - Before/after CPU wall-clock; confirm batch size 32; note write-batching role; numeric policy; orphan scope; no-CUDA note. Optional operator GPU confirm.
 
-8. **Docs touch-up**
-   - Files: `docs/architecture/embeddings.md` (and `skills/sr-search/references/system-model.md` only if it asserts per-message encode)
-   - Changes: one short note that embed encodes in cross-message batches; nightly embed also sweeps orphaned message embeddings. No schema/migration docs.
+7. **Docs touch-up**
+   - `docs/architecture/embeddings.md`: short notes on cross-message batch encode + orphan sweep on embed. Touch `system-model.md` only if it asserts per-message encode.
 
 ## Technology Validation
 
@@ -94,6 +90,11 @@ No new technology - validation not required. Plan spike already exercised existi
 - **Orphan cleanup scoped to current model only, leaving stale-model orphans**: Plan response — all models for dangling message owners (documented).
 - **Claimed GPU win without any timing story**: Plan response — CPU numbers in PR; explicit “no CUDA here” note rather than invented GPU figures.
 
+## Preflight Amendments
+
+- **TDD ordering (blocking fix applied):** Restructured Implementation Plan into per-unit test-before-code cycles. Removed production-first “constants/helpers” step; pure `_pending_chunk_rows`-style helper is its own TDD unit.
+- **Advisory:** Prefer the pure flatten helper (unit-tested without DuckDB) so batching/scatter logic stays thin — same pattern as surgical invalidation’s pure invalidate helper.
+
 ## Status
 
 - [x] Initialization complete
@@ -101,6 +102,6 @@ No new technology - validation not required. Plan spike already exercised existi
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
 - [ ] QA
