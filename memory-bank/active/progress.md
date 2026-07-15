@@ -69,3 +69,13 @@ Implement dashboard Sessions browse: capped glanceable Sessions panel on metrics
     - Built to creative Option B + radio per-page; list date preset kept in memory when seeded from metrics (URL remains since/until only)
 * Insights
     - Metrics snapshot key is now `sessions_ends`; list fetch is a separate `/api/sessions` call
+
+## 2026-07-14 - QA - COMPLETE (PASS)
+
+* Work completed
+    - Semantic review against plan, acceptance criteria, and creative docs
+    - Trivial fixes: empty-harness list picker treats URL `harness` omission as all selected; cleaned date-preset branch
+* Decisions made
+    - PASS — no substantive gaps; left `#recent-sessions` ids as cosmetic non-blocker
+* Insights
+    - Agent deep links that omit harness still fetch all; UI now matches that semantics

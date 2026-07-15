@@ -546,19 +546,31 @@ function syncSessionsListControls() {
   renderSessionsHarnessControls();
 }
 
+function effectiveListHarnesses() {
+  if (!sessionsList) {
+    return [];
+  }
+  // Empty harness list in the URL means "all" (same as the API); mirror that in the picker.
+  if (sessionsList.harnesses.length === 0) {
+    return [...state.harnesses];
+  }
+  return [...sessionsList.harnesses];
+}
+
 function renderSessionsHarnessControls() {
   if (!elements.sessionsHarnessOptions || !sessionsList) {
     return;
   }
   const colors = harnessColors(state.harnesses);
-  const selected = new Set(sessionsList.harnesses);
+  const selectedHarnesses = effectiveListHarnesses();
+  const selected = new Set(selectedHarnesses);
   elements.sessionsHarnessOptions.replaceChildren();
   if (state.harnesses.length === 0) {
     elements.sessionsHarnessSummary.textContent = "No harnesses";
     elements.sessionsHarnessOptions.append(document.createTextNode("No harness data yet."));
     return;
   }
-  const selectedCount = sessionsList.harnesses.length;
+  const selectedCount = selectedHarnesses.length;
   elements.sessionsHarnessSummary.textContent =
     selectedCount === state.harnesses.length
       ? "All harnesses"
@@ -576,7 +588,7 @@ function renderSessionsHarnessControls() {
         if (!(input instanceof HTMLInputElement) || !sessionsList) {
           return;
         }
-        let next = [...sessionsList.harnesses];
+        let next = effectiveListHarnesses();
         if (input.checked) {
           next = [...new Set([...next, harness])].sort((a, b) => a.localeCompare(b));
         } else {
@@ -967,11 +979,11 @@ async function navigateSessionsList(
     sessionsListDateRange = dateRangePreset;
   } else if (!sessionsList.since && !sessionsList.until) {
     sessionsListDateRange = "default";
-  } else if (push) {
-    // keep prior preset when filters change within the list
-  } else {
+  } else if (!push) {
+    // Deep-link with opaque since/until: no known radio preset.
     sessionsListDateRange = null;
   }
+  // else: keep prior sessionsListDateRange across in-list filter/page changes
   sessionView = null;
   sessionDetail = null;
   sessionRequestGate.begin();
