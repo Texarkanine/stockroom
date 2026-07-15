@@ -38,3 +38,14 @@ Add `.github/dependabot.yaml` for both UV roots (docs at `/`, engine at `/skills
     - Preflight PASS — proceed to build
 * Insights
     - No REUSE.toml change needed; new files inherit AGPL base annotation
+
+## 2026-07-15 - BUILD - COMPLETE
+
+* Work completed
+    - Created `.github/dependabot.yaml` with three update surfaces per brief
+    - Removed `test_dependabot.py` after operator rejected automated tests for Dependabot YAML
+* Decisions made
+    - Operator override: no pytest for platform Dependabot config
+    - Config-only deliverable; GitHub validates on ingest
+* Insights
+    - Contract-testing Dependabot YAML is ceremony without product signal

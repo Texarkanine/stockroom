@@ -1,0 +1,64 @@
+version: 2
+updates:
+  # UV — docs toolchain (root pyproject.toml / uv.lock)
+  - package-ecosystem: 'uv'
+    directory: '/'
+    schedule:
+      interval: 'monthly'
+      day: 'monday'
+      time: '09:00'
+    cooldown:
+      default-days: 7
+    groups:
+      docs-minor-patch:
+        update-types:
+          - 'minor'
+          - 'patch'
+    open-pull-requests-limit: 10
+    assignees:
+      - 'Texarkanine'
+    commit-message:
+      prefix: 'chore(docs)'
+      prefix-development: 'chore(docs)'
+
+  # UV — engine (skills/sr-search)
+  - package-ecosystem: 'uv'
+    directory: '/skills/sr-search'
+    schedule:
+      interval: 'monthly'
+      day: 'monday'
+      time: '09:00'
+    cooldown:
+      default-days: 7
+    groups:
+      deps-minor-patch:
+        dependency-type: 'production'
+        update-types:
+          - 'minor'
+          - 'patch'
+      dev-deps-minor-patch:
+        dependency-type: 'development'
+        update-types:
+          - 'minor'
+          - 'patch'
+    open-pull-requests-limit: 10
+    assignees:
+      - 'Texarkanine'
+    commit-message:
+      prefix: 'fix(deps)'
+      prefix-development: 'chore(deps-dev)'
+
+  # GitHub Actions — major-tag pins; do not group; opt out of platform cooldown
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'monthly'
+      day: 'monday'
+      time: '09:00'
+    cooldown:
+      default-days: 0
+    open-pull-requests-limit: 5
+    assignees:
+      - 'Texarkanine'
+    commit-message:
+      prefix: 'chore(deps-ci)'
