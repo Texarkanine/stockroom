@@ -1,11 +1,12 @@
 # Active Context
 
 ## Current Task: embed-batch-and-orphan-cleanup
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Clarified intent: implement [#54](https://github.com/Texarkanine/stockroom/issues/54); fold in [#56](https://github.com/Texarkanine/stockroom/issues/56) as additive orphan cleanup on the same `embed_pending` surface
-- Determined complexity **Level 2**: enhancement to existing embed pipeline, self-contained in `embed.py` + tests (same grain as surgical invalidation / progress logging); research/measurement belongs in plan, not L3 creative architecture
+- Level 2 plan written for [#54](https://github.com/Texarkanine/stockroom/issues/54) + [#56](https://github.com/Texarkanine/stockroom/issues/56)
+- Plan spike (CPU): 64 singles vs one batch ≈16.8×; batch size plateaus ~32–128; batched vs single vectors near-equal not bit-identical (`max_abs≈1.4e-7`)
+- Decisions: `EMBED_BATCH_SIZE=32` default; float32 near-equality numeric policy; orphan DELETE all models for dangling message owners; set-delete + executemany with scatter
 
 ## Next Step
-- Load Level 2 workflow and execute Plan phase
+- Preflight validation (autonomous for L2)
