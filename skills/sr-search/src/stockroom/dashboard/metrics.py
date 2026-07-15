@@ -608,19 +608,12 @@ def efficiency(
     }
 
 
-def sessions(
-    con: duckdb.DuckDBPyConnection,
-    harnesses: Sequence[str] | None = None,
-    since: datetime | None = None,
-    until: datetime | None = None,
-    *,
-    limit: int = 50,
-) -> list[dict[str, Any]]:
-    """Return newest sessions; Cursor ``started`` is last transcript activity."""
-    names = _active_harnesses(con, harnesses)
-    if not names or limit <= 0:
-        return []
-    capped_limit = min(limit, 500)
+def _session_filter_sql(
+    names: Sequence[str],
+    since: datetime | None,
+    until: datetime | None,
+) -> tuple[str, list[Any]]:
+    """Build WHERE SQL and params for main-session list filters (no leading WHERE)."""
     clauses = [
         "NOT s.is_subagent",
         f"{ACTIVITY_TIME_SQL} IS NOT NULL",
@@ -633,22 +626,24 @@ def sessions(
     if until is not None:
         clauses.append(f"{ACTIVITY_TIME_SQL} < ?")
         params.append(until)
-    params.append(capped_limit)
+    return " AND ".join(clauses), params
 
-    rows = con.execute(
-        "WITH recent AS ("
-        f"SELECT s.*, {ACTIVITY_TIME_SQL} AS activity FROM sessions s "
-        f"WHERE {' AND '.join(clauses)} "
-        "ORDER BY activity DESC, s.harness, s.session_id LIMIT ?"
-        ") "
-        "SELECT r.harness, r.session_id, r.cwd, r.project_id, r.models, "
-        "r.activity, m.ordinal, m.role, m.text, m.model "
-        "FROM recent r LEFT JOIN messages m "
-        "ON m.harness = r.harness AND m.session_id = r.session_id "
-        "ORDER BY r.activity DESC, r.harness, r.session_id, m.ordinal",
-        params,
-    ).fetchall()
 
+def _count_filtered_sessions(
+    con: duckdb.DuckDBPyConnection,
+    where_sql: str,
+    params: Sequence[Any],
+) -> int:
+    """COUNT(*) of sessions matching the shared list filter."""
+    row = con.execute(
+        f"SELECT COUNT(*) FROM sessions s WHERE {where_sql}",
+        list(params),
+    ).fetchone()
+    return int(row[0]) if row else 0
+
+
+def _assemble_session_rows(rows: Sequence[tuple[Any, ...]]) -> list[dict[str, Any]]:
+    """Fold session+message join rows into display dicts (insertion order preserved)."""
     ordered: dict[tuple[str, str], dict[str, Any]] = {}
     model_counts: dict[tuple[str, str], Counter[str]] = {}
     session_models: dict[tuple[str, str], list[str]] = {}
@@ -694,6 +689,113 @@ def sessions(
         elif session_models[key]:
             record["model"] = session_models[key][0]
     return list(ordered.values())
+
+
+def _fetch_ordered_sessions(
+    con: duckdb.DuckDBPyConnection,
+    where_sql: str,
+    params: Sequence[Any],
+    *,
+    limit: int | None,
+    offset: int = 0,
+    order: str = "desc",
+) -> list[dict[str, Any]]:
+    """Fetch a page of session display rows with message enrichment.
+
+    ``limit=None`` means no LIMIT (show-all). ``order`` is ``desc`` or ``asc``
+    on activity, with ``harness, session_id`` as tie-break.
+    """
+    direction = "DESC" if order.lower() == "desc" else "ASC"
+    page_params: list[Any] = list(params)
+    limit_sql = ""
+    offset_sql = ""
+    if limit is not None:
+        limit_sql = " LIMIT ?"
+        page_params.append(limit)
+    if offset > 0:
+        offset_sql = " OFFSET ?"
+        page_params.append(offset)
+
+    rows = con.execute(
+        "WITH page AS ("
+        f"SELECT s.*, {ACTIVITY_TIME_SQL} AS activity FROM sessions s "
+        f"WHERE {where_sql} "
+        f"ORDER BY activity {direction}, s.harness, s.session_id"
+        f"{limit_sql}{offset_sql}"
+        ") "
+        "SELECT p.harness, p.session_id, p.cwd, p.project_id, p.models, "
+        "p.activity, m.ordinal, m.role, m.text, m.model "
+        "FROM page p LEFT JOIN messages m "
+        "ON m.harness = p.harness AND m.session_id = p.session_id "
+        f"ORDER BY p.activity {direction}, p.harness, p.session_id, m.ordinal",
+        page_params,
+    ).fetchall()
+    return _assemble_session_rows(rows)
+
+
+def sessions(
+    con: duckdb.DuckDBPyConnection,
+    harnesses: Sequence[str] | None = None,
+    since: datetime | None = None,
+    until: datetime | None = None,
+    *,
+    limit: int = 50,
+    offset: int = 0,
+    order: str = "desc",
+) -> dict[str, Any]:
+    """Return a page envelope ``{total, sessions}`` over filtered main sessions.
+
+    ``limit=0`` means show-all (no SQL LIMIT). Positive ``limit`` fetches that
+    many rows after ``offset``. ``order`` is ``desc`` or ``asc`` on activity.
+    """
+    names = _active_harnesses(con, harnesses)
+    if not names:
+        return {"total": 0, "sessions": []}
+    if limit < 0 or offset < 0:
+        return {"total": 0, "sessions": []}
+    where_sql, params = _session_filter_sql(names, since, until)
+    total = _count_filtered_sessions(con, where_sql, params)
+    if total == 0:
+        return {"total": 0, "sessions": []}
+    page_limit: int | None = None if limit == 0 else limit
+    page = _fetch_ordered_sessions(
+        con,
+        where_sql,
+        params,
+        limit=page_limit,
+        offset=offset,
+        order=order,
+    )
+    return {"total": total, "sessions": page}
+
+
+def sessions_ends(
+    con: duckdb.DuckDBPyConnection,
+    harnesses: Sequence[str] | None = None,
+    since: datetime | None = None,
+    until: datetime | None = None,
+) -> dict[str, Any]:
+    """Return total plus newest/oldest ends for the metrics Sessions panel.
+
+    When ``total <= 20``, ``newest`` holds all matching sessions (DESC) and
+    ``oldest`` is empty. When ``total > 20``, ``newest`` is 10 DESC and
+    ``oldest`` is 10 ASC. Uses COUNT + bounded queries — not a full dump.
+    """
+    names = _active_harnesses(con, harnesses)
+    if not names:
+        return {"total": 0, "newest": [], "oldest": []}
+    where_sql, params = _session_filter_sql(names, since, until)
+    total = _count_filtered_sessions(con, where_sql, params)
+    if total == 0:
+        return {"total": 0, "newest": [], "oldest": []}
+    if total <= 20:
+        newest = _fetch_ordered_sessions(
+            con, where_sql, params, limit=total, order="desc"
+        )
+        return {"total": total, "newest": newest, "oldest": []}
+    newest = _fetch_ordered_sessions(con, where_sql, params, limit=10, order="desc")
+    oldest = _fetch_ordered_sessions(con, where_sql, params, limit=10, order="asc")
+    return {"total": total, "newest": newest, "oldest": oldest}
 
 
 def _parse_tool_input(value: Any) -> Any:
@@ -913,6 +1015,7 @@ ENDPOINTS = {
     "models": models,
     "efficiency": efficiency,
     "sessions": sessions,
+    "sessions_ends": sessions_ends,
     "session": session_detail,
     "wrapped": wrapped,
 }

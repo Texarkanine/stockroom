@@ -1,3 +1,5 @@
+import { perPageToLimit } from "./dashboard-session.mjs";
+
 const ENDPOINTS = [
   "overview",
   "trends",
@@ -5,7 +7,7 @@ const ENDPOINTS = [
   "tools",
   "models",
   "efficiency",
-  "sessions",
+  "sessions_ends",
   "wrapped",
 ];
 
@@ -78,14 +80,55 @@ export function buildRequestPlan(selectedHarnesses, windowBounds = null) {
     if (name === "wrapped") {
       return { name, url: "/api/wrapped" };
     }
-    const parameters = [filters, name === "sessions" ? "limit=50" : "", windowParams]
-      .filter(Boolean)
-      .join("&");
+    const parameters = [filters, windowParams].filter(Boolean).join("&");
     return {
       name,
       url: `/api/${name}${parameters ? `?${parameters}` : ""}`,
     };
   });
+}
+
+/**
+ * Build the ``/api/sessions`` URL for one sessions-list page fetch.
+ *
+ * Numeric ``perPage`` → ``limit`` + ``offset=(page-1)*limit``.
+ * ``perPage === "all"`` → ``limit=0`` (show-all).
+ *
+ * @param {{
+ *   harnesses?: Iterable<string>,
+ *   since?: string | null,
+ *   until?: string | null,
+ *   page?: number,
+ *   perPage?: 25 | 50 | 100 | "all",
+ *   order?: "asc" | "desc",
+ * }} params
+ * @returns {string}
+ */
+export function buildSessionsListRequestUrl(params = {}) {
+  const filters = selectedKeys(params.harnesses)
+    .map((harness) => `harness=${encodeURIComponent(harness)}`)
+    .join("&");
+  const perPage = params.perPage ?? 50;
+  const limit = perPageToLimit(perPage);
+  const page =
+    Number.isFinite(params.page) && params.page >= 1 ? Math.floor(params.page) : 1;
+  const offset = limit === 0 ? 0 : (page - 1) * limit;
+  const order = params.order === "asc" ? "asc" : "desc";
+  const parts = [
+    filters,
+    `limit=${limit}`,
+    `offset=${offset}`,
+    `order=${order}`,
+  ];
+  const since = safeText(params.since);
+  const until = safeText(params.until);
+  if (since) {
+    parts.push(`since=${encodeURIComponent(since)}`);
+  }
+  if (until) {
+    parts.push(`until=${encodeURIComponent(until)}`);
+  }
+  return `/api/sessions?${parts.filter(Boolean).join("&")}`;
 }
 
 /**
@@ -138,6 +181,55 @@ export async function fetchSnapshot(fetchImpl, selectedHarnesses, options = {}) 
     }),
   );
   return Object.fromEntries(entries);
+}
+
+/**
+ * Fetch one paged sessions-list envelope from ``/api/sessions``.
+ *
+ * @param {typeof fetch} fetchImpl Injectable fetch implementation.
+ * @param {Parameters<typeof buildSessionsListRequestUrl>[0]} params List query.
+ * @param {{signal?: AbortSignal}} [options] Request options.
+ * @returns {Promise<{total: number, sessions: object[]}>}
+ */
+export async function fetchSessionsPage(fetchImpl, params, options = {}) {
+  if (typeof fetchImpl !== "function") {
+    throw new TypeError("fetchImpl must be a function");
+  }
+  const url = buildSessionsListRequestUrl(params);
+  let response;
+  try {
+    response = await fetchImpl(url, { signal: options.signal });
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      throw error;
+    }
+    throw new DashboardRequestError("Dashboard request failed", {
+      endpoint: "sessions",
+    });
+  }
+
+  let payload;
+  try {
+    payload = await response.json();
+  } catch {
+    throw new DashboardRequestError(
+      response.ok ? "Invalid dashboard response" : "Dashboard request failed",
+      { endpoint: "sessions", status: response.status },
+    );
+  }
+
+  if (!response.ok) {
+    const details = payload && typeof payload === "object" ? payload : {};
+    throw new DashboardRequestError(
+      safeText(details.error) ?? "Dashboard request failed",
+      {
+        action: safeText(details.action),
+        endpoint: "sessions",
+        status: response.status,
+      },
+    );
+  }
+  return payload;
 }
 
 /**

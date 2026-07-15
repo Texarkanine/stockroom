@@ -8,12 +8,17 @@
     <script>
       (() => {
         const params = new URLSearchParams(window.location.search);
-        if (
-          params.get("view") === "session" &&
+        const view = params.get("view");
+        if (view === "sessions") {
+          document.documentElement.dataset.view = "sessions";
+          document.title = "stockroom conversations";
+        } else if (
+          view === "session" &&
           params.get("harness") &&
           params.get("session")
         ) {
           document.documentElement.dataset.view = "session";
+          document.title = "stockroom conversation";
         }
       })();
     </script>
@@ -293,12 +298,114 @@
         display: none !important;
       }
 
-      html[data-view="session"] #metrics-pane {
+      html[data-view="session"] #metrics-pane,
+      html[data-view="sessions"] #metrics-pane {
         display: none !important;
+      }
+
+      html[data-view="session"] #sessions-pane,
+      html[data-view="sessions"] #session-pane {
+        display: none !important;
+      }
+
+      html[data-view="sessions"] #sessions-pane[hidden] {
+        display: block !important;
       }
 
       html[data-view="session"] #session-pane[hidden] {
         display: block !important;
+      }
+
+      .sessions-more-row {
+        cursor: pointer;
+        font-weight: 650;
+        color: var(--accent-strong);
+      }
+
+      .sessions-more-row td {
+        text-align: center;
+      }
+
+      .sessions-more-row:hover,
+      .sessions-more-row:focus-within {
+        background: var(--surface-soft);
+      }
+
+      .sessions-pagination {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        margin: 0.75rem 0;
+      }
+
+      .sessions-pagination[hidden] {
+        display: none !important;
+      }
+
+      .sessions-pagination > button {
+        min-width: 2.25rem;
+        padding: 0.35rem 0.75rem;
+        border: 1px solid var(--border);
+        border-radius: 0.45rem;
+        background: var(--surface);
+        color: var(--text);
+        font-weight: 650;
+        cursor: pointer;
+      }
+
+      .sessions-pagination > button:hover:not(:disabled),
+      .sessions-page-numbers button:hover:not(:disabled) {
+        border-color: var(--accent);
+        color: var(--accent-strong);
+      }
+
+      .sessions-pagination > button:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+
+      .sessions-page-numbers {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 0.35rem;
+        flex: 1;
+      }
+
+      .sessions-page-numbers button {
+        min-width: 2.25rem;
+        padding: 0.35rem 0.55rem;
+        border: 1px solid var(--border);
+        border-radius: 0.45rem;
+        background: var(--surface);
+        color: var(--text);
+        cursor: pointer;
+      }
+
+      .sessions-page-numbers button[aria-current="page"] {
+        background: var(--accent);
+        border-color: var(--accent-strong);
+        color: #fff;
+        font-weight: 700;
+      }
+
+      .sessions-page-ellipsis {
+        padding: 0 0.25rem;
+        color: var(--muted);
+      }
+
+      .eyebrow a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .eyebrow a:hover,
+      .eyebrow a:focus-visible {
+        color: var(--accent-strong);
+        text-decoration: underline;
       }
 
       .kpi-grid {
@@ -793,8 +900,8 @@
     <main class="page" id="dashboard">
       <header class="masthead">
         <div>
-          <p class="eyebrow">Local warehouse</p>
-          <h1>stockroom dashboard</h1>
+          <p class="eyebrow"><a href="/" id="warehouse-home">Local warehouse</a></p>
+          <h1 id="page-heading">stockroom dashboard</h1>
           <p class="subtitle">A read-only view across your agentic coding history.</p>
         </div>
         <p class="sync">Last sync: <time id="last-sync">—</time></p>
@@ -990,7 +1097,7 @@
       </section>
 
       <section class="sessions-panel" id="recent-sessions" aria-labelledby="recent-sessions-title">
-        <h2 id="recent-sessions-title">Recent Sessions</h2>
+        <h2 id="recent-sessions-title">Sessions</h2>
         <div class="table-scroll">
           <table>
             <thead>
@@ -1004,7 +1111,7 @@
               </tr>
             </thead>
             <tbody id="session-rows">
-              <tr><td colspan="6">Loading recent sessions…</td></tr>
+              <tr><td colspan="6">Loading sessions…</td></tr>
             </tbody>
           </table>
         </div>
@@ -1026,9 +1133,89 @@
       </section>
       </div>
 
+      <section class="sessions-list-pane" id="sessions-pane" aria-labelledby="sessions-list-title" hidden>
+        <h2 id="sessions-list-title">Sessions</h2>
+        <section class="controls" aria-label="Sessions list filters">
+          <details id="sessions-harness-selector">
+            <summary><span id="sessions-harness-summary">Loading harnesses…</span></summary>
+            <div class="harness-options" id="sessions-harness-options">
+              <span>Loading harnesses…</span>
+            </div>
+          </details>
+          <fieldset id="sessions-date-range-selector" class="segmented">
+            <legend>Date range</legend>
+            <label class="mode-row">
+              <input type="radio" name="sessions-date-range" value="7d">
+              7d
+            </label>
+            <label class="mode-row">
+              <input type="radio" name="sessions-date-range" value="30d">
+              30d
+            </label>
+            <label class="mode-row">
+              <input type="radio" name="sessions-date-range" value="90d">
+              90d
+            </label>
+            <label class="mode-row">
+              <input type="radio" name="sessions-date-range" value="1y">
+              1y
+            </label>
+            <label class="mode-row">
+              <input type="radio" name="sessions-date-range" value="default" checked>
+              All
+            </label>
+          </fieldset>
+          <fieldset id="per-page-selector" class="segmented" aria-label="Per page">
+            <legend>Per page</legend>
+            <label class="mode-row">
+              <input type="radio" name="per-page" value="25">
+              25
+            </label>
+            <label class="mode-row">
+              <input type="radio" name="per-page" value="50" checked>
+              50
+            </label>
+            <label class="mode-row">
+              <input type="radio" name="per-page" value="100">
+              100
+            </label>
+            <label class="mode-row">
+              <input type="radio" name="per-page" value="all">
+              All
+            </label>
+          </fieldset>
+        </section>
+        <nav class="sessions-pagination" id="sessions-pagination-top" hidden aria-label="Sessions pagination">
+          <button type="button" id="sessions-prev-top">Previous</button>
+          <div class="sessions-page-numbers" id="sessions-page-numbers-top"></div>
+          <button type="button" id="sessions-next-top">Next</button>
+        </nav>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Started</th>
+                <th scope="col">Harness</th>
+                <th scope="col">Project</th>
+                <th scope="col">Messages</th>
+                <th scope="col">Model</th>
+                <th scope="col">First prompt</th>
+              </tr>
+            </thead>
+            <tbody id="sessions-list-rows">
+              <tr><td colspan="6">Loading sessions…</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <nav class="sessions-pagination" id="sessions-pagination-bottom" hidden aria-label="Sessions pagination">
+          <button type="button" id="sessions-prev-bottom">Previous</button>
+          <div class="sessions-page-numbers" id="sessions-page-numbers-bottom"></div>
+          <button type="button" id="sessions-next-bottom">Next</button>
+        </nav>
+      </section>
+
       <section class="session-pane" id="session-pane" aria-labelledby="session-title" hidden>
         <div class="session-toolbar">
-          <button type="button" id="session-back">⬅️ Back to metrics</button>
           <button type="button" id="session-copy-link">🔗 Copy deep-link</button>
           <button type="button" id="session-export-md">📥 Export markdown</button>
           <button type="button" id="session-export-json">📥 Export JSON</button>

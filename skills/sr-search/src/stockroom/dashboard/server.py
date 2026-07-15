@@ -121,14 +121,28 @@ class _DashboardHandler(BaseHTTPRequestHandler):
             if since is not None and until is not None and since >= until:
                 raise ValueError("since must be before until")
             limit = 50
+            offset = 0
+            order = "desc"
             if "limit" in query:
                 try:
                     limit = int(query["limit"][-1])
                 except ValueError as exc:
                     raise ValueError("invalid limit: expected an integer") from exc
-                if limit <= 0:
-                    raise ValueError("invalid limit: must be positive")
-                limit = min(limit, 500)
+                if limit < 0:
+                    raise ValueError("invalid limit: must be non-negative")
+                if limit > 0:
+                    limit = min(limit, 500)
+            if "offset" in query:
+                try:
+                    offset = int(query["offset"][-1])
+                except ValueError as exc:
+                    raise ValueError("invalid offset: expected an integer") from exc
+                if offset < 0:
+                    raise ValueError("invalid offset: must be non-negative")
+            if "order" in query:
+                order = query["order"][-1].lower()
+                if order not in {"asc", "desc"}:
+                    raise ValueError("invalid order: expected asc or desc")
         except ValueError as exc:
             self._send_json(400, {"error": str(exc)})
             return
@@ -139,7 +153,15 @@ class _DashboardHandler(BaseHTTPRequestHandler):
 
         try:
             if endpoint_name == "sessions":
-                payload = endpoint(con, harnesses, since, until, limit=limit)
+                payload = endpoint(
+                    con,
+                    harnesses,
+                    since,
+                    until,
+                    limit=limit,
+                    offset=offset,
+                    order=order,
+                )
             else:
                 payload = endpoint(con, harnesses, since, until)
         finally:

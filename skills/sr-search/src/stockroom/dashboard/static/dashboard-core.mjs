@@ -378,6 +378,122 @@ export function panelRangeLabels(preset) {
   };
 }
 
+/**
+ * Hidden-row count for the metrics Sessions panel ellipsis (``total − 20``).
+ *
+ * @param {number} total
+ * @returns {number}
+ */
+export function sessionsEllipsisCount(total) {
+  const n = Number(total) || 0;
+  return n > 20 ? n - 20 : 0;
+}
+
+/**
+ * Whether top/bottom pagination chrome should show on the sessions list.
+ *
+ * @param {number} total
+ * @param {25 | 50 | 100 | "all"} perPage
+ * @returns {boolean}
+ */
+export function sessionsPaginationVisible(total, perPage) {
+  if (perPage === "all") {
+    return false;
+  }
+  return (Number(total) || 0) > perPage;
+}
+
+/**
+ * Truncated pagination page tokens (sibling/boundary windows with ellipsis).
+ *
+ * Same algorithm shape as common UI kits (``siblingCount`` / ``boundaryCount``).
+ * Defaults to ``siblingCount=2`` (up to five pages around current) and
+ * ``boundaryCount=1``. Returns page numbers and ``"ellipsis"`` — prev/next are separate.
+ *
+ * @param {number} page Current 1-based page.
+ * @param {number} count Total pages.
+ * @param {{siblingCount?: number, boundaryCount?: number}} [options]
+ * @returns {Array<number | "ellipsis">}
+ */
+export function buildTruncatedPaginationItems(page, count, options = {}) {
+  const total = Math.max(0, Math.floor(Number(count) || 0));
+  if (total <= 0) {
+    return [];
+  }
+  const current = Math.min(Math.max(1, Math.floor(Number(page) || 1)), total);
+  const siblingCount = Math.max(
+    0,
+    Number.isFinite(options.siblingCount)
+      ? Math.floor(options.siblingCount)
+      : 2,
+  );
+  const boundaryCount = Math.max(
+    0,
+    Number.isFinite(options.boundaryCount)
+      ? Math.floor(options.boundaryCount)
+      : 1,
+  );
+
+  const range = (start, end) => {
+    const length = end - start + 1;
+    if (length <= 0) {
+      return [];
+    }
+    return Array.from({ length }, (_, index) => start + index);
+  };
+
+  const startPages = range(1, Math.min(boundaryCount, total));
+  const endPages = range(
+    Math.max(total - boundaryCount + 1, boundaryCount + 1),
+    total,
+  );
+  const siblingsStart = Math.max(
+    Math.min(current - siblingCount, total - boundaryCount - siblingCount * 2 - 1),
+    boundaryCount + 2,
+  );
+  const siblingsEnd = Math.min(
+    Math.max(current + siblingCount, boundaryCount + siblingCount * 2 + 2),
+    total - boundaryCount - 1,
+  );
+
+  return [
+    ...startPages,
+    ...(siblingsStart > boundaryCount + 2
+      ? ["ellipsis"]
+      : boundaryCount + 1 < total - boundaryCount
+        ? [boundaryCount + 1]
+        : []),
+    ...range(siblingsStart, siblingsEnd),
+    ...(siblingsEnd < total - boundaryCount - 1
+      ? ["ellipsis"]
+      : total - boundaryCount > boundaryCount
+        ? [total - boundaryCount]
+        : []),
+    ...endPages,
+  ];
+}
+
+/**
+ * Build render rows for the capped Sessions panel from a ``sessions_ends`` payload.
+ *
+ * @param {{total: number, newest?: object[], oldest?: object[]}} ends
+ * @returns {Array<{kind: "session", session: object} | {kind: "more", count: number}>}
+ */
+export function buildSessionsPanelRows(ends) {
+  const newest = Array.isArray(ends?.newest) ? ends.newest : [];
+  const oldest = Array.isArray(ends?.oldest) ? ends.oldest : [];
+  const more = sessionsEllipsisCount(ends?.total);
+  /** @type {Array<{kind: "session", session: object} | {kind: "more", count: number}>} */
+  const rows = newest.map((session) => ({ kind: "session", session }));
+  if (more > 0) {
+    rows.push({ kind: "more", count: more });
+  }
+  for (const session of oldest) {
+    rows.push({ kind: "session", session });
+  }
+  return rows;
+}
+
 function normalizeViewState(state) {
   const dateRange = normalizeDateRangePreset(state?.dateRange);
   const window =

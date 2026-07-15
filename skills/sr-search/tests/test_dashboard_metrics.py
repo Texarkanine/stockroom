@@ -1,7 +1,7 @@
 """Unit contracts for mode-agnostic dashboard metric payloads."""
 
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import duckdb
 import pytest
@@ -880,7 +880,8 @@ def test_sessions_are_recent_filtered_and_display_truncated(
     )
 
     result = metrics.sessions(migrated_con, limit=2)
-    assert result == [
+    assert result["total"] == 2
+    assert result["sessions"] == [
         {
             "started": "2026-01-02T09:00:00Z",
             "harness": "claude",
@@ -902,9 +903,155 @@ def test_sessions_are_recent_filtered_and_display_truncated(
             "prompt": "message 0",
         },
     ]
-    assert [row["harness"] for row in metrics.sessions(migrated_con, ["cursor"])] == [
-        "cursor"
-    ]
+    assert [
+        row["harness"] for row in metrics.sessions(migrated_con, ["cursor"])["sessions"]
+    ] == ["cursor"]
+
+
+def _seed_n_sessions(
+    con: duckdb.DuckDBPyConnection,
+    n: int,
+    *,
+    harness: str = "cursor",
+    base: datetime | None = None,
+) -> list[str]:
+    """Seed ``n`` main sessions with distinct activity times; return session_ids oldest→newest."""
+    start = base or datetime(2026, 1, 1, 0)
+    ids: list[str] = []
+    for i in range(n):
+        session_id = f"s{i:02d}"
+        ids.append(session_id)
+        _seed_session(
+            con,
+            harness=harness,
+            session_id=session_id,
+            activity=start + timedelta(hours=i),
+            project_id="p",
+        )
+    return ids
+
+
+def test_sessions_ends_empty_when_no_matching_sessions(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Empty filter set returns total 0 with empty newest and oldest lists."""
+    result = metrics.sessions_ends(migrated_con)
+    assert result == {"total": 0, "newest": [], "oldest": []}
+
+
+def test_sessions_ends_returns_all_in_newest_when_total_at_most_20(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """When total ≤ 20, newest holds all DESC and oldest is empty."""
+    ids = _seed_n_sessions(migrated_con, 20)
+    result = metrics.sessions_ends(migrated_con)
+    assert result["total"] == 20
+    assert result["oldest"] == []
+    assert [row["session_id"] for row in result["newest"]] == list(reversed(ids))
+    assert len(result["newest"]) == 20
+
+
+def test_sessions_ends_splits_newest_and_oldest_when_total_over_20(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """When total > 20, newest is 10 DESC and oldest is 10 ASC; N = total − 20."""
+    ids = _seed_n_sessions(migrated_con, 25)
+    result = metrics.sessions_ends(migrated_con)
+    assert result["total"] == 25
+    assert [row["session_id"] for row in result["newest"]] == list(reversed(ids[-10:]))
+    assert [row["session_id"] for row in result["oldest"]] == ids[:10]
+    assert len(result["newest"]) == 10
+    assert len(result["oldest"]) == 10
+
+
+def test_sessions_ends_respects_harness_and_activity_window(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Harness and since/until filters apply; subagents are excluded."""
+    _seed_session(
+        migrated_con,
+        harness="cursor",
+        session_id="in-window",
+        activity=datetime(2026, 1, 15, 12),
+        project_id="p",
+    )
+    _seed_session(
+        migrated_con,
+        harness="claude",
+        session_id="other-harness",
+        activity=datetime(2026, 1, 15, 13),
+        started_at=datetime(2026, 1, 15, 13),
+        project_id="p",
+    )
+    _seed_session(
+        migrated_con,
+        harness="cursor",
+        session_id="too-old",
+        activity=datetime(2026, 1, 1, 8),
+        project_id="p",
+    )
+    _seed_session(
+        migrated_con,
+        harness="cursor",
+        session_id="sub",
+        activity=datetime(2026, 1, 15, 14),
+        project_id="p",
+    )
+    migrated_con.execute(
+        "UPDATE sessions SET is_subagent = true WHERE session_id = 'sub'"
+    )
+
+    result = metrics.sessions_ends(
+        migrated_con,
+        ["cursor"],
+        since=datetime(2026, 1, 10),
+        until=datetime(2026, 1, 20),
+    )
+    assert result["total"] == 1
+    assert [row["session_id"] for row in result["newest"]] == ["in-window"]
+    assert result["oldest"] == []
+
+
+def test_sessions_ends_row_fields_match_sessions_list_shape(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Ends rows use the same display fields as the sessions list path."""
+    _seed_session(
+        migrated_con,
+        harness="claude",
+        session_id="a-new",
+        activity=datetime(2026, 1, 2, 9),
+        started_at=datetime(2026, 1, 2, 9),
+        project_id="claude-project",
+        message_count=3,
+    )
+    migrated_con.execute(
+        "UPDATE sessions SET cwd = '/home/me/stockroom' WHERE session_id = 'a-new'"
+    )
+    migrated_con.execute(
+        "UPDATE messages SET model = CASE "
+        "WHEN ordinal < 2 THEN 'claude-sonnet' ELSE 'claude-opus' END "
+        "WHERE session_id = 'a-new'"
+    )
+    migrated_con.execute(
+        "UPDATE messages SET text = ? WHERE session_id = 'a-new' AND ordinal = 0",
+        ["x" * 130],
+    )
+
+    ends = metrics.sessions_ends(migrated_con)
+    listed = metrics.sessions(migrated_con, limit=1)
+    assert ends["total"] == 1
+    assert ends["newest"] == listed["sessions"]
+    assert ends["newest"][0] == {
+        "started": "2026-01-02T09:00:00Z",
+        "harness": "claude",
+        "session_id": "a-new",
+        "project_name": "stockroom",
+        "project_id": "claude-project",
+        "msgs": 3,
+        "model": "claude-sonnet",
+        "prompt": f"{'x' * 120}…(+10)",
+    }
 
 
 def test_wrapped_returns_all_time_rollups_and_ignores_selector(
@@ -1080,5 +1227,31 @@ def test_session_detail_serves_subagent_when_addressed_directly(
     assert result["parent_session_id"] == "parent"
     assert len(result["messages"]) == 1
     assert "child" not in {
-        row["session_id"] for row in metrics.sessions(migrated_con, limit=50)
+        row["session_id"]
+        for row in metrics.sessions(migrated_con, limit=50)["sessions"]
     }
+
+
+def test_sessions_envelope_supports_offset_order_and_show_all(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Paged sessions return {total, sessions} with offset/order; limit=0 is show-all."""
+    ids = _seed_n_sessions(migrated_con, 5)
+    page = metrics.sessions(migrated_con, limit=2, offset=1, order="desc")
+    assert page["total"] == 5
+    assert [row["session_id"] for row in page["sessions"]] == list(reversed(ids))[1:3]
+
+    asc = metrics.sessions(migrated_con, limit=2, offset=0, order="asc")
+    assert [row["session_id"] for row in asc["sessions"]] == ids[:2]
+
+    all_rows = metrics.sessions(migrated_con, limit=0)
+    assert all_rows["total"] == 5
+    assert [row["session_id"] for row in all_rows["sessions"]] == list(reversed(ids))
+
+
+def test_sessions_envelope_empty_when_no_harnesses(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """No matching harnesses yields total 0 and an empty sessions list."""
+    result = metrics.sessions(migrated_con, ["missing-harness"], limit=10)
+    assert result == {"total": 0, "sessions": []}

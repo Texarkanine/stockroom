@@ -35,6 +35,22 @@ export function parseSessionViewParams(searchParams) {
 }
 
 /**
+ * Document / heading title for a dashboard SPA view.
+ *
+ * @param {"metrics" | "sessions" | "session" | string} view
+ * @returns {string}
+ */
+export function documentTitleForView(view) {
+  if (view === "sessions") {
+    return "stockroom conversations";
+  }
+  if (view === "session") {
+    return "stockroom conversation";
+  }
+  return "stockroom dashboard";
+}
+
+/**
  * @param {string} baseUrl
  * @param {string} harness
  * @param {string} sessionId
@@ -46,6 +62,116 @@ export function buildSessionDeepLink(baseUrl, harness, sessionId) {
   url.hash = "";
   const params = buildSessionViewSearchParams(harness, sessionId);
   return `${url.origin}${url.pathname}?${params.toString()}`;
+}
+
+/** @typedef {25 | 50 | 100 | "all"} PerPage */
+
+const PER_PAGE_PRESETS = new Set(["25", "50", "100", "all"]);
+
+/**
+ * Normalize a ``per_page`` URL token to a preset; invalid → 50.
+ *
+ * @param {string | null | undefined} raw
+ * @returns {PerPage}
+ */
+export function normalizePerPage(raw) {
+  if (raw == null || raw === "") {
+    return 50;
+  }
+  const token = String(raw).toLowerCase();
+  if (!PER_PAGE_PRESETS.has(token)) {
+    return 50;
+  }
+  return token === "all" ? "all" : Number(token);
+}
+
+/**
+ * Map a per-page preset to the sessions API ``limit`` (0 = show-all).
+ *
+ * @param {PerPage} perPage
+ * @returns {number}
+ */
+export function perPageToLimit(perPage) {
+  return perPage === "all" ? 0 : perPage;
+}
+
+/**
+ * Clamp ``page`` to the last non-empty page (or 1 when total is 0 / show-all).
+ *
+ * @param {number} page
+ * @param {number} total
+ * @param {PerPage} perPage
+ * @returns {number}
+ */
+export function clampSessionsListPage(page, total, perPage) {
+  const requested = Number.isFinite(page) && page >= 1 ? Math.floor(page) : 1;
+  if (perPage === "all" || total <= 0) {
+    return 1;
+  }
+  const lastPage = Math.max(1, Math.ceil(total / perPage));
+  return Math.min(requested, lastPage);
+}
+
+/**
+ * @typedef {{
+ *   harnesses: string[],
+ *   since: string | null,
+ *   until: string | null,
+ *   page: number,
+ *   perPage: PerPage,
+ * }} SessionsListParams
+ */
+
+/**
+ * Parse ``view=sessions`` list URL params; null when not the list view.
+ *
+ * @param {URLSearchParams} searchParams
+ * @returns {SessionsListParams | null}
+ */
+export function parseSessionsListParams(searchParams) {
+  if (searchParams.get("view") !== "sessions") {
+    return null;
+  }
+  const harnesses = searchParams.getAll("harness").filter(Boolean);
+  const since = searchParams.get("since") || null;
+  const until = searchParams.get("until") || null;
+  const rawPage = Number.parseInt(searchParams.get("page") ?? "1", 10);
+  const page = Number.isFinite(rawPage) && rawPage >= 1 ? rawPage : 1;
+  const perPage = normalizePerPage(searchParams.get("per_page"));
+  return { harnesses, since, until, page, perPage };
+}
+
+/**
+ * Build query params for the sessions-list SPA view.
+ *
+ * Omits ``page`` when 1; omits since/until when null (default/unwindowed range).
+ *
+ * @param {SessionsListParams} params
+ * @returns {URLSearchParams}
+ */
+export function buildSessionsListSearchParams(params) {
+  const out = new URLSearchParams();
+  out.set("view", "sessions");
+  for (const harness of params.harnesses ?? []) {
+    if (harness) {
+      out.append("harness", harness);
+    }
+  }
+  if (params.since) {
+    out.set("since", params.since);
+  }
+  if (params.until) {
+    out.set("until", params.until);
+  }
+  const perPage = normalizePerPage(
+    params.perPage === "all" ? "all" : String(params.perPage ?? 50),
+  );
+  out.set("per_page", String(perPage));
+  const page = Number.isFinite(params.page) && params.page > 1 ? Math.floor(params.page) : 1;
+  if (page > 1) {
+    out.set("page", String(page));
+  }
+  return out;
 }
 
 /**
@@ -266,15 +392,3 @@ export function isActiveSessionView(sessionView, harness, sessionId) {
   );
 }
 
-/**
- * Whether closing the session pane should call ``history.back()``.
- *
- * Only when the current history entry was pushed as a session view (click-through).
- * Deep-link boots never push, so Back should ``replaceState`` instead.
- *
- * @param {{view?: string} | null | undefined} historyState
- * @returns {boolean}
- */
-export function shouldUseHistoryBackForSessionClose(historyState) {
-  return historyState?.view === "session";
-}

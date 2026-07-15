@@ -31,13 +31,25 @@ Session-start hooks also attempt to launch the dashboard automatically when plug
 
 Harness filters, time ranges, and Aggregate / Compare views over sessions, messages, projects, daily activity, tool distribution, and related rollups. The warehouse is machine-scoped: the UI stays up across harness sessions and is not stopped when one IDE closes.
 
+### Sessions
+
+The metrics **Sessions** panel shows up to 20 matching conversations (10 newest + `… N more` + 10 oldest when there are more). Click a row to open reconstruction, or `… N more` for the paginated sessions-list view. That list has its own harnesses, time range, and per-page control (`25` / `50` / `100` / `All`); filter state lives in the URL. Browser Back is the only way back from the list or a session.
+
+List deep-link shape:
+
+```text
+http://127.0.0.1:58008/?view=sessions&harness={harness}&per_page=50
+```
+
+Optional: repeated `harness`, `since` / `until` (omit both for **All** — the full unwindowed warehouse range), `page`, `per_page` (`25` | `50` | `100` | `all`).
+
 ### Session inspection
 
-Open a conversation from Recent Sessions (or a deep link) to read the thread, copy a deep-link, or export markdown/JSON when in-dashboard rendering is not enough.
+Open a conversation from Sessions (or a deep link) to read the thread, copy a deep-link, or export markdown/JSON when in-dashboard rendering is not enough.
 
 ![Stockroom dashboard — session conversation view](../img/stockroom-dashboard-convo-light.png)
 
-Deep-link shape (both query params required):
+Session deep-link shape (both query params required):
 
 ```text
 http://127.0.0.1:58008/?view=session&harness={harness}&session={session_id}

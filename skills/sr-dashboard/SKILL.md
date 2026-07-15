@@ -28,9 +28,21 @@ Stdout is a single URL line (for example `http://127.0.0.1:58008/`). Relay that 
 
 If `command -v stockroom` fails, the machine isn't set up yet: tell the user to run the **`sr-initialize`** skill, and don't attempt any other invocation.
 
-## Session deep-links
+## Deep-links
 
-When you already know a `(harness, session_id)` pair and want to open that conversation in the dashboard (or offer a link the operator can paste), append the session view query to the printed base URL:
+### Sessions list
+
+Browse a filtered, paginated sessions list (independent of the metrics pane filters):
+
+```text
+{dashboard_base}/?view=sessions&harness={harness}&per_page=50
+```
+
+Optional query params: repeated `harness`, `since` / `until` (ISO-8601; omit both for **All** / unwindowed), `page` (omit when 1), `per_page` (`25` | `50` | `100` | `all`; default `50`). Example: `http://127.0.0.1:58008/?view=sessions&harness=cursor&per_page=25&page=2`
+
+### Session reconstruction
+
+When you already know a `(harness, session_id)` pair and want to open that conversation (or offer a link the operator can paste):
 
 ```text
 {dashboard_base}/?view=session&harness={harness}&session={session_id}
@@ -38,7 +50,7 @@ When you already know a `(harness, session_id)` pair and want to open that conve
 
 Example: `http://127.0.0.1:58008/?view=session&harness=cursor&session=abc123`
 
-Both `harness` and `session` are required. URL-encode opaque session ids. Recent Sessions rows in the UI use the same template; the session pane also has **Copy deep-link**. Export markdown/JSON from that pane when basic in-dashboard rendering is not enough.
+Both `harness` and `session` are required. URL-encode opaque session ids. Sessions panel and list rows use the same template; the session pane has **Copy deep-link**. Use the browser Back button to leave the list or session views — there is no custom back control. Export markdown/JSON from the session pane when basic in-dashboard rendering is not enough.
 
 ## Guardrails
 

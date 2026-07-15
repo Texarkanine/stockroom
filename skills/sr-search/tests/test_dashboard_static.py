@@ -112,7 +112,7 @@ def test_dashboard_adapter_imports_authored_modules() -> None:
 
 
 def test_session_pane_exposes_navigation_export_and_turn_landmarks() -> None:
-    """Session inspection pane has back, copy-link, export, and turns regions."""
+    """Session inspection pane has copy-link, export, and turns — no custom back."""
     source, parser = _document()
     by_id = {
         attrs["id"]: (tag, attrs) for tag, attrs in parser.elements if attrs.get("id")
@@ -123,7 +123,8 @@ def test_session_pane_exposes_navigation_export_and_turn_landmarks() -> None:
         by_id["session-pane"][1].get("hidden") is not None
         or "hidden" in by_id["session-pane"][1]
     )
-    assert by_id["session-back"][0] == "button"
+    assert "session-back" not in by_id
+    assert "session-back" not in source
     assert by_id["session-copy-link"][0] == "button"
     assert by_id["session-export-md"][0] == "button"
     assert by_id["session-export-json"][0] == "button"
@@ -139,6 +140,45 @@ def test_session_pane_exposes_navigation_export_and_turn_landmarks() -> None:
     )
 
 
+def test_sessions_list_pane_and_metrics_sessions_chrome() -> None:
+    """Sessions panel title, list pane landmarks, per-page radios, and FOUC."""
+    source, parser = _document()
+    by_id = {
+        attrs["id"]: (tag, attrs) for tag, attrs in parser.elements if attrs.get("id")
+    }
+    assert "Sessions" in parser.text
+    assert "Recent Sessions" not in parser.text
+    assert by_id["recent-sessions-title"][0] == "h2"
+    assert "sessions-pane" in by_id
+    assert (
+        by_id["sessions-pane"][1].get("hidden") is not None
+        or "hidden" in by_id["sessions-pane"][1]
+    )
+    assert by_id["per-page-selector"][0] == "fieldset"
+    assert "segmented" in (by_id["per-page-selector"][1].get("class") or "").split()
+    per_page = [
+        attrs
+        for tag, attrs in parser.elements
+        if tag == "input"
+        and attrs.get("type") == "radio"
+        and attrs.get("name") == "per-page"
+    ]
+    assert [radio.get("value") for radio in per_page] == ["25", "50", "100", "all"]
+    assert "checked" in next(radio for radio in per_page if radio.get("value") == "50")
+    assert "sessions-pagination-top" in by_id
+    assert "sessions-pagination-bottom" in by_id
+    assert "sessions-page-numbers-top" in by_id
+    assert "sessions-page-numbers-bottom" in by_id
+    assert "sessions-list-rows" in by_id
+    assert "page-heading" in by_id
+    assert by_id["warehouse-home"][0] == "a"
+    assert by_id["warehouse-home"][1].get("href") == "/"
+    assert 'data-view = "sessions"' in source or 'dataset.view = "sessions"' in source
+    assert 'html[data-view="sessions"] #metrics-pane' in source
+    assert ".sessions-more-row" in source
+    assert ".sessions-page-numbers" in source
+
+
 def test_session_pane_toolbar_and_bubble_layout_contracts() -> None:
     """Session pane wires view toggles and turn/tool structure used by JS."""
     source = (STATIC_ROOT / "index.html").read_text(encoding="utf-8")
@@ -146,12 +186,14 @@ def test_session_pane_toolbar_and_bubble_layout_contracts() -> None:
     assert ".session-turn-assistant" in source
     assert 'data-view = "session"' in source or 'dataset.view = "session"' in source
     assert 'html[data-view="session"] #metrics-pane' in source
+    assert 'html[data-view="session"] #sessions-pane' in source
     assert ".session-tool" in source
     assert ".session-tool[open] summary" in source
     adapter = (STATIC_ROOT / "dashboard.mjs").read_text(encoding="utf-8")
     assert "session-turn-user" in adapter
     assert "session-turn-assistant" in adapter
-    assert 'dataset.view = "session"' in adapter
+    assert "applyViewChrome" in adapter
+    assert "documentTitleForView" in adapter
 
 
 def test_dashboard_top_controls_expose_date_range_and_segmented_mode() -> None:
