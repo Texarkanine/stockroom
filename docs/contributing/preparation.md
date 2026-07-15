@@ -47,7 +47,7 @@ HARNESS=cursor make localdev    # or HARNESS=claude, etc
 	- Cursor: symlink `skills/*` into `.cursor/skills/stockroom-local/` (with a managed pre-commit guard so the mirror never lands in a commit).
 	- Claude: no-op with a reminder to use `claude --plugin-dir .` for a session-scoped plugin load.
 1. **`local-engine`** — claim the on-path shim as owner `dev` with `--takeover --force`, then `stockroom shim ensure-env` for this checkout’s engine dir (locked deps + torch from freeze).
-2. **`local-dashboard`** — bounce `stockroom dashboard` (identity-aware replace).
+2. **`local-dashboard`** — force-replace `stockroom dashboard` (`--replace`) so this checkout’s code is loaded even when identity matches.
 
 ### 3. Dashboard Start
 
@@ -119,7 +119,7 @@ Use these when you do not need the full rip-it-out path. Harness-scoped targets 
 | --- | --- | --- |
 | `local-skills` | required | Wire checkout skills for that harness |
 | `local-engine` | no | `stockroom` CLI points at local python code |
-| `local-dashboard` | no | Bounce `stockroom dashboard` |
+| `local-dashboard` | no | Force-replace `stockroom dashboard` (`--replace`) |
 | `localdev` | required | Invokes the three atoms above |
 | `localdev-clean` | required | Undo harness-managed bits + remove `owner=dev` shim (not warehouse) |
 | `localdev-status` | optional | Report managed vs shim sections |

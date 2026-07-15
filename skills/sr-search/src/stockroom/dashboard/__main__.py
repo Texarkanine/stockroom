@@ -3,9 +3,10 @@
 The normal path is hook-friendly: probe loopback, print the stable URL and exit
 when any listener already owns the port, otherwise detach a foreground re-exec.
 When the listener is an owned stockroom dashboard whose recorded engine identity
-is stale (plugin-root move), replace it. Foreign listeners are left alone. The
-OS bind is the race mutex; a child that loses with ``EADDRINUSE`` exits
-successfully because another launcher won.
+is stale (plugin-root move), replace it. ``--replace`` forces the same replace
+path even when app_dir and version match (localdev bounce). Foreign listeners
+are left alone. The OS bind is the race mutex; a child that loses with
+``EADDRINUSE`` exits successfully because another launcher won.
 """
 
 from __future__ import annotations
@@ -115,7 +116,35 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="serve in this process instead of detaching",
     )
+    parser.add_argument(
+        "--replace",
+        action="store_true",
+        help=(
+            "replace an owned listener even when app_dir and version match "
+            "(localdev bounce; bare launch stays identity-aware)"
+        ),
+    )
     return parser
+
+
+def _replace_owned(
+    port: int,
+    pid: int,
+    *,
+    kill_fn: KillFn,
+    wait_free: WaitPortFree,
+    spawn_fn: Callable[[Sequence[str]], None],
+) -> bool:
+    """Kill an owned listener and respawn; return whether replace completed."""
+    try:
+        kill_fn(pid)
+    except OSError:
+        return False
+    if not wait_free(port):
+        return False
+    spawn_fn(_foreground_argv(port))
+    print("dashboard: replaced", file=sys.stderr)
+    return True
 
 
 def main(
@@ -170,18 +199,14 @@ def main(
     if probe_fn(args.port):
         record = read_identity_fn(args.port)
         if record is not None and verify_owned_fn(record.pid):
-            if _is_current(record):
-                print(url)
-                return 0
-            try:
-                kill_fn(record.pid)
-            except OSError:
-                print(url)
-                return 0
-            if not wait_free(args.port):
-                print(url)
-                return 0
-            spawn_fn(_foreground_argv(args.port))
+            if args.replace or not _is_current(record):
+                _replace_owned(
+                    args.port,
+                    record.pid,
+                    kill_fn=kill_fn,
+                    wait_free=wait_free,
+                    spawn_fn=spawn_fn,
+                )
             print(url)
             return 0
         print(url)

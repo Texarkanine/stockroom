@@ -57,6 +57,70 @@ def test_same_identity_reuses_without_kill_or_spawn(capsys) -> None:
     assert capsys.readouterr().out == "http://127.0.0.1:58008/\n"
 
 
+def test_replace_forces_kill_even_when_identity_current(capsys) -> None:
+    """``--replace`` replaces an owned current listener instead of no-op."""
+    spawned = []
+    killed = []
+    waits = []
+    current = DashboardIdentity(
+        pid=99,
+        app_dir=current_app_dir(),
+        version=stockroom.__version__,
+        port=58008,
+    )
+    result = dashboard_cli.main(
+        ["--replace"],
+        probe_fn=lambda port: port == 58008,
+        spawn_fn=spawned.append,
+        read_identity_fn=lambda _port: current,
+        verify_owned_fn=lambda pid: pid == 99,
+        kill_fn=killed.append,
+        wait_port_free_fn=lambda port: waits.append(port) or True,
+    )
+    assert result == 0
+    assert killed == [99]
+    assert waits == [58008]
+    assert spawned == [
+        [
+            sys.executable,
+            "-m",
+            "stockroom.dashboard",
+            "--foreground",
+            "--port",
+            "58008",
+        ]
+    ]
+    captured = capsys.readouterr()
+    assert captured.out == "http://127.0.0.1:58008/\n"
+    assert "replaced" in captured.err
+
+
+def test_replace_still_leaves_foreign_listener_alone(capsys) -> None:
+    """``--replace`` never kills a listener that fails ownership verify."""
+    spawned = []
+    killed = []
+    record = DashboardIdentity(
+        pid=55,
+        app_dir=current_app_dir(),
+        version=stockroom.__version__,
+        port=58008,
+    )
+    result = dashboard_cli.main(
+        ["--replace"],
+        probe_fn=lambda port: port == 58008,
+        spawn_fn=spawned.append,
+        read_identity_fn=lambda _port: record,
+        verify_owned_fn=lambda _pid: False,
+        kill_fn=killed.append,
+    )
+    assert result == 0
+    assert killed == []
+    assert spawned == []
+    captured = capsys.readouterr()
+    assert captured.out == "http://127.0.0.1:58008/\n"
+    assert "replaced" not in captured.err
+
+
 def test_stale_owned_identity_kills_waits_and_spawns(capsys) -> None:
     """Stale owned listener is replaced from the current engine."""
     spawned = []
