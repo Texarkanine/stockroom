@@ -124,4 +124,4 @@ No new technology - validation not required. Plan spike already exercised existi
 - [x] Build
 - [x] QA
 - [x] Reflect
-- [ ] Archive
+- [x] Archive (in progress)

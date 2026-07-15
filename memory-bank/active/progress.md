@@ -71,3 +71,12 @@ Speed up `stockroom embed` with cross-message chunk batching (no accuracy penalt
     - Re-embed and orphan cleanup are separate helpers; `embed_pending` only orchestrates
 * Insights
     - Set-delete + multi-batch write needs a transaction or partial owners poison incremental `NOT EXISTS`
+
+## 2026-07-15 - ARCHIVE - IN PROGRESS
+
+* Work completed
+    - Leaving Reflect complete; entering archive for embed-batch-and-orphan-cleanup
+* Decisions made
+    - Archive category: enhancements/ (existing embed path improved + hygiene)
+* Insights
+    - None yet — archive document next
