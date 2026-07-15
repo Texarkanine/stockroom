@@ -43,3 +43,12 @@ Speed up `stockroom embed` with cross-message chunk batching (no accuracy penalt
 * Insights
     - `make format`/`sync` drops torch — re-`make torch` before torch-gated recheck
     - DuckDB parallel `UNNEST` of two equal-length arrays works for pair deletes
+
+## 2026-07-15 - QA - COMPLETE
+
+* Work completed
+    - Semantic review PASS; KISS: per-batch `executemany` instead of buffering all insert rows
+* Decisions made
+    - No substantive redesign needed
+* Insights
+    - Encode batching remains the leverage; write path should stay batch-aligned for memory

@@ -198,27 +198,24 @@ def embed_pending(
             [harnesses, owner_ids],
         )
 
-        insert_rows: list[tuple[str, str, int, str, list[float]]] = []
         for batch_start in range(0, n_chunks, EMBED_BATCH_SIZE):
             batch = chunk_rows[batch_start : batch_start + EMBED_BATCH_SIZE]
             vectors = encoder.encode([chunk for *_meta, chunk in batch])
-            for (harness, owner_id, chunk_index, _chunk), vector in zip(
-                batch, vectors, strict=True
-            ):
-                insert_rows.append(
-                    (harness, owner_id, chunk_index, embed_model, vector)
+            insert_rows = [
+                (harness, owner_id, chunk_index, embed_model, vector)
+                for (harness, owner_id, chunk_index, _chunk), vector in zip(
+                    batch, vectors, strict=True
                 )
-            written += len(batch)
-            if on_progress is not None:
-                on_progress(f"embed: {written}/{n_chunks} chunks")
-
-        if insert_rows:
+            ]
             con.executemany(
                 "INSERT INTO embeddings "
                 "(harness, owner_table, owner_id, chunk_index, embed_model, vector) "
                 "VALUES (?, 'messages', ?, ?, ?, ?)",
                 insert_rows,
             )
+            written += len(batch)
+            if on_progress is not None:
+                on_progress(f"embed: {written}/{n_chunks} chunks")
 
     orphans = con.execute(
         "DELETE FROM embeddings WHERE owner_table = 'messages' "

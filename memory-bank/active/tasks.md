@@ -100,9 +100,13 @@ No new technology - validation not required. Plan spike already exercised existi
 - **Machine:** CPU-only (no CUDA); `BAAI/bge-small-en-v1.5` via `BgeEncoder`
 - **Before/after encode:** 64 short strings: singles ~31.0s vs one batch ~1.85s (~16.8×). Batch-size sweep on 256 shorts plateaus ~32–128 (~7.2s vs ~117s at size 1)
 - **Batch size chosen:** `EMBED_BATCH_SIZE = 32`
-- **Write batching:** set-delete + `executemany` folded into scatter; encode was the dominant win — not measured as a separate toggle
+- **Write batching:** set-delete + per-batch `executemany` folded into scatter; encode was the dominant win — not measured as a separate toggle
 - **Numeric policy:** ST batched vs single not bit-identical (`max_abs≈1.4e-7`); tests lock `atol=1e-5`
 - **Orphan scope:** all `embed_model` values for dangling `owner_table='messages'` owners
+
+## QA Results
+
+- PASS — KISS fix: `executemany` per encode batch (not one giant buffer). Completeness/docs/regression OK.
 
 ## Status
 
@@ -113,4 +117,4 @@ No new technology - validation not required. Plan spike already exercised existi
 - [x] Pre-Mortem complete
 - [x] Preflight
 - [x] Build
-- [ ] QA
+- [x] QA
