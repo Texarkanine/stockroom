@@ -27,3 +27,14 @@ Add `.github/dependabot.yaml` for both UV roots (docs at `/`, engine at `/skills
     - Schedule/assignees/PR limits follow a16n-style references where brief is silent
 * Insights
     - Dependabot `uv` ecosystem is first-class; cooldown applies to UV and GitHub Actions
+
+## 2026-07-15 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated TDD ordering (stub → failing tests → config)
+    - Confirmed conventions (`repo_root` contract tests, `.github/` placement, REUSE via `**/*`)
+    - No conflicts with existing Dependabot config; all brief requirements mapped
+* Decisions made
+    - Preflight PASS — proceed to build
+* Insights
+    - No REUSE.toml change needed; new files inherit AGPL base annotation
