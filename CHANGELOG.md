@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0](https://github.com/Texarkanine/stockroom/compare/v0.7.0...v0.8.0) (2026-07-15)
+
+
+### Features
+
+* **dashboard:** add sessions browse on local dashboard [[#49](https://github.com/Texarkanine/stockroom/issues/49)] ([#52](https://github.com/Texarkanine/stockroom/issues/52)) ([2e99532](https://github.com/Texarkanine/stockroom/commit/2e995322dbfce205e1c865adbd3aac604a0fcf5f))
+
 ## [0.7.0](https://github.com/Texarkanine/stockroom/compare/v0.6.0...v0.7.0) (2026-07-14)
 
 
