@@ -32,3 +32,14 @@ Speed up `stockroom embed` with cross-message chunk batching (no accuracy penalt
     - Keep #56 in scope; do not edit untracked `.cursor/skills/stockroom-local/` mirror
 * Insights
     - Original step 1 was production-first — fixed before build gate
+
+## 2026-07-15 - BUILD - COMPLETE
+
+* Work completed
+    - Cross-message batching, set-delete, executemany, orphan cleanup, progress grain, docs, tests
+    - Full suite 551 passed / 4 skipped; lint/format clean; torch-gated near-equality green
+* Decisions made
+    - `EMBED_BATCH_SIZE=32`; orphan DELETE all models; progress = chunk/batch lines; float32 `atol=1e-5`
+* Insights
+    - `make format`/`sync` drops torch — re-`make torch` before torch-gated recheck
+    - DuckDB parallel `UNNEST` of two equal-length arrays works for pair deletes

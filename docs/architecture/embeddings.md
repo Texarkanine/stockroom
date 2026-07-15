@@ -26,6 +26,8 @@ Ingest and embed are separate passes. Embed is heavier (torch + real compute) an
 
 When ingest rewrite-replaces a session, it invalidates embeddings only for message ids that were removed or whose text changed. Append-only growth and unchanged history keep their vectors, so embed lag after a successful ingest leaves a small hole rather than emptying the session’s semantic coverage.
 
+`stockroom embed` encodes pending chunks in **cross-message batches** (throughput only — same model, chunking, and float32-near vectors as single-chunk encode) and, after the normal sweep, deletes **orphaned** `owner_table='messages'` embedding rows whose `(harness, owner_id)` no longer matches a `messages` row (any `embed_model`). That heals warehouses left inconsistent by an interrupted ingest rewrite without a separate operator chore.
+
 Nightly schedule runs both incrementally; manual catch-up is the same pair of commands — see [User Guide → Load the Warehouse](../user-guide/ingest.md).
 
 ## Search-surface split
