@@ -45,3 +45,5 @@ Test-first per `.cursor/rules/shared/always-tdd.mdc`; run discipline in `.cursor
 ## Design System
 
 Dashboard UI authority is the shipped static surface: [`skills/sr-search/src/stockroom/dashboard/static/`](../skills/sr-search/src/stockroom/dashboard/static/) (`index.html`, `dashboard-core.mjs`, `dashboard-data.mjs`, `dashboard-session.mjs`, `dashboard.mjs`, vendored Chart.js + markdown-it). Offline, no CDN; Aggregate/Compare and presentation policy live in the browser layer. SPA views use query-param deep links: metrics (default), sessions list (`?view=sessions&…`), and session reconstruct (`?view=session&harness=&session=`). Browser history is the only back navigation between views. API semantics and accessibility constraints in the dashboard package take precedence over any external mockups.
+
+Docs site chrome (not product UI): ProperDocs / Material tokens live in [`docs/stylesheets/extra.css`](../docs/stylesheets/extra.css), wired from [`properdocs.yaml`](../properdocs.yaml) (`primary`/`accent: custom` + `extra_css`). Warm paper light / ember dark — Texarkanine paper/ember tokens.
