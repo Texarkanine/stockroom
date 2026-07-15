@@ -271,40 +271,141 @@ def test_write_session_no_truncation_at_rest(
     assert stored == big
 
 
-def test_rewriting_session_cascades_embedding_delete(
+def _add_embedding(
+    con: duckdb.DuckDBPyConnection,
+    owner_id: str,
+    *,
+    chunk_index: int = 0,
+    harness: str = "claude",
+) -> None:
+    """Insert one fake embeddings row for surgical-invalidation tests."""
+    con.execute(
+        "INSERT INTO embeddings "
+        "(harness, owner_table, owner_id, chunk_index, embed_model, vector) "
+        "VALUES (?, 'messages', ?, ?, 'm', ?)",
+        [harness, owner_id, chunk_index, [0.0] * 384],
+    )
+
+
+def _embedding_owner_ids(con: duckdb.DuckDBPyConnection) -> set[str]:
+    return {
+        r[0] for r in con.execute("SELECT DISTINCT owner_id FROM embeddings").fetchall()
+    }
+
+
+def test_embedding_owner_ids_to_invalidate_removed_changed_and_kept() -> None:
+    """Pure compare: remove/change invalidate; unchanged and both-None keep."""
+    stale = writer._embedding_owner_ids_to_invalidate(
+        {
+            "a#0": "same",
+            "a#1": "old",
+            "a#2": "gone",
+            "a#3": None,
+        },
+        {
+            "a#0": "same",
+            "a#1": "new",
+            "a#3": None,
+        },
+    )
+    assert stale == {"a#1", "a#2"}
+
+
+def test_unchanged_rewrite_retains_embeddings(
     migrated_con: duckdb.DuckDBPyConnection,
 ) -> None:
-    """Re-writing a session drops *its* embeddings (so edits re-embed) but leaves
-    other sessions' embeddings intact.
+    """Identical message texts on rewrite leave existing embeddings in place."""
+    writer.write_session(migrated_con, _session())
+    _add_embedding(migrated_con, "s1#0")
+    _add_embedding(migrated_con, "s1#1")
+    _add_embedding(migrated_con, "s2#0")
 
-    Embeddings are derived from a session's messages; the writer's
-    delete-then-insert invalidates this session's vectors in the same operation
-    that rewrites its rows, so changed content is re-embedded on the next embed
-    run (see ``creative-incremental-reembed-detection.md``, option B). Other
-    sessions are untouched.
-    """
-    writer.write_session(migrated_con, _session())  # session s1: s1#0, s1#1
+    writer.write_session(migrated_con, _session())
 
-    def _add_embedding(owner_id: str) -> None:
+    assert _embedding_owner_ids(migrated_con) == {"s1#0", "s1#1", "s2#0"}
+
+
+def test_append_only_rewrite_retains_prior_embeddings(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Append-only growth keeps prior vectors; new ids have none until embed."""
+    writer.write_session(migrated_con, _session())
+    _add_embedding(migrated_con, "s1#0")
+    _add_embedding(migrated_con, "s1#1")
+
+    grown = _session()
+    grown.messages.append(NormalizedMessage(ordinal=2, role="user", text="more"))
+    writer.write_session(migrated_con, grown)
+
+    assert _embedding_owner_ids(migrated_con) == {"s1#0", "s1#1"}
+    assert (
         migrated_con.execute(
-            "INSERT INTO embeddings "
-            "(harness, owner_table, owner_id, chunk_index, embed_model, vector) "
-            "VALUES ('claude', 'messages', ?, 0, 'm', ?)",
-            [owner_id, [0.0] * 384],
-        )
+            "SELECT count(*) FROM embeddings WHERE owner_id = 's1#2'"
+        ).fetchone()[0]
+        == 0
+    )
 
-    _add_embedding("s1#0")  # belongs to the rewritten session
-    _add_embedding("s2#0")  # belongs to a different session (must survive)
 
-    writer.write_session(migrated_con, _session())  # rewrite s1
+def test_text_change_invalidates_only_that_message_embeddings(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Changed text drops that owner; sibling unchanged owners keep vectors."""
+    writer.write_session(migrated_con, _session())
+    _add_embedding(migrated_con, "s1#0")
+    _add_embedding(migrated_con, "s1#1")
 
-    remaining = {
-        r[0]
-        for r in migrated_con.execute(
-            "SELECT owner_id FROM embeddings ORDER BY owner_id"
-        ).fetchall()
-    }
-    assert remaining == {"s2#0"}
+    edited = _session()
+    edited.messages[0] = NormalizedMessage(ordinal=0, role="user", text="bye")
+    writer.write_session(migrated_con, edited)
+
+    assert _embedding_owner_ids(migrated_con) == {"s1#1"}
+
+
+def test_removed_message_loses_embeddings(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Omitting a prior message_id deletes that owner's embeddings."""
+    writer.write_session(migrated_con, _session())
+    _add_embedding(migrated_con, "s1#0")
+    _add_embedding(migrated_con, "s1#1")
+
+    shrunk = _session()
+    shrunk.messages = [shrunk.messages[0]]
+    writer.write_session(migrated_con, shrunk)
+
+    assert _embedding_owner_ids(migrated_con) == {"s1#0"}
+
+
+def test_rewrite_does_not_touch_other_session_embeddings(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Rewriting one session never deletes another session's embeddings."""
+    writer.write_session(migrated_con, _session())
+    _add_embedding(migrated_con, "s1#0")
+    _add_embedding(migrated_con, "s2#0")
+
+    writer.write_session(migrated_con, _session())
+
+    assert "s2#0" in _embedding_owner_ids(migrated_con)
+
+
+def test_text_change_deletes_all_chunks_for_owner(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """A multi-chunk owner loses every chunk_index when its text changes."""
+    writer.write_session(migrated_con, _session())
+    _add_embedding(migrated_con, "s1#0", chunk_index=0)
+    _add_embedding(migrated_con, "s1#0", chunk_index=1)
+    _add_embedding(migrated_con, "s1#1")
+
+    edited = _session()
+    edited.messages[0] = NormalizedMessage(ordinal=0, role="user", text="bye")
+    writer.write_session(migrated_con, edited)
+
+    chunks = migrated_con.execute(
+        "SELECT owner_id, chunk_index FROM embeddings ORDER BY owner_id, chunk_index"
+    ).fetchall()
+    assert chunks == [("s1#1", 0)]
 
 
 def test_update_watermark_default_updated_at_is_utc_now(

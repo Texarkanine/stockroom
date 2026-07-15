@@ -35,3 +35,15 @@ Implement surgical embedding invalidation on ingest session rewrite (compare-and
     - Preflight PASS; advisory amendment applied within scope
 * Insights
     - Blanket cascade is intentional today; conflict with old test/docs is the feature, not a blocker
+
+## 2026-07-14 - BUILD - COMPLETE
+
+* Work completed
+    - Implemented `_embedding_owner_ids_to_invalidate` + surgical DELETE in `write_session`
+    - Removed blanket embedding cascade from `_delete_session`
+    - 7 new/replaced tests in `test_ingest_writer.py`; docs updated
+    - Full suite: 530 passed, 3 skipped; lint/format clean
+* Decisions made
+    - Stale owners deleted by explicit id list (`UNNEST`) before session row delete
+* Insights
+    - Other-session isolation already held under old cascade; new value is retention on unchanged/append

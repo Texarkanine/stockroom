@@ -84,5 +84,12 @@ No new technology - validation not required
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight
-- [ ] Build
+- [x] Build
 - [ ] QA
+
+### Build checklist
+
+- [x] Step 1: Stub pure compare helper + replace cascade tests
+- [x] Step 2: Implement compare-and-keep; strip blanket delete
+- [x] Step 3: Docs (system-model + architecture embeddings)
+- [x] Step 4: Verify (530 passed, 3 skipped; lint/format clean)
