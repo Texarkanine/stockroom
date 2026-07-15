@@ -13,3 +13,15 @@ Implement surgical embedding invalidation on ingest session rewrite (compare-and
     - Proceed with issue option B (text compare / compare-and-keep); no schema migration
 * Insights
     - Failure mode is ingest eager cascade + embed lag, not embed itself wiping vectors
+
+## 2026-07-14 - PLAN - COMPLETE
+
+* Work completed
+    - Mapped behaviors to `test_ingest_writer.py` contract tests (unchanged / append / text-change / remove / other-session / multi-chunk)
+    - Planned compare-and-keep in `write_session` and removal of blanket embedding delete from `_delete_session`
+    - Doc updates scoped to live system-model + architecture embeddings staleness wording
+* Decisions made
+    - Delete by explicit stale `owner_id` list (not join-against-messages-at-delete-time) so invalidation is independent of `_delete_session` order
+    - No embed.py or schema changes
+* Insights
+    - Current cascade test asserts the *wrong* contract for #43; replace, don't merely soften
