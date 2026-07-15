@@ -14,7 +14,7 @@ Warehouse home: `$XDG_DATA_HOME/stockroom` or `~/.local/share/stockroom`, overri
 - **properdocs** — human doc site over [`docs/`](../docs/); config [`properdocs.yaml`](../properdocs.yaml); `make docs` / `make docs-build`.
 - **release-please** — [`release-please-config.json`](../release-please-config.json) + [`.release-please-manifest.json`](../.release-please-manifest.json); syncs version into both plugin manifests.
 - **Makefile** — root [`Makefile`](../Makefile) for sync/lock/test/lint/format/reuse/ci/torch/shim/docs plus contributor localdev atoms (`local-skills`, `local-engine`, `local-dashboard`, composer `localdev`, `localdev-clean`, `localdev-status`; harness-scoped targets require `HARNESS=cursor|claude`; `shim` with optional `TAKEOVER=1` / `FORCE=1`). Fat localdev shell lives in [`scripts/localdev.sh`](../scripts/localdev.sh) (POSIX); Make orchestrates.
-- **CI / release** — [`.github/workflows/ci.yml`](../.github/workflows/ci.yml), [`.github/workflows/docs.yaml`](../.github/workflows/docs.yaml), [`.github/workflows/release-please.yaml`](../.github/workflows/release-please.yaml).
+- **CI / release** — [`.github/workflows/ci.yml`](../.github/workflows/ci.yml), [`.github/workflows/docs.yaml`](../.github/workflows/docs.yaml), [`.github/workflows/release-please.yaml`](../.github/workflows/release-please.yaml). Dependency version updates: [`.github/dependabot.yaml`](../.github/dependabot.yaml) (UV docs + engine, GitHub Actions).
 - **Dashboard front-end** — committed native ES modules under [`stockroom/dashboard/static/`](../skills/sr-search/src/stockroom/dashboard/static/) with vendored Chart.js and markdown-it; no npm install or bundler. Node 22 runs `make test-dashboard-js` only.
 
 ## Warehouse Schema
