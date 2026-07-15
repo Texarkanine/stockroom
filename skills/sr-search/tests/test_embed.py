@@ -40,6 +40,51 @@ def _insert_message(
     return message_id
 
 
+# --- Unit: _pending_chunk_rows (pure flatten, no DuckDB) --------------------
+
+
+def test_pending_chunk_rows_empty_selection() -> None:
+    """An empty selected-message list yields no chunk rows."""
+    assert embed._pending_chunk_rows([]) == []
+
+
+def test_pending_chunk_rows_one_short_message() -> None:
+    """One short message yields a single row at chunk_index 0 with verbatim text."""
+    text = "hello world"
+    rows = embed._pending_chunk_rows([("claude", "s1#0", text)])
+    assert rows == [("claude", "s1#0", 0, text)]
+
+
+def test_pending_chunk_rows_one_long_message() -> None:
+    """One long message yields N rows with ascending chunk_index matching chunk_text."""
+    text = "y" * 3000
+    chunks = embed.chunk_text(text)
+    assert len(chunks) > 1
+    rows = embed._pending_chunk_rows([("cursor", "s2#1", text)])
+    assert rows == [
+        ("cursor", "s2#1", index, chunk) for index, chunk in enumerate(chunks)
+    ]
+
+
+def test_pending_chunk_rows_mixed_messages_preserve_owners() -> None:
+    """Mixed messages keep (harness, owner_id) boundaries across chunk rows."""
+    short = "alpha"
+    long_text = "z" * 3000
+    long_chunks = embed.chunk_text(long_text)
+    rows = embed._pending_chunk_rows(
+        [
+            ("claude", "a#0", short),
+            ("claude", "a#1", "   "),
+            ("cursor", "b#0", long_text),
+            ("claude", "a#2", None),
+        ]
+    )
+    assert rows[0] == ("claude", "a#0", 0, short)
+    assert rows[1:] == [
+        ("cursor", "b#0", index, chunk) for index, chunk in enumerate(long_chunks)
+    ]
+
+
 # --- Step 1: chunk_text (pure stdlib sliding window) ------------------------
 
 
@@ -224,6 +269,252 @@ def test_embed_pending_knn_nearest_chunk_is_expected(
     assert nearest == target_id
 
 
+# --- Unit: cross-message batch encode ---------------------------------------
+
+
+class _RecordingEncoder:
+    """FakeEncoder that records each ``encode`` call's batch size."""
+
+    def __init__(self) -> None:
+        self.calls: list[int] = []
+        self._inner = FakeEncoder()
+
+    def encode(self, texts: list[str]) -> list[list[float]]:
+        self.calls.append(len(texts))
+        return self._inner.encode(texts)
+
+
+def test_embed_pending_batches_across_messages(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Pending chunks are encoded in bounded windows of ``EMBED_BATCH_SIZE``."""
+    n = embed.EMBED_BATCH_SIZE + 1
+    for ordinal in range(n):
+        _insert_message(migrated_con, ordinal=ordinal, text=f"msg-{ordinal}")
+    recorder = _RecordingEncoder()
+
+    written = embed.embed_pending(migrated_con, recorder)
+
+    assert written == n
+    assert recorder.calls == [embed.EMBED_BATCH_SIZE, 1]
+    assert max(recorder.calls) <= embed.EMBED_BATCH_SIZE
+
+
+class _FailAfterNEncoder:
+    """FakeEncoder that raises after ``succeed_calls`` successful ``encode`` calls."""
+
+    def __init__(self, *, succeed_calls: int) -> None:
+        self._succeed_calls = succeed_calls
+        self.calls = 0
+        self._inner = FakeEncoder()
+
+    def encode(self, texts: list[str]) -> list[list[float]]:
+        self.calls += 1
+        if self.calls > self._succeed_calls:
+            raise RuntimeError("encode failed")
+        return self._inner.encode(texts)
+
+
+def test_embed_pending_replace_rolls_back_on_mid_batch_failure(
+    migrated_con: duckdb.DuckDBPyConnection, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A mid-replace encode failure leaves no partial current-model chunks.
+
+    Without an atomic delete+insert, a multi-chunk owner can keep some chunks
+    after a crash and then be skipped by incremental ``NOT EXISTS``.
+    """
+    monkeypatch.setattr(embed, "EMBED_BATCH_SIZE", 1)
+    text = "z" * 3000  # multi-chunk under default CHUNK_SIZE
+    chunks = embed.chunk_text(text)
+    assert len(chunks) >= 2
+    message_id = _insert_message(migrated_con, ordinal=0, text=text)
+
+    with pytest.raises(RuntimeError, match="encode failed"):
+        embed.embed_pending(migrated_con, _FailAfterNEncoder(succeed_calls=1))
+
+    assert (
+        migrated_con.execute(
+            "SELECT count(*) FROM embeddings WHERE owner_id = ?", [message_id]
+        ).fetchone()[0]
+        == 0
+    )
+    # Incremental selection still sees the owner as pending.
+    written = embed.embed_pending(migrated_con, FakeEncoder())
+    assert written == len(chunks)
+
+
+def test_embed_pending_batched_vectors_match_single_encode(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Stored vectors equal FakeEncoder singles for each chunk (exact identity)."""
+    short_id = _insert_message(migrated_con, ordinal=0, text="short message")
+    long_text = "y" * 3000
+    long_id = _insert_message(migrated_con, ordinal=1, text=long_text)
+    chunks = embed.chunk_text(long_text)
+
+    written = embed.embed_pending(migrated_con, FakeEncoder())
+
+    assert written == 1 + len(chunks)
+    short_vec = migrated_con.execute(
+        "SELECT vector FROM embeddings WHERE owner_id = ? AND chunk_index = 0",
+        [short_id],
+    ).fetchone()[0]
+    # DuckDB FLOAT[384] round-trips as float32; compare in that precision.
+    assert list(short_vec) == pytest.approx(
+        FakeEncoder._vector("short message"), abs=1e-6
+    )
+    for index, chunk in enumerate(chunks):
+        stored = migrated_con.execute(
+            "SELECT vector FROM embeddings WHERE owner_id = ? AND chunk_index = ?",
+            [long_id, index],
+        ).fetchone()[0]
+        assert list(stored) == pytest.approx(FakeEncoder._vector(chunk), abs=1e-6)
+
+
+# --- Unit: orphan embedding cleanup -----------------------------------------
+
+
+def _insert_embedding(
+    con: duckdb.DuckDBPyConnection,
+    *,
+    harness: str,
+    owner_id: str,
+    embed_model: str = embed.EMBED_MODEL,
+    chunk_index: int = 0,
+) -> None:
+    """Insert one embeddings row (does not require a matching messages row)."""
+    con.execute(
+        "INSERT INTO embeddings "
+        "(harness, owner_table, owner_id, chunk_index, embed_model, vector) "
+        "VALUES (?, 'messages', ?, ?, ?, ?)",
+        [harness, owner_id, chunk_index, embed_model, [0.0] * embed.EMBED_DIM],
+    )
+
+
+def test_embed_selected_and_orphan_cleanup_are_independent(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Re-embed and orphan cleanup are separate helpers; neither implies the other."""
+    message_id = _insert_message(migrated_con, ordinal=0, text="keep me")
+    _insert_embedding(migrated_con, harness="claude", owner_id="orphan#0")
+    selected = [("claude", message_id, "keep me")]
+
+    written = embed._embed_selected_messages(
+        migrated_con, FakeEncoder(), selected, embed_model=embed.EMBED_MODEL
+    )
+    assert written == 1
+    assert (
+        migrated_con.execute(
+            "SELECT count(*) FROM embeddings WHERE owner_id = 'orphan#0'"
+        ).fetchone()[0]
+        == 1
+    )
+
+    removed = embed._delete_orphan_message_embeddings(migrated_con)
+    assert removed == 1
+    assert (
+        migrated_con.execute(
+            "SELECT count(*) FROM embeddings WHERE owner_id = 'orphan#0'"
+        ).fetchone()[0]
+        == 0
+    )
+    assert (
+        migrated_con.execute(
+            "SELECT count(*) FROM embeddings WHERE owner_id = ?", [message_id]
+        ).fetchone()[0]
+        == 1
+    )
+
+
+def test_delete_orphan_message_embeddings_returns_row_count(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """``_delete_orphan_message_embeddings`` returns how many rows it deleted."""
+    _insert_embedding(migrated_con, harness="claude", owner_id="gone#0")
+    _insert_embedding(migrated_con, harness="claude", owner_id="gone#0", chunk_index=1)
+    assert embed._delete_orphan_message_embeddings(migrated_con) == 2
+    assert embed._delete_orphan_message_embeddings(migrated_con) == 0
+
+
+def test_embed_pending_removes_orphaned_embeddings(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Embedding rows whose owner_id is missing from messages are deleted."""
+    _insert_embedding(migrated_con, harness="claude", owner_id="gone#0")
+    _insert_embedding(migrated_con, harness="claude", owner_id="gone#0", chunk_index=1)
+
+    written = embed.embed_pending(migrated_con, FakeEncoder())
+
+    assert written == 0
+    assert (
+        migrated_con.execute(
+            "SELECT count(*) FROM embeddings WHERE owner_id = 'gone#0'"
+        ).fetchone()[0]
+        == 0
+    )
+
+
+def test_embed_pending_orphan_cleanup_preserves_valid_and_other_sessions(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Valid embeddings (including other sessions) survive orphan cleanup."""
+    keep_id = _insert_message(migrated_con, session_id="keep", ordinal=0, text="stay")
+    other_id = _insert_message(
+        migrated_con, harness="cursor", session_id="other", ordinal=0, text="other"
+    )
+    embed.embed_pending(migrated_con, FakeEncoder())
+    _insert_embedding(migrated_con, harness="claude", owner_id="orphan#0")
+
+    written = embed.embed_pending(migrated_con, FakeEncoder())
+
+    assert written == 0
+    owners = {
+        r[0]
+        for r in migrated_con.execute(
+            "SELECT DISTINCT owner_id FROM embeddings"
+        ).fetchall()
+    }
+    assert owners == {keep_id, other_id}
+
+
+def test_embed_pending_orphan_cleanup_runs_when_nothing_to_embed(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Orphans are swept even when the incremental embed selection is empty."""
+    keep_id = _insert_message(migrated_con, ordinal=0, text="already")
+    embed.embed_pending(migrated_con, FakeEncoder())
+    _insert_embedding(migrated_con, harness="claude", owner_id="dangling#0")
+
+    written = embed.embed_pending(migrated_con, FakeEncoder())
+
+    assert written == 0
+    assert (
+        migrated_con.execute(
+            "SELECT count(*) FROM embeddings WHERE owner_id = 'dangling#0'"
+        ).fetchone()[0]
+        == 0
+    )
+    assert (
+        migrated_con.execute(
+            "SELECT count(*) FROM embeddings WHERE owner_id = ?", [keep_id]
+        ).fetchone()[0]
+        == 1
+    )
+
+
+def test_embed_pending_orphan_cleanup_all_models(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Dangling rows under any embed_model are removed, not only the current one."""
+    _insert_embedding(
+        migrated_con, harness="claude", owner_id="old#0", embed_model="old-model"
+    )
+
+    embed.embed_pending(migrated_con, FakeEncoder())
+
+    assert migrated_con.execute("SELECT count(*) FROM embeddings").fetchone()[0] == 0
+
+
 # --- Step 6: real-model encoder (torch-gated) + CLI -------------------------
 
 
@@ -292,19 +583,15 @@ def test_embed_cli_full_reembeds(warehouse_home: Path, capsys) -> None:
 def test_embed_pending_on_progress_reports_message_counts(
     migrated_con: duckdb.DuckDBPyConnection,
 ) -> None:
-    """``on_progress`` receives a start line and ``i/N`` lines per selected message."""
+    """``on_progress`` receives a start line and per-batch chunk progress lines."""
     _insert_message(migrated_con, ordinal=0, text="alpha")
     _insert_message(migrated_con, ordinal=1, text="beta")
     _insert_message(migrated_con, ordinal=2, text="gamma")
     lines: list[str] = []
     written = embed.embed_pending(migrated_con, FakeEncoder(), on_progress=lines.append)
     assert written == 3
-    assert lines[0] == "embed: 3 messages"
-    assert lines[1:] == [
-        "embed: 1/3 messages",
-        "embed: 2/3 messages",
-        "embed: 3/3 messages",
-    ]
+    assert lines[0] == "embed: 3 messages (3 chunks)"
+    assert lines[1:] == ["embed: 3/3 chunks"]
 
 
 def test_embed_cli_quiet_default_has_no_mid_run_progress(
@@ -319,7 +606,7 @@ def test_embed_cli_quiet_default_has_no_mid_run_progress(
     lines = [line for line in out.splitlines() if line.strip()]
     assert len(lines) == 1
     assert "embedded 2" in lines[0]
-    assert not any("/" in line and "messages" in line for line in lines)
+    assert not any("chunks" in line for line in lines)
 
 
 def test_embed_cli_verbose_prints_progress_and_count(
@@ -331,9 +618,8 @@ def test_embed_cli_verbose_prints_progress_and_count(
     code = embed.main(["--verbose"], encoder_factory=FakeEncoder)
     assert code == 0
     out = capsys.readouterr().out
-    assert "embed: 2 messages" in out
-    assert "embed: 1/2 messages" in out
-    assert "embed: 2/2 messages" in out
+    assert "embed: 2 messages (2 chunks)" in out
+    assert "embed: 2/2 chunks" in out
     assert "embedded 2" in out
 
 
@@ -367,3 +653,23 @@ def test_bge_encoder_encodes_to_384_on_cpu() -> None:
     dense_chunk = embed.chunk_text("def f(x):\n    return x + 1\n" * 200)[0]
     token_ids = encoder.model.tokenizer(dense_chunk)["input_ids"]
     assert len(token_ids) <= 512
+
+
+def test_bge_encoder_batched_matches_single_within_float32() -> None:
+    """Batched ``encode`` matches per-text singles within float32 near-equality.
+
+    sentence-transformers is not bit-identical across batch vs single (padding);
+    stockroom's accuracy bar is float32-near equality, not exact identity.
+    """
+    pytest.importorskip("torch")
+
+    texts = [
+        "short alpha",
+        "short beta about dogs and cats",
+        "x" * 800,
+    ]
+    encoder = embed.BgeEncoder()
+    singles = [encoder.encode([text])[0] for text in texts]
+    batched = encoder.encode(texts)
+    for single, batch_vec in zip(singles, batched, strict=True):
+        assert batch_vec == pytest.approx(single, abs=1e-5)
