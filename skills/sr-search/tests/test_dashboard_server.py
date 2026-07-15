@@ -206,9 +206,7 @@ def test_sessions_accepts_offset_order_and_show_all_limit(
         _httpd,
         base,
     ):
-        status, payload = _json_get(
-            f"{base}/api/sessions?limit=0&offset=10&order=asc"
-        )
+        status, payload = _json_get(f"{base}/api/sessions?limit=0&offset=10&order=asc")
         assert status == 200
         assert payload == {"total": 0, "sessions": []}
         assert captured["args"] == {"limit": 0, "offset": 10, "order": "asc"}

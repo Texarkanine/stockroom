@@ -4,7 +4,9 @@ import assert from "node:assert/strict";
 import {
   DashboardRequestError,
   buildRequestPlan,
+  buildSessionsListRequestUrl,
   createRequestGate,
+  fetchSessionsPage,
   fetchSnapshot,
 } from "../src/stockroom/dashboard/static/dashboard-data.mjs";
 
@@ -15,7 +17,7 @@ const endpointNames = [
   "tools",
   "models",
   "efficiency",
-  "sessions",
+  "sessions_ends",
   "wrapped",
 ];
 
@@ -40,10 +42,58 @@ test("builds eight same-origin request URLs with correct filtering", () => {
     assert.match(item.url, /harness=claude%2Fcli&harness=cursor%20pro/);
   }
   assert.equal(
-    plan.find((item) => item.name === "sessions").url,
-    "/api/sessions?harness=claude%2Fcli&harness=cursor%20pro&limit=50",
+    plan.find((item) => item.name === "sessions_ends").url,
+    "/api/sessions_ends?harness=claude%2Fcli&harness=cursor%20pro",
+  );
+  assert.doesNotMatch(
+    plan.find((item) => item.name === "sessions_ends").url,
+    /limit=/,
   );
   assert.equal(plan.at(-1).url, "/api/wrapped");
+});
+
+test("fetchSessionsPage requests the list URL and returns the envelope", async () => {
+  const urls = [];
+  const payload = { total: 2, sessions: [{ session_id: "a" }] };
+  const result = await fetchSessionsPage(
+    async (url) => {
+      urls.push(url);
+      return response(payload);
+    },
+    { harnesses: ["cursor"], page: 2, perPage: 25 },
+  );
+  assert.equal(urls[0], "/api/sessions?harness=cursor&limit=25&offset=25&order=desc");
+  assert.deepEqual(result, payload);
+});
+
+test("buildSessionsListRequestUrl maps page/per_page to offset/limit and show-all", () => {
+  assert.equal(
+    buildSessionsListRequestUrl({
+      harnesses: ["cursor"],
+      page: 1,
+      perPage: 50,
+    }),
+    "/api/sessions?harness=cursor&limit=50&offset=0&order=desc",
+  );
+  assert.equal(
+    buildSessionsListRequestUrl({
+      harnesses: ["claude/cli"],
+      since: "2026-01-01T00:00:00Z",
+      until: "2026-02-01T00:00:00Z",
+      page: 3,
+      perPage: 25,
+    }),
+    "/api/sessions?harness=claude%2Fcli&limit=25&offset=50&order=desc" +
+      "&since=2026-01-01T00%3A00%3A00Z&until=2026-02-01T00%3A00%3A00Z",
+  );
+  assert.equal(
+    buildSessionsListRequestUrl({
+      harnesses: [],
+      page: 1,
+      perPage: "all",
+    }),
+    "/api/sessions?limit=0&offset=0&order=desc",
+  );
 });
 
 test("fetches and names one complete parallel snapshot", async () => {
@@ -164,8 +214,8 @@ test("window bounds append encoded since and until to all endpoints except wrapp
     assert.match(item.url, /harness=cursor%20pro/);
   }
   assert.equal(
-    plan.find((item) => item.name === "sessions").url,
-    `/api/sessions?harness=cursor%20pro&limit=50&since=${encodedSince}&until=${encodedUntil}`,
+    plan.find((item) => item.name === "sessions_ends").url,
+    `/api/sessions_ends?harness=cursor%20pro&since=${encodedSince}&until=${encodedUntil}`,
   );
 });
 

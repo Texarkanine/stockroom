@@ -5,12 +5,16 @@ import {
   ansiToHtml,
   buildSessionDeepLink,
   buildSessionViewSearchParams,
+  buildSessionsListSearchParams,
+  clampSessionsListPage,
   formatSessionJsonExport,
   formatSessionMarkdownExport,
   isActiveSessionView,
+  normalizePerPage,
   parseSessionViewParams,
+  parseSessionsListParams,
+  perPageToLimit,
   renderSessionMessageHtml,
-  shouldUseHistoryBackForSessionClose,
 } from "../src/stockroom/dashboard/static/dashboard-session.mjs";
 
 test("buildSessionViewSearchParams encodes the canonical session view", () => {
@@ -131,8 +135,87 @@ test("isActiveSessionView requires matching harness and session id", () => {
   assert.equal(isActiveSessionView(null, "c", "1"), false);
 });
 
-test("shouldUseHistoryBackForSessionClose only when history state is session", () => {
-  assert.equal(shouldUseHistoryBackForSessionClose({ view: "session" }), true);
-  assert.equal(shouldUseHistoryBackForSessionClose({ view: "metrics" }), false);
-  assert.equal(shouldUseHistoryBackForSessionClose(null), false);
+test("normalizePerPage accepts presets and defaults invalid values to 50", () => {
+  assert.equal(normalizePerPage("25"), 25);
+  assert.equal(normalizePerPage("50"), 50);
+  assert.equal(normalizePerPage("100"), 100);
+  assert.equal(normalizePerPage("all"), "all");
+  assert.equal(normalizePerPage(null), 50);
+  assert.equal(normalizePerPage("40"), 50);
+  assert.equal(normalizePerPage(""), 50);
+});
+
+test("perPageToLimit maps all to 0 and numeric presets to themselves", () => {
+  assert.equal(perPageToLimit("all"), 0);
+  assert.equal(perPageToLimit(25), 25);
+  assert.equal(perPageToLimit(50), 50);
+  assert.equal(perPageToLimit(100), 100);
+});
+
+test("parseSessionsListParams reads view=sessions filters with defaults", () => {
+  assert.equal(parseSessionsListParams(new URLSearchParams("")), null);
+  assert.equal(
+    parseSessionsListParams(new URLSearchParams("view=session&harness=c&session=s")),
+    null,
+  );
+  assert.deepEqual(
+    parseSessionsListParams(
+      new URLSearchParams(
+        "view=sessions&harness=cursor&harness=claude&since=2026-01-01T00:00:00Z&until=2026-02-01T00:00:00Z&page=3&per_page=25",
+      ),
+    ),
+    {
+      harnesses: ["cursor", "claude"],
+      since: "2026-01-01T00:00:00Z",
+      until: "2026-02-01T00:00:00Z",
+      page: 3,
+      perPage: 25,
+    },
+  );
+  assert.deepEqual(
+    parseSessionsListParams(new URLSearchParams("view=sessions&per_page=all&page=nope")),
+    {
+      harnesses: [],
+      since: null,
+      until: null,
+      page: 1,
+      perPage: "all",
+    },
+  );
+});
+
+test("buildSessionsListSearchParams omits default page and default-range bounds", () => {
+  const params = buildSessionsListSearchParams({
+    harnesses: ["cursor", "claude/cli"],
+    since: null,
+    until: null,
+    page: 1,
+    perPage: 50,
+  });
+  assert.equal(params.get("view"), "sessions");
+  assert.deepEqual(params.getAll("harness"), ["cursor", "claude/cli"]);
+  assert.equal(params.get("since"), null);
+  assert.equal(params.get("until"), null);
+  assert.equal(params.get("page"), null);
+  assert.equal(params.get("per_page"), "50");
+
+  const paged = buildSessionsListSearchParams({
+    harnesses: ["cursor"],
+    since: "2026-01-01T00:00:00Z",
+    until: "2026-02-01T00:00:00Z",
+    page: 2,
+    perPage: "all",
+  });
+  assert.equal(paged.get("page"), "2");
+  assert.equal(paged.get("per_page"), "all");
+  assert.equal(paged.get("since"), "2026-01-01T00:00:00Z");
+  assert.equal(paged.get("until"), "2026-02-01T00:00:00Z");
+});
+
+test("clampSessionsListPage clamps beyond last non-empty page", () => {
+  assert.equal(clampSessionsListPage(1, 0, 50), 1);
+  assert.equal(clampSessionsListPage(99, 0, 50), 1);
+  assert.equal(clampSessionsListPage(3, 100, 50), 2);
+  assert.equal(clampSessionsListPage(1, 100, 50), 1);
+  assert.equal(clampSessionsListPage(2, 100, "all"), 1);
 });

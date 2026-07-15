@@ -21,6 +21,9 @@ import {
   panelRangeLabels,
   projectHoverTitle,
   resolveWindowBounds,
+  sessionsEllipsisCount,
+  sessionsPaginationVisible,
+  buildSessionsPanelRows,
   sortedHarnesses,
   sumAligned,
   summarizeChartPanel,
@@ -809,6 +812,39 @@ test("summarizeChartPanel leaves the input model unchanged", () => {
   const before = structuredClone(model);
   summarizeChartPanel("Sessions by project", "aggregate", model);
   assert.deepEqual(model, before);
+});
+
+test("sessionsEllipsisCount is total minus twenty when over the panel cap", () => {
+  assert.equal(sessionsEllipsisCount(0), 0);
+  assert.equal(sessionsEllipsisCount(20), 0);
+  assert.equal(sessionsEllipsisCount(21), 1);
+  assert.equal(sessionsEllipsisCount(25), 5);
+});
+
+test("sessionsPaginationVisible only when paging and total exceeds page size", () => {
+  assert.equal(sessionsPaginationVisible(100, 50), true);
+  assert.equal(sessionsPaginationVisible(50, 50), false);
+  assert.equal(sessionsPaginationVisible(100, "all"), false);
+  assert.equal(sessionsPaginationVisible(0, 25), false);
+});
+
+test("buildSessionsPanelRows emits newest, optional ellipsis, then oldest", () => {
+  const newest = [{ session_id: "n1" }, { session_id: "n0" }];
+  const oldest = [{ session_id: "o0" }, { session_id: "o1" }];
+  assert.deepEqual(buildSessionsPanelRows({ total: 2, newest, oldest: [] }), [
+    { kind: "session", session: newest[0] },
+    { kind: "session", session: newest[1] },
+  ]);
+  assert.deepEqual(
+    buildSessionsPanelRows({ total: 25, newest, oldest }),
+    [
+      { kind: "session", session: newest[0] },
+      { kind: "session", session: newest[1] },
+      { kind: "more", count: 5 },
+      { kind: "session", session: oldest[0] },
+      { kind: "session", session: oldest[1] },
+    ],
+  );
 });
 
 test("keeps every pure transformation input unchanged", () => {

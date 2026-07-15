@@ -378,6 +378,52 @@ export function panelRangeLabels(preset) {
   };
 }
 
+/**
+ * Hidden-row count for the metrics Sessions panel ellipsis (``total − 20``).
+ *
+ * @param {number} total
+ * @returns {number}
+ */
+export function sessionsEllipsisCount(total) {
+  const n = Number(total) || 0;
+  return n > 20 ? n - 20 : 0;
+}
+
+/**
+ * Whether top/bottom pagination chrome should show on the sessions list.
+ *
+ * @param {number} total
+ * @param {25 | 50 | 100 | "all"} perPage
+ * @returns {boolean}
+ */
+export function sessionsPaginationVisible(total, perPage) {
+  if (perPage === "all") {
+    return false;
+  }
+  return (Number(total) || 0) > perPage;
+}
+
+/**
+ * Build render rows for the capped Sessions panel from a ``sessions_ends`` payload.
+ *
+ * @param {{total: number, newest?: object[], oldest?: object[]}} ends
+ * @returns {Array<{kind: "session", session: object} | {kind: "more", count: number}>}
+ */
+export function buildSessionsPanelRows(ends) {
+  const newest = Array.isArray(ends?.newest) ? ends.newest : [];
+  const oldest = Array.isArray(ends?.oldest) ? ends.oldest : [];
+  const more = sessionsEllipsisCount(ends?.total);
+  /** @type {Array<{kind: "session", session: object} | {kind: "more", count: number}>} */
+  const rows = newest.map((session) => ({ kind: "session", session }));
+  if (more > 0) {
+    rows.push({ kind: "more", count: more });
+  }
+  for (const session of oldest) {
+    rows.push({ kind: "session", session });
+  }
+  return rows;
+}
+
 function normalizeViewState(state) {
   const dateRange = normalizeDateRangePreset(state?.dateRange);
   const window =

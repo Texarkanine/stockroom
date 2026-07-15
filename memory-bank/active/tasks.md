@@ -127,36 +127,36 @@ Each numbered unit is one TDD cycle: **(a) write/adjust failing tests → (b) ru
     - (a) Tests first: `test_dashboard_server.py` — `/api/sessions_ends`; `offset`/`order`/`limit=0`; update clamp/`limit=501` expectations; keep `limit=-1` → 400
     - (c) Then: `server.py` — parse and dispatch
 
-4. **Pure JS: list URL + panel model helpers**
+4. **Pure JS: list URL + panel model helpers** ✅
     - (a) Tests first: `tests-js/dashboard-session.test.mjs`, `dashboard-core.test.mjs` — parse/build list URL; per_page map; ellipsis `N`; invalid defaults
     - (c) Then: `dashboard-session.mjs` / `dashboard-core.mjs` helpers
     - Creative ref: `creative-per-page-control.md`
 
-5. **Data layer: request plan + list fetch**
+5. **Data layer: request plan + list fetch** ✅
     - (a) Tests first: `tests-js/dashboard-data.test.mjs` — metrics plan hits `/api/sessions_ends` (no `limit=50`); list fetch builds offset/limit/all
     - (c) Then: `dashboard-data.mjs`
 
-6. **HTML shell + FOUC**
+6. **HTML shell + FOUC** ✅
     - (a) Tests first: `test_dashboard_static.py` — Sessions title; `#sessions-pane` + per-page radios; pagination slots; FOUC `data-view=sessions`; **assert `#session-back` absent**
     - (c) Then: `index.html` markup/CSS/head FOUC script
 
-7. **Adapter: metrics panel cap + navigate to list**
+7. **Adapter: metrics panel cap + navigate to list** ✅
     - (a) Tests first: extend JS helpers/tests for render model (newest / more / oldest) if not fully covered in step 4; any extractable pure functions get tests before `dashboard.mjs` wiring
     - (c) Then: `dashboard.mjs` — render capped panel; `… more` → pushState list URL; row click unchanged
 
-8. **Adapter: sessions list view + pagination**
+8. **Adapter: sessions list view + pagination** ✅
     - (a) Tests first: pure transition/URL sync helpers in `dashboard-core` / `dashboard-session` tests for page/per_page/filter changes
     - (c) Then: `dashboard.mjs` — list pane fetch/render; pager top+bottom; row → reconstruct; popstate
 
-9. **Remove reconstruct custom back**
+9. **Remove reconstruct custom back** ✅
     - (a) Tests first: remove/replace `shouldUseHistoryBackForSessionClose` / static back-button tests with popstate-only expectations
     - (c) Then: delete `#session-back` handlers and dead helpers from `dashboard.mjs` / `dashboard-session.mjs`
 
-10. **Docs & skill**
+10. **Docs & skill** ✅
     - (a) Tests first: only if existing skill-hygiene/docs tests assert old strings — update those assertions first
     - (c) Then: `skills/sr-dashboard/SKILL.md`, `docs/user-guide/dashboard.md` (engine tree only; do not hand-edit untracked `.cursor/skills/stockroom-local/` mirrors)
 
-11. **Verification**
+11. **Verification** ✅
     - `make test-dashboard-py`, `make test-dashboard-js`, then `make ci`
 
 ## Technology Validation
@@ -194,5 +194,5 @@ No new technology - validation not required (extend existing dashboard static ES
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight
-- [ ] Build
+- [x] Build
 - [ ] QA

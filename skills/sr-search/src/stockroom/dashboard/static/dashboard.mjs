@@ -4,6 +4,7 @@ import {
   buildFirstPromptPanel,
   buildModelsPanel,
   buildProjectsPanel,
+  buildSessionsPanelRows,
   buildToolsPanel,
   buildWrappedPanel,
   buildWriteReadPanel,
@@ -17,6 +18,8 @@ import {
   PANEL_HELP,
   panelRangeLabels,
   projectHoverTitle,
+  resolveWindowBounds,
+  sessionsPaginationVisible,
   summarizeChartPanel,
   togglePanelHelp,
   tooltipTitleFromLabelTitles,
@@ -26,17 +29,21 @@ import {
   DashboardRequestError,
   createRequestGate,
   fetchSessionDetail,
+  fetchSessionsPage,
   fetchSnapshot,
 } from "./dashboard-data.mjs";
 import {
   buildSessionDeepLink,
   buildSessionViewSearchParams,
+  buildSessionsListSearchParams,
+  clampSessionsListPage,
   formatSessionJsonExport,
   formatSessionMarkdownExport,
   isActiveSessionView,
+  normalizePerPage,
   parseSessionViewParams,
+  parseSessionsListParams,
   renderSessionMessageHtml,
-  shouldUseHistoryBackForSessionClose,
 } from "./dashboard-session.mjs";
 
 // Richer markdown → use export. Do not add markdown-it plugins.
@@ -49,8 +56,8 @@ const markdown = window.markdownit({
 const elements = {
   dashboard: document.querySelector("#dashboard"),
   metricsPane: document.querySelector("#metrics-pane"),
+  sessionsPane: document.querySelector("#sessions-pane"),
   sessionPane: document.querySelector("#session-pane"),
-  sessionBack: document.querySelector("#session-back"),
   sessionCopyLink: document.querySelector("#session-copy-link"),
   sessionExportMd: document.querySelector("#session-export-md"),
   sessionExportJson: document.querySelector("#session-export-json"),
@@ -63,6 +70,20 @@ const elements = {
   harnessOptions: document.querySelector("#harness-options"),
   dateRangeSelector: document.querySelector("#date-range-selector"),
   modeSelector: document.querySelector("#mode-selector"),
+  sessionsHarnessSelector: document.querySelector("#sessions-harness-selector"),
+  sessionsHarnessSummary: document.querySelector("#sessions-harness-summary"),
+  sessionsHarnessOptions: document.querySelector("#sessions-harness-options"),
+  sessionsDateRangeSelector: document.querySelector("#sessions-date-range-selector"),
+  perPageSelector: document.querySelector("#per-page-selector"),
+  sessionsPaginationTop: document.querySelector("#sessions-pagination-top"),
+  sessionsPaginationBottom: document.querySelector("#sessions-pagination-bottom"),
+  sessionsPageLabelTop: document.querySelector("#sessions-page-label-top"),
+  sessionsPageLabelBottom: document.querySelector("#sessions-page-label-bottom"),
+  sessionsPrevTop: document.querySelector("#sessions-prev-top"),
+  sessionsNextTop: document.querySelector("#sessions-next-top"),
+  sessionsPrevBottom: document.querySelector("#sessions-prev-bottom"),
+  sessionsNextBottom: document.querySelector("#sessions-next-bottom"),
+  sessionsListRows: document.querySelector("#sessions-list-rows"),
   kpiGrid: document.querySelector("#kpi-grid"),
   status: document.querySelector("#status"),
   error: document.querySelector("#error"),
@@ -73,6 +94,7 @@ const elements = {
 
 const requestGate = createRequestGate();
 const sessionRequestGate = createRequestGate();
+const sessionsListRequestGate = createRequestGate();
 const chartRegistry = new Map();
 const numberFormatter = new Intl.NumberFormat(undefined, {
   maximumFractionDigits: 1,
@@ -88,6 +110,11 @@ let state = {
 let openHelpId = null;
 let sessionDetail = null;
 let sessionView = null;
+/** @type {{harnesses: string[], since: string | null, until: string | null, page: number, perPage: 25|50|100|"all"} | null} */
+let sessionsList = null;
+let sessionsListTotal = 0;
+/** @type {string | null} Preset for list date radios; null when deep-linked with opaque bounds. */
+let sessionsListDateRange = "default";
 
 function setStatus(message) {
   elements.status.textContent = message;
@@ -138,12 +165,21 @@ function setBusy(busy) {
 function showMetricsView() {
   document.documentElement.dataset.view = "metrics";
   elements.metricsPane.hidden = false;
+  elements.sessionsPane.hidden = true;
+  elements.sessionPane.hidden = true;
+}
+
+function showSessionsListView() {
+  document.documentElement.dataset.view = "sessions";
+  elements.metricsPane.hidden = true;
+  elements.sessionsPane.hidden = false;
   elements.sessionPane.hidden = true;
 }
 
 function showSessionView() {
   document.documentElement.dataset.view = "session";
   elements.metricsPane.hidden = true;
+  elements.sessionsPane.hidden = true;
   elements.sessionPane.hidden = false;
 }
 
@@ -157,7 +193,15 @@ function downloadText(filename, text, mimeType) {
   URL.revokeObjectURL(url);
 }
 
-function appendHarnessRow({ harness, label, color, checked, disabled, onChange }) {
+function appendHarnessRow({
+  harness,
+  label,
+  color,
+  checked,
+  disabled,
+  onChange,
+  container = elements.harnessOptions,
+}) {
   const row = document.createElement("label");
   row.className = "check-row";
   const input = document.createElement("input");
@@ -171,7 +215,7 @@ function appendHarnessRow({ harness, label, color, checked, disabled, onChange }
   dot.setAttribute("aria-hidden", "true");
   dot.style.setProperty("--harness-color", color);
   row.append(input, dot, document.createTextNode(label));
-  elements.harnessOptions.append(row);
+  container.append(row);
 }
 
 function renderHarnessControls() {
@@ -368,49 +412,182 @@ function appendCell(row, value, className) {
   return cell;
 }
 
-function renderSessions(sessions) {
+function appendSessionDataRow(tbody, session, colors) {
+  const row = document.createElement("tr");
+  row.className = "session-row";
+  row.tabIndex = 0;
+  row.dataset.harness = session.harness ?? "";
+  row.dataset.sessionId = session.session_id ?? "";
+  row.setAttribute(
+    "aria-label",
+    `Open session ${session.session_id ?? ""} from ${displayHarness(session.harness)}`,
+  );
+  const started = appendCell(row, formatDate(session.started));
+  if (session.started) {
+    started.title = session.started;
+  }
+  const harnessCell = document.createElement("td");
+  const harnessLabel = document.createElement("span");
+  harnessLabel.className = "harness-label";
+  const dot = document.createElement("span");
+  dot.className = "harness-dot";
+  dot.setAttribute("aria-hidden", "true");
+  dot.style.setProperty("--harness-color", colors[session.harness] ?? "var(--accent)");
+  harnessLabel.append(dot, document.createTextNode(displayHarness(session.harness)));
+  harnessCell.append(harnessLabel);
+  row.append(harnessCell);
+  const projectCell = appendCell(row, session.project_name || "—");
+  const projectTitle = projectHoverTitle(session.project_name, session.project_id);
+  if (projectTitle) {
+    projectCell.title = projectTitle;
+  }
+  appendCell(row, numberFormatter.format(Number(session.msgs) || 0));
+  appendCell(row, session.model || "—");
+  appendCell(row, session.prompt || "—", "prompt-cell");
+  tbody.append(row);
+}
+
+function renderSessions(ends) {
   elements.sessionRows.replaceChildren();
-  if (!Array.isArray(sessions) || sessions.length === 0) {
+  const rows = buildSessionsPanelRows(ends ?? { total: 0, newest: [], oldest: [] });
+  if (rows.length === 0) {
     const row = document.createElement("tr");
-    const cell = appendCell(row, "No recent sessions for this selection.");
+    const cell = appendCell(row, "No sessions for this selection.");
     cell.colSpan = 6;
     elements.sessionRows.append(row);
     return;
   }
   const colors = harnessColors(state.harnesses);
-  for (const session of sessions) {
+  for (const item of rows) {
+    if (item.kind === "more") {
+      const row = document.createElement("tr");
+      row.className = "sessions-more-row";
+      row.tabIndex = 0;
+      row.dataset.moreCount = String(item.count);
+      row.setAttribute("aria-label", `Show ${item.count} more sessions`);
+      const cell = document.createElement("td");
+      cell.colSpan = 6;
+      cell.textContent = `… ${item.count} more`;
+      row.append(cell);
+      elements.sessionRows.append(row);
+      continue;
+    }
+    appendSessionDataRow(elements.sessionRows, item.session, colors);
+  }
+}
+
+function renderSessionsListTable(sessions) {
+  elements.sessionsListRows.replaceChildren();
+  if (!Array.isArray(sessions) || sessions.length === 0) {
     const row = document.createElement("tr");
-    row.className = "session-row";
-    row.tabIndex = 0;
-    row.dataset.harness = session.harness ?? "";
-    row.dataset.sessionId = session.session_id ?? "";
-    row.setAttribute(
-      "aria-label",
-      `Open session ${session.session_id ?? ""} from ${displayHarness(session.harness)}`,
-    );
-    const started = appendCell(row, formatDate(session.started));
-    if (session.started) {
-      started.title = session.started;
+    const cell = appendCell(row, "No sessions for this selection.");
+    cell.colSpan = 6;
+    elements.sessionsListRows.append(row);
+    return;
+  }
+  const colors = harnessColors(state.harnesses);
+  for (const session of sessions) {
+    appendSessionDataRow(elements.sessionsListRows, session, colors);
+  }
+}
+
+function renderSessionsPagination() {
+  if (!sessionsList) {
+    return;
+  }
+  const visible = sessionsPaginationVisible(sessionsListTotal, sessionsList.perPage);
+  elements.sessionsPaginationTop.hidden = !visible;
+  elements.sessionsPaginationBottom.hidden = !visible;
+  const page = sessionsList.page;
+  const lastPage =
+    sessionsList.perPage === "all" || sessionsListTotal <= 0
+      ? 1
+      : Math.max(1, Math.ceil(sessionsListTotal / sessionsList.perPage));
+  const label = `Page ${page} of ${lastPage}`;
+  elements.sessionsPageLabelTop.textContent = label;
+  elements.sessionsPageLabelBottom.textContent = label;
+  const atStart = page <= 1;
+  const atEnd = page >= lastPage;
+  for (const button of [
+    elements.sessionsPrevTop,
+    elements.sessionsPrevBottom,
+  ]) {
+    button.disabled = atStart;
+  }
+  for (const button of [
+    elements.sessionsNextTop,
+    elements.sessionsNextBottom,
+  ]) {
+    button.disabled = atEnd;
+  }
+}
+
+function syncSessionsListControls() {
+  if (!sessionsList) {
+    return;
+  }
+  for (const input of elements.sessionsDateRangeSelector.querySelectorAll(
+    'input[name="sessions-date-range"]',
+  )) {
+    if (!(input instanceof HTMLInputElement)) {
+      continue;
     }
-    const harnessCell = document.createElement("td");
-    const harnessLabel = document.createElement("span");
-    harnessLabel.className = "harness-label";
-    const dot = document.createElement("span");
-    dot.className = "harness-dot";
-    dot.setAttribute("aria-hidden", "true");
-    dot.style.setProperty("--harness-color", colors[session.harness] ?? "var(--accent)");
-    harnessLabel.append(dot, document.createTextNode(displayHarness(session.harness)));
-    harnessCell.append(harnessLabel);
-    row.append(harnessCell);
-    const projectCell = appendCell(row, session.project_name || "—");
-    const projectTitle = projectHoverTitle(session.project_name, session.project_id);
-    if (projectTitle) {
-      projectCell.title = projectTitle;
+    input.checked =
+      sessionsListDateRange != null && input.value === sessionsListDateRange;
+  }
+  for (const input of elements.perPageSelector.querySelectorAll(
+    'input[name="per-page"]',
+  )) {
+    if (!(input instanceof HTMLInputElement)) {
+      continue;
     }
-    appendCell(row, numberFormatter.format(Number(session.msgs) || 0));
-    appendCell(row, session.model || "—");
-    appendCell(row, session.prompt || "—", "prompt-cell");
-    elements.sessionRows.append(row);
+    input.checked = String(sessionsList.perPage) === input.value;
+  }
+  renderSessionsHarnessControls();
+}
+
+function renderSessionsHarnessControls() {
+  if (!elements.sessionsHarnessOptions || !sessionsList) {
+    return;
+  }
+  const colors = harnessColors(state.harnesses);
+  const selected = new Set(sessionsList.harnesses);
+  elements.sessionsHarnessOptions.replaceChildren();
+  if (state.harnesses.length === 0) {
+    elements.sessionsHarnessSummary.textContent = "No harnesses";
+    elements.sessionsHarnessOptions.append(document.createTextNode("No harness data yet."));
+    return;
+  }
+  const selectedCount = sessionsList.harnesses.length;
+  elements.sessionsHarnessSummary.textContent =
+    selectedCount === state.harnesses.length
+      ? "All harnesses"
+      : `${selectedCount} harness${selectedCount === 1 ? "" : "es"}`;
+  for (const harness of state.harnesses) {
+    appendHarnessRow({
+      container: elements.sessionsHarnessOptions,
+      harness,
+      label: displayHarness(harness),
+      color: colors[harness],
+      checked: selected.has(harness),
+      disabled: selected.has(harness) && selectedCount === 1,
+      onChange: (event) => {
+        const input = event.target;
+        if (!(input instanceof HTMLInputElement) || !sessionsList) {
+          return;
+        }
+        let next = [...sessionsList.harnesses];
+        if (input.checked) {
+          next = [...new Set([...next, harness])].sort((a, b) => a.localeCompare(b));
+        } else {
+          next = next.filter((item) => item !== harness);
+        }
+        if (next.length === 0) {
+          return;
+        }
+        void navigateSessionsList({ ...sessionsList, harnesses: next, page: 1 });
+      },
+    });
   }
 }
 
@@ -511,7 +688,7 @@ function renderDashboard() {
       colors,
     ),
   );
-  renderSessions(snapshot.sessions);
+  renderSessions(snapshot.sessions_ends);
   renderWrapped(snapshot.wrapped);
 }
 
@@ -551,17 +728,19 @@ async function refreshDashboard(initial = false) {
       renderHarnessControls();
       renderDashboard();
       clearError();
-      if (!sessionView) {
+      if (!sessionView && !sessionsList) {
         setStatus(
           state.harnesses.length === 0
             ? "Dashboard loaded. No harness data is available yet."
             : `Dashboard loaded for ${state.selected.length} selected harness${state.selected.length === 1 ? "" : "es"}.`,
         );
+      } else if (sessionsList && !sessionView) {
+        renderSessionsHarnessControls();
       }
     });
   } catch (error) {
     if (error?.name !== "AbortError" && request.isCurrent()) {
-      if (!sessionView) {
+      if (!sessionView && !sessionsList) {
         showError(error);
         setStatus(
           state.snapshot
@@ -571,7 +750,7 @@ async function refreshDashboard(initial = false) {
       }
     }
   } finally {
-    if (request.isCurrent() && !sessionView) {
+    if (request.isCurrent() && !sessionView && !sessionsList) {
       setBusy(false);
     }
   }
@@ -719,6 +898,7 @@ function renderSessionDetail(detail) {
 }
 
 async function openSessionView(harness, sessionId, { push = true } = {}) {
+  sessionsListRequestGate.begin();
   sessionView = { harness, sessionId };
   sessionDetail = null;
   clearSessionError();
@@ -764,24 +944,139 @@ async function openSessionView(harness, sessionId, { push = true } = {}) {
   }
 }
 
-function closeSessionView({ push = true } = {}) {
-  // Abort any in-flight session fetch and invalidate its commit generation.
+function pushSessionsListUrl(params) {
+  const search = buildSessionsListSearchParams(params);
+  const next = `${window.location.pathname}?${search.toString()}`;
+  window.history.pushState({ view: "sessions", ...params }, "", next);
+}
+
+async function navigateSessionsList(
+  params,
+  { push = true, dateRangePreset } = {},
+) {
+  sessionsList = {
+    harnesses: [...(params.harnesses ?? [])],
+    since: params.since ?? null,
+    until: params.until ?? null,
+    page: params.page ?? 1,
+    perPage: normalizePerPage(
+      params.perPage === "all" ? "all" : String(params.perPage ?? 50),
+    ),
+  };
+  if (dateRangePreset !== undefined) {
+    sessionsListDateRange = dateRangePreset;
+  } else if (!sessionsList.since && !sessionsList.until) {
+    sessionsListDateRange = "default";
+  } else if (push) {
+    // keep prior preset when filters change within the list
+  } else {
+    sessionsListDateRange = null;
+  }
+  sessionView = null;
+  sessionDetail = null;
+  sessionRequestGate.begin();
+  clearSessionError();
+  showSessionsListView();
+  syncSessionsListControls();
+  if (push) {
+    pushSessionsListUrl(sessionsList);
+  }
+  await refreshSessionsList();
+}
+
+async function refreshSessionsList() {
+  if (!sessionsList) {
+    return;
+  }
+  const request = sessionsListRequestGate.begin();
+  setBusy(true);
+  clearError();
+  setStatus("Loading sessions…");
+  try {
+    const payload = await fetchSessionsPage(
+      window.fetch.bind(window),
+      sessionsList,
+      { signal: request.signal },
+    );
+    request.commit(() => {
+      if (!sessionsList) {
+        return;
+      }
+      const total = Number(payload?.total) || 0;
+      sessionsListTotal = total;
+      const clamped = clampSessionsListPage(
+        sessionsList.page,
+        total,
+        sessionsList.perPage,
+      );
+      if (clamped !== sessionsList.page) {
+        sessionsList = { ...sessionsList, page: clamped };
+        const search = buildSessionsListSearchParams(sessionsList);
+        window.history.replaceState(
+          { view: "sessions", ...sessionsList },
+          "",
+          `${window.location.pathname}?${search.toString()}`,
+        );
+        void refreshSessionsList();
+        return;
+      }
+      renderSessionsListTable(payload?.sessions ?? []);
+      renderSessionsPagination();
+      setStatus(
+        total === 0
+          ? "No sessions for this selection."
+          : `Loaded ${payload.sessions?.length ?? 0} of ${total} sessions.`,
+      );
+    });
+  } catch (error) {
+    if (error?.name !== "AbortError" && request.isCurrent()) {
+      showError(error);
+      setStatus("Sessions list could not be loaded.");
+    }
+  } finally {
+    if (request.isCurrent() && !sessionView) {
+      setBusy(false);
+    }
+  }
+}
+
+function openSessionsListFromMetrics() {
+  void navigateSessionsList(
+    {
+      harnesses: [...state.selected],
+      since: state.window?.since ?? null,
+      until: state.window?.until ?? null,
+      page: 1,
+      perPage: 50,
+    },
+    { dateRangePreset: state.dateRange },
+  );
+}
+
+function leaveSessionView() {
   sessionRequestGate.begin();
   sessionView = null;
   sessionDetail = null;
   clearSessionError();
-  showMetricsView();
-  if (push) {
-    if (shouldUseHistoryBackForSessionClose(window.history.state)) {
-      window.history.back();
-      return;
-    }
-    window.history.replaceState(
-      { view: "metrics" },
-      "",
-      window.location.pathname,
-    );
+}
+
+function syncViewFromLocation() {
+  const search = new URLSearchParams(window.location.search);
+  const sessionParams = parseSessionViewParams(search);
+  if (sessionParams) {
+    void openSessionView(sessionParams.harness, sessionParams.sessionId, {
+      push: false,
+    });
+    return;
   }
+  const listParams = parseSessionsListParams(search);
+  if (listParams) {
+    void navigateSessionsList(listParams, { push: false });
+    return;
+  }
+  leaveSessionView();
+  sessionsList = null;
+  showMetricsView();
   if (!state.snapshot) {
     void refreshDashboard(true);
     return;
@@ -791,47 +1086,54 @@ function closeSessionView({ push = true } = {}) {
   );
 }
 
-function syncViewFromLocation() {
-  const params = parseSessionViewParams(new URLSearchParams(window.location.search));
-  if (params) {
-    void openSessionView(params.harness, params.sessionId, { push: false });
-    return;
-  }
-  closeSessionView({ push: false });
+function bindSessionRowActivation(tbody) {
+  tbody.addEventListener("click", (event) => {
+    const more =
+      event.target instanceof Element
+        ? event.target.closest("tr.sessions-more-row")
+        : null;
+    if (more instanceof HTMLTableRowElement) {
+      openSessionsListFromMetrics();
+      return;
+    }
+    const row =
+      event.target instanceof Element ? event.target.closest("tr.session-row") : null;
+    if (!(row instanceof HTMLTableRowElement)) {
+      return;
+    }
+    const harness = row.dataset.harness;
+    const sessionId = row.dataset.sessionId;
+    if (harness && sessionId) {
+      void openSessionView(harness, sessionId);
+    }
+  });
+  tbody.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+    const row = event.target;
+    if (!(row instanceof HTMLTableRowElement)) {
+      return;
+    }
+    if (row.classList.contains("sessions-more-row")) {
+      event.preventDefault();
+      openSessionsListFromMetrics();
+      return;
+    }
+    if (!row.classList.contains("session-row")) {
+      return;
+    }
+    event.preventDefault();
+    const harness = row.dataset.harness;
+    const sessionId = row.dataset.sessionId;
+    if (harness && sessionId) {
+      void openSessionView(harness, sessionId);
+    }
+  });
 }
 
-elements.sessionRows.addEventListener("click", (event) => {
-  const row =
-    event.target instanceof Element ? event.target.closest("tr.session-row") : null;
-  if (!(row instanceof HTMLTableRowElement)) {
-    return;
-  }
-  const harness = row.dataset.harness;
-  const sessionId = row.dataset.sessionId;
-  if (harness && sessionId) {
-    void openSessionView(harness, sessionId);
-  }
-});
-
-elements.sessionRows.addEventListener("keydown", (event) => {
-  if (event.key !== "Enter" && event.key !== " ") {
-    return;
-  }
-  const row = event.target;
-  if (!(row instanceof HTMLTableRowElement) || !row.classList.contains("session-row")) {
-    return;
-  }
-  event.preventDefault();
-  const harness = row.dataset.harness;
-  const sessionId = row.dataset.sessionId;
-  if (harness && sessionId) {
-    void openSessionView(harness, sessionId);
-  }
-});
-
-elements.sessionBack.addEventListener("click", () => {
-  closeSessionView();
-});
+bindSessionRowActivation(elements.sessionRows);
+bindSessionRowActivation(elements.sessionsListRows);
 
 elements.sessionCopyLink.addEventListener("click", async () => {
   if (!sessionView) {
@@ -866,13 +1168,89 @@ elements.sessionExportJson.addEventListener("click", () => {
   downloadText(name, formatSessionJsonExport(sessionDetail), "application/json");
 });
 
+elements.sessionsDateRangeSelector.addEventListener("change", (event) => {
+  if (
+    !(event.target instanceof HTMLInputElement) ||
+    event.target.name !== "sessions-date-range" ||
+    !sessionsList
+  ) {
+    return;
+  }
+  const preset = event.target.value;
+  if (preset === "default") {
+    void navigateSessionsList(
+      {
+        ...sessionsList,
+        since: null,
+        until: null,
+        page: 1,
+      },
+      { dateRangePreset: "default" },
+    );
+    return;
+  }
+  const bounds = resolveWindowBounds(preset, new Date());
+  void navigateSessionsList(
+    {
+      ...sessionsList,
+      since: bounds?.since ?? null,
+      until: bounds?.until ?? null,
+      page: 1,
+    },
+    { dateRangePreset: preset },
+  );
+});
+
+elements.perPageSelector.addEventListener("change", (event) => {
+  if (
+    !(event.target instanceof HTMLInputElement) ||
+    event.target.name !== "per-page" ||
+    !sessionsList
+  ) {
+    return;
+  }
+  void navigateSessionsList({
+    ...sessionsList,
+    perPage: normalizePerPage(event.target.value),
+    page: 1,
+  });
+});
+
+function shiftSessionsPage(delta) {
+  if (!sessionsList || sessionsList.perPage === "all") {
+    return;
+  }
+  void navigateSessionsList({
+    ...sessionsList,
+    page: Math.max(1, sessionsList.page + delta),
+  });
+}
+
+elements.sessionsPrevTop.addEventListener("click", () => shiftSessionsPage(-1));
+elements.sessionsPrevBottom.addEventListener("click", () => shiftSessionsPage(-1));
+elements.sessionsNextTop.addEventListener("click", () => shiftSessionsPage(1));
+elements.sessionsNextBottom.addEventListener("click", () => shiftSessionsPage(1));
+
+document.addEventListener("click", (event) => {
+  if (
+    elements.sessionsHarnessSelector?.open &&
+    !elements.sessionsHarnessSelector.contains(event.target)
+  ) {
+    elements.sessionsHarnessSelector.open = false;
+  }
+});
+
 window.addEventListener("popstate", () => {
   syncViewFromLocation();
 });
 
-const bootParams = parseSessionViewParams(new URLSearchParams(window.location.search));
-if (bootParams) {
-  void openSessionView(bootParams.harness, bootParams.sessionId, { push: false });
+const bootSearch = new URLSearchParams(window.location.search);
+const bootSession = parseSessionViewParams(bootSearch);
+const bootList = parseSessionsListParams(bootSearch);
+if (bootSession) {
+  void openSessionView(bootSession.harness, bootSession.sessionId, { push: false });
+} else if (bootList) {
+  void navigateSessionsList(bootList, { push: false });
 } else {
   showMetricsView();
 }

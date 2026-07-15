@@ -904,8 +904,7 @@ def test_sessions_are_recent_filtered_and_display_truncated(
         },
     ]
     assert [
-        row["harness"]
-        for row in metrics.sessions(migrated_con, ["cursor"])["sessions"]
+        row["harness"] for row in metrics.sessions(migrated_con, ["cursor"])["sessions"]
     ] == ["cursor"]
 
 

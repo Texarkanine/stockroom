@@ -8,8 +8,11 @@
     <script>
       (() => {
         const params = new URLSearchParams(window.location.search);
-        if (
-          params.get("view") === "session" &&
+        const view = params.get("view");
+        if (view === "sessions") {
+          document.documentElement.dataset.view = "sessions";
+        } else if (
+          view === "session" &&
           params.get("harness") &&
           params.get("session")
         ) {
@@ -293,12 +296,47 @@
         display: none !important;
       }
 
-      html[data-view="session"] #metrics-pane {
+      html[data-view="session"] #metrics-pane,
+      html[data-view="sessions"] #metrics-pane {
         display: none !important;
+      }
+
+      html[data-view="session"] #sessions-pane,
+      html[data-view="sessions"] #session-pane {
+        display: none !important;
+      }
+
+      html[data-view="sessions"] #sessions-pane[hidden] {
+        display: block !important;
       }
 
       html[data-view="session"] #session-pane[hidden] {
         display: block !important;
+      }
+
+      .sessions-more-row {
+        cursor: pointer;
+        text-align: center;
+        font-weight: 650;
+        color: var(--accent-strong);
+      }
+
+      .sessions-more-row:hover,
+      .sessions-more-row:focus-within {
+        background: var(--surface-soft);
+      }
+
+      .sessions-pagination {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        margin: 0.75rem 0;
+      }
+
+      .sessions-pagination[hidden] {
+        display: none !important;
       }
 
       .kpi-grid {
@@ -990,7 +1028,7 @@
       </section>
 
       <section class="sessions-panel" id="recent-sessions" aria-labelledby="recent-sessions-title">
-        <h2 id="recent-sessions-title">Recent Sessions</h2>
+        <h2 id="recent-sessions-title">Sessions</h2>
         <div class="table-scroll">
           <table>
             <thead>
@@ -1004,7 +1042,7 @@
               </tr>
             </thead>
             <tbody id="session-rows">
-              <tr><td colspan="6">Loading recent sessions…</td></tr>
+              <tr><td colspan="6">Loading sessions…</td></tr>
             </tbody>
           </table>
         </div>
@@ -1026,9 +1064,89 @@
       </section>
       </div>
 
+      <section class="sessions-list-pane" id="sessions-pane" aria-labelledby="sessions-list-title" hidden>
+        <h2 id="sessions-list-title">Sessions</h2>
+        <section class="controls" aria-label="Sessions list filters">
+          <details id="sessions-harness-selector">
+            <summary><span id="sessions-harness-summary">Loading harnesses…</span></summary>
+            <div class="harness-options" id="sessions-harness-options">
+              <span>Loading harnesses…</span>
+            </div>
+          </details>
+          <fieldset id="sessions-date-range-selector" class="segmented">
+            <legend>Date range</legend>
+            <label class="mode-row">
+              <input type="radio" name="sessions-date-range" value="default" checked>
+              Default
+            </label>
+            <label class="mode-row">
+              <input type="radio" name="sessions-date-range" value="7d">
+              7d
+            </label>
+            <label class="mode-row">
+              <input type="radio" name="sessions-date-range" value="30d">
+              30d
+            </label>
+            <label class="mode-row">
+              <input type="radio" name="sessions-date-range" value="90d">
+              90d
+            </label>
+            <label class="mode-row">
+              <input type="radio" name="sessions-date-range" value="1y">
+              1y
+            </label>
+          </fieldset>
+          <fieldset id="per-page-selector" class="segmented" aria-label="Per page">
+            <legend>Per page</legend>
+            <label class="mode-row">
+              <input type="radio" name="per-page" value="25">
+              25
+            </label>
+            <label class="mode-row">
+              <input type="radio" name="per-page" value="50" checked>
+              50
+            </label>
+            <label class="mode-row">
+              <input type="radio" name="per-page" value="100">
+              100
+            </label>
+            <label class="mode-row">
+              <input type="radio" name="per-page" value="all">
+              All
+            </label>
+          </fieldset>
+        </section>
+        <div class="sessions-pagination" id="sessions-pagination-top" hidden>
+          <button type="button" id="sessions-prev-top">Previous</button>
+          <p id="sessions-page-label-top" aria-live="polite">Page 1</p>
+          <button type="button" id="sessions-next-top">Next</button>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Started</th>
+                <th scope="col">Harness</th>
+                <th scope="col">Project</th>
+                <th scope="col">Messages</th>
+                <th scope="col">Model</th>
+                <th scope="col">First prompt</th>
+              </tr>
+            </thead>
+            <tbody id="sessions-list-rows">
+              <tr><td colspan="6">Loading sessions…</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="sessions-pagination" id="sessions-pagination-bottom" hidden>
+          <button type="button" id="sessions-prev-bottom">Previous</button>
+          <p id="sessions-page-label-bottom" aria-live="polite">Page 1</p>
+          <button type="button" id="sessions-next-bottom">Next</button>
+        </div>
+      </section>
+
       <section class="session-pane" id="session-pane" aria-labelledby="session-title" hidden>
         <div class="session-toolbar">
-          <button type="button" id="session-back">⬅️ Back to metrics</button>
           <button type="button" id="session-copy-link">🔗 Copy deep-link</button>
           <button type="button" id="session-export-md">📥 Export markdown</button>
           <button type="button" id="session-export-json">📥 Export JSON</button>

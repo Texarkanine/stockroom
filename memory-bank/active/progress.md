@@ -60,3 +60,12 @@ Implement dashboard Sessions browse: capped glanceable Sessions panel on metrics
     - Preflight PASS — build gated on operator `/niko-build`
 * Insights
     - Existing server tests assert array payloads and limit clamp 500 — must be rewritten in build units 2–3
+
+## 2026-07-14 - BUILD - COMPLETE
+
+* Work completed
+    - Units 1–11: metrics `sessions_ends` + paged envelope; server params; JS URL/panel/data helpers; HTML FOUC + sessions pane; dashboard three-view adapter; removed custom back; docs/skill; `make ci` green
+* Decisions made
+    - Built to creative Option B + radio per-page; list date preset kept in memory when seeded from metrics (URL remains since/until only)
+* Insights
+    - Metrics snapshot key is now `sessions_ends`; list fetch is a separate `/api/sessions` call
