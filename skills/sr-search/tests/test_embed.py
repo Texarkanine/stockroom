@@ -287,16 +287,60 @@ class _RecordingEncoder:
 def test_embed_pending_batches_across_messages(
     migrated_con: duckdb.DuckDBPyConnection,
 ) -> None:
-    """Multiple single-chunk pending messages are encoded in one cross-message batch."""
-    for ordinal, text in enumerate(("alpha", "beta", "gamma")):
-        _insert_message(migrated_con, ordinal=ordinal, text=text)
+    """Pending chunks are encoded in bounded windows of ``EMBED_BATCH_SIZE``."""
+    n = embed.EMBED_BATCH_SIZE + 1
+    for ordinal in range(n):
+        _insert_message(migrated_con, ordinal=ordinal, text=f"msg-{ordinal}")
     recorder = _RecordingEncoder()
 
     written = embed.embed_pending(migrated_con, recorder)
 
-    assert written == 3
-    assert recorder.calls == [3]
+    assert written == n
+    assert recorder.calls == [embed.EMBED_BATCH_SIZE, 1]
     assert max(recorder.calls) <= embed.EMBED_BATCH_SIZE
+
+
+class _FailAfterNEncoder:
+    """FakeEncoder that raises after ``succeed_calls`` successful ``encode`` calls."""
+
+    def __init__(self, *, succeed_calls: int) -> None:
+        self._succeed_calls = succeed_calls
+        self.calls = 0
+        self._inner = FakeEncoder()
+
+    def encode(self, texts: list[str]) -> list[list[float]]:
+        self.calls += 1
+        if self.calls > self._succeed_calls:
+            raise RuntimeError("encode failed")
+        return self._inner.encode(texts)
+
+
+def test_embed_pending_replace_rolls_back_on_mid_batch_failure(
+    migrated_con: duckdb.DuckDBPyConnection, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A mid-replace encode failure leaves no partial current-model chunks.
+
+    Without an atomic delete+insert, a multi-chunk owner can keep some chunks
+    after a crash and then be skipped by incremental ``NOT EXISTS``.
+    """
+    monkeypatch.setattr(embed, "EMBED_BATCH_SIZE", 1)
+    text = "z" * 3000  # multi-chunk under default CHUNK_SIZE
+    chunks = embed.chunk_text(text)
+    assert len(chunks) >= 2
+    message_id = _insert_message(migrated_con, ordinal=0, text=text)
+
+    with pytest.raises(RuntimeError, match="encode failed"):
+        embed.embed_pending(migrated_con, _FailAfterNEncoder(succeed_calls=1))
+
+    assert (
+        migrated_con.execute(
+            "SELECT count(*) FROM embeddings WHERE owner_id = ?", [message_id]
+        ).fetchone()[0]
+        == 0
+    )
+    # Incremental selection still sees the owner as pending.
+    written = embed.embed_pending(migrated_con, FakeEncoder())
+    assert written == len(chunks)
 
 
 def test_embed_pending_batched_vectors_match_single_encode(
