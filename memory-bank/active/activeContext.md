@@ -1,11 +1,13 @@
 # Active Context
 
 ## Current Task: fix-local-dashboard-bounce-noop
-**Phase:** BUILD - READY
+**Phase:** QA - READY
 
 ## What Was Done
-- Intent confirmed against https://github.com/Texarkanine/stockroom/issues/48
-- Complexity determined: Level 1 (bug fix, dashboard lifecycle + thin Make wiring)
+- Added `--replace` force path for owned listeners; bare path still no-ops when current
+- Wired `make local-dashboard` to `--replace`; removed lying bounce echo
+- Tests: replace-forces-kill + foreign-left-alone; full suite 556 passed, 4 skipped
+- Docs: preparation + iteration local-dashboard wording
 
 ## Next Step
-- Locate root cause in dashboard CLI + Make; write failing test; force-replace for localdev; honest bounce messaging
+- Run Level 1 QA semantic review

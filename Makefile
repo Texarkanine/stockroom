@@ -103,9 +103,8 @@ local-engine: ## Claim shim (TAKEOVER+FORCE) + ensure-env for this checkout
 	@PYTHONPATH=$(CURDIR)/$(ENGINE)/src $(UV_RUN) python -m stockroom shim ensure-env --app-dir $(CURDIR)/$(ENGINE)
 	@echo "local-engine: shim claimed (dev+takeover+force) and ensure-env run"
 
-local-dashboard: ## Bounce stockroom dashboard (identity-aware replace)
-	@PYTHONPATH=$(CURDIR)/$(ENGINE)/src $(UV_RUN) python -m stockroom dashboard
-	@echo "local-dashboard: dashboard bounced"
+local-dashboard: ## Force-replace stockroom dashboard for this checkout
+	@PYTHONPATH=$(CURDIR)/$(ENGINE)/src $(UV_RUN) python -m stockroom dashboard --replace
 
 localdev: require-harness ## Compose local-skills + local-engine + local-dashboard
 	@$(MAKE) --no-print-directory local-skills HARNESS=$(HARNESS)

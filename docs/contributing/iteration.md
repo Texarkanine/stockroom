@@ -211,7 +211,7 @@ Static ESM is read from disk on each request; Python changes only get picked up 
 | `test-dashboard-js` | Dashboard ES-module tests (`node --test`; Node 22; no sync) |
 | `test-dashboard-py` | `tests/test_dashboard_*.py` only (torch-safe; no sync) |
 | `test` | Full pytest + JS (runs `sync` first — strips torch) |
-| `local-dashboard` | Bounce `stockroom dashboard` for this checkout |
+| `local-dashboard` | Force-replace `stockroom dashboard` for this checkout (`--replace`) |
 
 ## Skills
 

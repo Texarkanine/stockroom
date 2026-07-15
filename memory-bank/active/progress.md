@@ -20,3 +20,16 @@ Fix `make local-dashboard` / dashboard start so a matching `app_dir`+version no 
     - Leaving complexity analysis; entering Level 1 build
 * Decisions made
     - Skip plan/creative/preflight per L1 workflow
+
+## 2026-07-15 - BUILD - COMPLETE
+
+* Work completed
+    - `--replace` on dashboard CLI forces owned kill+respawn; stderr `dashboard: replaced` on success
+    - `make local-dashboard` passes `--replace`; dropped unconditional bounce echo
+    - Tests in `test_dashboard_cli.py`; full suite green (556 passed, 4 skipped)
+    - Contributing docs updated for force-replace wording
+* Decisions made
+    - Keep bare `stockroom dashboard` identity no-op; force only via `--replace` / Make
+    - Outcome honesty via CLI stderr + no Make bounce claim (not a parsed exit code)
+* Insights
+    - Identity match is not “fresh code”; localdev bounce must opt into replace explicitly
