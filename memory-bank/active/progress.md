@@ -49,3 +49,13 @@ Add `.github/dependabot.yaml` for both UV roots (docs at `/`, engine at `/skills
     - Config-only deliverable; GitHub validates on ingest
 * Insights
     - Contract-testing Dependabot YAML is ceremony without product signal
+
+## 2026-07-15 - QA - COMPLETE
+
+* Work completed
+    - Semantic review of `.github/dependabot.yaml` against project brief
+    - All requirements satisfied; test-suite debris already removed per operator
+* Decisions made
+    - QA PASS — no substantive fixes required
+* Insights
+    - Operator override on tests was the right call for platform config
