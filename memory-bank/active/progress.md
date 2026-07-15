@@ -61,3 +61,13 @@ Speed up `stockroom embed` with cross-message chunk batching (no accuracy penalt
     - Million-dollar shape ≈ what shipped (select → flatten → batch encode → write → orphan DELETE)
 * Insights
     - ST float32-near policy; DuckDB parallel UNNEST; preflight TDD gate earned its keep
+
+## 2026-07-15 - PR #59 REVIEW FIXES
+
+* Work completed
+    - Opened draft PR #59; judged feedback; fixed items 4, 8, and 1 (atomic txn, quiet orphan path, batch-window test, helper split)
+    - Operator measured ~2h on GTX 1070 for ~45k chunks (was ~overnight); recall unchanged
+* Decisions made
+    - Re-embed and orphan cleanup are separate helpers; `embed_pending` only orchestrates
+* Insights
+    - Set-delete + multi-batch write needs a transaction or partial owners poison incremental `NOT EXISTS`

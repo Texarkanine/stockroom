@@ -22,7 +22,7 @@ sequenceDiagram
 	participant Harness as Cursor / Claude
 	participant Init as sr-initialize
 	participant Eng as stockroom CLI
-	participant WH as warehouse.db
+	participant WH as warehouse.duckdb
 
 	You->>Harness: Install plugin
 	You->>Harness: /sr-initialize

@@ -108,6 +108,11 @@ No new technology - validation not required. Plan spike already exercised existi
 
 - PASS — KISS fix: `executemany` per encode batch (not one giant buffer). Completeness/docs/regression OK.
 
+## Post-reflect (PR #59)
+
+- Draft PR: https://github.com/Texarkanine/stockroom/pull/59
+- Review fixes pushed: transactional delete+insert; quiet orphan `count_rows=False`; `EMBED_BATCH_SIZE+1` batch-window test; extract `_embed_selected_messages` + `_delete_orphan_message_embeddings` (item 1)
+
 ## Status
 
 - [x] Initialization complete
@@ -118,3 +123,5 @@ No new technology - validation not required. Plan spike already exercised existi
 - [x] Preflight
 - [x] Build
 - [x] QA
+- [x] Reflect
+- [ ] Archive

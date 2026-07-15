@@ -6,14 +6,14 @@ Do this once when you want the harness and on-path CLI to run **only** from your
 
 ### 1. Stop Writers
 
-Close the dashboard, your harness(es), and any other process that might have `warehouse.db` open. A copy taken while DuckDB still has writers can be an inconsistent recovery image.
+Close the dashboard, your harness(es), and any other process that might have `warehouse.duckdb` open. A copy taken while DuckDB still has writers can be an inconsistent recovery image.
 
 ### 2. Make a Backup
 
 Always back up your data before switching off of the normal plugin-marketplace install. Forward migrations can make it hard to go back to an older released engine against the same DB.
 
 ```bash
-cp -r ~/.local/share/stockroom/warehouse.db ~/warehouse.db.backup
+cp -r ~/.local/share/stockroom/warehouse.duckdb ~/warehouse.duckdb.backup
 ```
 
 ### 3. Uninstall the Plugin
