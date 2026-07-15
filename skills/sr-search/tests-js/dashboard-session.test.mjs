@@ -7,6 +7,7 @@ import {
   buildSessionViewSearchParams,
   buildSessionsListSearchParams,
   clampSessionsListPage,
+  documentTitleForView,
   formatSessionJsonExport,
   formatSessionMarkdownExport,
   isActiveSessionView,
@@ -133,6 +134,13 @@ test("isActiveSessionView requires matching harness and session id", () => {
   assert.equal(isActiveSessionView({ harness: "c", sessionId: "1" }, "c", "1"), true);
   assert.equal(isActiveSessionView({ harness: "c", sessionId: "1" }, "c", "2"), false);
   assert.equal(isActiveSessionView(null, "c", "1"), false);
+});
+
+test("documentTitleForView names metrics, conversations list, and conversation", () => {
+  assert.equal(documentTitleForView("metrics"), "stockroom dashboard");
+  assert.equal(documentTitleForView("sessions"), "stockroom conversations");
+  assert.equal(documentTitleForView("session"), "stockroom conversation");
+  assert.equal(documentTitleForView("nope"), "stockroom dashboard");
 });
 
 test("normalizePerPage accepts presets and defaults invalid values to 50", () => {

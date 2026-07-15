@@ -18,6 +18,7 @@ import {
   PANEL_HELP,
   panelRangeLabels,
   projectHoverTitle,
+  buildTruncatedPaginationItems,
   resolveWindowBounds,
   sessionsPaginationVisible,
   summarizeChartPanel,
@@ -37,6 +38,7 @@ import {
   buildSessionViewSearchParams,
   buildSessionsListSearchParams,
   clampSessionsListPage,
+  documentTitleForView,
   formatSessionJsonExport,
   formatSessionMarkdownExport,
   isActiveSessionView,
@@ -77,13 +79,16 @@ const elements = {
   perPageSelector: document.querySelector("#per-page-selector"),
   sessionsPaginationTop: document.querySelector("#sessions-pagination-top"),
   sessionsPaginationBottom: document.querySelector("#sessions-pagination-bottom"),
-  sessionsPageLabelTop: document.querySelector("#sessions-page-label-top"),
-  sessionsPageLabelBottom: document.querySelector("#sessions-page-label-bottom"),
+  sessionsPageNumbersTop: document.querySelector("#sessions-page-numbers-top"),
+  sessionsPageNumbersBottom: document.querySelector(
+    "#sessions-page-numbers-bottom",
+  ),
   sessionsPrevTop: document.querySelector("#sessions-prev-top"),
   sessionsNextTop: document.querySelector("#sessions-next-top"),
   sessionsPrevBottom: document.querySelector("#sessions-prev-bottom"),
   sessionsNextBottom: document.querySelector("#sessions-next-bottom"),
   sessionsListRows: document.querySelector("#sessions-list-rows"),
+  pageHeading: document.querySelector("#page-heading"),
   kpiGrid: document.querySelector("#kpi-grid"),
   status: document.querySelector("#status"),
   error: document.querySelector("#error"),
@@ -162,22 +167,31 @@ function setBusy(busy) {
   }
 }
 
+function applyViewChrome(view) {
+  document.documentElement.dataset.view = view;
+  const title = documentTitleForView(view);
+  document.title = title;
+  if (elements.pageHeading) {
+    elements.pageHeading.textContent = title;
+  }
+}
+
 function showMetricsView() {
-  document.documentElement.dataset.view = "metrics";
+  applyViewChrome("metrics");
   elements.metricsPane.hidden = false;
   elements.sessionsPane.hidden = true;
   elements.sessionPane.hidden = true;
 }
 
 function showSessionsListView() {
-  document.documentElement.dataset.view = "sessions";
+  applyViewChrome("sessions");
   elements.metricsPane.hidden = true;
   elements.sessionsPane.hidden = false;
   elements.sessionPane.hidden = true;
 }
 
 function showSessionView() {
-  document.documentElement.dataset.view = "session";
+  applyViewChrome("session");
   elements.metricsPane.hidden = true;
   elements.sessionsPane.hidden = true;
   elements.sessionPane.hidden = false;
@@ -491,6 +505,31 @@ function renderSessionsListTable(sessions) {
   }
 }
 
+function renderPageNumberStrip(container, page, lastPage) {
+  container.replaceChildren();
+  for (const item of buildTruncatedPaginationItems(page, lastPage)) {
+    if (item === "ellipsis") {
+      const ellipsis = document.createElement("span");
+      ellipsis.className = "sessions-page-ellipsis";
+      ellipsis.setAttribute("aria-hidden", "true");
+      ellipsis.textContent = "…";
+      container.append(ellipsis);
+      continue;
+    }
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = String(item);
+    button.dataset.page = String(item);
+    if (item === page) {
+      button.setAttribute("aria-current", "page");
+      button.disabled = true;
+    } else {
+      button.setAttribute("aria-label", `Go to page ${item}`);
+    }
+    container.append(button);
+  }
+}
+
 function renderSessionsPagination() {
   if (!sessionsList) {
     return;
@@ -503,9 +542,8 @@ function renderSessionsPagination() {
     sessionsList.perPage === "all" || sessionsListTotal <= 0
       ? 1
       : Math.max(1, Math.ceil(sessionsListTotal / sessionsList.perPage));
-  const label = `Page ${page} of ${lastPage}`;
-  elements.sessionsPageLabelTop.textContent = label;
-  elements.sessionsPageLabelBottom.textContent = label;
+  renderPageNumberStrip(elements.sessionsPageNumbersTop, page, lastPage);
+  renderPageNumberStrip(elements.sessionsPageNumbersBottom, page, lastPage);
   const atStart = page <= 1;
   const atEnd = page >= lastPage;
   for (const button of [
@@ -597,7 +635,10 @@ function renderSessionsHarnessControls() {
         if (next.length === 0) {
           return;
         }
-        void navigateSessionsList({ ...sessionsList, harnesses: next, page: 1 });
+        void navigateSessionsList(
+          { ...sessionsList, harnesses: next, page: 1 },
+          { history: "replace" },
+        );
       },
     });
   }
@@ -956,15 +997,30 @@ async function openSessionView(harness, sessionId, { push = true } = {}) {
   }
 }
 
-function pushSessionsListUrl(params) {
+function writeSessionsListUrl(params, mode) {
   const search = buildSessionsListSearchParams(params);
   const next = `${window.location.pathname}?${search.toString()}`;
-  window.history.pushState({ view: "sessions", ...params }, "", next);
+  const state = { view: "sessions", ...params };
+  if (mode === "push") {
+    window.history.pushState(state, "", next);
+  } else if (mode === "replace") {
+    window.history.replaceState(state, "", next);
+  }
 }
 
+/**
+ * @param {object} params
+ * @param {{
+ *   history?: "push" | "replace" | "none",
+ *   dateRangePreset?: string | null,
+ * }} [options]
+ *   ``push`` when entering the list from metrics; ``replace`` for in-list
+ *   filter/page changes (so Back leaves the list, not each page); ``none``
+ *   when syncing from popstate / deep-link boot.
+ */
 async function navigateSessionsList(
   params,
-  { push = true, dateRangePreset } = {},
+  { history = "replace", dateRangePreset } = {},
 ) {
   sessionsList = {
     harnesses: [...(params.harnesses ?? [])],
@@ -979,7 +1035,7 @@ async function navigateSessionsList(
     sessionsListDateRange = dateRangePreset;
   } else if (!sessionsList.since && !sessionsList.until) {
     sessionsListDateRange = "default";
-  } else if (!push) {
+  } else if (history === "none") {
     // Deep-link with opaque since/until: no known radio preset.
     sessionsListDateRange = null;
   }
@@ -990,9 +1046,7 @@ async function navigateSessionsList(
   clearSessionError();
   showSessionsListView();
   syncSessionsListControls();
-  if (push) {
-    pushSessionsListUrl(sessionsList);
-  }
+  writeSessionsListUrl(sessionsList, history);
   await refreshSessionsList();
 }
 
@@ -1061,7 +1115,7 @@ function openSessionsListFromMetrics() {
       page: 1,
       perPage: 50,
     },
-    { dateRangePreset: state.dateRange },
+    { history: "push", dateRangePreset: state.dateRange },
   );
 }
 
@@ -1083,7 +1137,7 @@ function syncViewFromLocation() {
   }
   const listParams = parseSessionsListParams(search);
   if (listParams) {
-    void navigateSessionsList(listParams, { push: false });
+    void navigateSessionsList(listParams, { history: "none" });
     return;
   }
   leaveSessionView();
@@ -1197,7 +1251,7 @@ elements.sessionsDateRangeSelector.addEventListener("change", (event) => {
         until: null,
         page: 1,
       },
-      { dateRangePreset: "default" },
+      { history: "replace", dateRangePreset: "default" },
     );
     return;
   }
@@ -1209,7 +1263,7 @@ elements.sessionsDateRangeSelector.addEventListener("change", (event) => {
       until: bounds?.until ?? null,
       page: 1,
     },
-    { dateRangePreset: preset },
+    { history: "replace", dateRangePreset: preset },
   );
 });
 
@@ -1221,27 +1275,57 @@ elements.perPageSelector.addEventListener("change", (event) => {
   ) {
     return;
   }
-  void navigateSessionsList({
-    ...sessionsList,
-    perPage: normalizePerPage(event.target.value),
-    page: 1,
-  });
+  void navigateSessionsList(
+    {
+      ...sessionsList,
+      perPage: normalizePerPage(event.target.value),
+      page: 1,
+    },
+    { history: "replace" },
+  );
 });
 
-function shiftSessionsPage(delta) {
+function goToSessionsPage(page) {
   if (!sessionsList || sessionsList.perPage === "all") {
     return;
   }
-  void navigateSessionsList({
-    ...sessionsList,
-    page: Math.max(1, sessionsList.page + delta),
-  });
+  const next = Math.max(1, Math.floor(Number(page) || 1));
+  if (next === sessionsList.page) {
+    return;
+  }
+  void navigateSessionsList(
+    { ...sessionsList, page: next },
+    { history: "replace" },
+  );
+}
+
+function shiftSessionsPage(delta) {
+  if (!sessionsList) {
+    return;
+  }
+  goToSessionsPage(sessionsList.page + delta);
 }
 
 elements.sessionsPrevTop.addEventListener("click", () => shiftSessionsPage(-1));
 elements.sessionsPrevBottom.addEventListener("click", () => shiftSessionsPage(-1));
 elements.sessionsNextTop.addEventListener("click", () => shiftSessionsPage(1));
 elements.sessionsNextBottom.addEventListener("click", () => shiftSessionsPage(1));
+
+function bindPageNumberClicks(container) {
+  container.addEventListener("click", (event) => {
+    const button =
+      event.target instanceof Element
+        ? event.target.closest("button[data-page]")
+        : null;
+    if (!(button instanceof HTMLButtonElement) || button.disabled) {
+      return;
+    }
+    goToSessionsPage(button.dataset.page);
+  });
+}
+
+bindPageNumberClicks(elements.sessionsPageNumbersTop);
+bindPageNumberClicks(elements.sessionsPageNumbersBottom);
 
 document.addEventListener("click", (event) => {
   if (
@@ -1262,7 +1346,7 @@ const bootList = parseSessionsListParams(bootSearch);
 if (bootSession) {
   void openSessionView(bootSession.harness, bootSession.sessionId, { push: false });
 } else if (bootList) {
-  void navigateSessionsList(bootList, { push: false });
+  void navigateSessionsList(bootList, { history: "none" });
 } else {
   showMetricsView();
 }

@@ -167,10 +167,16 @@ def test_sessions_list_pane_and_metrics_sessions_chrome() -> None:
     assert "checked" in next(radio for radio in per_page if radio.get("value") == "50")
     assert "sessions-pagination-top" in by_id
     assert "sessions-pagination-bottom" in by_id
+    assert "sessions-page-numbers-top" in by_id
+    assert "sessions-page-numbers-bottom" in by_id
     assert "sessions-list-rows" in by_id
+    assert "page-heading" in by_id
+    assert by_id["warehouse-home"][0] == "a"
+    assert by_id["warehouse-home"][1].get("href") == "/"
     assert 'data-view = "sessions"' in source or 'dataset.view = "sessions"' in source
     assert 'html[data-view="sessions"] #metrics-pane' in source
     assert ".sessions-more-row" in source
+    assert ".sessions-page-numbers" in source
 
 
 def test_session_pane_toolbar_and_bubble_layout_contracts() -> None:
@@ -186,7 +192,8 @@ def test_session_pane_toolbar_and_bubble_layout_contracts() -> None:
     adapter = (STATIC_ROOT / "dashboard.mjs").read_text(encoding="utf-8")
     assert "session-turn-user" in adapter
     assert "session-turn-assistant" in adapter
-    assert 'dataset.view = "session"' in adapter
+    assert "applyViewChrome" in adapter
+    assert "documentTitleForView" in adapter
 
 
 def test_dashboard_top_controls_expose_date_range_and_segmented_mode() -> None:

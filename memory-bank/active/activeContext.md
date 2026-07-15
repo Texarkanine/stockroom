@@ -1,11 +1,10 @@
 # Active Context
 
 ## Current Task: dashboard-sessions-browse
-**Phase:** REFLECT - COMPLETE
+**Phase:** REFLECT - COMPLETE (post-reflect UX polish in progress / done locally)
 
 ## What Was Done
-- Reflection written: `memory-bank/active/reflection/reflection-dashboard-sessions-browse.md`
-- Reconciled `techContext.md` Design System note for three SPA views + Back-only nav
+- Post-reflect UX rework (uncommitted unless operator asks): truncated pagination; view titles; history push only on view entry (replace for in-list page/filter); Local warehouse → `/`
 
 ## Next Step
-- Operator runs `/niko-archive` to archive and clear the active memory bank
+- Operator: try Back + pagination in the UI; then `/niko-archive` when satisfied (commit polish first if desired)

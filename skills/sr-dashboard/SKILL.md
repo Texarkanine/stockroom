@@ -38,7 +38,7 @@ Browse a filtered, paginated sessions list (independent of the metrics pane filt
 {dashboard_base}/?view=sessions&harness={harness}&per_page=50
 ```
 
-Optional query params: repeated `harness`, `since` / `until` (ISO-8601; omit both for the unwindowed default), `page` (omit when 1), `per_page` (`25` | `50` | `100` | `all`; default `50`). Example: `http://127.0.0.1:58008/?view=sessions&harness=cursor&per_page=25&page=2`
+Optional query params: repeated `harness`, `since` / `until` (ISO-8601; omit both for **All** / unwindowed), `page` (omit when 1), `per_page` (`25` | `50` | `100` | `all`; default `50`). Example: `http://127.0.0.1:58008/?view=sessions&harness=cursor&per_page=25&page=2`
 
 ### Session reconstruction
 

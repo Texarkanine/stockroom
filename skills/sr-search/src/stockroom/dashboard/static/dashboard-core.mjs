@@ -404,6 +404,76 @@ export function sessionsPaginationVisible(total, perPage) {
 }
 
 /**
+ * Truncated pagination page tokens (sibling/boundary windows with ellipsis).
+ *
+ * Same algorithm shape as common UI kits (``siblingCount`` / ``boundaryCount``).
+ * Defaults to ``siblingCount=2`` (up to five pages around current) and
+ * ``boundaryCount=1``. Returns page numbers and ``"ellipsis"`` — prev/next are separate.
+ *
+ * @param {number} page Current 1-based page.
+ * @param {number} count Total pages.
+ * @param {{siblingCount?: number, boundaryCount?: number}} [options]
+ * @returns {Array<number | "ellipsis">}
+ */
+export function buildTruncatedPaginationItems(page, count, options = {}) {
+  const total = Math.max(0, Math.floor(Number(count) || 0));
+  if (total <= 0) {
+    return [];
+  }
+  const current = Math.min(Math.max(1, Math.floor(Number(page) || 1)), total);
+  const siblingCount = Math.max(
+    0,
+    Number.isFinite(options.siblingCount)
+      ? Math.floor(options.siblingCount)
+      : 2,
+  );
+  const boundaryCount = Math.max(
+    0,
+    Number.isFinite(options.boundaryCount)
+      ? Math.floor(options.boundaryCount)
+      : 1,
+  );
+
+  const range = (start, end) => {
+    const length = end - start + 1;
+    if (length <= 0) {
+      return [];
+    }
+    return Array.from({ length }, (_, index) => start + index);
+  };
+
+  const startPages = range(1, Math.min(boundaryCount, total));
+  const endPages = range(
+    Math.max(total - boundaryCount + 1, boundaryCount + 1),
+    total,
+  );
+  const siblingsStart = Math.max(
+    Math.min(current - siblingCount, total - boundaryCount - siblingCount * 2 - 1),
+    boundaryCount + 2,
+  );
+  const siblingsEnd = Math.min(
+    Math.max(current + siblingCount, boundaryCount + siblingCount * 2 + 2),
+    total - boundaryCount - 1,
+  );
+
+  return [
+    ...startPages,
+    ...(siblingsStart > boundaryCount + 2
+      ? ["ellipsis"]
+      : boundaryCount + 1 < total - boundaryCount
+        ? [boundaryCount + 1]
+        : []),
+    ...range(siblingsStart, siblingsEnd),
+    ...(siblingsEnd < total - boundaryCount - 1
+      ? ["ellipsis"]
+      : total - boundaryCount > boundaryCount
+        ? [total - boundaryCount]
+        : []),
+    ...endPages,
+  ];
+}
+
+/**
  * Build render rows for the capped Sessions panel from a ``sessions_ends`` payload.
  *
  * @param {{total: number, newest?: object[], oldest?: object[]}} ends

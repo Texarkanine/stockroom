@@ -41,7 +41,7 @@ List deep-link shape:
 http://127.0.0.1:58008/?view=sessions&harness={harness}&per_page=50
 ```
 
-Optional: repeated `harness`, `since` / `until` (omit both for the default unwindowed range), `page`, `per_page` (`25` | `50` | `100` | `all`).
+Optional: repeated `harness`, `since` / `until` (omit both for **All** — the full unwindowed warehouse range), `page`, `per_page` (`25` | `50` | `100` | `all`).
 
 ### Session inspection
 

@@ -35,6 +35,22 @@ export function parseSessionViewParams(searchParams) {
 }
 
 /**
+ * Document / heading title for a dashboard SPA view.
+ *
+ * @param {"metrics" | "sessions" | "session" | string} view
+ * @returns {string}
+ */
+export function documentTitleForView(view) {
+  if (view === "sessions") {
+    return "stockroom conversations";
+  }
+  if (view === "session") {
+    return "stockroom conversation";
+  }
+  return "stockroom dashboard";
+}
+
+/**
  * @param {string} baseUrl
  * @param {string} harness
  * @param {string} sessionId
