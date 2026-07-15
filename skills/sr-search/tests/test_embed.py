@@ -391,6 +391,51 @@ def _insert_embedding(
     )
 
 
+def test_embed_selected_and_orphan_cleanup_are_independent(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Re-embed and orphan cleanup are separate helpers; neither implies the other."""
+    message_id = _insert_message(migrated_con, ordinal=0, text="keep me")
+    _insert_embedding(migrated_con, harness="claude", owner_id="orphan#0")
+    selected = [("claude", message_id, "keep me")]
+
+    written = embed._embed_selected_messages(
+        migrated_con, FakeEncoder(), selected, embed_model=embed.EMBED_MODEL
+    )
+    assert written == 1
+    assert (
+        migrated_con.execute(
+            "SELECT count(*) FROM embeddings WHERE owner_id = 'orphan#0'"
+        ).fetchone()[0]
+        == 1
+    )
+
+    removed = embed._delete_orphan_message_embeddings(migrated_con)
+    assert removed == 1
+    assert (
+        migrated_con.execute(
+            "SELECT count(*) FROM embeddings WHERE owner_id = 'orphan#0'"
+        ).fetchone()[0]
+        == 0
+    )
+    assert (
+        migrated_con.execute(
+            "SELECT count(*) FROM embeddings WHERE owner_id = ?", [message_id]
+        ).fetchone()[0]
+        == 1
+    )
+
+
+def test_delete_orphan_message_embeddings_returns_row_count(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """``_delete_orphan_message_embeddings`` returns how many rows it deleted."""
+    _insert_embedding(migrated_con, harness="claude", owner_id="gone#0")
+    _insert_embedding(migrated_con, harness="claude", owner_id="gone#0", chunk_index=1)
+    assert embed._delete_orphan_message_embeddings(migrated_con) == 2
+    assert embed._delete_orphan_message_embeddings(migrated_con) == 0
+
+
 def test_embed_pending_removes_orphaned_embeddings(
     migrated_con: duckdb.DuckDBPyConnection,
 ) -> None:

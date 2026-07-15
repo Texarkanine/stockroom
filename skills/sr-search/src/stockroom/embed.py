@@ -128,6 +128,102 @@ def embed_chunks(text: str, encoder: Encoder) -> list[list[float]]:
     return encoder.encode(chunks)
 
 
+def _embed_selected_messages(
+    con: duckdb.DuckDBPyConnection,
+    encoder: Encoder,
+    selected: list[tuple[str, str, str | None]],
+    *,
+    embed_model: str = EMBED_MODEL,
+    on_progress: ProgressCallback | None = None,
+) -> int:
+    """Replace embeddings for ``selected`` messages; return chunk rows written.
+
+    Flattens ``selected`` ``(harness, message_id, text)`` rows into chunk
+    records, encodes them in cross-message windows of :data:`EMBED_BATCH_SIZE`,
+    and writes one ``embeddings`` row per chunk. Prior vectors for those owners
+    are cleared in a set-oriented delete before insert (the ``embeddings`` PK
+    excludes ``embed_model``, so a model change *replaces* the owner's vectors).
+    The delete and all batch inserts run in one DuckDB transaction so a mid-run
+    encode/insert failure rolls back to the pre-replace state.
+
+    Does **not** sweep orphaned embeddings — callers that want warehouse hygiene
+    should invoke :func:`_delete_orphan_message_embeddings` separately.
+    """
+    chunk_rows = _pending_chunk_rows(selected)
+    n_chunks = len(chunk_rows)
+    if on_progress is not None:
+        on_progress(f"embed: {len(selected)} messages ({n_chunks} chunks)")
+    if not selected:
+        return 0
+
+    owner_keys = list(
+        {(harness, message_id) for harness, message_id, _text in selected}
+    )
+    harnesses = [h for h, _ in owner_keys]
+    owner_ids = [oid for _, oid in owner_keys]
+    written = 0
+    con.execute("BEGIN")
+    try:
+        con.execute(
+            "DELETE FROM embeddings WHERE owner_table = 'messages' "
+            "AND (harness, owner_id) IN ("
+            "  SELECT UNNEST(?::VARCHAR[]) AS harness, "
+            "         UNNEST(?::VARCHAR[]) AS owner_id"
+            ")",
+            [harnesses, owner_ids],
+        )
+
+        for batch_start in range(0, n_chunks, EMBED_BATCH_SIZE):
+            batch = chunk_rows[batch_start : batch_start + EMBED_BATCH_SIZE]
+            vectors = encoder.encode([chunk for *_meta, chunk in batch])
+            insert_rows = [
+                (harness, owner_id, chunk_index, embed_model, vector)
+                for (harness, owner_id, chunk_index, _chunk), vector in zip(
+                    batch, vectors, strict=True
+                )
+            ]
+            con.executemany(
+                "INSERT INTO embeddings "
+                "(harness, owner_table, owner_id, chunk_index, embed_model, vector) "
+                "VALUES (?, 'messages', ?, ?, ?, ?)",
+                insert_rows,
+            )
+            written += len(batch)
+            if on_progress is not None:
+                on_progress(f"embed: {written}/{n_chunks} chunks")
+        con.execute("COMMIT")
+    except Exception:
+        con.execute("ROLLBACK")
+        raise
+    return written
+
+
+def _delete_orphan_message_embeddings(
+    con: duckdb.DuckDBPyConnection, *, count_rows: bool = True
+) -> int:
+    """Delete ``owner_table='messages'`` embeddings with no matching messages row.
+
+    Removes dangling owners for **all** ``embed_model`` values. Independent of
+    the re-embed sweep — safe to call when nothing is pending.
+
+    When ``count_rows`` is true (default), returns the number of rows deleted via
+    ``RETURNING``. When false, runs a plain ``DELETE`` (no Python materialization)
+    and returns ``0`` (count unknown).
+    """
+    delete_sql = (
+        "DELETE FROM embeddings WHERE owner_table = 'messages' "
+        "AND NOT EXISTS ("
+        "  SELECT 1 FROM messages m "
+        "  WHERE m.harness = embeddings.harness AND m.message_id = embeddings.owner_id"
+        ")"
+    )
+    if not count_rows:
+        con.execute(delete_sql)
+        return 0
+    orphans = con.execute(delete_sql + " RETURNING 1").fetchall()
+    return len(orphans)
+
+
 def embed_pending(
     con: duckdb.DuckDBPyConnection,
     encoder: Encoder,
@@ -145,24 +241,13 @@ def embed_pending(
     "already embedded" filter is dropped and every non-empty message is
     re-embedded (its existing rows are deleted first), mirroring ``ingest --full``.
 
-    Selected messages are flattened into chunk records, encoded in
-    cross-message windows of :data:`EMBED_BATCH_SIZE` (same model / chunking /
-    no passage prefix — batching is a throughput optimization only; vectors
-    match single-encode within float32 noise for the real model), then written
-    one row per chunk: ``(harness, 'messages', message_id, chunk_index,
-    embed_model, vector)``. Prior vectors for pending owners are cleared in a
-    set-oriented delete before insert (the ``embeddings`` PK excludes
-    ``embed_model``, so a model change *replaces* the owner's vectors). The
-    delete and all batch inserts run in one DuckDB transaction so a mid-run
-    encode/insert failure rolls back to the pre-replace state (partial
-    current-model chunks would otherwise make incremental ``NOT EXISTS`` skip
-    the owner). ``tool_calls`` are not embedded in m1. Assumes a read-write
-    connection with ``vss`` loaded (the chokepoint's ``ensure_vss``).
+    Delegates the encode/write replace path to :func:`_embed_selected_messages`
+    and orphan hygiene to :func:`_delete_orphan_message_embeddings` (all models
+    for dangling message owners). ``tool_calls`` are not embedded in m1. Assumes
+    a read-write connection with ``vss`` loaded (the chokepoint's ``ensure_vss``).
 
-    When ``on_progress`` is set, emits ``embed: N messages (M chunks)`` then
-    ``embed: i/M chunks`` after each encode batch (``N`` / ``M`` are selected
-    message and chunk counts). After orphan cleanup, may emit
-    ``embed: removed K orphaned embedding rows`` when ``K > 0``.
+    When ``on_progress`` is set, emits embed progress from the replace helper,
+    then ``embed: removed K orphaned embedding rows`` when ``K > 0``.
     """
     if full:
         selected = con.execute(
@@ -181,65 +266,16 @@ def embed_pending(
             [embed_model],
         ).fetchall()
 
-    chunk_rows = _pending_chunk_rows(list(selected))
-    n_chunks = len(chunk_rows)
-    if on_progress is not None:
-        on_progress(f"embed: {len(selected)} messages ({n_chunks} chunks)")
-
-    written = 0
-    if selected:
-        owner_keys = list(
-            {(harness, message_id) for harness, message_id, _text in selected}
-        )
-        harnesses = [h for h, _ in owner_keys]
-        owner_ids = [oid for _, oid in owner_keys]
-        con.execute("BEGIN")
-        try:
-            con.execute(
-                "DELETE FROM embeddings WHERE owner_table = 'messages' "
-                "AND (harness, owner_id) IN ("
-                "  SELECT UNNEST(?::VARCHAR[]) AS harness, "
-                "         UNNEST(?::VARCHAR[]) AS owner_id"
-                ")",
-                [harnesses, owner_ids],
-            )
-
-            for batch_start in range(0, n_chunks, EMBED_BATCH_SIZE):
-                batch = chunk_rows[batch_start : batch_start + EMBED_BATCH_SIZE]
-                vectors = encoder.encode([chunk for *_meta, chunk in batch])
-                insert_rows = [
-                    (harness, owner_id, chunk_index, embed_model, vector)
-                    for (harness, owner_id, chunk_index, _chunk), vector in zip(
-                        batch, vectors, strict=True
-                    )
-                ]
-                con.executemany(
-                    "INSERT INTO embeddings "
-                    "(harness, owner_table, owner_id, chunk_index, embed_model, vector) "
-                    "VALUES (?, 'messages', ?, ?, ?, ?)",
-                    insert_rows,
-                )
-                written += len(batch)
-                if on_progress is not None:
-                    on_progress(f"embed: {written}/{n_chunks} chunks")
-            con.execute("COMMIT")
-        except Exception:
-            con.execute("ROLLBACK")
-            raise
-
-    orphan_delete_sql = (
-        "DELETE FROM embeddings WHERE owner_table = 'messages' "
-        "AND NOT EXISTS ("
-        "  SELECT 1 FROM messages m "
-        "  WHERE m.harness = embeddings.harness AND m.message_id = embeddings.owner_id"
-        ")"
+    written = _embed_selected_messages(
+        con,
+        encoder,
+        list(selected),
+        embed_model=embed_model,
+        on_progress=on_progress,
     )
-    if on_progress is None:
-        con.execute(orphan_delete_sql)
-    else:
-        orphans = con.execute(orphan_delete_sql + " RETURNING 1").fetchall()
-        if orphans:
-            on_progress(f"embed: removed {len(orphans)} orphaned embedding rows")
+    removed = _delete_orphan_message_embeddings(con, count_rows=on_progress is not None)
+    if on_progress is not None and removed:
+        on_progress(f"embed: removed {removed} orphaned embedding rows")
 
     return written
 
