@@ -30,6 +30,8 @@ Everything is stored whole: full message text, full tool inputs. Truncation happ
 
 Semantic search only sees what has been embedded, and embedding is a separate, heavier pass than ingestion (it needs torch and real compute). The two are allowed to lag: ingestion may have captured recent sessions whose messages have no vectors yet. This is the *silent staleness* failure mode — recent content that exists in the warehouse but is invisible to semantic search — and it is why weak semantic results for recent work warrant a coverage check before concluding the content is absent.
 
+Re-ingest invalidates embeddings only for removed or text-changed messages — unchanged history keeps its vectors, so embed lag after ingest is a small hole rather than a wiped session.
+
 Messages are embedded as one or more chunks (long messages get several vectors); search embeds the query with the same local model, runs cosine KNN over an HNSW index, and dedups chunks back to messages. Scores are cosine similarity — meaningful only *relative to each other within one query*, which is why thresholding on an absolute score is unsound. The model is asymmetric: stored passages and incoming queries get different prefixes, applied automatically by the engine on each side.
 
 ## Identity and Provenance

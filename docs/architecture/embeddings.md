@@ -24,6 +24,8 @@ Long messages may produce several chunk vectors; that is expected. SQL `query` d
 
 Ingest and embed are separate passes. Embed is heavier (torch + real compute) and is allowed to lag. Recent sessions may exist in SQL but be invisible to semantic search until embedded — the **silent staleness** failure mode. Weak semantic results for recent work warrant a coverage check before concluding the content is absent.
 
+When ingest rewrite-replaces a session, it invalidates embeddings only for message ids that were removed or whose text changed. Append-only growth and unchanged history keep their vectors, so embed lag after a successful ingest leaves a small hole rather than emptying the session’s semantic coverage.
+
 Nightly schedule runs both incrementally; manual catch-up is the same pair of commands — see [User Guide → Load the Warehouse](../user-guide/ingest.md).
 
 ## Search-surface split

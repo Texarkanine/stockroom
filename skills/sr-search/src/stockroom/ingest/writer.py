@@ -19,7 +19,10 @@ Two operations:
   ``message_id``; new or previously-unobserved rows seed from the session's
   ``source_mtime``. Thus ``--full`` preserves observation history, and source
   files that disappear remain untouched because ingest never calls the writer
-  for undiscovered sessions.
+  for undiscovered sessions. At the same pre-delete moment it compares old vs
+  new message ``text`` and deletes embeddings only for removed or text-changed
+  ``message_id``s (compare-and-keep), so append-only re-ingest does not wipe
+  unchanged vectors.
 * :func:`update_watermark` — upsert the per-``(harness, source_root)``
   ``_sync_state`` row that drives incremental discovery.
 """
@@ -39,30 +42,36 @@ def _message_id(session_id: str, ordinal: int) -> str:
     return f"{session_id}#{ordinal}"
 
 
+def _embedding_owner_ids_to_invalidate(
+    old_texts: dict[str, str | None],
+    new_texts: dict[str, str | None],
+) -> set[str]:
+    """Return message ids whose embeddings must be deleted on session rewrite.
+
+    An owner is invalidated when it was removed from the session or its stored
+    ``text`` changed. Unchanged ids (including both-``None`` text) are kept so
+    append-only re-ingest does not wipe the semantic index.
+    """
+    stale: set[str] = set()
+    for message_id, old_text in old_texts.items():
+        if message_id not in new_texts or new_texts[message_id] != old_text:
+            stale.add(message_id)
+    return stale
+
+
 def _delete_session(
     con: duckdb.DuckDBPyConnection, harness: str, session_id: str
 ) -> None:
-    """Remove any existing rows for ``(harness, session_id)`` across all tables.
+    """Remove any existing rows for ``(harness, session_id)`` across core tables.
 
     Deleting children first keeps the operation clean even though ``0001``
     declares no DB-level foreign keys (logical integrity is ingest-enforced).
 
-    Embeddings are derived data: this session's message-owned vectors are
-    cascaded too, so re-ingested (hence possibly *changed*) content is
-    re-embedded on the next embed run — the "changed-content" half of incremental
-    re-embedding (see ``creative-incremental-reembed-detection.md``, option B).
-    The cascade runs *before* the ``messages`` rows are deleted, since an
-    embedding's ``owner_id`` is resolved against those message rows. The delete
-    hits the live HNSW index (the chokepoint enables experimental persistence).
+    Embeddings are *not* blanket-cascaded here: :func:`write_session` surgically
+    deletes vectors for removed or text-changed message ids before calling this
+    helper, leaving unchanged owners intact for embed lag resilience.
     """
     key = [harness, session_id]
-    con.execute(
-        "DELETE FROM embeddings WHERE harness = ? AND owner_table = 'messages' "
-        "AND owner_id IN ("
-        "  SELECT message_id FROM messages WHERE harness = ? AND session_id = ?"
-        ")",
-        [harness, harness, session_id],
-    )
     con.execute("DELETE FROM tool_calls WHERE harness = ? AND session_id = ?", key)
     con.execute("DELETE FROM messages WHERE harness = ? AND session_id = ?", key)
     con.execute("DELETE FROM sessions WHERE harness = ? AND session_id = ?", key)
@@ -75,15 +84,27 @@ def write_session(con: duckdb.DuckDBPyConnection, session: NormalizedSession) ->
     ``message_id``/``parent_id``), then their ``tool_calls`` (``tool_input``
     serialized whole as JSON). Re-running with the same ``(harness, session_id)``
     replaces the prior rows rather than colliding on the primary key while
-    carrying forward each existing message's first-observation time.
+    carrying forward each existing message's first-observation time and
+    invalidating embeddings only for removed or text-changed message ids.
     """
-    carried_first_seen = dict(
+    prior_rows = con.execute(
+        "SELECT message_id, text, first_seen_at FROM messages "
+        "WHERE harness = ? AND session_id = ?",
+        [session.harness, session.session_id],
+    ).fetchall()
+    carried_first_seen = {row[0]: row[2] for row in prior_rows}
+    old_texts = {row[0]: row[1] for row in prior_rows}
+    new_texts = {
+        _message_id(session.session_id, message.ordinal): message.text
+        for message in session.messages
+    }
+    stale_owners = _embedding_owner_ids_to_invalidate(old_texts, new_texts)
+    if stale_owners:
         con.execute(
-            "SELECT message_id, first_seen_at FROM messages "
-            "WHERE harness = ? AND session_id = ?",
-            [session.harness, session.session_id],
-        ).fetchall()
-    )
+            "DELETE FROM embeddings WHERE harness = ? AND owner_table = 'messages' "
+            "AND owner_id IN (SELECT UNNEST(?::VARCHAR[]))",
+            [session.harness, list(stale_owners)],
+        )
     _delete_session(con, session.harness, session.session_id)
 
     workspace_key = workspace_key_for(
