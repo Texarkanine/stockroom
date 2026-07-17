@@ -1,8 +1,10 @@
 # Progress
 
-Add a Skill Usage dashboard capability per [#63](https://github.com/Texarkanine/stockroom/issues/63): harness-extensible extraction + API endpoint, then several aggregate/compare chart mockups in the main dashboard so the operator can pick a visual before final layout placement.
+Rework the shipped skill-usage mockups: sunburst nested encoding (agent-led colors), Skill/Tool **Distribution (top 10)** naming, and stacked tooltip color parity. Continues [#63](https://github.com/Texarkanine/stockroom/issues/63) mockup evaluation.
 
-**Complexity:** Level 3
+**Complexity:** Level 2
+
+> Prior lifecycle was Level 3 (initial skill-usage mockups). This rework is classified Level 2.
 
 ## 2026-07-17 - COMPLEXITY-ANALYSIS - COMPLETE
 
@@ -80,3 +82,23 @@ Add a Skill Usage dashboard capability per [#63](https://github.com/Texarkanine/
     - Fix stacked-bar tooltip swatches to match legend/bar fills
     - Rename panels to **Tool Distribution (top N)** and **Skill Distribution** (same “Distribution” language; skill panels show top-N clarity too)
 * Post-reflect extraction fixes (Cursor `manually_attached_skills`, Claude built-in denylist, doughnut nearest tooltips) remain in the tree and are in scope to keep
+
+## 2026-07-17 - COMPLEXITY-ANALYSIS - COMPLETE (rework)
+
+* Work completed
+    - Classified rework as Level 2 (dashboard UI subsystem; encoding already agreed)
+* Decisions made
+    - No API/schema change for sunburst — client reshapes `/api/skills` series
+    - Titles use concrete `(top 10)` matching default `limit=10`
+* Insights
+    - Chart.js sunburst alignment needs outer data ordered `[…user skills…, …agent skills…]` with inner `[userTotal, agentTotal]` sharing one circumference
+
+## 2026-07-17 - PLAN - COMPLETE (rework)
+
+* Work completed
+    - TDD plan: sunburst builder tests → tooltip labelColor → Distribution (top 10) titles → verify
+* Decisions made
+    - Compare mode stays stacked bar; only aggregate nested becomes sunburst
+    - Legend may list skill·invoker or favor tooltips — called out as Challenge
+* Insights
+    - Circumference-sum assertions in tests are the load-bearing guard against “two independent pies”
