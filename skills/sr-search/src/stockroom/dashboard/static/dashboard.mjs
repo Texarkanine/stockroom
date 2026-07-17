@@ -778,7 +778,8 @@ function renderDashboard() {
     "write-read",
     "Weekly write share",
     buildWriteReadPanel(snapshot.trends?.weekly, state.selected, state.mode, colors),
-  );  renderChart(
+  );
+  renderChart(
     "efficiency",
     "Session efficiency",
     buildEfficiencyPanel(snapshot.efficiency, state.selected, state.mode, colors),
