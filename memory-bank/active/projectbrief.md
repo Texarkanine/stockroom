@@ -35,3 +35,16 @@ CI’s pytest step uses the same parallel worker model so PR gates benefit from 
 2. `make test` and CI run pytest with process workers (documented flag/policy).
 3. Full engine pytest suite passes under that parallel configuration (including warehouse concurrency and dashboard server tests).
 4. Contributor-facing test docs mention the parallel default if they currently document the pytest command.
+
+## Rework
+
+### Trigger
+
+PR #66 review + SLOBAC triage: hermetic contracts that only assert pytest-xdist presence / pytest `addopts` config add no supply-chain value and are vacuous proxies for “workers run.”
+
+### Rework Goals
+
+1. Remove low-value hermetic tests for pytest-xdist presence and config from `skills/sr-search/tests/test_lock_hermetic.py` (at minimum: dep-declaration / lock-includes-xdist / addopts `-n auto` contracts added in the original build).
+2. Leave real hermetic fitness functions intact (torch/CUDA leak, PyPI+hashes, torch override, lock not stale, pyproject torch contract).
+3. Leave product wiring intact: locked `pytest-xdist`, `addopts = ["-n", "auto"]`, contributor docs — this rework is delete-smelly-tests, not undo-parallelism.
+4. Suite stays green under parallel `make test`.

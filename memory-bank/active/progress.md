@@ -66,3 +66,12 @@ Enable safe process-level parallel pytest for the stockroom engine suite via loc
     - Archive is next (standalone L2; no milestones)
 * Insights
     - addopts-as-SSOT for xdist avoids Make/CI flag drift
+
+## 2026-07-17 - REWORK INITIATED
+
+* Operator disposition: rework (not archive)
+* Feedback (PR #66 LlamaPReview + SLOBAC chat triage):
+    - Hermetic lock suite should keep supply-chain fitness functions (torch-free, PyPI+hashes, override, `uv lock --locked`)
+    - Remove tests that do not add value there — explicitly pytest-xdist *presence* and *config* contracts in `test_lock_hermetic.py` (TOML/lock greps that never verify workers run; redundant with dep pin + lock-not-stale)
+    - Do not “strengthen” those oracles; delete the low-value ones
+* Keep: locked `pytest-xdist` dep, `addopts = ["-n", "auto"]`, contributor docs — only the vacuous hermetic contracts go
