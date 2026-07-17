@@ -1,14 +1,13 @@
 # Active Context
 
 ## Current Task: dashboard-skill-sunburst-rework
-**Phase:** REFLECT - COMPLETE (operator polish; palette B + aggregate accent)
+**Phase:** REFLECT - COMPLETE (operator polish; layout + ring borders)
 
 ## What Was Done
-- Legend labels use theme text color (swatch carries category color).
-- Palette **B** wired into categorical `PALETTE` (harnesses/tools/skills).
-- Aggregate series restored to `AGGREGATE_COLOR` (`#6366f1` = `--accent`) so Daily/Projects/etc. are not first-harness orange.
-- Sunburst invoker ring uses `AGGREGATE_COLOR`; skills use the full categorical series from index 0.
-- Doughnut/pie tooltips show `name: count (pct%)`; stacked/tools-like skill mockups removed; sunburst kept as `Skill Distribution (top 10)`.
+- Palette **B** for harnesses/tools/skills; `AGGREGATE_COLOR` for sum charts / “All harnesses” / sunburst invoker ring.
+- Doughnut arcs use black `RING_BORDER` (tools no longer inherit a single fill hue on every stroke/legend; sunburst no longer match-fill hides agent edges).
+- Lower panels: Model Distribution → Session Efficiency → First-Prompt; First-Prompt is one cell (`panel-wide` removed).
+- Sunburst kept as `Skill Distribution (top 10)`; stacked/tools-like mockups removed.
 
 ## Next Step
-- Operator visual confirm (aggregate purple vs Claude orange / Cursor blue); `/niko-archive` when ready.
+- Operator visual confirm; `/niko-archive` when ready.

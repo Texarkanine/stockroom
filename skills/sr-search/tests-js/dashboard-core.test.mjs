@@ -43,6 +43,9 @@ import {
 /** Matches dashboard `--accent` / aggregate series (not a harness slot). */
 const AGGREGATE_COLOR = "#6366f1";
 
+/** Doughnut/pie segment separators (both themes). */
+const RING_BORDER = "#000000";
+
 const COLORS = [
   "#EE7733",
   "#0077BB",
@@ -614,6 +617,10 @@ test("builds aggregate doughnut and compare tool models", () => {
   const aggregate = buildToolsPanel(payload, selected, "aggregate", colors);
   assert.equal(aggregate.kind, "doughnut");
   assertDataset(aggregate, "Calls", [5, 5]);
+  // Per-segment fills; shared black border (not the first fill / aggregate hue).
+  const calls = aggregate.datasets.find((item) => item.label === "Calls");
+  assert.deepEqual(calls.backgroundColor, [COLORS[0], COLORS[1]]);
+  assert.equal(calls.borderColor, RING_BORDER);
   const compare = buildToolsPanel(payload, selected, "compare", colors);
   assert.equal(compare.kind, "bar");
   assert.equal(compare.indexAxis, "y");
@@ -745,6 +752,9 @@ test("builds skills nested sunburst with agent-led colors", () => {
     "rgba(99, 102, 241, 0.55)",
     AGGREGATE_COLOR,
   ]);
+  // Black separators on both rings (match-fill borders hid agent edges).
+  assert.deepEqual(outer.borderColor, [RING_BORDER, RING_BORDER, RING_BORDER]);
+  assert.deepEqual(inner.borderColor, [RING_BORDER, RING_BORDER]);
 });
 
 

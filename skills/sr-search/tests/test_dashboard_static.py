@@ -135,6 +135,19 @@ def test_tool_and_skill_distribution_titles_include_top_10() -> None:
     )
 
 
+def test_lower_chart_panels_order_and_first_prompt_width() -> None:
+    """Model Distribution precedes Session Efficiency; First-Prompt is one cell."""
+    source, _parser = _document()
+    models = source.index('id="models-panel"')
+    efficiency = source.index('id="efficiency-panel"')
+    first_prompt = source.index('id="first-prompt-panel"')
+    assert models < efficiency < first_prompt
+    assert 'panel panel-wide" id="first-prompt-panel"' not in source
+    assert 'id="first-prompt-panel"' in source
+    # Still a normal panel article (not removed).
+    assert 'class="panel" id="first-prompt-panel"' in source
+
+
 def test_session_pane_exposes_navigation_export_and_turn_landmarks() -> None:
     """Session inspection pane has copy-link, export, and turns — no custom back."""
     source, parser = _document()
@@ -276,7 +289,7 @@ def test_info_controls_only_on_efficiency_and_first_prompt_panels() -> None:
     assert all(btn.get("aria-label") for btn in info_buttons)
 
     efficiency_start = source.index('id="efficiency-panel"')
-    efficiency_end = source.index('id="models-panel"')
+    efficiency_end = source.index('id="first-prompt-panel"')
     first_start = source.index('id="first-prompt-panel"')
     first_end = source.index('id="recent-sessions"')
     efficiency_chunk = source[efficiency_start:efficiency_end]

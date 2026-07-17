@@ -5,6 +5,9 @@
  */
 const AGGREGATE_COLOR = "#6366f1";
 
+/** Doughnut/pie arc separators — black in both light and dark themes. */
+const RING_BORDER = "#000000";
+
 /**
  * Categorical palette for harnesses, tools, and sunburst skill wedges
  * (operator pick: mockup B).
@@ -1045,6 +1048,9 @@ export function buildToolsPanel(payload, selected, mode, colors) {
   }
   const dataset = aggregateDataset("Calls", sumAligned(source.calls, selected, labels.length));
   dataset.backgroundColor = labels.map((_, index) => PALETTE[index % PALETTE.length]);
+  // Replace aggregateDataset's single fill border — Chart.js would otherwise
+  // stroke every arc (and legend swatch) with that one color.
+  dataset.borderColor = RING_BORDER;
   return panelModel("doughnut", labels, [dataset]);
 }
 
@@ -1227,8 +1233,9 @@ export function buildSkillsNestedPanel(payload, selected, mode, colors) {
     ...userSegments.map((segment) => colorWithAlpha(skillColor(segment.skill), 0.55)),
     ...agentSegments.map((segment) => skillColor(segment.skill)),
   ];
-  // Outer borders match fills so dual-appearance skills stay paired in the arcs.
-  const outerBorder = [...outerBackground];
+  // Black separators (match-fill borders made opaque agent arcs look borderless
+  // while faded user arcs still showed an edge).
+  const outerBorder = outerBackground.map(() => RING_BORDER);
   const outer = {
     label: "Skills",
     data: outerData,
@@ -1240,7 +1247,7 @@ export function buildSkillsNestedPanel(payload, selected, mode, colors) {
     label: "Invokers",
     data: [userSum, agentSum],
     backgroundColor: [colorWithAlpha(AGGREGATE_COLOR, 0.55), AGGREGATE_COLOR],
-    borderColor: [colorWithAlpha(AGGREGATE_COLOR, 0.55), AGGREGATE_COLOR],
+    borderColor: [RING_BORDER, RING_BORDER],
     borderWidth: 1,
     weight: 0.6,
   };

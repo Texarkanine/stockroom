@@ -156,3 +156,14 @@ Rework the shipped skill-usage mockups: sunburst nested encoding (agent-led colo
     - Harness/tool/skill hues = B; sum charts + sunburst invoker ring = accent indigo
 * Insights
     - `PALETTE[0]` must not double as aggregate color once the first categorical slot is a harness hue
+
+## 2026-07-17 - OPERATOR POLISH (layout + doughnut borders)
+
+* Work completed
+    - First-Prompt Quality → one grid cell; Model Distribution before Session Efficiency
+    - Tools + skills doughnuts use black `RING_BORDER` separators
+    - JS 86 + dashboard-py 99 green
+* Decisions made
+    - Black borders in both themes (not theme-surface, not match-fill)
+* Insights
+    - Leaving `aggregateDataset` border on a multi-fill doughnut paints every arc + legend stroke with one hue; match-fill borders hide opaque agent wedges
