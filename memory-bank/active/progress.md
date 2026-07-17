@@ -177,3 +177,12 @@ Rework the shipped skill-usage mockups: sunburst nested encoding (agent-led colo
     - Archive is next (standalone L2; no milestones)
 * Insights
     - Post-reflect visual polish belongs in the reflection before archive; `PALETTE[0]` ≠ aggregate once categorical slots are harness hues
+
+## 2026-07-17 - ARCHIVE - IN-PROGRESS
+
+* Work completed
+    - Operator invoked `/niko-archive` after PR feedback (payload-rank skill colors) and reflect complete
+* Decisions made
+    - Standalone L2 archive; clear all ephemeral files including prior L3 creative/reflection left from the rework path
+* Insights
+    - Original L3 `dashboard-skill-usage` chose rework over archive; one archive covers foundation + sunburst rework + polish
