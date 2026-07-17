@@ -14,3 +14,17 @@ Add a Skill Usage dashboard capability per [#63](https://github.com/Texarkanine/
     - Mockup phase embeds candidates in the main dashboard (1×1 like Tool Usage); placement next to Tool Usage is a follow-up after chart selection
 * Insights
     - Skill identity lives in heterogeneous `tool_calls` / message shapes — per-harness Python extractors over filtered SQL rows match existing ingest adapter style better than one mondo query
+
+## 2026-07-17 - PLAN - COMPLETE
+
+* Work completed
+    - Mapped dashboard metrics / static / test touchpoints
+    - Probed warehouse for Claude user command-name, Skill tool, synthetic skill blobs; Cursor Read `…/SKILL.md`
+    - Resolved open questions via creative: extractor architecture + three mockup encodings
+    - Wrote ordered TDD implementation plan (10 steps)
+* Decisions made
+    - `/api/skills` payload: `{skills, invokers, calls: {harness: {user, agent}}}`
+    - Module `stockroom.dashboard.skill_usage` with `EXTRACTORS` registry
+    - Mockups: nested doughnut, stacked bar, tools-like — all in main grid at Tool Usage size with “(mockup)” titles
+* Insights
+    - Claude skill blobs must not count; Cursor presently has no discrete user-invoke event in the warehouse
