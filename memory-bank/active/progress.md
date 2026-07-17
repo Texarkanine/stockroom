@@ -102,3 +102,12 @@ Rework the shipped skill-usage mockups: sunburst nested encoding (agent-led colo
     - Legend may list skill·invoker or favor tooltips — called out as Challenge
 * Insights
     - Circumference-sum assertions in tests are the load-bearing guard against “two independent pies”
+
+## 2026-07-17 - PREFLIGHT - COMPLETE (PASS)
+
+* Work completed
+    - Tightened TDD encoding on tooltip + title steps; confirmed `renderChart` title strings
+* Decisions made
+    - Proceed to build on amended plan
+* Insights
+    - Prior creative nested-doughnut doc is historical; rework brief owns sunburst

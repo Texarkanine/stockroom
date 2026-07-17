@@ -41,18 +41,14 @@ Rework nested skill mockup into an aligned sunburst, fix stacked tooltip swatch 
    - Changes: rewrite aggregate path to emit sunburst datasets — outer labels/data as user-group skills then agent-group skills; inner `[userTotal, agentTotal]`; set `innerLabels`; agent-led `backgroundColor` assignment using existing `PALETTE` + `colorWithAlpha`; keep compare → stacked bar
    - Helper (same file): e.g. `assignSkillSunburstColors(agentCountsBySkill, userOnlySkills)` if it keeps the builder readable
 
-2. **Tooltip swatch parity for stacked skill charts**
-   - Files: `static/dashboard.mjs`, optionally extract pure helper tested from `dashboard-core.mjs`
-   - Changes: tooltip `labelColor` callback returns `{ backgroundColor, borderColor }` from dataset `backgroundColor` (string or per-index); cover with a small unit test on the helper
-   - Applies to skill stacked/compare (and any bar sharing the callback) so legend/bar/tooltip match
+2. **Tooltip swatch parity — failing helper test then wire**
+   - Files: `tests-js/dashboard-core.test.mjs`, `static/dashboard-core.mjs`, `static/dashboard.mjs`
+   - TDD: add failing unit test for `tooltipLabelColors(dataset, dataIndex)` (or equivalent) asserting fill comes from `backgroundColor` not `borderColor`; implement helper; wire `plugins.tooltip.callbacks.labelColor` in `chartOptions` to the helper
+   - Applies to stacked skill compare (and other panels sharing `chartOptions`) so legend/bar/tooltip match
 
-3. **Distribution (top 10) titles + encoding copy**
-   - Files: `static/index.html`, `tests/test_dashboard_static.py`, `static/dashboard.mjs` (renderChart title strings / aria if hardcoded)
-   - Changes:
-     - `Tool Distribution` → `Tool Distribution (top 10)`
-     - Skill panels → e.g. `Skill Distribution (sunburst) (top 10) (mockup)`, `Skill Distribution (stacked) (top 10) (mockup)`, `Skill Distribution (tools-like) (top 10) (mockup)`
-     - Update one-liner encoding blurb under nested to describe sunburst groups
-     - Align canvas `aria-label` text
+3. **Distribution (top 10) titles — failing static assertions then markup**
+   - Files: `tests/test_dashboard_static.py`, `static/index.html`, `static/dashboard.mjs`
+   - TDD: extend failing assertions that Tool panel title contains `top 10` and skill panel titles use `Skill Distribution` + `top 10` + `mockup`; then update `index.html` headings/aria-labels/encoding blurbs and any hardcoded `renderChart` title strings in `dashboard.mjs`
 
 4. **Verify**
    - Files: none new
@@ -89,6 +85,11 @@ No new technology - validation not required (Chart.js already vendored; sunburst
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight — PASS (TDD encoding tightened on steps 2–3; `renderChart` title strings confirmed in plan)
 - [ ] Build
 - [ ] QA
+
+## Preflight Amendments
+
+- Steps 2–3 now state failing tests before production edits (`tooltipLabelColors` helper; static title assertions).
+- Confirmed `dashboard.mjs` hardcodes `renderChart` titles (`Tool distribution`, `Skill usage …`) — must update alongside HTML.
