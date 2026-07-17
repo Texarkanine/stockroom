@@ -94,3 +94,12 @@ Enable safe process-level parallel pytest for the stockroom engine suite via loc
     - No new meta-test asserting absence; delete is the fix
 * Insights
     - Product xdist wiring unchanged — only the vacuous greps went
+
+## 2026-07-17 - QA - COMPLETE (PASS, rework)
+
+* Work completed
+    - Semantic review vs rework brief: delete-only, fitness suite kept, wiring kept
+* Decisions made
+    - Persistent files unchanged (techContext still accurate for xdist default)
+* Insights
+    - Hermetic suite is supply-chain fitness again, not test-runner config theatre
