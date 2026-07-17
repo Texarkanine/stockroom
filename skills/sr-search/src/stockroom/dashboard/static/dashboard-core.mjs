@@ -1157,6 +1157,7 @@ export function buildSkillsNestedPanel(payload, selected, mode, colors) {
     .filter((segment) => agentTotals[segment.index] === 0)
     .map((segment) => segment.skill);
   const colorsBySkill = assignSkillSunburstColors(rankedAgentSkills, userOnlySkills);
+  const skillColor = (skill) => colorsBySkill.get(skill) ?? PALETTE[1];
 
   const outerLabels = [
     ...userSegments.map((segment) => segment.skill),
@@ -1167,18 +1168,12 @@ export function buildSkillsNestedPanel(payload, selected, mode, colors) {
     ...agentSegments.map((segment) => segment.count),
   ];
   const outerBackground = [
-    ...userSegments.map((segment) =>
-      colorWithAlpha(colorsBySkill.get(segment.skill) ?? PALETTE[1], 0.55),
-    ),
-    ...agentSegments.map(
-      (segment) => colorsBySkill.get(segment.skill) ?? PALETTE[1],
-    ),
+    ...userSegments.map((segment) => colorWithAlpha(skillColor(segment.skill), 0.55)),
+    ...agentSegments.map((segment) => skillColor(segment.skill)),
   ];
   const outerBorder = [
-    ...userSegments.map((segment) => colorsBySkill.get(segment.skill) ?? PALETTE[1]),
-    ...agentSegments.map(
-      (segment) => colorsBySkill.get(segment.skill) ?? PALETTE[1],
-    ),
+    ...userSegments.map((segment) => skillColor(segment.skill)),
+    ...agentSegments.map((segment) => skillColor(segment.skill)),
   ];
   const outer = {
     label: "Skills",

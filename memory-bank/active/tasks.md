@@ -88,7 +88,7 @@ No new technology - validation not required (Chart.js already vendored; sunburst
 - [x] Pre-Mortem complete
 - [x] Preflight — PASS (TDD encoding tightened on steps 2–3; `renderChart` title strings confirmed in plan)
 - [x] Build
-- [ ] QA
+- [x] QA — PASS (trivial DRY: `skillColor` helper in sunburst builder)
 
 ## Preflight Amendments
 

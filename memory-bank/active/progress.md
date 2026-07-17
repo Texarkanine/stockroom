@@ -124,3 +124,14 @@ Rework the shipped skill-usage mockups: sunburst nested encoding (agent-led colo
     - Nested title encoding cue is `(sunburst)`
 * Insights
     - Chart.js default tooltip swatch prefers border; forcing fill on both stroke and fill fixes stacked invoker bars without per-panel special cases
+
+## 2026-07-17 - QA - COMPLETE (PASS)
+
+* Work completed
+    - Semantic review vs rework plan (KISS/DRY/YAGNI/completeness/regression/integrity/docs)
+    - Trivial DRY: local `skillColor` helper in sunburst outer color arrays
+* Decisions made
+    - Legend listing duplicate outer skills remains accepted mockup debt (Challenge mitigation; tooltips authoritative)
+    - No user-guide update (plan: skip)
+* Insights
+    - Creative nested-doughnut notes remain historical; rework brief + tests own the sunburst contract
