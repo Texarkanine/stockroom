@@ -1,11 +1,11 @@
 # Active Context
 
 ## Current Task: dashboard-skill-sunburst-rework
-**Phase:** PREFLIGHT - COMPLETE (PASS)
+**Phase:** BUILD - IN-PROGRESS
 
 ## What Was Done
-- Validated Level 2 plan: TDD encoding amended for tooltip helper + static titles; touchpoints match dashboard-core / index.html / dashboard.mjs.
-- Prior creative nested-doughnut notes are superseded by rework sunburst (no conflict with code).
+- Preflight PASS; TDD encoding tightened for tooltip helper + static titles.
+- Entering Level 2 build: sunburst aggregate → tooltip labelColor → Distribution (top 10) titles → verify.
 
 ## Next Step
-- Build phase (Level 2 auto-continues).
+- Execute Level 2 build (TDD) per `tasks.md` implementation plan.

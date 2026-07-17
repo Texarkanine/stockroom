@@ -111,3 +111,12 @@ Rework the shipped skill-usage mockups: sunburst nested encoding (agent-led colo
     - Proceed to build on amended plan
 * Insights
     - Prior creative nested-doughnut doc is historical; rework brief owns sunburst
+
+## 2026-07-17 - BUILD - IN-PROGRESS
+
+* Work completed
+    - Left preflight; starting TDD build for sunburst / tooltip / titles
+* Decisions made
+    - (none yet)
+* Insights
+    - (none yet)
