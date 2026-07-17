@@ -120,26 +120,3 @@ def test_lock_is_not_stale() -> None:
         text=True,
     )
     assert proc.returncode == 0, f"committed lock is stale:\n{proc.stderr}"
-
-
-def test_pyproject_declares_pytest_xdist_dev_dep(pyproject: dict) -> None:
-    """Engine dev dependencies include a pinned pytest-xdist for process workers."""
-    dev = pyproject["dependency-groups"]["dev"]
-    assert "pytest-xdist~=3.0" in dev, (
-        f"pytest-xdist~=3.0 missing from dependency-groups.dev: {dev}"
-    )
-
-
-def test_lock_includes_pytest_xdist(lock: dict) -> None:
-    """Committed lock pins pytest-xdist so CI/local sync installs process workers."""
-    names = {pkg.get("name") for pkg in _packages(lock)}
-    assert "pytest-xdist" in names, (
-        f"pytest-xdist absent from lock packages: {sorted(names)}"
-    )
-
-
-def test_pytest_addopts_enables_xdist_auto_workers(pyproject: dict) -> None:
-    """pytest addopts defaults to process workers via ``-n auto`` (list form)."""
-    addopts = pyproject["tool"]["pytest"]["ini_options"]["addopts"]
-    assert isinstance(addopts, list), f"addopts must be a list, got {type(addopts)}"
-    assert "-n" in addopts and addopts[addopts.index("-n") + 1] == "auto"

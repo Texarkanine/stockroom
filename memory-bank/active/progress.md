@@ -84,3 +84,13 @@ Enable safe process-level parallel pytest for the stockroom engine suite via loc
     - Keep supply-chain hermetic suite; drop xdist presence/config asserts only
 * Insights
     - Parallelism product change stays; this pass is suite hygiene
+
+## 2026-07-17 - BUILD - COMPLETE (rework)
+
+* Work completed
+    - Deleted three xdist presence/config contracts from `test_lock_hermetic.py`
+    - Hermetic file 5 passed; full `make test` green (583 / 4 skipped)
+* Decisions made
+    - No new meta-test asserting absence; delete is the fix
+* Insights
+    - Product xdist wiring unchanged — only the vacuous greps went
