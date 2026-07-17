@@ -75,3 +75,12 @@ Enable safe process-level parallel pytest for the stockroom engine suite via loc
     - Remove tests that do not add value there — explicitly pytest-xdist *presence* and *config* contracts in `test_lock_hermetic.py` (TOML/lock greps that never verify workers run; redundant with dep pin + lock-not-stale)
     - Do not “strengthen” those oracles; delete the low-value ones
 * Keep: locked `pytest-xdist` dep, `addopts = ["-n", "auto"]`, contributor docs — only the vacuous hermetic contracts go
+
+## 2026-07-17 - COMPLEXITY-ANALYSIS - COMPLETE (rework)
+
+* Work completed
+    - Classified rework as Level 1 (single-file delete of vacuous contracts; no design fork)
+* Decisions made
+    - Keep supply-chain hermetic suite; drop xdist presence/config asserts only
+* Insights
+    - Parallelism product change stays; this pass is suite hygiene
