@@ -89,4 +89,4 @@ Enable safe process-level parallel pytest for the engine suite: lock `pytest-xdi
 - [x] Pre-Mortem complete
 - [x] Preflight — PASS (addopts contracted as TOML list `["-n", "auto"]` for unambiguous assertions)
 - [x] Build
-- [ ] QA
+- [x] QA — PASS (trivial KISS: drop redundant startswith / separate auto asserts in lock hermetic tests)

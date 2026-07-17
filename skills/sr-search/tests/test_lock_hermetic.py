@@ -125,10 +125,9 @@ def test_lock_is_not_stale() -> None:
 def test_pyproject_declares_pytest_xdist_dev_dep(pyproject: dict) -> None:
     """Engine dev dependencies include a pinned pytest-xdist for process workers."""
     dev = pyproject["dependency-groups"]["dev"]
-    assert any(dep.startswith("pytest-xdist") for dep in dev), (
-        f"pytest-xdist missing from dependency-groups.dev: {dev}"
+    assert "pytest-xdist~=3.0" in dev, (
+        f"pytest-xdist~=3.0 missing from dependency-groups.dev: {dev}"
     )
-    assert "pytest-xdist~=3.0" in dev
 
 
 def test_lock_includes_pytest_xdist(lock: dict) -> None:
@@ -143,6 +142,4 @@ def test_pytest_addopts_enables_xdist_auto_workers(pyproject: dict) -> None:
     """pytest addopts defaults to process workers via ``-n auto`` (list form)."""
     addopts = pyproject["tool"]["pytest"]["ini_options"]["addopts"]
     assert isinstance(addopts, list), f"addopts must be a list, got {type(addopts)}"
-    assert "-n" in addopts
-    assert "auto" in addopts
-    assert addopts[addopts.index("-n") + 1] == "auto"
+    assert "-n" in addopts and addopts[addopts.index("-n") + 1] == "auto"

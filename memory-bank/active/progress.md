@@ -46,3 +46,13 @@ Enable safe process-level parallel pytest for the stockroom engine suite via loc
     - No Make/CI flag edits; no isolation patches needed
 * Insights
     - Tiny targeted runs pay worker startup cost; full suite amortizes it (~19s for 586 tests here)
+
+## 2026-07-17 - QA - COMPLETE (PASS)
+
+* Work completed
+    - Semantic review vs plan (KISS/DRY/YAGNI/completeness/regression/integrity/docs)
+    - Trivial KISS: tightened xdist contract asserts
+* Decisions made
+    - Exact pin assert is enough; no separate startswith probe
+* Insights
+    - addopts SSOT kept Make/CI diffs at zero — good regression surface
