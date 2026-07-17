@@ -44,3 +44,27 @@ Evaluate several mockup chart treatments (same 1×1 grid size as Tool Usage) on 
 4. Several mockup panels render in the dashboard at Tool Usage size, each working in aggregate and compare mode against live API data.
 5. Tests cover metrics endpoint behavior and extractor logic; dashboard static/JS tests updated as needed.
 6. Operator can visually compare mockups and choose one for the follow-up placement pass.
+
+## Rework
+
+Operator feedback after the mockup ship (rework, not archive). Original brief above still applies; this section is additive.
+
+### Rework User Story
+
+As a stockroom operator, I want the nested skill chart to read as a sunburst (invoker groups with skills nested under each), clear top-N labeling on Tool/Skill Distribution panels, and tooltip colors that match the legend, so I can trust the mockups when picking a final chart.
+
+### Rework Requirements
+
+1. Rebuild the nested skill mockup as a **sunburst**: inner ring = user vs agent groups; outer ring = skills **within** each group; the user/agent boundary aligns across both rings; a skill used by both invokers appears as two outer segments.
+2. **Agent-led colors**: assign palette from the agent side (group color + skills ranked by agent count; user-only skills take the next free slot); user side uses faded twins of those colors (same pattern as stacked compare bars).
+3. Fix stacked skill-chart tooltip swatches so they match legend/bar fills (not inverted/mismatched).
+4. Rename for parallel wording: **Tool Distribution (top N)** and **Skill Distribution … (mockup)** panels — both use “Distribution”; skill titles make top-N ranking obvious (same limit semantics as tools).
+5. Keep post-reflect extraction fixes already in tree (Cursor `manually_attached_skills`, Claude built-in denylist, doughnut nearest hover).
+
+### Rework Acceptance Criteria
+
+1. Nested aggregate chart: no invoker split cutting through a skill segment; outer segments under user sum to the user inner arc (same for agent).
+2. Same skill can appear on both user and agent outer arcs with paired solid/faded colors.
+3. Compare-mode stacked tooltips use the same fill colors as the bars/legend.
+4. Tool Distribution title includes `(top N)`; skill mockup titles use Skill Distribution + top-N clarity + `(mockup)`.
+5. Existing extractor/metrics tests remain green; new/updated JS panel tests cover sunburst alignment and tooltip color helper if extracted.

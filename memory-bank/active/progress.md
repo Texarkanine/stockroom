@@ -71,3 +71,12 @@ Add a Skill Usage dashboard capability per [#63](https://github.com/Texarkanine/
     - Final chart pick + layout placement remain follow-up after operator review of mockups
 * Insights
     - Dashboard endpoint/panel inventory pins are part of the contract for new metrics UI work
+
+## 2026-07-17 - REWORK INITIATED
+
+* Operator chose rework (not archive) with addon scope:
+    - Nested mockup must be a **sunburst** (invoker groups aligned; skills nest under user/agent; same skill can appear on both sides)
+    - Agent-led palette: solid on agent side; user side = faded twins; user-only skills take next free palette slot
+    - Fix stacked-bar tooltip swatches to match legend/bar fills
+    - Rename panels to **Tool Distribution (top N)** and **Skill Distribution** (same “Distribution” language; skill panels show top-N clarity too)
+* Post-reflect extraction fixes (Cursor `manually_attached_skills`, Claude built-in denylist, doughnut nearest tooltips) remain in the tree and are in scope to keep

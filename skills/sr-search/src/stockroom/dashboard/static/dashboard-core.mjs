@@ -62,6 +62,7 @@ function panelModel(kind, labels, datasets, options = {}) {
     ...(options.height === undefined ? {} : { height: options.height }),
     ...(options.yMax === undefined ? {} : { yMax: options.yMax }),
     ...(options.labelTitles === undefined ? {} : { labelTitles: [...options.labelTitles] }),
+    ...(options.innerLabels === undefined ? {} : { innerLabels: [...options.innerLabels] }),
   };
 }
 
@@ -98,16 +99,24 @@ export function tooltipTitleFromLabelTitles(labelTitles, index, fallbackLabel) {
 }
 
 /**
- * Chart.js ``interaction`` / tooltip settings for a given category axis.
+ * Chart.js ``interaction`` / tooltip settings for a chart kind and category axis.
  *
- * Index mode defaults to ``axis: "x"``. Horizontal bars (``indexAxis: "y"``)
- * must search along ``y`` or hover tracks the value axis instead of the row.
+ * Doughnut/pie use nearest+intersect so hover targets one arc (index mode and
+ * a shared labels array break nested two-ring tooltips). Bars keep index mode;
+ * horizontal bars (``indexAxis: "y"``) search along ``y``.
  * See https://www.chartjs.org/docs/latest/configuration/interactions.html
  *
  * @param {string} [indexAxis="x"] Panel category axis (``"x"`` or ``"y"``).
- * @returns {{mode: string, intersect: boolean, axis: string}}
+ * @param {string} [kind="bar"] Chart.js type (``"bar"``, ``"doughnut"``, …).
+ * @returns {{mode: string, intersect: boolean, axis?: string}}
  */
-export function chartInteractionOptions(indexAxis = "x") {
+export function chartInteractionOptions(indexAxis = "x", kind = "bar") {
+  if (kind === "doughnut" || kind === "pie") {
+    return {
+      mode: "nearest",
+      intersect: true,
+    };
+  }
   return {
     mode: "index",
     intersect: false,
@@ -1086,6 +1095,7 @@ export function buildSkillsNestedPanel(payload, selected, mode, colors) {
   };
   return panelModel("doughnut", labels, [outer, inner], {
     empty: !hasValues([outer]) && userSum === 0 && agentSum === 0,
+    innerLabels: [...SKILL_INVOKERS],
   });
 }
 

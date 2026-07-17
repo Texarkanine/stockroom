@@ -21,6 +21,17 @@ CLAUDE_COMMAND_NAME_TEXT = (
     "<command-args>plan skill usage</command-args>"
 )
 
+CLAUDE_BUILTIN_EXIT_TEXT = (
+    "<command-name>/exit</command-name>\n"
+    "            <command-message>exit</command-message>\n"
+    "            <command-args></command-args>"
+)
+
+CLAUDE_PLUGIN_SKILL_TEXT = (
+    "<command-message>stockroom:sr-search</command-message>\n"
+    "<command-name>/stockroom:sr-search</command-name>"
+)
+
 CLAUDE_SKILL_BLOB_TEXT = (
     "Base directory for this skill: /home/user/.claude/skills/niko\n"
     "\n"
@@ -31,6 +42,30 @@ CLAUDE_SKILL_TOOL_INPUT = '{"skill": "niko", "args": "plan"}'
 
 CURSOR_SKILL_MD_READ_INPUT = (
     '{"path": "/home/user/.cursor/skills/shared/niko/SKILL.md"}'
+)
+
+CURSOR_MANUALLY_ATTACHED_TEXT = (
+    "<manually_attached_skills>\n"
+    "The user has manually attached the following skills to their message.\n"
+    "These skills contain specific instructions or workflows that the user "
+    "wants you to follow for this request.\n"
+    "Only read the files if needed, the full skill content is inlined here.\n"
+    "\n"
+    "Skill Name: niko-build\n"
+    "Path: \\home\\user\\.cursor\\skills\\shared\\niko-build\\SKILL.md\n"
+    "SKILL.md content:\n"
+    "# Build Phase\n"
+    "</manually_attached_skills>\n"
+    "<user_query>\ndo the thing\n</user_query>"
+)
+
+CURSOR_MANUALLY_ATTACHED_MULTI_TEXT = (
+    "<manually_attached_skills>\n"
+    "Skill Name: niko-archive\n"
+    "Path: /skills/niko-archive/SKILL.md\n"
+    "Skill Name: sr-query\n"
+    "Path: /skills/sr-query/SKILL.md\n"
+    "</manually_attached_skills>"
 )
 
 
@@ -172,9 +207,36 @@ class TestExtractClaude:
             ("niko", "agent"),
         ]
 
+    def test_builtin_slash_commands_are_not_skills(self) -> None:
+        """Claude built-ins like /exit and /model are not skill uses."""
+        messages: list[skill_usage.MessageRow] = [
+            ("claude", CLAUDE_BUILTIN_EXIT_TEXT),
+            (
+                "claude",
+                "<command-name>/model</command-name>\n"
+                "<command-message>model</command-message>\n"
+                "<command-args></command-args>",
+            ),
+            (
+                "claude",
+                "<command-name>/plugin</command-name>\n"
+                "<command-message>plugin</command-message>",
+            ),
+        ]
+        assert skill_usage.extract_claude(messages, []) == []
+
+    def test_plugin_namespaced_command_name_is_a_skill(self) -> None:
+        """Plugin skills like /stockroom:sr-search still count as user skills."""
+        messages: list[skill_usage.MessageRow] = [
+            ("claude", CLAUDE_PLUGIN_SKILL_TEXT),
+        ]
+        assert _as_events(skill_usage.extract_claude(messages, [])) == [
+            ("stockroom:sr-search", "user"),
+        ]
+
 
 class TestExtractCursor:
-    """Cursor harness: agent Read of …/SKILL.md; user is a no-op."""
+    """Cursor harness: agent Read of …/SKILL.md; user manually_attached_skills."""
 
     def test_read_skill_md_path_yields_agent_event(self) -> None:
         """Cursor Read ending in /SKILL.md → (parent basename, agent)."""
@@ -219,13 +281,32 @@ class TestExtractCursor:
             ("niko", "agent"),
         ]
 
-    def test_user_messages_are_noop(self) -> None:
-        """Cursor has no discrete user-invoke signal; messages are ignored."""
+    def test_plain_user_messages_are_noop(self) -> None:
+        """Ordinary Cursor user text without attachment markup is ignored."""
         messages: list[skill_usage.MessageRow] = [
             ("cursor", CLAUDE_COMMAND_NAME_TEXT),
             ("cursor", "please run /niko"),
         ]
         assert skill_usage.extract_cursor(messages, []) == []
+
+    def test_manually_attached_skills_yield_user_events(self) -> None:
+        """Cursor <manually_attached_skills> Skill Name lines → (skill, user)."""
+        messages: list[skill_usage.MessageRow] = [
+            ("cursor", CURSOR_MANUALLY_ATTACHED_TEXT),
+        ]
+        assert _as_events(skill_usage.extract_cursor(messages, [])) == [
+            ("niko-build", "user"),
+        ]
+
+    def test_manually_attached_multiple_skills_all_count(self) -> None:
+        """Each Skill Name line in one attachment block is a discrete use."""
+        messages: list[skill_usage.MessageRow] = [
+            ("cursor", CURSOR_MANUALLY_ATTACHED_MULTI_TEXT),
+        ]
+        assert _as_events(skill_usage.extract_cursor(messages, [])) == [
+            ("niko-archive", "user"),
+            ("sr-query", "user"),
+        ]
 
 
 class TestIterSkillUses:
@@ -503,6 +584,53 @@ class TestMetricsSkills:
         assert result["calls"] == {
             "cursor": {"user": [], "agent": []},
         }
+
+    def test_cursor_manually_attached_counts_as_user(
+        self, migrated_con: duckdb.DuckDBPyConnection
+    ) -> None:
+        """Cursor manually_attached_skills in-window contribute user series."""
+        _seed_session(
+            migrated_con,
+            harness="cursor",
+            session_id="c-attach",
+            activity=datetime(2026, 1, 12),
+        )
+        migrated_con.execute(
+            "UPDATE messages SET text = ? "
+            "WHERE session_id = 'c-attach' AND ordinal = 0",
+            [CURSOR_MANUALLY_ATTACHED_TEXT],
+        )
+        result = metrics.skills(
+            migrated_con,
+            since=datetime(2026, 1, 1),
+            until=datetime(2026, 2, 1),
+        )
+        assert result["skills"] == ["niko-build"]
+        assert result["calls"] == {
+            "cursor": {"user": [1], "agent": [0]},
+        }
+
+    def test_builtin_exit_command_not_in_skills_payload(
+        self, migrated_con: duckdb.DuckDBPyConnection
+    ) -> None:
+        """Claude /exit messages do not appear in the ranked skills list."""
+        _seed_session(
+            migrated_con,
+            harness="claude",
+            session_id="a-exit",
+            activity=datetime(2026, 1, 10),
+            started_at=datetime(2026, 1, 10),
+        )
+        migrated_con.execute(
+            "UPDATE messages SET text = ? WHERE session_id = 'a-exit' AND ordinal = 0",
+            [CLAUDE_BUILTIN_EXIT_TEXT],
+        )
+        result = metrics.skills(
+            migrated_con,
+            since=datetime(2026, 1, 1),
+            until=datetime(2026, 2, 1),
+        )
+        assert result["skills"] == []
 
     def test_mix_claude_user_agent_and_cursor_agent(
         self, migrated_con: duckdb.DuckDBPyConnection

@@ -21,6 +21,69 @@ _COMMAND_NAME_RE = re.compile(
     re.IGNORECASE,
 )
 _SKILL_BLOB_PREFIX = "Base directory for this skill:"
+_MANUAL_ATTACH_SKILL_NAME_RE = re.compile(
+    r"(?m)^Skill Name:\s*(?P<name>\S+)\s*$",
+)
+#: Claude Code slash commands that are runtime built-ins, not Agent Skills.
+#: Bundled skills (e.g. doctor, debug) are intentionally absent — they count.
+#: See https://code.claude.com/docs/en/slash-commands
+_CLAUDE_BUILTIN_COMMANDS = frozenset(
+    {
+        "exit",
+        "model",
+        "plugin",
+        "effort",
+        "add-dir",
+        "reload-plugins",
+        "clear",
+        "compact",
+        "help",
+        "login",
+        "logout",
+        "config",
+        "cost",
+        "usage",
+        "status",
+        "bug",
+        "memory",
+        "vim",
+        "permissions",
+        "hooks",
+        "mcp",
+        "rewind",
+        "rename",
+        "context",
+        "todos",
+        "init",
+        "review",
+        "security-review",
+        "migrate-installer",
+        "terminal-setup",
+        "release-notes",
+        "upgrade",
+        "mobile",
+        "voice",
+        "insights",
+        "export",
+        "theme",
+        "color",
+        "output-style",
+        "agents",
+        "files",
+        "diff",
+        "stats",
+        "ide",
+        "desktop",
+        "install-github-app",
+        "extra-usage",
+        "privacy-settings",
+        "keybindings",
+        "bashes",
+        "plan",
+        "fast",
+        "think",
+    }
+)
 
 
 class SkillUse(NamedTuple):
@@ -63,7 +126,20 @@ def _skill_from_command_name(text: str) -> str | None:
     if match is None:
         return None
     name = match.group("name").strip()
-    return name or None
+    if not name or name in _CLAUDE_BUILTIN_COMMANDS:
+        return None
+    return name
+
+
+def _skills_from_manually_attached(text: str) -> list[str]:
+    """Return skill names from Cursor ``<manually_attached_skills>`` blocks."""
+    if "<manually_attached_skills>" not in text:
+        return []
+    return [
+        match.group("name")
+        for match in _MANUAL_ATTACH_SKILL_NAME_RE.finditer(text)
+        if match.group("name")
+    ]
 
 
 def _skill_from_read_path(tool_input: dict[str, Any]) -> str | None:
@@ -86,10 +162,11 @@ def extract_claude(
 ) -> list[SkillUse]:
     """Extract Claude skill uses from candidate messages and tool calls.
 
-    User: ``<command-name>/NAME</command-name>`` → ``(NAME, "user")``.
-    Agent: ``tool_name == "Skill"`` with non-empty ``$.skill`` →
-    ``(skill, "agent")``. Synthetic skill-info blobs starting with
-    ``Base directory for this skill:`` are ignored.
+    User: ``<command-name>/NAME</command-name>`` → ``(NAME, "user")`` when
+    ``NAME`` is not a Claude Code built-in slash command (``/exit``,
+    ``/model``, …). Agent: ``tool_name == "Skill"`` with non-empty
+    ``$.skill`` → ``(skill, "agent")``. Synthetic skill-info blobs starting
+    with ``Base directory for this skill:`` are ignored.
     """
     events: list[SkillUse] = []
     for _harness, text in message_rows:
@@ -116,14 +193,20 @@ def extract_cursor(
     message_rows: Sequence[MessageRow],
     tool_rows: Sequence[ToolRow],
 ) -> list[SkillUse]:
-    """Extract Cursor skill uses from candidate tool calls.
+    """Extract Cursor skill uses from candidate messages and tool calls.
 
-    Agent: ``Read`` whose path (``$.path`` or ``$.file_path``) ends with
-    ``/SKILL.md`` → parent directory basename as skill, invoker ``"agent"``.
-    User messages are a no-op until a discrete user-invoke signal exists.
+    User: ``<manually_attached_skills>`` blocks with ``Skill Name: …`` lines
+    → ``(name, "user")`` per line. Agent: ``Read`` whose path (``$.path`` or
+    ``$.file_path``) ends with ``SKILL.md`` → parent directory basename,
+    invoker ``"agent"``.
     """
-    del message_rows  # intentional no-op for Cursor user invoker
     events: list[SkillUse] = []
+    for _harness, text in message_rows:
+        if not text:
+            continue
+        for skill in _skills_from_manually_attached(text):
+            events.append(SkillUse(skill=skill, invoker="user"))
+
     for _harness, tool_name, tool_input in tool_rows:
         if tool_name != "Read":
             continue

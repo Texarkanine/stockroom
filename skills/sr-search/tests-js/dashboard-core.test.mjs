@@ -543,6 +543,18 @@ test("chartInteractionOptions uses x axis for vertical bars", () => {
   });
 });
 
+test("chartInteractionOptions uses nearest for doughnut and pie", () => {
+  /** Arc hover must target one segment; index mode breaks nested two-ring charts. */
+  assert.deepEqual(chartInteractionOptions("x", "doughnut"), {
+    mode: "nearest",
+    intersect: true,
+  });
+  assert.deepEqual(chartInteractionOptions("x", "pie"), {
+    mode: "nearest",
+    intersect: true,
+  });
+});
+
 test("togglePanelHelp opens one, re-toggles closed, and switches panels", () => {
   assert.equal(togglePanelHelp(null, "efficiency"), "efficiency");
   assert.equal(togglePanelHelp("efficiency", "efficiency"), null);
@@ -612,6 +624,7 @@ test("builds skills nested aggregate doughnut and compare stacked bar", () => {
   assert.equal(aggregate.kind, "doughnut");
   assert.equal(aggregate.empty, false);
   assert.deepEqual(aggregate.labels, ["niko", "gm"]);
+  assert.deepEqual(aggregate.innerLabels, ["user", "agent"]);
   assertDataset(aggregate, "Skills", [6, 5]); // niko: 1+2+3; gm: 5
   assertDataset(aggregate, "Invokers", [1, 10]); // user=1; agent=2+5+3
   const compare = buildSkillsNestedPanel(skillsPayload, selected, "compare", colors);

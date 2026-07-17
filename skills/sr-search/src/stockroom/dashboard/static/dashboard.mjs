@@ -331,7 +331,7 @@ function chartOptions(model) {
   const text = styles.getPropertyValue("--text").trim();
   const muted = styles.getPropertyValue("--muted").trim();
   const border = styles.getPropertyValue("--border").trim();
-  const interaction = chartInteractionOptions(model.indexAxis);
+  const interaction = chartInteractionOptions(model.indexAxis, model.kind);
   const options = {
     responsive: true,
     maintainAspectRatio: false,
@@ -357,6 +357,14 @@ function chartOptions(model) {
             const item = items?.[0];
             if (!item) {
               return "";
+            }
+            // Nested doughnuts: inner ring uses invoker labels, not skill labels.
+            if (
+              model.kind === "doughnut" &&
+              Array.isArray(model.innerLabels) &&
+              item.datasetIndex > 0
+            ) {
+              return model.innerLabels[item.dataIndex] ?? item.label ?? "";
             }
             return tooltipTitleFromLabelTitles(
               model.labelTitles,

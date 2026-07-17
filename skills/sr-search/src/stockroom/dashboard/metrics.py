@@ -530,14 +530,22 @@ def _skill_message_candidates(
     start: datetime,
     end: datetime,
 ) -> list[tuple[str, str | None]]:
-    """Coarse user-message candidates that may contain command-name tags."""
+    """Coarse user-message candidates for skill markup.
+
+    Windowing uses session activity time (``COALESCE(started_at, source_mtime)``),
+    not ``messages.ts`` — Cursor user messages often lack timestamps, matching
+    how tool metrics join sessions for the activity window.
+    """
     return con.execute(
         f"SELECT s.harness, m.text "
         "FROM sessions s JOIN messages m "
         "ON m.harness = s.harness AND m.session_id = s.session_id "
         f"WHERE NOT s.is_subagent AND {ACTIVITY_TIME_SQL} IS NOT NULL "
         f"AND {ACTIVITY_TIME_SQL} >= ? AND {ACTIVITY_TIME_SQL} < ? "
-        "AND m.role = 'user' AND m.text LIKE '%<command-name>/%'",
+        "AND m.role = 'user' AND ("
+        "m.text LIKE '%<command-name>/%' "
+        "OR m.text LIKE '%<manually_attached_skills>%'"
+        ")",
         [start, end],
     ).fetchall()
 
