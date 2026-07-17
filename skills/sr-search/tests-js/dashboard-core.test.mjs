@@ -636,14 +636,15 @@ const skillsPayload = {
   },
 };
 
-test("assignSkillSunburstColors ranks agent then user-only across full palette", () => {
+test("assignSkillSunburstColors follows overall payload rank", () => {
   /**
-   * Agent group uses AGGREGATE_COLOR (not a palette slot). Skills take the full
-   * categorical series from index 0; user-only continue after agent-ranked.
+   * Like Tool Distribution: hue = position in the API-ranked skills list
+   * (overall totals), not agent-count rank. Agent-heavy #2 must not steal
+   * COLORS[0] from overall #1.
    */
-  const colorsBySkill = assignSkillSunburstColors(["niko", "gm"], ["solo"]);
-  assert.equal(colorsBySkill.get("niko"), COLORS[0]);
-  assert.equal(colorsBySkill.get("gm"), COLORS[1]);
+  const colorsBySkill = assignSkillSunburstColors(["overall-first", "agent-heavy", "solo"]);
+  assert.equal(colorsBySkill.get("overall-first"), COLORS[0]);
+  assert.equal(colorsBySkill.get("agent-heavy"), COLORS[1]);
   assert.equal(colorsBySkill.get("solo"), COLORS[2]);
 });
 
@@ -651,12 +652,12 @@ test("assignSkillSunburstColors keeps top-10 skills on distinct hues", () => {
   /**
    * Full categorical series (11 hues) covers a default top-10 without reuse.
    */
-  const agentSkills = Array.from({ length: 9 }, (_, index) => `agent-${index}`);
-  const colorsBySkill = assignSkillSunburstColors(agentSkills, ["user-only"]);
+  const ranked = Array.from({ length: 10 }, (_, index) => `skill-${index}`);
+  const colorsBySkill = assignSkillSunburstColors(ranked);
   const assigned = [...colorsBySkill.values()];
   assert.equal(assigned.length, 10);
   assert.equal(new Set(assigned).size, 10);
-  assert.equal(colorsBySkill.get("user-only"), COLORS[9]);
+  assert.equal(colorsBySkill.get("skill-9"), COLORS[9]);
 });
 
 test("builds skills nested aggregate as aligned sunburst", () => {
@@ -734,25 +735,35 @@ test("builds skills nested sunburst legend once per skill with agent-preferred c
   );
 });
 
-test("builds skills nested sunburst with agent-led colors", () => {
+test("builds skills nested sunburst colors from payload rank not agent rank", () => {
   /**
-   * Agent inner = AGGREGATE_COLOR; agent skills get ranked palette slots; user
-   * side uses colorWithAlpha(..., 0.55) of the same skill assignment.
+   * Inner invoker ring stays AGGREGATE_COLOR. Skill hues follow overall payload
+   * order (Tools-like): user wedges are faded twins of the same skill color.
+   * Agent-count rank must not reassign hues when overall rank differs.
    */
-  const aggregate = buildSkillsNestedPanel(skillsPayload, selected, "aggregate", colors);
+  const payload = {
+    skills: ["stable-top", "agent-spike"],
+    invokers: ["user", "agent"],
+    calls: {
+      // overall: stable-top=55, agent-spike=40; agent: spike=40, top=5
+      cursor: { user: [50, 0], agent: [5, 40] },
+      "claude-code": { user: [0, 0], agent: [0, 0] },
+    },
+  };
+  const aggregate = buildSkillsNestedPanel(payload, selected, "aggregate", colors);
   const outer = aggregate.datasets.find((item) => item.label === "Skills");
   const inner = aggregate.datasets.find((item) => item.label === "Invokers");
-  // niko+gm both agent=5; stable order → niko=COLORS[0], gm=COLORS[1]
+  // user: stable-top; agent: agent-spike, stable-top
+  assert.deepEqual(aggregate.labels, ["stable-top", "agent-spike", "stable-top"]);
   assert.deepEqual(outer.backgroundColor, [
     "rgba(238, 119, 51, 0.55)",
-    COLORS[0],
     COLORS[1],
+    COLORS[0],
   ]);
   assert.deepEqual(inner.backgroundColor, [
     "rgba(99, 102, 241, 0.55)",
     AGGREGATE_COLOR,
   ]);
-  // Black separators on both rings (match-fill borders hid agent edges).
   assert.deepEqual(outer.borderColor, [RING_BORDER, RING_BORDER, RING_BORDER]);
   assert.deepEqual(inner.borderColor, [RING_BORDER, RING_BORDER]);
 });

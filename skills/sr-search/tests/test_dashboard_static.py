@@ -112,27 +112,19 @@ def test_dashboard_adapter_imports_authored_modules() -> None:
     assert 'from "./dashboard-session.mjs"' in adapter
 
 
-def test_tool_and_skill_distribution_titles_include_top_10() -> None:
-    """Tool/Skill Distribution headings share top-10 wording; sunburst is the skill chart."""
-    source, parser = _document()
-    text = " ".join(parser.text)
-    assert "Tool Distribution (top 10)" in text
-    assert "Skill Distribution (top 10)" in text
-    assert "Skill Distribution (stacked)" not in text
-    assert "Skill Distribution (tools-like)" not in text
-    assert "(mockup)" not in text
-    assert "Skill Usage" not in text
+def test_skill_chart_is_sunburst_only() -> None:
+    """One skills panel (nested sunburst); stacked/tools-like mockups removed."""
+    _source, parser = _document()
+    by_id = {
+        attrs["id"]: (tag, attrs) for tag, attrs in parser.elements if attrs.get("id")
+    }
+    assert "skills-nested-panel" in by_id
+    assert "skills-stacked-panel" not in by_id
+    assert "skills-tools-like-panel" not in by_id
     adapter = (STATIC_ROOT / "dashboard.mjs").read_text(encoding="utf-8")
-    assert "Tool Distribution (top 10)" in adapter
-    assert "Skill Distribution (top 10)" in adapter
+    assert "buildSkillsNestedPanel" in adapter
     assert "buildSkillsStackedPanel" not in adapter
     assert "buildSkillsToolsLikePanel" not in adapter
-    nested_start = source.index('id="skills-nested-panel"')
-    nested_end = source.index('id="write-read-panel"')
-    nested_chunk = source[nested_start:nested_end]
-    assert (
-        "skills within" in nested_chunk.lower() or "within each" in nested_chunk.lower()
-    )
 
 
 def test_lower_chart_panels_order_and_first_prompt_width() -> None:

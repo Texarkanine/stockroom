@@ -1134,39 +1134,25 @@ function skillCompareDatasets(calls, selected, labels, colors) {
 }
 
 /**
- * Agent-led palette for sunburst skill segments.
+ * Payload-rank palette for sunburst skill segments (Tools-like).
  *
- * The invoker group arc uses ``AGGREGATE_COLOR`` (not a palette slot).
- * Agent-present skills (already ranked by agent count) take ``PALETTE`` from
- * index 0; user-only skills take the next free slots. Callers fade user-side
+ * Hue follows position in the API-ranked ``skills`` list (overall totals), so
+ * colors stay stable across windows when overall ranking does. The invoker
+ * group arc uses ``AGGREGATE_COLOR`` separately. Callers fade user-side
  * segments with ``colorWithAlpha``.
  *
- * @param {string[]} rankedAgentSkills Skills with agent count &gt; 0, ranked by
- *   agent count descending (ties keep caller order).
- * @param {string[]} userOnlySkills Skills with user &gt; 0 and agent === 0, in
- *   payload order.
+ * @param {string[]} rankedSkills Skill names in overall payload order.
  * @returns {Map<string, string>} skill name → ``#rrggbb`` base color.
  */
-export function assignSkillSunburstColors(rankedAgentSkills, userOnlySkills) {
+export function assignSkillSunburstColors(rankedSkills) {
   const colorsBySkill = new Map();
   const skillSlotCount = Math.max(PALETTE.length, 1);
-  let skillOrdinal = 0;
-  const nextSkillColor = () => {
-    const slot = skillOrdinal % skillSlotCount;
-    skillOrdinal += 1;
-    return PALETTE[slot];
-  };
-  for (const skill of rankedAgentSkills ?? []) {
+  for (let index = 0; index < (rankedSkills ?? []).length; index += 1) {
+    const skill = rankedSkills[index];
     if (!skill || colorsBySkill.has(skill)) {
       continue;
     }
-    colorsBySkill.set(skill, nextSkillColor());
-  }
-  for (const skill of userOnlySkills ?? []) {
-    if (!skill || colorsBySkill.has(skill)) {
-      continue;
-    }
-    colorsBySkill.set(skill, nextSkillColor());
+    colorsBySkill.set(skill, PALETTE[index % skillSlotCount]);
   }
   return colorsBySkill;
 }
@@ -1214,11 +1200,7 @@ export function buildSkillsNestedPanel(payload, selected, mode, colors) {
   }
   userSegments.sort(byCountDesc);
   agentSegments.sort(byCountDesc);
-  const rankedAgentSkills = agentSegments.map((segment) => segment.skill);
-  const userOnlySkills = skills.filter(
-    (_, index) => userTotals[index] > 0 && agentTotals[index] === 0,
-  );
-  const colorsBySkill = assignSkillSunburstColors(rankedAgentSkills, userOnlySkills);
+  const colorsBySkill = assignSkillSunburstColors(skills);
   const skillColor = (skill) => colorsBySkill.get(skill) ?? PALETTE[0];
 
   const outerLabels = [

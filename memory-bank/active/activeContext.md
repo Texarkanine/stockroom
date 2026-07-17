@@ -1,11 +1,12 @@
 # Active Context
 
 ## Current Task: dashboard-skill-sunburst-rework
-**Phase:** REFLECT - COMPLETE (updated for operator polish)
+**Phase:** REFLECT - COMPLETE (PR feedback: payload-rank skill colors)
 
 ## What Was Done
-- Updated reflection to include post-reflect polish: sunburst selected (other mockups removed), `PALETTE` vs `AGGREGATE_COLOR`, black `RING_BORDER`, lower-panel layout.
-- Persistent files scanned — no updates (palette/border constants stay in the static dashboard surface).
+- PR feedback: sunburst skill hues follow overall `/api/skills` payload rank (Tools-like), not agent-count rank.
+- Dropped presentation-coupled title-string static asserts; kept structural sunburst-only panel/wiring check.
+- Full `make test`: 583 passed / 4 skipped.
 
 ## Next Step
-- Run `/niko-archive` to create the archive document and finalize the current project.
+- Commit/push onto open PR #64 when ready; then `/niko-archive` after merge/operator OK.
