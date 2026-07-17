@@ -145,3 +145,14 @@ Rework the shipped skill-usage mockups: sunburst nested encoding (agent-led colo
     - Archive is next (standalone L2; no milestones)
 * Insights
     - Chart.js tooltip `labelColor` must force fill for faded-border stacks; circumference-sum tests are the sunburst alignment guard
+
+## 2026-07-17 - OPERATOR POLISH (post-reflect)
+
+* Work completed
+    - Chose categorical palette B; wired into `PALETTE`
+    - Split aggregate/“All harnesses” from categorical series via `AGGREGATE_COLOR` (matches `--accent`) after orange-first aggregate regression
+    - JS suite green (86)
+* Decisions made
+    - Harness/tool/skill hues = B; sum charts + sunburst invoker ring = accent indigo
+* Insights
+    - `PALETTE[0]` must not double as aggregate color once the first categorical slot is a harness hue

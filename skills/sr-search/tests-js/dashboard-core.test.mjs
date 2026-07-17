@@ -10,8 +10,6 @@ import {
   buildToolsPanel,
   assignSkillSunburstColors,
   buildSkillsNestedPanel,
-  buildSkillsStackedPanel,
-  buildSkillsToolsLikePanel,
   buildWrappedPanel,
   buildWriteReadPanel,
   chartHeight,
@@ -20,7 +18,9 @@ import {
   deriveHarnessBreakdown,
   deriveOverviewCards,
   displayHarness,
+  doughnutTooltipLabel,
   formatDelta,
+  formatRingPercent,
   harnessColors,
   panelRangeLabels,
   projectHoverTitle,
@@ -40,15 +40,21 @@ import {
   writeShare,
 } from "../src/stockroom/dashboard/static/dashboard-core.mjs";
 
+/** Matches dashboard `--accent` / aggregate series (not a harness slot). */
+const AGGREGATE_COLOR = "#6366f1";
+
 const COLORS = [
-  "#6366f1",
-  "#10b981",
-  "#f59e0b",
-  "#f43f5e",
-  "#06b6d4",
-  "#8b5cf6",
-  "#ec4899",
-  "#84cc16",
+  "#EE7733",
+  "#0077BB",
+  "#EE3377",
+  "#009988",
+  "#CC3311",
+  "#F3C300",
+  "#332288",
+  "#008856",
+  "#66CCEE",
+  "#875692",
+  "#999933",
 ];
 
 const selected = ["claude-code", "cursor"];
@@ -85,7 +91,7 @@ test("sorts arbitrary harnesses and cycles stable positional colors", () => {
     iota: COLORS[5],
     nine: COLORS[6],
     theta: COLORS[7],
-    zeta: COLORS[0],
+    zeta: COLORS[8],
   });
 });
 
@@ -417,8 +423,6 @@ test("panelRangeLabels keep per-panel defaults and share preset window copy", ()
   assert.equal(defaults.projects, "Last 30 days");
   assert.equal(defaults.tools, "Last 30 days");
   assert.equal(defaults.skillsNested, "Last 30 days");
-  assert.equal(defaults.skillsStacked, "Last 30 days");
-  assert.equal(defaults.skillsToolsLike, "Last 30 days");
   assert.equal(defaults.writeRead, "Last 12 weeks");
   assert.equal(defaults.efficiency, "Last 30 days");
   assert.equal(defaults.models, "Last 30 days");
@@ -433,8 +437,6 @@ test("panelRangeLabels keep per-panel defaults and share preset window copy", ()
   assert.equal(week.projects, "Last 7 days");
   assert.equal(week.tools, "Last 7 days");
   assert.equal(week.skillsNested, "Last 7 days");
-  assert.equal(week.skillsStacked, "Last 7 days");
-  assert.equal(week.skillsToolsLike, "Last 7 days");
   assert.equal(week.writeRead, "Last 7 days");
   assert.equal(week.efficiency, "Last 7 days");
   assert.equal(week.models, "Last 7 days");
@@ -461,6 +463,10 @@ test("builds aggregate and compare daily activity models", () => {
   assert.equal(aggregate.kind, "bar");
   assert.equal(aggregate.stacked, false);
   assertDataset(aggregate, "Sessions", [4, 2]);
+  // Aggregate series uses accent, not the first harness (orange) slot.
+  const aggregateSessions = aggregate.datasets.find((item) => item.label === "Sessions");
+  assert.equal(aggregateSessions.backgroundColor, AGGREGATE_COLOR);
+  assert.equal(aggregateSessions.borderColor, AGGREGATE_COLOR);
   const compare = buildDailyPanel(payload, selected, "compare", colors);
   assert.equal(compare.stacked, true);
   assertDataset(compare, "Claude Code", [3, 0]);
@@ -475,6 +481,8 @@ test("builds aggregate and compare project models", () => {
   const aggregate = buildProjectsPanel(payload, selected, "aggregate", colors);
   assert.equal(aggregate.indexAxis, "y");
   assertDataset(aggregate, "Sessions", [3, 4]);
+  const aggregateSessions = aggregate.datasets.find((item) => item.label === "Sessions");
+  assert.equal(aggregateSessions.backgroundColor, AGGREGATE_COLOR);
   const compare = buildProjectsPanel(payload, selected, "compare", colors);
   assert.equal(compare.stacked, true);
   assertDataset(compare, "Cursor", [2, 0]);
@@ -621,16 +629,27 @@ const skillsPayload = {
   },
 };
 
-test("assignSkillSunburstColors reserves palette 0 and ranks agent then user-only", () => {
+test("assignSkillSunburstColors ranks agent then user-only across full palette", () => {
   /**
-   * Agent group keeps PALETTE[0]; agent skills (caller-ranked) take 1..;
-   * user-only skills continue from the next free slot.
+   * Agent group uses AGGREGATE_COLOR (not a palette slot). Skills take the full
+   * categorical series from index 0; user-only continue after agent-ranked.
    */
   const colorsBySkill = assignSkillSunburstColors(["niko", "gm"], ["solo"]);
-  assert.equal(colorsBySkill.get("niko"), COLORS[1]);
-  assert.equal(colorsBySkill.get("gm"), COLORS[2]);
-  assert.equal(colorsBySkill.get("solo"), COLORS[3]);
-  assert.equal([...colorsBySkill.values()].includes(COLORS[0]), false);
+  assert.equal(colorsBySkill.get("niko"), COLORS[0]);
+  assert.equal(colorsBySkill.get("gm"), COLORS[1]);
+  assert.equal(colorsBySkill.get("solo"), COLORS[2]);
+});
+
+test("assignSkillSunburstColors keeps top-10 skills on distinct hues", () => {
+  /**
+   * Full categorical series (11 hues) covers a default top-10 without reuse.
+   */
+  const agentSkills = Array.from({ length: 9 }, (_, index) => `agent-${index}`);
+  const colorsBySkill = assignSkillSunburstColors(agentSkills, ["user-only"]);
+  const assigned = [...colorsBySkill.values()];
+  assert.equal(assigned.length, 10);
+  assert.equal(new Set(assigned).size, 10);
+  assert.equal(colorsBySkill.get("user-only"), COLORS[9]);
 });
 
 test("builds skills nested aggregate as aligned sunburst", () => {
@@ -641,7 +660,7 @@ test("builds skills nested aggregate as aligned sunburst", () => {
   const aggregate = buildSkillsNestedPanel(skillsPayload, selected, "aggregate", colors);
   assert.equal(aggregate.kind, "doughnut");
   assert.equal(aggregate.empty, false);
-  // user: niko=1; agent: niko=5, gm=5
+  // user: niko=1; agent: niko=5, gm=5 (ties keep payload order)
   assert.deepEqual(aggregate.labels, ["niko", "niko", "gm"]);
   assert.deepEqual(aggregate.innerLabels, ["user", "agent"]);
   assertDataset(aggregate, "Skills", [1, 5, 5]);
@@ -660,22 +679,74 @@ test("builds skills nested aggregate as aligned sunburst", () => {
   );
 });
 
+test("builds skills nested sunburst wedges largest-to-smallest within each ring half", () => {
+  /**
+   * Payload order must not dictate wedge order — each invoker group sorts by
+   * count descending so agent-heavy skills aren't stuck mid-arc.
+   */
+  const payload = {
+    skills: ["alpha", "beta", "gamma"],
+    invokers: ["user", "agent"],
+    calls: {
+      cursor: { user: [10, 3, 1], agent: [2, 20, 5] },
+      "claude-code": { user: [0, 0, 0], agent: [0, 0, 0] },
+    },
+  };
+  const aggregate = buildSkillsNestedPanel(payload, selected, "aggregate", colors);
+  // user desc: alpha10, beta3, gamma1; agent desc: beta20, gamma5, alpha2
+  assert.deepEqual(aggregate.labels, ["alpha", "beta", "gamma", "beta", "gamma", "alpha"]);
+  assertDataset(aggregate, "Skills", [10, 3, 1, 20, 5, 2]);
+});
+
+test("builds skills nested sunburst legend once per skill with agent-preferred color", () => {
+  /**
+   * Legend lists each skill once: solid agent color when the skill has agent
+   * uses; faded user color only for user-only skills.
+   */
+  const payload = {
+    skills: ["shared", "solo"],
+    invokers: ["user", "agent"],
+    calls: {
+      cursor: { user: [2, 4], agent: [6, 0] },
+      "claude-code": { user: [0, 0], agent: [0, 0] },
+    },
+  };
+  const aggregate = buildSkillsNestedPanel(payload, selected, "aggregate", colors);
+  assert.deepEqual(
+    aggregate.legendItems.map((item) => item.text),
+    ["shared", "solo"],
+  );
+  // shared has agent → solid COLORS[0]; solo user-only → faded COLORS[1]
+  assert.deepEqual(
+    aggregate.legendItems.map((item) => item.fillStyle),
+    [COLORS[0], "rgba(0, 119, 187, 0.55)"],
+  );
+  assert.deepEqual(
+    aggregate.legendItems.map((item) => item.strokeStyle),
+    [COLORS[0], "rgba(0, 119, 187, 0.55)"],
+  );
+});
+
 test("builds skills nested sunburst with agent-led colors", () => {
   /**
-   * Agent inner = PALETTE[0]; agent skills get ranked palette slots; user side
-   * uses colorWithAlpha(..., 0.55) of the same skill assignment.
+   * Agent inner = AGGREGATE_COLOR; agent skills get ranked palette slots; user
+   * side uses colorWithAlpha(..., 0.55) of the same skill assignment.
    */
   const aggregate = buildSkillsNestedPanel(skillsPayload, selected, "aggregate", colors);
   const outer = aggregate.datasets.find((item) => item.label === "Skills");
   const inner = aggregate.datasets.find((item) => item.label === "Invokers");
-  // niko+gm both agent=5; stable order → niko=COLORS[1], gm=COLORS[2]
+  // niko+gm both agent=5; stable order → niko=COLORS[0], gm=COLORS[1]
   assert.deepEqual(outer.backgroundColor, [
-    "rgba(16, 185, 129, 0.55)",
+    "rgba(238, 119, 51, 0.55)",
+    COLORS[0],
     COLORS[1],
-    COLORS[2],
   ]);
-  assert.deepEqual(inner.backgroundColor, ["rgba(99, 102, 241, 0.55)", COLORS[0]]);
+  assert.deepEqual(inner.backgroundColor, [
+    "rgba(99, 102, 241, 0.55)",
+    AGGREGATE_COLOR,
+  ]);
 });
+
 
 test("tooltipLabelColors uses backgroundColor fill not borderColor", () => {
   /**
@@ -684,7 +755,7 @@ test("tooltipLabelColors uses backgroundColor fill not borderColor", () => {
    */
   const stacked = {
     backgroundColor: "rgba(99, 102, 241, 0.55)",
-    borderColor: "#6366f1",
+    borderColor: AGGREGATE_COLOR,
   };
   assert.deepEqual(tooltipLabelColors(stacked, 0), {
     borderColor: "rgba(99, 102, 241, 0.55)",
@@ -700,6 +771,20 @@ test("tooltipLabelColors uses backgroundColor fill not borderColor", () => {
   });
 });
 
+test("formatRingPercent and doughnutTooltipLabel include ring share", () => {
+  /**
+   * Pie/doughnut tooltips show count and percent of that ring's total.
+   */
+  assert.equal(formatRingPercent(0, 0), "0%");
+  assert.equal(formatRingPercent(1, 10), "10%");
+  assert.equal(formatRingPercent(1, 30), "3.3%");
+  assert.equal(
+    doughnutTooltipLabel({ label: "Calls", data: [1, 3] }, 1, "Write"),
+    "Write: 3 (75%)",
+  );
+});
+
+
 test("builds skills nested compare stacked bar unchanged", () => {
   /** Compare mode stays harness×invoker stacked bars (not sunburst geometry). */
   const compare = buildSkillsNestedPanel(skillsPayload, selected, "compare", colors);
@@ -714,7 +799,7 @@ test("builds skills nested compare stacked bar unchanged", () => {
 test("builds skills nested sunburst for user-only and agent-only edges", () => {
   /**
    * All-user / all-agent still emit both inner values (zeros allowed); user-only
-   * skills take the next palette slot after the reserved agent group color.
+   * skills take the first categorical palette slot.
    */
   const userOnly = buildSkillsNestedPanel(
     {
@@ -733,8 +818,8 @@ test("builds skills nested sunburst for user-only and agent-only edges", () => {
   assertDataset(userOnly, "Skills", [3]);
   assertDataset(userOnly, "Invokers", [3, 0]);
   const userOuter = userOnly.datasets.find((item) => item.label === "Skills");
-  // No agent skills → first free slot after reserved group color is COLORS[1].
-  assert.deepEqual(userOuter.backgroundColor, ["rgba(16, 185, 129, 0.55)"]);
+  // No agent skills → first categorical slot is COLORS[0].
+  assert.deepEqual(userOuter.backgroundColor, ["rgba(238, 119, 51, 0.55)"]);
 
   const agentOnly = buildSkillsNestedPanel(
     {
@@ -753,33 +838,10 @@ test("builds skills nested sunburst for user-only and agent-only edges", () => {
   assertDataset(agentOnly, "Skills", [4]);
   assertDataset(agentOnly, "Invokers", [0, 4]);
   const agentOuter = agentOnly.datasets.find((item) => item.label === "Skills");
-  assert.deepEqual(agentOuter.backgroundColor, [COLORS[1]]);
+  assert.deepEqual(agentOuter.backgroundColor, [COLORS[0]]);
 });
 
-test("builds skills stacked aggregate and compare models", () => {
-  const aggregate = buildSkillsStackedPanel(skillsPayload, selected, "aggregate", colors);
-  assert.equal(aggregate.kind, "bar");
-  assert.equal(aggregate.indexAxis, "y");
-  assert.equal(aggregate.stacked, true);
-  assert.equal(aggregate.empty, false);
-  assertDataset(aggregate, "user", [1, 0]);
-  assertDataset(aggregate, "agent", [5, 5]);
-  const compare = buildSkillsStackedPanel(skillsPayload, selected, "compare", colors);
-  assert.equal(compare.datasets.length, 4);
-  assertDataset(compare, "Claude Code · user", [1, 0]);
-  assertDataset(compare, "Cursor · user", [0, 0]);
-});
 
-test("builds skills tools-like aggregate doughnut and compare stacked bar", () => {
-  const aggregate = buildSkillsToolsLikePanel(skillsPayload, selected, "aggregate", colors);
-  assert.equal(aggregate.kind, "doughnut");
-  assert.equal(aggregate.empty, false);
-  assertDataset(aggregate, "Calls", [6, 5]);
-  const compare = buildSkillsToolsLikePanel(skillsPayload, selected, "compare", colors);
-  assert.equal(compare.kind, "bar");
-  assert.equal(compare.stacked, true);
-  assertDataset(compare, "Claude Code · agent", [2, 5]);
-});
 
 test("marks skills panels empty when payload has no skill calls", () => {
   const emptyPayload = {
@@ -790,11 +852,7 @@ test("marks skills panels empty when payload has no skill calls", () => {
       "claude-code": { user: [], agent: [] },
     },
   };
-  for (const builder of [
-    buildSkillsNestedPanel,
-    buildSkillsStackedPanel,
-    buildSkillsToolsLikePanel,
-  ]) {
+  for (const builder of [buildSkillsNestedPanel]) {
     const panel = builder(emptyPayload, selected, "aggregate", colors);
     assert.equal(panel.empty, true, `${builder.name} should be empty`);
   }

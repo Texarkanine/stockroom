@@ -7,8 +7,6 @@ import {
   buildSessionsPanelRows,
   buildToolsPanel,
   buildSkillsNestedPanel,
-  buildSkillsStackedPanel,
-  buildSkillsToolsLikePanel,
   buildWrappedPanel,
   buildWriteReadPanel,
   chartInteractionOptions,
@@ -16,6 +14,7 @@ import {
   deriveHarnessBreakdown,
   deriveOverviewCards,
   displayHarness,
+  doughnutTooltipLabel,
   formatDate,
   harnessColors,
   PANEL_HELP,
@@ -332,6 +331,9 @@ function chartOptions(model) {
   const text = styles.getPropertyValue("--text").trim();
   const muted = styles.getPropertyValue("--muted").trim();
   const border = styles.getPropertyValue("--border").trim();
+  // Chart.js draws rgba tooltip swatches over multiKeyBackground (default #fff),
+  // which washes fills on dark UI; match the panel surface instead.
+  const surface = styles.getPropertyValue("--surface").trim() || text;
   const interaction = chartInteractionOptions(model.indexAxis, model.kind);
   const options = {
     responsive: true,
@@ -349,10 +351,30 @@ function chartOptions(model) {
           color: text,
           usePointStyle: true,
           boxWidth: 10,
+          ...(Array.isArray(model.legendItems)
+            ? {
+                generateLabels() {
+                  return model.legendItems.map((item, index) => ({
+                    text: item.text,
+                    fillStyle: item.fillStyle,
+                    strokeStyle: item.strokeStyle ?? item.fillStyle,
+                    // Keep legend labels on theme text; color lives in the swatch.
+                    fontColor: text,
+                    lineWidth: 0,
+                    hidden: false,
+                    index,
+                    datasetIndex: 0,
+                  }));
+                },
+              }
+            : {}),
         },
+        // Custom arc legends are not dataset toggles — disable click-to-hide.
+        ...(Array.isArray(model.legendItems) ? { onClick() {} } : {}),
       },
       tooltip: {
         ...interaction,
+        multiKeyBackground: surface,
         callbacks: {
           title(items) {
             const item = items?.[0];
@@ -372,6 +394,21 @@ function chartOptions(model) {
               item.dataIndex,
               item.label ?? "",
             );
+          },
+          label(item) {
+            if (model.kind !== "doughnut" && model.kind !== "pie") {
+              const label = item.dataset?.label ?? "";
+              const value = item.formattedValue ?? item.raw ?? "";
+              return label ? `${label}: ${value}` : String(value);
+            }
+            let segment = item.label ?? "";
+            if (
+              Array.isArray(model.innerLabels) &&
+              item.datasetIndex > 0
+            ) {
+              segment = model.innerLabels[item.dataIndex] ?? segment;
+            }
+            return doughnutTooltipLabel(item.dataset, item.dataIndex, segment);
           },
           labelColor(item) {
             return tooltipLabelColors(item?.dataset, item?.dataIndex);
@@ -689,8 +726,6 @@ function applyPanelRangeLabels() {
     ["#projects-panel .panel-range", labels.projects],
     ["#tools-panel .panel-range", labels.tools],
     ["#skills-nested-panel .panel-range", labels.skillsNested],
-    ["#skills-stacked-panel .panel-range", labels.skillsStacked],
-    ["#skills-tools-like-panel .panel-range", labels.skillsToolsLike],
     ["#write-read-panel .panel-range", labels.writeRead],
     ["#efficiency-panel .panel-range", labels.efficiency],
     ["#models-panel .panel-range", labels.models],
@@ -736,18 +771,8 @@ function renderDashboard() {
   );
   renderChart(
     "skills-nested",
-    "Skill Distribution (sunburst) (top 10) (mockup)",
+    "Skill Distribution (top 10)",
     buildSkillsNestedPanel(snapshot.skills, state.selected, state.mode, colors),
-  );
-  renderChart(
-    "skills-stacked",
-    "Skill Distribution (stacked) (top 10) (mockup)",
-    buildSkillsStackedPanel(snapshot.skills, state.selected, state.mode, colors),
-  );
-  renderChart(
-    "skills-tools-like",
-    "Skill Distribution (tools-like) (top 10) (mockup)",
-    buildSkillsToolsLikePanel(snapshot.skills, state.selected, state.mode, colors),
   );
   renderChart(
     "write-read",

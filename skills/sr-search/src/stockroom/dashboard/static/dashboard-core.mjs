@@ -1,12 +1,30 @@
+/**
+ * Aggregate / “All harnesses” series color — matches CSS ``--accent``.
+ * Kept separate from the categorical harness/tool/skill palette so sum charts
+ * do not inherit the first harness hue (orange).
+ */
+const AGGREGATE_COLOR = "#6366f1";
+
+/**
+ * Categorical palette for harnesses, tools, and sunburst skill wedges
+ * (operator pick: mockup B).
+ *
+ * Sequence: Paul Tol vibrant reordered so adjacent indexes are hue-distant
+ * (no blue→cyan neighbors), topped up with Kelly fillers.
+ * @see https://sronpersonalpages.nl/~pault/
+ */
 const PALETTE = [
-  "#6366f1",
-  "#10b981",
-  "#f59e0b",
-  "#f43f5e",
-  "#06b6d4",
-  "#8b5cf6",
-  "#ec4899",
-  "#84cc16",
+  "#EE7733", // orange
+  "#0077BB", // blue
+  "#EE3377", // magenta
+  "#009988", // teal
+  "#CC3311", // red
+  "#F3C300", // Kelly yellow
+  "#332288", // muted indigo
+  "#008856", // Kelly green
+  "#66CCEE", // bright cyan
+  "#875692", // Kelly purple
+  "#999933", // muted olive
 ];
 
 function finiteNumber(value) {
@@ -63,6 +81,15 @@ function panelModel(kind, labels, datasets, options = {}) {
     ...(options.yMax === undefined ? {} : { yMax: options.yMax }),
     ...(options.labelTitles === undefined ? {} : { labelTitles: [...options.labelTitles] }),
     ...(options.innerLabels === undefined ? {} : { innerLabels: [...options.innerLabels] }),
+    ...(options.legendItems === undefined
+      ? {}
+      : {
+          legendItems: options.legendItems.map((item) => ({
+            text: item.text,
+            fillStyle: item.fillStyle,
+            strokeStyle: item.strokeStyle ?? item.fillStyle,
+          })),
+        }),
   };
 }
 
@@ -101,9 +128,9 @@ export function tooltipTitleFromLabelTitles(labelTitles, index, fallbackLabel) {
 /**
  * Chart.js tooltip swatch colors from the dataset fill (not border).
  *
- * Stacked skill compare bars use a solid ``borderColor`` with a faded
- * ``backgroundColor``; default Chart.js swatches can pick the border and
- * disagree with the legend/bar. Both fill and stroke use the bar fill.
+ * Callers should keep ``borderColor`` equal to ``backgroundColor`` on faded
+ * stacks — point-style legends weight the border, so a solid border + faded
+ * fill makes legend/tooltip disagree (especially on dark tooltip chrome).
  *
  * @param {object | null | undefined} dataset Chart.js dataset.
  * @param {number} [dataIndex=0] Segment index for per-arc color arrays.
@@ -118,6 +145,50 @@ export function tooltipLabelColors(dataset, dataIndex = 0) {
     borderColor: fill,
     backgroundColor: fill,
   };
+}
+
+/**
+ * Format a ring segment's share of its doughnut/pie dataset total.
+ *
+ * @param {number} value Segment value.
+ * @param {number} total Sum of the ring's values.
+ * @returns {string} Percent label (integer when ≥10%, else one decimal).
+ */
+export function formatRingPercent(value, total) {
+  const amount = finiteNumber(value);
+  const sum = finiteNumber(total);
+  if (!(sum > 0)) {
+    return "0%";
+  }
+  const percent = (amount / sum) * 100;
+  if (percent === 0) {
+    return "0%";
+  }
+  if (percent >= 10) {
+    return `${Math.round(percent)}%`;
+  }
+  return `${Math.round(percent * 10) / 10}%`;
+}
+
+/**
+ * Doughnut/pie tooltip line: ``{segment}: {value} ({percent})``.
+ *
+ * Percent is relative to that ring's dataset total (outer and inner sunburst
+ * rings each sum to the same circumference total).
+ *
+ * @param {object | null | undefined} dataset Chart.js dataset.
+ * @param {number} dataIndex Segment index.
+ * @param {string} [segmentLabel] Visible segment name (skill / invoker / tool).
+ * @returns {string}
+ */
+export function doughnutTooltipLabel(dataset, dataIndex, segmentLabel) {
+  const entry = safeObject(dataset);
+  const data = Array.isArray(entry.data) ? entry.data : [];
+  const index = Number.isInteger(dataIndex) && dataIndex >= 0 ? dataIndex : 0;
+  const value = finiteNumber(data[index]);
+  const total = data.reduce((sum, item) => sum + finiteNumber(item), 0);
+  const name = displayValue(segmentLabel || entry.label, "Segment");
+  return `${name}: ${value} (${formatRingPercent(value, total)})`;
 }
 
 /**
@@ -179,7 +250,7 @@ export function closePanelHelp() {
   return null;
 }
 
-function aggregateDataset(label, data, color = PALETTE[0]) {
+function aggregateDataset(label, data, color = AGGREGATE_COLOR) {
   return {
     label,
     data,
@@ -337,8 +408,6 @@ const DEFAULT_PANEL_RANGE_LABELS = Object.freeze({
   projects: "Last 30 days",
   tools: "Last 30 days",
   skillsNested: "Last 30 days",
-  skillsStacked: "Last 30 days",
-  skillsToolsLike: "Last 30 days",
   writeRead: "Last 12 weeks",
   efficiency: "Last 30 days",
   models: "Last 30 days",
@@ -406,8 +475,6 @@ export function panelRangeLabels(preset) {
     projects: windowLabel,
     tools: windowLabel,
     skillsNested: windowLabel,
-    skillsStacked: windowLabel,
-    skillsToolsLike: windowLabel,
     writeRead: windowLabel,
     efficiency: windowLabel,
     models: windowLabel,
@@ -1005,25 +1072,6 @@ function sumSkillInvoker(calls, selected, invoker, length) {
 }
 
 /**
- * Skill totals (user + agent) across selected harnesses, aligned to skills.
- *
- * @param {Record<string, Record<string, number[]>> | undefined} calls
- * @param {Iterable<string>} selected
- * @param {number} length
- * @returns {number[]}
- */
-function sumSkillTotals(calls, selected, length) {
-  const totals = Array.from({ length }, () => 0);
-  for (const invoker of SKILL_INVOKERS) {
-    const series = sumSkillInvoker(calls, selected, invoker, length);
-    for (let index = 0; index < length; index += 1) {
-      totals[index] += series[index];
-    }
-  }
-  return totals;
-}
-
-/**
  * Convert ``#rrggbb`` to ``rgba(r,g,b,a)`` for invoker opacity in compare mode.
  *
  * @param {string} color
@@ -1070,7 +1118,8 @@ function skillCompareDatasets(calls, selected, labels, colors) {
         label: `${displayHarness(harness)} · ${invoker}`,
         data,
         backgroundColor: fill,
-        borderColor: base,
+        // Match fill so point-style legend + tooltip swatches agree with bars.
+        borderColor: fill,
         borderWidth: 1,
       });
     }
@@ -1081,9 +1130,10 @@ function skillCompareDatasets(calls, selected, labels, colors) {
 /**
  * Agent-led palette for sunburst skill segments.
  *
- * ``PALETTE[0]`` is reserved for the agent invoker group. Agent-present skills
- * (already ranked by agent count) take ``PALETTE[1..]``; user-only skills take
- * the next free slots. Callers fade user-side segments with ``colorWithAlpha``.
+ * The invoker group arc uses ``AGGREGATE_COLOR`` (not a palette slot).
+ * Agent-present skills (already ranked by agent count) take ``PALETTE`` from
+ * index 0; user-only skills take the next free slots. Callers fade user-side
+ * segments with ``colorWithAlpha``.
  *
  * @param {string[]} rankedAgentSkills Skills with agent count &gt; 0, ranked by
  *   agent count descending (ties keep caller order).
@@ -1093,20 +1143,24 @@ function skillCompareDatasets(calls, selected, labels, colors) {
  */
 export function assignSkillSunburstColors(rankedAgentSkills, userOnlySkills) {
   const colorsBySkill = new Map();
-  let nextIndex = 1;
+  const skillSlotCount = Math.max(PALETTE.length, 1);
+  let skillOrdinal = 0;
+  const nextSkillColor = () => {
+    const slot = skillOrdinal % skillSlotCount;
+    skillOrdinal += 1;
+    return PALETTE[slot];
+  };
   for (const skill of rankedAgentSkills ?? []) {
     if (!skill || colorsBySkill.has(skill)) {
       continue;
     }
-    colorsBySkill.set(skill, PALETTE[nextIndex % PALETTE.length]);
-    nextIndex += 1;
+    colorsBySkill.set(skill, nextSkillColor());
   }
   for (const skill of userOnlySkills ?? []) {
     if (!skill || colorsBySkill.has(skill)) {
       continue;
     }
-    colorsBySkill.set(skill, PALETTE[nextIndex % PALETTE.length]);
-    nextIndex += 1;
+    colorsBySkill.set(skill, nextSkillColor());
   }
   return colorsBySkill;
 }
@@ -1139,6 +1193,8 @@ export function buildSkillsNestedPanel(payload, selected, mode, colors) {
   const userSum = userTotals.reduce((sum, value) => sum + value, 0);
   const agentSum = agentTotals.reduce((sum, value) => sum + value, 0);
 
+  const byCountDesc = (left, right) =>
+    right.count - left.count || left.index - right.index;
   const userSegments = [];
   const agentSegments = [];
   for (let index = 0; index < skills.length; index += 1) {
@@ -1150,14 +1206,14 @@ export function buildSkillsNestedPanel(payload, selected, mode, colors) {
       agentSegments.push({ skill, count: agentTotals[index], index });
     }
   }
-  const rankedAgentSkills = [...agentSegments]
-    .sort((left, right) => right.count - left.count || left.index - right.index)
-    .map((segment) => segment.skill);
-  const userOnlySkills = userSegments
-    .filter((segment) => agentTotals[segment.index] === 0)
-    .map((segment) => segment.skill);
+  userSegments.sort(byCountDesc);
+  agentSegments.sort(byCountDesc);
+  const rankedAgentSkills = agentSegments.map((segment) => segment.skill);
+  const userOnlySkills = skills.filter(
+    (_, index) => userTotals[index] > 0 && agentTotals[index] === 0,
+  );
   const colorsBySkill = assignSkillSunburstColors(rankedAgentSkills, userOnlySkills);
-  const skillColor = (skill) => colorsBySkill.get(skill) ?? PALETTE[1];
+  const skillColor = (skill) => colorsBySkill.get(skill) ?? PALETTE[0];
 
   const outerLabels = [
     ...userSegments.map((segment) => segment.skill),
@@ -1171,10 +1227,8 @@ export function buildSkillsNestedPanel(payload, selected, mode, colors) {
     ...userSegments.map((segment) => colorWithAlpha(skillColor(segment.skill), 0.55)),
     ...agentSegments.map((segment) => skillColor(segment.skill)),
   ];
-  const outerBorder = [
-    ...userSegments.map((segment) => skillColor(segment.skill)),
-    ...agentSegments.map((segment) => skillColor(segment.skill)),
-  ];
+  // Outer borders match fills so dual-appearance skills stay paired in the arcs.
+  const outerBorder = [...outerBackground];
   const outer = {
     label: "Skills",
     data: outerData,
@@ -1185,81 +1239,33 @@ export function buildSkillsNestedPanel(payload, selected, mode, colors) {
   const inner = {
     label: "Invokers",
     data: [userSum, agentSum],
-    backgroundColor: [colorWithAlpha(PALETTE[0], 0.55), PALETTE[0]],
-    borderColor: [PALETTE[0], PALETTE[0]],
+    backgroundColor: [colorWithAlpha(AGGREGATE_COLOR, 0.55), AGGREGATE_COLOR],
+    borderColor: [colorWithAlpha(AGGREGATE_COLOR, 0.55), AGGREGATE_COLOR],
     borderWidth: 1,
     weight: 0.6,
   };
+  // Unique skill names; agent solid when present, else faded user-only color.
+  const legendItems = [];
+  const legendSeen = new Set();
+  for (let index = 0; index < skills.length; index += 1) {
+    const skill = skills[index];
+    if (!skill || legendSeen.has(skill)) {
+      continue;
+    }
+    if (userTotals[index] === 0 && agentTotals[index] === 0) {
+      continue;
+    }
+    legendSeen.add(skill);
+    const base = skillColor(skill);
+    const swatch =
+      agentTotals[index] > 0 ? base : colorWithAlpha(base, SKILL_INVOKER_ALPHA.user);
+    legendItems.push({ text: skill, fillStyle: swatch, strokeStyle: swatch });
+  }
   return panelModel("doughnut", outerLabels, [outer, inner], {
     empty: userSum === 0 && agentSum === 0,
     innerLabels: [...SKILL_INVOKERS],
+    legendItems,
   });
-}
-
-/**
- * Horizontal stacked-bar mockup: skill × invoker (aggregate) or harness×invoker.
- *
- * @param {object | null | undefined} payload `/api/skills` body.
- * @param {Iterable<string>} selected
- * @param {"aggregate"|"compare"} mode
- * @param {Record<string, string> | undefined} colors
- * @returns {object}
- */
-export function buildSkillsStackedPanel(payload, selected, mode, colors) {
-  const source = safeObject(payload);
-  const labels = Array.isArray(source.skills) ? source.skills : [];
-  if (mode === "compare") {
-    return panelModel(
-      "bar",
-      labels,
-      skillCompareDatasets(source.calls, selected, labels, colors),
-      { indexAxis: "y", stacked: true, height: chartHeight(labels.length) },
-    );
-  }
-  const datasets = SKILL_INVOKERS.map((invoker, index) => {
-    const dataset = aggregateDataset(
-      invoker,
-      sumSkillInvoker(source.calls, selected, invoker, labels.length),
-      PALETTE[index % PALETTE.length],
-    );
-    if (invoker === "user") {
-      dataset.backgroundColor = colorWithAlpha(PALETTE[index % PALETTE.length], 0.55);
-    }
-    return dataset;
-  });
-  return panelModel("bar", labels, datasets, {
-    indexAxis: "y",
-    stacked: true,
-    height: chartHeight(labels.length),
-  });
-}
-
-/**
- * Tools-like mockup: doughnut by skill totals; compare uses stacked harness×invoker.
- *
- * @param {object | null | undefined} payload `/api/skills` body.
- * @param {Iterable<string>} selected
- * @param {"aggregate"|"compare"} mode
- * @param {Record<string, string> | undefined} colors
- * @returns {object}
- */
-export function buildSkillsToolsLikePanel(payload, selected, mode, colors) {
-  const source = safeObject(payload);
-  const labels = Array.isArray(source.skills) ? source.skills : [];
-  if (mode === "compare") {
-    return panelModel(
-      "bar",
-      labels,
-      skillCompareDatasets(source.calls, selected, labels, colors),
-      { indexAxis: "y", stacked: true, height: chartHeight(labels.length) },
-    );
-  }
-  const dataset = aggregateDataset(
-    "Calls",
-    sumSkillTotals(source.calls, selected, labels.length),
-  );
-  dataset.backgroundColor = labels.map((_, index) => PALETTE[index % PALETTE.length]);
-  return panelModel("doughnut", labels, [dataset]);
 }
 
 /**
@@ -1318,7 +1324,7 @@ export function buildWriteReadPanel(payload, selected, mode, colors) {
     const reads = sumAligned(source.reads, selected, length);
     empty = !ratioSeriesHasActivity(writes, reads);
     const data = writes.map((writeCount, index) => writeShare(writeCount, reads[index]));
-    datasets = [lineDataset("Write share", data, PALETTE[0])];
+    datasets = [lineDataset("Write share", data, AGGREGATE_COLOR)];
   }
   return panelModel("line", labels, datasets, {
     stacked: false,

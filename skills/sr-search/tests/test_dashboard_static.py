@@ -54,8 +54,6 @@ def test_dashboard_document_has_semantic_controls_panels_and_fallbacks() -> None
         "projects-panel",
         "tools-panel",
         "skills-nested-panel",
-        "skills-stacked-panel",
-        "skills-tools-like-panel",
         "write-read-panel",
         "efficiency-panel",
         "models-panel",
@@ -67,7 +65,7 @@ def test_dashboard_document_has_semantic_controls_panels_and_fallbacks() -> None
     assert "table" in tags
     assert tags.count("th") >= 6
     canvases = [attrs for tag, attrs in parser.elements if tag == "canvas"]
-    assert len(canvases) == 10
+    assert len(canvases) == 8
     assert all(canvas.get("role") == "img" for canvas in canvases)
     assert all(canvas.get("aria-label") for canvas in canvases)
 
@@ -115,21 +113,22 @@ def test_dashboard_adapter_imports_authored_modules() -> None:
 
 
 def test_tool_and_skill_distribution_titles_include_top_10() -> None:
-    """Tool/Skill Distribution headings share top-10 wording; skill panels keep mockup."""
+    """Tool/Skill Distribution headings share top-10 wording; sunburst is the skill chart."""
     source, parser = _document()
     text = " ".join(parser.text)
     assert "Tool Distribution (top 10)" in text
-    assert "Skill Distribution (sunburst) (top 10) (mockup)" in text
-    assert "Skill Distribution (stacked) (top 10) (mockup)" in text
-    assert "Skill Distribution (tools-like) (top 10) (mockup)" in text
+    assert "Skill Distribution (top 10)" in text
+    assert "Skill Distribution (stacked)" not in text
+    assert "Skill Distribution (tools-like)" not in text
+    assert "(mockup)" not in text
     assert "Skill Usage" not in text
     adapter = (STATIC_ROOT / "dashboard.mjs").read_text(encoding="utf-8")
     assert "Tool Distribution (top 10)" in adapter
-    assert "Skill Distribution (sunburst) (top 10) (mockup)" in adapter
-    assert "Skill Distribution (stacked) (top 10) (mockup)" in adapter
-    assert "Skill Distribution (tools-like) (top 10) (mockup)" in adapter
+    assert "Skill Distribution (top 10)" in adapter
+    assert "buildSkillsStackedPanel" not in adapter
+    assert "buildSkillsToolsLikePanel" not in adapter
     nested_start = source.index('id="skills-nested-panel"')
-    nested_end = source.index('id="skills-stacked-panel"')
+    nested_end = source.index('id="write-read-panel"')
     nested_chunk = source[nested_start:nested_end]
     assert (
         "skills within" in nested_chunk.lower() or "within each" in nested_chunk.lower()
@@ -292,8 +291,6 @@ def test_info_controls_only_on_efficiency_and_first_prompt_panels() -> None:
         "projects-panel",
         "tools-panel",
         "skills-nested-panel",
-        "skills-stacked-panel",
-        "skills-tools-like-panel",
         "write-read-panel",
         "models-panel",
     ):
