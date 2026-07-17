@@ -40,7 +40,7 @@ Shared presentation: [`stockroom.render`](../skills/sr-search/src/stockroom/rend
 
 ## Testing Process
 
-Test-first per `.cursor/rules/shared/always-tdd.mdc`; run discipline in `.cursor/rules/shared/test-running-practices.mdc`. Python contracts: `pytest` configured in [`skills/sr-search/pyproject.toml`](../skills/sr-search/pyproject.toml). Dashboard JS: Node 22 built-in runner via `make test-dashboard-js`; dashboard Python slice via `make test-dashboard-py` (no sync). Day-to-day: `make test` / `make lint` / `make format` / `make reuse` / `make ci` from repo root. Lint/format is `ruff`.
+Test-first per `.cursor/rules/shared/always-tdd.mdc`; run discipline in `.cursor/rules/shared/test-running-practices.mdc`. Python contracts: `pytest` + `pytest-xdist` configured in [`skills/sr-search/pyproject.toml`](../skills/sr-search/pyproject.toml) (`addopts = ["-n", "auto"]`; override with `-n0` for serial). Dashboard JS: Node 22 built-in runner via `make test-dashboard-js`; dashboard Python slice via `make test-dashboard-py` (no sync). Day-to-day: `make test` / `make lint` / `make format` / `make reuse` / `make ci` from repo root. Lint/format is `ruff`.
 
 ## Design System
 
