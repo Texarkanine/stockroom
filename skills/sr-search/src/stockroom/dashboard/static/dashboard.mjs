@@ -766,12 +766,12 @@ function renderDashboard() {
   );
   renderChart(
     "tools",
-    "Tool Distribution (top 10)",
+    "Top Tools",
     buildToolsPanel(snapshot.tools, state.selected, state.mode, colors),
   );
   renderChart(
     "skills-nested",
-    "Skill Distribution (top 10)",
+    "Top Skills",
     buildSkillsNestedPanel(snapshot.skills, state.selected, state.mode, colors),
   );
   renderChart(
@@ -785,7 +785,7 @@ function renderDashboard() {
   );
   renderChart(
     "models",
-    "Model distribution",
+    "Top Models",
     buildModelsPanel(snapshot.models, state.selected, state.mode, colors),
   );
   renderChart(
