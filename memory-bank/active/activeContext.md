@@ -1,11 +1,11 @@
 # Active Context
 
 ## Current Task: parallel-pytest-xdist
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Classified as Level 2 (simple enhancement): self-contained test-harness change — add locked pytest-xdist and wire process workers into make/CI.
-- Rationale: not a bug fix; small enhancement to one subsystem (engine test runner); no product architecture change; risk is flaky isolation, contained to the suite.
+- Level 2 plan written: contract tests in `test_lock_hermetic.py`, lock `pytest-xdist~=3.0`, default `-n auto` via pytest `addopts`, full-suite verify, docs.
+- Technology PoC passed (`pytest-xdist==3.8.0`, 6 tests with `-n 2`); tree reverted for clean TDD build.
 
 ## Next Step
-- Load Level 2 workflow and execute the plan phase.
+- Preflight validation, then build.
