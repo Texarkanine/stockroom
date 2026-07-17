@@ -23,6 +23,7 @@ from typing import Any
 
 import duckdb
 
+from stockroom.dashboard import skill_usage
 from stockroom.timestamps import to_utc_naive, utc_now
 from stockroom.truncate import truncate_cell
 
@@ -493,6 +494,139 @@ def tools(
         },
     }
 
+
+_SKILL_INVOKERS = ("user", "agent")
+
+
+def _skill_tool_candidates(
+    con: duckdb.DuckDBPyConnection,
+    start: datetime,
+    end: datetime,
+) -> list[tuple[str, str, Any]]:
+    """Coarse tool candidates: Skill tool or Read of a …/SKILL.md path."""
+    return con.execute(
+        f"SELECT s.harness, t.tool_name, t.tool_input "
+        "FROM sessions s JOIN tool_calls t "
+        "ON t.harness = s.harness AND t.session_id = s.session_id "
+        f"WHERE NOT s.is_subagent AND {ACTIVITY_TIME_SQL} IS NOT NULL "
+        f"AND {ACTIVITY_TIME_SQL} >= ? AND {ACTIVITY_TIME_SQL} < ? "
+        "AND ("
+        "t.tool_name = 'Skill' "
+        "OR ("
+        "t.tool_name = 'Read' AND ("
+        "coalesce("
+        "json_extract_string(t.tool_input, '$.path'), "
+        "json_extract_string(t.tool_input, '$.file_path')"
+        ") LIKE '%/SKILL.md'"
+        ")"
+        ")"
+        ")",
+        [start, end],
+    ).fetchall()
+
+
+def _skill_message_candidates(
+    con: duckdb.DuckDBPyConnection,
+    start: datetime,
+    end: datetime,
+) -> list[tuple[str, str | None]]:
+    """Coarse user-message candidates that may contain command-name tags."""
+    return con.execute(
+        f"SELECT s.harness, m.text "
+        "FROM sessions s JOIN messages m "
+        "ON m.harness = s.harness AND m.session_id = s.session_id "
+        f"WHERE NOT s.is_subagent AND {ACTIVITY_TIME_SQL} IS NOT NULL "
+        f"AND {ACTIVITY_TIME_SQL} >= ? AND {ACTIVITY_TIME_SQL} < ? "
+        "AND m.role = 'user' AND m.text LIKE '%<command-name>/%'",
+        [start, end],
+    ).fetchall()
+
+
+def skills(
+    con: duckdb.DuckDBPyConnection,
+    harnesses: Sequence[str] | None = None,
+    since: datetime | None = None,
+    until: datetime | None = None,
+    *,
+    limit: int = 10,
+) -> dict[str, Any]:
+    """Return top skills with per-harness user/agent call series.
+
+    Candidate tool/message rows are fetched with coarse SQL filters; per-harness
+    extractors in :mod:`stockroom.dashboard.skill_usage` own skill naming and
+    invoker attribution. Response shape::
+
+        {
+          "skills": ["niko", ...],
+          "invokers": ["user", "agent"],
+          "calls": {
+            "claude": {"user": [...], "agent": [...]},
+            "cursor": {"user": [...], "agent": [...]},
+          },
+        }
+
+    Arrays align to ``skills``. Ranked by total count across selected
+    harnesses/invokers; ties break by skill name.
+    """
+    start, end = parse_window(since, until, default_days=30)
+    names = _active_harnesses(con, harnesses)
+    active = set(names)
+
+    tool_rows = [
+        row
+        for row in _skill_tool_candidates(con, start, end)
+        if _is_selected(row[0], active)
+    ]
+    message_rows = [
+        row
+        for row in _skill_message_candidates(con, start, end)
+        if _is_selected(row[0], active)
+    ]
+
+    # counts[skill][harness][invoker] = n
+    counts: dict[str, dict[str, dict[str, int]]] = {}
+    tools_by_harness: dict[str, list[skill_usage.ToolRow]] = {}
+    messages_by_harness: dict[str, list[skill_usage.MessageRow]] = {}
+    for row in tool_rows:
+        tools_by_harness.setdefault(row[0], []).append(row)
+    for row in message_rows:
+        messages_by_harness.setdefault(row[0], []).append(row)
+
+    for harness in sorted(
+        set(tools_by_harness) | set(messages_by_harness) | set(names)
+    ):
+        if harness not in active:
+            continue
+        for use in skill_usage.iter_skill_uses(
+            harness,
+            messages_by_harness.get(harness, []),
+            tools_by_harness.get(harness, []),
+        ):
+            per_skill = counts.setdefault(use.skill, {})
+            per_harness = per_skill.setdefault(harness, {})
+            per_harness[use.invoker] = per_harness.get(use.invoker, 0) + 1
+
+    def _skill_total(skill: str) -> int:
+        return sum(
+            count
+            for per_harness in counts[skill].values()
+            for count in per_harness.values()
+        )
+
+    ranked = sorted(counts, key=lambda skill: (-_skill_total(skill), skill))[:limit]
+    calls: dict[str, dict[str, list[int]]] = {}
+    for name in names:
+        calls[name] = {
+            invoker: [
+                counts.get(skill, {}).get(name, {}).get(invoker, 0) for skill in ranked
+            ]
+            for invoker in _SKILL_INVOKERS
+        }
+    return {
+        "skills": ranked,
+        "invokers": list(_SKILL_INVOKERS),
+        "calls": calls,
+    }
 
 def models(
     con: duckdb.DuckDBPyConnection,
@@ -1012,6 +1146,7 @@ ENDPOINTS = {
     "trends": trends,
     "projects": projects,
     "tools": tools,
+    "skills": skills,
     "models": models,
     "efficiency": efficiency,
     "sessions": sessions,

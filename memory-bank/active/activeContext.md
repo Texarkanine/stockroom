@@ -1,12 +1,11 @@
 # Active Context
 
 ## Current Task: dashboard-skill-usage
-**Phase:** PREFLIGHT - COMPLETE (PASS)
+**Phase:** BUILD - IN-PROGRESS
 
 ## What Was Done
-- Validated plan against codebase: metrics ENDPOINTS, dashboard-data endpoint list, static panel-id pins, Chart.js panel patterns.
-- Amended plan for explicit per-unit TDD ordering; added static/JS touchpoints and real-shaped extractor fixtures.
-- Creative docs present for both open questions; no convention conflicts; no schema/ingest scope creep.
+- Preflight PASS; entering build on amended TDD plan (extractors → metrics.skills → client fetch → panel builders → markup).
+- Creative decisions locked: Option B (candidate SQL + EXTRACTORS registry) and Set A mockup trio.
 
 ## Next Step
-- Operator runs `/niko-build` to enter BUILD.
+- Execute Implementation Plan steps 1–6 with TDD; then integration verify and QA.

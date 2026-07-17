@@ -123,12 +123,12 @@ Counting: every discrete matching event counts (user 10 + agent 5 = 10 and 5).
 
 Each numbered unit below is one TDD cycle: write/extend failing tests first, then implement until green, then refactor if needed.
 
-1. **Extractors — tests then stubs then green**
+1. **Extractors — tests then stubs then green** ✅
     - Files: `tests/test_dashboard_skill_usage.py`, `src/stockroom/dashboard/skill_usage.py`
     - TDD: write failing extractor tests first (include 2–3 fixture strings shaped like real warehouse rows: Claude command-name, Skill tool JSON, Cursor `SKILL.md` Read path); stub `SkillUse` / empty extractors / `EXTRACTORS` / `iter_skill_uses`; implement parsers to green
     - Creative ref: extractor architecture
 
-2. **`metrics.skills` — tests then stub then green**
+2. **`metrics.skills` — tests then stub then green** ✅
     - Files: `tests/test_dashboard_skill_usage.py`, `metrics.py` (candidate helpers may live in `skill_usage.py`)
     - TDD: write failing ranking/window/shape tests first; stub `skills()` + `ENDPOINTS["skills"]`; implement candidate SQL + aggregation to green
 
