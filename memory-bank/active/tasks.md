@@ -50,10 +50,11 @@ Rework nested skill mockup into an aligned sunburst, fix stacked tooltip swatch 
    - Files: `tests/test_dashboard_static.py`, `static/index.html`, `static/dashboard.mjs`
    - TDD: extend failing assertions that Tool panel title contains `top 10` and skill panel titles use `Skill Distribution` + `top 10` + `mockup`; then update `index.html` headings/aria-labels/encoding blurbs and any hardcoded `renderChart` title strings in `dashboard.mjs`
 
-4. **Verify**
+4. **Verify** ✅
    - Files: none new
    - Changes: `make test-dashboard-js` + `make test-dashboard-py`; `make local-dashboard` for operator visual check
    - Docs: skip user-guide (no endpoint catalog); no API docs change
+   - Ran: JS 84 pass; dashboard-py 98 pass; full `make test` 582 pass / 4 skip; format + lint clean
 
 ## Technology Validation
 
@@ -86,7 +87,7 @@ No new technology - validation not required (Chart.js already vendored; sunburst
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight — PASS (TDD encoding tightened on steps 2–3; `renderChart` title strings confirmed in plan)
-- [ ] Build
+- [x] Build
 - [ ] QA
 
 ## Preflight Amendments

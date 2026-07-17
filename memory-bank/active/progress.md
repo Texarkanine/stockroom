@@ -112,11 +112,15 @@ Rework the shipped skill-usage mockups: sunburst nested encoding (agent-led colo
 * Insights
     - Prior creative nested-doughnut doc is historical; rework brief owns sunburst
 
-## 2026-07-17 - BUILD - IN-PROGRESS
+## 2026-07-17 - BUILD - COMPLETE
 
 * Work completed
-    - Left preflight; starting TDD build for sunburst / tooltip / titles
+    - Rebuilt nested aggregate as aligned sunburst with `assignSkillSunburstColors`
+    - Added `tooltipLabelColors` and wired Chart.js `labelColor` callback
+    - Renamed Tool/Skill Distribution panels with `(top 10)` / skill encoding + mockup
+    - Full dashboard JS/PY + project suite green; format/lint clean
 * Decisions made
-    - (none yet)
+    - Outer skill labels stay bare names (duplicate when dual-invoker); circumference tests guard alignment
+    - Nested title encoding cue is `(sunburst)`
 * Insights
-    - (none yet)
+    - Chart.js default tooltip swatch prefers border; forcing fill on both stroke and fill fixes stacked invoker bars without per-panel special cases

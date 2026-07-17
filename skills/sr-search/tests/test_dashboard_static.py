@@ -131,7 +131,9 @@ def test_tool_and_skill_distribution_titles_include_top_10() -> None:
     nested_start = source.index('id="skills-nested-panel"')
     nested_end = source.index('id="skills-stacked-panel"')
     nested_chunk = source[nested_start:nested_end]
-    assert "skills within" in nested_chunk.lower() or "within each" in nested_chunk.lower()
+    assert (
+        "skills within" in nested_chunk.lower() or "within each" in nested_chunk.lower()
+    )
 
 
 def test_session_pane_exposes_navigation_export_and_turn_landmarks() -> None:
