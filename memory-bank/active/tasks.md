@@ -41,7 +41,7 @@ Rework nested skill mockup into an aligned sunburst, fix stacked tooltip swatch 
    - Changes: rewrite aggregate path to emit sunburst datasets — outer labels/data as user-group skills then agent-group skills; inner `[userTotal, agentTotal]`; set `innerLabels`; agent-led `backgroundColor` assignment using existing `PALETTE` + `colorWithAlpha`; keep compare → stacked bar
    - Helper (same file): e.g. `assignSkillSunburstColors(agentCountsBySkill, userOnlySkills)` if it keeps the builder readable
 
-2. **Tooltip swatch parity — failing helper test then wire**
+2. **Tooltip swatch parity — failing helper test then wire** ✅
    - Files: `tests-js/dashboard-core.test.mjs`, `static/dashboard-core.mjs`, `static/dashboard.mjs`
    - TDD: add failing unit test for `tooltipLabelColors(dataset, dataIndex)` (or equivalent) asserting fill comes from `backgroundColor` not `borderColor`; implement helper; wire `plugins.tooltip.callbacks.labelColor` in `chartOptions` to the helper
    - Applies to stacked skill compare (and other panels sharing `chartOptions`) so legend/bar/tooltip match

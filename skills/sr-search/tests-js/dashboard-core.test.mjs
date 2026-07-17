@@ -33,6 +33,7 @@ import {
   sumAligned,
   summarizeChartPanel,
   togglePanelHelp,
+  tooltipLabelColors,
   tooltipTitleFromLabelTitles,
   transitionViewState,
   weightedSeries,
@@ -674,6 +675,29 @@ test("builds skills nested sunburst with agent-led colors", () => {
     COLORS[2],
   ]);
   assert.deepEqual(inner.backgroundColor, ["rgba(99, 102, 241, 0.55)", COLORS[0]]);
+});
+
+test("tooltipLabelColors uses backgroundColor fill not borderColor", () => {
+  /**
+   * Stacked skill datasets pair faded fills with solid borders; tooltip swatches
+   * must match the bar/legend fill, not the border.
+   */
+  const stacked = {
+    backgroundColor: "rgba(99, 102, 241, 0.55)",
+    borderColor: "#6366f1",
+  };
+  assert.deepEqual(tooltipLabelColors(stacked, 0), {
+    borderColor: "rgba(99, 102, 241, 0.55)",
+    backgroundColor: "rgba(99, 102, 241, 0.55)",
+  });
+  const arcs = {
+    backgroundColor: ["#10b981", "#f59e0b"],
+    borderColor: ["#000000", "#ffffff"],
+  };
+  assert.deepEqual(tooltipLabelColors(arcs, 1), {
+    borderColor: "#f59e0b",
+    backgroundColor: "#f59e0b",
+  });
 });
 
 test("builds skills nested compare stacked bar unchanged", () => {

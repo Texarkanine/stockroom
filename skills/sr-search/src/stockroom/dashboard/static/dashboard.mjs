@@ -26,6 +26,7 @@ import {
   sessionsPaginationVisible,
   summarizeChartPanel,
   togglePanelHelp,
+  tooltipLabelColors,
   tooltipTitleFromLabelTitles,
   transitionViewState,
 } from "./dashboard-core.mjs";
@@ -371,6 +372,9 @@ function chartOptions(model) {
               item.dataIndex,
               item.label ?? "",
             );
+          },
+          labelColor(item) {
+            return tooltipLabelColors(item?.dataset, item?.dataIndex);
           },
         },
       },

@@ -99,6 +99,28 @@ export function tooltipTitleFromLabelTitles(labelTitles, index, fallbackLabel) {
 }
 
 /**
+ * Chart.js tooltip swatch colors from the dataset fill (not border).
+ *
+ * Stacked skill compare bars use a solid ``borderColor`` with a faded
+ * ``backgroundColor``; default Chart.js swatches can pick the border and
+ * disagree with the legend/bar. Both fill and stroke use the bar fill.
+ *
+ * @param {object | null | undefined} dataset Chart.js dataset.
+ * @param {number} [dataIndex=0] Segment index for per-arc color arrays.
+ * @returns {{borderColor: string, backgroundColor: string}}
+ */
+export function tooltipLabelColors(dataset, dataIndex = 0) {
+  const entry = safeObject(dataset);
+  const index = Number.isInteger(dataIndex) && dataIndex >= 0 ? dataIndex : 0;
+  const pick = (value) => (Array.isArray(value) ? value[index] : value);
+  const fill = pick(entry.backgroundColor) ?? pick(entry.borderColor) ?? "";
+  return {
+    borderColor: fill,
+    backgroundColor: fill,
+  };
+}
+
+/**
  * Chart.js ``interaction`` / tooltip settings for a chart kind and category axis.
  *
  * Doughnut/pie use nearest+intersect so hover targets one arc (index mode and
