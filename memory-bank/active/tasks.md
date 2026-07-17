@@ -46,7 +46,7 @@ Rework nested skill mockup into an aligned sunburst, fix stacked tooltip swatch 
    - TDD: add failing unit test for `tooltipLabelColors(dataset, dataIndex)` (or equivalent) asserting fill comes from `backgroundColor` not `borderColor`; implement helper; wire `plugins.tooltip.callbacks.labelColor` in `chartOptions` to the helper
    - Applies to stacked skill compare (and other panels sharing `chartOptions`) so legend/bar/tooltip match
 
-3. **Distribution (top 10) titles — failing static assertions then markup**
+3. **Distribution (top 10) titles — failing static assertions then markup** ✅
    - Files: `tests/test_dashboard_static.py`, `static/index.html`, `static/dashboard.mjs`
    - TDD: extend failing assertions that Tool panel title contains `top 10` and skill panel titles use `Skill Distribution` + `top 10` + `mockup`; then update `index.html` headings/aria-labels/encoding blurbs and any hardcoded `renderChart` title strings in `dashboard.mjs`
 

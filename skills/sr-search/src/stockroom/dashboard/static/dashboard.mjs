@@ -731,22 +731,22 @@ function renderDashboard() {
   );
   renderChart(
     "tools",
-    "Tool distribution",
+    "Tool Distribution (top 10)",
     buildToolsPanel(snapshot.tools, state.selected, state.mode, colors),
   );
   renderChart(
     "skills-nested",
-    "Skill usage nested",
+    "Skill Distribution (sunburst) (top 10) (mockup)",
     buildSkillsNestedPanel(snapshot.skills, state.selected, state.mode, colors),
   );
   renderChart(
     "skills-stacked",
-    "Skill usage stacked",
+    "Skill Distribution (stacked) (top 10) (mockup)",
     buildSkillsStackedPanel(snapshot.skills, state.selected, state.mode, colors),
   );
   renderChart(
     "skills-tools-like",
-    "Skill usage tools-like",
+    "Skill Distribution (tools-like) (top 10) (mockup)",
     buildSkillsToolsLikePanel(snapshot.skills, state.selected, state.mode, colors),
   );
   renderChart(

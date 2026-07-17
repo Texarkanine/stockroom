@@ -1014,14 +1014,15 @@
           <p class="no-data" id="projects-empty" hidden>No data in this period.</p>
         </article>
 
+        <!-- Title "(top 10)" tracks skills()/tools() default limit=10; not plumbed from the client. -->
         <article class="panel" id="tools-panel">
           <header class="panel-header">
-            <h2>Tool Distribution</h2>
+            <h2>Tool Distribution (top 10)</h2>
             <p class="panel-range">Last 30 days</p>
           </header>
           <div class="chart-scroll">
             <div class="chart-wrap" id="tools-chart-wrap">
-              <canvas id="tools-chart" role="img" aria-label="Tool distribution chart">Tool distribution chart.</canvas>
+              <canvas id="tools-chart" role="img" aria-label="Tool Distribution (top 10) chart">Tool Distribution (top 10) chart.</canvas>
             </div>
           </div>
           <p class="no-data" id="tools-empty" hidden>No data in this period.</p>
@@ -1029,13 +1030,13 @@
 
         <article class="panel" id="skills-nested-panel">
           <header class="panel-header">
-            <h2>Skill Usage (nested) (mockup)</h2>
+            <h2>Skill Distribution (sunburst) (top 10) (mockup)</h2>
             <p class="panel-range">Last 30 days</p>
           </header>
-          <p class="panel-encoding">Outer ring = skill totals; inner ring = user vs agent share.</p>
+          <p class="panel-encoding">Inner ring = user vs agent; outer ring = skills within each group.</p>
           <div class="chart-scroll">
             <div class="chart-wrap" id="skills-nested-chart-wrap">
-              <canvas id="skills-nested-chart" role="img" aria-label="Skill usage nested doughnut chart">Skill usage nested doughnut chart.</canvas>
+              <canvas id="skills-nested-chart" role="img" aria-label="Skill Distribution sunburst chart">Skill Distribution sunburst chart.</canvas>
             </div>
           </div>
           <p class="no-data" id="skills-nested-empty" hidden>No data in this period.</p>
@@ -1043,13 +1044,13 @@
 
         <article class="panel" id="skills-stacked-panel">
           <header class="panel-header">
-            <h2>Skill Usage (stacked) (mockup)</h2>
+            <h2>Skill Distribution (stacked) (top 10) (mockup)</h2>
             <p class="panel-range">Last 30 days</p>
           </header>
           <p class="panel-encoding">Horizontal stacks by invoker; compare adds harness hue.</p>
           <div class="chart-scroll">
             <div class="chart-wrap" id="skills-stacked-chart-wrap">
-              <canvas id="skills-stacked-chart" role="img" aria-label="Skill usage stacked bar chart">Skill usage stacked bar chart.</canvas>
+              <canvas id="skills-stacked-chart" role="img" aria-label="Skill Distribution stacked bar chart">Skill Distribution stacked bar chart.</canvas>
             </div>
           </div>
           <p class="no-data" id="skills-stacked-empty" hidden>No data in this period.</p>
@@ -1057,13 +1058,13 @@
 
         <article class="panel" id="skills-tools-like-panel">
           <header class="panel-header">
-            <h2>Skill Usage (tools-like) (mockup)</h2>
+            <h2>Skill Distribution (tools-like) (top 10) (mockup)</h2>
             <p class="panel-range">Last 30 days</p>
           </header>
           <p class="panel-encoding">Doughnut by skill like Tool Distribution; compare is stacked bars.</p>
           <div class="chart-scroll">
             <div class="chart-wrap" id="skills-tools-like-chart-wrap">
-              <canvas id="skills-tools-like-chart" role="img" aria-label="Skill usage tools-like chart">Skill usage tools-like chart.</canvas>
+              <canvas id="skills-tools-like-chart" role="img" aria-label="Skill Distribution tools-like chart">Skill Distribution tools-like chart.</canvas>
             </div>
           </div>
           <p class="no-data" id="skills-tools-like-empty" hidden>No data in this period.</p>

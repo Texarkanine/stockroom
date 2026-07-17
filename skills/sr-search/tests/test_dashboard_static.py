@@ -114,6 +114,26 @@ def test_dashboard_adapter_imports_authored_modules() -> None:
     assert 'from "./dashboard-session.mjs"' in adapter
 
 
+def test_tool_and_skill_distribution_titles_include_top_10() -> None:
+    """Tool/Skill Distribution headings share top-10 wording; skill panels keep mockup."""
+    source, parser = _document()
+    text = " ".join(parser.text)
+    assert "Tool Distribution (top 10)" in text
+    assert "Skill Distribution (sunburst) (top 10) (mockup)" in text
+    assert "Skill Distribution (stacked) (top 10) (mockup)" in text
+    assert "Skill Distribution (tools-like) (top 10) (mockup)" in text
+    assert "Skill Usage" not in text
+    adapter = (STATIC_ROOT / "dashboard.mjs").read_text(encoding="utf-8")
+    assert "Tool Distribution (top 10)" in adapter
+    assert "Skill Distribution (sunburst) (top 10) (mockup)" in adapter
+    assert "Skill Distribution (stacked) (top 10) (mockup)" in adapter
+    assert "Skill Distribution (tools-like) (top 10) (mockup)" in adapter
+    nested_start = source.index('id="skills-nested-panel"')
+    nested_end = source.index('id="skills-stacked-panel"')
+    nested_chunk = source[nested_start:nested_end]
+    assert "skills within" in nested_chunk.lower() or "within each" in nested_chunk.lower()
+
+
 def test_session_pane_exposes_navigation_export_and_turn_landmarks() -> None:
     """Session inspection pane has copy-link, export, and turns — no custom back."""
     source, parser = _document()
