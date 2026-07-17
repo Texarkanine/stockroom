@@ -8,6 +8,7 @@ import {
   buildModelsPanel,
   buildProjectsPanel,
   buildToolsPanel,
+  assignSkillSunburstColors,
   buildSkillsNestedPanel,
   buildSkillsStackedPanel,
   buildSkillsToolsLikePanel,
@@ -619,14 +620,64 @@ const skillsPayload = {
   },
 };
 
-test("builds skills nested aggregate doughnut and compare stacked bar", () => {
+test("assignSkillSunburstColors reserves palette 0 and ranks agent then user-only", () => {
+  /**
+   * Agent group keeps PALETTE[0]; agent skills (caller-ranked) take 1..;
+   * user-only skills continue from the next free slot.
+   */
+  const colorsBySkill = assignSkillSunburstColors(["niko", "gm"], ["solo"]);
+  assert.equal(colorsBySkill.get("niko"), COLORS[1]);
+  assert.equal(colorsBySkill.get("gm"), COLORS[2]);
+  assert.equal(colorsBySkill.get("solo"), COLORS[3]);
+  assert.equal([...colorsBySkill.values()].includes(COLORS[0]), false);
+});
+
+test("builds skills nested aggregate as aligned sunburst", () => {
+  /**
+   * Outer = user skills then agent skills; inner = [userTotal, agentTotal];
+   * circumference sums match; dual-invoker skill appears twice on the outer ring.
+   */
   const aggregate = buildSkillsNestedPanel(skillsPayload, selected, "aggregate", colors);
   assert.equal(aggregate.kind, "doughnut");
   assert.equal(aggregate.empty, false);
-  assert.deepEqual(aggregate.labels, ["niko", "gm"]);
+  // user: niko=1; agent: niko=5, gm=5
+  assert.deepEqual(aggregate.labels, ["niko", "niko", "gm"]);
   assert.deepEqual(aggregate.innerLabels, ["user", "agent"]);
-  assertDataset(aggregate, "Skills", [6, 5]); // niko: 1+2+3; gm: 5
-  assertDataset(aggregate, "Invokers", [1, 10]); // user=1; agent=2+5+3
+  assertDataset(aggregate, "Skills", [1, 5, 5]);
+  assertDataset(aggregate, "Invokers", [1, 10]);
+  const outer = aggregate.datasets.find((item) => item.label === "Skills");
+  const inner = aggregate.datasets.find((item) => item.label === "Invokers");
+  const userOuter = outer.data.slice(0, 1);
+  const agentOuter = outer.data.slice(1);
+  assert.equal(
+    userOuter.reduce((sum, value) => sum + value, 0),
+    inner.data[0],
+  );
+  assert.equal(
+    agentOuter.reduce((sum, value) => sum + value, 0),
+    inner.data[1],
+  );
+});
+
+test("builds skills nested sunburst with agent-led colors", () => {
+  /**
+   * Agent inner = PALETTE[0]; agent skills get ranked palette slots; user side
+   * uses colorWithAlpha(..., 0.55) of the same skill assignment.
+   */
+  const aggregate = buildSkillsNestedPanel(skillsPayload, selected, "aggregate", colors);
+  const outer = aggregate.datasets.find((item) => item.label === "Skills");
+  const inner = aggregate.datasets.find((item) => item.label === "Invokers");
+  // niko+gm both agent=5; stable order → niko=COLORS[1], gm=COLORS[2]
+  assert.deepEqual(outer.backgroundColor, [
+    "rgba(16, 185, 129, 0.55)",
+    COLORS[1],
+    COLORS[2],
+  ]);
+  assert.deepEqual(inner.backgroundColor, ["rgba(99, 102, 241, 0.55)", COLORS[0]]);
+});
+
+test("builds skills nested compare stacked bar unchanged", () => {
+  /** Compare mode stays harness×invoker stacked bars (not sunburst geometry). */
   const compare = buildSkillsNestedPanel(skillsPayload, selected, "compare", colors);
   assert.equal(compare.kind, "bar");
   assert.equal(compare.indexAxis, "y");
@@ -634,6 +685,51 @@ test("builds skills nested aggregate doughnut and compare stacked bar", () => {
   assertDataset(compare, "Claude Code · user", [1, 0]);
   assertDataset(compare, "Claude Code · agent", [2, 5]);
   assertDataset(compare, "Cursor · agent", [3, 0]);
+});
+
+test("builds skills nested sunburst for user-only and agent-only edges", () => {
+  /**
+   * All-user / all-agent still emit both inner values (zeros allowed); user-only
+   * skills take the next palette slot after the reserved agent group color.
+   */
+  const userOnly = buildSkillsNestedPanel(
+    {
+      skills: ["solo"],
+      invokers: ["user", "agent"],
+      calls: {
+        cursor: { user: [3], agent: [0] },
+        "claude-code": { user: [0], agent: [0] },
+      },
+    },
+    selected,
+    "aggregate",
+    colors,
+  );
+  assert.deepEqual(userOnly.labels, ["solo"]);
+  assertDataset(userOnly, "Skills", [3]);
+  assertDataset(userOnly, "Invokers", [3, 0]);
+  const userOuter = userOnly.datasets.find((item) => item.label === "Skills");
+  // No agent skills → first free slot after reserved group color is COLORS[1].
+  assert.deepEqual(userOuter.backgroundColor, ["rgba(16, 185, 129, 0.55)"]);
+
+  const agentOnly = buildSkillsNestedPanel(
+    {
+      skills: ["bot"],
+      invokers: ["user", "agent"],
+      calls: {
+        cursor: { user: [0], agent: [4] },
+        "claude-code": { user: [0], agent: [0] },
+      },
+    },
+    selected,
+    "aggregate",
+    colors,
+  );
+  assert.deepEqual(agentOnly.labels, ["bot"]);
+  assertDataset(agentOnly, "Skills", [4]);
+  assertDataset(agentOnly, "Invokers", [0, 4]);
+  const agentOuter = agentOnly.datasets.find((item) => item.label === "Skills");
+  assert.deepEqual(agentOuter.backgroundColor, [COLORS[1]]);
 });
 
 test("builds skills stacked aggregate and compare models", () => {

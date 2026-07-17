@@ -1057,9 +1057,43 @@ function skillCompareDatasets(calls, selected, labels, colors) {
 }
 
 /**
- * Nested doughnut mockup: outer skill totals, inner invoker share.
+ * Agent-led palette for sunburst skill segments.
  *
- * Compare mode degrades to the stacked harness×invoker bar (readable over geometry).
+ * ``PALETTE[0]`` is reserved for the agent invoker group. Agent-present skills
+ * (already ranked by agent count) take ``PALETTE[1..]``; user-only skills take
+ * the next free slots. Callers fade user-side segments with ``colorWithAlpha``.
+ *
+ * @param {string[]} rankedAgentSkills Skills with agent count &gt; 0, ranked by
+ *   agent count descending (ties keep caller order).
+ * @param {string[]} userOnlySkills Skills with user &gt; 0 and agent === 0, in
+ *   payload order.
+ * @returns {Map<string, string>} skill name → ``#rrggbb`` base color.
+ */
+export function assignSkillSunburstColors(rankedAgentSkills, userOnlySkills) {
+  const colorsBySkill = new Map();
+  let nextIndex = 1;
+  for (const skill of rankedAgentSkills ?? []) {
+    if (!skill || colorsBySkill.has(skill)) {
+      continue;
+    }
+    colorsBySkill.set(skill, PALETTE[nextIndex % PALETTE.length]);
+    nextIndex += 1;
+  }
+  for (const skill of userOnlySkills ?? []) {
+    if (!skill || colorsBySkill.has(skill)) {
+      continue;
+    }
+    colorsBySkill.set(skill, PALETTE[nextIndex % PALETTE.length]);
+    nextIndex += 1;
+  }
+  return colorsBySkill;
+}
+
+/**
+ * Nested sunburst mockup: outer skills within invoker groups, inner user/agent.
+ *
+ * Outer data is ordered user-group skills then agent-group skills so arcs align
+ * with inner ``[userTotal, agentTotal]``. Compare mode stays stacked harness×invoker.
  *
  * @param {object | null | undefined} payload `/api/skills` body.
  * @param {Iterable<string>} selected
@@ -1069,32 +1103,78 @@ function skillCompareDatasets(calls, selected, labels, colors) {
  */
 export function buildSkillsNestedPanel(payload, selected, mode, colors) {
   const source = safeObject(payload);
-  const labels = Array.isArray(source.skills) ? source.skills : [];
+  const skills = Array.isArray(source.skills) ? source.skills : [];
   if (mode === "compare") {
     return panelModel(
       "bar",
-      labels,
-      skillCompareDatasets(source.calls, selected, labels, colors),
-      { indexAxis: "y", stacked: true, height: chartHeight(labels.length) },
+      skills,
+      skillCompareDatasets(source.calls, selected, skills, colors),
+      { indexAxis: "y", stacked: true, height: chartHeight(skills.length) },
     );
   }
-  const skillTotals = sumSkillTotals(source.calls, selected, labels.length);
-  const userTotals = sumSkillInvoker(source.calls, selected, "user", labels.length);
-  const agentTotals = sumSkillInvoker(source.calls, selected, "agent", labels.length);
+  const userTotals = sumSkillInvoker(source.calls, selected, "user", skills.length);
+  const agentTotals = sumSkillInvoker(source.calls, selected, "agent", skills.length);
   const userSum = userTotals.reduce((sum, value) => sum + value, 0);
   const agentSum = agentTotals.reduce((sum, value) => sum + value, 0);
-  const outer = aggregateDataset("Skills", skillTotals);
-  outer.backgroundColor = labels.map((_, index) => PALETTE[index % PALETTE.length]);
+
+  const userSegments = [];
+  const agentSegments = [];
+  for (let index = 0; index < skills.length; index += 1) {
+    const skill = skills[index];
+    if (userTotals[index] > 0) {
+      userSegments.push({ skill, count: userTotals[index], index });
+    }
+    if (agentTotals[index] > 0) {
+      agentSegments.push({ skill, count: agentTotals[index], index });
+    }
+  }
+  const rankedAgentSkills = [...agentSegments]
+    .sort((left, right) => right.count - left.count || left.index - right.index)
+    .map((segment) => segment.skill);
+  const userOnlySkills = userSegments
+    .filter((segment) => agentTotals[segment.index] === 0)
+    .map((segment) => segment.skill);
+  const colorsBySkill = assignSkillSunburstColors(rankedAgentSkills, userOnlySkills);
+
+  const outerLabels = [
+    ...userSegments.map((segment) => segment.skill),
+    ...agentSegments.map((segment) => segment.skill),
+  ];
+  const outerData = [
+    ...userSegments.map((segment) => segment.count),
+    ...agentSegments.map((segment) => segment.count),
+  ];
+  const outerBackground = [
+    ...userSegments.map((segment) =>
+      colorWithAlpha(colorsBySkill.get(segment.skill) ?? PALETTE[1], 0.55),
+    ),
+    ...agentSegments.map(
+      (segment) => colorsBySkill.get(segment.skill) ?? PALETTE[1],
+    ),
+  ];
+  const outerBorder = [
+    ...userSegments.map((segment) => colorsBySkill.get(segment.skill) ?? PALETTE[1]),
+    ...agentSegments.map(
+      (segment) => colorsBySkill.get(segment.skill) ?? PALETTE[1],
+    ),
+  ];
+  const outer = {
+    label: "Skills",
+    data: outerData,
+    backgroundColor: outerBackground,
+    borderColor: outerBorder,
+    borderWidth: 1,
+  };
   const inner = {
     label: "Invokers",
     data: [userSum, agentSum],
-    backgroundColor: [colorWithAlpha(PALETTE[0], 0.55), PALETTE[1]],
-    borderColor: [PALETTE[0], PALETTE[1]],
+    backgroundColor: [colorWithAlpha(PALETTE[0], 0.55), PALETTE[0]],
+    borderColor: [PALETTE[0], PALETTE[0]],
     borderWidth: 1,
     weight: 0.6,
   };
-  return panelModel("doughnut", labels, [outer, inner], {
-    empty: !hasValues([outer]) && userSum === 0 && agentSum === 0,
+  return panelModel("doughnut", outerLabels, [outer, inner], {
+    empty: userSum === 0 && agentSum === 0,
     innerLabels: [...SKILL_INVOKERS],
   });
 }

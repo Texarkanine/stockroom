@@ -36,7 +36,7 @@ Rework nested skill mockup into an aligned sunburst, fix stacked tooltip swatch 
 
 ## Implementation Plan
 
-1. **Sunburst model tests (failing) then rebuild `buildSkillsNestedPanel` aggregate**
+1. **Sunburst model tests (failing) then rebuild `buildSkillsNestedPanel` aggregate** ✅
    - Files: `tests-js/dashboard-core.test.mjs`, `static/dashboard-core.mjs`
    - Changes: rewrite aggregate path to emit sunburst datasets — outer labels/data as user-group skills then agent-group skills; inner `[userTotal, agentTotal]`; set `innerLabels`; agent-led `backgroundColor` assignment using existing `PALETTE` + `colorWithAlpha`; keep compare → stacked bar
    - Helper (same file): e.g. `assignSkillSunburstColors(agentCountsBySkill, userOnlySkills)` if it keeps the builder readable
