@@ -167,3 +167,13 @@ Rework the shipped skill-usage mockups: sunburst nested encoding (agent-led colo
     - Black borders in both themes (not theme-surface, not match-fill)
 * Insights
     - Leaving `aggregateDataset` border on a multi-fill doughnut paints every arc + legend stroke with one hue; match-fill borders hide opaque agent wedges
+
+## 2026-07-17 - REFLECT - COMPLETE (updated)
+
+* Work completed
+    - Rewrote `reflection-dashboard-skill-sunburst-rework.md` to include operator polish (chart pick, palette/aggregate split, ring borders, layout)
+    - Persistent files scanned — no updates
+* Decisions made
+    - Archive is next (standalone L2; no milestones)
+* Insights
+    - Post-reflect visual polish belongs in the reflection before archive; `PALETTE[0]` ≠ aggregate once categorical slots are harness hues

@@ -1,13 +1,11 @@
 # Active Context
 
 ## Current Task: dashboard-skill-sunburst-rework
-**Phase:** REFLECT - COMPLETE (operator polish; layout + ring borders)
+**Phase:** REFLECT - COMPLETE (updated for operator polish)
 
 ## What Was Done
-- Palette **B** for harnesses/tools/skills; `AGGREGATE_COLOR` for sum charts / “All harnesses” / sunburst invoker ring.
-- Doughnut arcs use black `RING_BORDER` (tools no longer inherit a single fill hue on every stroke/legend; sunburst no longer match-fill hides agent edges).
-- Lower panels: Model Distribution → Session Efficiency → First-Prompt; First-Prompt is one cell (`panel-wide` removed).
-- Sunburst kept as `Skill Distribution (top 10)`; stacked/tools-like mockups removed.
+- Updated reflection to include post-reflect polish: sunburst selected (other mockups removed), `PALETTE` vs `AGGREGATE_COLOR`, black `RING_BORDER`, lower-panel layout.
+- Persistent files scanned — no updates (palette/border constants stay in the static dashboard surface).
 
 ## Next Step
-- Operator visual confirm; `/niko-archive` when ready.
+- Run `/niko-archive` to create the archive document and finalize the current project.
