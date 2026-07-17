@@ -5,6 +5,7 @@ const ENDPOINTS = [
   "trends",
   "projects",
   "tools",
+  "skills",
   "models",
   "efficiency",
   "sessions_ends",

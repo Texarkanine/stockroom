@@ -305,6 +305,9 @@ const DEFAULT_PANEL_RANGE_LABELS = Object.freeze({
   daily: "Last 14 days",
   projects: "Last 30 days",
   tools: "Last 30 days",
+  skillsNested: "Last 30 days",
+  skillsStacked: "Last 30 days",
+  skillsToolsLike: "Last 30 days",
   writeRead: "Last 12 weeks",
   efficiency: "Last 30 days",
   models: "Last 30 days",
@@ -371,6 +374,9 @@ export function panelRangeLabels(preset) {
     daily: windowLabel,
     projects: windowLabel,
     tools: windowLabel,
+    skillsNested: windowLabel,
+    skillsStacked: windowLabel,
+    skillsToolsLike: windowLabel,
     writeRead: windowLabel,
     efficiency: windowLabel,
     models: windowLabel,
@@ -940,6 +946,211 @@ export function buildToolsPanel(payload, selected, mode, colors) {
     );
   }
   const dataset = aggregateDataset("Calls", sumAligned(source.calls, selected, labels.length));
+  dataset.backgroundColor = labels.map((_, index) => PALETTE[index % PALETTE.length]);
+  return panelModel("doughnut", labels, [dataset]);
+}
+
+const SKILL_INVOKERS = Object.freeze(["user", "agent"]);
+const SKILL_INVOKER_ALPHA = Object.freeze({ user: 0.55, agent: 1 });
+
+/**
+ * Sum one invoker series across selected harnesses for aligned skill indices.
+ *
+ * @param {Record<string, Record<string, number[]>> | undefined} calls
+ * @param {Iterable<string>} selected
+ * @param {string} invoker
+ * @param {number} length
+ * @returns {number[]}
+ */
+function sumSkillInvoker(calls, selected, invoker, length) {
+  const totals = Array.from({ length }, () => 0);
+  for (const harness of orderedSelection(selected)) {
+    const series = calls?.[harness]?.[invoker];
+    for (let index = 0; index < length; index += 1) {
+      totals[index] += finiteNumber(Array.isArray(series) ? series[index] : 0);
+    }
+  }
+  return totals;
+}
+
+/**
+ * Skill totals (user + agent) across selected harnesses, aligned to skills.
+ *
+ * @param {Record<string, Record<string, number[]>> | undefined} calls
+ * @param {Iterable<string>} selected
+ * @param {number} length
+ * @returns {number[]}
+ */
+function sumSkillTotals(calls, selected, length) {
+  const totals = Array.from({ length }, () => 0);
+  for (const invoker of SKILL_INVOKERS) {
+    const series = sumSkillInvoker(calls, selected, invoker, length);
+    for (let index = 0; index < length; index += 1) {
+      totals[index] += series[index];
+    }
+  }
+  return totals;
+}
+
+/**
+ * Convert ``#rrggbb`` to ``rgba(r,g,b,a)`` for invoker opacity in compare mode.
+ *
+ * @param {string} color
+ * @param {number} alpha
+ * @returns {string}
+ */
+function colorWithAlpha(color, alpha) {
+  if (typeof color !== "string" || !/^#[0-9a-fA-F]{6}$/.test(color)) {
+    return color;
+  }
+  const value = Number.parseInt(color.slice(1), 16);
+  const red = (value >> 16) & 255;
+  const green = (value >> 8) & 255;
+  const blue = value & 255;
+  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+}
+
+/**
+ * Compare-mode datasets: one stack per ``{harness} · {invoker}``.
+ *
+ * Harness hue from ``colors``; user stacks use reduced alpha.
+ *
+ * @param {Record<string, Record<string, number[]>> | undefined} calls
+ * @param {Iterable<string>} selected
+ * @param {string[]} labels
+ * @param {Record<string, string> | undefined} colors
+ * @returns {object[]}
+ */
+function skillCompareDatasets(calls, selected, labels, colors) {
+  const keys = orderedSelection(selected);
+  const assigned = colors ?? harnessColors(keys);
+  const datasets = [];
+  for (const harness of keys) {
+    const base = assigned[harness];
+    for (const invoker of SKILL_INVOKERS) {
+      const series = Array.isArray(calls?.[harness]?.[invoker])
+        ? calls[harness][invoker]
+        : [];
+      const data = Array.from({ length: labels.length }, (_, index) =>
+        finiteNumber(series[index]),
+      );
+      const fill = colorWithAlpha(base, SKILL_INVOKER_ALPHA[invoker]);
+      datasets.push({
+        label: `${displayHarness(harness)} · ${invoker}`,
+        data,
+        backgroundColor: fill,
+        borderColor: base,
+        borderWidth: 1,
+      });
+    }
+  }
+  return datasets;
+}
+
+/**
+ * Nested doughnut mockup: outer skill totals, inner invoker share.
+ *
+ * Compare mode degrades to the stacked harness×invoker bar (readable over geometry).
+ *
+ * @param {object | null | undefined} payload `/api/skills` body.
+ * @param {Iterable<string>} selected
+ * @param {"aggregate"|"compare"} mode
+ * @param {Record<string, string> | undefined} colors
+ * @returns {object}
+ */
+export function buildSkillsNestedPanel(payload, selected, mode, colors) {
+  const source = safeObject(payload);
+  const labels = Array.isArray(source.skills) ? source.skills : [];
+  if (mode === "compare") {
+    return panelModel(
+      "bar",
+      labels,
+      skillCompareDatasets(source.calls, selected, labels, colors),
+      { indexAxis: "y", stacked: true, height: chartHeight(labels.length) },
+    );
+  }
+  const skillTotals = sumSkillTotals(source.calls, selected, labels.length);
+  const userTotals = sumSkillInvoker(source.calls, selected, "user", labels.length);
+  const agentTotals = sumSkillInvoker(source.calls, selected, "agent", labels.length);
+  const userSum = userTotals.reduce((sum, value) => sum + value, 0);
+  const agentSum = agentTotals.reduce((sum, value) => sum + value, 0);
+  const outer = aggregateDataset("Skills", skillTotals);
+  outer.backgroundColor = labels.map((_, index) => PALETTE[index % PALETTE.length]);
+  const inner = {
+    label: "Invokers",
+    data: [userSum, agentSum],
+    backgroundColor: [colorWithAlpha(PALETTE[0], 0.55), PALETTE[1]],
+    borderColor: [PALETTE[0], PALETTE[1]],
+    borderWidth: 1,
+    weight: 0.6,
+  };
+  return panelModel("doughnut", labels, [outer, inner], {
+    empty: !hasValues([outer]) && userSum === 0 && agentSum === 0,
+  });
+}
+
+/**
+ * Horizontal stacked-bar mockup: skill × invoker (aggregate) or harness×invoker.
+ *
+ * @param {object | null | undefined} payload `/api/skills` body.
+ * @param {Iterable<string>} selected
+ * @param {"aggregate"|"compare"} mode
+ * @param {Record<string, string> | undefined} colors
+ * @returns {object}
+ */
+export function buildSkillsStackedPanel(payload, selected, mode, colors) {
+  const source = safeObject(payload);
+  const labels = Array.isArray(source.skills) ? source.skills : [];
+  if (mode === "compare") {
+    return panelModel(
+      "bar",
+      labels,
+      skillCompareDatasets(source.calls, selected, labels, colors),
+      { indexAxis: "y", stacked: true, height: chartHeight(labels.length) },
+    );
+  }
+  const datasets = SKILL_INVOKERS.map((invoker, index) => {
+    const dataset = aggregateDataset(
+      invoker,
+      sumSkillInvoker(source.calls, selected, invoker, labels.length),
+      PALETTE[index % PALETTE.length],
+    );
+    if (invoker === "user") {
+      dataset.backgroundColor = colorWithAlpha(PALETTE[index % PALETTE.length], 0.55);
+    }
+    return dataset;
+  });
+  return panelModel("bar", labels, datasets, {
+    indexAxis: "y",
+    stacked: true,
+    height: chartHeight(labels.length),
+  });
+}
+
+/**
+ * Tools-like mockup: doughnut by skill totals; compare uses stacked harness×invoker.
+ *
+ * @param {object | null | undefined} payload `/api/skills` body.
+ * @param {Iterable<string>} selected
+ * @param {"aggregate"|"compare"} mode
+ * @param {Record<string, string> | undefined} colors
+ * @returns {object}
+ */
+export function buildSkillsToolsLikePanel(payload, selected, mode, colors) {
+  const source = safeObject(payload);
+  const labels = Array.isArray(source.skills) ? source.skills : [];
+  if (mode === "compare") {
+    return panelModel(
+      "bar",
+      labels,
+      skillCompareDatasets(source.calls, selected, labels, colors),
+      { indexAxis: "y", stacked: true, height: chartHeight(labels.length) },
+    );
+  }
+  const dataset = aggregateDataset(
+    "Calls",
+    sumSkillTotals(source.calls, selected, labels.length),
+  );
   dataset.backgroundColor = labels.map((_, index) => PALETTE[index % PALETTE.length]);
   return panelModel("doughnut", labels, [dataset]);
 }

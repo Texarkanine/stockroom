@@ -581,6 +581,12 @@
         white-space: nowrap;
       }
 
+      .panel-encoding {
+        margin: 0 0 0.5rem;
+        font-size: 0.76rem;
+        color: var(--muted);
+      }
+
       .chart-scroll {
         max-height: 32rem;
         overflow: auto;
@@ -1019,6 +1025,48 @@
             </div>
           </div>
           <p class="no-data" id="tools-empty" hidden>No data in this period.</p>
+        </article>
+
+        <article class="panel" id="skills-nested-panel">
+          <header class="panel-header">
+            <h2>Skill Usage (nested) (mockup)</h2>
+            <p class="panel-range">Last 30 days</p>
+          </header>
+          <p class="panel-encoding">Outer ring = skill totals; inner ring = user vs agent share.</p>
+          <div class="chart-scroll">
+            <div class="chart-wrap" id="skills-nested-chart-wrap">
+              <canvas id="skills-nested-chart" role="img" aria-label="Skill usage nested doughnut chart">Skill usage nested doughnut chart.</canvas>
+            </div>
+          </div>
+          <p class="no-data" id="skills-nested-empty" hidden>No data in this period.</p>
+        </article>
+
+        <article class="panel" id="skills-stacked-panel">
+          <header class="panel-header">
+            <h2>Skill Usage (stacked) (mockup)</h2>
+            <p class="panel-range">Last 30 days</p>
+          </header>
+          <p class="panel-encoding">Horizontal stacks by invoker; compare adds harness hue.</p>
+          <div class="chart-scroll">
+            <div class="chart-wrap" id="skills-stacked-chart-wrap">
+              <canvas id="skills-stacked-chart" role="img" aria-label="Skill usage stacked bar chart">Skill usage stacked bar chart.</canvas>
+            </div>
+          </div>
+          <p class="no-data" id="skills-stacked-empty" hidden>No data in this period.</p>
+        </article>
+
+        <article class="panel" id="skills-tools-like-panel">
+          <header class="panel-header">
+            <h2>Skill Usage (tools-like) (mockup)</h2>
+            <p class="panel-range">Last 30 days</p>
+          </header>
+          <p class="panel-encoding">Doughnut by skill like Tool Distribution; compare is stacked bars.</p>
+          <div class="chart-scroll">
+            <div class="chart-wrap" id="skills-tools-like-chart-wrap">
+              <canvas id="skills-tools-like-chart" role="img" aria-label="Skill usage tools-like chart">Skill usage tools-like chart.</canvas>
+            </div>
+          </div>
+          <p class="no-data" id="skills-tools-like-empty" hidden>No data in this period.</p>
         </article>
 
         <article class="panel" id="write-read-panel">

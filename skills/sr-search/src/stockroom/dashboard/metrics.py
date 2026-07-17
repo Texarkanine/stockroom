@@ -628,6 +628,7 @@ def skills(
         "calls": calls,
     }
 
+
 def models(
     con: duckdb.DuckDBPyConnection,
     harnesses: Sequence[str] | None = None,

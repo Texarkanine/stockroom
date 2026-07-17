@@ -6,7 +6,6 @@ import json
 from datetime import datetime
 
 import duckdb
-import pytest
 
 from stockroom.dashboard import metrics, skill_usage
 

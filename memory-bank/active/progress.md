@@ -38,3 +38,15 @@ Add a Skill Usage dashboard capability per [#63](https://github.com/Texarkanine/
     - No rearchitecture; proceed to build on amended plan
 * Insights
     - `dashboard-data.test.mjs` and `test_dashboard_static.py` already pin endpoint/panel inventories — easy to miss without preflight
+
+## 2026-07-17 - BUILD - COMPLETE
+
+* Work completed
+    - `skill_usage` extractors + registry; `metrics.skills` + `/api/skills`
+    - Client fetch, three mockup panel builders, HTML/render wiring
+    - Full dashboard + project test suites green; lint/format clean
+* Decisions made
+    - Nested compare uses stacked harness×invoker bar (creative-allowed readability tradeoff)
+    - Candidate SQL stays coarse; skill naming only in extractors
+* Insights
+    - Ranking by total across invokers means a skill with user+agent events outranks single-invoker peers (expected; covered in mix test)

@@ -53,6 +53,9 @@ def test_dashboard_document_has_semantic_controls_panels_and_fallbacks() -> None
         "daily-panel",
         "projects-panel",
         "tools-panel",
+        "skills-nested-panel",
+        "skills-stacked-panel",
+        "skills-tools-like-panel",
         "write-read-panel",
         "efficiency-panel",
         "models-panel",
@@ -64,7 +67,7 @@ def test_dashboard_document_has_semantic_controls_panels_and_fallbacks() -> None
     assert "table" in tags
     assert tags.count("th") >= 6
     canvases = [attrs for tag, attrs in parser.elements if tag == "canvas"]
-    assert len(canvases) == 7
+    assert len(canvases) == 10
     assert all(canvas.get("role") == "img" for canvas in canvases)
     assert all(canvas.get("aria-label") for canvas in canvases)
 
@@ -266,6 +269,9 @@ def test_info_controls_only_on_efficiency_and_first_prompt_panels() -> None:
         "daily-panel",
         "projects-panel",
         "tools-panel",
+        "skills-nested-panel",
+        "skills-stacked-panel",
+        "skills-tools-like-panel",
         "write-read-panel",
         "models-panel",
     ):

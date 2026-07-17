@@ -6,6 +6,9 @@ import {
   buildProjectsPanel,
   buildSessionsPanelRows,
   buildToolsPanel,
+  buildSkillsNestedPanel,
+  buildSkillsStackedPanel,
+  buildSkillsToolsLikePanel,
   buildWrappedPanel,
   buildWriteReadPanel,
   chartInteractionOptions,
@@ -673,6 +676,9 @@ function applyPanelRangeLabels() {
     ["#daily-panel .panel-range", labels.daily],
     ["#projects-panel .panel-range", labels.projects],
     ["#tools-panel .panel-range", labels.tools],
+    ["#skills-nested-panel .panel-range", labels.skillsNested],
+    ["#skills-stacked-panel .panel-range", labels.skillsStacked],
+    ["#skills-tools-like-panel .panel-range", labels.skillsToolsLike],
     ["#write-read-panel .panel-range", labels.writeRead],
     ["#efficiency-panel .panel-range", labels.efficiency],
     ["#models-panel .panel-range", labels.models],
@@ -717,11 +723,25 @@ function renderDashboard() {
     buildToolsPanel(snapshot.tools, state.selected, state.mode, colors),
   );
   renderChart(
+    "skills-nested",
+    "Skill usage nested",
+    buildSkillsNestedPanel(snapshot.skills, state.selected, state.mode, colors),
+  );
+  renderChart(
+    "skills-stacked",
+    "Skill usage stacked",
+    buildSkillsStackedPanel(snapshot.skills, state.selected, state.mode, colors),
+  );
+  renderChart(
+    "skills-tools-like",
+    "Skill usage tools-like",
+    buildSkillsToolsLikePanel(snapshot.skills, state.selected, state.mode, colors),
+  );
+  renderChart(
     "write-read",
     "Weekly write share",
     buildWriteReadPanel(snapshot.trends?.weekly, state.selected, state.mode, colors),
-  );
-  renderChart(
+  );  renderChart(
     "efficiency",
     "Session efficiency",
     buildEfficiencyPanel(snapshot.efficiency, state.selected, state.mode, colors),

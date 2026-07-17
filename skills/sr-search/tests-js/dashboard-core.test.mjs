@@ -8,6 +8,9 @@ import {
   buildModelsPanel,
   buildProjectsPanel,
   buildToolsPanel,
+  buildSkillsNestedPanel,
+  buildSkillsStackedPanel,
+  buildSkillsToolsLikePanel,
   buildWrappedPanel,
   buildWriteReadPanel,
   chartHeight,
@@ -411,6 +414,9 @@ test("panelRangeLabels keep per-panel defaults and share preset window copy", ()
   assert.equal(defaults.daily, "Last 14 days");
   assert.equal(defaults.projects, "Last 30 days");
   assert.equal(defaults.tools, "Last 30 days");
+  assert.equal(defaults.skillsNested, "Last 30 days");
+  assert.equal(defaults.skillsStacked, "Last 30 days");
+  assert.equal(defaults.skillsToolsLike, "Last 30 days");
   assert.equal(defaults.writeRead, "Last 12 weeks");
   assert.equal(defaults.efficiency, "Last 30 days");
   assert.equal(defaults.models, "Last 30 days");
@@ -424,6 +430,9 @@ test("panelRangeLabels keep per-panel defaults and share preset window copy", ()
   assert.equal(week.daily, "Last 7 days");
   assert.equal(week.projects, "Last 7 days");
   assert.equal(week.tools, "Last 7 days");
+  assert.equal(week.skillsNested, "Last 7 days");
+  assert.equal(week.skillsStacked, "Last 7 days");
+  assert.equal(week.skillsToolsLike, "Last 7 days");
   assert.equal(week.writeRead, "Last 7 days");
   assert.equal(week.efficiency, "Last 7 days");
   assert.equal(week.models, "Last 7 days");
@@ -587,6 +596,75 @@ test("builds aggregate doughnut and compare tool models", () => {
   assert.equal(compare.kind, "bar");
   assert.equal(compare.indexAxis, "y");
   assertDataset(compare, "Claude Code", [2, 4]);
+});
+
+const skillsPayload = {
+  skills: ["niko", "gm"],
+  invokers: ["user", "agent"],
+  calls: {
+    "claude-code": { user: [1, 0], agent: [2, 5] },
+    cursor: { user: [0, 0], agent: [3, 0] },
+  },
+};
+
+test("builds skills nested aggregate doughnut and compare stacked bar", () => {
+  const aggregate = buildSkillsNestedPanel(skillsPayload, selected, "aggregate", colors);
+  assert.equal(aggregate.kind, "doughnut");
+  assert.equal(aggregate.empty, false);
+  assert.deepEqual(aggregate.labels, ["niko", "gm"]);
+  assertDataset(aggregate, "Skills", [6, 5]); // niko: 1+2+3; gm: 5
+  assertDataset(aggregate, "Invokers", [1, 10]); // user=1; agent=2+5+3
+  const compare = buildSkillsNestedPanel(skillsPayload, selected, "compare", colors);
+  assert.equal(compare.kind, "bar");
+  assert.equal(compare.indexAxis, "y");
+  assert.equal(compare.stacked, true);
+  assertDataset(compare, "Claude Code · user", [1, 0]);
+  assertDataset(compare, "Claude Code · agent", [2, 5]);
+  assertDataset(compare, "Cursor · agent", [3, 0]);
+});
+
+test("builds skills stacked aggregate and compare models", () => {
+  const aggregate = buildSkillsStackedPanel(skillsPayload, selected, "aggregate", colors);
+  assert.equal(aggregate.kind, "bar");
+  assert.equal(aggregate.indexAxis, "y");
+  assert.equal(aggregate.stacked, true);
+  assert.equal(aggregate.empty, false);
+  assertDataset(aggregate, "user", [1, 0]);
+  assertDataset(aggregate, "agent", [5, 5]);
+  const compare = buildSkillsStackedPanel(skillsPayload, selected, "compare", colors);
+  assert.equal(compare.datasets.length, 4);
+  assertDataset(compare, "Claude Code · user", [1, 0]);
+  assertDataset(compare, "Cursor · user", [0, 0]);
+});
+
+test("builds skills tools-like aggregate doughnut and compare stacked bar", () => {
+  const aggregate = buildSkillsToolsLikePanel(skillsPayload, selected, "aggregate", colors);
+  assert.equal(aggregate.kind, "doughnut");
+  assert.equal(aggregate.empty, false);
+  assertDataset(aggregate, "Calls", [6, 5]);
+  const compare = buildSkillsToolsLikePanel(skillsPayload, selected, "compare", colors);
+  assert.equal(compare.kind, "bar");
+  assert.equal(compare.stacked, true);
+  assertDataset(compare, "Claude Code · agent", [2, 5]);
+});
+
+test("marks skills panels empty when payload has no skill calls", () => {
+  const emptyPayload = {
+    skills: [],
+    invokers: ["user", "agent"],
+    calls: {
+      cursor: { user: [], agent: [] },
+      "claude-code": { user: [], agent: [] },
+    },
+  };
+  for (const builder of [
+    buildSkillsNestedPanel,
+    buildSkillsStackedPanel,
+    buildSkillsToolsLikePanel,
+  ]) {
+    const panel = builder(emptyPayload, selected, "aggregate", colors);
+    assert.equal(panel.empty, true, `${builder.name} should be empty`);
+  }
 });
 
 test("writeShare returns zero on zero denominator and finite ratios otherwise", () => {

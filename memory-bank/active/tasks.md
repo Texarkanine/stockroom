@@ -132,25 +132,26 @@ Each numbered unit below is one TDD cycle: write/extend failing tests first, the
     - Files: `tests/test_dashboard_skill_usage.py`, `metrics.py` (candidate helpers may live in `skill_usage.py`)
     - TDD: write failing ranking/window/shape tests first; stub `skills()` + `ENDPOINTS["skills"]`; implement candidate SQL + aggregation to green
 
-3. **Client fetch — tests then wire**
+3. **Client fetch — tests then wire** ✅
     - Files: `tests-js/dashboard-data.test.mjs`, `static/dashboard-data.mjs`
     - TDD: extend failing assertion that request plan includes `skills` (list currently hardcodes endpoint names); then add `"skills"` to `ENDPOINTS`
 
-4. **Panel builders — tests then stubs then green**
+4. **Panel builders — tests then stubs then green** ✅
     - Files: `tests-js/dashboard-core.test.mjs`, `static/dashboard-core.mjs`
     - TDD: write failing tests for `buildSkillsNestedPanel` / `buildSkillsStackedPanel` / `buildSkillsToolsLikePanel` (aggregate + compare + empty); stub builders; implement encodings to green
     - Creative ref: mockup set
 
-5. **Markup/render — tests then wire**
+5. **Markup/render — tests then wire** ✅
     - Files: `tests/test_dashboard_static.py`, `static/index.html`, `static/dashboard.mjs`
     - TDD: extend failing static assertions for the three mockup panel ids (suite already pins `tools-panel`); then add panels + `renderChart` wiring + empty states at Tool Usage 1×1 size
 
-6. **Verify**
+6. **Verify** ✅
     - Run `make test-dashboard-py` and `make test-dashboard-js` (or project equivalents); fix task-related failures
     - Manual: open dashboard, confirm three mockups respond to Aggregate/Compare and time window
     - Docs: skip `docs/user-guide/dashboard.md` unless it catalogs `/api/*` endpoints (it does not today)
 
 ## Technology Validation
+
 
 No new technology — validation not required (Chart.js already vendored; DuckDB/Python/JS stack unchanged).
 
@@ -178,7 +179,7 @@ No new technology — validation not required (Chart.js already vendored; DuckDB
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight — PASS (TDD steps re-encoded; static/JS endpoint touchpoints added; fixture-shaped extractor cases added)
-- [ ] Build
+- [x] Build
 - [ ] QA
 
 ## Preflight Amendments
