@@ -8,4 +8,4 @@
 - QA PASS — no further fixes
 
 ## Next Step
-- Level 1 wrap-up commit; operator cleans `memory-bank/active/` when satisfied
+- `/niko-archive` the full parallel-pytest-xdist task (incl. rework), then push `fast-test`
