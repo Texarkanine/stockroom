@@ -28,3 +28,13 @@ Add a Skill Usage dashboard capability per [#63](https://github.com/Texarkanine/
     - Mockups: nested doughnut, stacked bar, tools-like — all in main grid at Tool Usage size with “(mockup)” titles
 * Insights
     - Claude skill blobs must not count; Cursor presently has no discrete user-invoke event in the warehouse
+
+## 2026-07-17 - PREFLIGHT - COMPLETE (PASS)
+
+* Work completed
+    - Checked TDD encoding, conventions, dependency impact, conflicts, completeness
+    - Amended implementation plan: stricter test-before-code units; static panel ids; real-shaped fixtures
+* Decisions made
+    - No rearchitecture; proceed to build on amended plan
+* Insights
+    - `dashboard-data.test.mjs` and `test_dashboard_static.py` already pin endpoint/panel inventories — easy to miss without preflight

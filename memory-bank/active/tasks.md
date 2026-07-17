@@ -112,7 +112,8 @@ Counting: every discrete matching event counts (user 10 + agent 5 = 10 and 5).
 - Framework: pytest (`skills/sr-search`); Node 22 built-in test runner for JS (`make test-dashboard-js`)
 - Location: `skills/sr-search/tests/`, `skills/sr-search/tests-js/`
 - Conventions: helpers `_seed_session` / `_seed_tool` in `test_dashboard_metrics.py`; JS imports panel builders
-- New files: `tests/test_dashboard_skill_usage.py` (extractor unit + metrics.skills); extend `tests-js/dashboard-core.test.mjs` and `dashboard-data.test.mjs`; extend `test_dashboard_static.py` if endpoint list asserted
+- New files: `tests/test_dashboard_skill_usage.py` (extractor unit + metrics.skills; real-shaped fixture strings inline or under `tests/fixtures/dashboard/`)
+- Extend: `tests-js/dashboard-core.test.mjs`, `tests-js/dashboard-data.test.mjs` (hardcoded endpoint name list), `tests/test_dashboard_static.py` (panel id list includes `tools-panel` today)
 
 ### Integration Tests
 - Seeded DuckDB → `metrics.skills` end-to-end (in `test_dashboard_skill_usage.py` or metrics suite)
@@ -120,45 +121,34 @@ Counting: every discrete matching event counts (user 10 + agent 5 = 10 and 5).
 
 ## Implementation Plan
 
-1. **Stub extractors + failing unit tests**
-    - Files: `src/stockroom/dashboard/skill_usage.py`, `tests/test_dashboard_skill_usage.py`
-    - Changes: `SkillUse`, empty `extract_claude` / `extract_cursor` / `EXTRACTORS` / `iter_skill_uses`; tests for all extractor behaviors
+Each numbered unit below is one TDD cycle: write/extend failing tests first, then implement until green, then refactor if needed.
+
+1. **Extractors — tests then stubs then green**
+    - Files: `tests/test_dashboard_skill_usage.py`, `src/stockroom/dashboard/skill_usage.py`
+    - TDD: write failing extractor tests first (include 2–3 fixture strings shaped like real warehouse rows: Claude command-name, Skill tool JSON, Cursor `SKILL.md` Read path); stub `SkillUse` / empty extractors / `EXTRACTORS` / `iter_skill_uses`; implement parsers to green
     - Creative ref: extractor architecture
 
-2. **Implement extractors to green**
-    - Files: `skill_usage.py`
-    - Changes: parse command-name, Skill tool, SKILL.md Read path; ignore blobs
+2. **`metrics.skills` — tests then stub then green**
+    - Files: `tests/test_dashboard_skill_usage.py`, `metrics.py` (candidate helpers may live in `skill_usage.py`)
+    - TDD: write failing ranking/window/shape tests first; stub `skills()` + `ENDPOINTS["skills"]`; implement candidate SQL + aggregation to green
 
-3. **Stub `metrics.skills` + failing metrics tests**
-    - Files: `metrics.py`, `tests/test_dashboard_skill_usage.py`
-    - Changes: empty `skills()` signature + ENDPOINTS entry; tests for ranking/shape/window
+3. **Client fetch — tests then wire**
+    - Files: `tests-js/dashboard-data.test.mjs`, `static/dashboard-data.mjs`
+    - TDD: extend failing assertion that request plan includes `skills` (list currently hardcodes endpoint names); then add `"skills"` to `ENDPOINTS`
 
-4. **Implement candidate SQL + aggregation in `metrics.skills`**
-    - Files: `metrics.py` (possibly private `_skill_candidate_*` helpers colocated or in `skill_usage.py`)
-    - Changes: windowed fetches; dispatch extractors; build API payload
+4. **Panel builders — tests then stubs then green**
+    - Files: `tests-js/dashboard-core.test.mjs`, `static/dashboard-core.mjs`
+    - TDD: write failing tests for `buildSkillsNestedPanel` / `buildSkillsStackedPanel` / `buildSkillsToolsLikePanel` (aggregate + compare + empty); stub builders; implement encodings to green
+    - Creative ref: mockup set
 
-5. **Wire client data fetch**
-    - Files: `static/dashboard-data.mjs`, `tests-js/dashboard-data.test.mjs`
-    - Changes: add `"skills"` to ENDPOINTS list
+5. **Markup/render — tests then wire**
+    - Files: `tests/test_dashboard_static.py`, `static/index.html`, `static/dashboard.mjs`
+    - TDD: extend failing static assertions for the three mockup panel ids (suite already pins `tools-panel`); then add panels + `renderChart` wiring + empty states at Tool Usage 1×1 size
 
-6. **Stub three mockup panel builders + failing JS tests**
-    - Files: `static/dashboard-core.mjs`, `tests-js/dashboard-core.test.mjs`
-    - Changes: `buildSkillsNestedPanel`, `buildSkillsStackedPanel`, `buildSkillsToolsLikePanel`
-
-7. **Implement panel builders (aggregate + compare)**
-    - Files: `dashboard-core.mjs`
-    - Creative ref: mockup set — nested / stacked / tools-like encodings
-
-8. **Wire markup + render**
-    - Files: `static/index.html`, `static/dashboard.mjs`
-    - Changes: three `(mockup)` panels at Tool Usage 1×1 size; `renderChart` calls; empty states
-
-9. **Static/docs touch-ups if required**
-    - Files: `tests/test_dashboard_static.py`; `docs/user-guide/dashboard.md` only if endpoint catalog is documented (skip if docs don't list every `/api/*`)
-
-10. **Verify**
-    - Run `make test-dashboard-py` and `make test-dashboard-js` (or project equivalents); fix failures
+6. **Verify**
+    - Run `make test-dashboard-py` and `make test-dashboard-js` (or project equivalents); fix task-related failures
     - Manual: open dashboard, confirm three mockups respond to Aggregate/Compare and time window
+    - Docs: skip `docs/user-guide/dashboard.md` unless it catalogs `/api/*` endpoints (it does not today)
 
 ## Technology Validation
 
@@ -187,6 +177,12 @@ No new technology — validation not required (Chart.js already vendored; DuckDB
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight — PASS (TDD steps re-encoded; static/JS endpoint touchpoints added; fixture-shaped extractor cases added)
 - [ ] Build
 - [ ] QA
+
+## Preflight Amendments
+
+- Re-encoded Implementation Plan so every unit states test-before-code (blocked TDD encoding risk on former steps 5/8).
+- Explicitly include `test_dashboard_static.py` panel-id assertions and `dashboard-data.test.mjs` endpoint list.
+- Extractor tests must include real-shaped warehouse fixture strings (not only abstract seeds).
