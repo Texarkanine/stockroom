@@ -56,3 +56,13 @@ Enable safe process-level parallel pytest for the stockroom engine suite via loc
     - Exact pin assert is enough; no separate startswith probe
 * Insights
     - addopts SSOT kept Make/CI diffs at zero — good regression surface
+
+## 2026-07-17 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `reflection-parallel-pytest-xdist.md`
+    - Persistent files: techContext already current; productContext/systemPatterns untouched
+* Decisions made
+    - Archive is next (standalone L2; no milestones)
+* Insights
+    - addopts-as-SSOT for xdist avoids Make/CI flag drift

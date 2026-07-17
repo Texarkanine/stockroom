@@ -1,11 +1,11 @@
 # Active Context
 
 ## Current Task: parallel-pytest-xdist
-**Phase:** QA - COMPLETE
+**Phase:** REFLECT - COMPLETE
 
 ## What Was Done
-- Semantic QA PASS; trimmed redundant assertions in the three new lock-hermetic contracts.
-- Parallel pytest shipped: locked xdist, `addopts = ["-n", "auto"]`, docs updated.
+- Reflection written; persistent files scanned — techContext already updated in build; productContext/systemPatterns unchanged.
+- Parallel pytest via locked xdist + `addopts = ["-n", "auto"]` is complete.
 
 ## Next Step
-- Reflect phase.
+- Operator: run `/niko-archive` to archive and finalize.
