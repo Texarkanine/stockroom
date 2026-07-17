@@ -50,3 +50,14 @@ Add a Skill Usage dashboard capability per [#63](https://github.com/Texarkanine/
     - Candidate SQL stays coarse; skill naming only in extractors
 * Insights
     - Ranking by total across invokers means a skill with user+agent events outranks single-invoker peers (expected; covered in mix test)
+
+## 2026-07-17 - QA - COMPLETE (PASS)
+
+* Work completed
+    - Semantic review against plan + creative (KISS/DRY/YAGNI/completeness/regression/integrity/docs)
+    - Trivial KISS fix: `skills()` iterates `names` only (candidates already filtered)
+* Decisions made
+    - Kept duplicate `_parse_tool_input` in `skill_usage` (avoids circular import with metrics)
+    - No user-guide update (plan: endpoint not cataloged there)
+* Insights
+    - Nested doughnut length mismatch (skills vs invokers) is intentional mockup debt, not a contract bug

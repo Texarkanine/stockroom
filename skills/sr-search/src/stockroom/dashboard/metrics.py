@@ -592,11 +592,7 @@ def skills(
     for row in message_rows:
         messages_by_harness.setdefault(row[0], []).append(row)
 
-    for harness in sorted(
-        set(tools_by_harness) | set(messages_by_harness) | set(names)
-    ):
-        if harness not in active:
-            continue
+    for harness in names:
         for use in skill_usage.iter_skill_uses(
             harness,
             messages_by_harness.get(harness, []),

@@ -180,7 +180,7 @@ No new technology — validation not required (Chart.js already vendored; DuckDB
 - [x] Pre-Mortem complete
 - [x] Preflight — PASS (TDD steps re-encoded; static/JS endpoint touchpoints added; fixture-shaped extractor cases added)
 - [x] Build
-- [ ] QA
+- [x] QA — PASS (KISS: simplified skills() harness loop; no substantive gaps)
 
 ## Preflight Amendments
 
