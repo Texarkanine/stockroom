@@ -61,3 +61,13 @@ Add a Skill Usage dashboard capability per [#63](https://github.com/Texarkanine/
     - No user-guide update (plan: endpoint not cataloged there)
 * Insights
     - Nested doughnut length mismatch (skills vs invokers) is intentional mockup debt, not a contract bug
+
+## 2026-07-17 - REFLECT - COMPLETE
+
+* Work completed
+    - Full lifecycle reflection written
+    - Persistent files scanned — no updates
+* Decisions made
+    - Final chart pick + layout placement remain follow-up after operator review of mockups
+* Insights
+    - Dashboard endpoint/panel inventory pins are part of the contract for new metrics UI work
