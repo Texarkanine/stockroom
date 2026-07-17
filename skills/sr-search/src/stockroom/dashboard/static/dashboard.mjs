@@ -6,6 +6,7 @@ import {
   buildProjectsPanel,
   buildSessionsPanelRows,
   buildToolsPanel,
+  buildSkillsNestedPanel,
   buildWrappedPanel,
   buildWriteReadPanel,
   chartInteractionOptions,
@@ -13,6 +14,7 @@ import {
   deriveHarnessBreakdown,
   deriveOverviewCards,
   displayHarness,
+  doughnutTooltipLabel,
   formatDate,
   harnessColors,
   PANEL_HELP,
@@ -23,6 +25,7 @@ import {
   sessionsPaginationVisible,
   summarizeChartPanel,
   togglePanelHelp,
+  tooltipLabelColors,
   tooltipTitleFromLabelTitles,
   transitionViewState,
 } from "./dashboard-core.mjs";
@@ -328,7 +331,10 @@ function chartOptions(model) {
   const text = styles.getPropertyValue("--text").trim();
   const muted = styles.getPropertyValue("--muted").trim();
   const border = styles.getPropertyValue("--border").trim();
-  const interaction = chartInteractionOptions(model.indexAxis);
+  // Chart.js draws rgba tooltip swatches over multiKeyBackground (default #fff),
+  // which washes fills on dark UI; match the panel surface instead.
+  const surface = styles.getPropertyValue("--surface").trim() || text;
+  const interaction = chartInteractionOptions(model.indexAxis, model.kind);
   const options = {
     responsive: true,
     maintainAspectRatio: false,
@@ -345,21 +351,67 @@ function chartOptions(model) {
           color: text,
           usePointStyle: true,
           boxWidth: 10,
+          ...(Array.isArray(model.legendItems)
+            ? {
+                generateLabels() {
+                  return model.legendItems.map((item, index) => ({
+                    text: item.text,
+                    fillStyle: item.fillStyle,
+                    strokeStyle: item.strokeStyle ?? item.fillStyle,
+                    // Keep legend labels on theme text; color lives in the swatch.
+                    fontColor: text,
+                    lineWidth: 0,
+                    hidden: false,
+                    index,
+                    datasetIndex: 0,
+                  }));
+                },
+              }
+            : {}),
         },
+        // Custom arc legends are not dataset toggles — disable click-to-hide.
+        ...(Array.isArray(model.legendItems) ? { onClick() {} } : {}),
       },
       tooltip: {
         ...interaction,
+        multiKeyBackground: surface,
         callbacks: {
           title(items) {
             const item = items?.[0];
             if (!item) {
               return "";
             }
+            // Nested doughnuts: inner ring uses invoker labels, not skill labels.
+            if (
+              model.kind === "doughnut" &&
+              Array.isArray(model.innerLabels) &&
+              item.datasetIndex > 0
+            ) {
+              return model.innerLabels[item.dataIndex] ?? item.label ?? "";
+            }
             return tooltipTitleFromLabelTitles(
               model.labelTitles,
               item.dataIndex,
               item.label ?? "",
             );
+          },
+          label(item) {
+            if (model.kind !== "doughnut" && model.kind !== "pie") {
+              const label = item.dataset?.label ?? "";
+              const value = item.formattedValue ?? item.raw ?? "";
+              return label ? `${label}: ${value}` : String(value);
+            }
+            let segment = item.label ?? "";
+            if (
+              Array.isArray(model.innerLabels) &&
+              item.datasetIndex > 0
+            ) {
+              segment = model.innerLabels[item.dataIndex] ?? segment;
+            }
+            return doughnutTooltipLabel(item.dataset, item.dataIndex, segment);
+          },
+          labelColor(item) {
+            return tooltipLabelColors(item?.dataset, item?.dataIndex);
           },
         },
       },
@@ -673,6 +725,7 @@ function applyPanelRangeLabels() {
     ["#daily-panel .panel-range", labels.daily],
     ["#projects-panel .panel-range", labels.projects],
     ["#tools-panel .panel-range", labels.tools],
+    ["#skills-nested-panel .panel-range", labels.skillsNested],
     ["#write-read-panel .panel-range", labels.writeRead],
     ["#efficiency-panel .panel-range", labels.efficiency],
     ["#models-panel .panel-range", labels.models],
@@ -713,8 +766,13 @@ function renderDashboard() {
   );
   renderChart(
     "tools",
-    "Tool distribution",
+    "Top Tools",
     buildToolsPanel(snapshot.tools, state.selected, state.mode, colors),
+  );
+  renderChart(
+    "skills-nested",
+    "Top Skills",
+    buildSkillsNestedPanel(snapshot.skills, state.selected, state.mode, colors),
   );
   renderChart(
     "write-read",
@@ -728,7 +786,7 @@ function renderDashboard() {
   );
   renderChart(
     "models",
-    "Model distribution",
+    "Top Models",
     buildModelsPanel(snapshot.models, state.selected, state.mode, colors),
   );
   renderChart(

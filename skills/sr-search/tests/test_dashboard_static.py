@@ -53,6 +53,7 @@ def test_dashboard_document_has_semantic_controls_panels_and_fallbacks() -> None
         "daily-panel",
         "projects-panel",
         "tools-panel",
+        "skills-nested-panel",
         "write-read-panel",
         "efficiency-panel",
         "models-panel",
@@ -64,7 +65,7 @@ def test_dashboard_document_has_semantic_controls_panels_and_fallbacks() -> None
     assert "table" in tags
     assert tags.count("th") >= 6
     canvases = [attrs for tag, attrs in parser.elements if tag == "canvas"]
-    assert len(canvases) == 7
+    assert len(canvases) == 8
     assert all(canvas.get("role") == "img" for canvas in canvases)
     assert all(canvas.get("aria-label") for canvas in canvases)
 
@@ -109,6 +110,34 @@ def test_dashboard_adapter_imports_authored_modules() -> None:
     assert 'from "./dashboard-core.mjs"' in adapter
     assert 'from "./dashboard-data.mjs"' in adapter
     assert 'from "./dashboard-session.mjs"' in adapter
+
+
+def test_skill_chart_is_sunburst_only() -> None:
+    """One skills panel (nested sunburst); stacked/tools-like mockups removed."""
+    _source, parser = _document()
+    by_id = {
+        attrs["id"]: (tag, attrs) for tag, attrs in parser.elements if attrs.get("id")
+    }
+    assert "skills-nested-panel" in by_id
+    assert "skills-stacked-panel" not in by_id
+    assert "skills-tools-like-panel" not in by_id
+    adapter = (STATIC_ROOT / "dashboard.mjs").read_text(encoding="utf-8")
+    assert "buildSkillsNestedPanel" in adapter
+    assert "buildSkillsStackedPanel" not in adapter
+    assert "buildSkillsToolsLikePanel" not in adapter
+
+
+def test_lower_chart_panels_order_and_first_prompt_width() -> None:
+    """Model Distribution precedes Session Efficiency; First-Prompt is one cell."""
+    source, _parser = _document()
+    models = source.index('id="models-panel"')
+    efficiency = source.index('id="efficiency-panel"')
+    first_prompt = source.index('id="first-prompt-panel"')
+    assert models < efficiency < first_prompt
+    assert 'panel panel-wide" id="first-prompt-panel"' not in source
+    assert 'id="first-prompt-panel"' in source
+    # Still a normal panel article (not removed).
+    assert 'class="panel" id="first-prompt-panel"' in source
 
 
 def test_session_pane_exposes_navigation_export_and_turn_landmarks() -> None:
@@ -252,7 +281,7 @@ def test_info_controls_only_on_efficiency_and_first_prompt_panels() -> None:
     assert all(btn.get("aria-label") for btn in info_buttons)
 
     efficiency_start = source.index('id="efficiency-panel"')
-    efficiency_end = source.index('id="models-panel"')
+    efficiency_end = source.index('id="first-prompt-panel"')
     first_start = source.index('id="first-prompt-panel"')
     first_end = source.index('id="recent-sessions"')
     efficiency_chunk = source[efficiency_start:efficiency_end]
@@ -266,6 +295,7 @@ def test_info_controls_only_on_efficiency_and_first_prompt_panels() -> None:
         "daily-panel",
         "projects-panel",
         "tools-panel",
+        "skills-nested-panel",
         "write-read-panel",
         "models-panel",
     ):

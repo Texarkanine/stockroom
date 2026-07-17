@@ -581,6 +581,12 @@
         white-space: nowrap;
       }
 
+      .panel-encoding {
+        margin: 0 0 0.5rem;
+        font-size: 0.76rem;
+        color: var(--muted);
+      }
+
       .chart-scroll {
         max-height: 32rem;
         overflow: auto;
@@ -1010,15 +1016,41 @@
 
         <article class="panel" id="tools-panel">
           <header class="panel-header">
-            <h2>Tool Distribution</h2>
+            <h2>Top Tools</h2>
             <p class="panel-range">Last 30 days</p>
           </header>
           <div class="chart-scroll">
             <div class="chart-wrap" id="tools-chart-wrap">
-              <canvas id="tools-chart" role="img" aria-label="Tool distribution chart">Tool distribution chart.</canvas>
+              <canvas id="tools-chart" role="img" aria-label="Top Tools chart">Top Tools chart.</canvas>
             </div>
           </div>
           <p class="no-data" id="tools-empty" hidden>No data in this period.</p>
+        </article>
+
+        <article class="panel" id="skills-nested-panel">
+          <header class="panel-header">
+            <h2>Top Skills</h2>
+            <p class="panel-range">Last 30 days</p>
+          </header>
+          <div class="chart-scroll">
+            <div class="chart-wrap" id="skills-nested-chart-wrap">
+              <canvas id="skills-nested-chart" role="img" aria-label="Top Skills chart">Top Skills chart.</canvas>
+            </div>
+          </div>
+          <p class="no-data" id="skills-nested-empty" hidden>No data in this period.</p>
+        </article>
+
+        <article class="panel" id="models-panel">
+          <header class="panel-header">
+            <h2>Top Models</h2>
+            <p class="panel-range">Last 30 days</p>
+          </header>
+          <div class="chart-scroll">
+            <div class="chart-wrap" id="models-chart-wrap">
+              <canvas id="models-chart" role="img" aria-label="Top Models chart">Top Models chart.</canvas>
+            </div>
+          </div>
+          <p class="no-data" id="models-empty" hidden>No data in this period.</p>
         </article>
 
         <article class="panel" id="write-read-panel">
@@ -1058,20 +1090,7 @@
           <p class="no-data" id="efficiency-empty" hidden>No data in this period.</p>
         </article>
 
-        <article class="panel" id="models-panel">
-          <header class="panel-header">
-            <h2>Model Distribution</h2>
-            <p class="panel-range">Last 30 days</p>
-          </header>
-          <div class="chart-scroll">
-            <div class="chart-wrap" id="models-chart-wrap">
-              <canvas id="models-chart" role="img" aria-label="Model distribution chart">Model distribution chart.</canvas>
-            </div>
-          </div>
-          <p class="no-data" id="models-empty" hidden>No data in this period.</p>
-        </article>
-
-        <article class="panel panel-wide" id="first-prompt-panel">
+        <article class="panel" id="first-prompt-panel">
           <header class="panel-header">
             <div class="panel-title-row">
               <h2>First-Prompt Quality</h2>
