@@ -32,23 +32,24 @@ Enable safe process-level parallel pytest for the engine suite: lock `pytest-xdi
 
 ## Implementation Plan
 
-1. **Failing contract tests for xdist + default workers**
+1. **Failing contract tests for xdist + default workers** ✅
    - Files: `skills/sr-search/tests/test_lock_hermetic.py`
    - Changes: add tests that (a) `pytest-xdist` appears in `dependency-groups.dev`, (b) lock packages include `pytest-xdist`, (c) `tool.pytest.ini_options.addopts` is a list containing `"-n"` and `"auto"`. Run → expect fail before dep/config land.
 
-2. **Add locked `pytest-xdist` and pytest `addopts`**
+2. **Add locked `pytest-xdist` and pytest `addopts`** ✅
    - Files: `skills/sr-search/pyproject.toml`, `skills/sr-search/uv.lock`
    - Changes: add `pytest-xdist~=3.0` to `[dependency-groups] dev`; set `addopts = ["-n", "auto"]` under `[tool.pytest.ini_options]` (preserve existing `testpaths` / `pythonpath`); regenerate lock hermetically (`uv lock --no-config` / `make lock`). Re-run contract tests → green.
 
-3. **Verify Make / CI inherit workers (no flag duplication)**
+3. **Verify Make / CI inherit workers (no flag duplication)** ✅
    - Files: `Makefile`, `.github/workflows/ci.yml` (read-only unless a comment is useful)
    - Changes: keep invocations as plain `pytest` so `addopts` is the single source of truth; only edit if a target bypasses project config. Smoke: `uv run --no-sync --no-config pytest -q` reports “bringing up nodes”.
 
-4. **Full parallel suite + isolation fixes if needed**
+4. **Full parallel suite + isolation fixes if needed** ✅
    - Files: whatever tests fail under `-n auto` (likely none; candidates: `test_warehouse_concurrency.py`, `test_dashboard_server.py`)
    - Changes: TDD-fix any shared-state bleed (always via `warehouse_home` / `tmp_path`, never threaded parallel). Gate: full `make test` green.
+   - Result: no isolation fixes needed — `make test` → 586 passed, 4 skipped, 86 JS in ~19s pytest wall with 16 workers.
 
-5. **Contributor docs**
+5. **Contributor docs** ✅
    - Files: `docs/contributing/iteration.md`; `memory-bank/techContext.md` (Testing Process pointer)
    - Changes: note that engine pytest defaults to process workers via `pytest-xdist` (`-n auto`); serial override with `pytest -n0 …` for debugging.
 
@@ -87,5 +88,5 @@ Enable safe process-level parallel pytest for the engine suite: lock `pytest-xdi
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight — PASS (addopts contracted as TOML list `["-n", "auto"]` for unambiguous assertions)
-- [ ] Build
+- [x] Build
 - [ ] QA

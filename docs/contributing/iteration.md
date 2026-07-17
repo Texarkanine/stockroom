@@ -62,6 +62,12 @@ Prefer `make sync` + restore torch via `stockroom shim ensure-env` when you want
 | `shim` | Bake this checkout onto PATH (owner `dev`; takeover flags in Local workflow) |
 | `local-engine` | Claim shim + `ensure-env` for this checkout |
 
+Engine pytest defaults to process workers via [`pytest-xdist`](https://pytest-xdist.readthedocs.io/) (`addopts = ["-n", "auto"]` in [`skills/sr-search/pyproject.toml`](https://github.com/Texarkanine/stockroom/blob/main/skills/sr-search/pyproject.toml)). Make and CI call bare `pytest`, so they inherit that. For serial debugging (or a single flaky case), override with `-n0`:
+
+```bash
+cd skills/sr-search && uv run --no-sync --no-config pytest -n0 tests/test_smoke.py -v
+```
+
 ### Ad-hoc Invocation
 
 The on-path `stockroom` command (`~/.local/bin/stockroom`) owns the torch-safe run contract and forwards to subcommands (`query`, `semantic`, `ingest`, `embed`, `migrate`, `shim`, `torch`, `doctor`, `schedule`, `dashboard`). Use `stockroom --help` / `stockroom <subcommand> --help`.
@@ -210,7 +216,7 @@ Static ESM is read from disk on each request; Python changes only get picked up 
 | --- | --- |
 | `test-dashboard-js` | Dashboard ES-module tests (`node --test`; Node 22; no sync) |
 | `test-dashboard-py` | `tests/test_dashboard_*.py` only (torch-safe; no sync) |
-| `test` | Full pytest + JS (runs `sync` first — strips torch) |
+| `test` | Full pytest (xdist `-n auto`) + JS (runs `sync` first — strips torch) |
 | `local-dashboard` | Force-replace `stockroom dashboard` for this checkout (`--replace`) |
 
 ## Skills

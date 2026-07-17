@@ -36,3 +36,13 @@ Enable safe process-level parallel pytest for the stockroom engine suite via loc
     - No rearchitecture; proceed to build on amended plan
 * Insights
     - Make/CI already use bare `pytest` — `addopts` wiring needs no Makefile flag churn
+
+## 2026-07-17 - BUILD - COMPLETE
+
+* Work completed
+    - TDD: three lock/hermetic contracts → `pytest-xdist` + `addopts = ["-n", "auto"]` + lock
+    - Full `make test` green under 16 workers; iteration + techContext docs
+* Decisions made
+    - No Make/CI flag edits; no isolation patches needed
+* Insights
+    - Tiny targeted runs pay worker startup cost; full suite amortizes it (~19s for 586 tests here)
