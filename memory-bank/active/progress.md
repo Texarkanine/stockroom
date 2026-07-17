@@ -135,3 +135,13 @@ Rework the shipped skill-usage mockups: sunburst nested encoding (agent-led colo
     - No user-guide update (plan: skip)
 * Insights
     - Creative nested-doughnut notes remain historical; rework brief + tests own the sunburst contract
+
+## 2026-07-17 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `reflection-dashboard-skill-sunburst-rework.md`
+    - Persistent files scanned — no updates
+* Decisions made
+    - Archive is next (standalone L2; no milestones)
+* Insights
+    - Chart.js tooltip `labelColor` must force fill for faded-border stacks; circumference-sum tests are the sunburst alignment guard

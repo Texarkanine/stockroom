@@ -1,11 +1,11 @@
 # Active Context
 
 ## Current Task: dashboard-skill-sunburst-rework
-**Phase:** QA - COMPLETE (PASS)
+**Phase:** REFLECT - COMPLETE
 
 ## What Was Done
-- Semantic QA against rework plan: all acceptance criteria covered; no TODOs/debug debris.
-- Trivial DRY fix: `skillColor` in sunburst builder; sunburst JS tests still green.
+- Reflection written: `memory-bank/active/reflection/reflection-dashboard-skill-sunburst-rework.md`
+- Persistent files scanned — no updates (dashboard mockup encoding only).
 
 ## Next Step
-- Reflect phase (Level 2 auto-continues).
+- Run `/niko-archive` to archive and finalize (standalone L2; no milestones.md).
