@@ -12,7 +12,7 @@ Enable safe process-level parallel pytest for the engine suite: lock `pytest-xdi
 
 - Declared dep: engine `pyproject.toml` `dependency-groups.dev` includes `pytest-xdist` with a compatible pin (`~=3.0`) → parseable and present
 - Locked: committed `uv.lock` contains a `pytest-xdist` package entry (and thus its `execnet` transitive) → hermetic install possible
-- Default workers: `[tool.pytest.ini_options].addopts` enables process workers with `-n auto` → bare `pytest` / Make / CI inherit parallelism without duplicated flags
+- Default workers: `[tool.pytest.ini_options].addopts` is a list including `"-n"` and `"auto"` → bare `pytest` / Make / CI inherit parallelism without duplicated flags
 - Override still possible: documenting that `-n0` (or explicit `-n N`) overrides `addopts` for serial debugging → contributor docs state this
 - Regression: full engine pytest suite under `-n auto` (via `make test` / CI-equivalent) stays green, including warehouse concurrency and dashboard server tests that spawn subprocesses / bind ports
 
@@ -34,11 +34,11 @@ Enable safe process-level parallel pytest for the engine suite: lock `pytest-xdi
 
 1. **Failing contract tests for xdist + default workers**
    - Files: `skills/sr-search/tests/test_lock_hermetic.py`
-   - Changes: add tests that (a) `pytest-xdist` appears in `dependency-groups.dev`, (b) lock packages include `pytest-xdist`, (c) `tool.pytest.ini_options.addopts` includes `-n` / `auto` (string or list form). Run → expect fail before dep/config land.
+   - Changes: add tests that (a) `pytest-xdist` appears in `dependency-groups.dev`, (b) lock packages include `pytest-xdist`, (c) `tool.pytest.ini_options.addopts` is a list containing `"-n"` and `"auto"`. Run → expect fail before dep/config land.
 
 2. **Add locked `pytest-xdist` and pytest `addopts`**
    - Files: `skills/sr-search/pyproject.toml`, `skills/sr-search/uv.lock`
-   - Changes: add `pytest-xdist~=3.0` to `[dependency-groups] dev`; set `[tool.pytest.ini_options] addopts` to include `-n auto` (preserve existing `testpaths` / `pythonpath`); regenerate lock hermetically (`uv lock --no-config` / `make lock`). Re-run contract tests → green.
+   - Changes: add `pytest-xdist~=3.0` to `[dependency-groups] dev`; set `addopts = ["-n", "auto"]` under `[tool.pytest.ini_options]` (preserve existing `testpaths` / `pythonpath`); regenerate lock hermetically (`uv lock --no-config` / `make lock`). Re-run contract tests → green.
 
 3. **Verify Make / CI inherit workers (no flag duplication)**
    - Files: `Makefile`, `.github/workflows/ci.yml` (read-only unless a comment is useful)
@@ -86,6 +86,6 @@ Enable safe process-level parallel pytest for the engine suite: lock `pytest-xdi
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight — PASS (addopts contracted as TOML list `["-n", "auto"]` for unambiguous assertions)
 - [ ] Build
 - [ ] QA

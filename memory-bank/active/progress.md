@@ -26,3 +26,13 @@ Enable safe process-level parallel pytest for the stockroom engine suite via loc
     - Serial debug path documented as `pytest -n0`
 * Insights
     - Dashboard JS parallelism and Make-level JS∥pytest overlap remain explicitly out of scope
+
+## 2026-07-17 - PREFLIGHT - COMPLETE (PASS)
+
+* Work completed
+    - Checked TDD encoding, conventions, dependency impact, conflicts, completeness
+    - Amended plan: `addopts` contracted as TOML list `["-n", "auto"]`
+* Decisions made
+    - No rearchitecture; proceed to build on amended plan
+* Insights
+    - Make/CI already use bare `pytest` — `addopts` wiring needs no Makefile flag churn
