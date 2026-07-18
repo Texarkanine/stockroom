@@ -81,3 +81,13 @@ Ship dashboard model analytics for [#67](https://github.com/Texarkanine/stockroo
     - Keep unused `_selected/_mode/_colors` on area builder for panel-signature parity
 * Insights
     - Dual endpoints share one window load; ranking/bucketing stay thin wrappers
+
+## 2026-07-18 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `reflection/reflection-dashboard-model-analytics.md`
+    - Reconciled persistent files (no updates)
+* Decisions made
+    - None beyond reflection content
+* Insights
+    - Attribution-first + shared window load; dashboard test glob naming; layout amendments can stay plan-level

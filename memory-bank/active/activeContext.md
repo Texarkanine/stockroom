@@ -1,11 +1,12 @@
 # Active Context
 
 ## Current Task: dashboard-model-analytics
-**Phase:** QA - COMPLETE (PASS)
+**Phase:** REFLECT - COMPLETE
 
 ## What Was Done
-- Build PASS (8/8 steps); full suite green
-- QA: consolidated attribution SQL into `_model_attribution_inputs`; no blocking findings
+- Reflection written: `memory-bank/active/reflection/reflection-dashboard-model-analytics.md`
+- Persistent files: no surgical updates needed (no panel inventory / patterns invalidated)
+- QA PASS; build delivered #67 + #68 per amended layout
 
 ## Next Step
-- Reflect phase (`/niko-reflect`)
+- Run `/niko-archive` to create the archive document and finalize
