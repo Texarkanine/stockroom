@@ -1,8 +1,8 @@
 # Progress
 
-Ship dashboard model analytics for [#67](https://github.com/Texarkanine/stockroom/issues/67) (top models by conversation and by message) and [#68](https://github.com/Texarkanine/stockroom/issues/68) (stacked area model usage over time) as one Level 3 effort on the existing offline dashboard stack.
+Ship dashboard model analytics for [#67](https://github.com/Texarkanine/stockroom/issues/67) / [#68](https://github.com/Texarkanine/stockroom/issues/68), then address selected PR #70 rework: message-`ts` bucketing for `model_trends`, and time-only First-Prompt range labels.
 
-**Complexity:** Level 3
+**Complexity:** Level 2
 
 ## 2026-07-18 - COMPLEXITY-ANALYSIS - COMPLETE
 
@@ -103,3 +103,13 @@ Ship dashboard model analytics for [#67](https://github.com/Texarkanine/stockroo
     - Item 1 (`tasks.md` stale grain docs), Item 3 (sole-model dedupe), Item 5 (reflection nitpick)
 * Decisions made
     - Rework disposition; clear stale plan/context status files and reclassify
+
+## 2026-07-18 - COMPLEXITY-ANALYSIS - COMPLETE (rework)
+
+* Work completed
+    - Classified rework as Level 2 (bug/correctness fixes across metrics + static UI; known approach from creative + review)
+* Decisions made
+    - Not Level 1: touches `model_usage` / `metrics` / JS labels / HTML seed / tests
+    - Not Level 3: no new feature or open design exploration beyond operator-specified Fix 4 label policy
+* Insights
+    - Message-`ts` bucketing was already contracted in `creative-dual-grain-attribution.md`; implementation lagged the message-grain polish
