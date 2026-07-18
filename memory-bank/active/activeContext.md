@@ -4,7 +4,7 @@
 **Phase:** BUILD - IN-PROGRESS
 
 ## What Was Done
-- Step 1: `model_usage.py` + `test_dashboard_model_usage.py` (9 tests) — sole-model fallback, conversation union, subagent exclusion
+- Steps 1–3: `model_usage` helper; dual-grain `models()` (`by_conversation`/`by_message`); `model_trends()` + ENDPOINTS
 
 ## Next Step
-- TDD step 2: dual-grain `models()` payload
+- TDD step 4: client fetch plan includes `model_trends`

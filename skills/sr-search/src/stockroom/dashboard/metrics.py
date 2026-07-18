@@ -23,7 +23,7 @@ from typing import Any
 
 import duckdb
 
-from stockroom.dashboard import skill_usage
+from stockroom.dashboard import model_usage, skill_usage
 from stockroom.timestamps import to_utc_naive, utc_now
 from stockroom.truncate import truncate_cell
 
@@ -633,54 +633,162 @@ def skills(
     }
 
 
-def models(
-    con: duckdb.DuckDBPyConnection,
-    harnesses: Sequence[str] | None = None,
-    since: datetime | None = None,
-    until: datetime | None = None,
+def _rank_model_counts(
+    counts: dict[str, dict[str, int]],
+    names: Sequence[str],
+    *,
+    series_key: str,
 ) -> dict[str, Any]:
-    """Return session-grain model usage across both schema grains.
-
-    A session uses model M when M occurs in either its session-level ``models``
-    list or any child message's ``model``. Repetition within one session counts
-    once. Cursor sessions use transcript-mtime last activity for windowing.
-    """
-    start, end = parse_window(since, until, default_days=30)
-    names = _active_harnesses(con, harnesses)
-    active = set(names)
-    rows = con.execute(
-        f"SELECT s.harness, s.session_id, s.models, m.model "
-        "FROM sessions s LEFT JOIN messages m "
-        "ON m.harness = s.harness AND m.session_id = s.session_id "
-        f"WHERE NOT s.is_subagent AND {ACTIVITY_TIME_SQL} IS NOT NULL "
-        f"AND {ACTIVITY_TIME_SQL} >= ? AND {ACTIVITY_TIME_SQL} < ?",
-        [start, end],
-    ).fetchall()
-    per_session: dict[tuple[str, str], set[str]] = {}
-    for harness, session_id, session_models, message_model in rows:
-        if not _is_selected(harness, active):
-            continue
-        used = per_session.setdefault((harness, session_id), set())
-        if session_models:
-            used.update(model for model in session_models if model)
-        if message_model:
-            used.add(message_model)
-
-    counts: dict[str, dict[str, int]] = {}
-    for (harness, _session_id), used in per_session.items():
-        for model in used:
-            per_harness = counts.setdefault(model, {})
-            per_harness[harness] = per_harness.get(harness, 0) + 1
-
+    """Rank models by total count and emit harness-aligned series arrays."""
     ranked = sorted(
         counts,
         key=lambda model: (-sum(counts[model].values()), model),
     )
     return {
         "models": ranked,
-        "sessions": {
+        series_key: {
             name: [counts[model].get(name, 0) for model in ranked] for name in names
         },
+    }
+
+
+def models(
+    con: duckdb.DuckDBPyConnection,
+    harnesses: Sequence[str] | None = None,
+    since: datetime | None = None,
+    until: datetime | None = None,
+) -> dict[str, Any]:
+    """Return dual-grain model usage for the activity window.
+
+    ``by_conversation`` counts each main session once per model it used
+    (session ``models`` list ∪ message ``model`` values). ``by_message`` counts
+    attributed assistant turns via :mod:`stockroom.dashboard.model_usage`
+    (recorded message model, else sole session model). Subagents are excluded.
+    """
+    start, end = parse_window(since, until, default_days=30)
+    names = _active_harnesses(con, harnesses)
+    active = set(names)
+
+    session_rows = [
+        model_usage.SessionRow(harness, session_id, session_models, is_subagent)
+        for harness, session_id, session_models, is_subagent in con.execute(
+            f"SELECT s.harness, s.session_id, s.models, s.is_subagent "
+            f"FROM sessions s "
+            f"WHERE {ACTIVITY_TIME_SQL} IS NOT NULL "
+            f"AND {ACTIVITY_TIME_SQL} >= ? AND {ACTIVITY_TIME_SQL} < ?",
+            [start, end],
+        ).fetchall()
+        if _is_selected(harness, active)
+    ]
+    message_rows = [
+        model_usage.MessageRow(harness, session_id, role, model)
+        for harness, session_id, role, model in con.execute(
+            "SELECT m.harness, m.session_id, m.role, m.model "
+            "FROM messages m JOIN sessions s "
+            "ON m.harness = s.harness AND m.session_id = s.session_id "
+            f"WHERE {ACTIVITY_TIME_SQL} IS NOT NULL "
+            f"AND {ACTIVITY_TIME_SQL} >= ? AND {ACTIVITY_TIME_SQL} < ?",
+            [start, end],
+        ).fetchall()
+        if _is_selected(harness, active)
+    ]
+
+    conversation_counts: dict[str, dict[str, int]] = {}
+    for (harness, _session_id), used in model_usage.conversation_sets(
+        session_rows, message_rows
+    ).items():
+        for model in used:
+            per_harness = conversation_counts.setdefault(model, {})
+            per_harness[harness] = per_harness.get(harness, 0) + 1
+
+    message_counts: dict[str, dict[str, int]] = {}
+    for harness, _session_id, model in model_usage.attributed_turns(
+        session_rows, message_rows
+    ):
+        per_harness = message_counts.setdefault(model, {})
+        per_harness[harness] = per_harness.get(harness, 0) + 1
+
+    return {
+        "by_conversation": _rank_model_counts(
+            conversation_counts, names, series_key="sessions"
+        ),
+        "by_message": _rank_model_counts(message_counts, names, series_key="messages"),
+    }
+
+
+def model_trends(
+    con: duckdb.DuckDBPyConnection,
+    harnesses: Sequence[str] | None = None,
+    since: datetime | None = None,
+    until: datetime | None = None,
+) -> dict[str, Any]:
+    """Return conversation-grain model usage buckets over the activity window.
+
+    Each main session increments each of its conversation-grain models once in
+    the bucket of its activity time. Series are harness-summed (model → int[]).
+    Window defaults match :func:`models` (30 days); granularity follows
+    :func:`_trend_granularity`.
+    """
+    start, end = parse_window(since, until, default_days=30)
+    names = _active_harnesses(con, harnesses)
+    active = set(names)
+    granularity = _trend_granularity(start, end)
+    labels = _bucket_labels(start, end, granularity)
+    label_index = {label: index for index, label in enumerate(labels)}
+
+    activity_by_session: dict[tuple[str, str], datetime] = {}
+    session_rows: list[model_usage.SessionRow] = []
+    for harness, session_id, session_models, is_subagent, activity in con.execute(
+        f"SELECT s.harness, s.session_id, s.models, s.is_subagent, "
+        f"{ACTIVITY_TIME_SQL} "
+        f"FROM sessions s "
+        f"WHERE {ACTIVITY_TIME_SQL} IS NOT NULL "
+        f"AND {ACTIVITY_TIME_SQL} >= ? AND {ACTIVITY_TIME_SQL} < ?",
+        [start, end],
+    ).fetchall():
+        if not _is_selected(harness, active):
+            continue
+        key = (harness, session_id)
+        activity_by_session[key] = activity
+        session_rows.append(
+            model_usage.SessionRow(harness, session_id, session_models, is_subagent)
+        )
+
+    message_rows = [
+        model_usage.MessageRow(harness, session_id, role, model)
+        for harness, session_id, role, model in con.execute(
+            "SELECT m.harness, m.session_id, m.role, m.model "
+            "FROM messages m JOIN sessions s "
+            "ON m.harness = s.harness AND m.session_id = s.session_id "
+            f"WHERE {ACTIVITY_TIME_SQL} IS NOT NULL "
+            f"AND {ACTIVITY_TIME_SQL} >= ? AND {ACTIVITY_TIME_SQL} < ?",
+            [start, end],
+        ).fetchall()
+        if _is_selected(harness, active)
+    ]
+
+    totals: dict[str, int] = {}
+    series: dict[str, list[int]] = {}
+    for key, used in model_usage.conversation_sets(session_rows, message_rows).items():
+        activity = activity_by_session.get(key)
+        if activity is None:
+            continue
+        bucket = _activity_bucket(activity, granularity)
+        index = label_index.get(bucket)
+        if index is None:
+            continue
+        for model in used:
+            if model not in series:
+                series[model] = [0] * len(labels)
+            series[model][index] += 1
+            totals[model] = totals.get(model, 0) + 1
+
+    ranked = sorted(totals, key=lambda model: (-totals[model], model))
+    return {
+        "labels": labels,
+        "granularity": granularity,
+        "models": ranked,
+        "counts": {model: series[model] for model in ranked},
     }
 
 
@@ -1153,6 +1261,7 @@ ENDPOINTS = {
     "tools": tools,
     "skills": skills,
     "models": models,
+    "model_trends": model_trends,
     "efficiency": efficiency,
     "sessions": sessions,
     "sessions_ends": sessions_ends,

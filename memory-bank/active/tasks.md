@@ -129,11 +129,11 @@ Each numbered step is one TDD cycle: **write/adjust failing tests → implement 
     - Files: `tests/test_dashboard_model_usage.py` (new; `test_dashboard_*.py` so `make test-dashboard-py` picks it up), `dashboard/model_usage.py` (new)
     - Tests first: sole-model fallback, multi-model skip, user-turn skip, conversation union once-per-session, subagent exclusion helpers as pure functions over row fixtures.
     - Then implement helpers. Creative: dual-grain attribution.
-2. **Dual-grain `models()`**
+2. **Dual-grain `models()`** ✅
     - Files: `tests/test_dashboard_metrics.py`, `metrics.py`
     - Tests first: rewrite `test_models_unifies_*` (+ new cases) for `{ by_conversation, by_message }` shape and grain behaviors end-to-end through `metrics.models()`.
     - Then rewrite `models()` to use `model_usage` and emit harness-aligned arrays.
-3. **`model_trends()`**
+3. **`model_trends()`** ✅
     - Files: `tests/test_dashboard_metrics.py`, `metrics.py`
     - Tests first: conversation bucketing, granularity, harness filter, empty window, `counts` map.
     - Then implement `model_trends` + register `ENDPOINTS["model_trends"]`. Creative: over-time (amended).
