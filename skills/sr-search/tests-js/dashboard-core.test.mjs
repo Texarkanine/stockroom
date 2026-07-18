@@ -26,6 +26,8 @@ import {
   formatDelta,
   formatRingPercent,
   harnessColors,
+  PANEL_HELP,
+  panelRangeLabels,
   projectHoverTitle,
   resolveWindowBounds,
   sessionsEllipsisCount,
@@ -1297,4 +1299,23 @@ test("keeps every pure transformation input unchanged", () => {
     ["cursor"],
   );
   assert.deepEqual(payload, before);
+});
+
+test("panelRangeLabels firstPrompt is time-range only for every preset", () => {
+  const defaultLabels = panelRangeLabels("default");
+  assert.equal(defaultLabels.firstPrompt, "Last 30 days");
+  assert.equal(defaultLabels.firstPrompt.includes("Average session length"), false);
+
+  for (const preset of ["7d", "30d", "90d", "1y"]) {
+    const labels = panelRangeLabels(preset);
+    assert.equal(labels.firstPrompt, labels.efficiency);
+    assert.equal(labels.firstPrompt.includes("Average session length"), false);
+    assert.equal(labels.firstPrompt.includes("prompt detail"), false);
+  }
+});
+
+test("PANEL_HELP first-prompt still explains average session length by prompt detail", () => {
+  const help = PANEL_HELP["first-prompt"];
+  assert.match(help, /average session message count/i);
+  assert.match(help, /prompt/i);
 });

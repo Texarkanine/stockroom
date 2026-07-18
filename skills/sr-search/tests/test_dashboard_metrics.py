@@ -936,6 +936,68 @@ def test_models_harness_filter_limits_both_grains(
     }
 
 
+def test_model_trends_buckets_by_message_ts_when_present(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Attributed turns with message.ts land in that day, not session activity."""
+    _seed_session(
+        migrated_con,
+        harness="claude",
+        session_id="multi-day",
+        activity=datetime(2026, 1, 10),
+        project_id="p",
+        message_count=3,
+    )
+    # ordinal 0 user, 1–2 assistants — stamp assistants onto consecutive days
+    migrated_con.execute(
+        "UPDATE messages SET model = 'opus', ts = ? "
+        "WHERE session_id = 'multi-day' AND ordinal = 1",
+        [datetime(2026, 1, 10, 15, 0, 0)],
+    )
+    migrated_con.execute(
+        "UPDATE messages SET model = 'opus', ts = ? "
+        "WHERE session_id = 'multi-day' AND ordinal = 2",
+        [datetime(2026, 1, 11, 10, 0, 0)],
+    )
+
+    result = metrics.model_trends(
+        migrated_con,
+        since=datetime(2026, 1, 10),
+        until=datetime(2026, 1, 13),
+    )
+    assert result["granularity"] == "day"
+    assert result["labels"] == ["2026-01-10", "2026-01-11", "2026-01-12"]
+    assert result["models"] == ["opus"]
+    assert result["counts"] == {"opus": [1, 1, 0]}
+
+
+def test_model_trends_null_message_ts_falls_back_to_session_activity(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Cursor-style NULL message.ts still buckets at session activity time."""
+    _seed_session(
+        migrated_con,
+        harness="cursor",
+        session_id="solo",
+        activity=datetime(2026, 1, 12),
+        project_id="p",
+        message_count=3,
+    )
+    migrated_con.execute(
+        "UPDATE sessions SET models = ['composer'] WHERE session_id = 'solo'"
+    )
+    migrated_con.execute("UPDATE messages SET ts = NULL WHERE session_id = 'solo'")
+
+    result = metrics.model_trends(
+        migrated_con,
+        since=datetime(2026, 1, 10),
+        until=datetime(2026, 1, 13),
+    )
+    assert result["models"] == ["composer"]
+    # Two assistant turns (ordinals 1–2) both on activity day 2026-01-12
+    assert result["counts"] == {"composer": [0, 0, 2]}
+
+
 def test_model_trends_buckets_attributed_assistant_turns(
     migrated_con: duckdb.DuckDBPyConnection,
 ) -> None:

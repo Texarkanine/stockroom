@@ -13,6 +13,7 @@ Subagent sessions never contribute to either grain.
 from __future__ import annotations
 
 from collections.abc import Sequence
+from datetime import datetime
 from typing import NamedTuple
 
 
@@ -32,6 +33,7 @@ class MessageRow(NamedTuple):
     session_id: str
     role: str
     model: str | None
+    ts: datetime | None = None
 
 
 def _nonempty_models(models: Sequence[str] | None) -> list[str]:
@@ -103,20 +105,21 @@ def conversation_sets(
 def attributed_turns(
     sessions: Sequence[SessionRow],
     messages: Sequence[MessageRow],
-) -> list[tuple[str, str, str]]:
-    """Return ``(harness, session_id, model)`` for each attributed assistant turn.
+) -> list[tuple[str, str, str, datetime | None]]:
+    """Return ``(harness, session_id, model, ts)`` for each attributed turn.
 
     Subagent sessions contribute nothing. Order follows ``messages`` order.
+    ``ts`` is the message timestamp when present (else ``None``).
     """
     session_index = {
         (session.harness, session.session_id): session for session in sessions
     }
-    turns: list[tuple[str, str, str]] = []
+    turns: list[tuple[str, str, str, datetime | None]] = []
     for message in messages:
         session = session_index.get((message.harness, message.session_id))
         if session is None or session.is_subagent:
             continue
         model = attributed_assistant_model(message.role, message.model, session.models)
         if model is not None:
-            turns.append((message.harness, message.session_id, model))
+            turns.append((message.harness, message.session_id, model, message.ts))
     return turns

@@ -526,7 +526,7 @@ export function panelRangeLabels(preset) {
     efficiency: windowLabel,
     models: windowLabel,
     modelTrends: `${windowLabel} · by message`,
-    firstPrompt: `Average session length by prompt detail · ${windowLabel}`,
+    firstPrompt: windowLabel,
   };
 }
 

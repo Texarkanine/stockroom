@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import datetime
+
 from stockroom.dashboard import model_usage
 
 
@@ -20,8 +22,9 @@ def _message(
     session_id: str,
     role: str,
     model: str | None = None,
+    ts: datetime | None = None,
 ) -> model_usage.MessageRow:
-    return model_usage.MessageRow(harness, session_id, role, model)
+    return model_usage.MessageRow(harness, session_id, role, model, ts)
 
 
 class TestConversationGrain:
@@ -83,8 +86,22 @@ class TestMessageGrain:
             _message("claude", "a1", "assistant", "m2"),
         ]
         assert model_usage.attributed_turns(sessions, messages) == [
-            ("claude", "a1", "m1"),
-            ("claude", "a1", "m2"),
+            ("claude", "a1", "m1", None),
+            ("claude", "a1", "m2", None),
+        ]
+
+    def test_attributed_turns_carries_message_timestamp(self) -> None:
+        """Each attributed turn includes the message ts (or None)."""
+        day1 = datetime(2026, 1, 10, 12, 0, 0)
+        day2 = datetime(2026, 1, 11, 9, 0, 0)
+        sessions = [_session("claude", "a1", None)]
+        messages = [
+            _message("claude", "a1", "assistant", "m1", day1),
+            _message("claude", "a1", "assistant", "m1", day2),
+        ]
+        assert model_usage.attributed_turns(sessions, messages) == [
+            ("claude", "a1", "m1", day1),
+            ("claude", "a1", "m1", day2),
         ]
 
     def test_null_message_model_sole_session_model_fallback(self) -> None:
@@ -98,8 +115,8 @@ class TestMessageGrain:
             _message("cursor", "c1", "assistant", None),
         ]
         assert model_usage.attributed_turns(sessions, messages) == [
-            ("cursor", "c1", "composer"),
-            ("cursor", "c1", "composer"),
+            ("cursor", "c1", "composer", None),
+            ("cursor", "c1", "composer", None),
         ]
 
     def test_null_message_model_multi_session_models_skips(self) -> None:

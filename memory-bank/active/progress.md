@@ -132,3 +132,15 @@ Ship dashboard model analytics for [#67](https://github.com/Texarkanine/stockroo
     - No advisory redesign — stick to creative message-time-first + operator time-only range labels
 * Insights
     - `skill_usage.MessageRow` is unrelated; do not conflate
+
+## 2026-07-18 - BUILD - COMPLETE (rework)
+
+* Work completed
+    - Message-`ts` through attribution; `model_trends` message-time-first bucketing + tests
+    - First-Prompt range labels time-only (JS + HTML seed); help text retained
+    - Full verify green
+* Decisions made
+    - Window filter stays session activity; only bucket key uses `ts`
+    - No `PANEL_HELP` rewrite — existing copy already covers average session message count by prompt bucket
+* Insights
+    - Existing composer fixtures already covered null-`ts` fallback once SELECT carried `m.ts`

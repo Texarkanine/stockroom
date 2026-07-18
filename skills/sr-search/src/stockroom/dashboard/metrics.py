@@ -682,9 +682,9 @@ def _model_attribution_inputs(
         )
 
     message_rows = [
-        model_usage.MessageRow(harness, session_id, role, model)
-        for harness, session_id, role, model in con.execute(
-            "SELECT m.harness, m.session_id, m.role, m.model "
+        model_usage.MessageRow(harness, session_id, role, model, ts)
+        for harness, session_id, role, model, ts in con.execute(
+            "SELECT m.harness, m.session_id, m.role, m.model, m.ts "
             "FROM messages m JOIN sessions s "
             "ON m.harness = s.harness AND m.session_id = s.session_id "
             f"WHERE {ACTIVITY_TIME_SQL} IS NOT NULL "
@@ -725,7 +725,7 @@ def models(
             per_harness[harness] = per_harness.get(harness, 0) + 1
 
     message_counts: dict[str, dict[str, int]] = {}
-    for harness, _session_id, model in model_usage.attributed_turns(
+    for harness, _session_id, model, _ts in model_usage.attributed_turns(
         session_rows, message_rows
     ):
         per_harness = message_counts.setdefault(model, {})
@@ -748,10 +748,12 @@ def model_trends(
     """Return message-grain model usage buckets over the activity window.
 
     Each attributed assistant turn (same rules as ``models()`` message grain)
-    increments its model once in the bucket of its session activity time.
-    Series are harness-summed (model → int[]); ranked model order matches
-    ``models()["by_message"]`` for the same window. Window defaults match
-    :func:`models` (30 days); granularity follows :func:`_trend_granularity`.
+    increments its model once in the bucket of its message ``ts`` when set,
+    else the parent session's activity time. Window membership still uses
+    session activity (same as :func:`models`). Series are harness-summed
+    (model → int[]); ranked model order matches ``models()["by_message"]``
+    for the same window. Window defaults match :func:`models` (30 days);
+    granularity follows :func:`_trend_granularity`.
     """
     start, end = parse_window(since, until, default_days=30)
     names = _active_harnesses(con, harnesses)
@@ -765,13 +767,17 @@ def model_trends(
 
     totals: dict[str, int] = {}
     series: dict[str, list[int]] = {}
-    for harness, session_id, model in model_usage.attributed_turns(
+    for harness, session_id, model, message_ts in model_usage.attributed_turns(
         session_rows, message_rows
     ):
-        activity = activity_by_session.get((harness, session_id))
-        if activity is None:
+        when = (
+            message_ts
+            if message_ts is not None
+            else activity_by_session.get((harness, session_id))
+        )
+        if when is None:
             continue
-        bucket = _activity_bucket(activity, granularity)
+        bucket = _activity_bucket(when, granularity)
         index = label_index.get(bucket)
         if index is None:
             continue

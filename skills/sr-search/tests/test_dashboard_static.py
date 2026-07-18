@@ -311,6 +311,8 @@ def test_info_controls_only_on_efficiency_and_first_prompt_panels() -> None:
     assert 'class="panel-info"' in first_chunk
     assert 'id="efficiency-help"' in efficiency_chunk
     assert 'id="first-prompt-help"' in first_chunk
+    assert ">Last 30 days<" in first_chunk
+    assert "Average session length by prompt detail" not in first_chunk
 
     for panel_id in (
         "daily-panel",
