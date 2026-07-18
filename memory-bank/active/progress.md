@@ -13,3 +13,30 @@ Ship dashboard model analytics for [#67](https://github.com/Texarkanine/stockroo
     - Pair the issues in one task (`dashboard-model-analytics`) rather than sequencing #68 alone first
 * Insights
     - Shared dual-grain attribution (session set vs message counts) and Cursor NULL honesty are the main coupling between the two issues
+
+## 2026-07-18 - CREATIVE - COMPLETE (dual-grain attribution)
+
+* Work completed
+    - Explored recorded-only vs sole-model fallback vs fan-out vs proportional split
+* Decisions made
+    - **Sole-session-model fallback** for message grain (assistant turns); conversation grain keeps union once-per-session
+* Insights
+    - Multi-model Cursor stays conversation-only for message grain — honest, not inflated
+
+## 2026-07-18 - CREATIVE - COMPLETE (top-models + over-time UI)
+
+* Work completed
+    - UI/UX options for #67 and #68 against shipped dashboard design system
+* Decisions made
+    - #67: two half-width bars with grain in titles
+    - #68: two `panel-wide` stacked areas (conversation + message); Compare filters harnesses into the stack, does not add harness×model stacks
+    - Shared per-model colors across model panels
+
+## 2026-07-18 - PLAN - COMPLETE
+
+* Work completed
+    - Full L3 plan in `tasks.md`: dual-grain `/api/models` + `/api/model_trends`, TDD map, 8 implementation steps
+* Decisions made
+    - Clean-break `/api/models` payload (`by_conversation` / `by_message`); areas return harness-summed model series
+* Insights
+    - Attribution helper must land before UI so bars and areas cannot diverge
