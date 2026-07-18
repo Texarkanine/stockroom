@@ -50,3 +50,12 @@ Ship dashboard model analytics for [#67](https://github.com/Texarkanine/stockroo
     - Attribution lives in `dashboard/model_usage.py` (skill_usage parallel)
 * Insights
     - Untracked `.cursor/skills/stockroom-local/` mirrors engine tree — not a consumer; do not edit
+
+## 2026-07-18 - PLAN AMENDMENT - OPERATOR LAYOUT
+
+* Work completed
+    - Recorded widget order; amended #68 creative + `tasks.md` (single conversation over-time area; write-read `panel-wide` after efficiency/first-prompt)
+* Decisions made
+    - Over-time grain = conversation (pairs with left bar); message grain = right ranking chart only
+* Insights
+    - Preflight still PASS — layout amendment, not rearchitect

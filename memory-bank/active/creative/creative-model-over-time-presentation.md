@@ -37,19 +37,32 @@ Key insights:
 
 ## Decision
 
-**Selected**: C — Two `panel-wide` stacked areas (conversation + message)
+**Selected**: A — One `panel-wide` conversation stacked area  
+*(Operator amendment 2026-07-18 superseded C — see below.)*
 
-**Rationale**: Answers the issue’s “one or two charts?” with a clear dual-grain yes, matches #67’s presentation decision, uses the reserved `panel-wide` class, and avoids mixing incompatible Y units or inventing a toggle.
+**Rationale (original for C)**: Dual full-width areas mirrored #67.  
+**Rationale (amended)**: Operator chose a single full-width “Model Usage over Time” under the two top-models bars. Conversation grain pairs with the left “as is” ranking chart; message grain remains the right-hand totals chart (#67) without a second time series.
 
-**Tradeoff**: Extra vertical space. Acceptable; empty periods collapse via existing no-data pattern.
+**Tradeoff**: No message-grain area chart in v1 (Composer-all-day story is ranking-only on the right).
 
 ## Implementation Notes
 
-- Titles: `Model Usage over Time (by conversation)` and `Model Usage over Time (by message)`.
+- Title: `Model Usage over Time` (conversation grain; subtitle/range line can say sessions if needed).
 - Chart type: Chart.js `line` datasets with `fill: true`, stacked x/y scales, `tension` aligned with Write/Read (~0.3) unless readability needs zero tension.
-- Colors: stable per-model color from shared palette (rank or model-name hash — prefer **global model color map** shared with top-models bars so color means the same model across panels).
-- Series set: union of models that appear in the grain for the window; omit all-zero models; cap/top-N only if clutter demands (default: all models with any count; revisit if tests show noise — prefer no arbitrary top-10 unless proven).
-- Bucketing: reuse `_trend_granularity` / `_date_labels` / `_week_labels` with the same window as other 30-day panels (or trends’ adaptive grain if that helper already chooses daily vs weekly from span).
-- Aggregate: one stack (sum selected harnesses); Compare: either (1) separate harness stacks are too heavy — prefer **aggregate-only stacks with harness filter applied upstream** (selected harnesses summed), matching “area = attention” rather than harness×model matrices. Pin: Compare mode filters which harnesses contribute to the stack; does **not** add a harness dimension to the area chart (models remain the stack series).
-- Place both wide panels immediately after the top-models pair.
-- a11y: labeled canvases; legend from Chart.js; empty states when no attributed data.
+- Colors: stable per-model color from shared palette — **global model color map** shared with both top-models bars.
+- Series set: models with any conversation-grain count in the window; no arbitrary top-10 unless clutter forces a follow-up.
+- Bucketing: reuse `_trend_granularity` / `_bucket_labels` / `_activity_bucket`.
+- Compare: harness filter applied upstream; stack series are **models only**.
+- Grid placement: immediately under the top-models pair; then efficiency | first-prompt; then write/read `panel-wide`.
+- a11y: labeled canvas; Chart.js legend; empty state when no data.
+
+## Operator Amendment (2026-07-18)
+
+Dashboard widget order locked by operator:
+
+1. Left: Top Models (by conversation); right: Top Models (by message)
+2. Full width: Model Usage over Time (one chart)
+3. Session Efficiency | First-Prompt Quality (existing half panels)
+4. Full width: Write / Read Ratio
+
+Supersedes the earlier “two panel-wide model-trends” choice (option C).
