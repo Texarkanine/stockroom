@@ -71,3 +71,13 @@ Ship dashboard model analytics for [#67](https://github.com/Texarkanine/stockroo
     - Aggregate model bars use per-model `colorForModel` colors; compare keeps harness stacks
 * Insights
     - Dataset `fill: true` is enough for stacked area; Write/Read stays `fill: false` via `lineDataset`
+
+## 2026-07-18 - QA - COMPLETE (PASS)
+
+* Work completed
+    - Semantic review vs plan/creatives; no debris/TODOs; completeness confirmed
+    - DRY fix: shared `_model_attribution_inputs` for `models()` + `model_trends()`
+* Decisions made
+    - Keep unused `_selected/_mode/_colors` on area builder for panel-signature parity
+* Insights
+    - Dual endpoints share one window load; ranking/bucketing stay thin wrappers

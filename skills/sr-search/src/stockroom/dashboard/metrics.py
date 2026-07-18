@@ -652,6 +652,50 @@ def _rank_model_counts(
     }
 
 
+def _model_attribution_inputs(
+    con: duckdb.DuckDBPyConnection,
+    start: datetime,
+    end: datetime,
+    active: set[str],
+) -> tuple[
+    list[model_usage.SessionRow],
+    list[model_usage.MessageRow],
+    dict[tuple[str, str], datetime],
+]:
+    """Load session/message rows and activity times for model attribution."""
+    activity_by_session: dict[tuple[str, str], datetime] = {}
+    session_rows: list[model_usage.SessionRow] = []
+    for harness, session_id, session_models, is_subagent, activity in con.execute(
+        f"SELECT s.harness, s.session_id, s.models, s.is_subagent, "
+        f"{ACTIVITY_TIME_SQL} "
+        f"FROM sessions s "
+        f"WHERE {ACTIVITY_TIME_SQL} IS NOT NULL "
+        f"AND {ACTIVITY_TIME_SQL} >= ? AND {ACTIVITY_TIME_SQL} < ?",
+        [start, end],
+    ).fetchall():
+        if not _is_selected(harness, active):
+            continue
+        key = (harness, session_id)
+        activity_by_session[key] = activity
+        session_rows.append(
+            model_usage.SessionRow(harness, session_id, session_models, is_subagent)
+        )
+
+    message_rows = [
+        model_usage.MessageRow(harness, session_id, role, model)
+        for harness, session_id, role, model in con.execute(
+            "SELECT m.harness, m.session_id, m.role, m.model "
+            "FROM messages m JOIN sessions s "
+            "ON m.harness = s.harness AND m.session_id = s.session_id "
+            f"WHERE {ACTIVITY_TIME_SQL} IS NOT NULL "
+            f"AND {ACTIVITY_TIME_SQL} >= ? AND {ACTIVITY_TIME_SQL} < ?",
+            [start, end],
+        ).fetchall()
+        if _is_selected(harness, active)
+    ]
+    return session_rows, message_rows, activity_by_session
+
+
 def models(
     con: duckdb.DuckDBPyConnection,
     harnesses: Sequence[str] | None = None,
@@ -668,30 +712,9 @@ def models(
     start, end = parse_window(since, until, default_days=30)
     names = _active_harnesses(con, harnesses)
     active = set(names)
-
-    session_rows = [
-        model_usage.SessionRow(harness, session_id, session_models, is_subagent)
-        for harness, session_id, session_models, is_subagent in con.execute(
-            f"SELECT s.harness, s.session_id, s.models, s.is_subagent "
-            f"FROM sessions s "
-            f"WHERE {ACTIVITY_TIME_SQL} IS NOT NULL "
-            f"AND {ACTIVITY_TIME_SQL} >= ? AND {ACTIVITY_TIME_SQL} < ?",
-            [start, end],
-        ).fetchall()
-        if _is_selected(harness, active)
-    ]
-    message_rows = [
-        model_usage.MessageRow(harness, session_id, role, model)
-        for harness, session_id, role, model in con.execute(
-            "SELECT m.harness, m.session_id, m.role, m.model "
-            "FROM messages m JOIN sessions s "
-            "ON m.harness = s.harness AND m.session_id = s.session_id "
-            f"WHERE {ACTIVITY_TIME_SQL} IS NOT NULL "
-            f"AND {ACTIVITY_TIME_SQL} >= ? AND {ACTIVITY_TIME_SQL} < ?",
-            [start, end],
-        ).fetchall()
-        if _is_selected(harness, active)
-    ]
+    session_rows, message_rows, _activity = _model_attribution_inputs(
+        con, start, end, active
+    )
 
     conversation_counts: dict[str, dict[str, int]] = {}
     for (harness, _session_id), used in model_usage.conversation_sets(
@@ -735,37 +758,9 @@ def model_trends(
     granularity = _trend_granularity(start, end)
     labels = _bucket_labels(start, end, granularity)
     label_index = {label: index for index, label in enumerate(labels)}
-
-    activity_by_session: dict[tuple[str, str], datetime] = {}
-    session_rows: list[model_usage.SessionRow] = []
-    for harness, session_id, session_models, is_subagent, activity in con.execute(
-        f"SELECT s.harness, s.session_id, s.models, s.is_subagent, "
-        f"{ACTIVITY_TIME_SQL} "
-        f"FROM sessions s "
-        f"WHERE {ACTIVITY_TIME_SQL} IS NOT NULL "
-        f"AND {ACTIVITY_TIME_SQL} >= ? AND {ACTIVITY_TIME_SQL} < ?",
-        [start, end],
-    ).fetchall():
-        if not _is_selected(harness, active):
-            continue
-        key = (harness, session_id)
-        activity_by_session[key] = activity
-        session_rows.append(
-            model_usage.SessionRow(harness, session_id, session_models, is_subagent)
-        )
-
-    message_rows = [
-        model_usage.MessageRow(harness, session_id, role, model)
-        for harness, session_id, role, model in con.execute(
-            "SELECT m.harness, m.session_id, m.role, m.model "
-            "FROM messages m JOIN sessions s "
-            "ON m.harness = s.harness AND m.session_id = s.session_id "
-            f"WHERE {ACTIVITY_TIME_SQL} IS NOT NULL "
-            f"AND {ACTIVITY_TIME_SQL} >= ? AND {ACTIVITY_TIME_SQL} < ?",
-            [start, end],
-        ).fetchall()
-        if _is_selected(harness, active)
-    ]
+    session_rows, message_rows, activity_by_session = _model_attribution_inputs(
+        con, start, end, active
+    )
 
     totals: dict[str, int] = {}
     series: dict[str, list[int]] = {}

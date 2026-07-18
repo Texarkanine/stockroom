@@ -202,4 +202,4 @@ No new technology — validation not required. Stacked area uses existing vendor
 - [x] Pre-Mortem complete
 - [x] Preflight
 - [x] Build
-- [ ] QA
+- [x] QA
