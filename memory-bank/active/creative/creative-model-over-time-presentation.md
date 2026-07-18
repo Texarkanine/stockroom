@@ -66,3 +66,9 @@ Dashboard widget order locked by operator:
 4. Full width: Write / Read Ratio
 
 Supersedes the earlier “two panel-wide model-trends” choice (option C).
+
+## Operator Amendment (2026-07-18, grain + color)
+
+- Over-time series is **message grain** (attributed assistant turns), not conversation.
+- Model colors use ranked positional `PALETTE` with **message popularity** as canonical order; Top Models (by message) and Model Usage over Time share the same model set/order for hues.
+- Area chart: no point markers / stroke clutter; tooltip omits models with zero at the hovered bucket.

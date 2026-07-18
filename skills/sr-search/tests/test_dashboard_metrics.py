@@ -936,19 +936,20 @@ def test_models_harness_filter_limits_both_grains(
     }
 
 
-def test_model_trends_buckets_conversation_models_per_session(
+def test_model_trends_buckets_attributed_assistant_turns(
     migrated_con: duckdb.DuckDBPyConnection,
 ) -> None:
-    """Each session increments each of its conversation-grain models once per bucket."""
+    """Message-grain trends: each attributed assistant turn increments its bucket."""
     _seed_session(
         migrated_con,
         harness="cursor",
-        session_id="c1",
+        session_id="solo",
         activity=datetime(2026, 1, 10),
         project_id="p",
+        message_count=3,
     )
     migrated_con.execute(
-        "UPDATE sessions SET models = ['m1', 'm2'] WHERE session_id = 'c1'"
+        "UPDATE sessions SET models = ['composer'] WHERE session_id = 'solo'"
     )
     _seed_session(
         migrated_con,
@@ -965,11 +966,26 @@ def test_model_trends_buckets_conversation_models_per_session(
     _seed_session(
         migrated_con,
         harness="cursor",
-        session_id="c2",
+        session_id="later",
         activity=datetime(2026, 1, 12),
         project_id="p",
+        message_count=2,
     )
-    migrated_con.execute("UPDATE sessions SET models = ['m2'] WHERE session_id = 'c2'")
+    migrated_con.execute(
+        "UPDATE sessions SET models = ['composer'] WHERE session_id = 'later'"
+    )
+    # Multi-model Cursor assistants with NULL message.model do not attribute.
+    _seed_session(
+        migrated_con,
+        harness="cursor",
+        session_id="multi",
+        activity=datetime(2026, 1, 10),
+        project_id="p",
+        message_count=3,
+    )
+    migrated_con.execute(
+        "UPDATE sessions SET models = ['m1', 'm2'] WHERE session_id = 'multi'"
+    )
 
     result = metrics.model_trends(
         migrated_con,
@@ -978,11 +994,18 @@ def test_model_trends_buckets_conversation_models_per_session(
     )
     assert result["granularity"] == "day"
     assert result["labels"] == ["2026-01-10", "2026-01-11", "2026-01-12"]
-    assert result["models"] == ["m1", "m2"]
+    # Same ranking set as by_message: composer (3 turns) then m1 (1).
+    assert result["models"] == ["composer", "m1"]
     assert result["counts"] == {
-        "m1": [2, 0, 0],
-        "m2": [1, 0, 1],
+        "composer": [2, 0, 1],
+        "m1": [1, 0, 0],
     }
+    ranked = metrics.models(
+        migrated_con,
+        since=datetime(2026, 1, 10),
+        until=datetime(2026, 1, 13),
+    )
+    assert result["models"] == ranked["by_message"]["models"]
 
 
 def test_model_trends_uses_adaptive_granularity_and_default_30d_window(
@@ -997,6 +1020,7 @@ def test_model_trends_uses_adaptive_granularity_and_default_30d_window(
         session_id="c1",
         activity=datetime(2026, 2, 20),
         project_id="p",
+        message_count=3,
     )
     migrated_con.execute(
         "UPDATE sessions SET models = ['composer'] WHERE session_id = 'c1'"
@@ -1006,7 +1030,7 @@ def test_model_trends_uses_adaptive_granularity_and_default_30d_window(
     assert defaulted["granularity"] == "day"
     assert defaulted["labels"][0] == "2026-01-30"
     assert defaulted["labels"][-1] == "2026-02-28"
-    assert defaulted["counts"]["composer"][defaulted["labels"].index("2026-02-20")] == 1
+    assert defaulted["counts"]["composer"][defaulted["labels"].index("2026-02-20")] == 2
 
     weekly = metrics.model_trends(
         migrated_con,

@@ -1,12 +1,13 @@
 # Active Context
 
 ## Current Task: dashboard-model-analytics
-**Phase:** REFLECT - COMPLETE
+**Phase:** REFLECT - COMPLETE (post-reflect polish in progress)
 
 ## What Was Done
-- Reflection written: `memory-bank/active/reflection/reflection-dashboard-model-analytics.md`
-- Persistent files: no surgical updates needed (no panel inventory / patterns invalidated)
-- QA PASS; build delivered #67 + #68 per amended layout
+- Reflection complete; operator polish after reflect:
+  - Colors: ranked positional `PALETTE` (message-grain canonical), not name-hash
+  - Model Usage over Time: **message** grain (aligned set/order with Top Models by message)
+  - Area edges: no points/borders, tension 0; tooltip omits zero-value models
 
 ## Next Step
-- Run `/niko-archive` to create the archive document and finalize
+- Run `/niko-archive` when polish is accepted

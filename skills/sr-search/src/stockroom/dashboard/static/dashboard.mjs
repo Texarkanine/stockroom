@@ -2,6 +2,7 @@ import {
   buildDailyPanel,
   buildEfficiencyPanel,
   buildFirstPromptPanel,
+  assignModelColors,
   buildModelsConversationPanel,
   buildModelsMessagePanel,
   buildModelTrendsPanel,
@@ -377,6 +378,13 @@ function chartOptions(model) {
       tooltip: {
         ...interaction,
         multiKeyBackground: surface,
+        ...(model.omitZeroTooltip
+          ? {
+              filter(item) {
+                return Number(item.raw) !== 0;
+              },
+            }
+          : {}),
         callbacks: {
           title(items) {
             const item = items?.[0];
@@ -730,7 +738,7 @@ function applyPanelRangeLabels() {
     ["#skills-nested-panel .panel-range", labels.skillsNested],
     ["#models-conversation-panel .panel-range", labels.models],
     ["#models-message-panel .panel-range", labels.models],
-    ["#model-trends-panel .panel-range", labels.models],
+    ["#model-trends-panel .panel-range", labels.modelTrends],
     ["#efficiency-panel .panel-range", labels.efficiency],
     ["#first-prompt-panel .panel-range", labels.firstPrompt],
     ["#write-read-panel .panel-range", labels.writeRead],
@@ -778,6 +786,13 @@ function renderDashboard() {
     "Top Skills",
     buildSkillsNestedPanel(snapshot.skills, state.selected, state.mode, colors),
   );
+  // Message-grain rank is canonical for palette order; conversation-only models
+  // take later slots so bars + area share hues for the same model names.
+  const modelColors = assignModelColors([
+    ...(snapshot.models?.by_message?.models ?? []),
+    ...(snapshot.model_trends?.models ?? []),
+    ...(snapshot.models?.by_conversation?.models ?? []),
+  ]);
   renderChart(
     "models-conversation",
     "Top Models by conversation",
@@ -786,6 +801,7 @@ function renderDashboard() {
       state.selected,
       state.mode,
       colors,
+      modelColors,
     ),
   );
   renderChart(
@@ -796,6 +812,7 @@ function renderDashboard() {
       state.selected,
       state.mode,
       colors,
+      modelColors,
     ),
   );
   renderChart(
@@ -806,6 +823,7 @@ function renderDashboard() {
       state.selected,
       state.mode,
       colors,
+      modelColors,
     ),
   );
   renderChart(

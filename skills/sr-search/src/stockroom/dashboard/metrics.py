@@ -745,12 +745,13 @@ def model_trends(
     since: datetime | None = None,
     until: datetime | None = None,
 ) -> dict[str, Any]:
-    """Return conversation-grain model usage buckets over the activity window.
+    """Return message-grain model usage buckets over the activity window.
 
-    Each main session increments each of its conversation-grain models once in
-    the bucket of its activity time. Series are harness-summed (model → int[]).
-    Window defaults match :func:`models` (30 days); granularity follows
-    :func:`_trend_granularity`.
+    Each attributed assistant turn (same rules as ``models()`` message grain)
+    increments its model once in the bucket of its session activity time.
+    Series are harness-summed (model → int[]); ranked model order matches
+    ``models()["by_message"]`` for the same window. Window defaults match
+    :func:`models` (30 days); granularity follows :func:`_trend_granularity`.
     """
     start, end = parse_window(since, until, default_days=30)
     names = _active_harnesses(con, harnesses)
@@ -764,19 +765,20 @@ def model_trends(
 
     totals: dict[str, int] = {}
     series: dict[str, list[int]] = {}
-    for key, used in model_usage.conversation_sets(session_rows, message_rows).items():
-        activity = activity_by_session.get(key)
+    for harness, session_id, model in model_usage.attributed_turns(
+        session_rows, message_rows
+    ):
+        activity = activity_by_session.get((harness, session_id))
         if activity is None:
             continue
         bucket = _activity_bucket(activity, granularity)
         index = label_index.get(bucket)
         if index is None:
             continue
-        for model in used:
-            if model not in series:
-                series[model] = [0] * len(labels)
-            series[model][index] += 1
-            totals[model] = totals.get(model, 0) + 1
+        if model not in series:
+            series[model] = [0] * len(labels)
+        series[model][index] += 1
+        totals[model] = totals.get(model, 0) + 1
 
     ranked = sorted(totals, key=lambda model: (-totals[model], model))
     return {

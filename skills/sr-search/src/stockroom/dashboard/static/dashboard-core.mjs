@@ -81,6 +81,9 @@ function panelModel(kind, labels, datasets, options = {}) {
     stacked: options.stacked ?? false,
     empty: options.empty ?? !hasValues(datasets),
     ...(options.fill === undefined ? {} : { fill: options.fill }),
+    ...(options.omitZeroTooltip === undefined
+      ? {}
+      : { omitZeroTooltip: options.omitZeroTooltip }),
     ...(options.height === undefined ? {} : { height: options.height }),
     ...(options.yMax === undefined ? {} : { yMax: options.yMax }),
     ...(options.labelTitles === undefined ? {} : { labelTitles: [...options.labelTitles] }),
@@ -384,19 +387,41 @@ export function harnessColors(harnesses) {
 }
 
 /**
- * Stable categorical color for a model name (shared across model panels).
+ * Ranked positional palette for model series (same sequence as harness/skills).
+ *
+ * Pass models in popularity order (canonical: message-grain rank). First-seen
+ * wins, so extras (e.g. conversation-only models) take later palette slots.
+ *
+ * @param {Iterable<string> | null | undefined} rankedModels Model names in rank order.
+ * @returns {Map<string, string>} model name → ``#rrggbb``.
+ */
+export function assignModelColors(rankedModels) {
+  const colorsByModel = new Map();
+  const slotCount = Math.max(PALETTE.length, 1);
+  for (const model of rankedModels ?? []) {
+    if (!model || colorsByModel.has(model)) {
+      continue;
+    }
+    colorsByModel.set(model, PALETTE[colorsByModel.size % slotCount]);
+  }
+  return colorsByModel;
+}
+
+/**
+ * Look up a model color from a shared rank map (from :func:`assignModelColors`).
  *
  * @param {string | null | undefined} model Model identifier.
+ * @param {Map<string, string> | null | undefined} colorMap Shared model→color map.
  * @returns {string} Palette hex color.
  */
-export function colorForModel(model) {
-  const key = typeof model === "string" ? model : "";
-  let hash = 2166136261;
-  for (let index = 0; index < key.length; index += 1) {
-    hash ^= key.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
+export function colorForModel(model, colorMap) {
+  if (colorMap instanceof Map && model && colorMap.has(model)) {
+    return colorMap.get(model);
   }
-  return PALETTE[(hash >>> 0) % PALETTE.length];
+  if (model) {
+    return assignModelColors([model]).get(model) ?? PALETTE[0];
+  }
+  return PALETTE[0];
 }
 
 /** Supported date-range preset ids for the top controls strip. */
@@ -431,7 +456,8 @@ const DEFAULT_PANEL_RANGE_LABELS = Object.freeze({
   writeRead: "Last 12 weeks",
   efficiency: "Last 30 days",
   models: "Last 30 days",
-  firstPrompt: "Average session length by prompt detail · 30 days",
+  modelTrends: "Last 30 days",
+  firstPrompt: "Last 30 days",
 });
 
 /**
@@ -480,6 +506,7 @@ export function resolveWindowBounds(preset, now = new Date()) {
  *   writeRead: string,
  *   efficiency: string,
  *   models: string,
+ *   modelTrends: string,
  *   firstPrompt: string,
  * }} Label map for windowed panels.
  */
@@ -498,6 +525,7 @@ export function panelRangeLabels(preset) {
     writeRead: windowLabel,
     efficiency: windowLabel,
     models: windowLabel,
+    modelTrends: `${windowLabel} · by message`,
     firstPrompt: `Average session length by prompt detail · ${windowLabel}`,
   };
 }
@@ -1350,20 +1378,29 @@ export function buildEfficiencyPanel(payload, selected, mode, colors) {
   return panelModel("bar", labels, datasets, { stacked: mode === "compare" });
 }
 
-function buildModelsBarPanel(payload, seriesKey, aggregateLabel, selected, mode, colors) {
+function buildModelsBarPanel(
+  payload,
+  seriesKey,
+  aggregateLabel,
+  selected,
+  mode,
+  colors,
+  modelColors,
+) {
   const source = safeObject(payload);
   const labels = Array.isArray(source.models) ? source.models : [];
+  const palette = modelColors instanceof Map ? modelColors : assignModelColors(labels);
   let datasets;
   if (mode === "compare") {
     datasets = selectedDatasets(source[seriesKey], selected, labels, colors);
   } else {
     const data = sumAligned(source[seriesKey], selected, labels.length);
-    const modelColors = labels.map((model) => colorForModel(model));
+    const barColors = labels.map((model) => colorForModel(model, palette));
     datasets = [
       {
         ...aggregateDataset(aggregateLabel, data),
-        backgroundColor: modelColors,
-        borderColor: modelColors,
+        backgroundColor: barColors,
+        borderColor: barColors,
       },
     ];
   }
@@ -1375,23 +1412,52 @@ function buildModelsBarPanel(payload, seriesKey, aggregateLabel, selected, mode,
 }
 
 /** Build the Top Models (by conversation) horizontal bar chart model. */
-export function buildModelsConversationPanel(payload, selected, mode, colors) {
-  return buildModelsBarPanel(payload, "sessions", "Sessions", selected, mode, colors);
+export function buildModelsConversationPanel(
+  payload,
+  selected,
+  mode,
+  colors,
+  modelColors,
+) {
+  return buildModelsBarPanel(
+    payload,
+    "sessions",
+    "Sessions",
+    selected,
+    mode,
+    colors,
+    modelColors,
+  );
 }
 
 /** Build the Top Models (by message) horizontal bar chart model. */
-export function buildModelsMessagePanel(payload, selected, mode, colors) {
-  return buildModelsBarPanel(payload, "messages", "Messages", selected, mode, colors);
+export function buildModelsMessagePanel(payload, selected, mode, colors, modelColors) {
+  return buildModelsBarPanel(
+    payload,
+    "messages",
+    "Messages",
+    selected,
+    mode,
+    colors,
+    modelColors,
+  );
 }
 
-/** Build the Model Usage over Time stacked area chart model. */
-export function buildModelTrendsPanel(payload, _selected, _mode, _colors) {
+/** Build the Model Usage over Time stacked area chart model (message grain). */
+export function buildModelTrendsPanel(
+  payload,
+  _selected,
+  _mode,
+  _colors,
+  modelColors,
+) {
   const source = safeObject(payload);
   const labels = Array.isArray(source.labels) ? source.labels : [];
   const models = Array.isArray(source.models) ? source.models : [];
   const counts = safeObject(source.counts);
+  const palette = modelColors instanceof Map ? modelColors : assignModelColors(models);
   const datasets = models.map((model) => {
-    const color = colorForModel(model);
+    const color = colorForModel(model, palette);
     const values = Array.isArray(counts[model]) ? counts[model] : [];
     return {
       label: model,
@@ -1400,14 +1466,18 @@ export function buildModelTrendsPanel(payload, _selected, _mode, _colors) {
       ),
       backgroundColor: color,
       borderColor: color,
-      borderWidth: 1,
-      tension: 0.3,
+      borderWidth: 0,
+      pointRadius: 0,
+      pointHoverRadius: 0,
+      pointBorderWidth: 0,
+      tension: .3,
       fill: true,
     };
   });
   return panelModel("line", labels, datasets, {
     stacked: true,
     fill: true,
+    omitZeroTooltip: true,
   });
 }
 

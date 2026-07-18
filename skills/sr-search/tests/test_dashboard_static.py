@@ -332,6 +332,7 @@ def test_info_controls_only_on_efficiency_and_first_prompt_panels() -> None:
 def test_dashboard_adapter_wires_model_panel_builders() -> None:
     """Adapter imports dual-grain builders and references new chart element ids."""
     adapter = (STATIC_ROOT / "dashboard.mjs").read_text(encoding="utf-8")
+    assert "assignModelColors" in adapter
     assert "buildModelsConversationPanel" in adapter
     assert "buildModelsMessagePanel" in adapter
     assert "buildModelTrendsPanel" in adapter
@@ -342,3 +343,5 @@ def test_dashboard_adapter_wires_model_panel_builders() -> None:
     assert "snapshot.models?.by_conversation" in adapter
     assert "snapshot.models?.by_message" in adapter
     assert "snapshot.model_trends" in adapter
+    assert "by_message?.models" in adapter
+    assert "omitZeroTooltip" in adapter
