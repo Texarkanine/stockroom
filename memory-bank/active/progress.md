@@ -153,3 +153,13 @@ Ship dashboard model analytics for [#67](https://github.com/Texarkanine/stockroo
     - None — clean build
 * Insights
     - Carrying `ts` on `MessageRow` kept attribution pure and metrics thin
+
+## 2026-07-18 - REFLECT - COMPLETE (rework)
+
+* Work completed
+    - Wrote `reflection/reflection-dashboard-model-analytics-pr70-rework.md`
+    - Reconciled persistent files (no updates)
+* Decisions made
+    - None beyond reflection content
+* Insights
+    - Grain flips and bucket-key contracts should ship together
