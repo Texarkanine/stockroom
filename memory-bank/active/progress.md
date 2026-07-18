@@ -40,3 +40,13 @@ Ship dashboard model analytics for [#67](https://github.com/Texarkanine/stockroo
     - Clean-break `/api/models` payload (`by_conversation` / `by_message`); areas return harness-summed model series
 * Insights
     - Attribution helper must land before UI so bars and areas cannot diverge
+
+## 2026-07-18 - PREFLIGHT - COMPLETE (PASS)
+
+* Work completed
+    - Validated TDD encoding, conventions, consumers, completeness
+    - Amended plan: `model_usage.py`, per-step test-first ordering, no docs step
+* Decisions made
+    - Attribution lives in `dashboard/model_usage.py` (skill_usage parallel)
+* Insights
+    - Untracked `.cursor/skills/stockroom-local/` mirrors engine tree — not a consumer; do not edit
