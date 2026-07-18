@@ -113,3 +113,13 @@ Ship dashboard model analytics for [#67](https://github.com/Texarkanine/stockroo
     - Not Level 3: no new feature or open design exploration beyond operator-specified Fix 4 label policy
 * Insights
     - Message-`ts` bucketing was already contracted in `creative-dual-grain-attribution.md`; implementation lagged the message-grain polish
+
+## 2026-07-18 - PLAN - COMPLETE (rework)
+
+* Work completed
+    - TDD plan: message-`ts` through `MessageRow` / `attributed_turns`; `model_trends` bucket key; time-only firstPrompt labels + HTML seed
+* Decisions made
+    - Keep session-activity window filter; only change bucket key to message `ts` when present
+    - Explanatory First-Prompt copy stays in `PANEL_HELP`, not `.panel-range`
+* Insights
+    - `attributed_turns` 4-tuple is the smallest way to carry `ts` without duplicating attribution in `model_trends`
