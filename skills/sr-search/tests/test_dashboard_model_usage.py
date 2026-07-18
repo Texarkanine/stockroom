@@ -119,6 +119,20 @@ class TestMessageGrain:
             ("cursor", "c1", "composer", None),
         ]
 
+    def test_duplicate_sole_session_model_still_falls_back(self) -> None:
+        """Repeated identical names are unambiguous — dedupe before sole check."""
+        assert (
+            model_usage.attributed_assistant_model(
+                "assistant", None, ["composer", "composer"]
+            )
+            == "composer"
+        )
+        sessions = [_session("cursor", "c1", ["composer", "composer"])]
+        messages = [_message("cursor", "c1", "assistant", None)]
+        assert model_usage.attributed_turns(sessions, messages) == [
+            ("cursor", "c1", "composer", None),
+        ]
+
     def test_null_message_model_multi_session_models_skips(self) -> None:
         assert (
             model_usage.attributed_assistant_model("assistant", None, ["m1", "m2"])

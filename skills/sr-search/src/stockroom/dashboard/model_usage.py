@@ -67,13 +67,13 @@ def attributed_assistant_model(
     """Return the model attributed to one message turn, or ``None``.
 
     Only assistant turns attribute. Prefer ``message_model`` when non-empty;
-    else sole non-empty entry in ``session_models``; else skip.
+    else the sole distinct non-empty entry in ``session_models``; else skip.
     """
     if role != "assistant":
         return None
     if message_model:
         return message_model
-    sole = _nonempty_models(session_models)
+    sole = list(dict.fromkeys(_nonempty_models(session_models)))
     if len(sole) == 1:
         return sole[0]
     return None

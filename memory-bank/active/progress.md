@@ -163,3 +163,12 @@ Ship dashboard model analytics for [#67](https://github.com/Texarkanine/stockroo
     - None beyond reflection content
 * Insights
     - Grain flips and bucket-key contracts should ship together
+
+## 2026-07-18 - POST-REFLECT POLISH (PR #70 item 3)
+
+* Work completed
+    - Sole-model fallback dedupes identical `sessions.models` entries (`["composer", "composer"]` → composer); test added
+* Decisions made
+    - Operator added item 3 after reflect; kept as polish rather than new rework cycle
+* Insights
+    - Production enrichment already unique — still worth the defensive check
