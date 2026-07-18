@@ -91,3 +91,15 @@ Ship dashboard model analytics for [#67](https://github.com/Texarkanine/stockroo
     - None beyond reflection content
 * Insights
     - Attribution-first + shared window load; dashboard test glob naming; layout amendments can stay plan-level
+
+## 2026-07-18 - REWORK INITIATED
+
+* Work completed
+    - Operator chose rework from post-reflect / PR #70 CodeRabbit review (judge: items 2 + 4 only)
+* Operator feedback (PR #70)
+    - **Fix 2**: Bucket `model_trends` by message `ts` when present, else session activity; carry timestamp through attribution; add multi-day coverage (`discussion_r3609260655`)
+    - **Fix 4 (amended)**: First-Prompt `.panel-range` is time-range only for all presets — remove “Average session length by prompt detail · …” from corner text; that meaning belongs in the panel tooltip/help if needed (`discussion_r3609260661`, operator override)
+* Explicitly out of scope for this rework
+    - Item 1 (`tasks.md` stale grain docs), Item 3 (sole-model dedupe), Item 5 (reflection nitpick)
+* Decisions made
+    - Rework disposition; clear stale plan/context status files and reclassify

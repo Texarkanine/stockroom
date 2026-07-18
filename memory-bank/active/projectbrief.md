@@ -35,3 +35,10 @@ Open the dashboard and see a stacked area time-series of model usage so color/ar
 2. Dashboard shows a stacked area of model usage over time at an appropriate width (resolved grain/layout from creative).
 3. Metrics/API and static panel inventory are covered by tests; full suite passes.
 4. Issues #67 and #68 are addressed by the shipped behavior (ready to close when verified).
+
+## Rework
+
+PR #70 CodeRabbit feedback (operator-selected items only):
+
+1. **Message-time bucketing for `model_trends`**: Attribute assistant turns as today; bucket each turn by `messages.ts` when present, else session activity; cover multi-day turns in separate date buckets.
+2. **First-Prompt range label is time-only**: For every date-range preset, `#first-prompt-panel .panel-range` shows only the window (“Last 30 days”, etc.). Remove “Average session length by prompt detail · …” from that corner text; if that explanation is still needed, it belongs in the panel tooltip/help, not the range line.
