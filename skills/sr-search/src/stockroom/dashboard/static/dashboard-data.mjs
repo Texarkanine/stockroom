@@ -7,6 +7,7 @@ const ENDPOINTS = [
   "tools",
   "skills",
   "models",
+  "model_trends",
   "efficiency",
   "sessions_ends",
   "wrapped",

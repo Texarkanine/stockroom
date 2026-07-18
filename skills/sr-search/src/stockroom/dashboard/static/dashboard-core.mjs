@@ -80,6 +80,7 @@ function panelModel(kind, labels, datasets, options = {}) {
     indexAxis: options.indexAxis ?? "x",
     stacked: options.stacked ?? false,
     empty: options.empty ?? !hasValues(datasets),
+    ...(options.fill === undefined ? {} : { fill: options.fill }),
     ...(options.height === undefined ? {} : { height: options.height }),
     ...(options.yMax === undefined ? {} : { yMax: options.yMax }),
     ...(options.labelTitles === undefined ? {} : { labelTitles: [...options.labelTitles] }),
@@ -380,6 +381,22 @@ export function harnessColors(harnesses) {
       PALETTE[index % PALETTE.length],
     ]),
   );
+}
+
+/**
+ * Stable categorical color for a model name (shared across model panels).
+ *
+ * @param {string | null | undefined} model Model identifier.
+ * @returns {string} Palette hex color.
+ */
+export function colorForModel(model) {
+  const key = typeof model === "string" ? model : "";
+  let hash = 2166136261;
+  for (let index = 0; index < key.length; index += 1) {
+    hash ^= key.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return PALETTE[(hash >>> 0) % PALETTE.length];
 }
 
 /** Supported date-range preset ids for the top controls strip. */
@@ -1333,18 +1350,64 @@ export function buildEfficiencyPanel(payload, selected, mode, colors) {
   return panelModel("bar", labels, datasets, { stacked: mode === "compare" });
 }
 
-/** Build the Model Distribution chart model. */
-export function buildModelsPanel(payload, selected, mode, colors) {
+function buildModelsBarPanel(payload, seriesKey, aggregateLabel, selected, mode, colors) {
   const source = safeObject(payload);
   const labels = Array.isArray(source.models) ? source.models : [];
-  const datasets =
-    mode === "compare"
-      ? selectedDatasets(source.sessions, selected, labels, colors)
-      : [aggregateDataset("Sessions", sumAligned(source.sessions, selected, labels.length))];
+  let datasets;
+  if (mode === "compare") {
+    datasets = selectedDatasets(source[seriesKey], selected, labels, colors);
+  } else {
+    const data = sumAligned(source[seriesKey], selected, labels.length);
+    const modelColors = labels.map((model) => colorForModel(model));
+    datasets = [
+      {
+        ...aggregateDataset(aggregateLabel, data),
+        backgroundColor: modelColors,
+        borderColor: modelColors,
+      },
+    ];
+  }
   return panelModel("bar", labels, datasets, {
     indexAxis: "y",
     stacked: mode === "compare",
     height: chartHeight(labels.length),
+  });
+}
+
+/** Build the Top Models (by conversation) horizontal bar chart model. */
+export function buildModelsConversationPanel(payload, selected, mode, colors) {
+  return buildModelsBarPanel(payload, "sessions", "Sessions", selected, mode, colors);
+}
+
+/** Build the Top Models (by message) horizontal bar chart model. */
+export function buildModelsMessagePanel(payload, selected, mode, colors) {
+  return buildModelsBarPanel(payload, "messages", "Messages", selected, mode, colors);
+}
+
+/** Build the Model Usage over Time stacked area chart model. */
+export function buildModelTrendsPanel(payload, _selected, _mode, _colors) {
+  const source = safeObject(payload);
+  const labels = Array.isArray(source.labels) ? source.labels : [];
+  const models = Array.isArray(source.models) ? source.models : [];
+  const counts = safeObject(source.counts);
+  const datasets = models.map((model) => {
+    const color = colorForModel(model);
+    const values = Array.isArray(counts[model]) ? counts[model] : [];
+    return {
+      label: model,
+      data: Array.from({ length: labels.length }, (_, index) =>
+        finiteNumber(values[index]),
+      ),
+      backgroundColor: color,
+      borderColor: color,
+      borderWidth: 1,
+      tension: 0.3,
+      fill: true,
+    };
+  });
+  return panelModel("line", labels, datasets, {
+    stacked: true,
+    fill: true,
   });
 }
 

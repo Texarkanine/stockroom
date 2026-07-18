@@ -5,7 +5,10 @@ import {
   buildDailyPanel,
   buildEfficiencyPanel,
   buildFirstPromptPanel,
-  buildModelsPanel,
+  buildModelsConversationPanel,
+  buildModelsMessagePanel,
+  buildModelTrendsPanel,
+  colorForModel,
   buildProjectsPanel,
   buildToolsPanel,
   assignSkillSunburstColors,
@@ -942,21 +945,113 @@ test("builds aggregate and compare efficiency models", () => {
   assertDataset(compare, "Cursor", [1, 2]);
 });
 
-test("builds all-model aggregate and compare models", () => {
-  const payload = {
+test("builds conversation and message model bar panels", () => {
+  const conversation = {
     models: Array.from({ length: 10 }, (_, index) => `model-${index}`),
     sessions: {
       cursor: Array(10).fill(1),
       "claude-code": Array(10).fill(2),
     },
   };
-  const aggregate = buildModelsPanel(payload, selected, "aggregate", colors);
-  assert.equal(aggregate.labels.length, 10);
-  assert.equal(aggregate.height, 340);
-  assertDataset(aggregate, "Sessions", Array(10).fill(3));
-  const compare = buildModelsPanel(payload, selected, "compare", colors);
-  assert.equal(compare.stacked, true);
-  assertDataset(compare, "Claude Code", Array(10).fill(2));
+  const message = {
+    models: ["composer", "opus"],
+    messages: {
+      cursor: [5, 0],
+      "claude-code": [0, 3],
+    },
+  };
+  const convAgg = buildModelsConversationPanel(conversation, selected, "aggregate", colors);
+  assert.equal(convAgg.labels.length, 10);
+  assert.equal(convAgg.height, 340);
+  assert.equal(convAgg.indexAxis, "y");
+  assertDataset(convAgg, "Sessions", Array(10).fill(3));
+  assert.equal(convAgg.datasets[0].backgroundColor.length, 10);
+  assert.equal(convAgg.datasets[0].backgroundColor[0], colorForModel("model-0"));
+
+  const convCompare = buildModelsConversationPanel(
+    conversation,
+    selected,
+    "compare",
+    colors,
+  );
+  assert.equal(convCompare.stacked, true);
+  assertDataset(convCompare, "Claude Code", Array(10).fill(2));
+
+  const msgAgg = buildModelsMessagePanel(message, selected, "aggregate", colors);
+  assertDataset(msgAgg, "Messages", [5, 3]);
+  assert.equal(msgAgg.datasets[0].backgroundColor[0], colorForModel("composer"));
+  const msgCompare = buildModelsMessagePanel(message, selected, "compare", colors);
+  assert.equal(msgCompare.stacked, true);
+  assertDataset(msgCompare, "Cursor", [5, 0]);
+});
+
+test("builds stacked area model trends with per-model colors", () => {
+  const payload = {
+    labels: ["2026-01-10", "2026-01-11"],
+    granularity: "day",
+    models: ["m1", "m2"],
+    counts: {
+      m1: [2, 0],
+      m2: [1, 3],
+    },
+  };
+  const panel = buildModelTrendsPanel(payload, selected, "aggregate", colors);
+  assert.equal(panel.kind, "line");
+  assert.equal(panel.stacked, true);
+  assert.equal(panel.fill, true);
+  assert.equal(panel.datasets.length, 2);
+  assert.equal(panel.datasets[0].fill, true);
+  assert.equal(panel.datasets[0].label, "m1");
+  assert.deepEqual(panel.datasets[0].data, [2, 0]);
+  assert.equal(panel.datasets[0].backgroundColor, colorForModel("m1"));
+  assert.equal(panel.datasets[1].backgroundColor, colorForModel("m2"));
+  assert.equal(
+    panel.datasets[0].backgroundColor,
+    buildModelsConversationPanel(
+      { models: ["m1"], sessions: { cursor: [1] } },
+      selected,
+      "aggregate",
+      colors,
+    ).datasets[0].backgroundColor[0],
+  );
+});
+
+test("model trends panel does not invent harness datasets", () => {
+  const panel = buildModelTrendsPanel(
+    {
+      labels: ["2026-01-10"],
+      models: ["solo"],
+      counts: { solo: [4] },
+    },
+    selected,
+    "compare",
+    colors,
+  );
+  assert.equal(panel.datasets.length, 1);
+  assert.equal(panel.datasets[0].label, "solo");
+  assert.ok(!panel.datasets.some((dataset) => /cursor|claude/i.test(dataset.label)));
+});
+
+test("empty model panels set empty flag", () => {
+  const emptyBars = buildModelsConversationPanel(
+    { models: [], sessions: {} },
+    selected,
+    "aggregate",
+    colors,
+  );
+  assert.equal(emptyBars.empty, true);
+  const emptyArea = buildModelTrendsPanel(
+    { labels: ["2026-01-10"], models: [], counts: {} },
+    selected,
+    "aggregate",
+    colors,
+  );
+  assert.equal(emptyArea.empty, true);
+});
+
+test("colorForModel is stable for the same model name", () => {
+  assert.equal(colorForModel("composer"), colorForModel("composer"));
+  assert.notEqual(colorForModel("composer"), colorForModel("opus"));
 });
 
 test("builds weighted aggregate and grouped compare first-prompt models", () => {

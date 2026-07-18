@@ -116,9 +116,7 @@ def attributed_turns(
         session = session_index.get((message.harness, message.session_id))
         if session is None or session.is_subagent:
             continue
-        model = attributed_assistant_model(
-            message.role, message.model, session.models
-        )
+        model = attributed_assistant_model(message.role, message.model, session.models)
         if model is not None:
             turns.append((message.harness, message.session_id, model))
     return turns

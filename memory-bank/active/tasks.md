@@ -137,25 +137,25 @@ Each numbered step is one TDD cycle: **write/adjust failing tests → implement 
     - Files: `tests/test_dashboard_metrics.py`, `metrics.py`
     - Tests first: conversation bucketing, granularity, harness filter, empty window, `counts` map.
     - Then implement `model_trends` + register `ENDPOINTS["model_trends"]`. Creative: over-time (amended).
-4. **Client fetch plan**
+4. **Client fetch plan** ✅
     - Files: `tests-js/dashboard-data.test.mjs`, `dashboard-data.mjs`
     - Tests first: plan includes `/api/model_trends` with harness/window params.
     - Then add `model_trends` to the client `ENDPOINTS` list.
-5. **Panel builders + model colors**
+5. **Panel builders + model colors** ✅
     - Files: `tests-js/dashboard-core.test.mjs`, `dashboard-core.mjs`
     - Tests first: replace `buildModelsPanel` coverage with conversation/message bar builders; one area builder (`line`+fill+stack); `colorForModel` stability across the three model panels.
     - Then implement builders. Creative: top-models + over-time (amended).
-6. **Static HTML inventory + grid order**
+6. **Static HTML inventory + grid order** ✅
     - Files: `tests/test_dashboard_static.py`, `index.html`
     - Tests first: panel ids, `panel-wide` on `model-trends-panel` and `write-read-panel`, canvas count 10, order pins per operator layout.
     - Then edit `index.html` to satisfy pins.
-7. **Wire render path**
+7. **Wire render path** ✅
     - Files: `tests/test_dashboard_static.py` (adapter import/wiring pins), `dashboard.mjs`
     - Tests first: adapter imports new builders and references new panel chart ids.
     - Then wire snapshot → render; Chart.js options honor `fill` for area without changing Write/Read (`fill: false`).
-8. **Verify**
-    - `make test-dashboard-py`, `make test-dashboard-js`, then full `make test`.
-    - Docs: no panel inventory in user-guide — **no docs change** unless screenshot refresh requested later.
+8. **Verify** ✅
+    - `make test-dashboard-py` (117), `make test-dashboard-js` (90), full `make test` (601 passed / 4 skipped + 90 JS).
+    - Docs: no panel inventory in user-guide — **no docs change**.
 
 ### Preflight amendments (2026-07-18)
 
@@ -201,5 +201,5 @@ No new technology — validation not required. Stacked area uses existing vendor
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight
-- [ ] Build
+- [x] Build
 - [ ] QA

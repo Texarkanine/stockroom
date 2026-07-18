@@ -1040,30 +1040,43 @@
           <p class="no-data" id="skills-nested-empty" hidden>No data in this period.</p>
         </article>
 
-        <article class="panel" id="models-panel">
+        <article class="panel" id="models-conversation-panel">
           <header class="panel-header">
-            <h2>Top Models</h2>
+            <h2>Top Models (by conversation)</h2>
             <p class="panel-range">Last 30 days</p>
           </header>
           <div class="chart-scroll">
-            <div class="chart-wrap" id="models-chart-wrap">
-              <canvas id="models-chart" role="img" aria-label="Top Models chart">Top Models chart.</canvas>
+            <div class="chart-wrap" id="models-conversation-chart-wrap">
+              <canvas id="models-conversation-chart" role="img" aria-label="Top Models by conversation chart">Top Models by conversation chart.</canvas>
             </div>
           </div>
-          <p class="no-data" id="models-empty" hidden>No data in this period.</p>
+          <p class="no-data" id="models-conversation-empty" hidden>No data in this period.</p>
         </article>
 
-        <article class="panel" id="write-read-panel">
+        <article class="panel" id="models-message-panel">
           <header class="panel-header">
-            <h2>Write / Read Ratio</h2>
-            <p class="panel-range">Last 12 weeks</p>
+            <h2>Top Models (by message)</h2>
+            <p class="panel-range">Last 30 days</p>
           </header>
           <div class="chart-scroll">
-            <div class="chart-wrap" id="write-read-chart-wrap">
-              <canvas id="write-read-chart" role="img" aria-label="Weekly write share ratio chart">Weekly write share ratio chart.</canvas>
+            <div class="chart-wrap" id="models-message-chart-wrap">
+              <canvas id="models-message-chart" role="img" aria-label="Top Models by message chart">Top Models by message chart.</canvas>
             </div>
           </div>
-          <p class="no-data" id="write-read-empty" hidden>No data in this period.</p>
+          <p class="no-data" id="models-message-empty" hidden>No data in this period.</p>
+        </article>
+
+        <article class="panel panel-wide" id="model-trends-panel">
+          <header class="panel-header">
+            <h2>Model Usage over Time</h2>
+            <p class="panel-range">Last 30 days</p>
+          </header>
+          <div class="chart-scroll">
+            <div class="chart-wrap" id="model-trends-chart-wrap">
+              <canvas id="model-trends-chart" role="img" aria-label="Model usage over time chart">Model usage over time chart.</canvas>
+            </div>
+          </div>
+          <p class="no-data" id="model-trends-empty" hidden>No data in this period.</p>
         </article>
 
         <article class="panel" id="efficiency-panel">
@@ -1112,6 +1125,19 @@
             </div>
           </div>
           <p class="no-data" id="first-prompt-empty" hidden>No data in this period.</p>
+        </article>
+
+        <article class="panel panel-wide" id="write-read-panel">
+          <header class="panel-header">
+            <h2>Write / Read Ratio</h2>
+            <p class="panel-range">Last 12 weeks</p>
+          </header>
+          <div class="chart-scroll">
+            <div class="chart-wrap" id="write-read-chart-wrap">
+              <canvas id="write-read-chart" role="img" aria-label="Weekly write share ratio chart">Weekly write share ratio chart.</canvas>
+            </div>
+          </div>
+          <p class="no-data" id="write-read-empty" hidden>No data in this period.</p>
         </article>
       </section>
 

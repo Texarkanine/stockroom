@@ -59,3 +59,15 @@ Ship dashboard model analytics for [#67](https://github.com/Texarkanine/stockroo
     - Over-time grain = conversation (pairs with left bar); message grain = right ranking chart only
 * Insights
     - Preflight still PASS — layout amendment, not rearchitect
+
+## 2026-07-18 - BUILD - COMPLETE
+
+* Work completed
+    - `model_usage` attribution helper; dual-grain `models()`; `model_trends()` + ENDPOINTS
+    - Client fetch, panel builders (`colorForModel`), HTML grid, render wiring
+    - Full verify: dashboard py/js + `make test` green
+* Decisions made
+    - Attribution test file named `test_dashboard_model_usage.py` for Make target glob
+    - Aggregate model bars use per-model `colorForModel` colors; compare keeps harness stacks
+* Insights
+    - Dataset `fill: true` is enough for stacked area; Write/Read stays `fill: false` via `lineDataset`

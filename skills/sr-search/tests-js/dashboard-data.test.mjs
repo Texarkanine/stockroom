@@ -17,6 +17,7 @@ const endpointNames = [
   "tools",
   "skills",
   "models",
+  "model_trends",
   "efficiency",
   "sessions_ends",
   "wrapped",
@@ -35,9 +36,13 @@ function response(payload, options = {}) {
   };
 }
 
-test("builds nine same-origin request URLs with correct filtering", () => {
+test("builds ten same-origin request URLs with correct filtering", () => {
   const plan = buildRequestPlan(["cursor pro", "claude/cli"]);
   assert.deepEqual(plan.map((item) => item.name), endpointNames);
+  assert.equal(
+    plan.find((item) => item.name === "model_trends").url,
+    "/api/model_trends?harness=claude%2Fcli&harness=cursor%20pro",
+  );
   for (const item of plan.slice(0, -1)) {
     assert.match(item.url, /^\/api\//);
     assert.match(item.url, /harness=claude%2Fcli&harness=cursor%20pro/);
@@ -105,7 +110,7 @@ test("fetches and names one complete parallel snapshot", async () => {
     });
   const snapshotPromise = fetchSnapshot(fetchImpl, ["cursor"]);
   await new Promise((resolve) => setImmediate(resolve));
-  assert.equal(pending.length, 9);
+  assert.equal(pending.length, 10);
   assert.deepEqual(
     pending.map((item) => item.url.split("?")[0]),
     endpointNames.map((name) => `/api/${name}`),
@@ -173,7 +178,7 @@ test("forwards abort signals to every request", async () => {
     ["cursor"],
     { signal: controller.signal },
   );
-  assert.equal(signals.length, 9);
+  assert.equal(signals.length, 10);
   assert.ok(signals.every((signal) => signal === controller.signal));
 });
 
@@ -232,7 +237,7 @@ test("fetchSnapshot forwards options.window into every non-wrapped pending URL",
     window: { since, until },
   });
   await new Promise((resolve) => setImmediate(resolve));
-  assert.equal(pending.length, 9);
+  assert.equal(pending.length, 10);
   const encodedSince = encodeURIComponent(since);
   const encodedUntil = encodeURIComponent(until);
   for (const item of pending) {

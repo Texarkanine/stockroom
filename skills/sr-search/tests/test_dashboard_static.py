@@ -54,18 +54,21 @@ def test_dashboard_document_has_semantic_controls_panels_and_fallbacks() -> None
         "projects-panel",
         "tools-panel",
         "skills-nested-panel",
-        "write-read-panel",
+        "models-conversation-panel",
+        "models-message-panel",
+        "model-trends-panel",
         "efficiency-panel",
-        "models-panel",
         "first-prompt-panel",
+        "write-read-panel",
         "recent-sessions",
         "wrapped-panel",
     ]:
         assert element_id in by_id
+    assert "models-panel" not in by_id
     assert "table" in tags
     assert tags.count("th") >= 6
     canvases = [attrs for tag, attrs in parser.elements if tag == "canvas"]
-    assert len(canvases) == 8
+    assert len(canvases) == 10
     assert all(canvas.get("role") == "img" for canvas in canvases)
     assert all(canvas.get("aria-label") for canvas in canvases)
 
@@ -127,17 +130,35 @@ def test_skill_chart_is_sunburst_only() -> None:
     assert "buildSkillsToolsLikePanel" not in adapter
 
 
-def test_lower_chart_panels_order_and_first_prompt_width() -> None:
-    """Model Distribution precedes Session Efficiency; First-Prompt is one cell."""
-    source, _parser = _document()
-    models = source.index('id="models-panel"')
+def test_lower_chart_panels_order_and_panel_wide_widths() -> None:
+    """Operator grid: model bars, model trends, efficiency/first-prompt, write-read."""
+    source, parser = _document()
+    by_id = {
+        attrs["id"]: (tag, attrs) for tag, attrs in parser.elements if attrs.get("id")
+    }
+    models_conversation = source.index('id="models-conversation-panel"')
+    models_message = source.index('id="models-message-panel"')
+    model_trends = source.index('id="model-trends-panel"')
     efficiency = source.index('id="efficiency-panel"')
     first_prompt = source.index('id="first-prompt-panel"')
-    assert models < efficiency < first_prompt
-    assert 'panel panel-wide" id="first-prompt-panel"' not in source
-    assert 'id="first-prompt-panel"' in source
-    # Still a normal panel article (not removed).
+    write_read = source.index('id="write-read-panel"')
+    assert (
+        models_conversation
+        < models_message
+        < model_trends
+        < efficiency
+        < first_prompt
+        < write_read
+    )
+    assert "panel-wide" in (by_id["model-trends-panel"][1].get("class") or "").split()
+    assert "panel-wide" in (by_id["write-read-panel"][1].get("class") or "").split()
+    assert (
+        "panel-wide" not in (by_id["first-prompt-panel"][1].get("class") or "").split()
+    )
     assert 'class="panel" id="first-prompt-panel"' in source
+    assert "Top Models (by conversation)" in source
+    assert "Top Models (by message)" in source
+    assert "Model Usage over Time" in source
 
 
 def test_session_pane_exposes_navigation_export_and_turn_landmarks() -> None:
@@ -296,11 +317,28 @@ def test_info_controls_only_on_efficiency_and_first_prompt_panels() -> None:
         "projects-panel",
         "tools-panel",
         "skills-nested-panel",
+        "models-conversation-panel",
+        "models-message-panel",
+        "model-trends-panel",
         "write-read-panel",
-        "models-panel",
     ):
         start = source.index(f'id="{panel_id}"')
         rest = source[start + 1 :]
         next_panel = rest.find('class="panel')
         chunk = source[start : start + 1 + (next_panel if next_panel != -1 else 800)]
         assert "panel-info" not in chunk
+
+
+def test_dashboard_adapter_wires_model_panel_builders() -> None:
+    """Adapter imports dual-grain builders and references new chart element ids."""
+    adapter = (STATIC_ROOT / "dashboard.mjs").read_text(encoding="utf-8")
+    assert "buildModelsConversationPanel" in adapter
+    assert "buildModelsMessagePanel" in adapter
+    assert "buildModelTrendsPanel" in adapter
+    assert "buildModelsPanel" not in adapter
+    assert 'renderChart(\n    "models-conversation"' in adapter
+    assert 'renderChart(\n    "models-message"' in adapter
+    assert 'renderChart(\n    "model-trends"' in adapter
+    assert "snapshot.models?.by_conversation" in adapter
+    assert "snapshot.models?.by_message" in adapter
+    assert "snapshot.model_trends" in adapter

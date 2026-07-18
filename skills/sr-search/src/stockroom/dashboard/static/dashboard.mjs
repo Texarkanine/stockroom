@@ -2,7 +2,9 @@ import {
   buildDailyPanel,
   buildEfficiencyPanel,
   buildFirstPromptPanel,
-  buildModelsPanel,
+  buildModelsConversationPanel,
+  buildModelsMessagePanel,
+  buildModelTrendsPanel,
   buildProjectsPanel,
   buildSessionsPanelRows,
   buildToolsPanel,
@@ -321,7 +323,7 @@ function renderOverview(overview) {
 }
 
 function chartLabels(name, labels) {
-  return name === "daily" || name === "write-read"
+  return name === "daily" || name === "write-read" || name === "model-trends"
     ? labels.map((label) => formatDate(label, true))
     : labels;
 }
@@ -726,10 +728,12 @@ function applyPanelRangeLabels() {
     ["#projects-panel .panel-range", labels.projects],
     ["#tools-panel .panel-range", labels.tools],
     ["#skills-nested-panel .panel-range", labels.skillsNested],
-    ["#write-read-panel .panel-range", labels.writeRead],
+    ["#models-conversation-panel .panel-range", labels.models],
+    ["#models-message-panel .panel-range", labels.models],
+    ["#model-trends-panel .panel-range", labels.models],
     ["#efficiency-panel .panel-range", labels.efficiency],
-    ["#models-panel .panel-range", labels.models],
     ["#first-prompt-panel .panel-range", labels.firstPrompt],
+    ["#write-read-panel .panel-range", labels.writeRead],
   ];
   for (const [selector, text] of mapping) {
     const element = document.querySelector(selector);
@@ -775,19 +779,39 @@ function renderDashboard() {
     buildSkillsNestedPanel(snapshot.skills, state.selected, state.mode, colors),
   );
   renderChart(
-    "write-read",
-    "Weekly write share",
-    buildWriteReadPanel(snapshot.trends?.weekly, state.selected, state.mode, colors),
+    "models-conversation",
+    "Top Models by conversation",
+    buildModelsConversationPanel(
+      snapshot.models?.by_conversation,
+      state.selected,
+      state.mode,
+      colors,
+    ),
+  );
+  renderChart(
+    "models-message",
+    "Top Models by message",
+    buildModelsMessagePanel(
+      snapshot.models?.by_message,
+      state.selected,
+      state.mode,
+      colors,
+    ),
+  );
+  renderChart(
+    "model-trends",
+    "Model usage over time",
+    buildModelTrendsPanel(
+      snapshot.model_trends,
+      state.selected,
+      state.mode,
+      colors,
+    ),
   );
   renderChart(
     "efficiency",
     "Session efficiency",
     buildEfficiencyPanel(snapshot.efficiency, state.selected, state.mode, colors),
-  );
-  renderChart(
-    "models",
-    "Top Models",
-    buildModelsPanel(snapshot.models, state.selected, state.mode, colors),
   );
   renderChart(
     "first-prompt",
@@ -798,6 +822,11 @@ function renderDashboard() {
       state.mode,
       colors,
     ),
+  );
+  renderChart(
+    "write-read",
+    "Weekly write share",
+    buildWriteReadPanel(snapshot.trends?.weekly, state.selected, state.mode, colors),
   );
   renderSessions(snapshot.sessions_ends);
   renderWrapped(snapshot.wrapped);
