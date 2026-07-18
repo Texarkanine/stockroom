@@ -144,3 +144,12 @@ Ship dashboard model analytics for [#67](https://github.com/Texarkanine/stockroo
     - No `PANEL_HELP` rewrite — existing copy already covers average session message count by prompt bucket
 * Insights
     - Existing composer fixtures already covered null-`ts` fallback once SELECT carried `m.ts`
+
+## 2026-07-18 - QA - COMPLETE (PASS, rework)
+
+* Work completed
+    - Semantic review vs rework brief/plan; no KISS/DRY/YAGNI/completeness gaps
+* Decisions made
+    - None — clean build
+* Insights
+    - Carrying `ts` on `MessageRow` kept attribution pure and metrics thin
