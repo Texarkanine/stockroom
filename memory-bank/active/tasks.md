@@ -125,8 +125,8 @@ Preceding rows (Daily | Projects, Tools | Skills) unchanged.
 
 Each numbered step is one TDD cycle: **write/adjust failing tests → implement → re-run until green.** Do not implement production code for a step before its tests exist and fail for the right reason.
 
-1. **`model_usage` attribution helper**
-    - Files: `tests/test_model_usage.py` (new), `dashboard/model_usage.py` (new)
+1. **`model_usage` attribution helper** ✅
+    - Files: `tests/test_dashboard_model_usage.py` (new; `test_dashboard_*.py` so `make test-dashboard-py` picks it up), `dashboard/model_usage.py` (new)
     - Tests first: sole-model fallback, multi-model skip, user-turn skip, conversation union once-per-session, subagent exclusion helpers as pure functions over row fixtures.
     - Then implement helpers. Creative: dual-grain attribution.
 2. **Dual-grain `models()`**
