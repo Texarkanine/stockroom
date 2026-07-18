@@ -33,16 +33,19 @@ Address two selected PR #70 items: (1) bucket `model_trends` by message `ts` whe
 ## Implementation Plan
 
 1. **Carry message timestamp through attribution**
-   - Files: `tests/test_dashboard_model_usage.py`, `dashboard/model_usage.py`
-   - Changes: Add optional `ts: datetime | None` to `MessageRow`; `attributed_turns` returns `(harness, session_id, model, ts)`; update unit assertions; `models()` unpacking ignores `ts`.
+   - Files: `tests/test_dashboard_model_usage.py`, `dashboard/model_usage.py`, `dashboard/metrics.py` (`models()` unpack only)
+   - Tests first: extend `attributed_turns` expectations to 4-tuples `(harness, session_id, model, ts)`; fixture helper accepts optional `ts`.
+   - Then implement: optional `ts: datetime | None` on `MessageRow`; `attributed_turns` returns the 4-tuple; `models()` unpacks and ignores `ts`.
 
 2. **Load `m.ts` and bucket trends by message time**
    - Files: `tests/test_dashboard_metrics.py`, `dashboard/metrics.py`
-   - Changes: Tests first — multi-day `ts` split + null-`ts` fallback. Then SELECT `m.ts` into `MessageRow`; `model_trends` uses `message_ts or session_activity`; docstring matches creative (message-time-first).
+   - Tests first: multi-day `ts` split + null-`ts` falls back to session activity (existing composer counts stay on activity days).
+   - Then implement: SELECT `m.ts` into `MessageRow`; `model_trends` buckets with `message_ts or session_activity`; docstring matches creative (message-time-first). Window filter stays session activity.
 
 3. **First-Prompt range labels are time-only**
-   - Files: `tests-js/dashboard-core.test.mjs`, `dashboard-core.mjs`, `index.html` (+ static pin if present)
-   - Changes: Tests for default + custom `firstPrompt` / assert no explanatory prefix. Set non-default `firstPrompt` to `windowLabel`; HTML seed → `Last 30 days`. If `PANEL_HELP["first-prompt"]` lacks the displaced meaning, add one short clause (it already covers averages by prompt bucket — verify only).
+   - Files: `tests-js/dashboard-core.test.mjs`, `dashboard-core.mjs`, `index.html`, `tests/test_dashboard_static.py` (seed pin if easy)
+   - Tests first: default + custom `firstPrompt` are bare window labels; assert no “Average session length…” substring; `PANEL_HELP["first-prompt"]` still mentions average session message count.
+   - Then implement: non-default `firstPrompt` → `windowLabel`; HTML seed → `Last 30 days`; enhance help only if a phrase is missing.
 
 4. **Verify**
    - Files: none (run)
@@ -77,6 +80,11 @@ No new technology - validation not required
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
 - [ ] QA
+
+### Preflight amendments (2026-07-18)
+
+- Made TDD ordering explicit on every implementation step (tests before production code).
+- Confirmed sole `attributed_turns` / `MessageRow` consumers are `metrics.py` + `test_dashboard_model_usage.py` (skill_usage.MessageRow is a different type).

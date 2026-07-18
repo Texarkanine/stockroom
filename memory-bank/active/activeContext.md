@@ -1,11 +1,10 @@
 # Active Context
 
 ## Current Task: dashboard-model-analytics-pr70-rework
-**Phase:** PLAN - COMPLETE
+**Phase:** PREFLIGHT - COMPLETE (PASS)
 
 ## What Was Done
-- Level 2 plan for PR #70 Fix 2 (message-`ts` trend bucketing) + Fix 4 (time-only First-Prompt range labels; help owns explanation)
-- Out of scope: items 1, 3, 5 from the judge
+- Preflight PASS; TDD ordering made explicit on all steps
 
 ## Next Step
-- Preflight validation
+- Build

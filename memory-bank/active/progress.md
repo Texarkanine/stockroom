@@ -123,3 +123,12 @@ Ship dashboard model analytics for [#67](https://github.com/Texarkanine/stockroo
     - Explanatory First-Prompt copy stays in `PANEL_HELP`, not `.panel-range`
 * Insights
     - `attributed_turns` 4-tuple is the smallest way to carry `ts` without duplicating attribution in `model_trends`
+
+## 2026-07-18 - PREFLIGHT - COMPLETE (PASS, rework)
+
+* Work completed
+    - Validated TDD encoding, consumers, conventions; amended plan for per-step test-first wording
+* Decisions made
+    - No advisory redesign — stick to creative message-time-first + operator time-only range labels
+* Insights
+    - `skill_usage.MessageRow` is unrelated; do not conflate
