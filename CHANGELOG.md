@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.0](https://github.com/Texarkanine/stockroom/compare/v0.11.0...v0.12.0) (2026-07-19)
+
+
+### Features
+
+* **dashboard:** dual-grain model analytics and usage over time ([#70](https://github.com/Texarkanine/stockroom/issues/70)) ([69b1ac8](https://github.com/Texarkanine/stockroom/commit/69b1ac8407456eef0bd9f10e4cb08d12efa9f0b8))
+
 ## [0.11.0](https://github.com/Texarkanine/stockroom/compare/v0.10.0...v0.11.0) (2026-07-17)
 
 
