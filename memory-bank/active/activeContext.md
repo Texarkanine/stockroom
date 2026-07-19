@@ -1,11 +1,11 @@
 # Active Context
 
 ## Current Task: Token Usage Grain & Rollups
-**Phase:** CREATIVE - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Clarified intent; classified Level 3; creative resolved dual-grain tokens as sessions columns + `session_token_usage` VIEW
-- Decision: mirror `model`/`models` pattern; no fact table; no index; never backfill Claude session tokens from SUM
+- Creative: dual-grain tokens via `sessions.*_tokens` + `session_token_usage` VIEW
+- Full L3 plan: migration 0007, ingest model/writer wiring, schema tests, docs; Cursor enricher out of scope
 
 ## Next Step
-- Resume PLAN: write full implementation plan + test plan, then preflight
+- Preflight plan validation, then wait for `/niko-build`

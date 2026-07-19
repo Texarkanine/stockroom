@@ -25,3 +25,12 @@ Make token usage first-class for Claude Code (already message-grain) with easy c
     - Option B: nullable `sessions.*_tokens` + `session_token_usage` VIEW with native vs from_messages vs COALESCE effective totals; no extra index; no fact table
 * Insights
     - 0001 already solved cross-grain metrics via `messages.model` vs `sessions.models`; tokens should mirror that
+
+## 2026-07-19 - PLAN - COMPLETE
+
+* Work completed
+    - Component analysis, TDD test plan, ordered implementation steps for migration/VIEW/ingest/docs
+* Decisions made
+    - Implementation follows creative Option B; no dashboard/CSV scope
+* Insights
+    - Most user-visible gap is rollup ergonomics + explicit session-grain columns, not new Claude parsing
