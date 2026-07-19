@@ -5,7 +5,11 @@ import {
   buildDailyPanel,
   buildEfficiencyPanel,
   buildFirstPromptPanel,
-  buildModelsPanel,
+  buildModelsConversationPanel,
+  buildModelsMessagePanel,
+  buildModelTrendsPanel,
+  assignModelColors,
+  colorForModel,
   buildProjectsPanel,
   buildToolsPanel,
   assignSkillSunburstColors,
@@ -22,6 +26,7 @@ import {
   formatDelta,
   formatRingPercent,
   harnessColors,
+  PANEL_HELP,
   panelRangeLabels,
   projectHoverTitle,
   resolveWindowBounds,
@@ -417,44 +422,6 @@ test("resolveWindowBounds omits default and computes ISO since/until for presets
 
   assert.equal(resolveWindowBounds("30d", now).since, "2026-06-10T18:00:00.000Z");
   assert.equal(resolveWindowBounds("90d", now).since, "2026-04-11T18:00:00.000Z");
-});
-
-test("panelRangeLabels keep per-panel defaults and share preset window copy", () => {
-  const defaults = panelRangeLabels("default");
-  assert.equal(defaults.overviewAria, "Thirty-day overview");
-  assert.equal(defaults.daily, "Last 14 days");
-  assert.equal(defaults.projects, "Last 30 days");
-  assert.equal(defaults.tools, "Last 30 days");
-  assert.equal(defaults.skillsNested, "Last 30 days");
-  assert.equal(defaults.writeRead, "Last 12 weeks");
-  assert.equal(defaults.efficiency, "Last 30 days");
-  assert.equal(defaults.models, "Last 30 days");
-  assert.equal(
-    defaults.firstPrompt,
-    "Average session length by prompt detail · 30 days",
-  );
-
-  const week = panelRangeLabels("7d");
-  assert.equal(week.overviewAria, "Last 7 days overview");
-  assert.equal(week.daily, "Last 7 days");
-  assert.equal(week.projects, "Last 7 days");
-  assert.equal(week.tools, "Last 7 days");
-  assert.equal(week.skillsNested, "Last 7 days");
-  assert.equal(week.writeRead, "Last 7 days");
-  assert.equal(week.efficiency, "Last 7 days");
-  assert.equal(week.models, "Last 7 days");
-  assert.equal(
-    week.firstPrompt,
-    "Average session length by prompt detail · Last 7 days",
-  );
-
-  const year = panelRangeLabels("1y");
-  assert.equal(year.overviewAria, "Last 1 year overview");
-  assert.equal(year.daily, "Last 1 year");
-  assert.equal(
-    year.firstPrompt,
-    "Average session length by prompt detail · Last 1 year",
-  );
 });
 
 test("builds aggregate and compare daily activity models", () => {
@@ -942,21 +909,164 @@ test("builds aggregate and compare efficiency models", () => {
   assertDataset(compare, "Cursor", [1, 2]);
 });
 
-test("builds all-model aggregate and compare models", () => {
-  const payload = {
+test("assignModelColors follows ranked order like harness/skill palettes", () => {
+  const ranked = Array.from({ length: 10 }, (_, index) => `model-${index}`);
+  const colorsByModel = assignModelColors(ranked);
+  assert.equal(colorsByModel.get("model-0"), assignModelColors(["solo"]).get("solo"));
+  const hues = ranked.map((model) => colorsByModel.get(model));
+  assert.equal(new Set(hues).size, 10);
+  // First-seen wins: message-first union keeps m1 on slot 0
+  const shared = assignModelColors(["m1", "m2", "m3"]);
+  const extended = assignModelColors(["m1", "m2", "m3", "m4"]);
+  assert.equal(extended.get("m1"), shared.get("m1"));
+  assert.equal(extended.get("m4"), assignModelColors(["a", "b", "c", "d"]).get("d"));
+});
+
+test("builds conversation and message model bar panels", () => {
+  const conversation = {
     models: Array.from({ length: 10 }, (_, index) => `model-${index}`),
     sessions: {
       cursor: Array(10).fill(1),
       "claude-code": Array(10).fill(2),
     },
   };
-  const aggregate = buildModelsPanel(payload, selected, "aggregate", colors);
-  assert.equal(aggregate.labels.length, 10);
-  assert.equal(aggregate.height, 340);
-  assertDataset(aggregate, "Sessions", Array(10).fill(3));
-  const compare = buildModelsPanel(payload, selected, "compare", colors);
-  assert.equal(compare.stacked, true);
-  assertDataset(compare, "Claude Code", Array(10).fill(2));
+  const message = {
+    models: ["composer", "opus"],
+    messages: {
+      cursor: [5, 0],
+      "claude-code": [0, 3],
+    },
+  };
+  // Canonical message rank first, then conversation-only extras.
+  const modelColors = assignModelColors([
+    ...message.models,
+    ...conversation.models,
+  ]);
+  const convAgg = buildModelsConversationPanel(
+    conversation,
+    selected,
+    "aggregate",
+    colors,
+    modelColors,
+  );
+  assert.equal(convAgg.labels.length, 10);
+  assert.equal(convAgg.height, 340);
+  assert.equal(convAgg.indexAxis, "y");
+  assertDataset(convAgg, "Sessions", Array(10).fill(3));
+  assert.equal(convAgg.datasets[0].backgroundColor.length, 10);
+  // model-0 is conversation-only → third palette slot after composer, opus
+  assert.equal(convAgg.datasets[0].backgroundColor[0], modelColors.get("model-0"));
+  assert.equal(modelColors.get("composer"), assignModelColors(["solo"]).get("solo"));
+
+  const convCompare = buildModelsConversationPanel(
+    conversation,
+    selected,
+    "compare",
+    colors,
+    modelColors,
+  );
+  assert.equal(convCompare.stacked, true);
+  assertDataset(convCompare, "Claude Code", Array(10).fill(2));
+
+  const msgAgg = buildModelsMessagePanel(
+    message,
+    selected,
+    "aggregate",
+    colors,
+    modelColors,
+  );
+  assertDataset(msgAgg, "Messages", [5, 3]);
+  assert.equal(msgAgg.datasets[0].backgroundColor[0], modelColors.get("composer"));
+  const msgCompare = buildModelsMessagePanel(
+    message,
+    selected,
+    "compare",
+    colors,
+    modelColors,
+  );
+  assert.equal(msgCompare.stacked, true);
+  assertDataset(msgCompare, "Cursor", [5, 0]);
+});
+
+test("builds stacked area model trends with ranked palette", () => {
+  const payload = {
+    labels: ["2026-01-10", "2026-01-11"],
+    granularity: "day",
+    models: ["m1", "m2"],
+    counts: {
+      m1: [2, 0],
+      m2: [1, 3],
+    },
+  };
+  const modelColors = assignModelColors(["m1", "m2"]);
+  const panel = buildModelTrendsPanel(
+    payload,
+    selected,
+    "aggregate",
+    colors,
+    modelColors,
+  );
+  assert.equal(panel.kind, "line");
+  assert.equal(panel.stacked, true);
+  assert.equal(panel.fill, true);
+  assert.equal(panel.omitZeroTooltip, true);
+  assert.equal(panel.datasets.length, 2);
+  assert.equal(panel.datasets[0].fill, true);
+  assert.equal(panel.datasets[0].label, "m1");
+  assert.deepEqual(panel.datasets[0].data, [2, 0]);
+  assert.equal(panel.datasets[0].backgroundColor, modelColors.get("m1"));
+  assert.equal(panel.datasets[1].backgroundColor, modelColors.get("m2"));
+  // Same set/order as message bars → same first hue
+  assert.equal(
+    panel.datasets[0].backgroundColor,
+    buildModelsMessagePanel(
+      { models: ["m1", "m2"], messages: { cursor: [2, 1] } },
+      selected,
+      "aggregate",
+      colors,
+      modelColors,
+    ).datasets[0].backgroundColor[0],
+  );
+});
+
+test("model trends panel does not invent harness datasets", () => {
+  const panel = buildModelTrendsPanel(
+    {
+      labels: ["2026-01-10"],
+      models: ["solo"],
+      counts: { solo: [4] },
+    },
+    selected,
+    "compare",
+    colors,
+  );
+  assert.equal(panel.datasets.length, 1);
+  assert.equal(panel.datasets[0].label, "solo");
+  assert.ok(!panel.datasets.some((dataset) => /cursor|claude/i.test(dataset.label)));
+});
+
+test("empty model panels set empty flag", () => {
+  const emptyBars = buildModelsConversationPanel(
+    { models: [], sessions: {} },
+    selected,
+    "aggregate",
+    colors,
+  );
+  assert.equal(emptyBars.empty, true);
+  const emptyArea = buildModelTrendsPanel(
+    { labels: ["2026-01-10"], models: [], counts: {} },
+    selected,
+    "aggregate",
+    colors,
+  );
+  assert.equal(emptyArea.empty, true);
+});
+
+test("colorForModel reads shared rank map", () => {
+  const map = assignModelColors(["composer", "opus"]);
+  assert.equal(colorForModel("composer", map), map.get("composer"));
+  assert.equal(colorForModel("opus", map), map.get("opus"));
+  assert.notEqual(colorForModel("composer", map), colorForModel("opus", map));
 });
 
 test("builds weighted aggregate and grouped compare first-prompt models", () => {
@@ -1189,4 +1299,23 @@ test("keeps every pure transformation input unchanged", () => {
     ["cursor"],
   );
   assert.deepEqual(payload, before);
+});
+
+test("panelRangeLabels firstPrompt is time-range only for every preset", () => {
+  const defaultLabels = panelRangeLabels("default");
+  assert.equal(defaultLabels.firstPrompt, "Last 30 days");
+  assert.equal(defaultLabels.firstPrompt.includes("Average session length"), false);
+
+  for (const preset of ["7d", "30d", "90d", "1y"]) {
+    const labels = panelRangeLabels(preset);
+    assert.equal(labels.firstPrompt, labels.efficiency);
+    assert.equal(labels.firstPrompt.includes("Average session length"), false);
+    assert.equal(labels.firstPrompt.includes("prompt detail"), false);
+  }
+});
+
+test("PANEL_HELP first-prompt still explains average session length by prompt detail", () => {
+  const help = PANEL_HELP["first-prompt"];
+  assert.match(help, /average session message count/i);
+  assert.match(help, /prompt/i);
 });

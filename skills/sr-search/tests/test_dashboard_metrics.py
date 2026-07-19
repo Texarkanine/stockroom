@@ -736,7 +736,7 @@ def test_tools_ranks_calls_with_per_harness_breakout(
 def test_models_unifies_message_and_session_grains_once_per_session(
     migrated_con: duckdb.DuckDBPyConnection,
 ) -> None:
-    """A model counts once per session across message and session-list grains."""
+    """Dual-grain payload: conversation once-per-session; message by assistant turns."""
     _seed_session(
         migrated_con,
         harness="cursor",
@@ -786,9 +786,375 @@ def test_models_unifies_message_and_session_grains_once_per_session(
         until=datetime(2026, 2, 1),
     )
     assert result == {
-        "models": ["m1", "m2", "m3"],
-        "sessions": {"claude": [1, 1, 0], "cursor": [2, 0, 1]},
+        "by_conversation": {
+            "models": ["m1", "m2", "m3"],
+            "sessions": {"claude": [1, 1, 0], "cursor": [2, 0, 1]},
+        },
+        "by_message": {
+            "models": ["m1", "m2"],
+            "messages": {"claude": [1, 1], "cursor": [0, 0]},
+        },
     }
+
+
+def test_models_message_grain_sole_session_model_fallback(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Cursor assistant turns with NULL model attribute when session has one model."""
+    _seed_session(
+        migrated_con,
+        harness="cursor",
+        session_id="solo",
+        activity=datetime(2026, 1, 10),
+        project_id="p",
+        message_count=3,
+    )
+    migrated_con.execute(
+        "UPDATE sessions SET models = ['composer'] WHERE session_id = 'solo'"
+    )
+    _seed_session(
+        migrated_con,
+        harness="cursor",
+        session_id="multi",
+        activity=datetime(2026, 1, 11),
+        project_id="p",
+        message_count=3,
+    )
+    migrated_con.execute(
+        "UPDATE sessions SET models = ['m1', 'm2'] WHERE session_id = 'multi'"
+    )
+
+    result = metrics.models(
+        migrated_con,
+        since=datetime(2026, 1, 1),
+        until=datetime(2026, 2, 1),
+    )
+    assert result["by_message"] == {
+        "models": ["composer"],
+        "messages": {"cursor": [2]},
+    }
+    assert result["by_conversation"]["models"] == ["composer", "m1", "m2"]
+
+
+def test_models_message_rankings_independent_of_conversation(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """A high-message model can outrank a high-conversation model on message grain."""
+    for index in range(3):
+        _seed_session(
+            migrated_con,
+            harness="claude",
+            session_id=f"brief-{index}",
+            activity=datetime(2026, 1, 10 + index),
+            project_id="p",
+            message_count=2,
+        )
+        migrated_con.execute(
+            "UPDATE messages SET model = 'brief' "
+            f"WHERE session_id = 'brief-{index}' AND role = 'assistant'"
+        )
+    _seed_session(
+        migrated_con,
+        harness="claude",
+        session_id="marathon",
+        activity=datetime(2026, 1, 15),
+        project_id="p",
+        message_count=6,
+    )
+    migrated_con.execute(
+        "UPDATE messages SET model = 'marathon' "
+        "WHERE session_id = 'marathon' AND role = 'assistant'"
+    )
+
+    result = metrics.models(
+        migrated_con,
+        since=datetime(2026, 1, 1),
+        until=datetime(2026, 2, 1),
+    )
+    assert result["by_conversation"]["models"] == ["brief", "marathon"]
+    assert result["by_conversation"]["sessions"]["claude"] == [3, 1]
+    assert result["by_message"]["models"] == ["marathon", "brief"]
+    assert result["by_message"]["messages"]["claude"] == [5, 3]
+
+
+def test_models_empty_warehouse_returns_empty_grains(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Empty warehouse yields empty model lists and harness maps."""
+    result = metrics.models(
+        migrated_con,
+        since=datetime(2026, 1, 1),
+        until=datetime(2026, 2, 1),
+    )
+    assert result == {
+        "by_conversation": {"models": [], "sessions": {}},
+        "by_message": {"models": [], "messages": {}},
+    }
+
+
+def test_models_harness_filter_limits_both_grains(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Only selected harnesses contribute to either grain."""
+    _seed_session(
+        migrated_con,
+        harness="cursor",
+        session_id="c1",
+        activity=datetime(2026, 1, 10),
+        project_id="p",
+        message_count=2,
+    )
+    migrated_con.execute(
+        "UPDATE sessions SET models = ['composer'] WHERE session_id = 'c1'"
+    )
+    _seed_session(
+        migrated_con,
+        harness="claude",
+        session_id="a1",
+        activity=datetime(2026, 1, 11),
+        project_id="p",
+        message_count=2,
+    )
+    migrated_con.execute(
+        "UPDATE messages SET model = 'opus' "
+        "WHERE session_id = 'a1' AND role = 'assistant'"
+    )
+
+    result = metrics.models(
+        migrated_con,
+        harnesses=["claude"],
+        since=datetime(2026, 1, 1),
+        until=datetime(2026, 2, 1),
+    )
+    assert result["by_conversation"] == {
+        "models": ["opus"],
+        "sessions": {"claude": [1]},
+    }
+    assert result["by_message"] == {
+        "models": ["opus"],
+        "messages": {"claude": [1]},
+    }
+
+
+def test_model_trends_buckets_by_message_ts_when_present(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Attributed turns with message.ts land in that day, not session activity."""
+    _seed_session(
+        migrated_con,
+        harness="claude",
+        session_id="multi-day",
+        activity=datetime(2026, 1, 10),
+        project_id="p",
+        message_count=3,
+    )
+    # ordinal 0 user, 1–2 assistants — stamp assistants onto consecutive days
+    migrated_con.execute(
+        "UPDATE messages SET model = 'opus', ts = ? "
+        "WHERE session_id = 'multi-day' AND ordinal = 1",
+        [datetime(2026, 1, 10, 15, 0, 0)],
+    )
+    migrated_con.execute(
+        "UPDATE messages SET model = 'opus', ts = ? "
+        "WHERE session_id = 'multi-day' AND ordinal = 2",
+        [datetime(2026, 1, 11, 10, 0, 0)],
+    )
+
+    result = metrics.model_trends(
+        migrated_con,
+        since=datetime(2026, 1, 10),
+        until=datetime(2026, 1, 13),
+    )
+    assert result["granularity"] == "day"
+    assert result["labels"] == ["2026-01-10", "2026-01-11", "2026-01-12"]
+    assert result["models"] == ["opus"]
+    assert result["counts"] == {"opus": [1, 1, 0]}
+
+
+def test_model_trends_null_message_ts_falls_back_to_session_activity(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Cursor-style NULL message.ts still buckets at session activity time."""
+    _seed_session(
+        migrated_con,
+        harness="cursor",
+        session_id="solo",
+        activity=datetime(2026, 1, 12),
+        project_id="p",
+        message_count=3,
+    )
+    migrated_con.execute(
+        "UPDATE sessions SET models = ['composer'] WHERE session_id = 'solo'"
+    )
+    migrated_con.execute("UPDATE messages SET ts = NULL WHERE session_id = 'solo'")
+
+    result = metrics.model_trends(
+        migrated_con,
+        since=datetime(2026, 1, 10),
+        until=datetime(2026, 1, 13),
+    )
+    assert result["models"] == ["composer"]
+    # Two assistant turns (ordinals 1–2) both on activity day 2026-01-12
+    assert result["counts"] == {"composer": [0, 0, 2]}
+
+
+def test_model_trends_buckets_attributed_assistant_turns(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Message-grain trends: each attributed assistant turn increments its bucket."""
+    _seed_session(
+        migrated_con,
+        harness="cursor",
+        session_id="solo",
+        activity=datetime(2026, 1, 10),
+        project_id="p",
+        message_count=3,
+    )
+    migrated_con.execute(
+        "UPDATE sessions SET models = ['composer'] WHERE session_id = 'solo'"
+    )
+    _seed_session(
+        migrated_con,
+        harness="claude",
+        session_id="a1",
+        activity=datetime(2026, 1, 10),
+        project_id="p",
+        message_count=2,
+    )
+    migrated_con.execute(
+        "UPDATE messages SET model = 'm1' "
+        "WHERE session_id = 'a1' AND role = 'assistant'"
+    )
+    _seed_session(
+        migrated_con,
+        harness="cursor",
+        session_id="later",
+        activity=datetime(2026, 1, 12),
+        project_id="p",
+        message_count=2,
+    )
+    migrated_con.execute(
+        "UPDATE sessions SET models = ['composer'] WHERE session_id = 'later'"
+    )
+    # Multi-model Cursor assistants with NULL message.model do not attribute.
+    _seed_session(
+        migrated_con,
+        harness="cursor",
+        session_id="multi",
+        activity=datetime(2026, 1, 10),
+        project_id="p",
+        message_count=3,
+    )
+    migrated_con.execute(
+        "UPDATE sessions SET models = ['m1', 'm2'] WHERE session_id = 'multi'"
+    )
+
+    result = metrics.model_trends(
+        migrated_con,
+        since=datetime(2026, 1, 10),
+        until=datetime(2026, 1, 13),
+    )
+    assert result["granularity"] == "day"
+    assert result["labels"] == ["2026-01-10", "2026-01-11", "2026-01-12"]
+    # Same ranking set as by_message: composer (3 turns) then m1 (1).
+    assert result["models"] == ["composer", "m1"]
+    assert result["counts"] == {
+        "composer": [2, 0, 1],
+        "m1": [1, 0, 0],
+    }
+    ranked = metrics.models(
+        migrated_con,
+        since=datetime(2026, 1, 10),
+        until=datetime(2026, 1, 13),
+    )
+    assert result["models"] == ranked["by_message"]["models"]
+
+
+def test_model_trends_uses_adaptive_granularity_and_default_30d_window(
+    migrated_con: duckdb.DuckDBPyConnection,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Bounded windows pick granularity; default window matches models() (30d)."""
+    monkeypatch.setattr(metrics, "utc_now", lambda: datetime(2026, 3, 1))
+    _seed_session(
+        migrated_con,
+        harness="cursor",
+        session_id="c1",
+        activity=datetime(2026, 2, 20),
+        project_id="p",
+        message_count=3,
+    )
+    migrated_con.execute(
+        "UPDATE sessions SET models = ['composer'] WHERE session_id = 'c1'"
+    )
+
+    defaulted = metrics.model_trends(migrated_con)
+    assert defaulted["granularity"] == "day"
+    assert defaulted["labels"][0] == "2026-01-30"
+    assert defaulted["labels"][-1] == "2026-02-28"
+    assert defaulted["counts"]["composer"][defaulted["labels"].index("2026-02-20")] == 2
+
+    weekly = metrics.model_trends(
+        migrated_con,
+        since=datetime(2026, 1, 1),
+        until=datetime(2026, 3, 1),
+    )
+    assert weekly["granularity"] == "week"
+
+
+def test_model_trends_empty_window_has_labels_without_models(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Empty window keeps axis labels but no model series."""
+    result = metrics.model_trends(
+        migrated_con,
+        since=datetime(2026, 1, 1),
+        until=datetime(2026, 1, 4),
+    )
+    assert result["granularity"] == "day"
+    assert result["labels"] == ["2026-01-01", "2026-01-02", "2026-01-03"]
+    assert result["models"] == []
+    assert result["counts"] == {}
+
+
+def test_model_trends_harness_filter_and_endpoint_registration(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Harness filter applies; model_trends is registered on ENDPOINTS."""
+    assert "model_trends" in metrics.ENDPOINTS
+    assert metrics.ENDPOINTS["model_trends"] is metrics.model_trends
+
+    _seed_session(
+        migrated_con,
+        harness="cursor",
+        session_id="c1",
+        activity=datetime(2026, 1, 10),
+        project_id="p",
+    )
+    migrated_con.execute(
+        "UPDATE sessions SET models = ['composer'] WHERE session_id = 'c1'"
+    )
+    _seed_session(
+        migrated_con,
+        harness="claude",
+        session_id="a1",
+        activity=datetime(2026, 1, 10),
+        project_id="p",
+        message_count=2,
+    )
+    migrated_con.execute(
+        "UPDATE messages SET model = 'opus' "
+        "WHERE session_id = 'a1' AND role = 'assistant'"
+    )
+
+    result = metrics.model_trends(
+        migrated_con,
+        harnesses=["claude"],
+        since=datetime(2026, 1, 10),
+        until=datetime(2026, 1, 11),
+    )
+    assert result["models"] == ["opus"]
+    assert result["counts"] == {"opus": [1]}
 
 
 def test_efficiency_covers_boundaries_and_weighted_prompt_averages(
