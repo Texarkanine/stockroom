@@ -34,3 +34,12 @@ Make token usage first-class for Claude Code (already message-grain) with easy c
     - Implementation follows creative Option B; no dashboard/CSV scope
 * Insights
     - Most user-visible gap is rollup ergonomics + explicit session-grain columns, not new Claude parsing
+
+## 2026-07-19 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated plan against schema/ingest/docs conventions; amended TDD encoding and VIEW locking
+* Decisions made
+    - Preflight PASS; build gated on `/niko-build`
+* Insights
+    - `_introspect_schema` does not lock views today — VIEW needs explicit asserts alongside any golden snapshot

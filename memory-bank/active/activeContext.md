@@ -1,11 +1,11 @@
 # Active Context
 
 ## Current Task: Token Usage Grain & Rollups
-**Phase:** PLAN - COMPLETE
+**Phase:** PREFLIGHT - COMPLETE
 
 ## What Was Done
-- Creative: dual-grain tokens via `sessions.*_tokens` + `session_token_usage` VIEW
-- Full L3 plan: migration 0007, ingest model/writer wiring, schema tests, docs; Cursor enricher out of scope
+- Plan + creative locked: `sessions.*_tokens` + `session_token_usage` VIEW
+- Preflight PASS (amended TDD step ordering, VIEW assert path, SKILL.md docs touchpoint)
 
 ## Next Step
-- Preflight plan validation, then wait for `/niko-build`
+- Operator runs `/niko-build`

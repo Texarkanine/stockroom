@@ -96,25 +96,27 @@ flowchart TB
 
 ## Implementation Plan
 
-1. **Schema contract stubs (TDD red)**
-    - Files: `tests/test_schema_0007.py`, eventually `fixtures/schema/0007_snapshot.json`
-    - Changes: write failing tests for columns, view existence, null-preserve, snapshot match, VIEW semantics with seeded rows
-2. **Migration 0007**
+1. **Schema contract tests first (TDD red)**
+    - Files: `tests/test_schema_0007.py` (new)
+    - Changes: implement failing tests for: four nullable session token columns; VIEW `session_token_usage` exists (assert via `duckdb_views()` / equivalent — do not rely on `_introspect_schema`, which only locks tables+indexes today); null-preserve across 0007; VIEW semantics with seeded rows (`*_from_messages`, `*_native`, `*_total`, `token_grain`); stub snapshot assertion expecting `0007_snapshot.json`
+2. **Migration 0007 (make schema tests green)**
     - Files: `src/stockroom/migrations/0007_session_token_usage.sql`
-    - Changes: `ALTER TABLE sessions ADD COLUMN` ×4; `CREATE VIEW session_token_usage AS ...` with `*_from_messages`, `*_native`, `*_total`, `token_grain`
+    - Changes: `ALTER TABLE sessions ADD COLUMN` ×4; `CREATE VIEW session_token_usage AS ...`
     - Creative ref: `creative-dual-grain-token-storage.md`
-3. **Golden snapshot**
+3. **Golden snapshot (finish schema contract)**
     - Files: `tests/fixtures/schema/0007_snapshot.json`
-    - Changes: capture cumulative schema head (same introspection helper as 0006)
-4. **Ingest model + writer (TDD)**
-    - Files: `ingest/model.py`, `ingest/writer.py`, `tests/test_ingest_writer.py`
-    - Changes: optional `input_tokens`/`output_tokens`/`cache_creation_tokens`/`cache_read_tokens` on `NormalizedSession`; INSERT includes them; tests for NULL default and explicit values
-5. **Docs**
-    - Files: `docs/architecture/warehouse.md`, `docs/user-guide/search.md`
-    - Changes: document dual-grain tokens + example `stockroom query` against `session_token_usage`
-6. **Verification**
-    - Run targeted new tests, then full `make test` (or project equivalent) before claiming done
-
+    - Changes: author cumulative head via existing introspection helper; if the VIEW does not appear in that dict, keep VIEW locked by the explicit `duckdb_views()` / column asserts in step 1 (do not weaken those asserts)
+4. **Writer tests first (TDD red)**
+    - Files: `tests/test_ingest_writer.py` (extend)
+    - Changes: failing tests that session token columns persist when set on `NormalizedSession`, and stay NULL when unset
+5. **Ingest model + writer (make writer tests green)**
+    - Files: `ingest/model.py`, `ingest/writer.py`
+    - Changes: optional session token fields on `NormalizedSession`; INSERT lists them; never derive from message sums
+6. **Docs**
+    - Files: `docs/architecture/warehouse.md`, `docs/user-guide/search.md`, `skills/sr-search/SKILL.md` (sr-query guidance)
+    - Changes: dual-grain token doctrine + `session_token_usage` query example on both human docs and the agent-facing skill
+7. **Verification**
+    - Run new/targeted tests, then full suite (`make test`) before done
 ## Technology Validation
 
 No new technology - validation not required
@@ -132,6 +134,12 @@ No new technology - validation not required
 - **Operators treat `*_total` as billable truth across harnesses with different accounting**: plan response — docs label totals as warehouse rollup of reported fields, not vendor invoice; expose grain.
 - **Scope creeps into dashboard/CSV enricher**: already bounded by brief constraints / non-goals.
 
+## Preflight Amendments
+
+- Split ingest work into explicit test-before-code steps (4 then 5).
+- Lock VIEW via `duckdb_views()` (or equivalent), not only golden table introspection.
+- Include `skills/sr-search/SKILL.md` in docs touchpoints so agents discover the rollup VIEW.
+
 ## Status
 
 - [x] Component analysis complete
@@ -140,6 +148,6 @@ No new technology - validation not required
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
 - [ ] QA
