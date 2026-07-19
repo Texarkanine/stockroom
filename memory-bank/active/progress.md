@@ -55,3 +55,12 @@ Make token usage first-class for Claude Code (already message-grain) with easy c
     - Bumped head-version pins in warehouse/migrate tests (routine migration follow-on)
 * Insights
     - `_introspect_schema` via `duckdb_columns` includes VIEW columns, so `0007_snapshot.json` locks VIEW shape too
+
+## 2026-07-19 - QA - COMPLETE
+
+* Work completed
+    - Semantic review vs plan, creative Option B, acceptance criteria, and system patterns
+* Decisions made
+    - QA PASS — no KISS/DRY/YAGNI/completeness/regression/integrity/docs defects requiring rework
+* Insights
+    - Implementation stayed on the dual-grain + VIEW surface; no Cursor attribution creep
