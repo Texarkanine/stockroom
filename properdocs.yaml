@@ -63,6 +63,8 @@ plugins:
   - search
   - awesome-pages
   - glightbox
+  - llms-source:
+      source_revision: true
 
 markdown_extensions:
   - admonition
