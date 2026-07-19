@@ -44,15 +44,7 @@ Read-only SQL against the warehouse (`sessions`, `messages`, `tool_calls`, `embe
 stockroom query "SELECT DISTINCT harness FROM sessions ORDER BY harness"
 ```
 
-For per-conversation token rollups, query VIEW `session_token_usage` rather than hand-rolling `SUM` over `messages` (and do not also sum `*_total` with message rows — that double-counts). Effective totals prefer session-native values when present, else message sums; `token_grain` tells you which:
-
-```bash
-stockroom query --format table \
-  "SELECT harness, session_id, input_tokens_total, output_tokens_total, token_grain
-   FROM session_token_usage
-   ORDER BY input_tokens_total DESC NULLS LAST
-   LIMIT 10"
-```
+For per-conversation token rollups, prefer VIEW `session_token_usage` over hand-rolled `SUM` on `messages` — worked examples live in the `sr-query` skill (agents: `/sr-query` or `/stockroom:sr-query`).
 
 The surface is read-only by construction — you cannot corrupt the warehouse by querying. Do **not** use SQL `ILIKE` as a substitute for meaning-based recall; that is `sr-semantic`.
 
