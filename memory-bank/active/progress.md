@@ -172,3 +172,12 @@ Ship dashboard model analytics for [#67](https://github.com/Texarkanine/stockroo
     - Operator added item 3 after reflect; kept as polish rather than new rework cycle
 * Insights
     - Production enrichment already unique — still worth the defensive check
+
+## 2026-07-19 - ARCHIVE - IN-PROGRESS
+
+* Work completed
+    - Leaving REFLECT (parent feature + PR #70 rework + item 3 polish all reflected)
+* Decisions made
+    - Single archive under `features/` covering the full undertaking (L3 ship + L2 rework + polish), matching dashboard-skill-usage pattern
+* Insights
+    - None yet
