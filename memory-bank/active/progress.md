@@ -64,3 +64,13 @@ Make token usage first-class for Claude Code (already message-grain) with easy c
     - QA PASS — no KISS/DRY/YAGNI/completeness/regression/integrity/docs defects requiring rework
 * Insights
     - Implementation stayed on the dual-grain + VIEW surface; no Cursor attribution creep
+
+## 2026-07-19 - REFLECT - COMPLETE
+
+* Work completed
+    - Full lifecycle reflection written for `token-usage-grain-rollups`
+    - Persistent files reconciled (systemPatterns already current; product/tech unchanged)
+* Decisions made
+    - Next operator step is `/niko-archive` (standalone L3, no milestones)
+* Insights
+    - Migration head pins + view-aware golden snapshots are the main carry-forward technical lessons

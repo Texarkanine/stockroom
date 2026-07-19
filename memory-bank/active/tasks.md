@@ -158,3 +158,4 @@ No new technology - validation not required
 - [x] Preflight
 - [x] Build
 - [x] QA — PASS (no semantic defects; docs/creative/completeness aligned)
+- [x] Reflect
