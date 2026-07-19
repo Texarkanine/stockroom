@@ -16,3 +16,12 @@ Make token usage first-class for Claude Code (already message-grain) with easy c
     - Message-grain remains source of truth when the harness reports that grain; do not fabricate message splits from session totals
 * Insights
     - Claude path is largely ingest-complete; remaining value is rollup ergonomics + schema future-proofing for session grain
+
+## 2026-07-19 - CREATIVE - COMPLETE
+
+* Work completed
+    - Architecture creative on dual-grain token storage & rollup surface
+* Decisions made
+    - Option B: nullable `sessions.*_tokens` + `session_token_usage` VIEW with native vs from_messages vs COALESCE effective totals; no extra index; no fact table
+* Insights
+    - 0001 already solved cross-grain metrics via `messages.model` vs `sessions.models`; tokens should mirror that
