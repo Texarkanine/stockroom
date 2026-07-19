@@ -173,6 +173,84 @@ def test_write_session_null_workspace_key_when_cwd_missing(
     assert stored is None
 
 
+def test_write_session_persists_session_token_fields(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Session-grain token fields on ``NormalizedSession`` persist to ``sessions``."""
+    writer.write_session(
+        migrated_con,
+        _session(
+            messages=[],
+            input_tokens=1000,
+            output_tokens=200,
+            cache_creation_tokens=10,
+            cache_read_tokens=50,
+        ),
+    )
+    row = migrated_con.execute(
+        "SELECT input_tokens, output_tokens, cache_creation_tokens, cache_read_tokens "
+        "FROM sessions WHERE session_id = 's1'"
+    ).fetchone()
+    assert row == (1000, 200, 10, 50)
+
+
+def test_write_session_leaves_session_tokens_null_when_unset(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Unset session tokens stay NULL even when message tokens are present.
+
+    The writer must not invent session-grain totals from message sums (Claude /
+    Cursor path today).
+    """
+    writer.write_session(migrated_con, _session())
+    session_row = migrated_con.execute(
+        "SELECT input_tokens, output_tokens, cache_creation_tokens, cache_read_tokens "
+        "FROM sessions WHERE session_id = 's1'"
+    ).fetchone()
+    assert session_row == (None, None, None, None)
+    message_tokens = migrated_con.execute(
+        "SELECT input_tokens, output_tokens FROM messages "
+        "WHERE session_id = 's1' AND role = 'assistant'"
+    ).fetchone()
+    assert message_tokens == (10, 5)
+
+
+def test_write_session_message_tokens_rollup_via_view(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Claude-like write (message tokens only) yields VIEW grain ``message``."""
+    writer.write_session(migrated_con, _session())
+    row = migrated_con.execute(
+        "SELECT input_tokens_total, output_tokens_total, "
+        "cache_creation_tokens_total, cache_read_tokens_total, token_grain "
+        "FROM session_token_usage WHERE session_id = 's1'"
+    ).fetchone()
+    assert row == (10, 5, 0, 100, "message")
+
+
+def test_write_session_native_tokens_rollup_via_view(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Native session tokens only: VIEW totals match native, grain ``session``."""
+    writer.write_session(
+        migrated_con,
+        _session(
+            messages=[],
+            input_tokens=1000,
+            output_tokens=200,
+            cache_creation_tokens=10,
+            cache_read_tokens=50,
+        ),
+    )
+    row = migrated_con.execute(
+        "SELECT input_tokens_total, output_tokens_total, "
+        "cache_creation_tokens_total, cache_read_tokens_total, "
+        "input_tokens_from_messages, token_grain "
+        "FROM session_token_usage WHERE session_id = 's1'"
+    ).fetchone()
+    assert row == (1000, 200, 10, 50, None, "session")
+
+
 def test_first_write_seeds_message_first_seen_at(
     migrated_con: duckdb.DuckDBPyConnection,
 ) -> None:

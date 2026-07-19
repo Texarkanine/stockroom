@@ -14,6 +14,7 @@ Reach for `sr-query` when the question has a **known shape** and the answer is a
 
 - A specific row by id (`WHERE message_id = '…'`, `WHERE session_id = '…'`).
 - Filters, counts, and rollups (`COUNT(*)`, `GROUP BY harness`, `WHERE harness = 'claude'`, token sums, date ranges).
+- Per-session token rollups via VIEW `session_token_usage` (prefer this over hand-rolled `SUM` on `messages`).
 - Joins across `sessions` / `messages` / `tool_calls`.
 - "How many", "which sessions", "list the tool calls", "what models" — anything you can express as SQL over named columns.
 
@@ -92,15 +93,16 @@ stockroom query "SELECT table_name, column_name, data_type
   FROM information_schema.columns ORDER BY table_name, ordinal_position"
 ```
 
-Quick reference of the load-bearing columns **as of migrations 0001–0004** (confirm with the introspection query above):
+Quick reference of the load-bearing columns **as of migrations 0001–0007** (confirm with the introspection query above):
 
-- **`sessions`** — one row per conversation. `harness` (`'cursor'`|`'claude'`), `session_id`, `project_id` (verbatim project-dir slug — the grouping key), `cwd` (real path, may be `NULL`), `models` (`VARCHAR[]`, Cursor only), `title`, `git_branch`, `is_subagent`, `parent_session_id`, `started_at`, `ended_at`, `source_mtime` (source transcript mtime at last ingest). PK `(harness, session_id)`.
-- **`messages`** — one row per turn. `message_id = '{session_id}#{ordinal}'` (uniform across harnesses), `parent_id`, `ordinal`, `role` (`'user'`|`'assistant'`), `text` (whole; thinking is **not** captured), `model` (per-message, Claude only), `ts`, `first_seen_at` (when stockroom first observed the message), and four token `BIGINT`s: `input_tokens`, `output_tokens`, `cache_creation_tokens`, `cache_read_tokens`. PK `(harness, session_id, message_id)`.
+- **`sessions`** — one row per conversation. `harness` (`'cursor'`|`'claude'`), `session_id`, `project_id` (verbatim project-dir slug — the grouping key), `cwd` (real path, may be `NULL`), `workspace_key` (cross-harness path rollup, may be `NULL`), `models` (`VARCHAR[]`, Cursor only), `title`, `git_branch`, `is_subagent`, `parent_session_id`, `started_at`, `ended_at`, `source_mtime` (source transcript mtime at last ingest), and four nullable session-grain token `BIGINT`s (`input_tokens`, `output_tokens`, `cache_creation_tokens`, `cache_read_tokens` — filled only when a harness reports conversation-level usage; Claude/Cursor leave them `NULL`). PK `(harness, session_id)`.
+- **`messages`** — one row per turn. `message_id = '{session_id}#{ordinal}'` (uniform across harnesses), `parent_id`, `ordinal`, `role` (`'user'`|`'assistant'`), `text` (whole; thinking is **not** captured), `model` (per-message, Claude only), `ts`, `first_seen_at` (when stockroom first observed the message), and four token `BIGINT`s: `input_tokens`, `output_tokens`, `cache_creation_tokens`, `cache_read_tokens` (Claude message usage; Cursor `NULL`). PK `(harness, session_id, message_id)`.
+- **`session_token_usage`** — VIEW over sessions + message token sums. Prefer this for conversation rollups. Columns: `*_from_messages` (SUM), `*_native` (session columns), `*_total` (`COALESCE(native, from_messages)`), `token_grain` (`'session'`|`'message'`|`'none'`). Totals are warehouse rollups of reported fields, not vendor invoices. Do not also `SUM` message tokens on top of `*_total`.
 - **`tool_calls`** — tool **inputs only** (never outputs). `message_id` (the turn that emitted it), `ordinal`, `tool_name`, `tool_input` (heterogeneous `JSON`, stored whole — see the guardrail). PK `(harness, session_id, message_id, ordinal)`.
 - **`embeddings`** — per-chunk vectors for semantic search (`owner_table`, `owner_id`, `chunk_index`, `embed_model`, `vector FLOAT[384]`). You rarely query this directly — use the `sr-semantic` skill.
 - **`_sync_state`** — ingest watermark bookkeeping; not interesting to query.
 
-One identity rule worth knowing before you write a join: always join on the uniform `message_id` / `(harness, session_id)`, never on the `source_*` provenance columns. A value that only exists at one grain per harness is honestly `NULL` for the other (e.g. `messages.model` is Claude-only; `sessions.models` is Cursor-only).
+One identity rule worth knowing before you write a join: always join on the uniform `message_id` / `(harness, session_id)`, never on the `source_*` provenance columns. A value that only exists at one grain per harness is honestly `NULL` for the other (e.g. `messages.model` is Claude-only; `sessions.models` is Cursor-only; the same dual-grain honesty applies to tokens).
 
 ## Worked examples
 
@@ -123,6 +125,13 @@ stockroom query --format json --detail raw \
 
 # Structured output for a user/tool to consume:
 stockroom query --format json "SELECT harness, session_id, title FROM sessions WHERE title IS NOT NULL LIMIT 5"
+
+# Per-session token rollups (VIEW session_token_usage):
+stockroom query --format table \
+  "SELECT harness, session_id, input_tokens_total, output_tokens_total, token_grain
+   FROM session_token_usage
+   ORDER BY input_tokens_total DESC NULLS LAST
+   LIMIT 10"
 ```
 
 ## Relaying to a human

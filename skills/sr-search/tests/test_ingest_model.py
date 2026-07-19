@@ -79,6 +79,10 @@ def test_session_minimal_and_defaults() -> None:
     assert s.harness_version is None
     assert s.started_at is None
     assert s.ended_at is None
+    assert s.input_tokens is None
+    assert s.output_tokens is None
+    assert s.cache_creation_tokens is None
+    assert s.cache_read_tokens is None
     assert s.messages == []
 
 

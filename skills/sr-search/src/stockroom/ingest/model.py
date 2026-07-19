@@ -85,8 +85,10 @@ class NormalizedSession:
     (``parent_session_id`` and, for Claude, ``spawning_tool_use_id``).
     Grain-specific fields follow the schema's no-faking rule: ``models``
     (session-grain, Cursor via enrichment) vs each message's ``model``
-    (Claude); ``started_at``/``ended_at`` are Claude's min/max timestamps
-    (naive UTC) and ``None`` for Cursor.
+    (Claude); session-grain ``*_tokens`` vs each message's ``*_tokens``
+    (same dual-grain honesty — parsers fill only the grain the harness
+    reports; never invent one from the other); ``started_at``/``ended_at``
+    are Claude's min/max timestamps (naive UTC) and ``None`` for Cursor.
     """
 
     harness: str
@@ -108,4 +110,8 @@ class NormalizedSession:
     harness_version: str | None = None
     started_at: datetime | None = None
     ended_at: datetime | None = None
+    input_tokens: int | None = None
+    output_tokens: int | None = None
+    cache_creation_tokens: int | None = None
+    cache_read_tokens: int | None = None
     messages: list[NormalizedMessage] = field(default_factory=list)

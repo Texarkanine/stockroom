@@ -43,3 +43,15 @@ Make token usage first-class for Claude Code (already message-grain) with easy c
     - Preflight PASS; build gated on `/niko-build`
 * Insights
     - `_introspect_schema` does not lock views today — VIEW needs explicit asserts alongside any golden snapshot
+
+## 2026-07-19 - BUILD - COMPLETE
+
+* Work completed
+    - Implemented dual-grain session tokens + `session_token_usage` VIEW per creative Option B
+    - TDD: schema 0007 tests/migration/golden, writer/model persistence + VIEW integration, docs
+    - Full suite green (617 passed)
+* Decisions made
+    - Also updated `skills/sr-query/SKILL.md` (SQL home) alongside planned `sr-search` routing note
+    - Bumped head-version pins in warehouse/migrate tests (routine migration follow-on)
+* Insights
+    - `_introspect_schema` via `duckdb_columns` includes VIEW columns, so `0007_snapshot.json` locks VIEW shape too

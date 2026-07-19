@@ -112,14 +112,18 @@ flowchart TB
 4. **Writer tests first (TDD red)**
     - Files: `tests/test_ingest_writer.py` (extend)
     - Changes: failing tests that session token columns persist when set on `NormalizedSession`, and stay NULL when unset
+    - [x] Done
 5. **Ingest model + writer (make writer tests green)**
     - Files: `ingest/model.py`, `ingest/writer.py`
     - Changes: optional session token fields on `NormalizedSession`; INSERT lists them; never derive from message sums
+    - [x] Done
 6. **Docs**
     - Files: `docs/architecture/warehouse.md`, `docs/user-guide/search.md`, `skills/sr-search/SKILL.md` (sr-query guidance)
     - Changes: dual-grain token doctrine + `session_token_usage` query example on both human docs and the agent-facing skill
+    - [x] Done (also `skills/sr-query/SKILL.md` — natural home for SQL examples)
 7. **Verification**
     - Run new/targeted tests, then full suite (`make test`) before done
+    - [x] Done — `make format` / `make lint` clean; `make test` → 617 passed, 4 skipped
 ## Technology Validation
 
 No new technology - validation not required
@@ -152,5 +156,5 @@ No new technology - validation not required
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight
-- [ ] Build
+- [x] Build
 - [ ] QA

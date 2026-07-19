@@ -38,10 +38,20 @@ If one surface comes back empty or thin, it should try the other before concludi
 
 ### `sr-query`
 
-Read-only SQL against the warehouse (`sessions`, `messages`, `tool_calls`, `embeddings`). Reach for it when the question has a **known shape**: a message or session id, `WHERE` filters, counts, `GROUP BY`, joins, date ranges, token sums.
+Read-only SQL against the warehouse (`sessions`, `messages`, `tool_calls`, `embeddings`, and views such as `session_token_usage`). Reach for it when the question has a **known shape**: a message or session id, `WHERE` filters, counts, `GROUP BY`, joins, date ranges, token sums.
 
 ```bash
 stockroom query "SELECT DISTINCT harness FROM sessions ORDER BY harness"
+```
+
+For per-conversation token rollups, query VIEW `session_token_usage` rather than hand-rolling `SUM` over `messages` (and do not also sum `*_total` with message rows — that double-counts). Effective totals prefer session-native values when present, else message sums; `token_grain` tells you which:
+
+```bash
+stockroom query --format table \
+  "SELECT harness, session_id, input_tokens_total, output_tokens_total, token_grain
+   FROM session_token_usage
+   ORDER BY input_tokens_total DESC NULLS LAST
+   LIMIT 10"
 ```
 
 The surface is read-only by construction — you cannot corrupt the warehouse by querying. Do **not** use SQL `ILIKE` as a substitute for meaning-based recall; that is `sr-semantic`.
