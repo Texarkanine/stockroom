@@ -99,13 +99,16 @@ flowchart TB
 1. **Schema contract tests first (TDD red)**
     - Files: `tests/test_schema_0007.py` (new)
     - Changes: implement failing tests for: four nullable session token columns; VIEW `session_token_usage` exists (assert via `duckdb_views()` / equivalent — do not rely on `_introspect_schema`, which only locks tables+indexes today); null-preserve across 0007; VIEW semantics with seeded rows (`*_from_messages`, `*_native`, `*_total`, `token_grain`); stub snapshot assertion expecting `0007_snapshot.json`
+    - [x] Done
 2. **Migration 0007 (make schema tests green)**
     - Files: `src/stockroom/migrations/0007_session_token_usage.sql`
     - Changes: `ALTER TABLE sessions ADD COLUMN` ×4; `CREATE VIEW session_token_usage AS ...`
     - Creative ref: `creative-dual-grain-token-storage.md`
+    - [x] Done
 3. **Golden snapshot (finish schema contract)**
     - Files: `tests/fixtures/schema/0007_snapshot.json`
     - Changes: author cumulative head via existing introspection helper; if the VIEW does not appear in that dict, keep VIEW locked by the explicit `duckdb_views()` / column asserts in step 1 (do not weaken those asserts)
+    - [x] Done
 4. **Writer tests first (TDD red)**
     - Files: `tests/test_ingest_writer.py` (extend)
     - Changes: failing tests that session token columns persist when set on `NormalizedSession`, and stay NULL when unset
