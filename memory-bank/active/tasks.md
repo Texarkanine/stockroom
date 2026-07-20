@@ -159,7 +159,7 @@ No new technology - validation not required. `pymdownx.snippets` already configu
 ## Build checklist
 
 - [x] 1. TDD: failing `test_query_cookbook.py` (9 failures confirmed)
-- [ ] 2. Cookbook SSOT: index + recipes
+- [x] 2. Cookbook SSOT: index + recipes
 - [ ] 3. Agent discoverability: `SKILL.md` cookbook links
 - [ ] 4. Human docs: advanced cookbook + nav + search pointer
 - [ ] 5. `properdocs.yaml` comment
