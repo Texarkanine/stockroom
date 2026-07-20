@@ -12,5 +12,3 @@ Starter SQL for gnarly warehouse questions. Open a recipe only after you know yo
 ```bash
 stockroom query --format table "<SQL from a recipe>"
 ```
-
-Skill charts’ product definition is still `stockroom.dashboard.skill_usage` — these skill recipes are ad-hoc escape hatches.
