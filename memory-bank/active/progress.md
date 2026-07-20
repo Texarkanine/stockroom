@@ -24,3 +24,13 @@ Make dashboard ownership verification portable so macOS can replace stale owned 
     - Keep three tiny helpers so tests can force “no `/proc`” without real Darwin
 * Insights
     - Existing CLI tests already inject `verify_owned_fn`; the bug lived in the default implementation
+
+## 2026-07-20 - QA - COMPLETE
+
+* Work completed
+    - Semantic review against project brief / issue #75
+    - Wrote `.qa-validation-status` = PASS
+* Decisions made
+    - No persistent memory-bank edits (ownership probe not documented there)
+* Insights
+    - Helpers exist mainly as monkeypatch seams for the Darwin regression
