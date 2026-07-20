@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.14.0](https://github.com/Texarkanine/stockroom/compare/v0.13.0...v0.14.0) (2026-07-20)
+
+
+### Features
+
+* **query:** add sr-query cookbook for tokens, tools, and skills ([#76](https://github.com/Texarkanine/stockroom/issues/76)) ([45c3b8f](https://github.com/Texarkanine/stockroom/commit/45c3b8fa27e0b126127cd3d782e030f5d4abb8fc))
+* **warehouse:** dual-grain session tokens and rollup VIEW ([#74](https://github.com/Texarkanine/stockroom/issues/74)) ([1d87a91](https://github.com/Texarkanine/stockroom/commit/1d87a91ac6a25f815be960160b65dafe544394f6))
+
+
+### Bug Fixes
+
+* **dashboard:** portable ownership check for macOS replace ([#78](https://github.com/Texarkanine/stockroom/issues/78)) ([677d96d](https://github.com/Texarkanine/stockroom/commit/677d96df42ab46f1a74d758ab2fcc06b0ae4d646))
+
 ## [0.13.0](https://github.com/Texarkanine/stockroom/compare/v0.12.0...v0.13.0) (2026-07-19)
 
 
