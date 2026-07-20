@@ -156,6 +156,16 @@ No new technology - validation not required. `pymdownx.snippets` already configu
 - Tightened per-step TDD wording: step 1 tests only; later steps explicitly make the matching assertions pass.
 - Made systemPatterns docs-ownership sentence a required surgical update (not optional).
 
+## Build checklist
+
+- [x] 1. TDD: failing `test_query_cookbook.py` (9 failures confirmed)
+- [ ] 2. Cookbook SSOT: index + recipes
+- [ ] 3. Agent discoverability: `SKILL.md` cookbook links
+- [ ] 4. Human docs: advanced cookbook + nav + search pointer
+- [ ] 5. `properdocs.yaml` comment
+- [ ] 6. Verify full suite + docs-build (+ optional warehouse smoke)
+- [ ] 7. `systemPatterns.md` docs-ownership cookbook sentence
+
 ## Status
 
 - [x] Component analysis complete
