@@ -74,3 +74,14 @@ Make token usage first-class for Claude Code (already message-grain) with easy c
     - Next operator step is `/niko-archive` (standalone L3, no milestones)
 * Insights
     - Migration head pins + view-aware golden snapshots are the main carry-forward technical lessons
+
+## 2026-07-19 - POST-REFLECT - PR + DOCS OWNERSHIP
+
+* Work completed
+    - Opened draft PR #74; merged to `main`
+    - Removed duplicated `session_token_usage` SQL example from `docs/user-guide/search.md` (pointer only)
+* Decisions made
+    - Agent cookbook stays in `sr-query` skill; user-guide must not clone recipes
+    - Defer cookbook shape / #69 recipe-home work to a future PR (not this task)
+* Insights
+    - Intersects #69's "where do recipes live?" question; this task's VIEW is the anti-gnarly case — don't invent snippet infrastructure for it

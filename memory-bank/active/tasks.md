@@ -120,7 +120,7 @@ flowchart TB
 6. **Docs**
     - Files: `docs/architecture/warehouse.md`, `docs/user-guide/search.md`, `skills/sr-search/SKILL.md` (sr-query guidance)
     - Changes: dual-grain token doctrine + `session_token_usage` query example on both human docs and the agent-facing skill
-    - [x] Done (also `skills/sr-query/SKILL.md` — natural home for SQL examples)
+    - [x] Done (also `skills/sr-query/SKILL.md` — cookbook home; `search.md` later trimmed to a pointer only)
 7. **Verification**
     - Run new/targeted tests, then full suite (`make test`) before done
     - [x] Done — `make format` / `make lint` clean; `make test` → 617 passed, 4 skipped
