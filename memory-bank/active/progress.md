@@ -47,3 +47,13 @@ Ship a discoverable `sr-query` cookbook (skill SSOT + docs snippet includes) wit
     - Operator pure-SQL skill override honored with extractor drift caveats + denylist sync test
 * Insights
     - Snippet-including whole recipe files works when bodies stay dual-audience-safe (no docs-relative link targets)
+
+## 2026-07-20 - QA - COMPLETE
+
+* Work completed
+    - Semantic review vs plan, project brief, creative Option B, operator pure-SQL override
+    - Wrote `.qa-validation-status` PASS
+* Decisions made
+    - No meaningful vs trivial fixes required; keep Cookbook section + worked-example pointer (plan-required discoverability)
+* Insights
+    - Included recipe H1s create multiple top-level headings on the Advanced page — acceptable for copy-button UX; not a plan defect

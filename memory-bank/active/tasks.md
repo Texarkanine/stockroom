@@ -176,4 +176,4 @@ No new technology - validation not required. `pymdownx.snippets` already configu
 - [x] Pre-Mortem complete
 - [x] Preflight
 - [x] Build
-- [ ] QA
+- [x] QA
