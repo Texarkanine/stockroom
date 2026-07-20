@@ -24,3 +24,14 @@ Ship a discoverable `sr-query` cookbook (skill SSOT + docs snippet includes) wit
     - Structural tests in `test_query_cookbook.py` + strict `make docs-build`; no live SQL suite in pytest
 * Insights
     - Pure SQL for skills is an escape hatch that must cite extractors as drift truth — not a second product definition
+
+## 2026-07-20 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated plan vs conventions, deps, TDD encoding, completeness
+    - Amended plan: builtin denylist sync test; per-step TDD clarity; required systemPatterns note
+    - Wrote `.preflight-status` PASS
+* Decisions made
+    - Within-scope innovation adopted: pin Claude skill recipe denylist to `_CLAUDE_BUILTIN_COMMANDS` via test
+* Insights
+    - L3 build gate is operator-initiated (`/niko-build`) after preflight PASS

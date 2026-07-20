@@ -1,12 +1,12 @@
 # Active Context
 
 ## Current Task: query-cookbook
-**Phase:** PLAN - COMPLETE
+**Phase:** PREFLIGHT - COMPLETE
 
 ## What Was Done
-- Level 3 plan written: cookbook SSOT under `skills/sr-query/references/cookbook/`, docs snippet includes, structural pytest + `make docs-build`, thoughtful SKILL.md discoverability
-- Open questions closed via existing creative (Option B) + operator pure-SQL override for skills
-- No new dependencies; no schema/CLI changes
+- Preflight validated Level 3 plan against codebase (docs ownership, REUSE PPL-S, snippets config, metrics/extractor grounding)
+- Plan amendments: Claude builtin denylist sync test; clearer per-step TDD; required systemPatterns cookbook sentence
+- `.preflight-status` = PASS
 
 ## Next Step
-- Preflight phase to validate the plan
+- Operator runs `/niko-build` (L3: build is operator-initiated after preflight PASS)
