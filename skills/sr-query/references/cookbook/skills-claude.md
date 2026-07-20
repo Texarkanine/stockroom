@@ -1,20 +1,6 @@
-# Claude skill use (SQL escape hatch)
+## Claude skill use
 
-Approximate Claude skill × invoker counts from warehouse SQL. Dashboard extractors remain the product definition for charts.
-
-## When to use
-
-- You need a full skill table (beyond dashboard top-N) and are willing to accept regex/SQL lossiness.
-- You are debugging candidate rows that feed `extract_claude`.
-
-## When not to
-
-- You need chart-faithful skill identity — use the dashboard / `stockroom.dashboard.skill_usage.extract_claude`.
-- Cursor sessions — use the `skills-cursor.md` recipe in this cookbook.
-
-## SQL
-
-User invokers (`<command-name>/NAME</command-name>`, builtins excluded) + agent invokers (`tool_name = 'Skill'`):
+**When:** Claude skill × invoker counts from warehouse SQL (user `<command-name>` + agent `Skill` tool).
 
 ```sql
 WITH activity AS (
@@ -112,13 +98,4 @@ GROUP BY skill, invoker
 ORDER BY uses DESC, skill, invoker
 ```
 
-## Caveats
-
-- Product truth for skill charts is `stockroom.dashboard.skill_usage` (Python), not this SQL.
-- Builtin denylist must stay in sync with `_CLAUDE_BUILTIN_COMMANDS` in `skill_usage.py` (pinned by test).
-- Only the first `<command-name>` match per message is extracted here; extractors also skip skill-info blobs via the same prefix check.
-- Bundled Agent Skills (e.g. doctor, debug) are intentionally **not** in the denylist — they count, same as the extractor.
-
-## Verified against
-
-`stockroom.dashboard.skill_usage._CLAUDE_BUILTIN_COMMANDS` / `extract_claude`. Drift trigger: `skills/sr-search/src/stockroom/dashboard/skill_usage.py` and `tests/test_dashboard_skill_usage.py`.
+Only the first `<command-name>` match per message is taken. Builtin `NOT IN` list tracks `_CLAUDE_BUILTIN_COMMANDS` in `skill_usage.py` (test-pinned).

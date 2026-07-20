@@ -138,7 +138,7 @@ More variants (unbounded tools with activity window, day/harness token rollups, 
 
 ## Cookbook
 
-Gnarly starter SQL lives under [`references/cookbook/`](references/cookbook/index.md) — token VIEW rollups, full tool rankings, and Claude/Cursor skill-use escape hatches. Open the index first; load only the recipe you need. Dashboard skill extractors remain product truth for charts; skill recipes are ad-hoc SQL with documented drift triggers.
+Gnarly starter SQL: [`references/cookbook/`](references/cookbook/index.md). Open the index, then only the recipe you need.
 
 ## Relaying to a human
 

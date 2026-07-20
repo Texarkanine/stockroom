@@ -1,23 +1,10 @@
 # Query cookbook
 
-Copy-paste starter SQL for gnarly warehouse questions — the same recipes agents load from the `sr-query` skill.
+The same starter SQL agents load from `sr-query` — copy from here or from the skill tree.
 
-**SSOT:** edit recipe bodies under [`skills/sr-query/references/cookbook/`](https://github.com/Texarkanine/stockroom/tree/main/skills/sr-query/references/cookbook) (this page only wraps them). Material "Edit this page" hits the wrapper, not the SQL.
+**SSOT:** edit recipe bodies under [`skills/sr-query/references/cookbook/`](https://github.com/Texarkanine/stockroom/tree/main/skills/sr-query/references/cookbook). Material "Edit this page" hits this wrapper, not the SQL.
 
-## When to use Advanced cookbook
-
-- You want the full tools table, richer token rollups, or per-harness skill-use SQL without reverse-engineering the dashboard.
-- You already have `stockroom` on `PATH` and a warehouse (see [CLI](cli.md)).
-
-## Promotion and drift
-
-| Kind | Product truth | Cookbook role |
-| --- | --- | --- |
-| Token rollups | VIEW `session_token_usage` | Longer variants that still `SELECT` from the VIEW |
-| Tool rankings | Pure SQL (dashboard top-10 is a UI cap) | Unbounded / windowed `GROUP BY` starters |
-| Skill use | Python extractors in `stockroom.dashboard.skill_usage` | Ad-hoc SQL escape hatches with caveats — **not** a second product definition |
-
-When extractors or the VIEW change, update the skill recipe (and its drift trigger note). Do not clone SQL into the User Guide.
+Skill-use recipes approximate extractors in SQL; dashboard metrics / `stockroom.dashboard.skill_usage` remain chart truth. When extractors or VIEW `session_token_usage` change, update the skill recipe.
 
 ## Recipes
 

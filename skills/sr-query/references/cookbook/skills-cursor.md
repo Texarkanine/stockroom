@@ -1,20 +1,6 @@
-# Cursor skill use (SQL escape hatch)
+## Cursor skill use
 
-Approximate Cursor skill × invoker counts from warehouse SQL. Dashboard extractors remain the product definition for charts.
-
-## When to use
-
-- You need a full skill table (beyond dashboard top-N) and accept regex/path heuristics.
-- You are debugging candidate rows that feed `extract_cursor`.
-
-## When not to
-
-- You need chart-faithful skill identity — use the dashboard / `stockroom.dashboard.skill_usage.extract_cursor`.
-- Claude sessions — use the `skills-claude.md` recipe in this cookbook.
-
-## SQL
-
-User invokers (`Skill Name:` lines inside `<manually_attached_skills>`) + agent invokers (`Read` of a path ending in `SKILL.md` → parent directory name):
+**When:** Cursor skill × invoker counts from warehouse SQL (user `Skill Name:` attach lines + agent `Read` of `…/SKILL.md`).
 
 ```sql
 WITH activity AS (
@@ -70,13 +56,4 @@ GROUP BY skill, invoker
 ORDER BY uses DESC, skill, invoker
 ```
 
-## Caveats
-
-- Product truth for skill charts is `stockroom.dashboard.skill_usage` (Python), not this SQL.
-- Agent skill name is the **parent directory** of `SKILL.md` (case-sensitive suffix), matching `_skill_from_read_path`.
-- User regex is slightly looser than the extractor's line-anchored `^Skill Name:` (MULTILINE); false positives outside attach blocks are possible if the phrase appears elsewhere in a message that also contains the attach marker.
-- Residual gaps vs Python: malformed JSON `tool_input`, unusual path shapes, and harness-specific attach formats the extractor handles in code.
-
-## Verified against
-
-`stockroom.dashboard.skill_usage.extract_cursor`. Drift trigger: `skills/sr-search/src/stockroom/dashboard/skill_usage.py` and `tests/test_dashboard_skill_usage.py`.
+Agent skill name is the parent directory of `SKILL.md`. User regex is slightly looser than the extractor's line-anchored `^Skill Name:`.
