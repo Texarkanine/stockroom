@@ -1,4 +1,4 @@
-# Token usage (VIEW)
+# Token Usage VIEW
 
 **When:** top-N sessions, by-harness totals, or a day rollup from `session_token_usage` (prefer the VIEW over hand-rolled `SUM` on `messages`).
 

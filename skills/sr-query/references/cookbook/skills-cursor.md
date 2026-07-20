@@ -1,4 +1,4 @@
-# Cursor skill use
+# Skill Use (Cursor)
 
 **When:** Cursor skill × invoker counts from warehouse SQL (user `Skill Name:` attach lines + agent `Read` of `…/SKILL.md`).
 

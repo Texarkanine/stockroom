@@ -1,4 +1,4 @@
-# Tool use rankings
+# Tool Use
 
 **When:** full `tool_name` table (beyond dashboard top-10), optionally by harness, with the same activity window as dashboard metrics.
 

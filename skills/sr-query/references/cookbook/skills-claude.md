@@ -1,4 +1,4 @@
-# Claude skill use
+# Skill Use (Claude)
 
 **When:** Claude skill × invoker counts from warehouse SQL (user `<command-name>` + agent `Skill` tool).
 

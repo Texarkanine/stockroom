@@ -46,7 +46,7 @@ stockroom query "SELECT DISTINCT harness FROM sessions ORDER BY harness"
 
 For per-conversation token rollups, prefer VIEW `session_token_usage` over hand-rolled `SUM` on `messages` — worked examples live in the `sr-query` skill (agents: `/sr-query` or `/stockroom:sr-query`).
 
-For gnarly starters (full tool rankings, richer token rollups, per-harness skill-use SQL), see the Advanced [Query cookbook](../advanced/cookbook/index.md) — do not expect those bodies to be duplicated here.
+Some common but gnarly queries (full tool rankings, richer token rollups, per-harness skill-use SQL, etc.) have already been figured out for you; see the Advanced [Query cookbook](../advanced/cookbook/index.md).
 
 The surface is read-only by construction — you cannot corrupt the warehouse by querying. Do **not** use SQL `ILIKE` as a substitute for meaning-based recall; that is `sr-semantic`.
 
