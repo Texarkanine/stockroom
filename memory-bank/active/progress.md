@@ -13,3 +13,14 @@ Ship a discoverable `sr-query` cookbook (skill SSOT + docs snippet includes) wit
     - Level 3 Intermediate Feature — not L2 (touches skill + docs + properdocs + cross-links) and not L4 (architecture already locked in creative)
 * Insights
     - Operator override: pure SQL skill recipes are in scope for #69 even though early creative draft preferred Level-3 surface cards only for skills
+
+## 2026-07-20 - PLAN - COMPLETE
+
+* Work completed
+    - Component analysis, TDD plan, ordered implementation steps in `tasks.md`
+    - Grounded skill/tool SQL plan on `skill_usage.py` / `metrics.py` candidate patterns
+* Decisions made
+    - Recipe files: `index.md`, `token-usage.md`, `tools.md`, `skills-claude.md`, `skills-cursor.md`
+    - Structural tests in `test_query_cookbook.py` + strict `make docs-build`; no live SQL suite in pytest
+* Insights
+    - Pure SQL for skills is an escape hatch that must cite extractors as drift truth — not a second product definition

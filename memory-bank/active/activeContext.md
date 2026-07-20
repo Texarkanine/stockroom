@@ -1,12 +1,12 @@
 # Active Context
 
 ## Current Task: query-cookbook
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Intent clarified and approved: cookbook (Option B) for VIEW recipes, pure SQL skill-use + tool-use per #69, thoughtful in-skill discoverability/cross-links
-- Standalone creative already recorded at `memory-bank/active/creative/creative-query-cookbook.md` (updated for snippets-in)
-- Complexity determined: Level 3
+- Level 3 plan written: cookbook SSOT under `skills/sr-query/references/cookbook/`, docs snippet includes, structural pytest + `make docs-build`, thoughtful SKILL.md discoverability
+- Open questions closed via existing creative (Option B) + operator pure-SQL override for skills
+- No new dependencies; no schema/CLI changes
 
 ## Next Step
-- Load Level 3 workflow → Plan phase
+- Preflight phase to validate the plan
