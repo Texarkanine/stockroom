@@ -85,3 +85,8 @@ Make token usage first-class for Claude Code (already message-grain) with easy c
     - Defer cookbook shape / #69 recipe-home work to a future PR (not this task)
 * Insights
     - Intersects #69's "where do recipes live?" question; this task's VIEW is the anti-gnarly case — don't invent snippet infrastructure for it
+
+## 2026-07-19 - ARCHIVE - IN-PROGRESS
+
+* Work completed
+    - Leaving REFLECT; entering `/niko-archive`
