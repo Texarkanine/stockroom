@@ -1,12 +1,11 @@
 # Active Context
 
 ## Current Task: query-cookbook
-**Phase:** PREFLIGHT - COMPLETE
+**Phase:** BUILD - IN-PROGRESS
 
 ## What Was Done
-- Preflight validated Level 3 plan against codebase (docs ownership, REUSE PPL-S, snippets config, metrics/extractor grounding)
-- Plan amendments: Claude builtin denylist sync test; clearer per-step TDD; required systemPatterns cookbook sentence
-- `.preflight-status` = PASS
+- Preflight PASS; operator invoked `/niko-build`
+- Entering Level 3 build: TDD cookbook wiring → SSOT recipes → SKILL/docs wiring → verify
 
 ## Next Step
-- Operator runs `/niko-build` (L3: build is operator-initiated after preflight PASS)
+- Execute implementation plan steps 1–7 in `tasks.md`

@@ -35,3 +35,12 @@ Ship a discoverable `sr-query` cookbook (skill SSOT + docs snippet includes) wit
     - Within-scope innovation adopted: pin Claude skill recipe denylist to `_CLAUDE_BUILTIN_COMMANDS` via test
 * Insights
     - L3 build gate is operator-initiated (`/niko-build`) after preflight PASS
+
+## 2026-07-20 - BUILD - IN-PROGRESS
+
+* Work completed
+    - Operator invoked `/niko-build`; preflight gate confirmed PASS
+* Decisions made
+    - Proceed with plan steps 1–7 (tests first, then recipes, SKILL/docs, verify)
+* Insights
+    - (none yet)
