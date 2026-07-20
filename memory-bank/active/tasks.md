@@ -177,3 +177,5 @@ No new technology - validation not required. `pymdownx.snippets` already configu
 - [x] Preflight
 - [x] Build
 - [x] QA
+- [x] Reflect
+- [ ] Archive

@@ -1,12 +1,12 @@
 # Active Context
 
 ## Current Task: query-cookbook
-**Phase:** QA - COMPLETE
+**Phase:** REFLECT - COMPLETE
 
 ## What Was Done
-- Semantic QA PASS: plan completeness, dual-audience SSOT, discoverability, drift pins, docs ownership
-- `.qa-validation-status` = PASS
-- No code fixes required in QA
+- Wrote `memory-bank/active/reflection/reflection-query-cookbook.md`
+- Reconciled persistent files: `systemPatterns` already current; product/tech unchanged
+- Reflection insights: dual-audience snippet peer-link gotcha; plan-record operator overrides
 
 ## Next Step
-- Reflect phase (`level3-reflect`) after phase-transition commit
+- Operator runs `/niko-archive` to archive and clear the active memory bank

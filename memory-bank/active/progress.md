@@ -57,3 +57,13 @@ Ship a discoverable `sr-query` cookbook (skill SSOT + docs snippet includes) wit
     - No meaningful vs trivial fixes required; keep Cookbook section + worked-example pointer (plan-required discoverability)
 * Insights
     - Included recipe H1s create multiple top-level headings on the Advanced page — acceptable for copy-button UX; not a plan defect
+
+## 2026-07-20 - REFLECT - COMPLETE
+
+* Work completed
+    - Full lifecycle reflection in `reflection/reflection-query-cookbook.md`
+    - Persistent-file reconcile: no further edits needed
+* Decisions made
+    - Archive is operator-initiated (`/niko-archive`) for standalone L3
+* Insights
+    - See reflection doc (snippet peer-link gotcha; record operator overrides in plan)
