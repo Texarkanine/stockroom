@@ -58,11 +58,42 @@ def spawn(argv: Sequence[str]) -> None:
     )
 
 
+def _read_proc_cmdline(pid: int) -> bytes | None:
+    """Return ``/proc/{pid}/cmdline`` bytes, or ``None`` when unavailable."""
+    try:
+        return Path(f"/proc/{pid}/cmdline").read_bytes()
+    except OSError:
+        return None
+
+
+def _read_ps_cmdline(pid: int) -> bytes | None:
+    """Return process args via ``ps``, or ``None`` when unavailable."""
+    try:
+        completed = subprocess.run(
+            ["ps", "ww", "-p", str(pid), "-o", "args="],
+            check=False,
+            capture_output=True,
+        )
+    except OSError:
+        return None
+    if completed.returncode != 0:
+        return None
+    out = completed.stdout.strip()
+    return out or None
+
+
+def _read_cmdline(pid: int) -> bytes | None:
+    """Return process cmdline bytes from ``/proc`` or portable ``ps`` fallback."""
+    cmdline = _read_proc_cmdline(pid)
+    if cmdline is not None:
+        return cmdline
+    return _read_ps_cmdline(pid)
+
+
 def verify_owned(pid: int) -> bool:
     """Return True when ``pid`` looks like a stockroom dashboard process."""
-    try:
-        cmdline = Path(f"/proc/{pid}/cmdline").read_bytes()
-    except OSError:
+    cmdline = _read_cmdline(pid)
+    if cmdline is None:
         return False
     return b"stockroom.dashboard" in cmdline.replace(b"\x00", b" ")
 

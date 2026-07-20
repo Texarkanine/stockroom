@@ -347,3 +347,74 @@ def test_foreground_startup_does_not_require_a_warehouse(
     assert result == 0
     assert events == ["served", "closed"]
     assert capsys.readouterr().out == "http://127.0.0.1:58008/\n"
+
+
+def test_verify_owned_true_when_proc_cmdline_matches(monkeypatch) -> None:
+    """``/proc`` cmdline containing ``stockroom.dashboard`` is owned."""
+    monkeypatch.setattr(
+        dashboard_cli,
+        "_read_proc_cmdline",
+        lambda _pid: b"python\x00-m\x00stockroom.dashboard\x00--foreground",
+    )
+    monkeypatch.setattr(
+        dashboard_cli,
+        "_read_ps_cmdline",
+        lambda _pid: (_ for _ in ()).throw(
+            AssertionError("ps unused when /proc works")
+        ),
+    )
+    assert dashboard_cli.verify_owned(4242) is True
+
+
+def test_verify_owned_false_when_proc_cmdline_lacks_marker(monkeypatch) -> None:
+    """``/proc`` cmdline without ``stockroom.dashboard`` is not owned."""
+    monkeypatch.setattr(
+        dashboard_cli,
+        "_read_proc_cmdline",
+        lambda _pid: b"nginx\x00-g\x00daemon off;",
+    )
+    monkeypatch.setattr(
+        dashboard_cli,
+        "_read_ps_cmdline",
+        lambda _pid: (_ for _ in ()).throw(
+            AssertionError("ps unused when /proc works")
+        ),
+    )
+    assert dashboard_cli.verify_owned(4242) is False
+
+
+def test_verify_owned_falls_back_to_ps_when_proc_unavailable(
+    monkeypatch,
+) -> None:
+    """
+    Missing ``/proc`` must not silently mean never-owned.
+
+    On Darwin (and any host without ``/proc/{pid}/cmdline``), ownership is
+    decided from a portable ``ps`` cmdline that still contains
+    ``stockroom.dashboard``.
+    """
+    monkeypatch.setattr(dashboard_cli, "_read_proc_cmdline", lambda _pid: None)
+    monkeypatch.setattr(
+        dashboard_cli,
+        "_read_ps_cmdline",
+        lambda _pid: b"/path/B/python -m stockroom.dashboard --foreground --port 58008",
+    )
+    assert dashboard_cli.verify_owned(4242) is True
+
+
+def test_verify_owned_false_when_proc_and_ps_unavailable(monkeypatch) -> None:
+    """No cmdline source means the pid is not treated as owned."""
+    monkeypatch.setattr(dashboard_cli, "_read_proc_cmdline", lambda _pid: None)
+    monkeypatch.setattr(dashboard_cli, "_read_ps_cmdline", lambda _pid: None)
+    assert dashboard_cli.verify_owned(4242) is False
+
+
+def test_verify_owned_false_when_ps_cmdline_lacks_marker(monkeypatch) -> None:
+    """``ps`` fallback without ``stockroom.dashboard`` is not owned."""
+    monkeypatch.setattr(dashboard_cli, "_read_proc_cmdline", lambda _pid: None)
+    monkeypatch.setattr(
+        dashboard_cli,
+        "_read_ps_cmdline",
+        lambda _pid: b"/usr/sbin/nginx -g daemon off;",
+    )
+    assert dashboard_cli.verify_owned(4242) is False

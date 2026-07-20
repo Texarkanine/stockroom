@@ -1,12 +1,12 @@
 # Active Context
 
 ## Current Task: fix-dashboard-replace-macos-75
-**Phase:** BUILD - IN-PROGRESS
+**Phase:** BUILD - COMPLETE
 
 ## What Was Done
-- Intent clarified against [#75](https://github.com/Texarkanine/stockroom/issues/75)
-- Complexity determined: Level 1 (single-component bug in `verify_owned`; Linux `/proc`-only check fails on Darwin)
-- Pre-build memory bank checkpoint committed
+- Added failing regressions for `verify_owned` (proc match/miss, ps fallback, both unavailable)
+- Implemented `_read_proc_cmdline` / `_read_ps_cmdline` / `_read_cmdline`; `verify_owned` uses them
+- `make format`, `make lint`, `make test` green (624 passed, 4 skipped; 92 JS)
 
 ## Next Step
-- TDD: failing regression for no-`/proc` ownership, then portable cmdline fix
+- QA phase (`/niko-qa` / Level 1 QA)

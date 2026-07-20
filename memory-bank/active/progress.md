@@ -14,9 +14,13 @@ Make dashboard ownership verification portable so macOS can replace stale owned 
 * Insights
     - Root cause already diagnosed in the issue: Darwin has no `/proc`, so ownership always false and kill is skipped
 
-## 2026-07-20 - BUILD - IN-PROGRESS
+## 2026-07-20 - BUILD - COMPLETE
 
 * Work completed
-    - Entering Build: portable `verify_owned` + regression for missing `/proc`
+    - TDD: five `verify_owned` regressions (proc + ps fallback + negatives)
+    - Portable cmdline: `/proc` then `ps ww -p <pid> -o args=`
+    - Full suite green after format/lint
 * Decisions made
-    - None yet
+    - Keep three tiny helpers so tests can force “no `/proc`” without real Darwin
+* Insights
+    - Existing CLI tests already inject `verify_owned_fn`; the bug lived in the default implementation
