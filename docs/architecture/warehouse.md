@@ -40,6 +40,15 @@ Every row carries a `harness` column. Columns mean one thing independent of harn
 
 `sessions.workspace_key` is a nullable cross-harness rollup key derived at ingest (per-harness strategies in `stockroom.ingest.paths.workspace_key_for`). Same machine + same absolute `cwd` ⇒ same key when both sides can derive it; different on-disk paths stay different keys; underivable inputs stay `NULL`. Chart Sessions by Project and SQL `GROUP BY workspace_key` share that key — `project_id` is never rewritten for merge convenience.
 
+### Dual-grain token usage
+
+Token fields follow the same one-meaning-per-column rule as models (`messages.model` vs `sessions.models`):
+
+- **Message grain** — `messages.input_tokens` / `output_tokens` / `cache_creation_tokens` / `cache_read_tokens`. Claude fills these from per-assistant-message usage; Cursor leaves them `NULL`.
+- **Session grain** — the same four names on `sessions`, for harnesses that report conversation-level totals only. Claude and Cursor leave them `NULL` today. Ingest never invents session totals from message sums, and never invents per-message splits from session totals.
+
+The read surface for conversation rollups is VIEW `session_token_usage`: `*_from_messages` (SUM of message columns), `*_native` (session columns), `*_total` (`COALESCE(native, from_messages)`), and `token_grain` (`session` | `message` | `none`). Totals are a warehouse rollup of reported fields, not a vendor invoice. Writers target base tables only; query the VIEW for session spend/usage. Message-level detail stays on `messages`.
+
 ### UTC timestamps
 
 DuckDB `TIMESTAMP` is timezone-naive; Stockroom’s contract is that every persisted value is **UTC wall clock**. Clients that display times own timezone rendering.

@@ -14,7 +14,7 @@ Kept content is stored in full. Output truncation is applied only at read time b
 
 ## Harness-labeled schema, one meaning per field
 
-One shared set of tables (`sessions`, `messages`, `tool_calls`, `embeddings`, `_sync_state`); every row carries `harness`. Columns mean one thing independent of harness — extraction may differ, meaning must not. Identity is uniform (`message_id = {session_id}#{ordinal}`); native ids are provenance (`source_*`), never join keys. Typed columns for queryable metrics; JSON only for irreducible heterogeneity (`tool_calls.tool_input`). Thinking/reasoning blocks are not stored when the harness separates them.
+One shared set of tables (`sessions`, `messages`, `tool_calls`, `embeddings`, `_sync_state`); every row carries `harness`. Columns mean one thing independent of harness — extraction may differ, meaning must not. Identity is uniform (`message_id = {session_id}#{ordinal}`); native ids are provenance (`source_*`), never join keys. Typed columns for queryable metrics; JSON only for irreducible heterogeneity (`tool_calls.tool_input`). Thinking/reasoning blocks are not stored when the harness separates them. Cross-grain metrics use parallel columns (e.g. `messages.model` vs `sessions.models`, `messages.*_tokens` vs `sessions.*_tokens`); VIEW `session_token_usage` is the session token rollup read surface — writers never invent one grain from the other.
 
 ## Warehouse timestamps are UTC at rest
 
