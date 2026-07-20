@@ -17,7 +17,7 @@ Classify the ask, then **follow the chosen sibling skill** for how to run the se
 | Exact or structured — fields you can name: ids, filters, counts, `GROUP BY`, joins ("how many sessions per harness?") | `sr-query` alone |
 | Meaning-based — content you can describe but not name exactly ("where did we debug the warehouse deadlock?") | `sr-semantic` alone |
 | Known id in hand ("show me message `<id>` in full") | `sr-query` alone |
-| Per-session / conversation token rollups or spend ("which chats used the most tokens?") | `sr-query` alone — use VIEW `session_token_usage` (see `../sr-query/SKILL.md`); do not invent tokens Cursor does not report |
+| Per-session / conversation token rollups or spend ("which chats used the most tokens?") | `sr-query` alone — use VIEW `session_token_usage` (see `../sr-query/SKILL.md`) |
 | Broad or ambiguous — both a nameable shape and a describable concept ("find everything about REUSE licensing") | Both surfaces, then synthesize |
 
 If the routed surface comes back empty or thin, try the other surface before concluding the content isn't there.
