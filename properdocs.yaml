@@ -84,7 +84,8 @@ markdown_extensions:
       anchor_linenums: true
       line_spans: __span
       pygments_lang_class: true
-  # Enabled for rare use; the corpus is real pages, not a snippet farm.
+  # Intentional dual-audience includes when needed. Not for composing the whole site from fragments.
+  # (sr-query cookbook uses docs/ symlinks to skill recipes instead.)
   - pymdownx.snippets:
       base_path:
         - .

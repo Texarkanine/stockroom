@@ -1,0 +1,6 @@
+PASS
+
+task_id: query-cookbook
+phase: preflight
+result: PASS
+notes: Amended plan with Claude builtin denylist sync test; TDD ordering explicit per step; systemPatterns cookbook sentence required.
