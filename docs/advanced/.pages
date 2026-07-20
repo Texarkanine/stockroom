@@ -2,4 +2,4 @@ nav:
   - Overview: index.md
   - CLI: cli.md
   - DuckDB: duckdb.md
-  - Query Cookbook: cookbook.md
+  - Cookbook: cookbook

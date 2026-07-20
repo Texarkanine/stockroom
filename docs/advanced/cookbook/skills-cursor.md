@@ -1,0 +1,1 @@
+../../../skills/sr-query/references/cookbook/skills-cursor.md

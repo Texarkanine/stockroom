@@ -84,8 +84,8 @@ markdown_extensions:
       anchor_linenums: true
       line_spans: __span
       pygments_lang_class: true
-  # Shared dual-audience bodies (e.g. sr-query cookbook recipes under
-  # skills/.../references/cookbook/). Not for composing the whole site from fragments.
+  # Intentional dual-audience includes when needed. Not for composing the whole site from fragments.
+  # (sr-query cookbook uses docs/ symlinks to skill recipes instead.)
   - pymdownx.snippets:
       base_path:
         - .

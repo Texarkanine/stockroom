@@ -1,8 +1,8 @@
-## Token usage (VIEW)
+# Token usage (VIEW)
 
 **When:** top-N sessions, by-harness totals, or a day rollup from `session_token_usage` (prefer the VIEW over hand-rolled `SUM` on `messages`).
 
-### Top sessions
+## Top sessions
 
 ```sql
 SELECT harness, session_id, input_tokens_total, output_tokens_total, token_grain
@@ -11,7 +11,7 @@ ORDER BY input_tokens_total DESC NULLS LAST
 LIMIT 20
 ```
 
-### By harness
+## By harness
 
 ```sql
 SELECT harness,
@@ -23,7 +23,7 @@ GROUP BY harness
 ORDER BY input_tokens DESC NULLS LAST
 ```
 
-### By day
+## By day
 
 Join sessions for activity time (`COALESCE(started_at, source_mtime)`):
 

@@ -1,8 +1,8 @@
-## Tool use rankings
+# Tool use rankings
 
 **When:** full `tool_name` table (beyond dashboard top-10), optionally by harness, with the same activity window as dashboard metrics.
 
-### All tools in a window
+## All tools in a window
 
 Edit the timestamps (or drop them for all-time):
 
@@ -20,7 +20,7 @@ GROUP BY t.tool_name
 ORDER BY calls DESC, t.tool_name
 ```
 
-### By harness
+## By harness
 
 ```sql
 SELECT s.harness,

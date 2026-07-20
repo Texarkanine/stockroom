@@ -10,7 +10,7 @@ You have `stockroom` on `PATH`, a warehouse under stockroom home, and a reason t
 
 - [CLI](cli.md) — on-path `stockroom` without an agent turn
 - [DuckDB](duckdb.md) — open the warehouse file directly
-- [Cookbook](cookbook.md) — starter SQL for token rollups, tools, and skill-use escape hatches (bodies shared with the `sr-query` skill)
+- [Cookbook](cookbook/index.md) — starter SQL for token rollups, tools, and skill use (shared with the `sr-query` skill)
 
 ## What Advanced is not
 

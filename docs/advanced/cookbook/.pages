@@ -1,0 +1,6 @@
+nav:
+  - Overview: index.md
+  - Token usage: token-usage.md
+  - Tools: tools.md
+  - Skills Claude: skills-claude.md
+  - Skills Cursor: skills-cursor.md
