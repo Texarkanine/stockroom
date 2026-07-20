@@ -10,7 +10,7 @@ Approximate Cursor skill × invoker counts from warehouse SQL. Dashboard extract
 ## When not to
 
 - You need chart-faithful skill identity — use the dashboard / `stockroom.dashboard.skill_usage.extract_cursor`.
-- Claude sessions — see [skills-claude.md](skills-claude.md).
+- Claude sessions — use the `skills-claude.md` recipe in this cookbook.
 
 ## SQL
 

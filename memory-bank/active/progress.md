@@ -36,11 +36,14 @@ Ship a discoverable `sr-query` cookbook (skill SSOT + docs snippet includes) wit
 * Insights
     - L3 build gate is operator-initiated (`/niko-build`) after preflight PASS
 
-## 2026-07-20 - BUILD - IN-PROGRESS
+## 2026-07-20 - BUILD - COMPLETE
 
 * Work completed
-    - Operator invoked `/niko-build`; preflight gate confirmed PASS
+    - Implemented query cookbook per plan (tests → SSOT recipes → SKILL/docs wiring → verify)
+    - `test_query_cookbook.py` + recipe tree + Advanced docs snippets + discoverability links
+    - Full suite green; strict docs-build green; warehouse smoke on tools/tokens/skills-claude
 * Decisions made
-    - Proceed with plan steps 1–7 (tests first, then recipes, SKILL/docs, verify)
+    - Dual-audience recipes avoid relative peer `.md` links (strict mkdocs resolves them under `docs/advanced/`)
+    - Operator pure-SQL skill override honored with extractor drift caveats + denylist sync test
 * Insights
-    - (none yet)
+    - Snippet-including whole recipe files works when bodies stay dual-audience-safe (no docs-relative link targets)

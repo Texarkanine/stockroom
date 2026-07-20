@@ -61,7 +61,7 @@ def test_docs_advanced_cookbook_snippets_each_recipe(repo_root: Path) -> None:
     assert cookbook_md.is_file(), f"missing docs wrapper: {cookbook_md}"
     text = cookbook_md.read_text(encoding="utf-8")
     for name in SNIPPET_RECIPES:
-        marker = f"--8<-- \"{COOKBOOK_DIR.as_posix()}/{name}\""
+        marker = f'--8<-- "{COOKBOOK_DIR.as_posix()}/{name}"'
         assert marker in text, (
             f"docs/advanced/cookbook.md must include snippet marker {marker!r}"
         )

@@ -160,11 +160,11 @@ No new technology - validation not required. `pymdownx.snippets` already configu
 
 - [x] 1. TDD: failing `test_query_cookbook.py` (9 failures confirmed)
 - [x] 2. Cookbook SSOT: index + recipes
-- [ ] 3. Agent discoverability: `SKILL.md` cookbook links
-- [ ] 4. Human docs: advanced cookbook + nav + search pointer
-- [ ] 5. `properdocs.yaml` comment
-- [ ] 6. Verify full suite + docs-build (+ optional warehouse smoke)
-- [ ] 7. `systemPatterns.md` docs-ownership cookbook sentence
+- [x] 3. Agent discoverability: `SKILL.md` cookbook links
+- [x] 4. Human docs: advanced cookbook + nav + search pointer
+- [x] 5. `properdocs.yaml` comment
+- [x] 6. Verify full suite + docs-build (+ warehouse smoke: tools, tokens, skills-claude)
+- [x] 7. `systemPatterns.md` docs-ownership cookbook sentence
 
 ## Status
 
@@ -175,5 +175,5 @@ No new technology - validation not required. `pymdownx.snippets` already configu
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight
-- [ ] Build
+- [x] Build
 - [ ] QA

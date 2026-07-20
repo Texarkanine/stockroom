@@ -134,6 +134,12 @@ stockroom query --format table \
    LIMIT 10"
 ```
 
+More variants (unbounded tools with activity window, day/harness token rollups, per-harness skill-use SQL): see the [Cookbook](references/cookbook/index.md).
+
+## Cookbook
+
+Gnarly starter SQL lives under [`references/cookbook/`](references/cookbook/index.md) — token VIEW rollups, full tool rankings, and Claude/Cursor skill-use escape hatches. Open the index first; load only the recipe you need. Dashboard skill extractors remain product truth for charts; skill recipes are ad-hoc SQL with documented drift triggers.
+
 ## Relaying to a human
 
 You are the tool's operator, not its display. Run the SQL, read the result, and **answer the user in natural language**. Don't paste raw tsv at a human unless they asked to see it. When they *do* want the raw output — or a command to run themselves — hand them a `--format table` (to read) or `--format json` (to process) variant.

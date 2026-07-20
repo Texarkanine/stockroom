@@ -6,6 +6,12 @@ Escape hatches for power users who already finished `sr-initialize` and want to 
 
 You have `stockroom` on `PATH`, a warehouse under stockroom home, and a reason to go outside the normal [User Guide](../user-guide/index.md) path. If you are still bootstrapping or healing a broken install, stay on `sr-initialize` and the User Guide — Advanced is not a second onboarding track.
 
+## What is here
+
+- [CLI](cli.md) — on-path `stockroom` without an agent turn
+- [DuckDB](duckdb.md) — open the warehouse file directly
+- [Cookbook](cookbook.md) — starter SQL for token rollups, tools, and skill-use escape hatches (bodies shared with the `sr-query` skill)
+
 ## What Advanced is not
 
 - Not bootstrap or heal — that remains `sr-initialize` / User Guide troubleshooting
