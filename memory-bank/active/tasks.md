@@ -124,7 +124,7 @@ flowchart LR
 7. [x] **Orchestrator: dual Cursor roots + collision preference** — TDD first (`test_ingest_orchestrator.py` / golden `expected_rows.json` as needed), then implement
     - Files: `ingest/__init__.py`, `tests/test_ingest_orchestrator.py`, `tests/fixtures/ingest/expected_rows.json` (only if golden shape changes)
     - Changes: ingest chats with its `source_root` watermark; build id set; filter transcript discoveries; parse via correct parser; stamp project_id (hash dir) / cwd recovery
-8. [ ] **Docs** — document chats root, `entrypoint`, collision preference, `--full` backfill
+8. [x] **Docs** — document chats root, `entrypoint`, collision preference, `--full` backfill
     - Files: `docs/user-guide/ingest.md`, `docs/architecture/warehouse.md`, sr-query skill schema column list (`.cursor/skills/stockroom-local/sr-query/SKILL.md` and packaged twin under `skills/` if present)
 9. [ ] **Verification** — full `skills/sr-search` test suite; manual `stockroom ingest --full` smoke optional
 

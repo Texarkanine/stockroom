@@ -40,6 +40,8 @@ Every row carries a `harness` column. Columns mean one thing independent of harn
 
 `sessions.workspace_key` is a nullable cross-harness rollup key derived at ingest (per-harness strategies in `stockroom.ingest.paths.workspace_key_for`). Same machine + same absolute `cwd` ⇒ same key when both sides can derive it; different on-disk paths stay different keys; underivable inputs stay `NULL`. Chart Sessions by Project and SQL `GROUP BY workspace_key` share that key — `project_id` is never rewritten for merge convenience.
 
+`sessions.entrypoint` is nullable surface provenance: Claude may pass through a native transcript value; Cursor synthesizes `ide` vs `cli` from which on-disk root produced the row. It is not a second harness brand — filtering by entrypoint is optional SQL on top of `harness`.
+
 ### Dual-grain token usage
 
 Token fields follow the same one-meaning-per-column rule as models (`messages.model` vs `sessions.models`):
