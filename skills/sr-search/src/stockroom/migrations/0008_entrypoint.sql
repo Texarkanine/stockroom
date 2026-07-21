@@ -1,0 +1,12 @@
+-- stockroom warehouse — session entrypoint provenance (migration 0008)
+--
+-- Adds nullable `sessions.entrypoint`: how the session was entered / which
+-- surface produced it. Claude JSONL may carry a native value (e.g. `cli`,
+-- `claude-desktop`); Cursor synthesizes from ingest provenance (`cli` for
+-- Agent CLI chats store.db, `ide` for agent-transcripts).
+--
+-- Structural only — NO backfill DML. Pre-existing rows keep
+-- `entrypoint = NULL` until a `--full` re-ingest repopulates them
+-- (warehouse is derived ETL output). Forward-only: earlier migrations and
+-- their golden snapshots stay untouched.
+ALTER TABLE sessions ADD COLUMN entrypoint TEXT;

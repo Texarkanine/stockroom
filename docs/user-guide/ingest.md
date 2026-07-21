@@ -12,7 +12,9 @@ Ingest is ETL from agentic coding harness transcript roots into the warehouse un
 
 It writes harness-labeled rows into shared tables: `sessions`, `messages`, and `tool_calls`. Prompts and responses are stored whole; tool *inputs* are kept; tool *result* payloads are dropped. Thinking/reasoning blocks the harness keeps separate are not stored. Rows whose source transcripts later vanish are **not** pruned — the warehouse is allowed to outlive its sources.
 
-**Default is incremental.** Stockroom remembers a per-harness watermark in `_sync_state` and only reads files past that point. Re-runs are cheap and safe.
+**Default is incremental.** Stockroom remembers a per-`(harness, source_root)` watermark in `_sync_state` and only reads files past that point. Cursor therefore tracks projects and chats roots independently. Re-runs are cheap and safe. Structural migrations do not backfill columns such as `entrypoint` — use `stockroom ingest --full` after an upgrade if you want older rows repopulated from sources.
+
+Cursor Agent CLI chats (`~/.cursor/chats/**/store.db`) are parsed best-effort: if a store is locked, corrupt, or its internal blob layout drifts, that session is skipped and the rest of the ingest continues (the chats watermark does not advance past a skipped store, so a later run can retry). Empty or meta-only stores still upsert a session with zero messages. Fixture tests in the repo fail loudly when the known layout changes — operators should not expect a hard ingest failure from layout drift alone.
 
 ```bash
 stockroom ingest              # both harnesses, incremental
@@ -24,11 +26,12 @@ stockroom ingest --verbose    # progress lines (quiet by default)
 
 ```bash
 STOCKROOM_CURSOR_ROOT=/path/to/cursor/projects stockroom ingest
+STOCKROOM_CURSOR_CHATS_ROOT=/path/to/cursor/chats stockroom ingest
 STOCKROOM_CLAUDE_ROOT=/path/to/claude/projects stockroom ingest
 STOCKROOM_AI_TRACKING_DB=/path/to/ai-code-tracking.db stockroom ingest
 ```
 
-Defaults are `~/.cursor/projects`, `~/.claude/projects`, and Cursor’s usual `ai-tracking` DB under `~/.cursor/`.
+Defaults are `~/.cursor/projects`, `~/.cursor/chats`, `~/.claude/projects`, and Cursor’s usual `ai-tracking` DB under `~/.cursor/`.
 
 `sr-initialize` runs `stockroom ingest --full` once so you are not waiting for the first nightly job. On years of history that first pass can take many minutes (varying greatly depending on your machine's CPU and disk speed); it prints per-harness session/message/tool_call counts when done.
 

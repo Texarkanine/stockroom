@@ -4,12 +4,14 @@ Fills the DuckDB warehouse from the operator's own Cursor and Claude Code
 history, writing through the ``warehouse.open()`` chokepoint.
 The pipeline is, per harness, per run:
 
-    sources (discover + watermark) -> cursor.py / claude.py (clean-room parse
-    -> model.NormalizedSession) -> writer (delete-then-insert by
-    (harness, session_id)) -> _sync_state watermark update
+    sources (discover + watermark) -> cursor.py / cursor_chats.py / claude.py
+    (clean-room parse -> model.NormalizedSession) -> writer (delete-then-insert
+    by (harness, session_id)) -> _sync_state watermark update
 
 with an optional ``enrich`` step that folds Cursor ``ai-code-tracking.db``
-model/labeling fields in when that DB is present.
+model/labeling fields in when that DB is present. Cursor uses two roots
+(projects agent-transcripts + chats ``store.db``); on ``session_id`` collision
+the chats store wins.
 
 The warehouse is an append-mostly archive that outlives its sources. A full run
 reprocesses only files that still exist; it never prunes orphaned warehouse rows.
@@ -30,7 +32,15 @@ from pathlib import Path
 import duckdb
 
 from stockroom import warehouse
-from stockroom.ingest import claude, cursor, enrich, paths, sources, writer
+from stockroom.ingest import (
+    claude,
+    cursor,
+    cursor_chats,
+    enrich,
+    paths,
+    sources,
+    writer,
+)
 from stockroom.ingest.model import NormalizedSession
 
 #: Optional progress reporter: one human-readable line per call (CLI wires print).
@@ -117,28 +127,40 @@ def _parse_discovered(
 
     The parsers leave ``project_id`` unset (it is the verbatim project-dir slug
     from discovery), so the orchestrator stamps it here. ``cwd`` is resolved
-    honestly: for Cursor by re-encode-and-match over the conversation's in-band
-    paths (``None`` when none re-encodes to the slug); for Claude it is the
-    authoritative record ``cwd`` set by the parser (left untouched). Subagents
-    inherit the parent's ``project_id`` and ``cwd``. Every returned session,
-    including subagents, inherits the parent conversation's discovered
-    ``source_mtime``. Optional model enrichment is applied to the matching Cursor
-    conversation.
+    honestly: for Cursor IDE by re-encode-and-match over the conversation's
+    in-band paths (``None`` when none re-encodes to the slug); for Cursor CLI
+    chats the parser may already set ``cwd`` from Workspace Path (kept when
+    present, else resolve_cwd); for Claude it is the authoritative record
+    ``cwd`` set by the parser (left untouched). Subagents inherit the parent's
+    ``project_id`` and ``cwd``. Every returned session, including subagents,
+    inherits the parent conversation's discovered ``source_mtime``. Optional
+    model enrichment is applied to the matching Cursor conversation.
     """
     if harness == "cursor":
-        main = cursor.parse_session(discovered.session_path)
-        main.project_id = discovered.project_id
-        main.cwd = paths.resolve_cwd(
-            "cursor", discovered.project_id, texts=_cursor_texts(main)
-        )
-        if main.session_id in enrichment:
-            main.models = enrichment[main.session_id]
-        result = [main]
-        for index, sub_path in enumerate(discovered.subagent_paths):
-            sub = cursor.parse_subagent(sub_path, parent=main, index=index)
-            sub.project_id = discovered.project_id
-            sub.cwd = main.cwd
-            result.append(sub)
+        if discovered.session_path.name == "store.db":
+            main = cursor_chats.parse_session(discovered.session_path)
+            if main is None:
+                return []
+            main.project_id = discovered.project_id
+            if main.cwd is None:
+                main.cwd = paths.resolve_cwd(
+                    "cursor", discovered.project_id, texts=_cursor_texts(main)
+                )
+            result = [main]
+        else:
+            main = cursor.parse_session(discovered.session_path)
+            main.project_id = discovered.project_id
+            main.cwd = paths.resolve_cwd(
+                "cursor", discovered.project_id, texts=_cursor_texts(main)
+            )
+            if main.session_id in enrichment:
+                main.models = enrichment[main.session_id]
+            result = [main]
+            for index, sub_path in enumerate(discovered.subagent_paths):
+                sub = cursor.parse_subagent(sub_path, parent=main, index=index)
+                sub.project_id = discovered.project_id
+                sub.cwd = main.cwd
+                result.append(sub)
     else:
         main = claude.parse_session(discovered.session_path)
         main.project_id = discovered.project_id
@@ -152,6 +174,144 @@ def _parse_discovered(
     for session in result:
         session.source_mtime = discovered.mtime
     return result
+
+
+def _select_for_root(
+    con: duckdb.DuckDBPyConnection,
+    harness: str,
+    root: Path,
+    discovered: list[sources.DiscoveredSession],
+    *,
+    full: bool,
+) -> list[sources.DiscoveredSession]:
+    """Apply the ``(harness, source_root)`` watermark unless ``full``."""
+    if full:
+        return list(discovered)
+    last_mtime, last_path = _read_watermark(con, harness, str(root))
+    return sources.select_new(discovered, last_mtime=last_mtime, last_path=last_path)
+
+
+def _advance_watermark(
+    con: duckdb.DuckDBPyConnection,
+    harness: str,
+    root: Path,
+    discovered: list[sources.DiscoveredSession],
+) -> None:
+    """Advance ``_sync_state`` to the high-water of ``discovered`` (if any)."""
+    if not discovered:
+        return
+    newest = max(discovered, key=lambda d: (d.mtime, d.source_path))
+    writer.update_watermark(
+        con,
+        harness=harness,
+        source_root=str(root),
+        last_mtime=newest.mtime,
+        last_path=newest.source_path,
+    )
+
+
+def _write_discovered(
+    con: duckdb.DuckDBPyConnection,
+    harness: str,
+    selected: list[sources.DiscoveredSession],
+    enrichment: dict[str, list[str]],
+    summary: HarnessSummary,
+    *,
+    on_progress: ProgressCallback | None,
+    progress_offset: int,
+    progress_total: int,
+) -> tuple[int, bool]:
+    """Parse+write each selected discovery.
+
+    Returns ``(selected_count, all_ok)``. ``all_ok`` is ``False`` when any
+    Cursor CLI ``store.db`` discovery was skipped (parser returned ``None``),
+    so the caller can leave that root's watermark unadvanced for retry.
+    """
+    all_ok = True
+    for index, discovered_session in enumerate(selected, start=1):
+        sessions = _parse_discovered(harness, discovered_session, enrichment)
+        if discovered_session.session_path.name == "store.db" and not sessions:
+            all_ok = False
+        for session in sessions:
+            writer.write_session(con, session)
+            summary.sessions += 1
+            summary.messages += len(session.messages)
+            summary.tool_calls += sum(len(m.tool_calls) for m in session.messages)
+        if on_progress is not None:
+            on_progress(
+                f"{harness}: {progress_offset + index}/{progress_total} sessions"
+            )
+    return len(selected), all_ok
+
+
+def _ingest_cursor(
+    con: duckdb.DuckDBPyConnection,
+    *,
+    full: bool,
+    ai_tracking_db: Path | None,
+    on_progress: ProgressCallback | None = None,
+) -> HarnessSummary:
+    """Ingest Cursor from chats (``store.db``) and agent-transcripts.
+
+    Chats are authoritative on ``session_id`` collision: discover chats first,
+    build the id set, then filter transcript discoveries. Each root keeps its
+    own ``_sync_state`` watermark under ``harness='cursor'``.
+    """
+    summary = HarnessSummary()
+    chats_root = sources.cursor_chats_root()
+    projects_root = sources.cursor_root()
+
+    chats_discovered = sources.discover_cursor_chats(chats_root)
+    chat_ids = {d.session_path.parent.name for d in chats_discovered}
+
+    transcripts_discovered = [
+        d
+        for d in sources.discover("cursor", projects_root)
+        if d.session_path.stem not in chat_ids
+    ]
+
+    chats_selected = _select_for_root(
+        con, "cursor", chats_root, chats_discovered, full=full
+    )
+    transcripts_selected = _select_for_root(
+        con, "cursor", projects_root, transcripts_discovered, full=full
+    )
+    selected = [*chats_selected, *transcripts_selected]
+    if not chats_discovered and not transcripts_discovered:
+        return summary
+
+    total = len(selected)
+    if on_progress is not None:
+        on_progress(f"cursor: {total} sessions")
+
+    db_path = ai_tracking_db if ai_tracking_db is not None else enrich.default_db_path()
+    enrichment = enrich.read_enrichment(db_path)
+
+    offset, chats_ok = _write_discovered(
+        con,
+        "cursor",
+        chats_selected,
+        enrichment,
+        summary,
+        on_progress=on_progress,
+        progress_offset=0,
+        progress_total=total,
+    )
+    _write_discovered(
+        con,
+        "cursor",
+        transcripts_selected,
+        enrichment,
+        summary,
+        on_progress=on_progress,
+        progress_offset=offset,
+        progress_total=total,
+    )
+
+    if chats_ok:
+        _advance_watermark(con, "cursor", chats_root, chats_discovered)
+    _advance_watermark(con, "cursor", projects_root, transcripts_discovered)
+    return summary
 
 
 def _ingest_harness(
@@ -169,51 +329,37 @@ def _ingest_harness(
     conversation is processed (``N`` is selected discovered conversations, not
     subagent-inflated write counts).
     """
+    if harness == "cursor":
+        return _ingest_cursor(
+            con,
+            full=full,
+            ai_tracking_db=ai_tracking_db,
+            on_progress=on_progress,
+        )
+
     summary = HarnessSummary()
     root = _root_for(harness)
     discovered = sources.discover(harness, root)
     if not discovered:
         return summary
-    source_root = str(root)
 
-    if full:
-        selected = discovered
-    else:
-        last_mtime, last_path = _read_watermark(con, harness, source_root)
-        selected = sources.select_new(
-            discovered, last_mtime=last_mtime, last_path=last_path
-        )
+    selected = _select_for_root(con, harness, root, discovered, full=full)
 
     total = len(selected)
     if on_progress is not None:
         on_progress(f"{harness}: {total} sessions")
 
-    enrichment: dict[str, list[str]] = {}
-    if harness == "cursor":
-        db_path = (
-            ai_tracking_db if ai_tracking_db is not None else enrich.default_db_path()
-        )
-        enrichment = enrich.read_enrichment(db_path)
-
-    for index, discovered_session in enumerate(selected, start=1):
-        for session in _parse_discovered(harness, discovered_session, enrichment):
-            writer.write_session(con, session)
-            summary.sessions += 1
-            summary.messages += len(session.messages)
-            summary.tool_calls += sum(len(m.tool_calls) for m in session.messages)
-        if on_progress is not None:
-            on_progress(f"{harness}: {index}/{total} sessions")
-
-    # Advance the watermark to the high-water of everything discovered (we have
-    # now ingested up to it — the older files were written on prior runs).
-    newest = max(discovered, key=lambda d: (d.mtime, d.source_path))
-    writer.update_watermark(
+    _write_discovered(
         con,
-        harness=harness,
-        source_root=source_root,
-        last_mtime=newest.mtime,
-        last_path=newest.source_path,
+        harness,
+        selected,
+        {},
+        summary,
+        on_progress=on_progress,
+        progress_offset=0,
+        progress_total=total,
     )
+    _advance_watermark(con, harness, root, discovered)
     return summary
 
 

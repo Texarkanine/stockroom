@@ -130,7 +130,8 @@ def parse_session(path: Path) -> NormalizedSession:
     name on disk). Subagent and grain-specific fields stay at their honest
     defaults: Cursor has no per-message model/tokens/timestamps and no
     session-grain wall-clock, and ``models`` is filled later (optionally) by
-    enrichment.
+    enrichment. ``entrypoint`` is synthesized from provenance as ``ide``
+    (agent-transcripts path); CLI chats use a separate parser.
     """
     path = Path(path)
     messages = _parse_messages(_iter_records(path))
@@ -138,6 +139,7 @@ def parse_session(path: Path) -> NormalizedSession:
         harness="cursor",
         session_id=path.stem,
         source_path=str(path),
+        entrypoint="ide",
         messages=messages,
     )
 
@@ -193,5 +195,6 @@ def parse_subagent(
         agent_id=path.stem,
         agent_type=agent_type,
         spawning_tool_use_id=None,
+        entrypoint="ide",
         messages=messages,
     )

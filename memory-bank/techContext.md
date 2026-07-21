@@ -6,7 +6,7 @@ Stockroom is a local **Python** application managed with **uv**, storing agentic
 
 uv provisions the interpreter pinned by `requires-python` in [`skills/sr-search/pyproject.toml`](../skills/sr-search/pyproject.toml). Locked deps via `make sync` (or `uv sync --frozen --no-config` in the engine dir). Regenerate the lock hermetically with `make lock` (`uv lock --no-config`). Torch is held out of the lock and provisioned per-machine; after smoke (or `make torch`), a hashed freeze is written under stockroom home and heal replays it with `--require-hashes` (see [`docs/user-guide/troubleshooting/torch.md`](../docs/user-guide/troubleshooting/torch.md)). After torch is installed, never run an exact sync — use `--no-sync` / `--inexact`. Day-to-day engine / Torch / docs / dashboard / skills loops and Make targets: [`docs/contributing/iteration.md`](../docs/contributing/iteration.md). Enter / verify / exit localdev (atoms + recipe): [`docs/contributing/preparation.md`](../docs/contributing/preparation.md). Human docs site: root stub [`pyproject.toml`](../pyproject.toml) + [`properdocs.yaml`](../properdocs.yaml) (`make docs` / `make docs-build`).
 
-Warehouse home: `$XDG_DATA_HOME/stockroom` or `~/.local/share/stockroom`, overridable via `STOCKROOM_HOME`. Ingest roots: `STOCKROOM_CURSOR_ROOT` / `STOCKROOM_CLAUDE_ROOT`. Optional Cursor enrichment DB: `STOCKROOM_AI_TRACKING_DB`.
+Warehouse home: `$XDG_DATA_HOME/stockroom` or `~/.local/share/stockroom`, overridable via `STOCKROOM_HOME`. Ingest roots: `STOCKROOM_CURSOR_ROOT` / `STOCKROOM_CURSOR_CHATS_ROOT` / `STOCKROOM_CLAUDE_ROOT`. Optional Cursor enrichment DB: `STOCKROOM_AI_TRACKING_DB`.
 
 ## Build Tools
 

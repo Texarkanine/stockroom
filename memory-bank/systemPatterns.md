@@ -52,11 +52,11 @@ Both read surfaces print only through [`stockroom.render`](../skills/sr-search/s
 
 ## Ingest: per-harness parsers, harness-neutral model
 
-[`stockroom.ingest`](../skills/sr-search/src/stockroom/ingest/) parsers emit shared dataclasses; the writer is the only SQL touchpoint. Golden snapshot [`tests/fixtures/ingest/expected_rows.json`](../skills/sr-search/tests/fixtures/ingest/expected_rows.json) locks reconstruction. The warehouse outlives its sources: rows whose transcripts vanish are never pruned; observation-time fields (`messages.first_seen_at`) are not rebuildable from sources alone.
+[`stockroom.ingest`](../skills/sr-search/src/stockroom/ingest/) parsers emit shared dataclasses; the writer is the only SQL touchpoint. Cursor has two roots (projects `agent-transcripts` + chats `store.db`) with separate `_sync_state` watermarks; on `session_id` collision the chats store wins. Golden snapshot [`tests/fixtures/ingest/expected_rows.json`](../skills/sr-search/tests/fixtures/ingest/expected_rows.json) locks reconstruction. The warehouse outlives its sources: rows whose transcripts vanish are never pruned; observation-time fields (`messages.first_seen_at`) are not rebuildable from sources alone.
 
 ## Workspace identity: verify-don't-invert
 
-`sessions.project_id` is the harness slug verbatim; `sessions.cwd` is best-effort real path, NULL when unknown. Candidates are accepted only when `encode_for(harness, candidate) == slug` ([`stockroom.ingest.paths`](../skills/sr-search/src/stockroom/ingest/paths.py)). `sessions.workspace_key` is a separate nullable rollup key (per-harness ETL via `workspace_key_for`) so same-cwd sessions can cross-reference without mutating `project_id`.
+`sessions.project_id` is the harness slug verbatim; `sessions.cwd` is best-effort real path, NULL when unknown. For Cursor IDE / Claude, cwd candidates are accepted only when `encode_for(harness, candidate) == slug` ([`stockroom.ingest.paths`](../skills/sr-search/src/stockroom/ingest/paths.py)). Cursor Agent CLI chats are different: `project_id` is the chats hash directory and `cwd` may come from Workspace Path without that roundtrip. `sessions.entrypoint` is nullable surface provenance (Claude native passthrough; Cursor synthesizes `ide`/`cli`). `sessions.workspace_key` is a separate nullable rollup key (per-harness ETL via `workspace_key_for`) so same-cwd sessions can cross-reference without mutating `project_id`.
 
 ## Baked-only succeed-or-refuse shim
 

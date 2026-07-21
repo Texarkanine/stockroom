@@ -19,6 +19,7 @@ snapshot.
 
 import json
 import os
+import shutil
 from datetime import datetime
 from pathlib import Path
 
@@ -29,15 +30,33 @@ from stockroom import ingest
 from stockroom.ingest.paths import encode_for
 
 GOLDEN_PATH = Path(__file__).parent / "fixtures" / "ingest" / "expected_rows.json"
+CURSOR_CHATS_FIXTURE = (
+    Path(__file__).parent
+    / "fixtures"
+    / "ingest"
+    / "cursor_chats"
+    / "projhash1234567890abcdefprojhash12"
+    / "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+    / "store.db"
+)
 
 
 @pytest.fixture
 def fixture_roots(
-    monkeypatch: pytest.MonkeyPatch, cursor_root: Path, claude_root: Path
+    monkeypatch: pytest.MonkeyPatch,
+    cursor_root: Path,
+    claude_root: Path,
+    tmp_path_factory: pytest.TempPathFactory,
 ) -> None:
-    """Point the ingest discovery roots at the committed fixtures."""
+    """Point the ingest discovery roots at the committed fixtures.
+
+    Chats root defaults to an empty temp dir so the corpus golden stays
+    agent-transcripts-only unless a test overrides ``STOCKROOM_CURSOR_CHATS_ROOT``.
+    """
     monkeypatch.setenv("STOCKROOM_CURSOR_ROOT", str(cursor_root))
     monkeypatch.setenv("STOCKROOM_CLAUDE_ROOT", str(claude_root))
+    empty_chats = tmp_path_factory.mktemp("empty-cursor-chats")
+    monkeypatch.setenv("STOCKROOM_CURSOR_CHATS_ROOT", str(empty_chats))
 
 
 def _count(con: duckdb.DuckDBPyConnection, table: str) -> int:
@@ -278,14 +297,18 @@ def test_no_fabrication_roundtrip_invariant(
     ``project_id``. This is the core correctness claim — a fabricated path is
     structurally impossible to store, since the only way ``cwd`` is non-NULL is
     that it matched the slug on the way in (Claude's record cwd round-trips too).
+
+    Cursor CLI chats (``entrypoint='cli'``) are exempt: ``project_id`` is the
+    chats hash directory, not an ``encode_for`` slug, while ``cwd`` is an honest
+    Workspace Path extraction.
     """
     _full_ingest(migrated_con, ai_tracking_db)
     rows = migrated_con.execute(
-        "SELECT harness, project_id, cwd FROM sessions"
+        "SELECT harness, project_id, cwd, entrypoint FROM sessions"
     ).fetchall()
     assert rows  # the corpus is non-empty
-    for harness, project_id, cwd in rows:
-        if cwd is not None:
+    for harness, project_id, cwd, entrypoint in rows:
+        if cwd is not None and entrypoint != "cli":
             assert encode_for(harness, cwd) == project_id
 
 
@@ -390,6 +413,7 @@ def _dump_ingest(con: duckdb.DuckDBPyConnection, transcripts_dir: Path) -> dict:
                 "harness_version",
                 "started_at",
                 "ended_at",
+                "entrypoint",
             ],
             "harness, session_id",
             transcripts_dir,
@@ -459,3 +483,241 @@ def test_ingest_output_matches_golden_snapshot(
     assert GOLDEN_PATH.is_file(), f"golden ingest snapshot missing: {GOLDEN_PATH}"
     expected = json.loads(GOLDEN_PATH.read_text(encoding="utf-8"))
     assert actual == expected
+
+
+def _write_minimal_cursor_transcript(path: Path, *, text: str = "ide turn") -> None:
+    """Write a one-user-turn Cursor agent-transcript JSONL at ``path``."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    record = {
+        "role": "user",
+        "message": {"content": [{"type": "text", "text": text}]},
+    }
+    path.write_text(json.dumps(record) + "\n", encoding="utf-8")
+
+
+def test_cursor_collision_prefers_store_db_over_transcript(
+    migrated_con: duckdb.DuckDBPyConnection,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    ai_tracking_db: Path,
+) -> None:
+    """Same Cursor ``session_id`` in chats + transcripts → one row from store.db."""
+    session_id = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+    chats_root = tmp_path / "chats"
+    projects_root = tmp_path / "projects"
+    store_dest = (
+        chats_root / "projhash1234567890abcdefprojhash12" / session_id / "store.db"
+    )
+    store_dest.parent.mkdir(parents=True)
+    shutil.copy2(CURSOR_CHATS_FIXTURE, store_dest)
+    transcript = (
+        projects_root
+        / "home-user-project"
+        / "agent-transcripts"
+        / session_id
+        / f"{session_id}.jsonl"
+    )
+    _write_minimal_cursor_transcript(transcript, text="should not win")
+
+    monkeypatch.setenv("STOCKROOM_CURSOR_CHATS_ROOT", str(chats_root))
+    monkeypatch.setenv("STOCKROOM_CURSOR_ROOT", str(projects_root))
+    monkeypatch.setenv("STOCKROOM_CLAUDE_ROOT", str(tmp_path / "empty-claude"))
+    (tmp_path / "empty-claude").mkdir()
+
+    ingest.ingest(
+        full=True, con=migrated_con, harness="cursor", ai_tracking_db=ai_tracking_db
+    )
+    rows = migrated_con.execute(
+        "SELECT session_id, entrypoint, source_path, title FROM sessions "
+        "WHERE harness = 'cursor'"
+    ).fetchall()
+    assert len(rows) == 1
+    assert rows[0][0] == session_id
+    assert rows[0][1] == "cli"
+    assert rows[0][2] == str(store_dest)
+    assert rows[0][3] == "Fixture Chat"
+
+
+def test_cursor_non_collision_keeps_ide_and_cli(
+    migrated_con: duckdb.DuckDBPyConnection,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    ai_tracking_db: Path,
+) -> None:
+    """Distinct ids: transcript-only stays ``ide``; chats-only stays ``cli``."""
+    chats_root = tmp_path / "chats"
+    projects_root = tmp_path / "projects"
+    cli_id = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+    ide_id = "ffffffff-ffff-ffff-ffff-ffffffffffff"
+    store_dest = chats_root / "projhash1234567890abcdefprojhash12" / cli_id / "store.db"
+    store_dest.parent.mkdir(parents=True)
+    shutil.copy2(CURSOR_CHATS_FIXTURE, store_dest)
+    transcript = (
+        projects_root
+        / "home-user-project"
+        / "agent-transcripts"
+        / ide_id
+        / f"{ide_id}.jsonl"
+    )
+    _write_minimal_cursor_transcript(transcript, text="ide only")
+
+    monkeypatch.setenv("STOCKROOM_CURSOR_CHATS_ROOT", str(chats_root))
+    monkeypatch.setenv("STOCKROOM_CURSOR_ROOT", str(projects_root))
+    monkeypatch.setenv("STOCKROOM_CLAUDE_ROOT", str(tmp_path / "empty-claude"))
+    (tmp_path / "empty-claude").mkdir()
+
+    ingest.ingest(
+        full=True, con=migrated_con, harness="cursor", ai_tracking_db=ai_tracking_db
+    )
+    by_id = {
+        row[0]: row
+        for row in migrated_con.execute(
+            "SELECT session_id, entrypoint, source_path FROM sessions "
+            "WHERE harness = 'cursor'"
+        ).fetchall()
+    }
+    assert set(by_id) == {cli_id, ide_id}
+    assert by_id[cli_id][1] == "cli"
+    assert by_id[cli_id][2] == str(store_dest)
+    assert by_id[ide_id][1] == "ide"
+    assert by_id[ide_id][2] == str(transcript)
+
+
+def test_corrupt_store_db_skips_session_without_aborting_batch(
+    migrated_con: duckdb.DuckDBPyConnection,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    ai_tracking_db: Path,
+) -> None:
+    """
+    One unreadable ``store.db`` must not abort Cursor ingest: the good chat
+    is written, the bad one is absent, and the chats watermark stays put so
+    a later run can retry the skipped store.
+    """
+    chats_root = tmp_path / "chats"
+    projects_root = tmp_path / "projects"
+    projects_root.mkdir()
+    good_id = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+    bad_id = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+    hash_dir = "projhash1234567890abcdefprojhash12"
+    good_store = chats_root / hash_dir / good_id / "store.db"
+    bad_store = chats_root / hash_dir / bad_id / "store.db"
+    good_store.parent.mkdir(parents=True)
+    bad_store.parent.mkdir(parents=True)
+    shutil.copy2(CURSOR_CHATS_FIXTURE, good_store)
+    bad_store.write_text("not-a-database\n", encoding="utf-8")
+
+    monkeypatch.setenv("STOCKROOM_CURSOR_CHATS_ROOT", str(chats_root))
+    monkeypatch.setenv("STOCKROOM_CURSOR_ROOT", str(projects_root))
+    monkeypatch.setenv("STOCKROOM_CLAUDE_ROOT", str(tmp_path / "empty-claude"))
+    (tmp_path / "empty-claude").mkdir()
+
+    ingest.ingest(
+        full=True, con=migrated_con, harness="cursor", ai_tracking_db=ai_tracking_db
+    )
+    rows = migrated_con.execute(
+        "SELECT session_id FROM sessions WHERE harness = 'cursor' ORDER BY 1"
+    ).fetchall()
+    assert rows == [(good_id,)]
+    watermark = migrated_con.execute(
+        "SELECT last_mtime, last_path FROM _sync_state "
+        "WHERE harness = 'cursor' AND source_root = ?",
+        [str(chats_root)],
+    ).fetchone()
+    assert watermark is None
+
+
+def test_cursor_chats_watermark_independent_of_projects(
+    migrated_con: duckdb.DuckDBPyConnection,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    ai_tracking_db: Path,
+) -> None:
+    """Chats and projects roots each get their own ``_sync_state`` row."""
+    chats_root = tmp_path / "chats"
+    projects_root = tmp_path / "projects"
+    cli_id = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+    store_dest = chats_root / "projhash1234567890abcdefprojhash12" / cli_id / "store.db"
+    store_dest.parent.mkdir(parents=True)
+    shutil.copy2(CURSOR_CHATS_FIXTURE, store_dest)
+    ide_id = "ffffffff-ffff-ffff-ffff-ffffffffffff"
+    transcript = (
+        projects_root
+        / "home-user-project"
+        / "agent-transcripts"
+        / ide_id
+        / f"{ide_id}.jsonl"
+    )
+    _write_minimal_cursor_transcript(transcript)
+
+    monkeypatch.setenv("STOCKROOM_CURSOR_CHATS_ROOT", str(chats_root))
+    monkeypatch.setenv("STOCKROOM_CURSOR_ROOT", str(projects_root))
+    monkeypatch.setenv("STOCKROOM_CLAUDE_ROOT", str(tmp_path / "empty-claude"))
+    (tmp_path / "empty-claude").mkdir()
+
+    ingest.ingest(
+        full=True, con=migrated_con, harness="cursor", ai_tracking_db=ai_tracking_db
+    )
+    roots = {
+        row[0]
+        for row in migrated_con.execute(
+            "SELECT source_root FROM _sync_state WHERE harness = 'cursor'"
+        ).fetchall()
+    }
+    assert roots == {str(chats_root), str(projects_root)}
+
+
+def test_claude_entrypoint_round_trips_via_ingest(
+    migrated_con: duckdb.DuckDBPyConnection,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    ai_tracking_db: Path,
+) -> None:
+    """Claude JSONL ``entrypoint: claude-desktop`` persists through full ingest."""
+    claude_root = tmp_path / "claude"
+    session_dir = claude_root / "-tmp-proj"
+    session_dir.mkdir(parents=True)
+    record = {
+        "type": "user",
+        "message": {"role": "user", "content": "hello desktop"},
+        "uuid": "a1111111-0000-4000-8000-000000000099",
+        "parentUuid": None,
+        "timestamp": "2026-07-10T03:22:00.000Z",
+        "sessionId": "desktop-session",
+        "cwd": "/tmp/proj",
+        "entrypoint": "claude-desktop",
+    }
+    (session_dir / "desktop-session.jsonl").write_text(
+        json.dumps(record) + "\n", encoding="utf-8"
+    )
+    monkeypatch.setenv("STOCKROOM_CLAUDE_ROOT", str(claude_root))
+    monkeypatch.setenv("STOCKROOM_CURSOR_ROOT", str(tmp_path / "empty-cursor"))
+    monkeypatch.setenv("STOCKROOM_CURSOR_CHATS_ROOT", str(tmp_path / "empty-chats"))
+    (tmp_path / "empty-cursor").mkdir()
+    (tmp_path / "empty-chats").mkdir()
+
+    ingest.ingest(
+        full=True, con=migrated_con, harness="claude", ai_tracking_db=ai_tracking_db
+    )
+    entrypoint = migrated_con.execute(
+        "SELECT entrypoint FROM sessions WHERE session_id = 'desktop-session'"
+    ).fetchone()[0]
+    assert entrypoint == "claude-desktop"
+
+
+def test_corpus_cursor_sessions_stamp_entrypoint_ide(
+    migrated_con: duckdb.DuckDBPyConnection,
+    fixture_roots: None,
+    ai_tracking_db: Path,
+) -> None:
+    """Committed agent-transcript corpus sessions synthesize ``entrypoint='ide'``."""
+    ingest.ingest(
+        full=True, con=migrated_con, harness="cursor", ai_tracking_db=ai_tracking_db
+    )
+    values = {
+        row[0]
+        for row in migrated_con.execute(
+            "SELECT DISTINCT entrypoint FROM sessions WHERE harness = 'cursor'"
+        ).fetchall()
+    }
+    assert values == {"ide"}

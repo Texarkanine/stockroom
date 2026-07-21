@@ -21,16 +21,62 @@ def test_root_env_overrides(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> 
     """The ``STOCKROOM_*_ROOT`` env vars override the default harness roots."""
     monkeypatch.setenv("STOCKROOM_CURSOR_ROOT", str(tmp_path / "cur"))
     monkeypatch.setenv("STOCKROOM_CLAUDE_ROOT", str(tmp_path / "cla"))
+    monkeypatch.setenv("STOCKROOM_CURSOR_CHATS_ROOT", str(tmp_path / "chats"))
     assert sources.cursor_root() == tmp_path / "cur"
     assert sources.claude_root() == tmp_path / "cla"
+    assert sources.cursor_chats_root() == tmp_path / "chats"
 
 
 def test_default_roots_when_env_absent(monkeypatch: pytest.MonkeyPatch) -> None:
     """Absent env vars fall back to ``~/.cursor`` and ``~/.claude`` projects."""
     monkeypatch.delenv("STOCKROOM_CURSOR_ROOT", raising=False)
     monkeypatch.delenv("STOCKROOM_CLAUDE_ROOT", raising=False)
+    monkeypatch.delenv("STOCKROOM_CURSOR_CHATS_ROOT", raising=False)
     assert sources.cursor_root() == Path.home() / ".cursor" / "projects"
     assert sources.claude_root() == Path.home() / ".claude" / "projects"
+    assert sources.cursor_chats_root() == Path.home() / ".cursor" / "chats"
+
+
+def test_discover_cursor_chats_finds_store_db(tmp_path: Path) -> None:
+    """Chats discovery finds ``<hash>/<agentId>/store.db`` with hash as project_id."""
+    store = (
+        tmp_path
+        / "deadbeefcafebabe0123456789abcdef"
+        / "11111111-2222-3333-4444-555555555555"
+        / "store.db"
+    )
+    store.parent.mkdir(parents=True)
+    store.write_bytes(b"sqlite-placeholder")
+    # decoys that must not be discovered
+    (tmp_path / "orphan.db").write_bytes(b"x")
+    decoy_dir = tmp_path / "hashonly" / "agent-dir"
+    decoy_dir.mkdir(parents=True)
+    (decoy_dir / "not-a-store.txt").write_text("nope", encoding="utf-8")
+
+    found = sources.discover_cursor_chats(tmp_path)
+    assert len(found) == 1
+    d = found[0]
+    assert d.harness == "cursor"
+    assert d.session_path == store
+    assert d.project_id == "deadbeefcafebabe0123456789abcdef"
+    assert d.subagent_paths == []
+    assert d.mtime is not None
+    assert d.mtime.tzinfo is None
+
+
+def test_discover_cursor_chats_sorted_by_path(tmp_path: Path) -> None:
+    """Chats discovery returns stores sorted by path for deterministic ingest."""
+    stores = []
+    for agent in (
+        "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+        "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    ):
+        p = tmp_path / "hash1" / agent / "store.db"
+        p.parent.mkdir(parents=True)
+        p.write_bytes(b"x")
+        stores.append(p)
+    found = sources.discover_cursor_chats(tmp_path)
+    assert [d.session_path for d in found] == sorted(stores)
 
 
 def test_discover_cursor_enumerates_sessions_and_subagents(cursor_root: Path) -> None:

@@ -75,7 +75,7 @@ class NormalizedSession:
     primary-key grain; ``source_path`` is the absolute path to the ``.jsonl``
     (provenance + the watermark key), and ``source_mtime`` is that transcript's
     mtime at discovery as naive UTC (a durable, harness-uniform provenance
-    time).     Workspace identity is three single-meaning fields: ``project_id`` is
+    time). Workspace identity is three single-meaning fields: ``project_id`` is
     the harness's encoded project-dir slug stored *verbatim* (always present,
     the harness identity), ``cwd`` is the real project-root path — best-effort
     and honestly ``None`` when it cannot be recovered (never fabricated from
@@ -89,6 +89,9 @@ class NormalizedSession:
     (same dual-grain honesty — parsers fill only the grain the harness
     reports; never invent one from the other); ``started_at``/``ended_at``
     are Claude's min/max timestamps (naive UTC) and ``None`` for Cursor.
+    ``entrypoint`` is surface provenance: Claude passes through a native JSONL
+    value when present; Cursor synthesizes from ingest source (``cli`` /
+    ``ide``). ``None`` when unknown.
     """
 
     harness: str
@@ -114,4 +117,5 @@ class NormalizedSession:
     output_tokens: int | None = None
     cache_creation_tokens: int | None = None
     cache_read_tokens: int | None = None
+    entrypoint: str | None = None
     messages: list[NormalizedMessage] = field(default_factory=list)

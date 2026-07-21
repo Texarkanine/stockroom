@@ -64,6 +64,55 @@ def test_parse_session_rejects_non_string_timestamps(tmp_path: Path) -> None:
         assert session.started_at is None
 
 
+def _write_session_with_entrypoint(path: Path, *, entrypoint: str | None) -> Path:
+    """Write a minimal Claude transcript optionally carrying ``entrypoint``."""
+    record = {
+        "type": "user",
+        "message": {"role": "user", "content": "hello"},
+        "uuid": "a1111111-0000-4000-8000-000000000001",
+        "parentUuid": None,
+        "timestamp": "2026-07-10T03:22:00.000Z",
+        "sessionId": "ep-session",
+        "cwd": "/tmp/proj",
+    }
+    if entrypoint is not None:
+        record["entrypoint"] = entrypoint
+    path.write_text(json.dumps(record) + "\n", encoding="utf-8")
+    return path
+
+
+def test_parse_session_passthrough_entrypoint_cli(tmp_path: Path) -> None:
+    """Native ``entrypoint: cli`` on a record becomes ``session.entrypoint``."""
+    path = _write_session_with_entrypoint(tmp_path / "cli.jsonl", entrypoint="cli")
+    session = claude.parse_session(path)
+    assert session.entrypoint == "cli"
+
+
+def test_parse_session_passthrough_entrypoint_claude_desktop(tmp_path: Path) -> None:
+    """Native ``entrypoint: claude-desktop`` is stored as the raw string."""
+    path = _write_session_with_entrypoint(
+        tmp_path / "desktop.jsonl", entrypoint="claude-desktop"
+    )
+    session = claude.parse_session(path)
+    assert session.entrypoint == "claude-desktop"
+
+
+def test_parse_session_missing_entrypoint_is_none(tmp_path: Path) -> None:
+    """Absent ``entrypoint`` leaves ``session.entrypoint`` as ``None``."""
+    path = _write_session_with_entrypoint(tmp_path / "none.jsonl", entrypoint=None)
+    session = claude.parse_session(path)
+    assert session.entrypoint is None
+
+
+def test_parse_session_unknown_entrypoint_stored_raw(tmp_path: Path) -> None:
+    """Unknown entrypoint strings are stored verbatim (no allowlist)."""
+    path = _write_session_with_entrypoint(
+        tmp_path / "weird.jsonl", entrypoint="future-surface"
+    )
+    session = claude.parse_session(path)
+    assert session.entrypoint == "future-surface"
+
+
 _BASE = "-home-user-project"
 
 

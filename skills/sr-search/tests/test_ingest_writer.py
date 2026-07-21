@@ -194,6 +194,28 @@ def test_write_session_persists_session_token_fields(
     assert row == (1000, 200, 10, 50)
 
 
+def test_write_session_persists_entrypoint(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """``NormalizedSession.entrypoint`` persists to ``sessions.entrypoint``."""
+    writer.write_session(migrated_con, _session(entrypoint="cli"))
+    stored = migrated_con.execute(
+        "SELECT entrypoint FROM sessions WHERE session_id = 's1'"
+    ).fetchone()[0]
+    assert stored == "cli"
+
+
+def test_write_session_leaves_entrypoint_null_when_unset(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Unset ``entrypoint`` stays NULL on the sessions row."""
+    writer.write_session(migrated_con, _session())
+    stored = migrated_con.execute(
+        "SELECT entrypoint FROM sessions WHERE session_id = 's1'"
+    ).fetchone()[0]
+    assert stored is None
+
+
 def test_write_session_leaves_session_tokens_null_when_unset(
     migrated_con: duckdb.DuckDBPyConnection,
 ) -> None:

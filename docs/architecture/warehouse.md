@@ -14,6 +14,8 @@ The warehouse is a single-file DuckDB database under stockroom home (`$XDG_DATA_
 
 Per-harness parsers emit shared dataclasses; the writer is the only SQL touchpoint. Default ingest is incremental (per-harness watermarks in `_sync_state`). The warehouse is allowed to **outlive its sources**: rows whose transcripts later vanish are never pruned. Observation-time fields (for example `messages.first_seen_at`) are not rebuildable from sources alone — that is why “delete and re-ingest” is not a free reset of every column.
 
+Cursor has two discovery roots (IDE `agent-transcripts` and Agent CLI `store.db` chats) with independent watermarks; on `session_id` collision the chats store wins. CLI parsing is fail-soft: a locked/corrupt `store.db` or unrecognized root-blob layout skips that session without aborting the batch (and without advancing the chats watermark), while committed fixture tests fail loudly when the known layout drifts.
+
 ### Read-only by construction
 
 The read surfaces (`query`, `semantic`) open the warehouse read-only at the connection level — DuckDB itself rejects writes through them. “You cannot corrupt anything by querying” is a property of the connection mode, not of good manners.
@@ -33,6 +35,13 @@ Kept fields are stored whole. Truncation is a **read-time** display bound so one
 ### Harness-labeled identity
 
 Every row carries a `harness` column. Columns mean one thing independent of harness — extraction may differ; meaning must not. Identity is uniform: `(harness, session_id)` for sessions, `message_id = '{session_id}#{ordinal}'` for messages. Native harness identifiers are demoted to `source_*` provenance — kept for traceability, never used as join keys, because they exist at different grains and formats per harness. A value that only exists for one harness is `NULL` for the other, never fabricated.
+
+`sessions.entrypoint` is nullable surface provenance within a harness, e.g.
+
+* Claude Code text UI vs Claude Code desktop app?
+* Cursor IDE vs `agent` CLI?
+
+Values are taken from source data verbatim if present, synthesized based on our knowledge of harness' data provenance if not.
 
 ### Workspace identity
 

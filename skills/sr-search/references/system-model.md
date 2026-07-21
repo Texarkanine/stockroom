@@ -22,6 +22,8 @@ A missing torch is therefore an *environment* problem, never a query problem: no
 
 The warehouse (a single-file DuckDB database) is rebuildable ETL output: ingestion re-derives it from the harnesses' own session records, so it is never the system of record. The read surfaces (`query`, `semantic`) open it read-only at the connection level — DuckDB itself rejects any write attempted through them. "You cannot corrupt anything by querying" is a property of the connection mode, not of good behavior.
 
+Cursor Agent CLI chats (`store.db`) are parsed best-effort: locked, corrupt, or layout-drifted stores skip that session and leave the chats watermark unadvanced so a later ingest can retry — they do not abort the whole Cursor batch. Empty/meta-only stores still land as sessions with zero messages. Fixture tests fail loudly when the known root-hash layout changes; production ingest does not.
+
 ## No Truncation at Rest
 
 Everything is stored whole: full message text, full tool inputs. Truncation happens only at *read time*, as a display bound that keeps one fat column from flooding an agent's context window. The elision marker (`…(+N)`) reports exactly how much was withheld, which is what makes the scan-narrow-then-refetch pattern safe: the full content is always still there, one targeted re-fetch away. `--detail full` is unbounded but still single-line (table/TSV-safe); `--format json --detail raw` is the exact-whitespace escape hatch when newlines must match storage.
