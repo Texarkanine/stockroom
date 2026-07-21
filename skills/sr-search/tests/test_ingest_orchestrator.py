@@ -505,7 +505,9 @@ def test_cursor_collision_prefers_store_db_over_transcript(
     session_id = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
     chats_root = tmp_path / "chats"
     projects_root = tmp_path / "projects"
-    store_dest = chats_root / "projhash1234567890abcdefprojhash12" / session_id / "store.db"
+    store_dest = (
+        chats_root / "projhash1234567890abcdefprojhash12" / session_id / "store.db"
+    )
     store_dest.parent.mkdir(parents=True)
     shutil.copy2(CURSOR_CHATS_FIXTURE, store_dest)
     transcript = (

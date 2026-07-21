@@ -67,7 +67,10 @@ def test_discover_cursor_chats_finds_store_db(tmp_path: Path) -> None:
 def test_discover_cursor_chats_sorted_by_path(tmp_path: Path) -> None:
     """Chats discovery returns stores sorted by path for deterministic ingest."""
     stores = []
-    for agent in ("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb", "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"):
+    for agent in (
+        "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+        "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    ):
         p = tmp_path / "hash1" / agent / "store.db"
         p.parent.mkdir(parents=True)
         p.write_bytes(b"x")

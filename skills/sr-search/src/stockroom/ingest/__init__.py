@@ -32,7 +32,15 @@ from pathlib import Path
 import duckdb
 
 from stockroom import warehouse
-from stockroom.ingest import claude, cursor, cursor_chats, enrich, paths, sources, writer
+from stockroom.ingest import (
+    claude,
+    cursor,
+    cursor_chats,
+    enrich,
+    paths,
+    sources,
+    writer,
+)
 from stockroom.ingest.model import NormalizedSession
 
 #: Optional progress reporter: one human-readable line per call (CLI wires print).
@@ -178,9 +186,7 @@ def _select_for_root(
     if full:
         return list(discovered)
     last_mtime, last_path = _read_watermark(con, harness, str(root))
-    return sources.select_new(
-        discovered, last_mtime=last_mtime, last_path=last_path
-    )
+    return sources.select_new(discovered, last_mtime=last_mtime, last_path=last_path)
 
 
 def _advance_watermark(
@@ -221,7 +227,9 @@ def _write_discovered(
             summary.messages += len(session.messages)
             summary.tool_calls += sum(len(m.tool_calls) for m in session.messages)
         if on_progress is not None:
-            on_progress(f"{harness}: {progress_offset + index}/{progress_total} sessions")
+            on_progress(
+                f"{harness}: {progress_offset + index}/{progress_total} sessions"
+            )
     return len(selected)
 
 
@@ -265,9 +273,7 @@ def _ingest_cursor(
     if on_progress is not None:
         on_progress(f"cursor: {total} sessions")
 
-    db_path = (
-        ai_tracking_db if ai_tracking_db is not None else enrich.default_db_path()
-    )
+    db_path = ai_tracking_db if ai_tracking_db is not None else enrich.default_db_path()
     enrichment = enrich.read_enrichment(db_path)
 
     offset = _write_discovered(

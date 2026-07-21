@@ -56,3 +56,16 @@ Ingest Cursor Agent CLI chats under `harness='cursor'`, pass through Claude nati
     - Proceeding with plan steps 1–9 in order under TDD
 * Insights
     - None yet
+
+## 2026-07-21 - BUILD - COMPLETE
+
+* Work completed
+    - Schema 0008 `sessions.entrypoint`; writer/model; Claude passthrough; Cursor `ide`/`cli`
+    - `cursor_chats` ordered root-hash parser + synthetic fixture
+    - Dual-root discovery/orchestrator with store.db collision preference
+    - Docs + full suite verification (648 pytest + 92 JS)
+* Decisions made
+    - Collision filter uses all discovered chat ids; CLI exempt from encode_for roundtrip
+    - Head-pin tests advanced to migration 0008
+* Insights
+    - Existing Claude fixtures already carry native `entrypoint: cli` — golden picked it up

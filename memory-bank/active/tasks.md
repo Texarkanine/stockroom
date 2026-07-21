@@ -126,7 +126,7 @@ flowchart LR
     - Changes: ingest chats with its `source_root` watermark; build id set; filter transcript discoveries; parse via correct parser; stamp project_id (hash dir) / cwd recovery
 8. [x] **Docs** — document chats root, `entrypoint`, collision preference, `--full` backfill
     - Files: `docs/user-guide/ingest.md`, `docs/architecture/warehouse.md`, sr-query skill schema column list (`.cursor/skills/stockroom-local/sr-query/SKILL.md` and packaged twin under `skills/` if present)
-9. [ ] **Verification** — full `skills/sr-search` test suite; manual `stockroom ingest --full` smoke optional
+9. [x] **Verification** — full `skills/sr-search` test suite; manual `stockroom ingest --full` smoke optional
 
 ## Technology Validation
 
@@ -156,7 +156,7 @@ No new technology - validation not required (stdlib `sqlite3` + existing DuckDB/
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight
-- [ ] Build
+- [x] Build
 - [ ] QA
 
 ## Preflight Amendments

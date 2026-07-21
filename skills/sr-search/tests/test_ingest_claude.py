@@ -64,9 +64,7 @@ def test_parse_session_rejects_non_string_timestamps(tmp_path: Path) -> None:
         assert session.started_at is None
 
 
-def _write_session_with_entrypoint(
-    path: Path, *, entrypoint: str | None
-) -> Path:
+def _write_session_with_entrypoint(path: Path, *, entrypoint: str | None) -> Path:
     """Write a minimal Claude transcript optionally carrying ``entrypoint``."""
     record = {
         "type": "user",

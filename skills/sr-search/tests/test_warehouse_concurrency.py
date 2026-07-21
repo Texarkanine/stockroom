@@ -18,7 +18,7 @@ from stockroom import migrate, warehouse
 from stockroom.warehouse import WarehouseBusyError
 
 _PRODUCT_TABLES = {"sessions", "messages", "tool_calls", "embeddings", "_sync_state"}
-_HEAD_VERSION = 7
+_HEAD_VERSION = 8
 
 
 def _create_current_warehouse() -> None:

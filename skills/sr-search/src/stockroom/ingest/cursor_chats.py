@@ -45,9 +45,7 @@ _MESSAGE_ROLES = {"user", "assistant"}
 _ROOT_FIELD_TAG = 0x0A
 _HASH_LEN = 32
 
-_WORKSPACE_PATH_RE = re.compile(
-    r"^Workspace Path:\s*(.+?)\s*$", re.MULTILINE
-)
+_WORKSPACE_PATH_RE = re.compile(r"^Workspace Path:\s*(.+?)\s*$", re.MULTILINE)
 
 
 def _read_meta(con: sqlite3.Connection) -> dict[str, Any]:

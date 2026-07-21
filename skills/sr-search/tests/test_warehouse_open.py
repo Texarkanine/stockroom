@@ -17,10 +17,10 @@ import pytest
 from stockroom import migrate, warehouse
 from stockroom.migrations import discover
 from test_schema_0003 import _introspect_schema
-from test_schema_0007 import SNAPSHOT_PATH
+from test_schema_0008 import SNAPSHOT_PATH
 
 _PRODUCT_TABLES = {"sessions", "messages", "tool_calls", "embeddings", "_sync_state"}
-_HEAD_VERSION = 7
+_HEAD_VERSION = 8
 
 
 def _table_names(con: duckdb.DuckDBPyConnection) -> set[str]:
@@ -193,8 +193,8 @@ def test_open_current_refuses_stale_schema_without_migrating(
 def test_migrated_warehouse_matches_locked_snapshot(warehouse_home: Path) -> None:
     """A freshly opened warehouse's product schema byte-matches the head snapshot.
 
-    Reuses the schema-introspection helper against the *cumulative* post-``0007``
-    golden (``0007_snapshot.json``: columns + PKs + the HNSW index; the VIEW
+    Reuses the schema-introspection helper against the *cumulative* post-``0008``
+    golden (``0008_snapshot.json``: columns + PKs + the HNSW index; the VIEW
     ``session_token_usage`` appears via ``duckdb_columns``). The runner-owned
     ``schema_version`` bookkeeping table is excluded by the helper (it is not
     part of any product migration), proving the migration framework produces
