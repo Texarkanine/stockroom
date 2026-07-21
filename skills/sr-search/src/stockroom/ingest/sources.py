@@ -9,9 +9,13 @@ incremental watermark.
 
 On-disk layouts (reverse-engineered, clean-room):
 
-* **Cursor** — ``<root>/<encoded-project>/agent-transcripts/<conv>/<conv>.jsonl``
+* **Cursor IDE** — ``<projects-root>/<encoded-project>/agent-transcripts/<conv>/<conv>.jsonl``
   with subagents at ``<conv>/subagents/*.jsonl``. The conversation id is the
   file stem (which equals its directory name).
+* **Cursor CLI** — ``<chats-root>/<project-hash>/<agentId>/store.db`` (SQLite).
+  The conversation id is the ``agentId`` directory name; ``project_id`` is the
+  parent hash directory. Discovered via :func:`discover_cursor_chats` with its
+  own ``source_root`` watermark (independent of the projects root).
 * **Claude** — ``<root>/<encoded-cwd>/<sessionId>.jsonl`` with subagents at
   ``<sessionId>/subagents/agent-*.jsonl`` (each beside a ``.meta.json``). The
   nested ``<sessionId>/`` directory is *not* itself a session.
@@ -33,6 +37,7 @@ from stockroom.timestamps import utc_from_timestamp
 
 #: Env vars overriding the harness roots (mirroring warehouse's STOCKROOM_HOME).
 CURSOR_ROOT_ENV_VAR = "STOCKROOM_CURSOR_ROOT"
+CURSOR_CHATS_ROOT_ENV_VAR = "STOCKROOM_CURSOR_CHATS_ROOT"
 CLAUDE_ROOT_ENV_VAR = "STOCKROOM_CLAUDE_ROOT"
 
 
@@ -68,6 +73,11 @@ def _resolve_root(env_var: str, default: Path) -> Path:
 def cursor_root() -> Path:
     """Return the Cursor projects root (``STOCKROOM_CURSOR_ROOT`` or default)."""
     return _resolve_root(CURSOR_ROOT_ENV_VAR, Path.home() / ".cursor" / "projects")
+
+
+def cursor_chats_root() -> Path:
+    """Return the Cursor Agent CLI chats root (``STOCKROOM_CURSOR_CHATS_ROOT`` or default)."""
+    return _resolve_root(CURSOR_CHATS_ROOT_ENV_VAR, Path.home() / ".cursor" / "chats")
 
 
 def claude_root() -> Path:
@@ -111,6 +121,45 @@ def _discover_cursor(root: Path) -> list[DiscoveredSession]:
                 )
             )
     return sessions
+
+
+def _discover_cursor_chats(root: Path) -> list[DiscoveredSession]:
+    """Find ``store.db`` files under ``<hash>/<agentId>/store.db``."""
+    sessions: list[DiscoveredSession] = []
+    if not root.is_dir():
+        return sessions
+    for project_dir in root.iterdir():
+        if not project_dir.is_dir():
+            continue
+        project_id = project_dir.name
+        for agent_dir in project_dir.iterdir():
+            if not agent_dir.is_dir():
+                continue
+            store = agent_dir / "store.db"
+            if not store.is_file():
+                continue
+            sessions.append(
+                DiscoveredSession(
+                    harness="cursor",
+                    session_path=store,
+                    subagent_paths=[],
+                    project_id=project_id,
+                    mtime=_mtime(store),
+                )
+            )
+    return sessions
+
+
+def discover_cursor_chats(root: Path | None = None) -> list[DiscoveredSession]:
+    """Enumerate Cursor Agent CLI ``store.db`` sessions, sorted by path.
+
+    ``root`` defaults to :func:`cursor_chats_root`. Each discovery uses the
+    chats root as its independent ``_sync_state`` ``source_root``.
+    """
+    resolved = root if root is not None else cursor_chats_root()
+    found = _discover_cursor_chats(Path(resolved))
+    found.sort(key=lambda d: str(d.session_path))
+    return found
 
 
 def _discover_claude(root: Path) -> list[DiscoveredSession]:

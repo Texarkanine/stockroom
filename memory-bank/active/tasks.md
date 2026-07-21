@@ -118,7 +118,7 @@ flowchart LR
 5. [x] **Cursor CLI store.db parser** — TDD against fixture (creative: root-hash walk)
     - Files: new `ingest/cursor_chats.py`, `tests/test_ingest_cursor_chats.py`, `tests/fixtures/ingest/cursor_chats/`
     - Changes: parse meta + ordered blobs → `NormalizedSession` (`entrypoint='cli'`)
-6. [ ] **Discovery of chats root** — TDD
+6. [x] **Discovery of chats root** — TDD
     - Files: `ingest/sources.py`, `tests/test_ingest_sources.py`
     - Changes: `CURSOR_CHATS_ROOT_ENV_VAR`, `cursor_chats_root()`, `_discover_cursor_chats()`, surface via discover API or dedicated function used by orchestrator
 7. [ ] **Orchestrator: dual Cursor roots + collision preference** — TDD first (`test_ingest_orchestrator.py` / golden `expected_rows.json` as needed), then implement
