@@ -104,7 +104,7 @@ flowchart LR
 
 ## Implementation Plan
 
-1. [ ] **Schema 0008** — TDD: failing schema test → `0008_entrypoint.sql` + golden snapshot update
+1. [x] **Schema 0008** — TDD: failing schema test → `0008_entrypoint.sql` + golden snapshot update
     - Files: `migrations/0008_entrypoint.sql`, `tests/test_schema_0008.py`, `tests/fixtures/schema/*`
     - Changes: `ALTER TABLE sessions ADD COLUMN entrypoint TEXT;`
 2. [ ] **Model + writer** — TDD writer asserts column
