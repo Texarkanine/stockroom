@@ -139,6 +139,8 @@ def _parse_discovered(
     if harness == "cursor":
         if discovered.session_path.name == "store.db":
             main = cursor_chats.parse_session(discovered.session_path)
+            if main is None:
+                return []
             main.project_id = discovered.project_id
             if main.cwd is None:
                 main.cwd = paths.resolve_cwd(
@@ -218,10 +220,19 @@ def _write_discovered(
     on_progress: ProgressCallback | None,
     progress_offset: int,
     progress_total: int,
-) -> int:
-    """Parse+write each selected discovery; return how many were processed."""
+) -> tuple[int, bool]:
+    """Parse+write each selected discovery.
+
+    Returns ``(selected_count, all_ok)``. ``all_ok`` is ``False`` when any
+    Cursor CLI ``store.db`` discovery was skipped (parser returned ``None``),
+    so the caller can leave that root's watermark unadvanced for retry.
+    """
+    all_ok = True
     for index, discovered_session in enumerate(selected, start=1):
-        for session in _parse_discovered(harness, discovered_session, enrichment):
+        sessions = _parse_discovered(harness, discovered_session, enrichment)
+        if discovered_session.session_path.name == "store.db" and not sessions:
+            all_ok = False
+        for session in sessions:
             writer.write_session(con, session)
             summary.sessions += 1
             summary.messages += len(session.messages)
@@ -230,7 +241,7 @@ def _write_discovered(
             on_progress(
                 f"{harness}: {progress_offset + index}/{progress_total} sessions"
             )
-    return len(selected)
+    return len(selected), all_ok
 
 
 def _ingest_cursor(
@@ -276,7 +287,7 @@ def _ingest_cursor(
     db_path = ai_tracking_db if ai_tracking_db is not None else enrich.default_db_path()
     enrichment = enrich.read_enrichment(db_path)
 
-    offset = _write_discovered(
+    offset, chats_ok = _write_discovered(
         con,
         "cursor",
         chats_selected,
@@ -297,7 +308,8 @@ def _ingest_cursor(
         progress_total=total,
     )
 
-    _advance_watermark(con, "cursor", chats_root, chats_discovered)
+    if chats_ok:
+        _advance_watermark(con, "cursor", chats_root, chats_discovered)
     _advance_watermark(con, "cursor", projects_root, transcripts_discovered)
     return summary
 

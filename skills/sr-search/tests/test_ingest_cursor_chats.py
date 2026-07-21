@@ -110,6 +110,7 @@ def test_parse_session_empty_when_missing_root(tmp_path: Path) -> None:
         blobs={},
     )
     session = cursor_chats.parse_session(store)
+    assert session is not None
     assert session.session_id == agent
     assert session.entrypoint == "cli"
     assert session.messages == []
@@ -147,5 +148,19 @@ def test_parse_session_skips_corrupt_leaf_continues(tmp_path: Path) -> None:
         blobs={uid: user, oid: opaque, aid: assistant, rid: root_b},
     )
     session = cursor_chats.parse_session(store)
+    assert session is not None
     assert [m.role for m in session.messages] == ["user", "assistant"]
     assert [m.text for m in session.messages] == ["hi", "yo"]
+
+
+def test_parse_session_returns_none_for_non_sqlite_file(tmp_path: Path) -> None:
+    """
+    A path that is not a readable SQLite database must not raise out of
+    ``parse_session`` — it returns ``None`` so the orchestrator can skip
+    that discovery and continue the batch.
+    """
+    agent = "dddddddd-dddd-dddd-dddd-dddddddddddd"
+    store = tmp_path / agent / "store.db"
+    store.parent.mkdir(parents=True)
+    store.write_text("this is not a sqlite database\n", encoding="utf-8")
+    assert cursor_chats.parse_session(store) is None

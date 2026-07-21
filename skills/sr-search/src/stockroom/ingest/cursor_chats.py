@@ -18,6 +18,8 @@ Parsing rules:
 * Drop ``system``, ``tool`` (tool-result), non-JSON / corrupt leaves
 * Content parts: ``text`` kept; ``tool-call`` → tool call; ``reasoning`` dropped
 * Dense ordinals over kept turns; linear ``parent_ordinal``
+* Unreadable SQLite (locked / corrupt / not a DB) → ``parse_session`` returns
+  ``None``; the orchestrator skips that discovery without aborting the batch
 
 ``project_id`` is the parent hash directory and is stamped by the orchestrator
 from discovery (same pattern as the IDE parser).
@@ -196,22 +198,29 @@ def _parse_messages(
     return messages, cwd
 
 
-def parse_session(path: Path) -> NormalizedSession:
+def parse_session(path: Path) -> NormalizedSession | None:
     """Parse a Cursor Agent CLI ``store.db`` into a :class:`NormalizedSession`.
 
     ``session_id`` / ``agent_id`` are the parent directory name (``meta.agentId``).
     ``entrypoint`` is synthesized as ``cli``. Kept turns are JSON ``user`` /
     ``assistant`` leaves in root order; ``system``, ``tool``, reasoning parts,
     and non-JSON leaves are skipped.
+
+    Returns ``None`` when the file cannot be opened or read as SQLite
+    (``sqlite3.OperationalError`` / ``sqlite3.DatabaseError``) so the
+    orchestrator can skip that discovery without aborting the batch.
     """
     path = Path(path)
     session_id = path.parent.name
-    con = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
     try:
-        meta = _read_meta(con)
-        blobs = _load_blobs(con)
-    finally:
-        con.close()
+        con = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+        try:
+            meta = _read_meta(con)
+            blobs = _load_blobs(con)
+        finally:
+            con.close()
+    except (sqlite3.OperationalError, sqlite3.DatabaseError):
+        return None
 
     root_id = meta.get("latestRootBlobId")
     ordered_ids: list[str] = []

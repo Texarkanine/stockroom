@@ -14,6 +14,8 @@ The warehouse is a single-file DuckDB database under stockroom home (`$XDG_DATA_
 
 Per-harness parsers emit shared dataclasses; the writer is the only SQL touchpoint. Default ingest is incremental (per-harness watermarks in `_sync_state`). The warehouse is allowed to **outlive its sources**: rows whose transcripts later vanish are never pruned. Observation-time fields (for example `messages.first_seen_at`) are not rebuildable from sources alone — that is why “delete and re-ingest” is not a free reset of every column.
 
+Cursor has two discovery roots (IDE `agent-transcripts` and Agent CLI `store.db` chats) with independent watermarks; on `session_id` collision the chats store wins. CLI parsing is fail-soft: a locked/corrupt `store.db` or unrecognized root-blob layout skips that session without aborting the batch (and without advancing the chats watermark), while committed fixture tests fail loudly when the known layout drifts.
+
 ### Read-only by construction
 
 The read surfaces (`query`, `semantic`) open the warehouse read-only at the connection level — DuckDB itself rejects writes through them. “You cannot corrupt anything by querying” is a property of the connection mode, not of good manners.

@@ -583,6 +583,50 @@ def test_cursor_non_collision_keeps_ide_and_cli(
     assert by_id[ide_id][2] == str(transcript)
 
 
+def test_corrupt_store_db_skips_session_without_aborting_batch(
+    migrated_con: duckdb.DuckDBPyConnection,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    ai_tracking_db: Path,
+) -> None:
+    """
+    One unreadable ``store.db`` must not abort Cursor ingest: the good chat
+    is written, the bad one is absent, and the chats watermark stays put so
+    a later run can retry the skipped store.
+    """
+    chats_root = tmp_path / "chats"
+    projects_root = tmp_path / "projects"
+    projects_root.mkdir()
+    good_id = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+    bad_id = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+    hash_dir = "projhash1234567890abcdefprojhash12"
+    good_store = chats_root / hash_dir / good_id / "store.db"
+    bad_store = chats_root / hash_dir / bad_id / "store.db"
+    good_store.parent.mkdir(parents=True)
+    bad_store.parent.mkdir(parents=True)
+    shutil.copy2(CURSOR_CHATS_FIXTURE, good_store)
+    bad_store.write_text("not-a-database\n", encoding="utf-8")
+
+    monkeypatch.setenv("STOCKROOM_CURSOR_CHATS_ROOT", str(chats_root))
+    monkeypatch.setenv("STOCKROOM_CURSOR_ROOT", str(projects_root))
+    monkeypatch.setenv("STOCKROOM_CLAUDE_ROOT", str(tmp_path / "empty-claude"))
+    (tmp_path / "empty-claude").mkdir()
+
+    ingest.ingest(
+        full=True, con=migrated_con, harness="cursor", ai_tracking_db=ai_tracking_db
+    )
+    rows = migrated_con.execute(
+        "SELECT session_id FROM sessions WHERE harness = 'cursor' ORDER BY 1"
+    ).fetchall()
+    assert rows == [(good_id,)]
+    watermark = migrated_con.execute(
+        "SELECT last_mtime, last_path FROM _sync_state "
+        "WHERE harness = 'cursor' AND source_root = ?",
+        [str(chats_root)],
+    ).fetchone()
+    assert watermark is None
+
+
 def test_cursor_chats_watermark_independent_of_projects(
     migrated_con: duckdb.DuckDBPyConnection,
     monkeypatch: pytest.MonkeyPatch,

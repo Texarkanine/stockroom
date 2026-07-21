@@ -41,7 +41,7 @@ Key insights:
 
 **Rationale**: Only approach that yields correct order for chats-only sessions (the common case) without inventing sort keys, while staying a single-source clean-room parser aligned with existing ingest contracts.
 
-**Tradeoff**: Depends on Cursor keeping the root as a flat hash list. If the layout changes, tests against fixture `store.db`s fail loudly; we do not parse arbitrary protobuf schemas beyond “repeated 32-byte length-delimited fields.”
+**Tradeoff**: Depends on Cursor keeping the root as a flat hash list. Production parsing fails soft (empty / partial order, or skip the session on sqlite errors) so ingest continues; tests against fixture `store.db`s fail loudly to expose drift. We do not parse arbitrary protobuf schemas beyond “repeated 32-byte length-delimited fields.”
 
 ## Implementation Notes
 
