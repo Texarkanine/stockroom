@@ -38,6 +38,12 @@ def test_simple_conversation_dense_ordinals_linear_parents(cursor_root: Path) ->
     assert parents == [None, 0, 1, 2]
 
 
+def test_parse_session_stamps_entrypoint_ide(cursor_root: Path) -> None:
+    """Agent-transcript sessions synthesize ``entrypoint='ide'`` from provenance."""
+    session = cursor.parse_session(_conv(cursor_root, "simple-conversation"))
+    assert session.entrypoint == "ide"
+
+
 def test_cursor_has_no_model_or_token_or_ts_grain(cursor_root: Path) -> None:
     """Cursor exposes no per-message model/tokens/timestamp — all honestly None."""
     session = cursor.parse_session(_conv(cursor_root, "simple-conversation"))

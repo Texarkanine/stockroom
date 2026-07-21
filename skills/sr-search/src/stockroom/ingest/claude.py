@@ -228,8 +228,8 @@ def _fold_metadata(records: list[dict]) -> dict:
     """Collect session-level fields scattered across the record stream.
 
     Title prefers a user-set ``custom-title`` over the generated ``ai-title``.
-    The first-seen ``cwd``/``gitBranch``/``version``/``sessionId``/``agentId``
-    wins (they are stable within a session).
+    The first-seen ``cwd``/``gitBranch``/``version``/``sessionId``/``agentId``/
+    ``entrypoint`` wins (they are stable within a session).
     """
     info: dict = {}
     for record in records:
@@ -246,6 +246,7 @@ def _fold_metadata(records: list[dict]) -> dict:
             ("version", "version"),
             ("sessionId", "session_id"),
             ("agentId", "agent_id"),
+            ("entrypoint", "entrypoint"),
         ):
             if record_key in record and info.get(info_key) is None:
                 info[info_key] = record.get(record_key)
@@ -292,6 +293,7 @@ def parse_session(path: Path) -> NormalizedSession:
         harness_version=meta.get("version"),
         started_at=started_at,
         ended_at=ended_at,
+        entrypoint=meta.get("entrypoint"),
         messages=messages,
     )
 
@@ -348,5 +350,6 @@ def parse_subagent(
         harness_version=meta.get("version"),
         started_at=started_at,
         ended_at=ended_at,
+        entrypoint=meta.get("entrypoint"),
         messages=messages,
     )

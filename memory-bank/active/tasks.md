@@ -107,13 +107,13 @@ flowchart LR
 1. [x] **Schema 0008** — TDD: failing schema test → `0008_entrypoint.sql` + golden snapshot update
     - Files: `migrations/0008_entrypoint.sql`, `tests/test_schema_0008.py`, `tests/fixtures/schema/*`
     - Changes: `ALTER TABLE sessions ADD COLUMN entrypoint TEXT;`
-2. [ ] **Model + writer** — TDD writer asserts column
+2. [x] **Model + writer** — TDD writer asserts column
     - Files: `ingest/model.py`, `ingest/writer.py`, `tests/test_ingest_writer.py`
     - Changes: field + INSERT list
-3. [ ] **Claude entrypoint passthrough** — TDD parser
+3. [x] **Claude entrypoint passthrough** — TDD parser
     - Files: `ingest/claude.py`, `tests/test_ingest_claude.py`, fixtures as needed
     - Changes: capture first-seen `entrypoint` on session (same pattern as cwd/version)
-4. [ ] **Cursor IDE entrypoint='ide'** — TDD
+4. [x] **Cursor IDE entrypoint='ide'** — TDD
     - Files: `ingest/cursor.py`, `tests/test_ingest_cursor.py`
 5. [ ] **Cursor CLI store.db parser** — TDD against fixture (creative: root-hash walk)
     - Files: new `ingest/cursor_chats.py`, `tests/test_ingest_cursor_chats.py`, `tests/fixtures/ingest/cursor_chats/`

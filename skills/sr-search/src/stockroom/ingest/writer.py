@@ -116,8 +116,9 @@ def write_session(con: duckdb.DuckDBPyConnection, session: NormalizedSession) ->
         "git_branch, source_path, is_subagent, parent_session_id, agent_id, "
         "agent_type, spawning_tool_use_id, agent_name, models, title, "
         "harness_version, started_at, ended_at, source_mtime, "
-        "input_tokens, output_tokens, cache_creation_tokens, cache_read_tokens) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "input_tokens, output_tokens, cache_creation_tokens, cache_read_tokens, "
+        "entrypoint) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [
             session.harness,
             session.session_id,
@@ -142,6 +143,7 @@ def write_session(con: duckdb.DuckDBPyConnection, session: NormalizedSession) ->
             session.output_tokens,
             session.cache_creation_tokens,
             session.cache_read_tokens,
+            session.entrypoint,
         ],
     )
 

@@ -89,6 +89,9 @@ class NormalizedSession:
     (same dual-grain honesty — parsers fill only the grain the harness
     reports; never invent one from the other); ``started_at``/``ended_at``
     are Claude's min/max timestamps (naive UTC) and ``None`` for Cursor.
+    ``entrypoint`` is surface provenance: Claude passes through a native JSONL
+    value when present; Cursor synthesizes from ingest source (``cli`` /
+    ``ide``). ``None`` when unknown.
     """
 
     harness: str
@@ -114,4 +117,5 @@ class NormalizedSession:
     output_tokens: int | None = None
     cache_creation_tokens: int | None = None
     cache_read_tokens: int | None = None
+    entrypoint: str | None = None
     messages: list[NormalizedMessage] = field(default_factory=list)
