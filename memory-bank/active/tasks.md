@@ -4,8 +4,7 @@
 * Complexity: Level 3
 * Type: feature
 
-Ingest Cursor Agent CLI chats from `~/.cursor/chats/**/store.db` under `harness='cursor'`, add `sessions.entrypoint` (Claude passthrough + Cursor synthesized `cli`/`ide`), and prefer `store.db` when the same Cursor `session_id` also appears under `agent-transcripts`. No dashboard UI. Linux roots only.
-
+Ingest Cursor Agent CLI chats from `~/.cursor/chats/**/store.db` under `harness='cursor'`, add `sessions.entrypoint` (Claude passthrough + Cursor synthesized `cli`/`ide`), and prefer `store.db` when the same Cursor `session_id` also appears under `agent-transcripts`. No dashboard UI. *nix (mac, linux, XDG-esque - existing!) roots only.
 ## Pinned Info
 
 ### Dual Cursor sources → one harness row
@@ -105,29 +104,29 @@ flowchart LR
 
 ## Implementation Plan
 
-1. **Schema 0008** — TDD: failing schema test → `0008_entrypoint.sql` + golden snapshot update
+1. [ ] **Schema 0008** — TDD: failing schema test → `0008_entrypoint.sql` + golden snapshot update
     - Files: `migrations/0008_entrypoint.sql`, `tests/test_schema_0008.py`, `tests/fixtures/schema/*`
     - Changes: `ALTER TABLE sessions ADD COLUMN entrypoint TEXT;`
-2. **Model + writer** — TDD writer asserts column
+2. [ ] **Model + writer** — TDD writer asserts column
     - Files: `ingest/model.py`, `ingest/writer.py`, `tests/test_ingest_writer.py`
     - Changes: field + INSERT list
-3. **Claude entrypoint passthrough** — TDD parser
+3. [ ] **Claude entrypoint passthrough** — TDD parser
     - Files: `ingest/claude.py`, `tests/test_ingest_claude.py`, fixtures as needed
     - Changes: capture first-seen `entrypoint` on session (same pattern as cwd/version)
-4. **Cursor IDE entrypoint='ide'** — TDD
+4. [ ] **Cursor IDE entrypoint='ide'** — TDD
     - Files: `ingest/cursor.py`, `tests/test_ingest_cursor.py`
-5. **Cursor CLI store.db parser** — TDD against fixture (creative: root-hash walk)
+5. [ ] **Cursor CLI store.db parser** — TDD against fixture (creative: root-hash walk)
     - Files: new `ingest/cursor_chats.py`, `tests/test_ingest_cursor_chats.py`, `tests/fixtures/ingest/cursor_chats/`
     - Changes: parse meta + ordered blobs → `NormalizedSession` (`entrypoint='cli'`)
-6. **Discovery of chats root** — TDD
+6. [ ] **Discovery of chats root** — TDD
     - Files: `ingest/sources.py`, `tests/test_ingest_sources.py`
     - Changes: `CURSOR_CHATS_ROOT_ENV_VAR`, `cursor_chats_root()`, `_discover_cursor_chats()`, surface via discover API or dedicated function used by orchestrator
-7. **Orchestrator: dual Cursor roots + collision preference** — TDD first (`test_ingest_orchestrator.py` / golden `expected_rows.json` as needed), then implement
+7. [ ] **Orchestrator: dual Cursor roots + collision preference** — TDD first (`test_ingest_orchestrator.py` / golden `expected_rows.json` as needed), then implement
     - Files: `ingest/__init__.py`, `tests/test_ingest_orchestrator.py`, `tests/fixtures/ingest/expected_rows.json` (only if golden shape changes)
     - Changes: ingest chats with its `source_root` watermark; build id set; filter transcript discoveries; parse via correct parser; stamp project_id (hash dir) / cwd recovery
-8. **Docs** — document chats root, `entrypoint`, collision preference, `--full` backfill
+8. [ ] **Docs** — document chats root, `entrypoint`, collision preference, `--full` backfill
     - Files: `docs/user-guide/ingest.md`, `docs/architecture/warehouse.md`, sr-query skill schema column list (`.cursor/skills/stockroom-local/sr-query/SKILL.md` and packaged twin under `skills/` if present)
-9. **Verification** — full `skills/sr-search` test suite; manual `stockroom ingest --full` smoke optional
+9. [ ] **Verification** — full `skills/sr-search` test suite; manual `stockroom ingest --full` smoke optional
 
 ## Technology Validation
 

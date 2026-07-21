@@ -1,12 +1,11 @@
 # Active Context
 
 ## Current Task: cursor-cli-and-entrypoint-ingest
-**Phase:** PREFLIGHT - COMPLETE
+**Phase:** BUILD - IN-PROGRESS
 
 ## What Was Done
-- Preflight validated plan against ingest/schema conventions and TDD encoding
-- Minor plan amendments: orchestrator golden tests named; docs touchpoints expanded
-- Status: PASS (with advisory notes)
+- Preflight PASS; creative decision locked (ordered root-hash walk for store.db)
+- Build started: implementing plan steps 1–9 with TDD
 
 ## Next Step
-- Operator runs `/niko-build` to implement
+- Execute implementation plan in `tasks.md` (schema → model/writer → parsers → discovery → orchestrator → docs → full suite)

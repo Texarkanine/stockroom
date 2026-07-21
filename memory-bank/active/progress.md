@@ -47,3 +47,12 @@ Ingest Cursor Agent CLI chats under `harness='cursor'`, pass through Claude nati
     - Preflight PASS — build gated on operator `/niko-build`
 * Insights
     - Dashboard `SELECT s.*` will surface `entrypoint` passively; still no filter/legend work
+
+## 2026-07-21 - BUILD - IN-PROGRESS
+
+* Work completed
+    - Entered build; creative decision re-confirmed (root-hash walk)
+* Decisions made
+    - Proceeding with plan steps 1–9 in order under TDD
+* Insights
+    - None yet
