@@ -122,11 +122,11 @@ flowchart LR
 6. **Discovery of chats root** — TDD
     - Files: `ingest/sources.py`, `tests/test_ingest_sources.py`
     - Changes: `CURSOR_CHATS_ROOT_ENV_VAR`, `cursor_chats_root()`, `_discover_cursor_chats()`, surface via discover API or dedicated function used by orchestrator
-7. **Orchestrator: dual Cursor roots + collision preference** — TDD
-    - Files: `ingest/__init__.py`, integration tests
+7. **Orchestrator: dual Cursor roots + collision preference** — TDD first (`test_ingest_orchestrator.py` / golden `expected_rows.json` as needed), then implement
+    - Files: `ingest/__init__.py`, `tests/test_ingest_orchestrator.py`, `tests/fixtures/ingest/expected_rows.json` (only if golden shape changes)
     - Changes: ingest chats with its `source_root` watermark; build id set; filter transcript discoveries; parse via correct parser; stamp project_id (hash dir) / cwd recovery
-8. **Docs** — update ingest user guide + any schema column lists in sr-query skill/cookbook intro
-    - Files: `docs/user-guide/ingest.md`, skill schema blurb if present
+8. **Docs** — document chats root, `entrypoint`, collision preference, `--full` backfill
+    - Files: `docs/user-guide/ingest.md`, `docs/architecture/warehouse.md`, sr-query skill schema column list (`.cursor/skills/stockroom-local/sr-query/SKILL.md` and packaged twin under `skills/` if present)
 9. **Verification** — full `skills/sr-search` test suite; manual `stockroom ingest --full` smoke optional
 
 ## Technology Validation
@@ -156,6 +156,12 @@ No new technology - validation not required (stdlib `sqlite3` + existing DuckDB/
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
 - [ ] QA
+
+## Preflight Amendments
+
+- Named orchestrator/golden test files explicitly in step 7 (TDD-before-code).
+- Expanded docs touchpoints: `docs/architecture/warehouse.md` + sr-query schema blurbs.
+- Note: dashboard `SELECT s.*` will expose `entrypoint` in JSON without dedicated UI work — acceptable under “no dashboard visibility” (no filters/legend).

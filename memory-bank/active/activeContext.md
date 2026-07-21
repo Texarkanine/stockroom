@@ -1,12 +1,12 @@
 # Active Context
 
 ## Current Task: cursor-cli-and-entrypoint-ingest
-**Phase:** PLAN - COMPLETE
+**Phase:** PREFLIGHT - COMPLETE
 
 ## What Was Done
-- Level 3 plan written: schema `entrypoint`, Claude passthrough, Cursor `ide`/`cli`, chats `store.db` ingest, collision preference
-- Creative (algorithm): ordered root-hash walk for `store.db` parse — high confidence
-- Decisions recorded: no dashboard UI; Linux roots only; no system-prompt heuristics; prefer store.db on id collision
+- Preflight validated plan against ingest/schema conventions and TDD encoding
+- Minor plan amendments: orchestrator golden tests named; docs touchpoints expanded
+- Status: PASS (with advisory notes)
 
 ## Next Step
-- Preflight phase to validate the plan
+- Operator runs `/niko-build` to implement

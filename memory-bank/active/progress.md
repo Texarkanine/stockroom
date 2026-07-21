@@ -37,3 +37,13 @@ Ingest Cursor Agent CLI chats under `harness='cursor'`, pass through Claude nati
     - No new dependencies
 * Insights
     - `_sync_state (harness, source_root)` already supports a second Cursor root without schema change
+
+## 2026-07-21 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated TDD encoding, conventions, dependency impact, completeness
+    - Amended plan for orchestrator/golden test files and docs paths
+* Decisions made
+    - Preflight PASS — build gated on operator `/niko-build`
+* Insights
+    - Dashboard `SELECT s.*` will surface `entrypoint` passively; still no filter/legend work
