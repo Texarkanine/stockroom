@@ -69,3 +69,23 @@ Ingest Cursor Agent CLI chats under `harness='cursor'`, pass through Claude nati
     - Head-pin tests advanced to migration 0008
 * Insights
     - Existing Claude fixtures already carry native `entrypoint: cli` — golden picked it up
+
+## 2026-07-21 - QA - COMPLETE
+
+* Work completed
+    - Semantic review against plan/creative/acceptance criteria
+    - Trivial nits fixed (docstring whitespace; createdAt-ms comment)
+* Decisions made
+    - QA PASS — no substantive findings
+* Insights
+    - Parser routing via `store.db` basename is stringly but appropriately simple
+
+## 2026-07-21 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `reflection/reflection-cursor-cli-and-entrypoint-ingest.md`
+    - Reconciled `systemPatterns.md` (dual Cursor roots; CLI cwd/project_id exception)
+* Decisions made
+    - Standalone L3 → next operator step is `/niko-archive`
+* Insights
+    - Migration tasks should explicitly checklist head-version pin bumps

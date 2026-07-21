@@ -223,6 +223,7 @@ def parse_session(path: Path) -> NormalizedSession:
     started_at = None
     created_at = meta.get("createdAt")
     if isinstance(created_at, (int, float)):
+        # Cursor meta stores createdAt as Unix milliseconds.
         started_at = utc_from_timestamp(created_at / 1000.0)
 
     models = None

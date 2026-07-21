@@ -157,7 +157,7 @@ No new technology - validation not required (stdlib `sqlite3` + existing DuckDB/
 - [x] Pre-Mortem complete
 - [x] Preflight
 - [x] Build
-- [ ] QA
+- [x] QA
 
 ## Preflight Amendments
 
