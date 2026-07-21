@@ -12,8 +12,6 @@ Ingest is ETL from agentic coding harness transcript roots into the warehouse un
 
 It writes harness-labeled rows into shared tables: `sessions`, `messages`, and `tool_calls`. Prompts and responses are stored whole; tool *inputs* are kept; tool *result* payloads are dropped. Thinking/reasoning blocks the harness keeps separate are not stored. Rows whose source transcripts later vanish are **not** pruned — the warehouse is allowed to outlive its sources.
 
-`sessions.entrypoint` records surface provenance when known: Claude passes through a native JSONL value when present (for example `cli` or `claude-desktop`); Cursor synthesizes from the ingest source (`ide` for `agent-transcripts`, `cli` for Agent CLI chats under `~/.cursor/chats/**/store.db`). Both Cursor surfaces stay under `harness='cursor'`. When the same Cursor `session_id` exists in chats and transcripts, ingest keeps the chats `store.db` only.
-
 **Default is incremental.** Stockroom remembers a per-`(harness, source_root)` watermark in `_sync_state` and only reads files past that point. Cursor therefore tracks projects and chats roots independently. Re-runs are cheap and safe. Structural migrations do not backfill columns such as `entrypoint` — use `stockroom ingest --full` after an upgrade if you want older rows repopulated from sources.
 
 ```bash

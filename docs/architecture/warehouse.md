@@ -34,13 +34,18 @@ Kept fields are stored whole. Truncation is a **read-time** display bound so one
 
 Every row carries a `harness` column. Columns mean one thing independent of harness — extraction may differ; meaning must not. Identity is uniform: `(harness, session_id)` for sessions, `message_id = '{session_id}#{ordinal}'` for messages. Native harness identifiers are demoted to `source_*` provenance — kept for traceability, never used as join keys, because they exist at different grains and formats per harness. A value that only exists for one harness is `NULL` for the other, never fabricated.
 
+`sessions.entrypoint` is nullable surface provenance within a harness, e.g.
+
+* Claude Code text UI vs Claude Code desktop app?
+* Cursor IDE vs `agent` CLI?
+
+Values are taken from source data verbatim if present, synthesized based on our knowledge of harness' data provenance if not.
+
 ### Workspace identity
 
 `sessions.project_id` is the harness slug verbatim; `sessions.cwd` is best-effort real path, `NULL` when unknown. Path candidates are accepted only when encoding them for that harness reproduces the slug — verify, don’t invert. Guessing a workspace from a slug without that check invents false identity.
 
 `sessions.workspace_key` is a nullable cross-harness rollup key derived at ingest (per-harness strategies in `stockroom.ingest.paths.workspace_key_for`). Same machine + same absolute `cwd` ⇒ same key when both sides can derive it; different on-disk paths stay different keys; underivable inputs stay `NULL`. Chart Sessions by Project and SQL `GROUP BY workspace_key` share that key — `project_id` is never rewritten for merge convenience.
-
-`sessions.entrypoint` is nullable surface provenance: Claude may pass through a native transcript value; Cursor synthesizes `ide` vs `cli` from which on-disk root produced the row. It is not a second harness brand — filtering by entrypoint is optional SQL on top of `harness`.
 
 ### Dual-grain token usage
 
