@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.15.0](https://github.com/Texarkanine/stockroom/compare/v0.14.0...v0.15.0) (2026-07-21)
+
+
+### Features
+
+* **ingest:** Cursor CLI chats and sessions.entrypoint ([#80](https://github.com/Texarkanine/stockroom/issues/80)) ([8575e60](https://github.com/Texarkanine/stockroom/commit/8575e60da91a8e0be00af7362d08c3ab06f6685a))
+
 ## [0.14.0](https://github.com/Texarkanine/stockroom/compare/v0.13.0...v0.14.0) (2026-07-20)
 
 
