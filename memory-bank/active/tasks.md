@@ -115,7 +115,7 @@ flowchart LR
     - Changes: capture first-seen `entrypoint` on session (same pattern as cwd/version)
 4. [x] **Cursor IDE entrypoint='ide'** — TDD
     - Files: `ingest/cursor.py`, `tests/test_ingest_cursor.py`
-5. [ ] **Cursor CLI store.db parser** — TDD against fixture (creative: root-hash walk)
+5. [x] **Cursor CLI store.db parser** — TDD against fixture (creative: root-hash walk)
     - Files: new `ingest/cursor_chats.py`, `tests/test_ingest_cursor_chats.py`, `tests/fixtures/ingest/cursor_chats/`
     - Changes: parse meta + ordered blobs → `NormalizedSession` (`entrypoint='cli'`)
 6. [ ] **Discovery of chats root** — TDD
