@@ -121,7 +121,7 @@ flowchart LR
 6. [x] **Discovery of chats root** — TDD
     - Files: `ingest/sources.py`, `tests/test_ingest_sources.py`
     - Changes: `CURSOR_CHATS_ROOT_ENV_VAR`, `cursor_chats_root()`, `_discover_cursor_chats()`, surface via discover API or dedicated function used by orchestrator
-7. [ ] **Orchestrator: dual Cursor roots + collision preference** — TDD first (`test_ingest_orchestrator.py` / golden `expected_rows.json` as needed), then implement
+7. [x] **Orchestrator: dual Cursor roots + collision preference** — TDD first (`test_ingest_orchestrator.py` / golden `expected_rows.json` as needed), then implement
     - Files: `ingest/__init__.py`, `tests/test_ingest_orchestrator.py`, `tests/fixtures/ingest/expected_rows.json` (only if golden shape changes)
     - Changes: ingest chats with its `source_root` watermark; build id set; filter transcript discoveries; parse via correct parser; stamp project_id (hash dir) / cwd recovery
 8. [ ] **Docs** — document chats root, `entrypoint`, collision preference, `--full` backfill
