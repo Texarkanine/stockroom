@@ -1,13 +1,12 @@
 # Active Context
 
 ## Current Task: cursor-cli-and-entrypoint-ingest
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Clarified intent: Cursor Agent CLI ingest + Claude `entrypoint` passthrough + `sessions.entrypoint`; no dashboard UI; Linux roots only
-- Researched sources: `~/.cursor/chats/**/store.db` (CLI), `agent-transcripts` (IDE), Claude JSONL native `entrypoint` (`cli` / `claude-desktop`)
-- Confirmed collision hypothesis on n=1: transcript detail ≤ store.db; prefer store.db
-- Determined Level 3 (intermediate feature spanning discovery, parsers, schema, writer, dedup, tests)
+- Level 3 plan written: schema `entrypoint`, Claude passthrough, Cursor `ide`/`cli`, chats `store.db` ingest, collision preference
+- Creative (algorithm): ordered root-hash walk for `store.db` parse — high confidence
+- Decisions recorded: no dashboard UI; Linux roots only; no system-prompt heuristics; prefer store.db on id collision
 
 ## Next Step
-- Load Level 3 workflow and execute plan phase
+- Preflight phase to validate the plan
