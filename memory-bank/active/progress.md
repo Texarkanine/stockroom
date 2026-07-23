@@ -45,3 +45,12 @@ When `stockroom doctor smoke` fails for missing torch, recommend `stockroom shim
     - Built to plan; no deviations
 * Insights
     - Worktree needed `make sync` before pytest (fresh detached checkout)
+
+## 2026-07-22 - QA - COMPLETE
+
+* Work completed
+    - Semantic review against plan/brief: KISS/DRY/YAGNI/completeness/regression/integrity/docs
+* Decisions made
+    - PASS — no substantive issues; no trivial fixes required
+* Insights
+    - Freeze-present unit test could optionally assert `sr-initialize` re-pick mention; left as optional per issue wording
