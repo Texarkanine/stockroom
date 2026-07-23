@@ -1,13 +1,12 @@
 # Active Context
 
 ## Current Task: dashboard-token-usage
-**Phase:** PLAN - COMPLETE
+**Phase:** PREFLIGHT - COMPLETE
 
 ## What Was Done
-- Surveyed dashboard list/detail UI (`dashboard.mjs`, `index.html`), metrics API (`_assemble_session_rows`, `_fetch_ordered_sessions`, `session_detail`), and `session_token_usage` (0007)
-- Confirmed APIs do not yet expose tokens; Claude is message-grain, Cursor is grain `none`
-- Wrote Level 2 TDD plan: API tokens (+ detail model) → reusable `dashboard-tokens.mjs` → list column → detail meta → docs
-- Operator preference recorded: shared hover component, not copy-pasted across ~3 call sites
+- Preflight validated plan against metrics API, static shell, JS module layout, and exact-equality dashboard tests
+- Amended plan: explicit per-step TDD ordering; shared `_tokens_payload`; noted `test_sessions_*` shape updates
+- Applied in-scope innovation: one Python tokens payload helper for list + detail
 
 ## Next Step
-- Preflight validation (automatic for Level 2)
+- Build phase (automatic for Level 2 after preflight PASS)

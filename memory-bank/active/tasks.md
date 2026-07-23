@@ -31,32 +31,45 @@ Surface session token usage on the stockroom dashboard per [issue #83](https://g
 
 ## Implementation Plan
 
-1. **API: attach `tokens` on session list rows**
-   - Files: `skills/sr-search/src/stockroom/dashboard/metrics.py`, `skills/sr-search/tests/test_dashboard_metrics.py`
-   - Changes: Extend `_fetch_ordered_sessions` SQL with `LEFT JOIN session_token_usage` on `(harness, session_id)`; thread `input/output/cache_creation/cache_read` totals (+ grain) into `_assemble_session_rows`; set `tokens` to `{input, output, cache_creation, cache_read}` when grain ≠ `'none'`, else `null`. TDD: extend `test_sessions_are_recent_filtered_and_display_truncated` (and/or focused new cases) with Claude fixture rows that populate message tokens and Cursor rows that stay null.
+Each numbered step is one TDD cycle: write/extend the failing test first, run it red, implement only enough to pass, re-run green, then refactor if needed.
 
-2. **API: attach `tokens` + session-level `model` on detail**
-   - Files: `skills/sr-search/src/stockroom/dashboard/metrics.py`, `skills/sr-search/tests/test_dashboard_metrics.py`
-   - Changes: In `session_detail`, select `sessions.models` and join/query `session_token_usage`; compute top-level `model` with the same plurality/fallback rule as `_assemble_session_rows`; add `tokens` with identical shape/null rules. TDD: extend `test_session_detail_reconstructs_ordered_messages_and_nested_tools`.
+1. **API helper + list `tokens` field**
+   - Files: `skills/sr-search/tests/test_dashboard_metrics.py`, `skills/sr-search/src/stockroom/dashboard/metrics.py`
+   - Test first: Add focused cases (and update exact-equality expectations in `test_sessions_are_recent_filtered_and_display_truncated` + `test_sessions_ends_row_fields_match_sessions_list_shape`) so Claude sessions with message token columns yield `tokens: {input, output, cache_creation, cache_read}` (zeros kept as `0`) and Cursor/`none` yield `tokens: null`.
+   - Then implement: Add `_tokens_payload(grain, input, output, cache_creation, cache_read) -> dict | None` in `metrics.py`; extend `_fetch_ordered_sessions` with `LEFT JOIN session_token_usage`; fold totals into `_assemble_session_rows` via the helper (set once per session key despite message-row multiplication).
 
-3. **Reusable token UI module (pure + mount helpers)**
-   - Files: new `skills/sr-search/src/stockroom/dashboard/static/dashboard-tokens.mjs`, `skills/sr-search/tests-js/dashboard-tokens.test.mjs`, wire export from static surface as needed
-   - Changes: `formatTokenCompact(n)`, `tokenTotal(tokens)`, `hasTokenData(tokens)`, and `mountTokenDisplay(container, tokens)` (or equivalent) that creates compact text + hover popover markup only when data exists; emdash + no hover when null. Style via small CSS classes in `index.html` (borrow positioning/box cues from `.panel-help`, but hover-triggered). Export from the module for both list and detail.
+2. **Detail `tokens` + session-level `model`**
+   - Files: `skills/sr-search/tests/test_dashboard_metrics.py`, `skills/sr-search/src/stockroom/dashboard/metrics.py`
+   - Test first: Extend `test_session_detail_reconstructs_ordered_messages_and_nested_tools` (Cursor → `tokens: null`, `model: "gpt-5"`) and add a Claude detail case with zeros/non-zeros proving shared payload shape.
+   - Then implement: In `session_detail`, select `sessions.models`, query/join `session_token_usage`, compute top-level `model` with the same plurality/fallback rule as list rows, attach `tokens` via `_tokens_payload`.
+
+3. **Reusable token UI module**
+   - Files: `skills/sr-search/tests-js/dashboard-tokens.test.mjs` (new), `skills/sr-search/src/stockroom/dashboard/static/dashboard-tokens.mjs` (new), CSS in `index.html`
+   - Test first: Pure tests for `formatTokenCompact`, `tokenTotal`, `hasTokenData`, and DOM-free helpers that describe mount decisions (emdash vs compact+hover). Pin compact strings (`0`, `999`, `1.2K`, `1.5M`).
+   - Then implement: Export those helpers plus `mountTokenDisplay(container, tokens)` (compact total + hover breakdown only when data exists). Hover-triggered popover; reuse `.panel-help` visual cues only (not click-toggle). Style with new classes in `index.html`.
 
 4. **List tables: Tokens column**
-   - Files: `skills/sr-search/src/stockroom/dashboard/static/index.html`, `skills/sr-search/src/stockroom/dashboard/static/dashboard.mjs`, `skills/sr-search/tests/test_dashboard_static.py`
-   - Changes: Insert `<th>Tokens</th>` between Messages and Model on both tables; bump all session-table `colSpan`/`colspan` 6→7; in `appendSessionDataRow`, insert shared mount between msgs and model cells. TDD: static HTML assertions for column order + colspan.
+   - Files: `skills/sr-search/tests/test_dashboard_static.py`, `skills/sr-search/src/stockroom/dashboard/static/index.html`, `skills/sr-search/src/stockroom/dashboard/static/dashboard.mjs`
+   - Test first: Assert both session tables have header order `… Messages, Tokens, Model, First prompt …` and loading/empty `colspan`/`colSpan` = 7.
+   - Then implement: Insert Tokens `<th>`; bump colspan 6→7 (including “N more” / empty rows in `dashboard.mjs`); import `mountTokenDisplay` into `appendSessionDataRow` between msgs and model.
 
 5. **Detail meta: Model + Tokens; drop Session**
-   - Files: `skills/sr-search/src/stockroom/dashboard/static/dashboard.mjs`, `skills/sr-search/tests-js/dashboard-session.test.mjs` (and/or extract a small pure meta-builder if needed for testability)
-   - Changes: In `renderSessionDetail`, replace Session bit with Model (emdash if unknown) and Tokens via shared mount; keep Harness · Project · Started · (Subagent of). Title already shows session id.
+   - Files: `skills/sr-search/tests-js/dashboard-session.test.mjs` (and/or extract a small pure meta-builder into `dashboard-session.mjs` / `dashboard-tokens.mjs` if DOM-bound code is hard to assert), `skills/sr-search/src/stockroom/dashboard/static/dashboard.mjs`
+   - Test first: Assert meta builder includes Model + Tokens and omits Session label.
+   - Then implement: Update `renderSessionDetail` meta bits; mount Tokens via shared component; keep Harness · Project · Started · (Subagent of).
 
 6. **Docs**
    - Files: `docs/user-guide/dashboard.md`
-   - Changes: Document Tokens column on session lists and Model/Tokens on session inspection (null → emdash; Claude zeros preserved).
+   - Changes: Document Tokens column on session lists and Model/Tokens on session inspection (null → emdash; Claude zeros preserved). Docs follow code once Steps 1–5 are green.
 
 7. **Verify**
-   - Run targeted dashboard Python + JS tests, then full `make test` (or project-equivalent) before declaring build done.
+   - Run `make test-dashboard-py` and `make test-dashboard-js`, then full `make test` before declaring build done.
+
+## Preflight Amendments
+
+- Explicit per-step test-before-code ordering (TDD encoding was insufficient in the first draft).
+- Shared Python `_tokens_payload` for list + detail (avoids duplicated grain/null rules).
+- Exact-equality tests `test_sessions_are_recent_filtered_and_display_truncated` and `test_sessions_ends_row_fields_match_sessions_list_shape` must gain `tokens` expectations (dependency impact).
 
 ## Technology Validation
 
@@ -90,6 +103,6 @@ No new technology - validation not required. Reuses DuckDB VIEW `session_token_u
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
 - [ ] QA

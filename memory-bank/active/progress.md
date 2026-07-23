@@ -25,3 +25,14 @@ Surface session token usage on the stockroom dashboard: Tokens column on convers
     - Detail gains top-level `model` using the same attribution rule as list rows
 * Insights
     - Closest existing chrome is `.panel-help`, but issue requires hover not click — reuse visuals only
+
+## 2026-07-22 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated TDD encoding, conventions, dependency impact, completeness against codebase
+    - Amended plan with per-step test-first wording, `_tokens_payload`, and exact-equality test updates
+    - Wrote `.preflight-status` = PASS
+* Decisions made
+    - Keep hover (not click) for token breakdown; shared JS module + shared Python payload helper
+* Insights
+    - Additive `tokens` field will break two exact session-dict assertions until tests are updated first
