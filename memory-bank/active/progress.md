@@ -25,3 +25,13 @@ When `stockroom doctor smoke` fails for missing torch, recommend `stockroom shim
     - Freeze-present remedy must not lead with raw `uv pip install torch`
 * Insights
     - CLI torch-free test must branch on freeze presence to stay green on both CI and torch-stripped local envs
+
+## 2026-07-22 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated plan against doctor/torch_source conventions and TDD encoding
+    - Amended implementation plan: CLI test branch moves into step 1 (before production code)
+* Decisions made
+    - PASS with advisory only (optional helper extract not required for L2 scope)
+* Insights
+    - `read_freeze_path` remains the single freeze usability gate shared with heal

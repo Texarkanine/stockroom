@@ -1,12 +1,11 @@
 # Active Context
 
 ## Current Task: doctor-smoke-ensure-env-remedy
-**Phase:** PLAN - COMPLETE
+**Phase:** PREFLIGHT - COMPLETE
 
 ## What Was Done
-- Level 2 plan written for issue #86
-- Touchpoints: `doctor.run_smoke` missing-torch branch, `test_doctor.py` / `test_doctor_cli.py`, brief `torch.md` note
-- Decision: gate on `torch_source.read_freeze_path()` (same as `ensure_torch`), not a separate index+requirements existence check
+- Preflight PASS (amended TDD ordering: CLI test changes before `run_smoke` implementation)
+- Advisory only: optional `_missing_torch_remedy` helper extract not required
 
 ## Next Step
-- Preflight validation (automatic for Level 2)
+- Build phase (automatic for Level 2)

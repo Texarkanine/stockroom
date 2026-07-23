@@ -27,29 +27,29 @@ When `stockroom doctor smoke` fails because torch is missing, recommend `stockro
 
 ## Implementation Plan
 
-1. **Unit tests for freeze-aware missing-torch remedy**
-   - Files: `skills/sr-search/tests/test_doctor.py`
-   - Changes: add a local `stockroom_home` fixture (or reuse/import pattern from torch tests); split/replace `test_smoke_torch_missing_is_ratcheted_diagnosis` into:
-     - no freeze → asserts current `uv pip install` / `--directory` remedy
-     - usable freeze written under home → asserts `shim ensure-env`, engine path still named, no leading raw pip one-liner
-     - optional edge: unusable freeze file → falls through to pip/`sr-initialize` remedy
-   - Run: expect new freeze-present case to fail until implementation
+1. **Failing tests for freeze-aware missing-torch remedy (unit + CLI)**
+   - Files: `skills/sr-search/tests/test_doctor.py`, `skills/sr-search/tests/test_doctor_cli.py`
+   - Changes:
+     - Add a local `stockroom_home` fixture in `test_doctor.py`; split/replace `test_smoke_torch_missing_is_ratcheted_diagnosis` into no-freeze (current pip/`--directory` remedy), usable-freeze (`shim ensure-env`, no leading raw pip), and unusable-freeze (falls through to pip/`sr-initialize`)
+     - Update `test_smoke_torch_free_env_fails_loudly_with_remedy` to branch on `torch_source.read_freeze_path()` (ensure-env vs pip remedy)
+   - Run: freeze-present unit case(s) must fail before production code changes
 
 2. **Implement freeze-aware remedy in `run_smoke`**
    - Files: `skills/sr-search/src/stockroom/doctor.py`
    - Changes: on torch import failure, call `torch_source.read_freeze_path()` (same usability gate as `ensure_torch` / `shim ensure-env`). If not `None`, remedy recommends `stockroom shim ensure-env` and may mention `sr-initialize` for re-pick; if `None`, keep existing `uv pip install …` + `sr-initialize` text. Update module/`run_smoke` docstrings for the errmsg ratchet.
    - Do **not** invent a parallel freeze check — reuse `read_freeze_path()`.
+   - Run: previously failing tests pass; encoder/happy-path regressions still green
 
-3. **Adjust CLI torch-free smoke assertion**
-   - Files: `skills/sr-search/tests/test_doctor_cli.py`
-   - Changes: when torch is absent, assert one-line ratchet still; if `torch_source.read_freeze_path()` is not `None` in that process, expect `ensure-env`; else expect the pip/`sr-initialize` remedy (preserves CI).
-
-4. **Docs alignment (small)**
+3. **Docs alignment (small)**
    - Files: `docs/user-guide/troubleshooting/torch.md`
    - Changes: under missing-torch guidance, note that `doctor smoke`'s missing-torch diagnosis recommends `stockroom shim ensure-env` when a freeze exists (mirrors the existing semantic-failure bullet). Keep brief; no redesign of the page.
 
-5. **Verify**
+4. **Verify**
    - Run targeted doctor tests, then full suite per project norms.
+
+## Preflight Amendments
+
+- Reordered CLI test update into step 1 so every implementable unit is test-before-code (TDD plan encoding).
 
 ## Technology Validation
 
@@ -80,6 +80,6 @@ No new technology - validation not required
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
 - [ ] QA
