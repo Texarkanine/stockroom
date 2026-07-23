@@ -116,3 +116,12 @@ PR #85 feedback rework on cursor-ai-tracking-multi-db: installed-layout default 
     - expanduser test sets `HOME` (Path.home monkeypatch does not affect os.path.expanduser)
 * Insights
     - `make test`'s `sync` strips out-of-lock torch; local verify after torch provision should use `--no-sync`
+
+## 2026-07-22 - QA - COMPLETE
+
+* Work completed
+    - Semantic review vs Rework brief: all four items implemented; suite green; filed #86 out-of-band
+* Decisions made
+    - PASS with no code fixes required
+* Insights
+    - Persistent files unchanged (expanduser / warn are local polish, not system-pattern shifts)

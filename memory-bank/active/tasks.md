@@ -27,6 +27,9 @@ PR #85 judge items 1, 3, 4, 5:
 - Item 2 (reflection suite count), item 10 (shared seed helper)
 - Doctor smoke → ensure-env remedy → [#86](https://github.com/Texarkanine/stockroom/issues/86)
 
+## QA
+- PASS: all four rework items present; fail-soft contract preserved; no debris; docs row matches `ingest.md` / `resolve_config_home`.
+
 ## Status
 - [x] Build
-- [ ] QA
+- [x] QA
