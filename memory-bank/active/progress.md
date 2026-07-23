@@ -82,3 +82,14 @@ Fix Cursor `sessions.models` cliff (#82): walk/merge all readable `ai-code-track
     - In-changeset polish after operator pushback on leftover / monkeypatch coupling
 * Insights
     - DI removes the “must import module object for monkeypatch” footgun
+
+## 2026-07-22 - REWORK INITIATED (PR #85 feedback)
+
+* Operator chose rework over archive after Reflect COMPLETE.
+* Source: `/ai-rizz/pr-feedback-judge` on https://github.com/Texarkanine/stockroom/pull/85
+* Items to address (judge numbering):
+    1. Document default `~/.config/stockroom/config.toml` fallback in `installed-layout.md` (CodeRabbit)
+    3. `expanduser()` on `STOCKROOM_AI_TRACKING_DB` env override in `resolve_db_paths` (CodeRabbit)
+    4. `logging.warning` when present `config.toml` fails to parse — keep fail-soft empty Settings (LlamaPReview; was deferred, operator pulled in)
+    5. Drop redundant `Path(path)` wrapper in `_normalize_db_path` (LlamaPReview; was dismissed, operator pulled in)
+* Explicitly out of this rework: item 2 (reflection suite-count reconciliation), item 10 (shared tracking-DB seed helper), other dismissed items.

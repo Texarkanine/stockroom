@@ -38,3 +38,14 @@ Tests / one-shots set `STOCKROOM_AI_TRACKING_DB` to force a single DB (override 
 3. Re-ingest of an IDE session after the WSL DB appears does not wipe models that still exist in the IDE tracking DB.
 4. Docs describe multi-DB merge and the additive config list.
 5. Tests cover: two synthetic DBs with disjoint IDs → merged enrich; shadowing first-hit regression; config pins additive to discovery.
+
+## Rework
+
+PR #85 review feedback (selected items from judge pass):
+
+1. **Docs:** `installed-layout.md` optional-settings row must mention both `$XDG_CONFIG_HOME/stockroom/config.toml` and the `~/.config/stockroom/config.toml` default fallback.
+2. **Env override:** `resolve_db_paths` must `.expanduser()` the `STOCKROOM_AI_TRACKING_DB` path (parity with config pins).
+3. **Config parse visibility:** when a present `config.toml` fails UTF-8/TOML decode, log a warning then still return empty `Settings()` (fail-soft contract unchanged).
+4. **Normalize clarity:** `_normalize_db_path` should call `path.expanduser()` without wrapping `Path(path)`.
+
+Out of scope for this rework: reflection suite-count line, shared test seed helper, other dismissed review nits.
