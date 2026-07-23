@@ -27,3 +27,14 @@ Fix Cursor `sessions.models` cliff (#82): walk/merge all readable `ai-code-track
     - Residual "preserve models on total enrich miss" out of #82 acceptance
 * Insights
     - Chats `store.db` path does not apply ai-tracking enrichment today — leave unchanged
+
+## 2026-07-22 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated plan against enrich/orchestrator/home; amended TDD encoding and orchestrator AC test
+    - Wrote `.preflight-status` PASS
+* Decisions made
+    - Import `stockroom.home` from config (no required warehouse re-export)
+    - Docs-only operator surface; optional installed-layout config-home line
+* Insights
+    - Blocking risk was implementation-first step wording; fixed in-plan before Build

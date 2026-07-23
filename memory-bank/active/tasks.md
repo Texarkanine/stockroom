@@ -20,6 +20,7 @@ Fix [#82](https://github.com/Texarkanine/stockroom/issues/82): Cursor `sessions.
 - **Dedup paths**: same path via discovery and pin → read once.
 - **Cross-DB model de-dupe**: overlapping conversationId with same model string → one entry (first-seen across walk order).
 - **Absent everything**: no files, no config → empty enrichment (orchestrator still runs).
+- **Orchestrator default multi-DB**: with no env/kwarg override, patched discovery returning two disjoint DBs → ingest writes `sessions.models` for both conversation ids (AC1/AC3).
 - **Regression**: existing single-DB `read_enrichment` schema/order/malformed behaviors unchanged.
 - **Docs**: ingest user-guide describes multi-DB merge, additive `ai_tracking_dbs`, and env single-DB override semantics.
 
@@ -28,17 +29,40 @@ Fix [#82](https://github.com/Texarkanine/stockroom/issues/82): Cursor `sessions.
 - Framework: pytest (+ pytest-xdist) under `skills/sr-search/`
 - Test location: `skills/sr-search/tests/`
 - Conventions: `test_*.py`; enrich path tests monkeypatch `Path.home` / `_wsl_windows_candidate_paths` / env; synthetic sqlite DBs via `tmp_path` + `sqlite3` (see `test_ingest_enrich.py` / `ai_tracking_db` fixture)
-- New test files: `tests/test_config.py` (XDG settings); extend `tests/test_ingest_enrich.py` (and small home tests if `resolve_config_home` lands in `home.py`). Optional thin orchestrator case only if merge seam is not fully covered at enrich layer — prefer enrich-unit coverage.
+- New/extended test files:
+  - `tests/test_config.py` (XDG config home + settings)
+  - extend `tests/test_ingest_enrich.py` (resolve set + merge)
+  - extend `tests/test_ingest_orchestrator.py` (default multi-DB → `sessions.models`)
 
 ## Implementation Plan
 
-1. **XDG config home (stdlib)** — add `resolve_config_home()` (+ source labels) to `skills/sr-search/src/stockroom/home.py` (pattern from aborted branch; no mkdir). Tests in new `tests/test_config.py` (or `test_home_config.py` if preferred) for XDG env vs `~/.config/stockroom` default and purity.
-2. **Fresh `stockroom.config`** — new `skills/sr-search/src/stockroom/config.py`: `Settings` with `cursor_ai_tracking_dbs: tuple[Path, ...] = ()` only; `load_settings()` reads `$XDG_CONFIG_HOME/stockroom/config.toml` via `tomllib`, fail-soft. **Do not** add `state_vscdb`. Tests: missing/malformed/empty; valid list of strings → Paths; ignore non-string / empty entries.
-3. **Resolve path set** — in `enrich.py`: add `resolve_db_paths()` (name may vary) = env override → single path; else existing existing-file candidates from `_candidate_db_paths()` ∪ config pins, deduped, stable order (discovery then pins). Retarget/replace first-hit tests; keep `default_db_path()` as thin helper (first resolved existing path, else modern conventional) only if still useful for callers/docs — or deprecate if unused after orchestrator switch.
-4. **Merge reader** — add `load_enrichment()` (or `read_enrichment_many`) that `read_enrichment`s each path fail-soft and merges into one `{conversation_id: [models…]}` using existing `_append_model` first-seen order. Tests: disjoint merge, shadowing regression, unreadable sibling skip.
-5. **Orchestrator seam** — `_ingest_cursor` in `ingest/__init__.py`: when `ai_tracking_db` is set, read that one path; else `load_enrichment()` / resolve+merge. Update docstrings. Existing inject tests keep passing.
-6. **Docs** — update `docs/user-guide/ingest.md` (and `tests/fixtures/transcripts/README.md` if it still describes first-hit). Mention multi-DB merge, `~/.config/stockroom/config.toml` `[cursor].ai_tracking_dbs`, and that `STOCKROOM_AI_TRACKING_DB` forces a single DB. No doctor/onboarding UI work; no `state_vscdb` docs.
-7. **Verify** — run enrich/config tests during TDD; full `make test` (or project equivalent) before claiming build done.
+Each numbered unit is one TDD cycle: **(a) write/adjust failing tests → (b) run and confirm fail → (c) implement → (d) run and confirm pass**. Do not start (c) until (a)/(b) are done for that unit.
+
+1. **XDG config home**
+   - (a) Tests in `tests/test_config.py`: `XDG_CONFIG_HOME` → `$XDG_CONFIG_HOME/stockroom`; unset → `~/.config/stockroom`; pure (no mkdir).
+   - (c) Add `resolve_config_home()` + source labels to `skills/sr-search/src/stockroom/home.py` (aborted-branch pattern; stdlib-only). Optionally re-export from `warehouse.py` only if existing home re-exports make that the convention for callers — prefer importing `stockroom.home` directly from config/enrich.
+
+2. **Fresh `stockroom.config`**
+   - (a) Tests: missing/malformed/empty → empty `Settings`; valid `[cursor].ai_tracking_dbs` string list → `tuple[Path, ...]`; ignore non-strings/empties; **no** `state_vscdb` field on `Settings`.
+   - (c) New `skills/sr-search/src/stockroom/config.py`: `Settings(cursor_ai_tracking_dbs=())`, `load_settings()` via `tomllib`, fail-soft.
+
+3. **Resolve path set**
+   - (a) Replace first-hit-only expectations in `test_ingest_enrich.py` with: walk-all returns both home+WSL when present; env override singleton; config pin additive + dedupe; absent → empty list or conventional fallback policy as designed.
+   - (c) In `enrich.py`: `resolve_db_paths()` = env → `[path]`; else existing-file candidates ∪ config pins (dedupe, discovery then pins). Keep or thin-wrap `default_db_path()` only if still needed by external callers after Step 5.
+
+4. **Merge reader**
+   - (a) Tests: disjoint IDs merge; shadowing regression; unreadable sibling skipped; cross-DB de-dupe; absent → `{}`.
+   - (c) Add `load_enrichment()` (name OK to vary) that reads each resolved path via `read_enrichment` and merges with `_append_model`.
+
+5. **Orchestrator seam**
+   - (a) Orchestrator test: no `ai_tracking_db` kwarg / unset env; monkeypatch resolve/load to two synthetic DBs with disjoint ids matching fixture session ids → both get `sessions.models`. Existing `ai_tracking_db=` inject tests remain green (single-path override).
+   - (c) `_ingest_cursor`: kwarg/env single path → one `read_enrichment`; else `load_enrichment()`. Update docstrings.
+
+6. **Docs**
+   - (a) Treat doc accuracy as the “test”: draft the intended paragraphs against AC4.
+   - (c) Update `docs/user-guide/ingest.md` and `tests/fixtures/transcripts/README.md` if still first-hit. Optionally one line in `docs/user-guide/installed-layout.md` for `~/.config/stockroom/config.toml` (config home ≠ data home). No doctor/onboarding UI; no `state_vscdb`.
+
+7. **Suite verify** — run targeted tests through the cycles above; full engine test suite before Build complete.
 
 ## Technology Validation
 
@@ -53,17 +77,23 @@ No new technology — validation not required. Uses stdlib `tomllib` (already us
 ## Challenges & Mitigations
 
 - **Accidental `state_vscdb` revival**: Settings/docs must only expose `ai_tracking_dbs`. Mitigation: explicit non-goal in tests/docstrings; do not copy aborted `Settings.cursor_state_vscdb`.
-- **Path identity across mounts**: dedupe by `Path` string as resolved in config/discovery (normalize via `expanduser` + resolve when path exists). Mitigation: document best-effort dedupe; duplicate reads are fail-soft waste, not correctness bugs.
-- **Overlapping conversationIds across DBs (rare)**: first-seen wins via `_append_model`. Mitigation: match in-DB semantics; no special conflict policy.
-- **Warehouse-outlives residual**: if a session is re-written and missing from *all* tracking DBs, models can still clear. Mitigation: out of acceptance for #82 (fix is shadowing); note in reflection if observed — do not expand scope to "preserve prior models on enrich miss" unless operator reopens.
-- **Doctor/onboarding**: issue left open; brief AC is docs. Mitigation: docs-only; no initialize prompts.
+- **Path identity across mounts**: dedupe by normalized path strings (`expanduser`; `resolve` when exists). Mitigation: best-effort dedupe; duplicate reads are fail-soft waste.
+- **Overlapping conversationIds across DBs (rare)**: first-seen wins via `_append_model`. Mitigation: match in-DB semantics.
+- **Warehouse-outlives residual**: re-write with total enrich miss can still clear models. Mitigation: out of #82 acceptance; note in reflection if seen.
+- **Doctor/onboarding**: issue left open; brief AC is docs. Mitigation: docs-only.
 
 ## Pre-Mortem
 
-- **Plan "fixed" path resolution but left orchestrator on `default_db_path()`**: would ship dead API. Response: Step 5 is mandatory; acceptance tests must exercise default (no env) multi-path load, not only helpers.
-- **Copied aborted config wholesale including `state_vscdb`**: product confusion and scope creep. Response: already constrained in Challenges; Settings field list is the gate.
-- **Treated config pins as replacement for discovery**: recreates single-source failure mode for odd mounts. Response: resolution set is union; tests assert additive pins.
-- **Assumed XDG already landed on this branch**: it has not — `home.py` has no config home yet. Response: Steps 1–2 create it fresh (covered).
+- **Plan fixed helpers but left orchestrator on `default_db_path()`**: dead API. Response: Step 5 + orchestrator multi-DB test mandatory.
+- **Copied aborted config wholesale including `state_vscdb`**: scope creep. Response: Settings field list is the gate.
+- **Config pins replace discovery**: recreates single-source failure. Response: union + additive pin tests.
+- **Assumed XDG already on branch**: it is not. Response: Steps 1–2 create fresh.
+
+## Preflight Amendments
+
+- Encoded explicit **(a) failing tests → (b) confirm fail → (c) implement → (d) pass** on every implementation unit (TDD blocking fix).
+- Added orchestrator-level default multi-DB → `sessions.models` behavior (closes AC1/AC3 gap if only unit tests shipped).
+- Noted optional `installed-layout.md` mention of XDG config home (still no doctor UI).
 
 ## Status
 
@@ -72,6 +102,6 @@ No new technology — validation not required. Uses stdlib `tomllib` (already us
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
 - [ ] QA
