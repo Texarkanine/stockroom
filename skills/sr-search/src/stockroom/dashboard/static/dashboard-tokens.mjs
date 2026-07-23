@@ -14,7 +14,15 @@ const BREAKDOWN_FIELDS = [
  * @returns {tokens is {input: number, output: number, cache_creation: number, cache_read: number}}
  */
 export function hasTokenData(tokens) {
-  return tokens != null && typeof tokens === "object" && !Array.isArray(tokens);
+  if (tokens == null || typeof tokens !== "object" || Array.isArray(tokens)) {
+    return false;
+  }
+  /** @type {Record<string, unknown>} */
+  const candidate = tokens;
+  return BREAKDOWN_FIELDS.every(({ key }) => {
+    const value = candidate[key];
+    return typeof value === "number" && Number.isFinite(value) && value >= 0;
+  });
 }
 
 /**

@@ -35,7 +35,7 @@ Harness filters, time ranges, and Aggregate / Compare views over sessions, messa
 
 The metrics **Sessions** panel shows up to 20 matching conversations (10 newest + `… N more` + 10 oldest when there are more). Click a row to open reconstruction, or `… N more` for the paginated sessions-list view. That list has its own harnesses, time range, and per-page control (`25` / `50` / `100` / `All`); filter state lives in the URL. Browser Back is the only way back from the list or a session.
 
-Both the panel table and the full list include a **Tokens** column (between Messages and Model). Counts use a compact K/M-style total; hover the `?` for an input / output / cache breakdown when usage is known. Claude Code sessions show real totals (including zeros). Cursor sessions (and other cases without usage data) show an emdash with no hover.
+Both the panel table and the full list include a **Tokens** column (between Messages and Model). Counts use a compact K/M-style total; hover the `?` for an input / output / cache breakdown when usage is known. Claude Code sessions show real totals (including zeros). Cursor sessions (and other cases without usage data) show an em dash with no hover.
 
 List deep-link shape:
 
@@ -47,7 +47,7 @@ Optional: repeated `harness`, `since` / `until` (omit both for **All** — the f
 
 ### Session inspection
 
-Open a conversation from Sessions (or a deep link) to read the thread, copy a deep-link, or export markdown/JSON when in-dashboard rendering is not enough. The header shows harness, project, started time, model (if known), and tokens (same compact total + hover breakdown as the lists; emdash when usage is unknown).
+Open a conversation from Sessions (or a deep link) to read the thread, copy a deep-link, or export markdown/JSON when in-dashboard rendering is not enough. The header shows harness, project, started time, model (if known), and tokens (same compact total + hover breakdown as the lists; em dash when usage is unknown).
 
 ![Stockroom dashboard — session conversation view](../img/stockroom-dashboard-convo-light.png)
 

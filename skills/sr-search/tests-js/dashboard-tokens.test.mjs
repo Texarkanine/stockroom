@@ -13,6 +13,46 @@ test("hasTokenData is false for null/undefined/non-objects", () => {
   assert.equal(hasTokenData(null), false);
   assert.equal(hasTokenData(undefined), false);
   assert.equal(hasTokenData("123"), false);
+  assert.equal(hasTokenData([]), false);
+});
+
+test("hasTokenData is false when any required field is missing or non-numeric", () => {
+  assert.equal(hasTokenData({}), false);
+  assert.equal(
+    hasTokenData({
+      input: 1,
+      output: 2,
+      cache_creation: 3,
+    }),
+    false,
+  );
+  assert.equal(
+    hasTokenData({
+      input: 1,
+      output: "2",
+      cache_creation: 3,
+      cache_read: 4,
+    }),
+    false,
+  );
+  assert.equal(
+    hasTokenData({
+      input: 1,
+      output: 2,
+      cache_creation: Number.NaN,
+      cache_read: 4,
+    }),
+    false,
+  );
+  assert.equal(
+    hasTokenData({
+      input: -1,
+      output: 0,
+      cache_creation: 0,
+      cache_read: 0,
+    }),
+    false,
+  );
 });
 
 test("hasTokenData is true for a tokens object including zeros", () => {
@@ -41,6 +81,7 @@ test("tokenTotal sums the four fields", () => {
 
 test("tokenTotal is null when token data is absent", () => {
   assert.equal(tokenTotal(null), null);
+  assert.equal(tokenTotal({}), null);
 });
 
 test("formatTokenCompact uses cursor-style K/M truncation", () => {
@@ -88,27 +129,4 @@ test("tokenBreakdownModel includes metric rows plus total for the footer", () =>
       total: 13,
     },
   );
-});
-
-test("mount decisions: absent tokens → emdash, no hover; present → compact + hover", () => {
-  assert.deepEqual(
-    {
-      text: "—",
-      hover: false,
-    },
-    (() => {
-      if (!hasTokenData(null)) {
-        return { text: "—", hover: false };
-      }
-      return { text: "x", hover: true };
-    })(),
-  );
-  const tokens = {
-    input: 1234,
-    output: 0,
-    cache_creation: 0,
-    cache_read: 0,
-  };
-  assert.equal(hasTokenData(tokens), true);
-  assert.equal(formatTokenCompact(tokenTotal(tokens)), "1.2K");
 });

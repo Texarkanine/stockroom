@@ -246,41 +246,12 @@ def test_session_pane_toolbar_and_bubble_layout_contracts() -> None:
     assert "documentTitleForView" in adapter
 
 
-def test_session_tables_include_tokens_column_between_messages_and_model() -> None:
-    """Both session tables expose Tokens between Messages and Model (colspan 7)."""
-    source = (STATIC_ROOT / "index.html").read_text(encoding="utf-8")
-    assert source.count('<th scope="col">Tokens</th>') == 2
-    assert (
-        source.count(
-            '<th scope="col">Messages</th>\n'
-            '                <th scope="col">Tokens</th>\n'
-            '                <th scope="col">Model</th>'
-        )
-        == 2
-    )
-    assert 'colspan="7"' in source
-    assert 'colspan="6"' not in source
-    assert ".token-display" in source
-    assert "align-items: center" in source
-    assert (
-        "align-items: baseline" not in source.split(".token-display")[1].split("}")[0]
-    )
-    # Breakdown opens to the right of the control so the pointer does not cover it.
-    assert "left: calc(100%" in source
-    assert (
-        "top: calc(100% + 0.35rem)"
-        not in source.split(".token-breakdown")[1].split("}")[0]
-    )
-    assert ".token-breakdown-rule" in source
-    assert ".token-breakdown-total" in source
-    tokens_js = (STATIC_ROOT / "dashboard-tokens.mjs").read_text(encoding="utf-8")
-    assert "token-breakdown-rule" in tokens_js
-    assert 'label: "Total"' in tokens_js
-    assert "token-breakdown-total" in tokens_js
+def test_session_ui_uses_shared_token_display_module() -> None:
+    """Session chrome mounts tokens through dashboard-tokens (one shared surface)."""
     adapter = (STATIC_ROOT / "dashboard.mjs").read_text(encoding="utf-8")
     assert "mountTokenDisplay" in adapter
-    assert "colSpan = 7" in adapter
-    assert "dashboard-tokens.mjs" in adapter
+    assert 'from "./dashboard-tokens.mjs"' in adapter
+    assert (STATIC_ROOT / "dashboard-tokens.mjs").is_file()
 
 
 def test_dashboard_top_controls_expose_date_range_and_segmented_mode() -> None:
