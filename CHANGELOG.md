@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.16.0](https://github.com/Texarkanine/stockroom/compare/v0.15.0...v0.16.0) (2026-07-23)
+
+
+### Features
+
+* **dashboard:** show session token usage [[#83](https://github.com/Texarkanine/stockroom/issues/83)] ([#89](https://github.com/Texarkanine/stockroom/issues/89)) ([c475593](https://github.com/Texarkanine/stockroom/commit/c47559360a2be8e5b988b59e041c94dc37b27f75))
+* **doctor:** suggest shim ensure-env when freeze exists [[#86](https://github.com/Texarkanine/stockroom/issues/86)] ([#88](https://github.com/Texarkanine/stockroom/issues/88)) ([bfe6f6c](https://github.com/Texarkanine/stockroom/commit/bfe6f6cdfd35871e6acbc07b27e459d59e68bc05))
+
+
+### Bug Fixes
+
+* **ingest:** merge all Cursor ai-tracking DBs for sessions.models ([#85](https://github.com/Texarkanine/stockroom/issues/85)) ([b5eb8bc](https://github.com/Texarkanine/stockroom/commit/b5eb8bc2e46de71239dc12068d5e8e03e700665b))
+
 ## [0.15.0](https://github.com/Texarkanine/stockroom/compare/v0.14.0...v0.15.0) (2026-07-21)
 
 
