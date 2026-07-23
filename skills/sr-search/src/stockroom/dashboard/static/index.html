@@ -670,7 +670,7 @@
       .token-display {
         position: relative;
         display: inline-flex;
-        align-items: baseline;
+        align-items: center;
         gap: 0.3rem;
         cursor: default;
       }
@@ -685,6 +685,7 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
+        box-sizing: border-box;
         width: 1rem;
         height: 1rem;
         border-radius: 999px;
@@ -693,14 +694,17 @@
         font-size: 0.68rem;
         font-weight: 700;
         line-height: 1;
+        /* "?" glyph sits optically low in the circle; nudge to the text median. */
+        padding-bottom: 0.05em;
       }
 
       .token-breakdown {
         display: none;
         position: absolute;
         z-index: 40;
-        top: calc(100% + 0.35rem);
-        left: 0;
+        top: 50%;
+        left: calc(100% + 0.45rem);
+        transform: translateY(-50%);
         min-width: 11rem;
         padding: 0.55rem 0.65rem;
         border: 1px solid var(--border);
