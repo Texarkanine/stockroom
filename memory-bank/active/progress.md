@@ -1,8 +1,8 @@
 # Progress
 
-Fix Cursor `sessions.models` cliff (#82): walk/merge all readable `ai-code-tracking.db` candidates (fail-soft), optional additive XDG `ai_tracking_dbs`, keep `STOCKROOM_AI_TRACKING_DB` as single-DB override; ship on `wsl-dual-sot` without reviving aborted vscdb token enrich.
+PR #85 feedback rework on cursor-ai-tracking-multi-db: installed-layout default config path, env-override expanduser, config.toml parse warning, drop redundant Path() in normalize.
 
-**Complexity:** Level 2
+**Complexity:** Level 1
 
 ## 2026-07-22 - COMPLEXITY-ANALYSIS - COMPLETE
 
@@ -93,3 +93,15 @@ Fix Cursor `sessions.models` cliff (#82): walk/merge all readable `ai-code-track
     4. `logging.warning` when present `config.toml` fails to parse — keep fail-soft empty Settings (LlamaPReview; was deferred, operator pulled in)
     5. Drop redundant `Path(path)` wrapper in `_normalize_db_path` (LlamaPReview; was dismissed, operator pulled in)
 * Explicitly out of this rework: item 2 (reflection suite-count reconciliation), item 10 (shared tracking-DB seed helper), other dismissed items.
+
+## 2026-07-22 - COMPLEXITY-ANALYSIS - COMPLETE
+
+* Work completed
+    - Classified PR #85 selected feedback (items 1, 3, 4, 5) as Level 1
+* Decisions made
+    - Level 1: surgical review fixes in enrich/config + one docs row; no architecture, no creative phase
+    - Items 2 and 10 remain out of this rework per operator selection / prior disposition
+* Insights
+    - Operator overrode judge defer/dismiss on items 4 and 5; treat brief Rework section as SSOT for in-scope set
+
+## 2026-07-22 - BUILD - IN-PROGRESS
