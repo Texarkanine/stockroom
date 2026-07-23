@@ -246,6 +246,14 @@ def test_session_pane_toolbar_and_bubble_layout_contracts() -> None:
     assert "documentTitleForView" in adapter
 
 
+def test_session_ui_uses_shared_token_display_module() -> None:
+    """Session chrome mounts tokens through dashboard-tokens (one shared surface)."""
+    adapter = (STATIC_ROOT / "dashboard.mjs").read_text(encoding="utf-8")
+    assert "mountTokenDisplay" in adapter
+    assert 'from "./dashboard-tokens.mjs"' in adapter
+    assert (STATIC_ROOT / "dashboard-tokens.mjs").is_file()
+
+
 def test_dashboard_top_controls_expose_date_range_and_segmented_mode() -> None:
     """Date-range presets and Aggregate/Compare read as exclusive segmented controls."""
     _source, parser = _document()

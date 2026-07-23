@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   ansiToHtml,
   buildSessionDeepLink,
+  buildSessionMetaEntries,
   buildSessionViewSearchParams,
   buildSessionsListSearchParams,
   clampSessionsListPage,
@@ -226,4 +227,55 @@ test("clampSessionsListPage clamps beyond last non-empty page", () => {
   assert.equal(clampSessionsListPage(3, 100, 50), 2);
   assert.equal(clampSessionsListPage(1, 100, 50), 1);
   assert.equal(clampSessionsListPage(2, 100, "all"), 1);
+});
+
+test("buildSessionMetaEntries shows Model and Tokens, omits Session", () => {
+  const entries = buildSessionMetaEntries({
+    harnessLabel: "Claude Code",
+    project: "stockroom",
+    started: "2026-01-02 09:00",
+    model: "claude-sonnet",
+    tokens: {
+      input: 10,
+      output: 0,
+      cache_creation: 0,
+      cache_read: 0,
+    },
+  });
+  assert.deepEqual(
+    entries.map((entry) => entry.label),
+    ["Harness", "Project", "Started", "Model", "Tokens"],
+  );
+  assert.equal(
+    entries.find((entry) => entry.label === "Model")?.text,
+    "claude-sonnet",
+  );
+  assert.equal(entries.find((entry) => entry.label === "Tokens")?.kind, "tokens");
+  assert.equal(
+    entries.find((entry) => entry.label === "Model")?.kind,
+    "text",
+  );
+});
+
+test("buildSessionMetaEntries uses emdash for unknown model and null tokens", () => {
+  const entries = buildSessionMetaEntries({
+    harnessLabel: "Cursor",
+    project: "—",
+    started: "—",
+    model: null,
+    tokens: null,
+    isSubagent: true,
+    parentSessionId: "parent-1",
+  });
+  assert.deepEqual(
+    entries.map((entry) => [entry.label, entry.kind, entry.text ?? null]),
+    [
+      ["Harness", "text", "Cursor"],
+      ["Project", "text", "—"],
+      ["Started", "text", "—"],
+      ["Model", "text", "—"],
+      ["Tokens", "tokens", null],
+      ["Subagent of", "text", "parent-1"],
+    ],
+  );
 });

@@ -1257,6 +1257,7 @@ def test_sessions_are_recent_filtered_and_display_truncated(
             "msgs": 3,
             "model": "claude-sonnet",
             "prompt": f"{'x' * 120}…(+10)",
+            "tokens": None,
         },
         {
             "started": "2026-01-01T08:00:00Z",
@@ -1267,6 +1268,7 @@ def test_sessions_are_recent_filtered_and_display_truncated(
             "msgs": 1,
             "model": "gpt-5",
             "prompt": "message 0",
+            "tokens": None,
         },
     ]
     assert [
@@ -1417,7 +1419,46 @@ def test_sessions_ends_row_fields_match_sessions_list_shape(
         "msgs": 3,
         "model": "claude-sonnet",
         "prompt": f"{'x' * 120}…(+10)",
+        "tokens": None,
     }
+
+
+def test_sessions_include_message_grain_token_totals_with_zeros(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """List rows expose session_token_usage totals; zeros stay 0, Cursor stays null."""
+    _seed_session(
+        migrated_con,
+        harness="claude",
+        session_id="tok-claude",
+        activity=datetime(2026, 1, 4, 12),
+        project_id="p",
+        message_count=2,
+    )
+    migrated_con.execute(
+        "UPDATE messages SET "
+        "input_tokens = 100, output_tokens = 50, "
+        "cache_creation_tokens = 0, cache_read_tokens = 25 "
+        "WHERE session_id = 'tok-claude' AND ordinal = 1"
+    )
+    _seed_session(
+        migrated_con,
+        harness="cursor",
+        session_id="tok-cursor",
+        activity=datetime(2026, 1, 3, 12),
+        project_id="p",
+    )
+
+    result = metrics.sessions(migrated_con, limit=2)
+    assert result["sessions"][0]["session_id"] == "tok-claude"
+    assert result["sessions"][0]["tokens"] == {
+        "input": 100,
+        "output": 50,
+        "cache_creation": 0,
+        "cache_read": 25,
+    }
+    assert result["sessions"][1]["session_id"] == "tok-cursor"
+    assert result["sessions"][1]["tokens"] is None
 
 
 def test_wrapped_returns_all_time_rollups_and_ignores_selector(
@@ -1538,6 +1579,8 @@ def test_session_detail_reconstructs_ordered_messages_and_nested_tools(
     assert result["started"] == "2026-01-05T12:00:00Z"
     assert result["is_subagent"] is False
     assert result["parent_session_id"] is None
+    assert result["model"] == "gpt-5"
+    assert result["tokens"] is None
     assert [message["ordinal"] for message in result["messages"]] == [0, 1]
     assert result["messages"][0] == {
         "message_id": "detail-1#0",
@@ -1554,6 +1597,39 @@ def test_session_detail_reconstructs_ordered_messages_and_nested_tools(
         {"ordinal": 0, "tool_name": "Read", "tool_input": {"path": "a.py"}},
         {"ordinal": 1, "tool_name": "Shell", "tool_input": {"command": "ls"}},
     ]
+
+
+def test_session_detail_includes_model_and_message_grain_tokens(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Detail exposes session-level model plus token totals (zeros preserved)."""
+    _seed_session(
+        migrated_con,
+        harness="claude",
+        session_id="detail-tok",
+        activity=datetime(2026, 1, 6, 12),
+        project_id="p",
+        message_count=2,
+    )
+    migrated_con.execute(
+        "UPDATE messages SET model = 'claude-sonnet' WHERE session_id = 'detail-tok'"
+    )
+    migrated_con.execute(
+        "UPDATE messages SET "
+        "input_tokens = 10, output_tokens = 0, "
+        "cache_creation_tokens = 3, cache_read_tokens = 0 "
+        "WHERE session_id = 'detail-tok' AND ordinal = 1"
+    )
+
+    result = metrics.session_detail(migrated_con, "claude", "detail-tok")
+    assert result is not None
+    assert result["model"] == "claude-sonnet"
+    assert result["tokens"] == {
+        "input": 10,
+        "output": 0,
+        "cache_creation": 3,
+        "cache_read": 0,
+    }
 
 
 def test_session_detail_missing_session_returns_none(

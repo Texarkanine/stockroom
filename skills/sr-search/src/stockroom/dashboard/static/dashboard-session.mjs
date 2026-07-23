@@ -392,3 +392,42 @@ export function isActiveSessionView(sessionView, harness, sessionId) {
   );
 }
 
+/**
+ * Ordered meta entries for the session detail header.
+ *
+ * Omits Session (already shown in the title). Tokens is a structured entry for
+ * the shared token mount; unknown model renders as an emdash.
+ *
+ * @param {{
+ *   harnessLabel: string,
+ *   project: string,
+ *   started: string,
+ *   model?: string | null,
+ *   tokens?: unknown,
+ *   isSubagent?: boolean,
+ *   parentSessionId?: string | null,
+ * }} fields
+ * @returns {Array<
+ *   | { kind: "text", label: string, text: string }
+ *   | { kind: "tokens", label: string, tokens: unknown }
+ * >}
+ */
+export function buildSessionMetaEntries(fields) {
+  /** @type {Array<{ kind: "text", label: string, text: string } | { kind: "tokens", label: string, tokens: unknown }>} */
+  const entries = [
+    { kind: "text", label: "Harness", text: fields.harnessLabel },
+    { kind: "text", label: "Project", text: fields.project },
+    { kind: "text", label: "Started", text: fields.started },
+    { kind: "text", label: "Model", text: fields.model || "—" },
+    { kind: "tokens", label: "Tokens", tokens: fields.tokens ?? null },
+  ];
+  if (fields.isSubagent) {
+    entries.push({
+      kind: "text",
+      label: "Subagent of",
+      text: fields.parentSessionId || "—",
+    });
+  }
+  return entries;
+}
+
