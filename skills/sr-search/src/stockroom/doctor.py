@@ -15,8 +15,10 @@ both constitutionally read-only (they never install, sync, or write):
   string through the production :class:`stockroom.embed.BgeEncoder` path
   and checks the vector width. Exit 0 with an ``ok`` summary, or exit 1
   with exactly one stderr line that always carries the *next action*
-  (the errmsg ratchet: torch-missing names the engine environment and the
-  literal provisioning command; encode failures name the re-pick remedy).
+  (the errmsg ratchet: torch-missing names the engine environment and
+  either ``stockroom shim ensure-env`` when a usable freeze exists or the
+  literal provisioning command otherwise; encode failures name the
+  re-pick remedy).
 
 Testability follows the engine-wide injection precedent: ``probe_facts``
 takes an injectable ``nvidia-smi`` runner and torch importer (so it is
@@ -36,6 +38,7 @@ from collections.abc import Callable
 
 from stockroom.embed import EMBED_DIM, BgeEncoder, Encoder
 from stockroom.shim import default_app_dir
+from stockroom.torch_source import read_freeze_path
 from stockroom.warehouse import resolve_home
 
 #: The wheel-index base every torch remedy points at. The concrete build
@@ -161,8 +164,11 @@ def run_smoke(
     an ``ok`` summary. Every failure prints exactly one stderr line carrying
     the next action (the errmsg ratchet) and returns 1:
 
-    * torch not importable → names the engine environment (``APP_DIR``) and
-      the literal ``uv pip install torch --no-config --index …`` command.
+    * torch not importable → names the engine environment (``APP_DIR``)
+      and either ``stockroom shim ensure-env`` when a usable hashed freeze
+      exists under stockroom home, or the literal
+      ``uv pip install torch --no-config --index …`` command when it does
+      not.
     * encoder construction/encode raises → names the exception and the
       re-pick remedy (re-run ``sr-initialize``, choose a different index).
     * wrong-width vector → broken setup, same re-pick remedy.
@@ -181,11 +187,18 @@ def run_smoke(
     try:
         torch = torch_importer("torch")
     except Exception:
+        diagnosis = f"torch is not installed in the engine environment at {app_dir}"
+        if read_freeze_path() is not None:
+            return fail(
+                diagnosis,
+                "restore it with `stockroom shim ensure-env` "
+                "(or re-run sr-initialize to re-pick a wheel)",
+            )
         # --directory (not --project): uv pip discovers the venv from the
         # working directory, so --project alone fails with "No virtual
         # environment found" (verified live).
         return fail(
-            f"torch is not installed in the engine environment at {app_dir}",
+            diagnosis,
             "provision it there with "
             f"`uv pip install torch --no-config --index {_TORCH_INDEX_BASE}/<build> "
             f"--directory {app_dir}` (or re-run sr-initialize)",

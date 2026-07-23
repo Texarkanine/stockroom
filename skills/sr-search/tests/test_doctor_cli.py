@@ -19,6 +19,7 @@ from pathlib import Path
 import pytest
 
 import stockroom
+from stockroom import torch_source
 
 _SRC_DIR = str(Path(stockroom.__file__).parent.parent)
 
@@ -55,7 +56,7 @@ def test_probe_exits_zero_and_prints_fact_keys() -> None:
 
 def test_smoke_torch_free_env_fails_loudly_with_remedy() -> None:
     """``doctor smoke`` without torch exits 1 with the one-line
-    ratcheted diagnosis carrying the literal provisioning command."""
+    ratcheted diagnosis; remedy depends on whether a usable freeze exists."""
     if importlib.util.find_spec("torch") is not None:
         pytest.skip("torch is provisioned here — the real-model smoke covers this env")
     result = _run("smoke")
@@ -63,7 +64,11 @@ def test_smoke_torch_free_env_fails_loudly_with_remedy() -> None:
     lines = [line for line in result.stderr.splitlines() if line]
     assert len(lines) == 1, f"expected one stderr line, got: {result.stderr!r}"
     assert "Traceback" not in result.stderr
-    assert "uv pip install torch --no-config --index" in lines[0]
+    if torch_source.read_freeze_path() is not None:
+        assert "stockroom shim ensure-env" in lines[0]
+        assert "uv pip install torch" not in lines[0]
+    else:
+        assert "uv pip install torch --no-config --index" in lines[0]
 
 
 def test_help_documents_both_actions() -> None:

@@ -35,3 +35,13 @@ When `stockroom doctor smoke` fails for missing torch, recommend `stockroom shim
     - PASS with advisory only (optional helper extract not required for L2 scope)
 * Insights
     - `read_freeze_path` remains the single freeze usability gate shared with heal
+
+## 2026-07-22 - BUILD - COMPLETE
+
+* Work completed
+    - Implemented freeze-aware smoke remedy; tests + torch.md note
+    - Full suite green (671 passed, 4 skipped); format/lint clean
+* Decisions made
+    - Built to plan; no deviations
+* Insights
+    - Worktree needed `make sync` before pytest (fresh detached checkout)

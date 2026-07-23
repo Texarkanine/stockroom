@@ -13,12 +13,23 @@ engine-wide convention.
 import subprocess
 import sys
 import types
+from pathlib import Path
 
 import pytest
 
 from stockroom import doctor, warehouse
 from stockroom.embed import EMBED_DIM
 from stockroom.shim import default_app_dir
+
+
+@pytest.fixture
+def stockroom_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """Isolate freeze lookups under a fresh STOCKROOM_HOME."""
+    home = tmp_path / "stockroom-home"
+    home.mkdir()
+    monkeypatch.setenv("STOCKROOM_HOME", str(home))
+    return home
+
 
 # --- injectable stand-ins -------------------------------------------------
 
@@ -228,9 +239,12 @@ def _one_stderr_line(capsys) -> str:
     return lines[0]
 
 
-def test_smoke_torch_missing_is_ratcheted_diagnosis(capsys) -> None:
-    """Missing torch → exit 1, one stderr line that names the engine
-    environment and carries the literal provisioning command."""
+def test_smoke_torch_missing_without_freeze_names_pip_remedy(
+    capsys, stockroom_home: Path
+) -> None:
+    """Missing torch + no freeze → exit 1, one stderr line naming the
+    engine environment and the literal provisioning command."""
+    assert not (stockroom_home / "torch-requirements.txt").exists()
     code = doctor.run_smoke(torch_importer=_import_absent, encoder_factory=_GoodEncoder)
     assert code == 1
     line = _one_stderr_line(capsys)
@@ -239,6 +253,39 @@ def test_smoke_torch_missing_is_ratcheted_diagnosis(capsys) -> None:
     # --directory, not --project: uv pip only finds the engine venv via the
     # working directory, so a --project remedy would be a dead command.
     assert f"--directory {default_app_dir()}" in line
+    assert "ensure-env" not in line
+
+
+def test_smoke_torch_missing_with_freeze_names_ensure_env(
+    capsys, stockroom_home: Path
+) -> None:
+    """Missing torch + usable freeze → recommend shim ensure-env, not raw pip."""
+    (stockroom_home / "torch-requirements.txt").write_text(
+        "--index-url https://download.pytorch.org/whl/cpu\n"
+        "torch==2.7.1+cpu \\\n"
+        "    --hash=sha256:deadbeef\n",
+        encoding="utf-8",
+    )
+    code = doctor.run_smoke(torch_importer=_import_absent, encoder_factory=_GoodEncoder)
+    assert code == 1
+    line = _one_stderr_line(capsys)
+    assert str(default_app_dir()) in line
+    assert "stockroom shim ensure-env" in line
+    assert "uv pip install torch" not in line
+
+
+def test_smoke_torch_missing_with_unusable_freeze_falls_through_to_pip(
+    capsys, stockroom_home: Path
+) -> None:
+    """Corrupt freeze (no hashes) is treated as no freeze for the remedy."""
+    (stockroom_home / "torch-requirements.txt").write_text(
+        "torch==2.7.1+cpu\n", encoding="utf-8"
+    )
+    code = doctor.run_smoke(torch_importer=_import_absent, encoder_factory=_GoodEncoder)
+    assert code == 1
+    line = _one_stderr_line(capsys)
+    assert "uv pip install torch --no-config --index" in line
+    assert "ensure-env" not in line
 
 
 def test_smoke_encoder_failure_names_error_and_next_action(capsys) -> None:
