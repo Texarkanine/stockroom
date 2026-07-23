@@ -48,3 +48,14 @@ Surface session token usage on the stockroom dashboard: Tokens column on convers
     - Compact total = sum of four fields; breakdown labels Input / Output / Cache write / Cache read
 * Insights
     - Message-join token columns are safe when set once on session setdefault
+
+## 2026-07-22 - QA - COMPLETE
+
+* Work completed
+    - Reviewed implementation vs issue #83 / plan (KISS/DRY/YAGNI/completeness/docs)
+    - DRY: single `tokenBreakdownRows` pass in `mountTokenDisplay`
+    - Wrote `.qa-validation-status` = PASS
+* Decisions made
+    - No substantive redesign needed; hover-shared component matches brief
+* Insights
+    - Labeled vs unlabeled mount covers both list and detail without a second component

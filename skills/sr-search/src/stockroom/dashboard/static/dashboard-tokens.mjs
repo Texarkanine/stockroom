@@ -118,10 +118,11 @@ export function mountTokenDisplay(container, tokens, options = {}) {
   hint.setAttribute("aria-hidden", "true");
   hint.textContent = "?";
 
+  const breakdown = tokenBreakdownRows(tokens);
   const popover = document.createElement("span");
   popover.className = "token-breakdown";
   popover.setAttribute("role", "tooltip");
-  for (const row of tokenBreakdownRows(tokens)) {
+  for (const row of breakdown) {
     const line = document.createElement("span");
     line.className = "token-breakdown-row";
     const name = document.createElement("span");
@@ -137,7 +138,7 @@ export function mountTokenDisplay(container, tokens, options = {}) {
   wrap.append(value, hint, popover);
   wrap.setAttribute(
     "aria-label",
-    `Tokens ${compact}: ${tokenBreakdownRows(tokens)
+    `Tokens ${compact}: ${breakdown
       .map((row) => `${row.label} ${row.value}`)
       .join(", ")}`,
   );
