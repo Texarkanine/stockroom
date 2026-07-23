@@ -34,7 +34,7 @@ Defaults are `~/.cursor/projects`, `~/.cursor/chats`, and `~/.claude/projects`.
 
 ### Cursor `sessions.models` enrichment
 
-Cursor has no in-band session model grain. When available, ingest fills `sessions.models` from Cursor’s optional `ai-code-tracking.db` sidecar(s).
+Cursor has no in-band session model grain. When available, ingest fills `sessions.models` from Cursor's optional `ai-code-tracking.db` sidecar(s).
 
 **Default ingest walks and merges every readable candidate** — Linux modern/legacy paths under `~/.cursor/`, plus WSL Windows-home mounts under `/mnt/<drive>/Users/*/.cursor/...` — so a tiny WSL CLI tracking DB does not shadow the Windows IDE DB. Unreadable paths fail soft.
 
@@ -86,7 +86,7 @@ stockroom schedule install --time 01:15
 stockroom schedule remove
 ```
 
-`install` is idempotent — it replaces Stockroom’s own entry, never duplicates it, and on cron it only touches a comment-delimited block. If `status` warns that the cron daemon is not running, the entry is written but will not fire until you start the daemon.
+`install` is idempotent — it replaces Stockroom's own entry, never duplicates it, and on cron it only touches a comment-delimited block. If `status` warns that the cron daemon is not running, the entry is written but will not fire until you start the daemon.
 
 The optional schedule entry is also called out under [Installed layout](installed-layout.md). Session-start hooks never ingest or embed — they only heal the shim and launch the dashboard.
 

@@ -110,7 +110,7 @@ Torch is held out of the lock on purpose so each machine gets a wheel that actua
 
 #### Restore After Sync
 
-After `make sync`, `make test`, or `make ci`, restore the machine’s **accepted** stack from the hashed freeze:
+After `make sync`, `make test`, or `make ci`, restore the machine's **accepted** stack from the hashed freeze:
 
 ```bash
 stockroom shim ensure-env
@@ -196,7 +196,7 @@ Product behavior and URL: [Dashboard](../user-guide/dashboard.md) (default [http
 Static ESM is read from disk on each request; Python changes only get picked up after the dashboard server process is replaced.
 
 1. Edit server/metrics (and any other Python under `dashboard/`) plus the static modules that consume the API.
-2. Bounce so this checkout’s Python is what is listening:
+2. Bounce so this checkout's Python is what is listening:
 
 	```bash
 	make local-dashboard
@@ -221,7 +221,7 @@ Static ESM is read from disk on each request; Python changes only get picked up 
 
 ## Skills
 
-Wrapper skills are the agent-facing how-to for Stockroom’s engine surfaces. They live under [`skills/`](https://github.com/Texarkanine/stockroom/tree/main/skills) — each skill is a directory with a `SKILL.md` (plus optional `references/`). Skills invoke the engine only as `stockroom <subcommand>`; they do not call `uv` or `make`.
+Wrapper skills are the agent-facing how-to for Stockroom's engine surfaces. They live under [`skills/`](https://github.com/Texarkanine/stockroom/tree/main/skills) — each skill is a directory with a `SKILL.md` (plus optional `references/`). Skills invoke the engine only as `stockroom <subcommand>`; they do not call `uv` or `make`.
 
 | Skill | Path | Role |
 | --- | --- | --- |

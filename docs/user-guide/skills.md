@@ -1,10 +1,10 @@
 # Skill index
 
-Stockroom’s agent-facing surfaces are the `sr-*` skills. Ask in natural language, or slash-invoke when you want a specific one.
+Stockroom's agent-facing surfaces are the `sr-*` skills. Ask in natural language, or slash-invoke when you want a specific one.
 
-Invocation forms differ by harness. After setup, engine calls are always `stockroom <subcommand>` on PATH — see [CLI](../advanced/cli.md). Operational flags and recovery tables live in each skill’s `SKILL.md`; this page is only an index.
+Invocation forms differ by harness. After setup, engine calls are always `stockroom <subcommand>` on PATH — see [CLI](../advanced/cli.md). Operational flags and recovery tables live in each skill's `SKILL.md`; this page is only an index.
 
-| Skill | Cursor | Claude Code | What it’s for |
+| Skill | Cursor | Claude Code | What it's for |
 | --- | --- | --- | --- |
 | [`sr-dashboard`](#sr-dashboard) | `/sr-dashboard` | `/stockroom:sr-dashboard` | Open the local metrics UI |
 | [`sr-initialize`](#sr-initialize) | `/sr-initialize` | `/stockroom:sr-initialize` | First-time / heal machine setup |

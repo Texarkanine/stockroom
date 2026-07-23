@@ -46,8 +46,8 @@ HARNESS=cursor make localdev    # or HARNESS=claude, etc
 1. **`local-skills`**
 	- Cursor: symlink `skills/*` into `.cursor/skills/stockroom-local/` (with a managed pre-commit guard so the mirror never lands in a commit).
 	- Claude: no-op with a reminder to use `claude --plugin-dir .` for a session-scoped plugin load.
-1. **`local-engine`** — claim the on-path shim as owner `dev` with `--takeover --force`, then `stockroom shim ensure-env` for this checkout’s engine dir (locked deps + torch from freeze).
-2. **`local-dashboard`** — force-replace `stockroom dashboard` (`--replace`) so this checkout’s code is loaded even when identity matches.
+1. **`local-engine`** — claim the on-path shim as owner `dev` with `--takeover --force`, then `stockroom shim ensure-env` for this checkout's engine dir (locked deps + torch from freeze).
+2. **`local-dashboard`** — force-replace `stockroom dashboard` (`--replace`) so this checkout's code is loaded even when identity matches.
 
 ### 3. Dashboard Start
 
@@ -76,7 +76,7 @@ stockroom doctor probe  # show shim & system info
 stockroom doctor smoke  # ensure Torch actually works
 ```
 
-Confirm your harness is loading **this** checkout’s skills, not a leftover marketplace install.
+Confirm your harness is loading **this** checkout's skills, not a leftover marketplace install.
 
 You are now ready to start developing!
 
@@ -139,11 +139,11 @@ make shim TAKEOVER=1 FORCE=1   # replace a *live* foreign bake (dangerous)
 `make localdev-status` prints two sections (read-only; no mutations):
 
 1. **localdev-managed** — skills mirror and pre-commit block (when present)
-2. **shim** — on-PATH location, default dest (`~/.local/bin/stockroom`), owner + baked `app-dir` from the shim header, whether that engine dir is alive, and torch version in that engine’s `.venv` (or “not installed”)
+2. **shim** — on-PATH location, default dest (`~/.local/bin/stockroom`), owner + baked `app-dir` from the shim header, whether that engine dir is alive, and torch version in that engine's `.venv` (or “not installed”)
 
 ### Clean Semantics
 
-`HARNESS=… make localdev-clean` removes that harness’s localdev-managed artifacts and deletes `~/.local/bin/stockroom` **only when** the shim header is `owner=dev`. 
+`HARNESS=… make localdev-clean` removes that harness's localdev-managed artifacts and deletes `~/.local/bin/stockroom` **only when** the shim header is `owner=dev`. 
 
 It does **not** touch the warehouse, marketplace installs, or a harness-owned shim. After a `dev` unclaim, reinstall the marketplace plugin and launch — sessionStart `shim rectify` creates the missing on-path shim for the plugin.
 
