@@ -1,11 +1,12 @@
 # Active Context
 
 ## Current Task: doctor-smoke-ensure-env-remedy
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Intent clarified from https://github.com/Texarkanine/stockroom/issues/86 and approved
-- Complexity determined: Level 2 (simple enhancement; self-contained change to doctor smoke diagnosis + tests)
+- Level 2 plan written for issue #86
+- Touchpoints: `doctor.run_smoke` missing-torch branch, `test_doctor.py` / `test_doctor_cli.py`, brief `torch.md` note
+- Decision: gate on `torch_source.read_freeze_path()` (same as `ensure_torch`), not a separate index+requirements existence check
 
 ## Next Step
-- Load Level 2 workflow and execute Plan phase
+- Preflight validation (automatic for Level 2)

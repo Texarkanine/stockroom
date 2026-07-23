@@ -13,3 +13,15 @@ When `stockroom doctor smoke` fails for missing torch, recommend `stockroom shim
     - Level 2 (not L1): labeled enhancement; behavior change to diagnosis copy with freeze-presence branch, not a one-line typo fix
 * Insights
     - Heal path already exists via `shim ensure-env` and torch troubleshooting docs; smoke errmsg is the gap
+
+## 2026-07-22 - PLAN - COMPLETE
+
+* Work completed
+    - Mapped behaviors to `test_doctor.py` / `test_doctor_cli.py` extensions
+    - Planned `run_smoke` freeze-aware remedy via `torch_source.read_freeze_path()`
+    - Included brief `docs/user-guide/troubleshooting/torch.md` alignment note
+* Decisions made
+    - Usable-freeze gate matches `ensure_torch` (`read_freeze_path`), not a looser "both files exist" check
+    - Freeze-present remedy must not lead with raw `uv pip install torch`
+* Insights
+    - CLI torch-free test must branch on freeze presence to stay green on both CI and torch-stripped local envs
