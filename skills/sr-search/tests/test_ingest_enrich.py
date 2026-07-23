@@ -185,10 +185,10 @@ def test_resolve_db_paths_walks_home_and_wsl_candidates(
     wsl_db.write_bytes(b"ide")
     monkeypatch.setattr(enrich.Path, "home", staticmethod(lambda: home_dir))
     monkeypatch.setattr(enrich, "_wsl_windows_candidate_paths", lambda: [wsl_db])
-    monkeypatch.setattr(
-        config, "load_settings", lambda config_home=None: config.Settings()
-    )
-    assert enrich.resolve_db_paths() == [modern.resolve(), wsl_db.resolve()]
+    assert enrich.resolve_db_paths(settings=config.Settings()) == [
+        modern.resolve(),
+        wsl_db.resolve(),
+    ]
 
 
 def test_resolve_db_paths_includes_legacy_when_modern_absent(
@@ -202,16 +202,13 @@ def test_resolve_db_paths_includes_legacy_when_modern_absent(
     legacy.write_bytes(b"legacy")
     monkeypatch.setattr(enrich.Path, "home", staticmethod(lambda: home_dir))
     monkeypatch.setattr(enrich, "_wsl_windows_candidate_paths", lambda: [])
-    monkeypatch.setattr(
-        config, "load_settings", lambda config_home=None: config.Settings()
-    )
-    assert enrich.resolve_db_paths() == [legacy.resolve()]
+    assert enrich.resolve_db_paths(settings=config.Settings()) == [legacy.resolve()]
 
 
 def test_resolve_db_paths_config_pins_additive(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    """XDG ``ai_tracking_dbs`` pins are unioned with discovery (not a replace)."""
+    """Injected ``ai_tracking_dbs`` pins are unioned with discovery (not a replace)."""
     monkeypatch.delenv("STOCKROOM_AI_TRACKING_DB", raising=False)
     home_dir = tmp_path / "home"
     modern = home_dir / ".cursor" / "ai-tracking" / "ai-code-tracking.db"
@@ -222,12 +219,11 @@ def test_resolve_db_paths_config_pins_additive(
     pin.write_bytes(b"pin")
     monkeypatch.setattr(enrich.Path, "home", staticmethod(lambda: home_dir))
     monkeypatch.setattr(enrich, "_wsl_windows_candidate_paths", lambda: [])
-    monkeypatch.setattr(
-        config,
-        "load_settings",
-        lambda config_home=None: config.Settings(cursor_ai_tracking_dbs=(pin,)),
-    )
-    assert enrich.resolve_db_paths() == [modern.resolve(), pin.resolve()]
+    settings = config.Settings(cursor_ai_tracking_dbs=(pin,))
+    assert enrich.resolve_db_paths(settings=settings) == [
+        modern.resolve(),
+        pin.resolve(),
+    ]
 
 
 def test_resolve_db_paths_dedupes_pin_already_discovered(
@@ -241,12 +237,8 @@ def test_resolve_db_paths_dedupes_pin_already_discovered(
     modern.write_bytes(b"cli")
     monkeypatch.setattr(enrich.Path, "home", staticmethod(lambda: home_dir))
     monkeypatch.setattr(enrich, "_wsl_windows_candidate_paths", lambda: [])
-    monkeypatch.setattr(
-        config,
-        "load_settings",
-        lambda config_home=None: config.Settings(cursor_ai_tracking_dbs=(modern,)),
-    )
-    assert enrich.resolve_db_paths() == [modern.resolve()]
+    settings = config.Settings(cursor_ai_tracking_dbs=(modern,))
+    assert enrich.resolve_db_paths(settings=settings) == [modern.resolve()]
 
 
 def test_resolve_db_paths_keeps_missing_config_pin(
@@ -259,12 +251,8 @@ def test_resolve_db_paths_keeps_missing_config_pin(
     missing = tmp_path / "gone" / "ai-code-tracking.db"
     monkeypatch.setattr(enrich.Path, "home", staticmethod(lambda: home_dir))
     monkeypatch.setattr(enrich, "_wsl_windows_candidate_paths", lambda: [])
-    monkeypatch.setattr(
-        config,
-        "load_settings",
-        lambda config_home=None: config.Settings(cursor_ai_tracking_dbs=(missing,)),
-    )
-    assert enrich.resolve_db_paths() == [missing]
+    settings = config.Settings(cursor_ai_tracking_dbs=(missing,))
+    assert enrich.resolve_db_paths(settings=settings) == [missing]
 
 
 def test_resolve_db_paths_empty_when_nothing_found(
@@ -276,36 +264,28 @@ def test_resolve_db_paths_empty_when_nothing_found(
     home_dir.mkdir()
     monkeypatch.setattr(enrich.Path, "home", staticmethod(lambda: home_dir))
     monkeypatch.setattr(enrich, "_wsl_windows_candidate_paths", lambda: [])
-    monkeypatch.setattr(
-        config, "load_settings", lambda config_home=None: config.Settings()
-    )
-    assert enrich.resolve_db_paths() == []
+    assert enrich.resolve_db_paths(settings=config.Settings()) == []
 
 
-def test_default_db_path_env_override(
+def test_resolve_db_paths_loads_pins_from_xdg_when_settings_omitted(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    """``STOCKROOM_AI_TRACKING_DB`` still drives the thin single-path helper."""
-    target = tmp_path / "custom" / "ai-code-tracking.db"
-    monkeypatch.setenv("STOCKROOM_AI_TRACKING_DB", str(target))
-    assert enrich.default_db_path() == target
-
-
-def test_default_db_path_returns_modern_conventional_when_absent(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
-    """With no candidates on disk, return the documented modern conventional path."""
+    """``settings=None`` (default) reads pins from XDG ``config.toml`` via load_settings."""
     monkeypatch.delenv("STOCKROOM_AI_TRACKING_DB", raising=False)
     home_dir = tmp_path / "home"
     home_dir.mkdir()
+    pin = tmp_path / "pinned.db"
+    pin.write_bytes(b"pin")
+    config_home = tmp_path / "xdg-config" / "stockroom"
+    config_home.mkdir(parents=True)
+    (config_home / "config.toml").write_text(
+        f'[cursor]\nai_tracking_dbs = ["{pin.as_posix()}"]\n',
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg-config"))
     monkeypatch.setattr(enrich.Path, "home", staticmethod(lambda: home_dir))
     monkeypatch.setattr(enrich, "_wsl_windows_candidate_paths", lambda: [])
-    monkeypatch.setattr(
-        config, "load_settings", lambda config_home=None: config.Settings()
-    )
-    assert enrich.default_db_path() == (
-        home_dir / ".cursor" / "ai-tracking" / "ai-code-tracking.db"
-    )
+    assert enrich.resolve_db_paths() == [pin.resolve()]
 
 
 def test_load_enrichment_merges_disjoint_conversation_ids(
@@ -320,7 +300,7 @@ def test_load_enrichment_merges_disjoint_conversation_ids(
         tmp_path / "ide.db",
         [("h2", "ide-conv", "model-ide", 2)],
     )
-    monkeypatch.setattr(enrich, "resolve_db_paths", lambda: [cli, ide])
+    monkeypatch.setattr(enrich, "resolve_db_paths", lambda settings=None: [cli, ide])
     assert enrich.load_enrichment() == {
         "cli-conv": ["model-cli"],
         "ide-conv": ["model-ide"],
@@ -339,7 +319,9 @@ def test_load_enrichment_shadowing_regression(
         tmp_path / "ide.db",
         [("h2", "ide-only", "gpt-ide", 2)],
     )
-    monkeypatch.setattr(enrich, "resolve_db_paths", lambda: [home_db, ide_db])
+    monkeypatch.setattr(
+        enrich, "resolve_db_paths", lambda settings=None: [home_db, ide_db]
+    )
     result = enrich.load_enrichment()
     assert result["cli-only"] == ["gpt-cli"]
     assert result["ide-only"] == ["gpt-ide"]
@@ -354,7 +336,9 @@ def test_load_enrichment_skips_unreadable_sibling(
         [("h1", "conv-a", "model-a", 1)],
     )
     missing = tmp_path / "missing.db"
-    monkeypatch.setattr(enrich, "resolve_db_paths", lambda: [missing, good])
+    monkeypatch.setattr(
+        enrich, "resolve_db_paths", lambda settings=None: [missing, good]
+    )
     assert enrich.load_enrichment() == {"conv-a": ["model-a"]}
 
 
@@ -370,7 +354,9 @@ def test_load_enrichment_dedupes_models_across_dbs(
         tmp_path / "b.db",
         [("h3", "shared", "model-x", 3), ("h4", "shared", "model-z", 4)],
     )
-    monkeypatch.setattr(enrich, "resolve_db_paths", lambda: [first, second])
+    monkeypatch.setattr(
+        enrich, "resolve_db_paths", lambda settings=None: [first, second]
+    )
     assert enrich.load_enrichment() == {"shared": ["model-x", "model-y", "model-z"]}
 
 
@@ -378,5 +364,5 @@ def test_load_enrichment_empty_when_no_paths(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """No resolved paths → empty enrichment map."""
-    monkeypatch.setattr(enrich, "resolve_db_paths", lambda: [])
+    monkeypatch.setattr(enrich, "resolve_db_paths", lambda settings=None: [])
     assert enrich.load_enrichment() == {}

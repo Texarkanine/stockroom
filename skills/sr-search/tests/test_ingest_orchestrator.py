@@ -277,7 +277,9 @@ def test_cursor_default_enrichment_merges_disjoint_tracking_dbs(
         "gpt-ide",
     )
     monkeypatch.delenv("STOCKROOM_AI_TRACKING_DB", raising=False)
-    monkeypatch.setattr(enrich, "resolve_db_paths", lambda: [cli_db, ide_db])
+    monkeypatch.setattr(
+        enrich, "resolve_db_paths", lambda settings=None: [cli_db, ide_db]
+    )
 
     ingest.ingest(full=True, con=migrated_con, harness="cursor")
 

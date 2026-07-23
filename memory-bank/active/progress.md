@@ -69,3 +69,16 @@ Fix Cursor `sessions.models` cliff (#82): walk/merge all readable `ai-code-track
     - Residual enrich-miss model wipe left as known non-goal for #82
 * Insights
     - Optional sidecars with disjoint corpora need walk/merge, not first-hit
+
+## 2026-07-22 - REWORK - COMPLETE
+
+* Work completed
+    - Deleted unused `default_db_path` (+ its tests)
+    - `resolve_db_paths(settings=...)` / `load_enrichment(settings=...)` DI; tests pass Settings or real XDG config.toml under tmp_path (not operator home)
+    - Enrich uses bound `from stockroom.config import Settings, load_settings`
+    - Live verify after re-ingest: Cursor ide 841 / cli 93 non-subagent sessions; models on both corpora
+    - Full suite 670 passed / 1 skipped
+* Decisions made
+    - In-changeset polish after operator pushback on leftover / monkeypatch coupling
+* Insights
+    - DI removes the “must import module object for monkeypatch” footgun

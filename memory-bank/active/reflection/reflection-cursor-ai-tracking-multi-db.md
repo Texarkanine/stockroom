@@ -20,16 +20,17 @@ Plan sequence held: config home → settings → resolve set → merge → orche
 
 ## Build & QA Observations
 
-Build was smooth; monkeypatch needed `from stockroom import config` (not a bound import). Full suite green (671/1). QA only found a small DRY smell in `default_db_path` re-checking env.
+Build was smooth. Full suite green (671/1). QA found a small DRY smell in `default_db_path` re-checking env (later deleted). Post-reflect polish: dropped unused `default_db_path`, and replaced `load_settings` monkeypatches with `resolve_db_paths(settings=...)` DI plus one XDG `config.toml` integration test for the default path.
 
 ## Insights
 
 ### Technical
 - First-hit path resolution is a silent dual-corpus footgun whenever writers land disjoint ID spaces under ordered candidates — prefer walk/merge (or explicit multi-source) for optional sidecars, and reserve env for true single-source overrides.
+- Prefer injecting `Settings` (or a real temp XDG config) over monkeypatching `load_settings`; the latter forces a fragile module-import style.
 
 ### Process
 - Preflight should keep treating “helpers updated, orchestrator seam unchanged” as a plan-failure mode; the AC-level orchestrator test belonged in the plan from the start.
 
 ### Million-Dollar Question
 
-If multi-source ai-tracking had been assumed from day one, enrich would expose only `load_enrichment()` / `resolve_db_paths()` with env as a singleton override — no first-hit `default_db_path` as the primary API. What we shipped is that shape with a thin diagnostic leftover; good enough.
+If multi-source ai-tracking had been assumed from day one, enrich would expose only `load_enrichment()` / `resolve_db_paths()` with env as a singleton override — no first-hit `default_db_path` API. Post-reflect cleanup deleted the unused `default_db_path` leftover so that is the shipped shape.
