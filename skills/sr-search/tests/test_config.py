@@ -4,6 +4,7 @@ Permanent machine settings live under XDG config home (distinct from data
 ``STOCKROOM_HOME``). Missing or malformed files fail soft to empty settings.
 """
 
+import logging
 from pathlib import Path
 
 import pytest
@@ -85,6 +86,18 @@ def test_load_settings_malformed_toml_returns_empty(
     config_home.mkdir()
     (config_home / "config.toml").write_text("[[[not valid", encoding="utf-8")
     assert config.load_settings(config_home) == config.Settings()
+
+
+def test_load_settings_malformed_toml_logs_warning(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """A present but unparseable ``config.toml`` warns before fail-soft empty."""
+    config_home = tmp_path / "stockroom"
+    config_home.mkdir()
+    (config_home / "config.toml").write_text("[[[not valid", encoding="utf-8")
+    with caplog.at_level(logging.WARNING, logger="stockroom.config"):
+        assert config.load_settings(config_home) == config.Settings()
+    assert any("config.toml" in r.getMessage() for r in caplog.records)
 
 
 def test_load_settings_ignores_non_string_ai_tracking_entries(

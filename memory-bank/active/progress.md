@@ -104,4 +104,15 @@ PR #85 feedback rework on cursor-ai-tracking-multi-db: installed-layout default 
 * Insights
     - Operator overrode judge defer/dismiss on items 4 and 5; treat brief Rework section as SSOT for in-scope set
 
-## 2026-07-22 - BUILD - IN-PROGRESS
+## 2026-07-22 - BUILD - COMPLETE
+
+* Work completed
+    - installed-layout: document `~/.config/stockroom/config.toml` default alongside XDG_CONFIG_HOME
+    - `resolve_db_paths`: `expanduser()` on `STOCKROOM_AI_TRACKING_DB`; `_normalize_db_path` uses `path.expanduser()`
+    - `load_settings`: WARNING log on present-but-unparseable config.toml; fail-soft empty Settings unchanged
+    - Tests for expanduser override + parse warning; suite 672 passed / 1 skipped
+    - Filed [#86](https://github.com/Texarkanine/stockroom/issues/86) for smoke→ensure-env remedy (out of this rework)
+* Decisions made
+    - expanduser test sets `HOME` (Path.home monkeypatch does not affect os.path.expanduser)
+* Insights
+    - `make test`'s `sync` strips out-of-lock torch; local verify after torch provision should use `--no-sync`

@@ -28,7 +28,7 @@ After `sr-initialize`, machine-local state lives under stockroom home — `$XDG_
 | `$STOCKROOM_HOME/warehouse.duckdb` | **DuckDB warehouse:** session/message/tool/embedding tables |
 | `$STOCKROOM_HOME/torch-requirements.txt` | **Torch freeze:** hashed requirements so heal can reinstall the same wheel ([Torch](troubleshooting/torch.md)) |
 | `$STOCKROOM_HOME/torch-index` | **Torch index sidecar:** https wheel index URL used when the freeze was written ([Torch](troubleshooting/torch.md)) |
-| `$XDG_CONFIG_HOME/stockroom/config.toml` | **Optional settings:** distinct from data home; today only additive Cursor `ai_tracking_dbs` pins for model enrichment ([Load the Warehouse](ingest.md#cursor-sessionsmodels-enrichment)) |
+| `$XDG_CONFIG_HOME/stockroom/config.toml` (or `~/.config/stockroom/config.toml` by default) | **Optional settings:** distinct from data home; today only additive Cursor `ai_tracking_dbs` pins for model enrichment ([Load the Warehouse](ingest.md#cursor-sessionsmodels-enrichment)) |
 | `~/.local/bin/stockroom` | **On-path shim:** bakes the correct `uv` invocation to run Stockroom + Torch offline, from the plugin payload directory |
 
 Shim / PATH failures: [Troubleshooting · Installed layout](troubleshooting/index.md#installed-layout).

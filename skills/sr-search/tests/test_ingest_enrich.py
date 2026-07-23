@@ -170,6 +170,20 @@ def test_resolve_db_paths_env_override_is_singleton(
     assert enrich.resolve_db_paths() == [target]
 
 
+def test_resolve_db_paths_env_override_expands_user(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Env override expands a leading ``~`` (parity with config pins)."""
+    fake_home = tmp_path / "fake-home"
+    target = fake_home / "pinned" / "ai-code-tracking.db"
+    target.parent.mkdir(parents=True)
+    target.write_bytes(b"x")
+    monkeypatch.setenv("HOME", str(fake_home))
+    monkeypatch.setenv("STOCKROOM_AI_TRACKING_DB", "~/pinned/ai-code-tracking.db")
+    monkeypatch.setattr(enrich, "_wsl_windows_candidate_paths", lambda: [])
+    assert enrich.resolve_db_paths() == [target]
+
+
 def test_resolve_db_paths_walks_home_and_wsl_candidates(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:

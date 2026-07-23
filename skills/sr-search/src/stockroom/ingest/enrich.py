@@ -77,7 +77,7 @@ def _candidate_db_paths(home: Path | None = None) -> list[Path]:
 
 def _normalize_db_path(path: Path) -> Path:
     """Expand ``~``; resolve when the path exists (best-effort dedupe key)."""
-    expanded = Path(path).expanduser()
+    expanded = path.expanduser()
     try:
         if expanded.exists():
             return expanded.resolve()
@@ -89,15 +89,16 @@ def _normalize_db_path(path: Path) -> Path:
 def resolve_db_paths(settings: Settings | None = None) -> list[Path]:
     """Return enrichment DB paths to read (env override, else discovery ∪ pins).
 
-    When ``STOCKROOM_AI_TRACKING_DB`` is set, returns that single path.
-    Otherwise returns every existing conventional candidate plus every
-    ``ai_tracking_dbs`` pin from ``settings`` (deduped, discovery order then
-    pins). When ``settings`` is ``None``, loads via :func:`load_settings`.
-    Missing pins remain in the list so :func:`read_enrichment` can fail soft.
+    When ``STOCKROOM_AI_TRACKING_DB`` is set, returns that single path
+    (``~``-expanded). Otherwise returns every existing conventional candidate
+    plus every ``ai_tracking_dbs`` pin from ``settings`` (deduped, discovery
+    order then pins). When ``settings`` is ``None``, loads via
+    :func:`load_settings`. Missing pins remain in the list so
+    :func:`read_enrichment` can fail soft.
     """
     override = os.environ.get(AI_TRACKING_DB_ENV_VAR)
     if override:
-        return [Path(override)]
+        return [Path(override).expanduser()]
 
     if settings is None:
         settings = load_settings()

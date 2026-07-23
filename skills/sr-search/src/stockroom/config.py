@@ -3,11 +3,13 @@
 Settings live at ``$XDG_CONFIG_HOME/stockroom/config.toml`` (default
 ``~/.config/stockroom/config.toml``), distinct from the data warehouse home
 under ``STOCKROOM_HOME`` / XDG data home. Missing or malformed files yield
-empty settings — never raise — so ingest can fail soft.
+empty settings — never raise — so ingest can fail soft. A present but
+unparseable file also logs a warning.
 """
 
 from __future__ import annotations
 
+import logging
 import tomllib
 from dataclasses import dataclass
 from pathlib import Path
@@ -17,6 +19,8 @@ from stockroom.home import resolve_config_home
 
 #: Filename under config home for permanent settings.
 CONFIG_FILENAME = "config.toml"
+
+_LOG = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -57,7 +61,8 @@ def load_settings(config_home: Path | None = None) -> Settings:
         return Settings()
     try:
         data = tomllib.loads(raw.decode("utf-8"))
-    except (UnicodeDecodeError, tomllib.TOMLDecodeError):
+    except (UnicodeDecodeError, tomllib.TOMLDecodeError) as exc:
+        _LOG.warning("stockroom config.toml parse failed (%s): %s", path, exc)
         return Settings()
     if not isinstance(data, dict):
         return Settings()
