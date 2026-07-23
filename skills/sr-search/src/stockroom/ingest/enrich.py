@@ -135,13 +135,11 @@ def load_enrichment() -> dict[str, list[str]]:
 def default_db_path() -> Path:
     """Return a single enrichment DB path for diagnostics / thin callers.
 
-    Prefers ``STOCKROOM_AI_TRACKING_DB``, else the first path from
-    :func:`resolve_db_paths`, else the documented modern conventional path
-    under ``~/.cursor/ai-tracking/``. Prefer :func:`load_enrichment` for ingest.
+    Prefers the first path from :func:`resolve_db_paths` (including the
+    ``STOCKROOM_AI_TRACKING_DB`` singleton), else the documented modern
+    conventional path under ``~/.cursor/ai-tracking/``. Prefer
+    :func:`load_enrichment` for ingest.
     """
-    override = os.environ.get(AI_TRACKING_DB_ENV_VAR)
-    if override:
-        return Path(override)
     resolved = resolve_db_paths()
     if resolved:
         return resolved[0]

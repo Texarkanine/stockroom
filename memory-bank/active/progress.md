@@ -49,3 +49,13 @@ Fix Cursor `sessions.models` cliff (#82): walk/merge all readable `ai-code-track
     - No `state_vscdb` on Settings; pins additive and fail-soft when missing
 * Insights
     - Monkeypatching `config.load_settings` requires `from stockroom import config` import style in enrich
+
+## 2026-07-22 - QA - COMPLETE
+
+* Work completed
+    - Semantic review vs plan/brief; wrote `.qa-validation-status` PASS
+    - DRY: collapsed duplicate env check in `default_db_path`
+* Decisions made
+    - Keep `default_db_path` as thin diagnostic helper (still tested)
+* Insights
+    - Completeness gate: orchestrator multi-DB test was the right AC lock

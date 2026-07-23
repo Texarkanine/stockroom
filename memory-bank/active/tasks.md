@@ -104,4 +104,4 @@ No new technology — validation not required. Uses stdlib `tomllib` (already us
 - [x] Pre-Mortem complete
 - [x] Preflight
 - [x] Build
-- [ ] QA
+- [x] QA
