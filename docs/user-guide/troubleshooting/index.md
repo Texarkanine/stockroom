@@ -67,7 +67,7 @@ The shim is **baked** to one engine directory (`…/skills/sr-search`). Bind the
 
 If the installer warns that `~/.local/bin` is not on `PATH`, add it and retry the check.
 
-**Ownership:** if install refuses because another owner’s shim is alive, read the refusal line. Replacing a live foreign shim needs explicit `--takeover` — prefer `sr-initialize` or consent carefully.
+**Ownership:** if install refuses because another owner's shim is alive, read the refusal line. Replacing a live foreign shim needs explicit `--takeover` — prefer `sr-initialize` or consent carefully.
 
 ### Shim refuses with a one-line remedy
 

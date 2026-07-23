@@ -7,11 +7,12 @@ consumes — Cursor's attribution tables are out of scope.
 
 The DB is **optional**: every entry point degrades to an empty result rather
 than raising, so ingest runs identically with or without it. Path resolution
-prefers ``STOCKROOM_AI_TRACKING_DB``, then conventional locations under
-``~/.cursor/``, then WSL Windows-home mount fallbacks. The present-DB path
-reads the current Cursor schema (``ai_code_hashes``, optionally
-``conversation_summaries``) through stdlib :mod:`sqlite3` only — no new
-dependency.
+walks **all** readable conventional candidates (Linux modern/legacy + WSL
+Windows-home mounts) and merges them with optional XDG
+``[cursor].ai_tracking_dbs`` pins. ``STOCKROOM_AI_TRACKING_DB`` forces a
+single-DB override (tests / one-shots). The present-DB path reads the current
+Cursor schema (``ai_code_hashes``, optionally ``conversation_summaries``)
+through stdlib :mod:`sqlite3` only — no new dependency.
 """
 
 from __future__ import annotations
@@ -19,6 +20,8 @@ from __future__ import annotations
 import os
 import sqlite3
 from pathlib import Path
+
+from stockroom.config import Settings, load_settings
 
 #: Env var overriding where the Cursor ``ai-code-tracking.db`` is read from.
 AI_TRACKING_DB_ENV_VAR = "STOCKROOM_AI_TRACKING_DB"
@@ -72,22 +75,67 @@ def _candidate_db_paths(home: Path | None = None) -> list[Path]:
     ]
 
 
-def default_db_path() -> Path:
-    """Return the enrichment DB path (env override or first existing candidate).
+def _normalize_db_path(path: Path) -> Path:
+    """Expand ``~``; resolve when the path exists (best-effort dedupe key)."""
+    expanded = path.expanduser()
+    try:
+        if expanded.exists():
+            return expanded.resolve()
+    except OSError:
+        pass
+    return expanded
 
-    When nothing exists on disk, returns the documented modern conventional
-    path under ``~/.cursor/ai-tracking/``. The path is not required to exist —
-    :func:`read_enrichment` treats a missing file as "no enrichment available".
+
+def resolve_db_paths(settings: Settings | None = None) -> list[Path]:
+    """Return enrichment DB paths to read (env override, else discovery ∪ pins).
+
+    When ``STOCKROOM_AI_TRACKING_DB`` is set, returns that single path
+    (``~``-expanded). Otherwise returns every existing conventional candidate
+    plus every ``ai_tracking_dbs`` pin from ``settings`` (deduped, discovery
+    order then pins). When ``settings`` is ``None``, loads via
+    :func:`load_settings`. Missing pins remain in the list so
+    :func:`read_enrichment` can fail soft.
     """
     override = os.environ.get(AI_TRACKING_DB_ENV_VAR)
     if override:
-        return Path(override)
+        return [Path(override).expanduser()]
 
-    candidates = _candidate_db_paths()
-    for candidate in candidates:
-        if candidate.is_file():
-            return candidate
-    return candidates[0]
+    if settings is None:
+        settings = load_settings()
+
+    ordered: list[Path] = []
+    seen: set[Path] = set()
+
+    def _add(path: Path, *, require_file: bool) -> None:
+        normalized = _normalize_db_path(path)
+        if require_file and not normalized.is_file():
+            return
+        if normalized in seen:
+            return
+        seen.add(normalized)
+        ordered.append(normalized)
+
+    for candidate in _candidate_db_paths():
+        _add(candidate, require_file=True)
+    for pin in settings.cursor_ai_tracking_dbs:
+        _add(pin, require_file=False)
+    return ordered
+
+
+def load_enrichment(settings: Settings | None = None) -> dict[str, list[str]]:
+    """Resolve all enrichment DB paths and merge their model maps fail-soft.
+
+    Walks :func:`resolve_db_paths` (passing ``settings``), reads each with
+    :func:`read_enrichment`, and merges ``{conversation_id: [model, ...]}``
+    with first-seen model order via :func:`_append_model`. Unreadable /
+    missing paths contribute nothing.
+    """
+    merged: dict[str, list[str]] = {}
+    for db_path in resolve_db_paths(settings=settings):
+        for conversation_id, models in read_enrichment(db_path).items():
+            for model in models:
+                _append_model(merged, conversation_id, model)
+    return merged
 
 
 def _append_model(

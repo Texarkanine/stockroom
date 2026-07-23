@@ -284,8 +284,10 @@ def _ingest_cursor(
     if on_progress is not None:
         on_progress(f"cursor: {total} sessions")
 
-    db_path = ai_tracking_db if ai_tracking_db is not None else enrich.default_db_path()
-    enrichment = enrich.read_enrichment(db_path)
+    if ai_tracking_db is not None:
+        enrichment = enrich.read_enrichment(ai_tracking_db)
+    else:
+        enrichment = enrich.load_enrichment()
 
     offset, chats_ok = _write_discovered(
         con,
@@ -378,10 +380,12 @@ def ingest(
     ``full=True`` ignores the watermark and re-ingests everything (idempotent
     via the writer's delete-then-insert). When ``con`` is ``None`` the warehouse
     is opened read-write through ``warehouse.open()`` (and closed on return);
-    tests inject a connection. ``ai_tracking_db`` overrides the Cursor
-    enrichment DB location (default: :func:`enrich.default_db_path`).
-    ``on_progress``, when set, receives human-readable progress lines (see
-    :func:`_ingest_harness`); default ``None`` emits nothing.
+    tests inject a connection. ``ai_tracking_db`` forces a single Cursor
+    enrichment DB (same single-DB override as ``STOCKROOM_AI_TRACKING_DB``);
+    when unset, :func:`enrich.load_enrichment` merges all discovered /
+    configured tracking DBs. ``on_progress``, when set, receives human-readable
+    progress lines (see :func:`_ingest_harness`); default ``None`` emits
+    nothing.
     """
     harnesses = _HARNESSES if harness is None else (harness,)
     summary = IngestSummary()

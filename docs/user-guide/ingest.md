@@ -22,18 +22,43 @@ stockroom ingest --full       # ignore watermarks; re-read everything (still ide
 stockroom ingest --verbose    # progress lines (quiet by default)
 ```
 
-`--harness cursor` or `--harness claude` limits to one source. Non-default transcript roots (and the optional Cursor enrichment DB) are env overrides on the same command:
+`--harness cursor` or `--harness claude` limits to one source. Non-default transcript roots are env overrides on the same command:
 
 ```bash
 STOCKROOM_CURSOR_ROOT=/path/to/cursor/projects stockroom ingest
 STOCKROOM_CURSOR_CHATS_ROOT=/path/to/cursor/chats stockroom ingest
 STOCKROOM_CLAUDE_ROOT=/path/to/claude/projects stockroom ingest
-STOCKROOM_AI_TRACKING_DB=/path/to/ai-code-tracking.db stockroom ingest
 ```
 
-Defaults are `~/.cursor/projects`, `~/.cursor/chats`, `~/.claude/projects`, and Cursor’s usual `ai-tracking` DB under `~/.cursor/`.
+Defaults are `~/.cursor/projects`, `~/.cursor/chats`, and `~/.claude/projects`.
 
 `sr-initialize` runs `stockroom ingest --full` once so you are not waiting for the first nightly job. On years of history that first pass can take many minutes (varying greatly depending on your machine's CPU and disk speed); it prints per-harness session/message/tool_call counts when done.
+
+### Cursor `sessions.models` Enrichment
+
+Cursor has no in-band session model grain. When available, ingest fills `sessions.models` from Cursor's optional `ai-code-tracking.db` sidecar(s).
+
+**Default ingest walks and merges every readable candidate:**
+
+* Linux/Mac paths under `~/.cursor/`
+* WSL Windows-home mounts under `/mnt/<drive>/Users/*/.cursor/...`
+
+Optional **additive** pins (if you've got a weird setup) live in XDG config — `$XDG_CONFIG_HOME/stockroom/config.toml` or `~/.config/stockroom/config.toml`:
+
+```toml
+[cursor]
+ai_tracking_dbs = [
+  "/some/funky/path/.cursor/ai-tracking/ai-code-tracking.db",
+]
+```
+
+Pins are unioned with discovery (not a replacement). Missing pins fail soft.
+
+For tests or one-shots, `STOCKROOM_AI_TRACKING_DB` forces a **single** DB and disables the multi-path walk:
+
+```bash
+STOCKROOM_AI_TRACKING_DB=/path/to/ai-code-tracking.db stockroom ingest
+```
 
 ## Embed
 
@@ -64,7 +89,7 @@ stockroom schedule install --time 01:15
 stockroom schedule remove
 ```
 
-`install` is idempotent — it replaces Stockroom’s own entry, never duplicates it, and on cron it only touches a comment-delimited block. If `status` warns that the cron daemon is not running, the entry is written but will not fire until you start the daemon.
+`install` is idempotent — it replaces Stockroom's own entry, never duplicates it, and on cron it only touches a comment-delimited block. If `status` warns that the cron daemon is not running, the entry is written but will not fire until you start the daemon.
 
 The optional schedule entry is also called out under [Installed layout](installed-layout.md). Session-start hooks never ingest or embed — they only heal the shim and launch the dashboard.
 
