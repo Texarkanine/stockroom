@@ -59,3 +59,12 @@ Surface session token usage on the stockroom dashboard: Tokens column on convers
     - No substantive redesign needed; hover-shared component matches brief
 * Insights
     - Labeled vs unlabeled mount covers both list and detail without a second component
+
+## 2026-07-22 - REFLECT - COMPLETE
+
+* Work completed
+    - Reflection document written; techContext updated for `dashboard-tokens.mjs` + tokens API
+* Decisions made
+    - No architectural redesign; shared mount is the right shape
+* Insights
+    - Session-level fields on message-joined list queries must be written once per session key

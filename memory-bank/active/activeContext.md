@@ -1,12 +1,12 @@
 # Active Context
 
 ## Current Task: dashboard-token-usage
-**Phase:** QA - COMPLETE
+**Phase:** REFLECT - COMPLETE
 
 ## What Was Done
-- Semantic QA against issue #83 / plan: completeness, DRY, YAGNI, docs, integrity
-- Trivial fix: compute `tokenBreakdownRows` once in `mountTokenDisplay`
-- `.qa-validation-status` = PASS
+- Wrote `memory-bank/active/reflection/reflection-dashboard-token-usage.md`
+- Reconciled `techContext.md` to list `dashboard-tokens.mjs` and session `tokens` API exposure
+- Reflection complete for Level 2 standalone task
 
 ## Next Step
-- Reflect phase (automatic for Level 2)
+- Run `/niko-archive` to archive and clear ephemeral memory bank
