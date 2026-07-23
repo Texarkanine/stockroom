@@ -64,3 +64,13 @@ When `stockroom doctor smoke` fails for missing torch, recommend `stockroom shim
     - Standalone L2 complete; next operator step is `/niko-archive`
 * Insights
     - Align smoke errmsg freeze gate with `ensure_torch` / `read_freeze_path`
+
+## 2026-07-22 - POST-PR REWORK - CLI TEST ISOLATION
+
+* Work completed
+    - Isolated CLI smoke from ambient `STOCKROOM_HOME`; added second CLI test for freeze → ensure-env
+    - `make format && make lint && make test` — 672 passed, 4 skipped
+* Decisions made
+    - Prefer two explicit isolated CLI cases over env-adaptive branching on real home
+* Insights
+    - Subprocess CLI coverage of ensure-env is worth keeping: proves `STOCKROOM_HOME` reaches the child, not only in-process unit fakes

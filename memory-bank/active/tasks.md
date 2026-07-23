@@ -16,7 +16,7 @@ When `stockroom doctor smoke` fails because torch is missing, recommend `stockro
 - Corrupt / unusable freeze (no `torch==` or no `--hash=`) + torch missing → same as no-freeze path (`read_freeze_path()` returns `None`)
 - Encoder / wrong-width failures → unchanged re-pick remedy (regression)
 - Happy path → unchanged exit 0 (regression)
-- CLI torch-free smoke → still one stderr line; assertion branches on whether a usable freeze is present in the subprocess env (CI: no freeze → pip remedy; local torch-stripped+freeze → ensure-env)
+- CLI torch-free smoke → still one stderr line; two isolated-home cases (empty → pip remedy; usable freeze written → ensure-env) so ambient `STOCKROOM_HOME` cannot change assertions
 
 ### Test Infrastructure
 
@@ -31,7 +31,7 @@ When `stockroom doctor smoke` fails because torch is missing, recommend `stockro
    - Files: `skills/sr-search/tests/test_doctor.py`, `skills/sr-search/tests/test_doctor_cli.py`
    - Changes:
      - Add a local `stockroom_home` fixture in `test_doctor.py`; split/replace `test_smoke_torch_missing_is_ratcheted_diagnosis` into no-freeze (current pip/`--directory` remedy), usable-freeze (`shim ensure-env`, no leading raw pip), and unusable-freeze (falls through to pip/`sr-initialize`)
-     - Update `test_smoke_torch_free_env_fails_loudly_with_remedy` to branch on `torch_source.read_freeze_path()` (ensure-env vs pip remedy)
+     - CLI: pin `STOCKROOM_HOME` in `_run` env — empty home asserts pip remedy; second test writes a usable freeze and asserts ensure-env (no ambient-home branching)
    - Run: freeze-present unit case(s) must fail before production code changes
 
 2. **Implement freeze-aware remedy in `run_smoke`**
@@ -63,7 +63,7 @@ No new technology - validation not required
 
 ## Challenges & Mitigations
 
-- **CLI test env variance (CI torch-free vs local freeze-without-torch):** Branch assertions on `read_freeze_path()` rather than hard-coding one remedy string.
+- **CLI test env variance (CI torch-free vs local freeze-without-torch):** Isolate `STOCKROOM_HOME` in the subprocess and cover both remediations with two explicit tests (supersedes ambient `read_freeze_path()` branching).
 - **Issue wording vs heal gate (`requirements` + `index` vs hashed freeze alone):** Prefer `read_freeze_path()` — that is what `ensure_torch` actually gates on; index is already baked into a proper freeze. Document this decision in progress notes.
 - **Accidental import weight in doctor:** `torch_source` is already a light home/path helper used by shim; importing it from doctor is consistent with the heal surface. Avoid importing shim CLI.
 
