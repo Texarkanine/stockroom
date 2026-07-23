@@ -262,10 +262,15 @@ def test_session_tables_include_tokens_column_between_messages_and_model() -> No
     assert 'colspan="6"' not in source
     assert ".token-display" in source
     assert "align-items: center" in source
-    assert "align-items: baseline" not in source.split(".token-display")[1].split("}")[0]
+    assert (
+        "align-items: baseline" not in source.split(".token-display")[1].split("}")[0]
+    )
     # Breakdown opens to the right of the control so the pointer does not cover it.
     assert "left: calc(100%" in source
-    assert "top: calc(100% + 0.35rem)" not in source.split(".token-breakdown")[1].split("}")[0]
+    assert (
+        "top: calc(100% + 0.35rem)"
+        not in source.split(".token-breakdown")[1].split("}")[0]
+    )
     assert ".token-breakdown-rule" in source
     assert ".token-breakdown-total" in source
     tokens_js = (STATIC_ROOT / "dashboard-tokens.mjs").read_text(encoding="utf-8")
