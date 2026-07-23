@@ -1,10 +1,11 @@
 # Active Context
 
 ## Current Task: doctor-smoke-ensure-env-remedy
-**Phase:** QA - COMPLETE
+**Phase:** REFLECT COMPLETE
 
 ## What Was Done
-- QA PASS: implementation matches plan; reuses `read_freeze_path`; docs updated; no debris
+- Reflection written; persistent files unchanged (reconcile skip)
+- Ready for archive
 
 ## Next Step
-- Reflect phase (automatic for Level 2)
+- Run `/niko-archive` to create the archive document and finalize

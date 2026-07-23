@@ -54,3 +54,13 @@ When `stockroom doctor smoke` fails for missing torch, recommend `stockroom shim
     - PASS — no substantive issues; no trivial fixes required
 * Insights
     - Freeze-present unit test could optionally assert `sr-initialize` re-pick mention; left as optional per issue wording
+
+## 2026-07-22 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `memory-bank/active/reflection/reflection-doctor-smoke-ensure-env-remedy.md`
+    - Reconciled persistent files: no updates required
+* Decisions made
+    - Standalone L2 complete; next operator step is `/niko-archive`
+* Insights
+    - Align smoke errmsg freeze gate with `ensure_torch` / `read_freeze_path`
