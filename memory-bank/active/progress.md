@@ -74,3 +74,10 @@ When `stockroom doctor smoke` fails for missing torch, recommend `stockroom shim
     - Prefer two explicit isolated CLI cases over env-adaptive branching on real home
 * Insights
     - Subprocess CLI coverage of ensure-env is worth keeping: proves `STOCKROOM_HOME` reaches the child, not only in-process unit fakes
+
+## 2026-07-23 - ARCHIVE - READY
+
+* Work completed
+    - Operator invoked `/niko-archive`; proceeding to archive enhancement
+* Decisions made
+    - Category: `enhancements/` (smoke errmsg extended, not a new feature)
