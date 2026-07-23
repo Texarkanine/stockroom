@@ -36,3 +36,15 @@ Surface session token usage on the stockroom dashboard: Tokens column on convers
     - Keep hover (not click) for token breakdown; shared JS module + shared Python payload helper
 * Insights
     - Additive `tokens` field will break two exact session-dict assertions until tests are updated first
+
+## 2026-07-22 - BUILD - COMPLETE
+
+* Work completed
+    - API: `_tokens_payload` + list/detail join to `session_token_usage`; detail session-level `model`
+    - UI: `dashboard-tokens.mjs` shared mount; Tokens column; detail meta via `buildSessionMetaEntries`
+    - Docs + full verification (`make test` 672 passed / 4 skipped; 101 JS)
+* Decisions made
+    - Labeled detail mount shows `Tokens: —` (no hover) when data absent
+    - Compact total = sum of four fields; breakdown labels Input / Output / Cache write / Cache read
+* Insights
+    - Message-join token columns are safe when set once on session setdefault

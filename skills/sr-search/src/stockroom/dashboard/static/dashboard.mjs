@@ -41,6 +41,7 @@ import {
 } from "./dashboard-data.mjs";
 import {
   buildSessionDeepLink,
+  buildSessionMetaEntries,
   buildSessionViewSearchParams,
   buildSessionsListSearchParams,
   clampSessionsListPage,
@@ -53,6 +54,7 @@ import {
   parseSessionsListParams,
   renderSessionMessageHtml,
 } from "./dashboard-session.mjs";
+import { mountTokenDisplay } from "./dashboard-tokens.mjs";
 
 // Richer markdown → use export. Do not add markdown-it plugins.
 const markdown = window.markdownit({
@@ -518,6 +520,9 @@ function appendSessionDataRow(tbody, session, colors) {
     projectCell.title = projectTitle;
   }
   appendCell(row, numberFormatter.format(Number(session.msgs) || 0));
+  const tokensCell = document.createElement("td");
+  mountTokenDisplay(tokensCell, session.tokens);
+  row.append(tokensCell);
   appendCell(row, session.model || "—");
   appendCell(row, session.prompt || "—", "prompt-cell");
   tbody.append(row);
@@ -529,7 +534,7 @@ function renderSessions(ends) {
   if (rows.length === 0) {
     const row = document.createElement("tr");
     const cell = appendCell(row, "No sessions for this selection.");
-    cell.colSpan = 6;
+    cell.colSpan = 7;
     elements.sessionRows.append(row);
     return;
   }
@@ -542,7 +547,7 @@ function renderSessions(ends) {
       row.dataset.moreCount = String(item.count);
       row.setAttribute("aria-label", `Show ${item.count} more sessions`);
       const cell = document.createElement("td");
-      cell.colSpan = 6;
+      cell.colSpan = 7;
       cell.textContent = `… ${item.count} more`;
       row.append(cell);
       elements.sessionRows.append(row);
@@ -557,7 +562,7 @@ function renderSessionsListTable(sessions) {
   if (!Array.isArray(sessions) || sessions.length === 0) {
     const row = document.createElement("tr");
     const cell = appendCell(row, "No sessions for this selection.");
-    cell.colSpan = 6;
+    cell.colSpan = 7;
     elements.sessionsListRows.append(row);
     return;
   }
@@ -999,24 +1004,31 @@ function renderSessionDetail(detail) {
   const project = detail?.project_name || detail?.project_id || "—";
   const started = detail?.started ? formatDate(detail.started) : "—";
   elements.sessionMeta.innerHTML = "";
-  const metaBits = [
-    ["Harness", displayHarness(harness)],
-    ["Project", project],
-    ["Started", started],
-    ["Session", sessionId],
-  ];
-  if (detail?.is_subagent) {
-    metaBits.push(["Subagent of", detail.parent_session_id || "—"]);
-  }
+  const metaBits = buildSessionMetaEntries({
+    harnessLabel: displayHarness(harness),
+    project,
+    started,
+    model: detail?.model,
+    tokens: detail?.tokens,
+    isSubagent: Boolean(detail?.is_subagent),
+    parentSessionId: detail?.parent_session_id,
+  });
   elements.sessionMeta.append(
-    ...metaBits.flatMap(([label, value], index) => {
+    ...metaBits.flatMap((entry, index) => {
       const nodes = [];
       if (index > 0) {
         nodes.push(document.createTextNode(" · "));
       }
+      if (entry.kind === "tokens") {
+        const tokenHost = document.createElement("span");
+        tokenHost.className = "session-meta-tokens";
+        mountTokenDisplay(tokenHost, entry.tokens, { labeled: true });
+        nodes.push(tokenHost);
+        return nodes;
+      }
       const strong = document.createElement("strong");
-      strong.textContent = `${label}: `;
-      nodes.push(strong, document.createTextNode(String(value)));
+      strong.textContent = `${entry.label}: `;
+      nodes.push(strong, document.createTextNode(String(entry.text)));
       return nodes;
     }),
   );

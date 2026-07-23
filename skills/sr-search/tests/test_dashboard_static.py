@@ -246,6 +246,27 @@ def test_session_pane_toolbar_and_bubble_layout_contracts() -> None:
     assert "documentTitleForView" in adapter
 
 
+def test_session_tables_include_tokens_column_between_messages_and_model() -> None:
+    """Both session tables expose Tokens between Messages and Model (colspan 7)."""
+    source = (STATIC_ROOT / "index.html").read_text(encoding="utf-8")
+    assert source.count('<th scope="col">Tokens</th>') == 2
+    assert (
+        source.count(
+            '<th scope="col">Messages</th>\n'
+            '                <th scope="col">Tokens</th>\n'
+            '                <th scope="col">Model</th>'
+        )
+        == 2
+    )
+    assert 'colspan="7"' in source
+    assert 'colspan="6"' not in source
+    assert ".token-display" in source
+    adapter = (STATIC_ROOT / "dashboard.mjs").read_text(encoding="utf-8")
+    assert "mountTokenDisplay" in adapter
+    assert "colSpan = 7" in adapter
+    assert "dashboard-tokens.mjs" in adapter
+
+
 def test_dashboard_top_controls_expose_date_range_and_segmented_mode() -> None:
     """Date-range presets and Aggregate/Compare read as exclusive segmented controls."""
     _source, parser = _document()

@@ -892,6 +892,29 @@ def _count_filtered_sessions(
     return int(row[0]) if row else 0
 
 
+def _tokens_payload(
+    grain: str | None,
+    input_tokens: Any,
+    output_tokens: Any,
+    cache_creation_tokens: Any,
+    cache_read_tokens: Any,
+) -> dict[str, int] | None:
+    """Build the dashboard ``tokens`` object from ``session_token_usage`` columns.
+
+    Returns ``None`` when ``token_grain`` is ``none`` or missing (unknown /
+    unavailable usage, e.g. Cursor today). Otherwise returns the four totals as
+    ints; present zeros stay ``0``.
+    """
+    if grain is None or grain == "none":
+        return None
+    return {
+        "input": int(input_tokens or 0),
+        "output": int(output_tokens or 0),
+        "cache_creation": int(cache_creation_tokens or 0),
+        "cache_read": int(cache_read_tokens or 0),
+    }
+
+
 def _assemble_session_rows(rows: Sequence[tuple[Any, ...]]) -> list[dict[str, Any]]:
     """Fold session+message join rows into display dicts (insertion order preserved)."""
     ordered: dict[tuple[str, str], dict[str, Any]] = {}
@@ -908,6 +931,11 @@ def _assemble_session_rows(rows: Sequence[tuple[Any, ...]]) -> list[dict[str, An
         role,
         text,
         message_model,
+        token_grain,
+        input_tokens_total,
+        output_tokens_total,
+        cache_creation_tokens_total,
+        cache_read_tokens_total,
     ) in rows:
         key = (harness, session_id)
         ordered.setdefault(
@@ -921,6 +949,13 @@ def _assemble_session_rows(rows: Sequence[tuple[Any, ...]]) -> list[dict[str, An
                 "msgs": 0,
                 "model": None,
                 "prompt": "",
+                "tokens": _tokens_payload(
+                    token_grain,
+                    input_tokens_total,
+                    output_tokens_total,
+                    cache_creation_tokens_total,
+                    cache_read_tokens_total,
+                ),
             },
         )
         session_models[key] = list(models_used or [])
@@ -974,9 +1009,13 @@ def _fetch_ordered_sessions(
         f"{limit_sql}{offset_sql}"
         ") "
         "SELECT p.harness, p.session_id, p.cwd, p.project_id, p.models, "
-        "p.activity, m.ordinal, m.role, m.text, m.model "
+        "p.activity, m.ordinal, m.role, m.text, m.model, "
+        "t.token_grain, t.input_tokens_total, t.output_tokens_total, "
+        "t.cache_creation_tokens_total, t.cache_read_tokens_total "
         "FROM page p LEFT JOIN messages m "
         "ON m.harness = p.harness AND m.session_id = p.session_id "
+        "LEFT JOIN session_token_usage t "
+        "ON t.harness = p.harness AND t.session_id = p.session_id "
         f"ORDER BY p.activity {direction}, p.harness, p.session_id, m.ordinal",
         page_params,
     ).fetchall()
@@ -1073,9 +1112,14 @@ def session_detail(
     warehouse is addressable. Missing identity returns ``None``.
     """
     row = con.execute(
-        f"SELECT s.harness, s.session_id, s.project_id, s.cwd, "
-        f"{ACTIVITY_TIME_SQL}, s.is_subagent, s.parent_session_id "
-        "FROM sessions s WHERE s.harness = ? AND s.session_id = ?",
+        f"SELECT s.harness, s.session_id, s.project_id, s.cwd, s.models, "
+        f"{ACTIVITY_TIME_SQL}, s.is_subagent, s.parent_session_id, "
+        "t.token_grain, t.input_tokens_total, t.output_tokens_total, "
+        "t.cache_creation_tokens_total, t.cache_read_tokens_total "
+        "FROM sessions s "
+        "LEFT JOIN session_token_usage t "
+        "ON t.harness = s.harness AND t.session_id = s.session_id "
+        "WHERE s.harness = ? AND s.session_id = ?",
         [harness, session_id],
     ).fetchone()
     if row is None:
@@ -1086,9 +1130,15 @@ def session_detail(
         row_session_id,
         project_id,
         cwd,
+        models_used,
         activity,
         is_subagent,
         parent_session_id,
+        token_grain,
+        input_tokens_total,
+        output_tokens_total,
+        cache_creation_tokens_total,
+        cache_read_tokens_total,
     ) = row
 
     message_rows = con.execute(
@@ -1115,18 +1165,30 @@ def session_detail(
             }
         )
 
-    messages = [
-        {
-            "message_id": message_id,
-            "ordinal": ordinal,
-            "role": role,
-            "text": text,
-            "model": model,
-            "ts": _iso(ts),
-            "tool_calls": tools_by_message.get(message_id, []),
-        }
-        for message_id, ordinal, role, text, model, ts in message_rows
-    ]
+    model_counts: Counter[str] = Counter()
+    messages = []
+    for message_id, ordinal, role, text, model, ts in message_rows:
+        if model:
+            model_counts[model] += 1
+        messages.append(
+            {
+                "message_id": message_id,
+                "ordinal": ordinal,
+                "role": role,
+                "text": text,
+                "model": model,
+                "ts": _iso(ts),
+                "tool_calls": tools_by_message.get(message_id, []),
+            }
+        )
+
+    session_model: str | None = None
+    if model_counts:
+        session_model = sorted(
+            model_counts, key=lambda name: (-model_counts[name], name)
+        )[0]
+    elif models_used:
+        session_model = list(models_used)[0]
 
     return {
         "harness": row_harness,
@@ -1137,6 +1199,14 @@ def session_detail(
         "started": _iso(activity),
         "is_subagent": bool(is_subagent),
         "parent_session_id": parent_session_id,
+        "model": session_model,
+        "tokens": _tokens_payload(
+            token_grain,
+            input_tokens_total,
+            output_tokens_total,
+            cache_creation_tokens_total,
+            cache_read_tokens_total,
+        ),
         "messages": messages,
     }
 
