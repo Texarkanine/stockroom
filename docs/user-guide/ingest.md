@@ -32,18 +32,23 @@ STOCKROOM_CLAUDE_ROOT=/path/to/claude/projects stockroom ingest
 
 Defaults are `~/.cursor/projects`, `~/.cursor/chats`, and `~/.claude/projects`.
 
-### Cursor `sessions.models` enrichment
+`sr-initialize` runs `stockroom ingest --full` once so you are not waiting for the first nightly job. On years of history that first pass can take many minutes (varying greatly depending on your machine's CPU and disk speed); it prints per-harness session/message/tool_call counts when done.
+
+### Cursor `sessions.models` Enrichment
 
 Cursor has no in-band session model grain. When available, ingest fills `sessions.models` from Cursor's optional `ai-code-tracking.db` sidecar(s).
 
-**Default ingest walks and merges every readable candidate** — Linux modern/legacy paths under `~/.cursor/`, plus WSL Windows-home mounts under `/mnt/<drive>/Users/*/.cursor/...` — so a tiny WSL CLI tracking DB does not shadow the Windows IDE DB. Unreadable paths fail soft.
+**Default ingest walks and merges every readable candidate:**
 
-Optional **additive** pins (odd mounts discovery misses) live in XDG config — `$XDG_CONFIG_HOME/stockroom/config.toml` or `~/.config/stockroom/config.toml`:
+* Linux/Mac paths under `~/.cursor/`
+* WSL Windows-home mounts under `/mnt/<drive>/Users/*/.cursor/...`
+
+Optional **additive** pins (if you've got a weird setup) live in XDG config — `$XDG_CONFIG_HOME/stockroom/config.toml` or `~/.config/stockroom/config.toml`:
 
 ```toml
 [cursor]
 ai_tracking_dbs = [
-  "/mnt/s/Users/you/.cursor/ai-tracking/ai-code-tracking.db",
+  "/some/funky/path/.cursor/ai-tracking/ai-code-tracking.db",
 ]
 ```
 
@@ -54,8 +59,6 @@ For tests or one-shots, `STOCKROOM_AI_TRACKING_DB` forces a **single** DB and di
 ```bash
 STOCKROOM_AI_TRACKING_DB=/path/to/ai-code-tracking.db stockroom ingest
 ```
-
-`sr-initialize` runs `stockroom ingest --full` once so you are not waiting for the first nightly job. On years of history that first pass can take many minutes (varying greatly depending on your machine's CPU and disk speed); it prints per-harness session/message/tool_call counts when done.
 
 ## Embed
 
