@@ -103,5 +103,5 @@ No new technology — validation not required. Uses stdlib `tomllib` (already us
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight
-- [ ] Build
+- [x] Build
 - [ ] QA

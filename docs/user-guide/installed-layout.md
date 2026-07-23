@@ -30,4 +30,6 @@ After `sr-initialize`, machine-local state lives under stockroom home — `$XDG_
 | `$STOCKROOM_HOME/torch-index` | **Torch index sidecar:** https wheel index URL used when the freeze was written ([Torch](troubleshooting/torch.md)) |
 | `~/.local/bin/stockroom` | **On-path shim:** bakes the correct `uv` invocation to run Stockroom + Torch offline, from the plugin payload directory |
 
+Optional permanent settings (distinct from data home) live under XDG config home — `$XDG_CONFIG_HOME/stockroom/config.toml` or `~/.config/stockroom/config.toml`. Today this is only additive Cursor `ai_tracking_dbs` pins for model enrichment; see [Load the Warehouse](ingest.md#cursor-sessionsmodels-enrichment).
+
 Shim / PATH failures: [Troubleshooting · Installed layout](troubleshooting/index.md#installed-layout).

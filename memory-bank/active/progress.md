@@ -38,3 +38,14 @@ Fix Cursor `sessions.models` cliff (#82): walk/merge all readable `ai-code-track
     - Docs-only operator surface; optional installed-layout config-home line
 * Insights
     - Blocking risk was implementation-first step wording; fixed in-plan before Build
+
+## 2026-07-22 - BUILD - COMPLETE
+
+* Work completed
+    - Implemented walk/merge ai-tracking enrich + fresh XDG `ai_tracking_dbs` config
+    - Orchestrator default uses `load_enrichment()`; single-DB env/kwarg overrides retained
+    - Docs updated; full suite 671 passed / 1 skipped
+* Decisions made
+    - No `state_vscdb` on Settings; pins additive and fail-soft when missing
+* Insights
+    - Monkeypatching `config.load_settings` requires `from stockroom import config` import style in enrich

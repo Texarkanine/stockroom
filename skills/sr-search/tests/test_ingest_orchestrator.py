@@ -229,6 +229,72 @@ def test_cursor_enrichment_applied_to_models(
     assert models == ["gpt-5", "claude-4.6-sonnet"]
 
 
+def test_cursor_default_enrichment_merges_disjoint_tracking_dbs(
+    migrated_con: duckdb.DuckDBPyConnection,
+    fixture_roots: None,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Default ingest (no env/kwarg) merges models from multiple tracking DBs.
+
+    Regression for first-hit shadowing: a tiny CLI DB must not hide IDE models
+    when both candidates are readable (#82).
+    """
+    import sqlite3
+
+    from stockroom.ingest import enrich
+
+    def _seed(path: Path, conversation_id: str, model: str) -> Path:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        con = sqlite3.connect(path)
+        try:
+            con.execute(
+                "CREATE TABLE ai_code_hashes ("
+                "  hash TEXT PRIMARY KEY,"
+                "  conversationId TEXT,"
+                "  timestamp INTEGER,"
+                "  createdAt INTEGER NOT NULL,"
+                "  model TEXT"
+                ")"
+            )
+            con.execute(
+                "INSERT INTO ai_code_hashes "
+                "(hash, conversationId, timestamp, createdAt, model) "
+                "VALUES (?, ?, 1, 1, ?)",
+                (f"h-{conversation_id}", conversation_id, model),
+            )
+            con.commit()
+        finally:
+            con.close()
+        return path
+
+    cli_db = _seed(
+        tmp_path / "cli" / "ai-code-tracking.db", "simple-conversation", "gpt-cli"
+    )
+    ide_db = _seed(
+        tmp_path / "ide" / "ai-code-tracking.db",
+        "00000000-0000-4000-8000-000000000001",
+        "gpt-ide",
+    )
+    monkeypatch.delenv("STOCKROOM_AI_TRACKING_DB", raising=False)
+    monkeypatch.setattr(enrich, "resolve_db_paths", lambda: [cli_db, ide_db])
+
+    ingest.ingest(full=True, con=migrated_con, harness="cursor")
+
+    by_id = {
+        row[0]: row[1]
+        for row in migrated_con.execute(
+            "SELECT session_id, models FROM sessions WHERE harness = 'cursor' "
+            "AND session_id IN ("
+            "  'simple-conversation',"
+            "  '00000000-0000-4000-8000-000000000001'"
+            ")"
+        ).fetchall()
+    }
+    assert by_id["simple-conversation"] == ["gpt-cli"]
+    assert by_id["00000000-0000-4000-8000-000000000001"] == ["gpt-ide"]
+
+
 # --- Workspace identity: project_id (verbatim) + cwd (honest recovery) ------
 
 

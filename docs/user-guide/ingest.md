@@ -22,16 +22,38 @@ stockroom ingest --full       # ignore watermarks; re-read everything (still ide
 stockroom ingest --verbose    # progress lines (quiet by default)
 ```
 
-`--harness cursor` or `--harness claude` limits to one source. Non-default transcript roots (and the optional Cursor enrichment DB) are env overrides on the same command:
+`--harness cursor` or `--harness claude` limits to one source. Non-default transcript roots are env overrides on the same command:
 
 ```bash
 STOCKROOM_CURSOR_ROOT=/path/to/cursor/projects stockroom ingest
 STOCKROOM_CURSOR_CHATS_ROOT=/path/to/cursor/chats stockroom ingest
 STOCKROOM_CLAUDE_ROOT=/path/to/claude/projects stockroom ingest
-STOCKROOM_AI_TRACKING_DB=/path/to/ai-code-tracking.db stockroom ingest
 ```
 
-Defaults are `~/.cursor/projects`, `~/.cursor/chats`, `~/.claude/projects`, and Cursor’s usual `ai-tracking` DB under `~/.cursor/`.
+Defaults are `~/.cursor/projects`, `~/.cursor/chats`, and `~/.claude/projects`.
+
+### Cursor `sessions.models` enrichment
+
+Cursor has no in-band session model grain. When available, ingest fills `sessions.models` from Cursor’s optional `ai-code-tracking.db` sidecar(s).
+
+**Default ingest walks and merges every readable candidate** — Linux modern/legacy paths under `~/.cursor/`, plus WSL Windows-home mounts under `/mnt/<drive>/Users/*/.cursor/...` — so a tiny WSL CLI tracking DB does not shadow the Windows IDE DB. Unreadable paths fail soft.
+
+Optional **additive** pins (odd mounts discovery misses) live in XDG config — `$XDG_CONFIG_HOME/stockroom/config.toml` or `~/.config/stockroom/config.toml`:
+
+```toml
+[cursor]
+ai_tracking_dbs = [
+  "/mnt/s/Users/you/.cursor/ai-tracking/ai-code-tracking.db",
+]
+```
+
+Pins are unioned with discovery (not a replacement). Missing pins fail soft.
+
+For tests or one-shots, `STOCKROOM_AI_TRACKING_DB` forces a **single** DB and disables the multi-path walk:
+
+```bash
+STOCKROOM_AI_TRACKING_DB=/path/to/ai-code-tracking.db stockroom ingest
+```
 
 `sr-initialize` runs `stockroom ingest --full` once so you are not waiting for the first nightly job. On years of history that first pass can take many minutes (varying greatly depending on your machine's CPU and disk speed); it prints per-harness session/message/tool_call counts when done.
 

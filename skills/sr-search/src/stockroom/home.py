@@ -19,10 +19,19 @@ HOME_ENV_VAR = "STOCKROOM_HOME"
 #: the warehouse lives at ``$XDG_DATA_HOME/stockroom``.
 XDG_DATA_HOME_ENV_VAR = "XDG_DATA_HOME"
 
+#: Freedesktop XDG config-home env var; when set, permanent settings live at
+#: ``$XDG_CONFIG_HOME/stockroom`` (distinct from data ``STOCKROOM_HOME``).
+XDG_CONFIG_HOME_ENV_VAR = "XDG_CONFIG_HOME"
+
 #: Labels returned by :func:`resolve_home` describing how the home was chosen.
 HOME_SOURCE_OVERRIDE = "STOCKROOM_HOME"
 HOME_SOURCE_XDG = "XDG_DATA_HOME"
 HOME_SOURCE_DEFAULT = "default"
+
+#: Labels returned by :func:`resolve_config_home` describing how config home
+#: was chosen.
+CONFIG_HOME_SOURCE_XDG = "XDG_CONFIG_HOME"
+CONFIG_HOME_SOURCE_DEFAULT = "default"
 
 
 def resolve_home() -> tuple[Path, str]:
@@ -56,3 +65,21 @@ def home_dir() -> Path:
     base, _source = resolve_home()
     base.mkdir(parents=True, exist_ok=True)
     return base
+
+
+def resolve_config_home() -> tuple[Path, str]:
+    """Return ``(config_home_path, source)`` without creating directories.
+
+    Selection order:
+
+    1. ``$XDG_CONFIG_HOME/stockroom`` when ``XDG_CONFIG_HOME`` is set →
+       source ``XDG_CONFIG_HOME``
+    2. ``~/.config/stockroom`` otherwise → source ``default``
+
+    Pure: never mkdir. Distinct from data :func:`resolve_home` /
+    ``STOCKROOM_HOME``.
+    """
+    xdg = os.environ.get(XDG_CONFIG_HOME_ENV_VAR)
+    if xdg:
+        return Path(xdg) / "stockroom", CONFIG_HOME_SOURCE_XDG
+    return Path.home() / ".config" / "stockroom", CONFIG_HOME_SOURCE_DEFAULT
