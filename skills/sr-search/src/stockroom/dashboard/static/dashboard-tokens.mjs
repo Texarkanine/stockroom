@@ -75,6 +75,42 @@ export function tokenBreakdownRows(tokens) {
 }
 
 /**
+ * Rows plus summed total for the breakdown popover footer.
+ *
+ * @param {unknown} tokens
+ * @returns {{ rows: {label: string, value: number}[], total: number } | null}
+ */
+export function tokenBreakdownModel(tokens) {
+  if (!hasTokenData(tokens)) {
+    return null;
+  }
+  return {
+    rows: tokenBreakdownRows(tokens),
+    total: tokenTotal(tokens) ?? 0,
+  };
+}
+
+/**
+ * @param {ParentNode} popover
+ * @param {{label: string, value: number}} row
+ * @param {string} [extraClass]
+ */
+function appendBreakdownRow(popover, row, extraClass) {
+  const line = document.createElement("span");
+  line.className = extraClass
+    ? `token-breakdown-row ${extraClass}`
+    : "token-breakdown-row";
+  const name = document.createElement("span");
+  name.className = "token-breakdown-label";
+  name.textContent = row.label;
+  const amount = document.createElement("span");
+  amount.className = "token-breakdown-value";
+  amount.textContent = formatTokenCompact(row.value);
+  line.append(name, amount);
+  popover.append(line);
+}
+
+/**
  * Mount compact token display into ``container``.
  *
  * When ``tokens`` is null/absent: emdash text only (no hover).
@@ -118,29 +154,28 @@ export function mountTokenDisplay(container, tokens, options = {}) {
   hint.setAttribute("aria-hidden", "true");
   hint.textContent = "?";
 
-  const breakdown = tokenBreakdownRows(tokens);
+  const model = tokenBreakdownModel(tokens);
   const popover = document.createElement("span");
   popover.className = "token-breakdown";
   popover.setAttribute("role", "tooltip");
-  for (const row of breakdown) {
-    const line = document.createElement("span");
-    line.className = "token-breakdown-row";
-    const name = document.createElement("span");
-    name.className = "token-breakdown-label";
-    name.textContent = row.label;
-    const amount = document.createElement("span");
-    amount.className = "token-breakdown-value";
-    amount.textContent = formatTokenCompact(row.value);
-    line.append(name, amount);
-    popover.append(line);
+  for (const row of model?.rows ?? []) {
+    appendBreakdownRow(popover, row);
   }
+  const rule = document.createElement("hr");
+  rule.className = "token-breakdown-rule";
+  popover.append(rule);
+  appendBreakdownRow(
+    popover,
+    { label: "Total", value: model?.total ?? 0 },
+    "token-breakdown-total",
+  );
 
   wrap.append(value, hint, popover);
   wrap.setAttribute(
     "aria-label",
-    `Tokens ${compact}: ${breakdown
+    `Tokens ${compact}: ${(model?.rows ?? [])
       .map((row) => `${row.label} ${row.value}`)
-      .join(", ")}`,
+      .join(", ")}, Total ${model?.total ?? 0}`,
   );
   container.append(wrap);
 }

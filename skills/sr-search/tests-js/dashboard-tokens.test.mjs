@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   formatTokenCompact,
   hasTokenData,
+  tokenBreakdownModel,
   tokenBreakdownRows,
   tokenTotal,
 } from "../src/stockroom/dashboard/static/dashboard-tokens.mjs";
@@ -65,6 +66,27 @@ test("tokenBreakdownRows lists all four metrics with zeros preserved", () => {
       { label: "Cache write", value: 3 },
       { label: "Cache read", value: 0 },
     ],
+  );
+});
+
+test("tokenBreakdownModel includes metric rows plus total for the footer", () => {
+  assert.equal(tokenBreakdownModel(null), null);
+  assert.deepEqual(
+    tokenBreakdownModel({
+      input: 10,
+      output: 0,
+      cache_creation: 3,
+      cache_read: 0,
+    }),
+    {
+      rows: [
+        { label: "Input", value: 10 },
+        { label: "Output", value: 0 },
+        { label: "Cache write", value: 3 },
+        { label: "Cache read", value: 0 },
+      ],
+      total: 13,
+    },
   );
 });
 

@@ -266,6 +266,12 @@ def test_session_tables_include_tokens_column_between_messages_and_model() -> No
     # Breakdown opens to the right of the control so the pointer does not cover it.
     assert "left: calc(100%" in source
     assert "top: calc(100% + 0.35rem)" not in source.split(".token-breakdown")[1].split("}")[0]
+    assert ".token-breakdown-rule" in source
+    assert ".token-breakdown-total" in source
+    tokens_js = (STATIC_ROOT / "dashboard-tokens.mjs").read_text(encoding="utf-8")
+    assert "token-breakdown-rule" in tokens_js
+    assert 'label: "Total"' in tokens_js
+    assert "token-breakdown-total" in tokens_js
     adapter = (STATIC_ROOT / "dashboard.mjs").read_text(encoding="utf-8")
     assert "mountTokenDisplay" in adapter
     assert "colSpan = 7" in adapter
