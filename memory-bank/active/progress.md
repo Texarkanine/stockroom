@@ -125,3 +125,11 @@ PR #85 feedback rework on cursor-ai-tracking-multi-db: installed-layout default 
     - PASS with no code fixes required
 * Insights
     - Persistent files unchanged (expanduser / warn are local polish, not system-pattern shifts)
+
+## 2026-07-22 - ARCHIVE - IN-PROGRESS
+
+* Work completed
+    - Operator invoked `/niko-archive` for all tasks on `wsl-dual-sot`
+    - Single unarchived task: `cursor-ai-tracking-multi-db` (Level 2 + Level 1 PR #85 rework); abandoned `cursor-token-counts-vscdb` already archived
+* Decisions made
+    - Route archive as Level 2 (reflection exists; L1 rework is inlined into the same archive)
