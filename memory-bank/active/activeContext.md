@@ -1,11 +1,13 @@
 # Active Context
 
 ## Current Task: dashboard-token-usage
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Intent clarified from [issue #83](https://github.com/Texarkanine/stockroom/issues/83); operator added preference for a reusable token hover component across list/detail call sites
-- Classified as Level 2 (Simple Enhancement): dashboard-subsystem UI to surface existing `session_token_usage` data across list + detail views with a shared component — not a bug fix, not a multi-subsystem feature
+- Surveyed dashboard list/detail UI (`dashboard.mjs`, `index.html`), metrics API (`_assemble_session_rows`, `_fetch_ordered_sessions`, `session_detail`), and `session_token_usage` (0007)
+- Confirmed APIs do not yet expose tokens; Claude is message-grain, Cursor is grain `none`
+- Wrote Level 2 TDD plan: API tokens (+ detail model) → reusable `dashboard-tokens.mjs` → list column → detail meta → docs
+- Operator preference recorded: shared hover component, not copy-pasted across ~3 call sites
 
 ## Next Step
-- Load Level 2 workflow and begin planning phase
+- Preflight validation (automatic for Level 2)
