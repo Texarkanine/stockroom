@@ -51,3 +51,7 @@ Check network / index URL; retry; see `uv pip compile` stderr.
 ### `stockroom semantic` fails with missing torch
 
 Run `stockroom shim ensure-env` to re-install the frozen Torch into the `stockroom` engine.
+
+### `stockroom doctor smoke` fails with missing torch
+
+If a hashed freeze already exists under stockroom home, the diagnosis recommends `stockroom shim ensure-env` (same heal as above). If there is no freeze yet, follow `sr-initialize` (install → smoke → freeze).
