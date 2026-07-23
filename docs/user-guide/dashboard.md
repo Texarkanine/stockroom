@@ -33,21 +33,22 @@ Harness filters, time ranges, and Aggregate / Compare views over sessions, messa
 
 ### Sessions
 
-The metrics **Sessions** panel shows up to 20 matching conversations (10 newest + `… N more` + 10 oldest when there are more). Click a row to open reconstruction, or `… N more` for the paginated sessions-list view. That list has its own harnesses, time range, and per-page control (`25` / `50` / `100` / `All`); filter state lives in the URL. Browser Back is the only way back from the list or a session.
+The metrics **Sessions** panel shows up to 20 matching conversations (10 newest + `… N more` + 10 oldest when there are more). Click a row to open reconstruction, or `… N more` for the paginated sessions-list view. That list has its own harnesses, time range, and per-page control; filter state lives in the URL.
 
-Both the panel table and the full list include a **Tokens** column (between Messages and Model). Counts use a compact K/M-style total; hover the `?` for an input / output / cache breakdown when usage is known. Claude Code sessions show real totals (including zeros). Cursor sessions (and other cases without usage data) show an em dash with no hover.
+Both the panel table and the full list include a **Tokens** display. Counts use a compact **K**ilo / **M**ega, etc-style total; hover the `?` for an input / output / cache breakdown when usage is known
 
-List deep-link shape:
+List deep-link examples:
 
 ```text
-http://127.0.0.1:58008/?view=sessions&harness={harness}&per_page=50
+http://127.0.0.1:58008/?view=sessions&harness=cursor&per_page=50
+http://127.0.0.1:58008/?view=sessions&harness=cursor&harness=claude&per_page=100
+http://127.0.0.1:58008/?view=sessions&harness=claude&since=2026-07-01T00:00:00Z&until=2026-08-01T00:00:00Z&page=2&per_page=25
+http://127.0.0.1:58008/?view=sessions&per_page=all
 ```
-
-Optional: repeated `harness`, `since` / `until` (omit both for **All** — the full unwindowed warehouse range), `page`, `per_page` (`25` | `50` | `100` | `all`).
 
 ### Session inspection
 
-Open a conversation from Sessions (or a deep link) to read the thread, copy a deep-link, or export markdown/JSON when in-dashboard rendering is not enough. The header shows harness, project, started time, model (if known), and tokens (same compact total + hover breakdown as the lists; em dash when usage is unknown).
+Open a conversation from Sessions (or a deep link) to read the thread, copy a deep-link, or export markdown/JSON when in-dashboard rendering is not enough.
 
 ![Stockroom dashboard — session conversation view](../img/stockroom-dashboard-convo-light.png)
 
