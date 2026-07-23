@@ -59,3 +59,13 @@ Fix Cursor `sessions.models` cliff (#82): walk/merge all readable `ai-code-track
     - Keep `default_db_path` as thin diagnostic helper (still tested)
 * Insights
     - Completeness gate: orchestrator multi-DB test was the right AC lock
+
+## 2026-07-22 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `reflection/reflection-cursor-ai-tracking-multi-db.md`
+    - Reconciled persistent files (techContext already current; no other edits)
+* Decisions made
+    - Residual enrich-miss model wipe left as known non-goal for #82
+* Insights
+    - Optional sidecars with disjoint corpora need walk/merge, not first-hit
