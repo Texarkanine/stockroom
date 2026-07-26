@@ -465,3 +465,24 @@ Post-implementation semantic review of the whole branch (42 files, 4,606 inserti
     14. **`candidates()`** — catch `sqlite3.Error` and re-raise as `BackfillError` so the CLI keeps its no-traceback contract.
 * Explicitly out of scope (judged dismiss / not selected): US “parameterized” spelling, creative keep-predicate / workspace-identity rewrites, tasks.md CLI-wording and nested-backtick lint, conftest `_build` re-entrancy.
 * Disposition: rework (not archive). Reflection + creative docs preserved; plan/context/status files cleared next.
+
+## 2026-07-26 - COMPLEXITY-ANALYSIS (PR #92 feedback) - COMPLETE
+
+* Work completed
+    - Classified as Level 2 (simple enhancement); task id `pr92-coderabbit-fixes`
+    - Stubbed `tasks.md` / `activeContext.md`; preserved `projectbrief.md` / `progress.md`
+* Decisions made
+    - Level 2, not Level 1: nine fixes span docs + adapter, with real TDD on the stability pair — not a single typo
+    - Level 2, not Level 3: design settled by the judge; no new architecture
+* Insights
+    - None
+
+## 2026-07-26 - PLAN (PR #92 feedback) - COMPLETE
+
+* Work completed
+    - Level 2 plan in `tasks.md`: B1–B11, five steps (adapter tests → adapter impl → contributing docs → backfill user-guide docs → verify lede + strict build)
+* Decisions made
+    - Prefer `Path.resolve().as_uri() + "?" + mode` for URI encoding (stdlib) over hand-rolled `quote`
+    - Progress lede (item 10 / B7) already refreshed at rework initiation — plan step is verify-only
+* Insights
+    - None
