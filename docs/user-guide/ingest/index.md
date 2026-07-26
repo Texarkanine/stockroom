@@ -9,9 +9,17 @@ stockroom embed
 
 That is the day-to-day loop. **Ingest** copies harness history into the warehouse; **embed** turns message text into vectors for meaning-based search; a **nightly schedule** runs both so you are not babysitting freshness by hand.
 
-Legacy history from before your harness kept transcripts? → [Backfill Legacy History](backfill/index.md).
-
 Day-to-day search still goes through the agent (`sr-search` and friends). This page is for when you want to know what those pipelines do — or when you need to re-run them yourself.
+
+## Ingest
+
+Ingest is ETL from agentic coding harness transcript roots into the warehouse under stockroom home (`$STOCKROOM_HOME/warehouse.duckdb` — see [Installed layout](../installed-layout.md)).
+
+It writes harness-labeled rows into shared tables: `sessions`, `messages`, and `tool_calls`. Prompts and responses are stored whole; tool *inputs* are kept; tool *result* payloads are dropped. Thinking/reasoning blocks the harness keeps separate are not stored. Rows whose source transcripts later vanish are **not** pruned — the warehouse is allowed to outlive its sources.
+
+**Default is incremental.** Stockroom remembers a per-`(harness, source_root)` watermark in `_sync_state` and only reads files past that point. Cursor therefore tracks projects and chats roots independently. Re-runs are cheap and safe. 
+
+**Migrations do not Backfill.** Structural migrations do not backfill columns such as `entrypoint` — use `stockroom ingest --full` after a database schema upgrade if you want older rows repopulated from sources (this will be infrequent).
 
 ## Embed
 
@@ -46,13 +54,29 @@ stockroom schedule remove
 
 The optional schedule entry is also called out under [Installed layout](../installed-layout.md). Session-start hooks never ingest or embed — they only heal the shim and launch the dashboard.
 
-## Ingest
 
-Ingest is ETL from agentic coding harness transcript roots into the warehouse under stockroom home (`$STOCKROOM_HOME/warehouse.duckdb` — see [Installed layout](../installed-layout.md)).
+## Re-run and Check Coverage
 
-It writes harness-labeled rows into shared tables: `sessions`, `messages`, and `tool_calls`. Prompts and responses are stored whole; tool *inputs* are kept; tool *result* payloads are dropped. Thinking/reasoning blocks the harness keeps separate are not stored. Rows whose source transcripts later vanish are **not** pruned — the warehouse is allowed to outlive its sources.
+If you skipped the first full load (or want to force a full re-read), use the same commands initialize used:
 
-**Default is incremental.** Stockroom remembers a per-`(harness, source_root)` watermark in `_sync_state` and only reads files past that point. Cursor therefore tracks projects and chats roots independently. Re-runs are cheap and safe. Structural migrations do not backfill columns such as `entrypoint` — use `stockroom ingest --full` after an upgrade if you want older rows repopulated from sources.
+```bash
+stockroom ingest --full
+stockroom embed
+```
+
+Then sanity-check counts:
+
+```bash
+stockroom query "SELECT (SELECT count(*) FROM sessions) AS sessions, (SELECT count(*) FROM messages) AS messages, (SELECT count(*) FROM embeddings) AS embeddings"
+```
+
+Non-zero in all three columns means the warehouse is populated and searchable.
+
+## Harness-Specific Notes
+
+### Cursor
+
+#### Best-Effort Parsing
 
 Cursor Agent CLI chats (`~/.cursor/chats/**/store.db`) are parsed best-effort: if a store is locked, corrupt, or its internal blob layout drifts, that session is skipped and the rest of the ingest continues (the chats watermark does not advance past a skipped store, so a later run can retry). Empty or meta-only stores still upsert a session with zero messages. Fixture tests in the repo fail loudly when the known layout changes — operators should not expect a hard ingest failure from layout drift alone.
 
@@ -74,26 +98,7 @@ Defaults are `~/.cursor/projects`, `~/.cursor/chats`, and `~/.claude/projects`.
 
 `sr-initialize` runs `stockroom ingest --full` once so you are not waiting for the first nightly job. On years of history that first pass can take many minutes (varying greatly depending on your machine's CPU and disk speed); it prints per-harness session/message/tool_call counts when done.
 
-## Re-run and check coverage
-
-If you skipped the first full load (or want to force a full re-read), use the same commands initialize used:
-
-```bash
-stockroom ingest --full
-stockroom embed
-```
-
-Then sanity-check counts:
-
-```bash
-stockroom query "SELECT (SELECT count(*) FROM sessions) AS sessions, (SELECT count(*) FROM messages) AS messages, (SELECT count(*) FROM embeddings) AS embeddings"
-```
-
-Non-zero in all three columns means the warehouse is populated and searchable.
-
-Stuck on empty results, staleness, or schedule? [Troubleshooting · Ingest](../troubleshooting/index.md#ingest).
-
-### Cursor `sessions.models` Enrichment
+####  `sessions.models` Enrichment
 
 Cursor has no in-band session model grain. When available, ingest fills `sessions.models` from Cursor's optional `ai-code-tracking.db` sidecar(s).
 
