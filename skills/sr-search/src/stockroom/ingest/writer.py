@@ -17,7 +17,8 @@ Two operations:
   denormalizes the session's ``harness`` onto every child row. Before deletion,
   it carries each existing message's ``first_seen_at`` forward by deterministic
   ``message_id``; new or previously-unobserved rows seed from the session's
-  ``source_mtime``. Thus ``--full`` preserves observation history, and source
+  ``source_mtime``, or from the run clock when the source has none.
+  Thus ``--full`` preserves observation history, and source
   files that disappear remain untouched because ingest never calls the writer
   for undiscovered sessions. At the same pre-delete moment it compares old vs
   new message ``text`` and deletes embeddings only for removed or text-changed
@@ -82,10 +83,17 @@ def write_session(con: duckdb.DuckDBPyConnection, session: NormalizedSession) ->
 
     Inserts the ``sessions`` row, then its ``messages`` (with expanded
     ``message_id``/``parent_id``), then their ``tool_calls`` (``tool_input``
-    serialized whole as JSON). Re-running with the same ``(harness, session_id)``
+    serialized whole as JSON).     Re-running with the same ``(harness, session_id)``
     replaces the prior rows rather than colliding on the primary key while
     carrying forward each existing message's first-observation time and
     invalidating embeddings only for removed or text-changed message ids.
+
+    ``first_seen_at`` follows a three-tier rule, most-authoritative first: an
+    already-recorded observation for that ``message_id``, else the session's
+    ``source_mtime``, else the run clock. The last tier matters for sources with
+    no per-conversation file to stat (the Cursor vscdb backfill reads one shared
+    store); without it their observation time would be discarded permanently,
+    since the column is not rebuildable from sources.
     """
     prior_rows = con.execute(
         "SELECT message_id, text, first_seen_at FROM messages "
@@ -174,7 +182,7 @@ def write_session(con: duckdb.DuckDBPyConnection, session: NormalizedSession) ->
                 message.cache_creation_tokens,
                 message.cache_read_tokens,
                 message.source_uuid,
-                carried_first_seen.get(message_id) or session.source_mtime,
+                carried_first_seen.get(message_id) or session.source_mtime or utc_now(),
             ],
         )
         for call in message.tool_calls:

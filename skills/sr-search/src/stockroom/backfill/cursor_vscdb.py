@@ -48,6 +48,7 @@ from collections.abc import Iterator
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+from urllib.parse import unquote, urlsplit
 
 from stockroom.backfill import BackfillError
 from stockroom.config import load_settings
@@ -84,6 +85,16 @@ _BUBBLE_PREFIX = "bubbleId:"
 
 #: Cursor's bubble ``type`` discriminator. Any other value is not a turn.
 _ROLES = {1: "user", 2: "assistant"}
+
+#: Folder-URI schemes whose path component is a real filesystem path. Anything
+#: else (including a multi-root ``workspace`` pointer) yields an honest unknown.
+_FOLDER_URI_SCHEMES = frozenset({"vscode-remote", "file"})
+
+
+def _workspace_root(source: Path) -> Path:
+    """The ``workspaceStorage`` sibling of the store's ``globalStorage`` dir."""
+    return Path(source).parent.parent / "workspaceStorage"
+
 
 #: The open ladder (D1), tried in order. See :func:`open_readonly`.
 _OPEN_MODES = ("mode=ro", "immutable=1")
@@ -172,6 +183,38 @@ def candidates(source: Path) -> list[str]:
     finally:
         con.close()
     return [row[0][len(_COMPOSER_PREFIX) :] for row in rows]
+
+
+def workspace_folder(workspace_root: Path, workspace_id: str) -> str | None:
+    """Resolve a workspace's real folder path from its ``workspace.json``.
+
+    Reads ``{workspace_root}/{workspace_id}/workspace.json`` — an authoritative
+    record at a path derived from the store's own location, never a filesystem
+    search. ``{"folder": "<uri>"}`` names a single root, which is decoded to a
+    real path; ``vscode-remote://<authority>/<path>`` and ``file://<path>`` are
+    the two live schemes.
+
+    Returns ``None`` — never raises — for a multi-root ``{"workspace": …}``
+    pointer (no single folder exists), an unknown scheme, or a missing or
+    unparseable file. An entirely absent ``workspaceStorage`` directory is a
+    plausible state on a machine where only ``globalStorage`` was copied, and
+    degrades every session to ``cwd = None`` rather than failing the run.
+    """
+    try:
+        raw = (Path(workspace_root) / workspace_id / "workspace.json").read_bytes()
+    except OSError:
+        return None
+    record = _decode(raw)
+    if record is None:
+        return None
+    folder = record.get("folder")
+    if not isinstance(folder, str) or not folder:
+        return None
+    parsed = urlsplit(folder)
+    if parsed.scheme not in _FOLDER_URI_SCHEMES:
+        return None
+    path = unquote(parsed.path)
+    return path or None
 
 
 def _decode(value: object) -> dict | None:
@@ -324,8 +367,22 @@ def _ordered_bubbles(
     return []
 
 
+def _workspace_id(con: sqlite3.Connection, composer_id: str) -> str | None:
+    """Look up the composer's native ``workspaceId``, or ``None`` when unfiled."""
+    row = con.execute(
+        "SELECT workspaceId FROM composerHeaders WHERE composerId = ?",
+        (composer_id,),
+    ).fetchone()
+    if row is None or not isinstance(row[0], str) or not row[0]:
+        return None
+    return row[0]
+
+
 def _parse_composer(
-    con: sqlite3.Connection, source: Path, composer_id: str
+    con: sqlite3.Connection,
+    source: Path,
+    composer_id: str,
+    cwd_cache: dict[str, str | None],
 ) -> NormalizedSession | None:
     """Reconstruct one composer into a session, or ``None`` when it has none.
 
@@ -334,6 +391,9 @@ def _parse_composer(
     messages (OQ1); a composer with no storable bubbles — an empty draft, or one
     whose bubbles Cursor has since pruned — yields ``None`` so the orchestrator
     can count it as skipped rather than writing an empty session.
+
+    ``cwd_cache`` memoizes ``workspaceId`` -> folder across the run: hundreds of
+    composers map to well under a hundred distinct workspaces.
     """
     row = con.execute(
         "SELECT value FROM cursorDiskKV WHERE key = ?",
@@ -357,6 +417,15 @@ def _parse_composer(
     stamps = [message.ts for message in messages if message.ts is not None]
     started_at = min(stamps) if stamps else _composer_created_at(composer)
 
+    workspace_id = _workspace_id(con, composer_id)
+    cwd = None
+    if workspace_id is not None:
+        if workspace_id not in cwd_cache:
+            cwd_cache[workspace_id] = workspace_folder(
+                _workspace_root(source), workspace_id
+            )
+        cwd = cwd_cache[workspace_id]
+
     title = composer.get("name")
     return NormalizedSession(
         harness=HARNESS,
@@ -366,8 +435,11 @@ def _parse_composer(
         # composer's activity time. The writer seeds first_seen_at from the run
         # clock instead of a fabricated one.
         source_mtime=None,
-        project_id=None,
-        cwd=None,
+        project_id=workspace_id,
+        cwd=cwd,
+        # workspace_key is deliberately unset: the writer derives it from cwd,
+        # which is what makes a vscdb session converge with the same-cwd
+        # sessions ordinary ingest authored.
         title=title if isinstance(title, str) and title else None,
         started_at=started_at,
         ended_at=max(stamps) if stamps else None,
@@ -392,10 +464,11 @@ def parse_all(source: Path, ids: list[str]) -> Iterator[NormalizedSession]:
     are corrupt is skipped without aborting the run.
     """
     con = open_readonly(source)
+    cwd_cache: dict[str, str | None] = {}
     try:
         for composer_id in ids:
             try:
-                session = _parse_composer(con, source, composer_id)
+                session = _parse_composer(con, source, composer_id, cwd_cache)
             except sqlite3.Error:
                 continue
             if session is not None:

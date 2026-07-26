@@ -29,6 +29,7 @@ SUBCOMMANDS = (
     "doctor",
     "schedule",
     "dashboard",
+    "backfill",
 )
 
 
@@ -100,6 +101,7 @@ def test_help_forwards_to_each_module(tmp_path: Path) -> None:
         "doctor": "probe",
         "schedule": "--time",
         "dashboard": "--foreground",
+        "backfill": "--dry-run",
     }
     for sub in SUBCOMMANDS:
         result = _run(sub, "--help", home=tmp_path / "home")

@@ -714,3 +714,98 @@ def test_tokens_on_a_dropped_bubble_are_not_smuggled_onto_a_neighbour(
     assert [(m.text, m.input_tokens, m.output_tokens) for m in session.messages] == [
         ("spoken", None, None)
     ]
+
+
+# --- workspace identity (OQ2) ------------------------------------------------
+
+
+def _with_workspace(
+    build_vscdb: Callable[..., Path], workspaces: dict[str, dict | None] | None
+) -> Path:
+    """One composer in workspace ``w1``, with the given ``workspaceStorage``."""
+    return build_vscdb(
+        composers={"c1": _composer("b1")},
+        bubbles={"c1:b1": {"type": 1, "text": "hi"}},
+        headers={"c1": "w1"},
+        workspaces=workspaces,
+    )
+
+
+def test_workspace_id_becomes_the_session_project_id(
+    build_vscdb: Callable[..., Path],
+) -> None:
+    """``composerHeaders.workspaceId`` is stored verbatim as ``project_id``."""
+    db_path = _with_workspace(build_vscdb, None)
+    assert _parse_one(db_path, "c1").project_id == "w1"
+
+
+def test_composer_without_a_header_row_has_no_project_id(
+    build_vscdb: Callable[..., Path],
+) -> None:
+    """No ``composerHeaders`` row leaves ``project_id`` honestly ``None``."""
+    db_path = build_vscdb(
+        composers={"c1": _composer("b1")},
+        bubbles={"c1:b1": {"type": 1, "text": "hi"}},
+    )
+    assert _parse_one(db_path, "c1").project_id is None
+
+
+@pytest.mark.parametrize(
+    ("uri", "expected"),
+    [
+        ("vscode-remote://wsl%2Bubuntu/home/u/p", "/home/u/p"),
+        ("vscode-remote://wsl%2Bubuntu/home/u/my%20project", "/home/u/my project"),
+        ("file:///tmp/p", "/tmp/p"),
+    ],
+)
+def test_single_root_folder_uri_resolves_to_the_real_path(
+    build_vscdb: Callable[..., Path], uri: str, expected: str
+) -> None:
+    """Both live URI schemes decode (percent-decoded) to a real path."""
+    db_path = _with_workspace(build_vscdb, {"w1": {"folder": uri}})
+    assert _parse_one(db_path, "c1").cwd == expected
+
+
+def test_multi_root_workspace_yields_no_cwd(build_vscdb: Callable[..., Path]) -> None:
+    """A ``.code-workspace`` pointer names no single folder, so ``cwd`` is None."""
+    db_path = _with_workspace(
+        build_vscdb, {"w1": {"workspace": "file:///s%3A/Workspaces/1/workspace.json"}}
+    )
+    session = _parse_one(db_path, "c1")
+    assert session.cwd is None
+    assert session.project_id == "w1"
+
+
+def test_missing_workspace_json_yields_no_cwd(
+    build_vscdb: Callable[..., Path],
+) -> None:
+    """A workspace dir without ``workspace.json`` degrades to ``cwd = None``."""
+    db_path = _with_workspace(build_vscdb, {"w1": None})
+    assert _parse_one(db_path, "c1").cwd is None
+
+
+def test_absent_workspace_storage_directory_yields_no_cwd(
+    build_vscdb: Callable[..., Path],
+) -> None:
+    """An entirely absent ``workspaceStorage`` must not fail the run."""
+    db_path = _with_workspace(build_vscdb, None)
+    assert not (db_path.parent.parent / "workspaceStorage").exists()
+    assert _parse_one(db_path, "c1").cwd is None
+
+
+def test_unknown_folder_uri_scheme_yields_no_cwd(
+    build_vscdb: Callable[..., Path],
+) -> None:
+    """An unrecognized scheme is an honest unknown, not a mangled path."""
+    db_path = _with_workspace(build_vscdb, {"w1": {"folder": "ssh://host/opt/p"}})
+    assert _parse_one(db_path, "c1").cwd is None
+
+
+def test_workspace_key_is_left_for_the_writer_to_derive(
+    build_vscdb: Callable[..., Path],
+) -> None:
+    """The parser never sets ``workspace_key``; the writer owns that derivation."""
+    db_path = _with_workspace(
+        build_vscdb, {"w1": {"folder": "vscode-remote://wsl%2Bubuntu/home/u/p"}}
+    )
+    assert _parse_one(db_path, "c1").workspace_key is None
