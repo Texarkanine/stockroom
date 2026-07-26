@@ -7,6 +7,7 @@ relative-path arithmetic.
 """
 
 import hashlib
+import json
 import os
 import sqlite3
 import subprocess
@@ -292,6 +293,101 @@ def ai_tracking_db(tmp_path: Path) -> Path:
     finally:
         con.close()
     return db_path
+
+
+#: Synthetic Cursor ``state.vscdb`` schema (the three shapes backfill reads).
+#:
+#: Copied from the live store's ``sqlite_master`` so fixtures exercise the real
+#: column names and the real ``cursorDiskKV`` key-range index behaviour. The
+#: ``composerHeaders`` columns beyond ``workspaceId`` are unused by the parser
+#: but kept so the fixture is a faithful subset rather than an invention.
+_STATE_VSCDB_SCHEMA = (
+    "CREATE TABLE cursorDiskKV (key TEXT UNIQUE ON CONFLICT REPLACE, value BLOB);"
+    "CREATE TABLE composerHeaders ("
+    "  composerId    TEXT PRIMARY KEY,"
+    "  workspaceId   TEXT,"
+    "  createdAt     INTEGER,"
+    "  lastUpdatedAt INTEGER,"
+    "  isArchived    INTEGER,"
+    "  isSubagent    INTEGER,"
+    "  recency       INTEGER,"
+    "  checkpointAt  INTEGER,"
+    "  value         TEXT"
+    ")"
+)
+
+
+@pytest.fixture
+def build_vscdb(tmp_path: Path) -> Callable[..., Path]:
+    """Return a factory that synthesizes a Cursor ``state.vscdb`` tree.
+
+    Materializes :data:`_STATE_VSCDB_SCHEMA` under
+    ``<root>/globalStorage/state.vscdb`` so ``workspaceStorage`` is a real
+    sibling of ``globalStorage`` — the layout the adapter's ``cwd`` resolution
+    walks. Returns the path to the DB.
+
+    Every argument is written verbatim, which is what lets one factory cover
+    the whole matrix of shapes under test:
+
+    * ``composers`` — ``{composerId: composerData dict}``
+    * ``bubbles`` — ``{"{composerId}:{bubbleId}": bubble}``, where a ``dict`` is
+      JSON-encoded and a ``str`` is stored raw (how the corrupt-value cases are
+      built)
+    * ``headers`` — ``{composerId: workspaceId}`` for ``composerHeaders``
+    * ``workspaces`` — ``{workspaceId: workspace.json dict}``; pass ``None`` as
+      a value to create the directory without the file
+    """
+
+    def _build(
+        composers: dict[str, dict] | None = None,
+        bubbles: dict[str, dict | str] | None = None,
+        headers: dict[str, str] | None = None,
+        workspaces: dict[str, dict | None] | None = None,
+        name: str = "state.vscdb",
+    ) -> Path:
+        root = tmp_path / "cursor-user"
+        global_storage = root / "globalStorage"
+        global_storage.mkdir(parents=True, exist_ok=True)
+        db_path = global_storage / name
+
+        con = sqlite3.connect(db_path)
+        try:
+            con.executescript(_STATE_VSCDB_SCHEMA)
+            con.executemany(
+                "INSERT INTO cursorDiskKV (key, value) VALUES (?, ?)",
+                [
+                    (f"composerData:{cid}", json.dumps(data))
+                    for cid, data in (composers or {}).items()
+                ],
+            )
+            con.executemany(
+                "INSERT INTO cursorDiskKV (key, value) VALUES (?, ?)",
+                [
+                    (
+                        f"bubbleId:{suffix}",
+                        value if isinstance(value, str) else json.dumps(value),
+                    )
+                    for suffix, value in (bubbles or {}).items()
+                ],
+            )
+            con.executemany(
+                "INSERT INTO composerHeaders (composerId, workspaceId) VALUES (?, ?)",
+                list((headers or {}).items()),
+            )
+            con.commit()
+        finally:
+            con.close()
+
+        for workspace_id, record in (workspaces or {}).items():
+            workspace_dir = root / "workspaceStorage" / workspace_id
+            workspace_dir.mkdir(parents=True, exist_ok=True)
+            if record is not None:
+                (workspace_dir / "workspace.json").write_text(
+                    json.dumps(record), encoding="utf-8"
+                )
+        return db_path
+
+    return _build
 
 
 @pytest.fixture
