@@ -700,11 +700,9 @@
 
       .token-breakdown {
         display: none;
-        position: absolute;
+        /* Fixed + JS placement escapes .table-scroll overflow (see #91). */
+        position: fixed;
         z-index: 40;
-        top: 50%;
-        left: calc(100% + 0.45rem);
-        transform: translateY(-50%);
         min-width: 11rem;
         padding: 0.55rem 0.65rem;
         border: 1px solid var(--border);

@@ -99,6 +99,70 @@ export function tokenBreakdownModel(tokens) {
 }
 
 /**
+ * Compute fixed-viewport coordinates for the token breakdown popover.
+ *
+ * Prefers placing the popover below the trigger (so it can bleed into page
+ * space beneath the sessions table). Flips above when there is not enough
+ * room below the viewport. Horizontal position is clamped to the viewport.
+ *
+ * @param {{ top: number, right: number, bottom: number, left: number, width: number, height: number }} triggerRect
+ * @param {{ width: number, height: number }} popoverSize
+ * @param {{ width: number, height: number }} viewport
+ * @param {number} [gap]
+ * @returns {{ top: number, left: number, placement: "below" | "above" }}
+ */
+export function tokenBreakdownPlacement(
+  triggerRect,
+  popoverSize,
+  viewport,
+  gap = 6,
+) {
+  const margin = 8;
+  let placement = /** @type {"below" | "above"} */ ("below");
+  let top = triggerRect.bottom + gap;
+  if (top + popoverSize.height > viewport.height - margin) {
+    placement = "above";
+    top = triggerRect.top - popoverSize.height - gap;
+  }
+  let left = triggerRect.left;
+  if (left + popoverSize.width > viewport.width - margin) {
+    left = Math.max(margin, viewport.width - popoverSize.width - margin);
+  }
+  if (left < margin) {
+    left = margin;
+  }
+  return { top, left, placement };
+}
+
+/**
+ * Measure the popover and pin it in the viewport relative to ``wrap``.
+ *
+ * @param {HTMLElement} wrap
+ */
+function syncTokenBreakdownPosition(wrap) {
+  const popover = wrap.querySelector(".token-breakdown");
+  if (!(popover instanceof HTMLElement)) {
+    return;
+  }
+  const wasHidden = getComputedStyle(popover).display === "none";
+  if (wasHidden) {
+    popover.style.visibility = "hidden";
+    popover.style.display = "grid";
+  }
+  const placed = tokenBreakdownPlacement(
+    wrap.getBoundingClientRect(),
+    { width: popover.offsetWidth, height: popover.offsetHeight },
+    { width: window.innerWidth, height: window.innerHeight },
+  );
+  popover.style.top = `${placed.top}px`;
+  popover.style.left = `${placed.left}px`;
+  if (wasHidden) {
+    popover.style.visibility = "";
+    popover.style.display = "";
+  }
+}
+
+/**
  * @param {ParentNode} popover
  * @param {{label: string, value: number}} row
  * @param {string} [extraClass]
@@ -185,5 +249,11 @@ export function mountTokenDisplay(container, tokens, options = {}) {
       .map((row) => `${row.label} ${row.value}`)
       .join(", ")}, Total ${model?.total ?? 0}`,
   );
+  wrap.addEventListener("pointerenter", () => {
+    syncTokenBreakdownPosition(wrap);
+  });
+  wrap.addEventListener("focusin", () => {
+    syncTokenBreakdownPosition(wrap);
+  });
   container.append(wrap);
 }

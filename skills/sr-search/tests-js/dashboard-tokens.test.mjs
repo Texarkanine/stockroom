@@ -5,9 +5,59 @@ import {
   formatTokenCompact,
   hasTokenData,
   tokenBreakdownModel,
+  tokenBreakdownPlacement,
   tokenBreakdownRows,
   tokenTotal,
 } from "../src/stockroom/dashboard/static/dashboard-tokens.mjs";
+
+test("tokenBreakdownPlacement prefers below the trigger", () => {
+  /*
+   * When the viewport has room beneath the trigger, place the popover
+   * below so it can bleed into page space under the sessions panel.
+   */
+  const result = tokenBreakdownPlacement(
+    { top: 100, right: 200, bottom: 120, left: 120, width: 80, height: 20 },
+    { width: 176, height: 140 },
+    { width: 1200, height: 800 },
+    6,
+  );
+  assert.deepEqual(result, {
+    top: 126,
+    left: 120,
+    placement: "below",
+  });
+});
+
+test("tokenBreakdownPlacement flips above near the viewport bottom", () => {
+  /*
+   * When placing below would overflow the viewport, flip above the trigger
+   * instead of forcing scroll inside an overflow ancestor.
+   */
+  const result = tokenBreakdownPlacement(
+    { top: 700, right: 200, bottom: 720, left: 120, width: 80, height: 20 },
+    { width: 176, height: 140 },
+    { width: 1200, height: 800 },
+    6,
+  );
+  assert.equal(result.placement, "above");
+  assert.equal(result.top, 700 - 140 - 6);
+  assert.equal(result.left, 120);
+});
+
+test("tokenBreakdownPlacement clamps horizontally to the viewport", () => {
+  /*
+   * Keep the popover fully visible when the trigger sits near the right edge.
+   */
+  const result = tokenBreakdownPlacement(
+    { top: 100, right: 1190, bottom: 120, left: 1110, width: 80, height: 20 },
+    { width: 176, height: 140 },
+    { width: 1200, height: 800 },
+    6,
+  );
+  assert.equal(result.placement, "below");
+  assert.equal(result.top, 126);
+  assert.equal(result.left, 1200 - 176 - 8);
+});
 
 test("hasTokenData is false for null/undefined/non-objects", () => {
   assert.equal(hasTokenData(null), false);

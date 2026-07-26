@@ -1,12 +1,13 @@
 # Active Context
 
 ## Current Task: fix-dashboard-token-tooltip-overflow
-**Phase:** BUILD - READY
+**Phase:** BUILD - COMPLETE
 
 ## What Was Done
-- Intent confirmed for https://github.com/Texarkanine/stockroom/issues/91
-- Classified as Level 1: bug fix affecting a single UI component (token tooltip positioning/overflow in the dashboard conversations panel)
-- Initialized ephemeral memory-bank files
+- Root cause: absolute+centered token popover trapped in `.table-scroll` overflow
+- Added `tokenBreakdownPlacement` (below-prefer / flip / clamp) and fixed-position CSS
+- Wired mount to sync on pointerenter/focusin
+- Tests: JS placement cases + static CSS contract; full suite green
 
 ## Next Step
-- Locate root cause of tooltip overflow; write failing test; fix; verify
+- Enter QA phase (`/niko-qa` Level 1)

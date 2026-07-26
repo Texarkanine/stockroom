@@ -21,3 +21,14 @@ Fix dashboard token tooltip overflow/scrollbar bug (#91) so the tooltip floats a
     - Phase transition to BUILD per Level 1 workflow
 * Decisions made
     - None yet (root-cause investigation starts next)
+
+## 2026-07-26 - BUILD - COMPLETE
+
+* Work completed
+    - Confirmed overflow pairing on `.table-scroll` as root cause of sessions scrollbar
+    - Implemented fixed-viewport placement with below-prefer + flip-above
+    - Added JS + static regression tests; `make test` green
+* Decisions made
+    - Prefer fixed+JS over relaxing overflow on table-scroll (preserves horizontal scroll; works on sessions list view without Wrapped)
+* Insights
+    - CSS `overflow-x: auto` alone is enough to create a vertical scrollport that absolute tooltips inflate
