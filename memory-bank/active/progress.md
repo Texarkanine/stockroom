@@ -374,3 +374,14 @@ Post-implementation semantic review of the whole branch (42 files, 4,606 inserti
 * Insights
     - A section index with no children map invites orphaned content to settle in it.
     - The `#cursor-sessionsmodels-enrichment` anchor is consumed by `installed-layout.md`; the prior build phase already broke it once via heading demotion. Moving that block must preserve the slug.
+
+## 2026-07-26 - COMPLEXITY-ANALYSIS (load section IA) - COMPLETE
+
+* Work completed
+    - Classified the load-section IA rework as Level 2 (simple enhancement); task id `load-section-ia`
+    - Stubbed `tasks.md` and `activeContext.md`; `projectbrief.md` / `progress.md` preserved from rework re-entry
+* Decisions made
+    - Level 2, not Level 3: the decision tree routes multi-file work to L3, but scope is one subsystem (the docs site), the design was settled in review, and `make docs-build --strict` is a mechanical verifier. Precedent: the ADHD-docs rework was the same shape (three pages + tree-wide link fallout) at Level 2.
+    - Included the operator's uncommitted `basic.md` Scheduling-dedup edit in this task's scope rather than treating it as pre-existing
+* Insights
+    - None
