@@ -4,7 +4,7 @@
 |---------------------|----------|
 | **`cursor-vscdb`**  | `cursor` |
 
-Before Cursor wrote agent transcripts under `~/.cursor/projects`, IDE conversations ("composers") lived only inside Cursor's own key-value store, `globalStorage/state.vscdb`. Ordinary [ingest](../index.md#ingest) never reads that file. This source recovers those conversations.
+Before Cursor wrote agent transcripts under `~/.cursor/projects`, IDE conversations ("composers") lived only inside Cursor's own key-value store, `globalStorage/state.vscdb`. Ordinary [ingest](../basic.md#ingest) never reads that file. This source recovers those conversations.
 
 ## Pointing At The Store
 

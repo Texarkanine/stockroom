@@ -123,6 +123,23 @@ No new technology - validation not required.
 - **A4 — `.pages` becomes authoritative the moment it exists.** `validation.omitted_files: warn` under `strict: true` means a file present in `load/` but absent from `load/.pages` fails the build. Today `load/` has no `.pages`, so files are auto-included. Step 3 must list all five entries including the brand-new `sources.md`, or Step 7 fails.
 - **A5 — no test changes required.** Scanned `skills/sr-search/tests/`: the only docs-path assertions are `test_query_cookbook.py` (`docs/advanced/cookbook`) and `test_torch_source.py` (torch.md). Neither path is touched.
 
+## Build Log (2026-07-26)
+
+All seven steps executed in plan order.
+
+| Step | Outcome |
+| --- | --- |
+| 1. Fail-first baseline | 38 warnings, exit 2 — confirmed at build start |
+| 2. Split the notes block | `sources.md` created; generic chunks into `basic.md`; `index.md` replaced with router. B1–B3 pass |
+| 3. Section nav | `load/.pages` with all five entries; no `omitted_files` warnings. B4 pass |
+| 4. Group A links | 12 files; special-case retargets first, then longest-prefix-first bulk. 38 → 18 warnings. B5, B6 pass |
+| 5. Group B links | 13 files; `iteration.md` → `iteration/index.md`, `backfill-adapters.md` re-homed, depth fixes inside `iteration/`. 18 → 0 |
+| 5b. Shipped skill payload | `skills/sr-initialize/SKILL.md:47` retargeted; confirmed the only such reference outside `docs/` |
+| 6. Memory-bank pointers | `systemPatterns.md` and `techContext.md` retargeted |
+| 7. Final gate | `make docs-build` exit 0, **zero warnings**. B7 pass |
+
+**Deviation (one, deliberate):** step 2 specified `## Cursor \`sessions.models\` Enrichment`; it shipped as `###` nested under `## Cursor`. At `##` it would have been a peer of `## Cursor` and `## Claude Code` on a page whose top level is *one section per harness* — the same "sibling of the thing it belongs to" shape the rework exists to remove. A3 already established that the slug derives from heading text alone, so the level is free; B5 gates it and the build resolves `#cursor-sessionsmodels-enrichment` green.
+
 ## Status
 
 - [x] Initialization complete
@@ -130,6 +147,17 @@ No new technology - validation not required.
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
-- [ ] Build
-- [ ] QA
+- [x] Preflight
+- [x] Build
+- [x] QA
+
+## QA Results (2026-07-26)
+
+✅ PASS — 2 trivial findings fixed; 0 substantive.
+
+| # | Constraint | Finding | Disposition |
+| --- | --- | --- | --- |
+| 1 | Integrity | `basic.md` leading blank line (pre-existing, file touched this build) | Fixed |
+| 2 | Integrity | `basic.md:29` trailing whitespace on the incremental-watermark paragraph | Fixed |
+
+Verified against plan: B1–B7 all hold; A1–A5 satisfied; `make docs-build` exit 0 / zero warnings after fixes. Deliberate `###` nesting of the enrichment heading under `## Cursor` accepted (slug survives; A3 + B5). No KISS/DRY/YAGNI/Completeness/Regression/Documentation deficiencies.

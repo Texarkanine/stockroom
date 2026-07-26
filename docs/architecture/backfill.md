@@ -2,7 +2,7 @@
 
 Backfill is one-shot excavation of a harness's *legacy* store — history that predates the transcript roots [ingest](warehouse.md) reads, is finite, and does not grow. It is a sibling of the ingest pipeline, not a mode of it, and the separation is structural rather than conventional.
 
-Operator how-to lives in [User Guide → Backfill Legacy History](../user-guide/ingest/backfill/index.md). This page is why it is shaped the way it is.
+Operator how-to lives in [User Guide → Backfill Legacy History](../user-guide/load/backfill/index.md). This page is why it is shaped the way it is.
 
 ## Invariants
 
@@ -46,7 +46,7 @@ Backfill is cross-harness by construction, even though exactly one legacy store 
 
 Adapters own their source format and nothing else — they read their store, resolve their own path from flag/env/config, and yield the same `NormalizedSession` objects ingest parsers yield. **The orchestrator owns every warehouse interaction**; no adapter is handed a connection, and a test asserts a run still writes when the adapter never sees one. A second legacy store is a new file plus a registry entry, not orchestrator surgery.
 
-The contract and how to add one: [Contributing → Backfill Adapters](../contributing/backfill-adapters.md).
+The contract and how to add one: [Contributing → Backfill Adapters](../contributing/iteration/backfill-adapters.md).
 
 ## Reuses The Writer, Never The Watermark
 
@@ -54,7 +54,7 @@ Backfill writes through `ingest.writer.write_session` — the same single SQL to
 
 It deliberately never calls `update_watermark`. A run leaves `_sync_state` exactly as it found it, so excavating history does not change what tonight's incremental ingest will read.
 
-That isolation makes the [required operating sequence](../user-guide/ingest/backfill/index.md#the-required-sequence) merely a cost concern, not correctness issue. The skip set is a snapshot of what the warehouse currently holds, so backfill before ingest reconstructs conversations whose transcripts are already on disk. Nothing is lost — the next ingest still selects them and supersedes the reconstruction — but the overlap is paid twice in embedding work and corrupts the run summary as a measurement. Ingest first; the skip set only grows.
+That isolation makes the [required operating sequence](../user-guide/load/backfill/index.md#the-required-sequence) merely a cost concern, not correctness issue. The skip set is a snapshot of what the warehouse currently holds, so backfill before ingest reconstructs conversations whose transcripts are already on disk. Nothing is lost — the next ingest still selects them and supersedes the reconstruction — but the overlap is paid twice in embedding work and corrupts the run summary as a measurement. Ingest first; the skip set only grows.
 
 A dry run opens through `warehouse.open_current()` instead: read-only, never migrating, and off the single-writer flock entirely. Rehearsing a backfill must not be able to create a warehouse, move its schema, or delay a running ingest — so a missing or behind-head warehouse is a typed refusal. Get your (ware)house in order before a backfill.
 
@@ -68,7 +68,7 @@ The writer persists idempotently by delete-then-insert on `(harness, session_id)
 
 `--force` narrows that skip set to sessions whose `source_path` is *this adapter's own store*, so a corrected parse can replace its own earlier output without hand-written SQL. `ingest`-authored rows carry a transcript `source_path` and are therefore unmatchable even under force.
 
-Changing the keep predicate under `--force` renumbers positional `message_id`s and invalidates embeddings — see [User Guide → Fixing A Run](../user-guide/ingest/backfill/index.md#fixing-a-run). You'd only need this if you were changing how an existing backfill worked and needed to repair data in a warehouse that had already been backfilled w/ the older code path.
+Changing the keep predicate under `--force` renumbers positional `message_id`s and invalidates embeddings — see [User Guide → Fixing A Run](../user-guide/load/backfill/index.md#fixing-a-run). You'd only need this if you were changing how an existing backfill worked and needed to repair data in a warehouse that had already been backfilled w/ the older code path.
 
 ## Reading Foreign Stores Safely
 

@@ -1,6 +1,6 @@
 # Engine
 
-The Stockroom Engine is the python code that powers [ingestion](../user-guide/ingest/index.md), database migration, and serves the data to the [Dashboard](../user-guide/dashboard.md).
+The Stockroom Engine is the python code that powers [ingestion](../../user-guide/load/index.md), database migration, and serves the data to the [Dashboard](../../user-guide/dashboard.md).
 
 The Python engine lives under [`skills/sr-search/`](https://github.com/Texarkanine/stockroom/tree/main/skills/sr-search) as a locked [uv](https://docs.astral.sh/uv/) project (`[tool.uv] package = false` — run-in-place). Everything is pinned through `uv.lock` **except torch**.
 
@@ -49,7 +49,7 @@ cd skills/sr-search && uv run --no-sync --no-config pytest -n0 tests/test_smoke.
 
 The on-path `stockroom` command (`~/.local/bin/stockroom`) owns the torch-safe run contract and forwards to subcommands (`query`, `semantic`, `ingest`, `embed`, `migrate`, `shim`, `torch`, `doctor`, `schedule`, `dashboard`, `backfill`). Use `stockroom --help` / `stockroom <subcommand> --help`.
 
-A correctly-[prepared](preparation.md) local checkout will have the `stockroom` CLI on your PATH, pointing at your local checkout's python code. You can use it to run the engine's subcommands directly without having to use a long `uv ...` command.
+A correctly-[prepared](../preparation.md) local checkout will have the `stockroom` CLI on your PATH, pointing at your local checkout's python code. You can use it to run the engine's subcommands directly without having to use a long `uv ...` command.
 
 ```bash
 stockroom ingest --full

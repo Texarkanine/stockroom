@@ -1,0 +1,6 @@
+nav:
+  - index.md
+  - Ingest & Embed: basic.md
+  - Scheduling: schedule.md
+  - Harness Sources: sources.md
+  - Backfill: backfill

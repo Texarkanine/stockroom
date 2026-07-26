@@ -1,6 +1,6 @@
 # Backfill Legacy History
 
-`stockroom backfill` excavates finite legacy stores that ordinary [ingest](../index.md#ingest) never reads. Run it deliberately, once, if you know you need it. Backfill is not and should not be scheduled.
+`stockroom backfill` excavates finite legacy stores that ordinary [ingest](../basic.md#ingest) never reads. Run it deliberately, once, if you know you need it. Backfill is not and should not be scheduled.
 
 ## The Required Sequence
 

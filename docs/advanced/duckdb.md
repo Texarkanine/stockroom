@@ -37,7 +37,7 @@ See [CLI](cli.md) for out-of-band `stockroom` invocation.
 - **Do not write** through the DuckDB CLI. Schema and ETL go through the engine (`ingest` / `embed` / migrations). Opening without `-readonly` risks corrupting a live warehouse.
 - **Locks**: ingest, embed, and other writers may hold locks. If open fails or hangs, stop writers or wait — see [Architecture → Warehouse](../architecture/warehouse.md) for the lock model.
 - **No presentation layer**: raw DuckDB will not apply Stockroom's detail/format truncation. Large text columns can flood your terminal.
-- **Migrations**: the on-disk schema is versioned by the engine. Do not hand-edit schema in the DuckDB CLI; contributor schema work belongs in [Contributing → Iteration](../contributing/iteration.md).
+- **Migrations**: the on-disk schema is versioned by the engine. Do not hand-edit schema in the DuckDB CLI; contributor schema work belongs in [Contributing → Iteration](../contributing/iteration/index.md).
 
 ## See also
 

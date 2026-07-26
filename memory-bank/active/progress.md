@@ -410,3 +410,32 @@ Post-implementation semantic review of the whole branch (42 files, 4,606 inserti
     - Advisory declined for now (operator's call): a `test_skill_hygiene.py` case asserting every `docs/...` path referenced from `skills/**` and `README.md` resolves on disk
 * Insights
     - The strict docs build is a link checker for `docs/` only. Any prose outside `docs_dir` that cites a docs path is unguarded — which is exactly how the sr-initialize reference went stale unnoticed.
+
+## 2026-07-26 - BUILD (load section IA) - COMPLETE
+
+* Work completed
+    - All seven plan steps executed in order; strict docs build driven 38 warnings → **zero**, exit 0
+    - `load/index.md` replaced with a router (H1, purpose, two catch-up commands, named map of four children, 15 lines); new `load/sources.md` ("Harness Sources") takes the per-harness reference; `load/basic.md` absorbed the `ingest` command block, `--harness` flag, and `sr-initialize` first-load note under `## Ingest`
+    - New `load/.pages` lists all five entries — with `validation.omitted_files: warn` under `strict`, a partial list would have failed the build the moment the file existed (A4)
+    - Group A (`ingest/` → `load/`) repaired across 12 files, group B (`contributing/iteration/` nest) across 13; three references outside `docs_dir` fixed (`skills/sr-initialize/SKILL.md`, `systemPatterns.md`, `techContext.md`)
+    - Gates: strict docs build exit 0 / zero warnings / 38 pages; pytest 781 passed, 2 skipped (run torch-safe via `uv run --no-sync`, so the per-machine torch install was never stripped); `reuse lint` 339/339
+* Decisions made
+    - **Special-case retargets applied individually *before* the mechanical bulk, longest prefix first.** The four links that were not pure path substitutions (`#scheduling` → `schedule.md`, `#cursor-sessionsmodels-enrichment` → `sources.md`, two backfill `#ingest` → `basic.md`) were rewritten first, so the bulk `sed` had nothing left to mis-hit — the direct countermeasure to the prior rework's `…/ingest/index.mdbackfill/` mangling
+    - **One deviation:** the enrichment heading shipped at `###` under `## Cursor`, not the planned `##`. A3 had already established the slug derives from heading text alone, and at `##` the block would have been a peer of `## Cursor` on a page whose top level is one section per harness — the same misplacement the rework exists to remove
+    - Claude Code's "no sidecar needed" sentence was checked against `ingest/claude.py` before being written; `parse_session` leaves `models` `None` because the model grain is per-message, so the page says that rather than implying `sessions.models` gets filled
+* Insights
+    - The two "independent breakages" were not fully independent: `contributing/iteration/engine.md` carried a link that was wrong in *both* dimensions at once (`../user-guide/ingest/index.md` — stale target **and** wrong depth). Fixing group A left it still broken, which is why the intermediate build read 18 rather than 19. A warning count is a count of broken links, not of causes, and the two do not have to line up
+    - Reading the plan's fail-first baseline was not a substitute for re-running it. Re-running at build start took two seconds and confirmed the 38 were still exactly the 38 the plan enumerated — cheap insurance against building against a stale premise on a tree the operator had been hand-editing
+    - `make test` would have stripped torch as a side effect of a docs-only change. `uv run --no-sync --no-config pytest` gets the same 781-test signal without touching the environment; the Makefile already documents this for `test-dashboard-py` but the full-suite path has no such target
+
+## 2026-07-26 - QA (load section IA) - COMPLETE
+
+* Work completed
+    - Reviewed the load-section IA deliverable against the plan on all seven QA constraints. **Two trivial integrity findings, both fixed in QA; zero substantive findings**
+    - Integrity (2): `basic.md` leading blank line and a trailing space on the incremental-watermark paragraph — pre-existing debris in a file this build touched
+    - Clean on the rest: B1–B7 hold; A1 skill-payload path and memory-bank pointers resolve; no stale `user-guide/ingest/` or `contributing/iteration.md` leftovers outside historical memory-bank prose; no TODOs/stubs/debug artifacts; the deliberate `###` enrichment nesting stands (slug green via B5)
+    - Gate re-run after fixes: `make docs-build` exit 0, zero warnings
+* Decisions made
+    - Pre-existing debris in untouched files (`schedule.md` leading blank, `backfill/index.md` tab) left alone — not this task's accretion
+* Insights
+    - None beyond the Build insights; the plan's content checklist plus the strict build left almost nothing for semantic QA to catch on a docs-only mechanical rework

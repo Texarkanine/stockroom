@@ -1,6 +1,6 @@
 # Dashboard
 
-Product behavior and URL: [Dashboard](../user-guide/dashboard.md) (default [http://localhost:58008](http://localhost:58008/)).
+Product behavior and URL: [Dashboard](../../user-guide/dashboard.md) (default [http://localhost:58008](http://localhost:58008/)).
 
 | Layer | Path |
 | --- | --- |

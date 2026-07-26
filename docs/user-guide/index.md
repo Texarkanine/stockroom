@@ -105,6 +105,6 @@ sequenceDiagram
 ## Where Next?
 
 - Get it working with [Quickstart](quickstart.md)
-- Learn more about the [ETL](https://en.wikipedia.org/wiki/Extract,_transform,_load) process on [Load the Warehouse](ingest/index.md)
-- Recover history from before your harness kept transcripts with [Backfill Legacy History](ingest/backfill/index.md)
+- Learn more about the [ETL](https://en.wikipedia.org/wiki/Extract,_transform,_load) process on [Load the Warehouse](load/index.md)
+- Recover history from before your harness kept transcripts with [Backfill Legacy History](load/backfill/index.md)
 - Troubleshoot PyTorch at [Troubleshooting > Torch](troubleshooting/torch.md)

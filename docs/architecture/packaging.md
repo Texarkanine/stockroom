@@ -72,11 +72,11 @@ Torch is required for embedding (writing vectors and encoding semantic-search qu
 
 After torch is installed, runs must not do an *exact* dependency sync: an exact sync removes anything not in the lock, including the provisioned torch. Torch-safe paths use inexact sync / `--no-sync` as appropriate.
 
-A missing torch is an environment problem, never a query-phrasing problem. Operational steps: [User Guide → Troubleshooting → Torch](../user-guide/troubleshooting/torch.md); contributor sync loops: [Contributing → Iteration](../contributing/iteration.md).
+A missing torch is an environment problem, never a query-phrasing problem. Operational steps: [User Guide → Troubleshooting → Torch](../user-guide/troubleshooting/torch.md); contributor sync loops: [Contributing → Iteration](../contributing/iteration/index.md).
 
 ## Related procedures
 
 - First-time setup and heal recipes: [User Guide → Quickstart](../user-guide/quickstart.md), [Installed layout](../user-guide/installed-layout.md), [Torch troubleshooting](../user-guide/troubleshooting/torch.md)
-- Contributor checkout wiring and Make loops: [Contributing → Preparation](../contributing/preparation.md), [Iteration](../contributing/iteration.md)
+- Contributor checkout wiring and Make loops: [Contributing → Preparation](../contributing/preparation.md), [Iteration](../contributing/iteration/index.md)
 - Licensing carveouts: [Contributing → Licensing](../contributing/licensing.md)
 - Agent-facing compact form of these doctrines: [`system-model.md`](https://github.com/Texarkanine/stockroom/blob/main/skills/sr-search/references/system-model.md)

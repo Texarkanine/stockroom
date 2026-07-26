@@ -1,4 +1,3 @@
-
 # Ingest & Embed
 
 When search feels stale, catch up:
@@ -16,11 +15,22 @@ Day-to-day search still goes through the agent (`sr-search` and friends). This p
 
 Ingest is ETL from agentic coding harness transcript roots into the warehouse under stockroom home (`$STOCKROOM_HOME/warehouse.duckdb` — see [Installed layout](../installed-layout.md)).
 
+```bash
+stockroom ingest              # both harnesses, incremental
+stockroom ingest --full       # ignore watermarks; re-read everything (still idempotent)
+stockroom ingest --verbose    # progress lines (quiet by default)
+```
+
+`--harness cursor` or `--harness claude` limits the run to one harness. To read from non-default transcript roots, see [Harness sources](sources.md).
+
 It writes harness-labeled rows into shared tables: `sessions`, `messages`, and `tool_calls`. Prompts and responses are stored whole; tool *inputs* are kept; tool *result* payloads are dropped. Thinking/reasoning blocks the harness keeps separate are not stored. Rows whose source transcripts later vanish are **not** pruned — the warehouse is allowed to outlive its sources.
 
-**Default is incremental.** Stockroom remembers a per-`(harness, source_root)` watermark in `_sync_state` and only reads files past that point. Cursor therefore tracks projects and chats roots independently. Re-runs are cheap and safe. 
+**Default is incremental.** Stockroom remembers a per-`(harness, source_root)` watermark in `_sync_state` and only reads files past that point. Cursor therefore tracks projects and chats roots independently. Re-runs are cheap and safe.
+
 
 **Migrations do not Backfill.** Structural migrations do not backfill columns such as `entrypoint` — use `stockroom ingest --full` after a database schema upgrade if you want older rows repopulated from sources (this will be infrequent).
+
+`sr-initialize` runs `stockroom ingest --full` once so you are not waiting for the first nightly job. On years of history that first pass can take many minutes (varying greatly depending on your machine's CPU and disk speed); it prints per-harness session/message/tool_call counts when done.
 
 ## Embed
 

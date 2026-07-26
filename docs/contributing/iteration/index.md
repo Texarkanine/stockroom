@@ -1,10 +1,10 @@
 # Development Iteration Cycles
 
-This secion is day-to-day work **after** your local checkout is wired up. Don't know what that means? Go through the [Preparation](preparation.md) process first!
+This secion is day-to-day work **after** your local checkout is wired up. Don't know what that means? Go through the [Preparation](../preparation.md) process first!
 
 ## Prerequisites
 
-- A local checkout already on the [Preparation](preparation.md) and wired up in your harness of choice.
+- A local checkout already on the [Preparation](../preparation.md) and wired up in your harness of choice.
 - [uv](https://docs.astral.sh/uv/) for the engine and docs toolchains.
 - **Node 22** for dashboard JS tests and the full `make test` / `make ci` gate
 

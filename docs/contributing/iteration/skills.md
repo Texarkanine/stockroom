@@ -15,7 +15,7 @@ Wrapper skills are the agent-facing how-to for Stockroom's engine surfaces. They
 1. Edit `skills/<name>/SKILL.md` and any `references/` that skill owns.
 2. Reload so the harness picks up the text:
 	- **Cursor:** with localdev skills wired, the project mirror under `.cursor/skills/stockroom-local/` follows the checkout (`HARNESS=cursor make local-skills`). Close & re-open Cursor once you make Skill text changes. Do not commit the mirror — localdev installs a pre-commit guard so it stays out of git to help you avoid this.
-	- **Claude Code:** load the plugin tree with `claude --plugin-dir /path/to/stockroom` (see [Preparation](preparation.md)); there is no Cursor-style skills mirror.
+	- **Claude Code:** load the plugin tree with `claude --plugin-dir /path/to/stockroom` (see [Preparation](../preparation.md)); there is no Cursor-style skills mirror.
 3. Exercise the skill in a session.
 
 ## Relevant Make Targets
@@ -23,4 +23,4 @@ Wrapper skills are the agent-facing how-to for Stockroom's engine surfaces. They
 | Target | Role |
 | --- | --- |
 | `local-skills` | Wire checkout skills (`HARNESS` must be `cursor` or `claude`) |
-| `localdev` / `localdev-clean` / `localdev-status` | Full enter / clean / status composition — see [Preparation](preparation.md) |
+| `localdev` / `localdev-clean` / `localdev-status` | Full enter / clean / status composition — see [Preparation](../preparation.md) |
