@@ -96,7 +96,7 @@ No new technology - validation not required.
 - [x] Pre-Mortem complete
 - [x] Preflight (PASS with amendments)
 - [x] Build
-- [ ] QA
+- [x] QA (PASS — one trivial: keep-predicate fence on its own paragraph)
 
 ## Build checklist
 

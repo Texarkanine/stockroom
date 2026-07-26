@@ -66,7 +66,9 @@ The writer persists idempotently by delete-then-insert on `(harness, session_id)
 
 **The default skip set is everything already present.** Any `session_id` already in the warehouse for the adapter's harness is skipped before parsing, not after — adapters enumerate candidate ids cheaply first, so the expensive parse only runs on what will actually be written. A test asserts a skipped row is byte-identical afterwards.
 
-`--force` narrows that skip set to sessions whose `source_path` is *this adapter's own store*, so a corrected parse can replace its own earlier output without hand-written SQL. Transcript-authored rows carry a transcript `source_path` and are therefore unmatchable even under force. The escape hatch is one predicate rather than a bookkeeping column precisely because provenance was decided first. Changing the keep predicate under `--force` renumbers positional `message_id`s and invalidates embeddings — see [User Guide → Fixing A Run](../user-guide/ingest/backfill/index.md#fixing-a-run).
+`--force` narrows that skip set to sessions whose `source_path` is *this adapter's own store*, so a corrected parse can replace its own earlier output without hand-written SQL. Transcript-authored rows carry a transcript `source_path` and are therefore unmatchable even under force. The escape hatch is one predicate rather than a bookkeeping column precisely because provenance was decided first.
+
+Changing the keep predicate under `--force` renumbers positional `message_id`s and invalidates embeddings — see [User Guide → Fixing A Run](../user-guide/ingest/backfill/index.md#fixing-a-run).
 
 ## Reading Foreign Stores Safely
 

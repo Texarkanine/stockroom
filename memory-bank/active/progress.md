@@ -334,3 +334,14 @@ Post-implementation semantic review of the whole branch (42 files, 4,606 inserti
     - Anchor fix in scope under pre-mortem (“one-line path fix obvious”); not a user-guide ADHD rewrite
 * Insights
     - Demoting a heading without checking slug consumers breaks strict builds even when the demotion itself looks fine
+
+## 2026-07-26 - QA (architecture rework) - COMPLETE
+
+* Work completed
+    - Reviewed architecture page against rework brief + B1–B5; all requirements present
+    - One trivial: split keep-predicate sentence onto its own paragraph for scanability
+    - `.qa-validation-status` = PASS; `make docs-build` still green
+* Decisions made
+    - No substantive findings; diagram and structural sections left intact per B5
+* Insights
+    - None beyond the slug-consumer lesson from Build
