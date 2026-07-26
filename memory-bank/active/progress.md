@@ -397,3 +397,16 @@ Post-implementation semantic review of the whole branch (42 files, 4,606 inserti
     - Backfill `#ingest` anchors retarget to `basic.md`, not the router; `#scheduling` becomes a plain link to `schedule.md`
 * Insights
     - A directory-nesting rename breaks links in both directions: inbound links to the old file path, and outbound links from the moved pages that are now one level deeper.
+
+## 2026-07-26 - PREFLIGHT (load section IA) - COMPLETE
+
+* Work completed
+    - Validated the plan against the live tree: `.pages` conventions, `properdocs.yaml` validation/slugify config, non-docs references, and pytest docs-path assertions
+    - Five amendments recorded in `tasks.md` (A1–A5); new step 5b added
+    - `.preflight-status` = PASS
+* Decisions made
+    - A1 is the substantive find: `skills/sr-initialize/SKILL.md:47` carries a stale `docs/contributing/iteration.md` path that the strict build structurally cannot see, because it lives outside `docs_dir`
+    - A2: new page titled "Harness Sources" to avoid colliding with backfill's legacy-store "source" concept one nav level away
+    - Advisory declined for now (operator's call): a `test_skill_hygiene.py` case asserting every `docs/...` path referenced from `skills/**` and `README.md` resolves on disk
+* Insights
+    - The strict docs build is a link checker for `docs/` only. Any prose outside `docs_dir` that cites a docs path is unguarded — which is exactly how the sr-initialize reference went stale unnoticed.

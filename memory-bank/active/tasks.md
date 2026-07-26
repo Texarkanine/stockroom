@@ -76,6 +76,11 @@ Group B is a separate earlier restructure by the operator, unrelated to the load
    - Changes: `contributing/iteration.md` → `contributing/iteration/index.md`; `contributing/backfill-adapters.md` → `contributing/iteration/backfill-adapters.md`; inside `iteration/`, `preparation.md` → `../preparation.md` and cross-tree `../x/` → `../../x/`. Also update the prose path in `backfill-adapters.md:43` (`user-guide/ingest/backfill/` → `user-guide/load/backfill/`).
    - Verify: re-run build; group B warnings gone
 
+5b. **Fix the stale docs path in shipped skill payload** *(preflight amendment A1)*
+   - Files: `skills/sr-initialize/SKILL.md`
+   - Changes: line 47 references `docs/contributing/iteration.md`, which no longer exists → `docs/contributing/iteration/index.md`. Line 99's torch.md reference is still valid — leave it.
+   - Verify: path resolves on disk. The docs build cannot catch this (outside `docs_dir`), so it is a read-and-confirm check.
+
 6. **Fix stale memory-bank pointers**
    - Files: `memory-bank/systemPatterns.md`, `memory-bank/techContext.md`
    - Changes: both reference `docs/contributing/iteration.md`, which no longer exists → `docs/contributing/iteration/index.md`. Surgical link fix only.
@@ -109,6 +114,14 @@ No new technology - validation not required.
 - **Group B turns out to be mid-flight operator work we just clobbered**: the nest is already committed (`7cc9ae8`) and `.pages` files are updated, so it is finished work with stale inbound links — not in progress. Verified before planning.
 - **Zero-warning is the wrong bar because some warnings predate everything**: checked — all 38 trace to the two renames; there is no pre-existing warning floor to grandfather.
 - **The split leaves `basic.md` as the new dumping ground**: B3 asserts what belongs there positively, not just "whatever is left over."
+
+## Preflight Amendments (2026-07-26)
+
+- **A1 — new step 5b.** `skills/sr-initialize/SKILL.md:47` points at `docs/contributing/iteration.md`. It is shipped skill payload outside `docs_dir`, so the strict build will never flag it; without this step the rework ships a stale path while claiming a clean tree. Confirmed by scanning `skills/`, `README.md`, and `.github/` — this is the only such reference (line 99's torch.md target is unmoved).
+- **A2 — name the new page "Harness Sources", not "Sources".** `load/backfill/index.md` already defines "source" as *a named legacy store*, with its own Sources table. A sibling page titled "Sources" puts two meanings of the word one nav level apart. H1 and nav label become **Harness Sources**; filename stays `sources.md`.
+- **A3 — slug claim verified, not assumed.** `properdocs.yaml` configures `pymdownx.slugs.slugify(case: lower)` (GitHub-compatible). Slugs derive from heading *text* only, so `Cursor \`sessions.models\` Enrichment` yields `cursor-sessionsmodels-enrichment` at any heading level. Step 2's demotion of that heading is safe; B5 still gates it.
+- **A4 — `.pages` becomes authoritative the moment it exists.** `validation.omitted_files: warn` under `strict: true` means a file present in `load/` but absent from `load/.pages` fails the build. Today `load/` has no `.pages`, so files are auto-included. Step 3 must list all five entries including the brand-new `sources.md`, or Step 7 fails.
+- **A5 — no test changes required.** Scanned `skills/sr-search/tests/`: the only docs-path assertions are `test_query_cookbook.py` (`docs/advanced/cookbook`) and `test_torch_source.py` (torch.md). Neither path is touched.
 
 ## Status
 
