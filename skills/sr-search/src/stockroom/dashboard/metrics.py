@@ -638,12 +638,13 @@ def _rank_model_counts(
     names: Sequence[str],
     *,
     series_key: str,
+    limit: int,
 ) -> dict[str, Any]:
-    """Rank models by total count and emit harness-aligned series arrays."""
+    """Rank models by total count, keep the top ``limit``, emit aligned series."""
     ranked = sorted(
         counts,
         key=lambda model: (-sum(counts[model].values()), model),
-    )
+    )[:limit]
     return {
         "models": ranked,
         series_key: {
@@ -701,6 +702,8 @@ def models(
     harnesses: Sequence[str] | None = None,
     since: datetime | None = None,
     until: datetime | None = None,
+    *,
+    limit: int = 10,
 ) -> dict[str, Any]:
     """Return dual-grain model usage for the activity window.
 
@@ -708,6 +711,11 @@ def models(
     (session ``models`` list ∪ message ``model`` values). ``by_message`` counts
     attributed assistant turns via :mod:`stockroom.dashboard.model_usage`
     (recorded message model, else sole session model). Subagents are excluded.
+
+    Each grain is independently clamped to its own top ``limit`` — these are
+    "Top Models" panels, ranked like :func:`projects` and :func:`tools`. A model
+    can lead one grain and miss the other's cut; that is the two questions
+    disagreeing, not an inconsistency.
     """
     start, end = parse_window(since, until, default_days=30)
     names = _active_harnesses(con, harnesses)
@@ -733,9 +741,11 @@ def models(
 
     return {
         "by_conversation": _rank_model_counts(
-            conversation_counts, names, series_key="sessions"
+            conversation_counts, names, series_key="sessions", limit=limit
         ),
-        "by_message": _rank_model_counts(message_counts, names, series_key="messages"),
+        "by_message": _rank_model_counts(
+            message_counts, names, series_key="messages", limit=limit
+        ),
     }
 
 
@@ -751,9 +761,12 @@ def model_trends(
     increments its model once in the bucket of its message ``ts`` when set,
     else the parent session's activity time. Window membership still uses
     session activity (same as :func:`models`). Series are harness-summed
-    (model → int[]); ranked model order matches ``models()["by_message"]``
-    for the same window. Window defaults match :func:`models` (30 days);
-    granularity follows :func:`_trend_granularity`.
+    (model → int[]); ranked model order shares ``models()["by_message"]``'s
+    ordering, and its leading names, but is *not* clamped the way that grain
+    is: this is a stacked area whose height is a quantity, so dropping the tail
+    would quietly lower the curve rather than merely shorten a list. Window
+    defaults match :func:`models` (30 days); granularity follows
+    :func:`_trend_granularity`.
     """
     start, end = parse_window(since, until, default_days=30)
     names = _active_harnesses(con, harnesses)

@@ -431,6 +431,7 @@ const DATE_RANGE_PRESETS = Object.freeze([
   "30d",
   "90d",
   "1y",
+  "all",
 ]);
 
 const DATE_RANGE_DURATIONS_MS = Object.freeze({
@@ -445,6 +446,7 @@ const DATE_RANGE_WINDOW_LABELS = Object.freeze({
   "30d": "Last 30 days",
   "90d": "Last 90 days",
   "1y": "Last 1 year",
+  all: "All time",
 });
 
 const DEFAULT_PANEL_RANGE_LABELS = Object.freeze({
@@ -464,7 +466,7 @@ const DEFAULT_PANEL_RANGE_LABELS = Object.freeze({
  * Normalize a date-range preset id.
  *
  * @param {unknown} preset Raw preset id.
- * @returns {"default"|"7d"|"30d"|"90d"|"1y"} Known preset, else default.
+ * @returns {"default"|"7d"|"30d"|"90d"|"1y"|"all"} Known preset, else default.
  */
 function normalizeDateRangePreset(preset) {
   return DATE_RANGE_PRESETS.includes(preset) ? preset : "default";
@@ -473,24 +475,63 @@ function normalizeDateRangePreset(preset) {
 /**
  * Resolve ISO window bounds for a date-range preset.
  *
+ * Every preset but `all` is derived from the clock alone. `all` is anchored to
+ * `spanStart` instead, because omitting bounds does not mean "all time" to a
+ * metric endpoint — it means that endpoint's own default window. An unanchored
+ * or reversed `all` returns null rather than reaching back to the epoch, which
+ * would ask every chart for hundreds of empty monthly buckets.
+ *
  * @param {unknown} preset Preset id (`default` omits bounds).
  * @param {Date|string|number} [now] Clock used for `until` (injectable for tests).
+ * @param {string|null} [spanStart] Earliest recorded activity, for `all` only.
  * @returns {{since: string, until: string} | null} Encoded bounds, or null when unset.
  */
-export function resolveWindowBounds(preset, now = new Date()) {
+export function resolveWindowBounds(preset, now = new Date(), spanStart = null) {
   const id = normalizeDateRangePreset(preset);
-  const durationMs = DATE_RANGE_DURATIONS_MS[id];
-  if (!durationMs) {
-    return null;
-  }
   const untilDate = now instanceof Date ? new Date(now.getTime()) : new Date(now);
   if (Number.isNaN(untilDate.getTime())) {
+    return null;
+  }
+  if (id === "all") {
+    if (spanStart == null) {
+      return null;
+    }
+    const anchor = new Date(spanStart);
+    if (Number.isNaN(anchor.getTime()) || anchor.getTime() >= untilDate.getTime()) {
+      return null;
+    }
+    return { since: anchor.toISOString(), until: untilDate.toISOString() };
+  }
+  const durationMs = DATE_RANGE_DURATIONS_MS[id];
+  if (!durationMs) {
     return null;
   }
   const sinceDate = new Date(untilDate.getTime() - durationMs);
   return {
     since: sinceDate.toISOString(),
     until: untilDate.toISOString(),
+  };
+}
+
+/**
+ * Bounds and list preset for drilling from the metrics view into the list.
+ *
+ * @param {unknown} dateRange Active metrics preset id.
+ * @param {{since: string, until: string} | null} window Active metrics window.
+ * @returns {{since: string | null, until: string | null, preset: string}} Handoff.
+ */
+export function sessionsListHandoff(dateRange, window) {
+  const id = normalizeDateRangePreset(dateRange);
+  // The list expresses all time by omitting bounds, under the id `default`
+  // (its "All" radio). Passing the metrics id through would leave its date
+  // control with nothing selected, since the list has no `all` radio.
+  if (id === "all") {
+    return { since: null, until: null, preset: "default" };
+  }
+  return {
+    since: window?.since ?? null,
+    until: window?.until ?? null,
+    preset: id,
   };
 }
 
@@ -525,7 +566,7 @@ export function panelRangeLabels(preset) {
     writeRead: windowLabel,
     efficiency: windowLabel,
     models: windowLabel,
-    modelTrends: `${windowLabel} · by message`,
+    modelTrends: windowLabel,
     firstPrompt: windowLabel,
   };
 }
@@ -701,7 +742,11 @@ export function transitionViewState(state, action) {
     if (dateRange === current.dateRange) {
       return { state: current, effect: "none" };
     }
-    const window = resolveWindowBounds(dateRange, action.now ?? new Date());
+    const window = resolveWindowBounds(
+      dateRange,
+      action.now ?? new Date(),
+      action.spanStart ?? null,
+    );
     return {
       state: { ...current, dateRange, window },
       effect: "refetch",
@@ -1324,7 +1369,7 @@ function ratioSeriesHasActivity(writes, reads) {
 function lineDataset(label, data, color) {
   return {
     ...aggregateDataset(label, data, color),
-    tension: 0.3,
+    tension: 0.2,
     fill: false,
   };
 }
@@ -1470,7 +1515,7 @@ export function buildModelTrendsPanel(
       pointRadius: 0,
       pointHoverRadius: 0,
       pointBorderWidth: 0,
-      tension: .3,
+      tension: 0.3,
       fill: true,
     };
   });

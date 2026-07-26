@@ -30,7 +30,9 @@ Session start does **not** ingest, embed, or migrate as its primary work. Those 
 
 Freshness is a nightly `stockroom ingest && stockroom embed` (incremental) on the platform scheduler — cron on Linux/WSL, launchd on macOS. The job invokes the shim by name; it does not embed a raw engine path. Output lands under stockroom home logs.
 
-`sr-initialize` offers to install the job once. Manual catch-up remains available via CLI when results feel stale — see [User Guide → Load the Warehouse](../user-guide/ingest.md).
+`sr-initialize` offers to install the job once. Manual catch-up remains available via CLI when results feel stale — see [User Guide → Load the Warehouse](../user-guide/load/index.md).
+
+Backfill of *legacy* stores is deliberately not on this schedule, or any other — see [Backfill](backfill.md).
 
 ## Dashboard launch
 
@@ -47,5 +49,5 @@ Harness hooks are not the same JSON shape or event: Cursor uses flat `sessionSta
 ## Related procedures
 
 - Operating the dashboard: [User Guide → Dashboard](../user-guide/dashboard.md)
-- Ingest, embed, and scheduling how-to: [User Guide → Load the Warehouse](../user-guide/ingest.md)
-- Contributor schedule / hook iteration: [Contributing → Iteration](../contributing/iteration.md)
+- Ingest, embed, and scheduling how-to: [User Guide → Load the Warehouse](../user-guide/load/index.md)
+- Contributor schedule / hook iteration: [Contributing → Iteration](../contributing/iteration/index.md)

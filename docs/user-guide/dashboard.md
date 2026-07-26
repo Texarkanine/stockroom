@@ -1,6 +1,6 @@
 # Dashboard
 
-The stockroom dashboard is a **local, read-only, fully offline** metrics UI over your warehouse — an at-a-glance view of cross-harness agentic-coding history. It does not ingest, embed, or migrate; freshness is owned by [Load the Warehouse](ingest.md).
+The stockroom dashboard is a **local, read-only, fully offline** metrics UI over your warehouse — an at-a-glance view of cross-harness agentic-coding history. It does not ingest, embed, or migrate; freshness is owned by [Load the Warehouse](load/index.md).
 
 Default URL: [http://localhost:58008](http://localhost:58008/) (also `http://127.0.0.1:58008/`). Every front-end asset is vendored — no CDN or external web requests are made at runtime. You can use it w/out an internet connection!
 
@@ -30,6 +30,8 @@ Session-start hooks also attempt to launch the dashboard automatically when plug
 ### Metrics
 
 Harness filters, time ranges, and Aggregate / Compare views over sessions, messages, projects, daily activity, tool distribution, and related rollups. The warehouse is machine-scoped: the UI stays up across harness sessions and is not stopped when one IDE closes.
+
+The date range runs `Default` · `7d` · `30d` · `90d` · `1y` · `All`. **`Default`** is not the widest setting — it lets each panel keep its own natural window (30 days for most, 14 days and 12 weeks for the activity trends). **`All`** starts at your earliest recorded activity rather than at some fixed epoch, so the axis covers your history and nothing more; the KPI cards read `New` under it, since there is no preceding period to compare against.
 
 ### Sessions
 

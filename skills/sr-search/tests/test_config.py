@@ -115,7 +115,41 @@ def test_load_settings_ignores_non_string_ai_tracking_entries(
     assert settings.cursor_ai_tracking_dbs == (pin,)
 
 
-def test_settings_has_no_state_vscdb_field() -> None:
-    """Settings exposes ``ai_tracking_dbs`` only — no aborted ``state_vscdb``."""
-    assert not hasattr(config.Settings(), "cursor_state_vscdb")
-    assert "cursor_state_vscdb" not in config.Settings.__dataclass_fields__
+def _write_config(config_home: Path, body: str) -> None:
+    """Materialize ``config.toml`` under a fresh ``config_home``."""
+    config_home.mkdir(exist_ok=True)
+    (config_home / "config.toml").write_text(body, encoding="utf-8")
+
+
+def test_load_settings_reads_state_vscdb(tmp_path: Path) -> None:
+    """A valid ``[cursor].state_vscdb`` string becomes a Path on Settings."""
+    config_home = tmp_path / "stockroom"
+    vscdb = tmp_path / "globalStorage" / "state.vscdb"
+    _write_config(config_home, f'[cursor]\nstate_vscdb = "{vscdb.as_posix()}"\n')
+    assert config.load_settings(config_home).cursor_state_vscdb == vscdb
+
+
+def test_load_settings_expands_user_in_state_vscdb(tmp_path: Path) -> None:
+    """``~`` in ``state_vscdb`` is expanded, matching the ai_tracking_dbs rule."""
+    config_home = tmp_path / "stockroom"
+    _write_config(config_home, '[cursor]\nstate_vscdb = "~/state.vscdb"\n')
+    settings = config.load_settings(config_home)
+    assert settings.cursor_state_vscdb == Path.home() / "state.vscdb"
+
+
+@pytest.mark.parametrize(
+    ("label", "body"),
+    [
+        ("non-string", "[cursor]\nstate_vscdb = 123\n"),
+        ("empty string", '[cursor]\nstate_vscdb = ""\n'),
+        ("absent key", '[cursor]\nai_tracking_dbs = ["/a.db"]\n'),
+        ("absent cursor table", "[other]\nkey = 1\n"),
+    ],
+)
+def test_load_settings_state_vscdb_is_none_when_unusable(
+    tmp_path: Path, label: str, body: str
+) -> None:
+    """Non-string, empty, absent key, or absent ``[cursor]`` table → ``None``."""
+    config_home = tmp_path / "stockroom"
+    _write_config(config_home, body)
+    assert config.load_settings(config_home).cursor_state_vscdb is None, label

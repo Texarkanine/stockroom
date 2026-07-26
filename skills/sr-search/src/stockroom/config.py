@@ -28,6 +28,11 @@ class Settings:
     """Loaded permanent settings (empty fields when unset / unloadable)."""
 
     cursor_ai_tracking_dbs: tuple[Path, ...] = ()
+    #: Cursor ``globalStorage/state.vscdb`` for the one-shot legacy backfill
+    #: (``stockroom backfill``). No conventional default is discoverable on
+    #: WSL→Windows, where the DB lives on the Windows side, so the operator
+    #: names it explicitly. Never read by nightly ingest.
+    cursor_state_vscdb: Path | None = None
 
 
 def _ai_tracking_dbs_from_table(data: dict[str, Any]) -> tuple[Path, ...]:
@@ -45,12 +50,23 @@ def _ai_tracking_dbs_from_table(data: dict[str, Any]) -> tuple[Path, ...]:
     return tuple(paths)
 
 
+def _state_vscdb_from_table(data: dict[str, Any]) -> Path | None:
+    """Extract ``[cursor].state_vscdb``; ``None`` when absent or not a path string."""
+    cursor = data.get("cursor")
+    if not isinstance(cursor, dict):
+        return None
+    raw = cursor.get("state_vscdb")
+    if not isinstance(raw, str) or not raw:
+        return None
+    return Path(raw).expanduser()
+
+
 def load_settings(config_home: Path | None = None) -> Settings:
     """Load ``config.toml`` from config home; empty on missing/malformed.
 
     When ``config_home`` is ``None``, resolves via
-    :func:`stockroom.home.resolve_config_home`. Reads only
-    ``[cursor].ai_tracking_dbs`` in v1. Never raises for I/O or TOML errors.
+    :func:`stockroom.home.resolve_config_home`. Reads ``[cursor]``'s
+    ``ai_tracking_dbs`` and ``state_vscdb``. Never raises for I/O or TOML errors.
     """
     if config_home is None:
         config_home, _source = resolve_config_home()
@@ -66,4 +82,7 @@ def load_settings(config_home: Path | None = None) -> Settings:
         return Settings()
     if not isinstance(data, dict):
         return Settings()
-    return Settings(cursor_ai_tracking_dbs=_ai_tracking_dbs_from_table(data))
+    return Settings(
+        cursor_ai_tracking_dbs=_ai_tracking_dbs_from_table(data),
+        cursor_state_vscdb=_state_vscdb_from_table(data),
+    )

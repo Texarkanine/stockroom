@@ -22,7 +22,7 @@ Launches (or re-prints) the local read-only dashboard URL — use when you want 
 
 Walks a machine from “plugin installed” to “warehouse ready”: prerequisites, per-machine torch, on-path `stockroom` shim, optional nightly schedule, first ingest + embed. Idempotent — re-run anytime setup looks broken.
 
-→ [Quickstart](quickstart.md) (get running) · [Load the Warehouse](ingest.md) (ingest / embed / schedule) · [Torch](troubleshooting/torch.md)
+→ [Quickstart](quickstart.md) (get running) · [Load the Warehouse](load/index.md) (ingest / embed / schedule) · [Torch](troubleshooting/torch.md)
 
 ## `sr-query`
 

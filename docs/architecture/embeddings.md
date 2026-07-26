@@ -28,7 +28,7 @@ When ingest rewrite-replaces a session, it invalidates embeddings only for messa
 
 `stockroom embed` encodes pending chunks in **cross-message batches** (throughput only — same model, chunking, and float32-near vectors as single-chunk encode) and, after the normal sweep, deletes **orphaned** `owner_table='messages'` embedding rows whose `(harness, owner_id)` no longer matches a `messages` row (any `embed_model`). That heals warehouses left inconsistent by an interrupted ingest rewrite without a separate operator chore.
 
-Nightly schedule runs both incrementally; manual catch-up is the same pair of commands — see [User Guide → Load the Warehouse](../user-guide/ingest.md).
+Nightly schedule runs both incrementally; manual catch-up is the same pair of commands — see [User Guide → Load the Warehouse](../user-guide/load/index.md).
 
 ## Search-surface split
 

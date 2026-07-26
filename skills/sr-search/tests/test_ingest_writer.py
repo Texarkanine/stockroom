@@ -21,6 +21,7 @@ from stockroom.ingest.model import (
     NormalizedSession,
     NormalizedToolCall,
 )
+from stockroom.timestamps import utc_now
 
 
 def _session(**overrides) -> NormalizedSession:
@@ -306,6 +307,44 @@ def test_append_carries_existing_first_seen_and_stamps_only_new_message(
         ("s1#1", first_seen),
         ("s1#2", appended_seen),
     ]
+
+
+def test_first_write_without_source_mtime_seeds_from_the_run_clock(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """A source with no per-conversation file mtime still records observation time.
+
+    ``first_seen_at`` means "when stockroom first observed this message" and is
+    not rebuildable from sources, so leaving it NULL would discard it forever.
+    For a source like the Cursor vscdb backfill — one shared store behind many
+    conversations, whose file mtime is nobody's activity time — the true value
+    is the run clock.
+    """
+    before = utc_now()
+    writer.write_session(migrated_con, _session(source_mtime=None))
+    after = utc_now()
+
+    values = migrated_con.execute(
+        "SELECT first_seen_at FROM messages WHERE session_id = 's1' ORDER BY ordinal"
+    ).fetchall()
+    assert len(values) == 2
+    for (first_seen,) in values:
+        assert first_seen is not None
+        assert before <= first_seen <= after
+
+
+def test_rewrite_without_source_mtime_still_carries_prior_first_seen_at(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """The run-clock fallback never overwrites an existing observation time."""
+    original = datetime(2025, 3, 4, 5, 6, 7)
+    writer.write_session(migrated_con, _session(source_mtime=original))
+    writer.write_session(migrated_con, _session(source_mtime=None))
+
+    values = migrated_con.execute(
+        "SELECT first_seen_at FROM messages WHERE session_id = 's1' ORDER BY ordinal"
+    ).fetchall()
+    assert values == [(original,), (original,)]
 
 
 def test_unchanged_rewrite_preserves_every_first_seen_at(

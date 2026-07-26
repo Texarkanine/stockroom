@@ -2,7 +2,7 @@
 
 Ask the agent about past work, or slash-invoke a search skill. Prefer **`sr-search`** when you are not sure whether the answer is a structured SQL lookup or meaning-based recall — it routes to the right surface(s) and synthesizes one answer.
 
-After [Quickstart](quickstart.md), the warehouse must already have data ([Load the Warehouse](ingest.md)). Empty results are often a freshness or torch problem, not a bad question — see [Troubleshooting](troubleshooting/index.md).
+After [Quickstart](quickstart.md), the warehouse must already have data ([Load the Warehouse](load/index.md)). Empty results are often a freshness or torch problem, not a bad question — see [Troubleshooting](troubleshooting/index.md).
 
 ## How to ask
 
@@ -58,7 +58,7 @@ Vector (meaning-based) search. Reach for it when you can describe the content bu
 stockroom semantic "how does the warehouse locking work"
 ```
 
-Phrase the query as a short description of the content you want. Embedding/search needs a working torch install ([Torch](troubleshooting/torch.md)); ingest and `sr-query` do not. Weak results on *recent* work often mean ingest caught up but embed has not — [Load the Warehouse](ingest.md).
+Phrase the query as a short description of the content you want. Embedding/search needs a working torch install ([Torch](troubleshooting/torch.md)); ingest and `sr-query` do not. Weak results on *recent* work often mean ingest caught up but embed has not — [Load the Warehouse](load/index.md).
 
 ## What to try next
 

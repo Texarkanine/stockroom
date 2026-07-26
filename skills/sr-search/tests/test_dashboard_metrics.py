@@ -936,6 +936,97 @@ def test_models_harness_filter_limits_both_grains(
     }
 
 
+def _seed_many_models(con: duckdb.DuckDBPyConnection, count: int) -> list[str]:
+    """Seed ``count`` models, one session each, on strictly descending turn counts.
+
+    Model ``mNN`` gets ``count + 1 - NN`` assistant turns, so message-grain rank
+    is unambiguous (no ties) and equals ``mNN`` order. Conversation grain sees
+    one session per model, so every model ties at 1 and falls back to the name
+    tiebreak — which lands on the same order. Returns the expected full ranking.
+    """
+    names = [f"m{index:02d}" for index in range(1, count + 1)]
+    for index, name in enumerate(names, start=1):
+        session_id = f"s{index:02d}"
+        _seed_session(
+            con,
+            harness="cursor",
+            session_id=session_id,
+            activity=datetime(2026, 1, 10),
+            project_id="p",
+            # One user turn plus (count + 1 - index) assistant turns.
+            message_count=count + 2 - index,
+        )
+        con.execute(
+            "UPDATE sessions SET models = [?] WHERE session_id = ?",
+            [name, session_id],
+        )
+    return names
+
+
+def test_models_clamps_each_grain_to_the_top_ten_in_the_window(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Both Top Models grains report only the window's ten leaders.
+
+    The panels are named "Top Models" and their siblings ``projects`` /
+    ``tools`` already clamp at ten; an unbounded list turned the bars into a
+    scroll box once the range widened past a year.
+    """
+    ranking = _seed_many_models(migrated_con, 12)
+    result = metrics.models(
+        migrated_con,
+        since=datetime(2026, 1, 1),
+        until=datetime(2026, 2, 1),
+    )
+
+    assert result["by_message"]["models"] == ranking[:10]
+    assert result["by_conversation"]["models"] == ranking[:10]
+    # The two lowest-ranked models are gone, not merged into a remainder.
+    assert ranking[10:] == ["m11", "m12"]
+    for grain, series_key in (
+        ("by_message", "messages"),
+        ("by_conversation", "sessions"),
+    ):
+        for counts in result[grain][series_key].values():
+            assert len(counts) == 10
+
+
+def test_models_limit_overrides_the_default_clamp(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """``limit`` is caller-tunable, matching ``projects`` and ``tools``."""
+    ranking = _seed_many_models(migrated_con, 12)
+    window = {"since": datetime(2026, 1, 1), "until": datetime(2026, 2, 1)}
+
+    narrowed = metrics.models(migrated_con, limit=3, **window)
+    assert narrowed["by_message"]["models"] == ranking[:3]
+    assert narrowed["by_conversation"]["models"] == ranking[:3]
+
+    widened = metrics.models(migrated_con, limit=12, **window)
+    assert widened["by_message"]["models"] == ranking
+
+
+def test_model_trends_is_deliberately_unclamped(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Model Usage over Time keeps every model, on purpose.
+
+    It is a stacked area whose height is a quantity, so dropping the tail would
+    silently lower the curve. Clamping the bars while leaving this series whole
+    is a deliberate asymmetry, pinned here so it is not "tidied up" later.
+    """
+    ranking = _seed_many_models(migrated_con, 12)
+    window = {"since": datetime(2026, 1, 1), "until": datetime(2026, 2, 1)}
+
+    trends = metrics.model_trends(migrated_con, **window)
+    assert trends["models"] == ranking
+    assert set(trends["counts"]) == set(ranking)
+
+    # The bars clamp; the area does not. Their leading order still agrees.
+    bars = metrics.models(migrated_con, **window)
+    assert trends["models"][:10] == bars["by_message"]["models"]
+
+
 def test_model_trends_buckets_by_message_ts_when_present(
     migrated_con: duckdb.DuckDBPyConnection,
 ) -> None:

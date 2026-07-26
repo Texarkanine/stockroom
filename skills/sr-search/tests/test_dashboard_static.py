@@ -278,6 +278,7 @@ def test_dashboard_top_controls_expose_date_range_and_segmented_mode() -> None:
         "30d",
         "90d",
         "1y",
+        "all",
     ]
     assert sum(1 for radio in date_radios if "checked" in radio) == 1
     assert "checked" in next(
