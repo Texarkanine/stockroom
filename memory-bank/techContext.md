@@ -26,6 +26,7 @@ Authoritative DDL is the migration chain under [`skills/sr-search/src/stockroom/
 | Surface | Module / skill | Role |
 | --- | --- | --- |
 | Ingest | `stockroom.ingest` | ETL from Cursor + Claude Code |
+| Backfill | `stockroom.backfill` | One-shot legacy-store excavation; human-run, never scheduled |
 | Query | `stockroom.query` / `sr-query` | Read-only SQL |
 | Embed | `stockroom.embed` | Local vectors |
 | Semantic | `stockroom.semantic` / `sr-semantic` | Vector search |

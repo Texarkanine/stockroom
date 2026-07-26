@@ -334,4 +334,4 @@ No new dependencies: `sqlite3` is stdlib (already used by `cursor_chats` and `en
 - [x] Pre-Mortem complete
 - [x] Preflight (PASS with amendments — TDD step ordering made explicit, config ratchet named, `__main__.py` placement corrected, `cli.md` dropped, D7 `--force` added, D8 `source_mtime`/`first_seen_at` decoupling added)
 - [x] Build (all 9 steps green; `make ci` and `make docs-build --strict` clean)
-- [ ] QA
+- [x] QA (PASS — 7 trivial findings, all fixed in QA: 2 docstring/JS whitespace artifacts, 1 dead template literal, 1 unused `BackfillSummary.written` property, 1 inaccurate `SourceSummary` docstring, and 2 documentation gaps — the `--force` embed obligation and the `techContext.md` engine-surfaces row. No substantive findings; gates re-run green.)

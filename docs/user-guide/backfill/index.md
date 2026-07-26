@@ -85,6 +85,8 @@ stockroom backfill --source cursor-vscdb --force
 
 It is deliberately narrow. Sessions ordinary ingest authored carry a transcript `source_path`, so they are never matched and never re-parsed, even under `--force`. Backfill cannot overwrite higher-fidelity history with its own reconstruction.
 
+**Always embed after a `--force` run.** Message ids are positional (`{session_id}#{ordinal}`), so a corrected parse that keeps or drops a different set of messages renumbers everything after the change. Those messages' embeddings are dropped as stale, and only `stockroom embed` puts them back — until it runs, the re-parsed conversations are missing from semantic search.
+
 ## Undoing A Run
 
 Delete by the same `source_path`. Count first:

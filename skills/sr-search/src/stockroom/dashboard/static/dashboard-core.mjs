@@ -566,7 +566,7 @@ export function panelRangeLabels(preset) {
     writeRead: windowLabel,
     efficiency: windowLabel,
     models: windowLabel,
-    modelTrends: `${windowLabel}`,
+    modelTrends: windowLabel,
     firstPrompt: windowLabel,
   };
 }
@@ -1515,7 +1515,7 @@ export function buildModelTrendsPanel(
       pointRadius: 0,
       pointHoverRadius: 0,
       pointBorderWidth: 0,
-      tension:0.3,
+      tension: 0.3,
       fill: true,
     };
   });

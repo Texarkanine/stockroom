@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: cursor-vscdb-backfill
-**Phase:** BUILD - COMPLETE (awaiting QA); post-build addenda shipped on this branch
+**Phase:** QA - COMPLETE (PASS); ready for reflect
 
 ## What Was Done
 - Probed this machine's live `state.vscdb` (5.7 GB, WSL→Windows mount) to ground the plan: 2,039 composers, 1,131 already in the warehouse, **908 backfill candidates** (609 with resolvable bubbles + 26 legacy-inline, 273 empty drafts), ~75,800 bubbles, 2025-03 → 2026-07.
@@ -54,10 +54,12 @@
 - **Re-run cost changed**: the model fix changed no ordinals/text so embeddings survived; the husk fix shifts ordinals (`message_id = '{session_id}#{ordinal}'`) and invalidates ~13k of ~88k message embeddings. A `--force` re-run must be followed by `stockroom embed`.
 - Latest gate on this branch: `make ci` 779 passed / 4 skipped; strict docs build green; torch restored.
 
+## QA Outcome (PASS)
+- Operator re-ran the documented sequence out of band and hand-verified the result: **the local warehouse is correctly backfilled.**
+- Semantic review of the whole branch found **7 findings, all trivial, all fixed in QA; zero substantive** — so no return to Build or Plan. Two docstring/JS whitespace artifacts, a dead template literal in `panelRangeLabels`, an unused `BackfillSummary.written` property, an inaccurate `SourceSummary` docstring, and two documentation gaps (the `--force` embed obligation, and `stockroom.backfill` missing from `techContext.md`'s engine-surfaces table).
+- **`systemPatterns.md` deliberately untouched** — nothing in it became false, backfill's shape is a subsystem deep-dive that file excludes, and `docs/architecture/backfill.md` already owns it.
+- Every finding lived in post-build addendum / side-request code, not in the nine planned TDD steps.
+- Gates green after fixes: ruff + format clean, pytest 779/4 skipped, 106 JS tests, strict docs build, REUSE 328/328, torch restored and `doctor smoke` clean.
+
 ## Next Step
-- Operator re-runs the documented sequence out of band so warehouse rows match the parser fixes:
-  1. Quit Cursor
-  2. `stockroom ingest`
-  3. `stockroom backfill --force`
-  4. `stockroom embed` *(required after the husk fix — ordinal renumber invalidates embeddings)*
-- Then QA phase (`niko-qa` skill) — post-implementation semantic review of the backfill deliverable plus the post-build addenda on this branch.
+- Reflect phase (`niko-reflect` skill) — Level 3 post-implementation reflection over the plan, the three post-build addenda, and the QA findings.

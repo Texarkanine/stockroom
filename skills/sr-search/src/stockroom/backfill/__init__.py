@@ -55,12 +55,11 @@ class BackfillError(RuntimeError):
 class SourceSummary:
     """What one source contributed to a run, and what it deliberately did not.
 
-    The three skip counts are kept apart because they mean different things to
-    an operator: ``skipped_existing`` is the safety invariant doing its job,
-    ``skipped_empty`` is the source's own dross (empty drafts), and ``skipped``
-    with a ``note`` means the source never ran at all. ``error`` is set when a
-    configured source could not be read — the run continues, but the CLI exits
-    nonzero.
+    The two skip counts are kept apart because they mean different things to an
+    operator: ``skipped_existing`` is the safety invariant doing its job, and
+    ``skipped_empty`` is the source's own dross (empty drafts). A ``note`` means
+    the source never ran at all, and ``error`` that a configured source could
+    not be read — the run continues, but the CLI exits nonzero.
     """
 
     harness: str = ""
@@ -80,10 +79,6 @@ class BackfillSummary:
     """Per-source outcome for a whole backfill run."""
 
     by_source: dict[str, SourceSummary] = field(default_factory=dict)
-
-    @property
-    def written(self) -> int:
-        return sum(source.written for source in self.by_source.values())
 
     @property
     def failed(self) -> bool:

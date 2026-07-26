@@ -17,11 +17,11 @@ Two operations:
   denormalizes the session's ``harness`` onto every child row. Before deletion,
   it carries each existing message's ``first_seen_at`` forward by deterministic
   ``message_id``; new or previously-unobserved rows seed from the session's
-  ``source_mtime``, or from the run clock when the source has none.
-  Thus ``--full`` preserves observation history, and source
-  files that disappear remain untouched because ingest never calls the writer
-  for undiscovered sessions. At the same pre-delete moment it compares old vs
-  new message ``text`` and deletes embeddings only for removed or text-changed
+  ``source_mtime``, or from the run clock when the source has none. Thus
+  ``--full`` preserves observation history, and source files that disappear
+  remain untouched because ingest never calls the writer for undiscovered
+  sessions. At the same pre-delete moment it compares old vs new message
+  ``text`` and deletes embeddings only for removed or text-changed
   ``message_id``s (compare-and-keep), so append-only re-ingest does not wipe
   unchanged vectors.
 * :func:`update_watermark` — upsert the per-``(harness, source_root)``
@@ -83,7 +83,7 @@ def write_session(con: duckdb.DuckDBPyConnection, session: NormalizedSession) ->
 
     Inserts the ``sessions`` row, then its ``messages`` (with expanded
     ``message_id``/``parent_id``), then their ``tool_calls`` (``tool_input``
-    serialized whole as JSON).     Re-running with the same ``(harness, session_id)``
+    serialized whole as JSON). Re-running with the same ``(harness, session_id)``
     replaces the prior rows rather than colliding on the primary key while
     carrying forward each existing message's first-observation time and
     invalidating embeddings only for removed or text-changed message ids.
