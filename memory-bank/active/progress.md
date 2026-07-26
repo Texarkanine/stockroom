@@ -508,3 +508,24 @@ Post-implementation semantic review of the whole branch (42 files, 4,606 inserti
     - `Path.resolve().as_uri()` rather than hand-rolled `quote` — existing ladder substring assertions still hold
 * Insights
     - A raw `?` in the path does not fail loudly; it silently opens the wrong/empty URI target (`no such table`), which is worse than a hard error — the encoding test caught the real failure mode
+
+## 2026-07-26 - QA (PR #92 feedback) - COMPLETE
+
+* Work completed
+    - Semantic review against the nine selected items; all present
+    - One trivial: expanded `open_readonly` docstring for URI encode + close-on-fail
+    - `.qa-validation-status` = PASS
+* Decisions made
+    - No substantive findings; dismissed review items left alone
+* Insights
+    - None beyond Build
+
+## 2026-07-26 - REFLECT (PR #92 feedback) - COMPLETE
+
+* Work completed
+    - Wrote `reflection/reflection-pr92-coderabbit-fixes.md`
+    - Persistent files reconciled: no edits
+* Decisions made
+    - Under-update preferred; no system/product/tech altitude change
+* Insights
+    - Silent wrong-DB open from unencoded `?` is the durable technical lesson; see reflection

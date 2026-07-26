@@ -151,8 +151,12 @@ def open_readonly(source: Path) -> sqlite3.Connection:
     ``immutable=1`` is the only mode that opens the store over a WSL→Windows
     mount, where WAL locking is unsupported; its caveat is that the ``-wal``
     tail is invisible, so the newest writes are not seen — harmless for a
-    historical backfill. Raises :class:`BackfillError` when neither rung opens
-    a readable store, so callers never see a bare ``sqlite3`` exception.
+    historical backfill. Paths are percent-encoded via :meth:`Path.as_uri` so
+    ``?`` / ``#`` cannot steal the URI query that carries ``mode`` /
+    ``immutable``. A rung whose connect succeeds but proving read fails is
+    closed before the next mode is tried. Raises :class:`BackfillError` when
+    neither rung opens a readable store, so callers never see a bare
+    ``sqlite3`` exception.
     """
     source = Path(source)
     if not source.is_file():
@@ -164,8 +168,6 @@ def open_readonly(source: Path) -> sqlite3.Connection:
     for mode in _OPEN_MODES:
         con: sqlite3.Connection | None = None
         try:
-            # ``as_uri()`` percent-encodes ``?`` / ``#`` so they cannot steal
-            # the SQLite URI query string that carries ``mode`` / ``immutable``.
             con = sqlite3.connect(f"{source.resolve().as_uri()}?{mode}", uri=True)
             # SQLite opens lazily, so the first real read is what proves the
             # rung: a mount that cannot do WAL locking fails here, not above.

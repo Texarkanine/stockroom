@@ -97,7 +97,15 @@ No new technology - validation not required. URI encoding uses stdlib (`pathlib.
 - [x] Pre-Mortem complete
 - [x] Preflight
 - [x] Build
-- [ ] QA
+- [x] QA
+- [x] Reflect
+- [ ] Archive
+
+## QA Results (2026-07-26)
+
+✅ PASS — 1 trivial (docstring expanded for URI encode + close-on-fail); 0 substantive.
+
+All nine selected review items present and verified. Out-of-scope dismissals untouched. Delete order in undo recipe unchanged (tool_calls → messages → sessions).
 
 ## Preflight Amendments (2026-07-26)
 
