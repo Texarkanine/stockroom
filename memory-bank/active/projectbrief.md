@@ -93,8 +93,10 @@ PR feedback plus a design review of the `docs/user-guide/load/` tree. The operat
 2. **New `load/sources.md`.** Takes the genuinely per-harness reference currently stranded in `index.md`: default transcript roots, `STOCKROOM_CURSOR_ROOT` / `STOCKROOM_CURSOR_CHATS_ROOT` / `STOCKROOM_CLAUDE_ROOT` overrides, Cursor Agent CLI chats best-effort parsing, and Cursor `sessions.models` enrichment (`ai-code-tracking.db` discovery, additive `config.toml` pins, `STOCKROOM_AI_TRACKING_DB`). The `#cursor-sessionsmodels-enrichment` slug must survive the move.
 3. **`load/basic.md` absorbs the generic chunks** from the old index: the `ingest` / `--full` / `--verbose` command block, the `--harness cursor|claude` flag, and the `sr-initialize` first-full-load timing note. These were never harness-specific.
 4. **New `load/.pages`** ordering `index.md`, `basic.md`, `schedule.md`, `sources.md`, `backfill` — without it MkDocs sorts alphabetically and `backfill` opens the section.
-5. **Link repair.** Fix every inbound link broken by `ingest/` → `load/` across `docs/user-guide/`, `docs/architecture/`, and `docs/contributing/`, including anchor targets (`#ingest`, `#scheduling`, `#cursor-sessionsmodels-enrichment`) whose host page changed.
-6. **`make docs-build` strict green.** Currently red.
+5. **Link repair — every broken link in the tree, not just this section's.** Operator confirmed 2026-07-26. The strict build's 38 warnings are two independent breakages, and both are in scope:
+    - **Group A (19):** inbound links broken by `ingest/` → `load/` across `docs/user-guide/`, `docs/architecture/`, and `docs/contributing/`, including anchor targets (`#ingest`, `#scheduling`, `#cursor-sessionsmodels-enrichment`) whose host page changed.
+    - **Group B (19):** inbound links broken by the earlier `contributing/iteration.md` → `contributing/iteration/` nest, plus wrong-depth relative links among the pages now inside that directory.
+6. **`make docs-build` strict green with zero warnings.** Currently red at 38.
 
 ### Rework Acceptance Criteria
 

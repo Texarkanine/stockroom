@@ -385,3 +385,15 @@ Post-implementation semantic review of the whole branch (42 files, 4,606 inserti
     - Included the operator's uncommitted `basic.md` Scheduling-dedup edit in this task's scope rather than treating it as pre-existing
 * Insights
     - None
+
+## 2026-07-26 - PLAN (load section IA) - COMPLETE
+
+* Work completed
+    - Level 2 plan in `tasks.md`: B1–B7, seven ordered steps (split notes block → `.pages` → group A links → group B links → memory-bank pointers → strict build)
+    - Fail-first baseline captured: `make docs-build` → 38 warnings, exit 2
+* Decisions made
+    - Docs verification is `make docs-build --strict` + a content checklist; no pytest
+    - **Operator confirmed:** fix all 38 warnings, including the 19 from the earlier `contributing/iteration.md` → `contributing/iteration/` nest that were outside the original rework brief. `projectbrief.md` requirement 5 amended to name both groups.
+    - Backfill `#ingest` anchors retarget to `basic.md`, not the router; `#scheduling` becomes a plain link to `schedule.md`
+* Insights
+    - A directory-nesting rename breaks links in both directions: inbound links to the old file path, and outbound links from the moved pages that are now one level deeper.
