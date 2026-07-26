@@ -23,11 +23,26 @@ def _build_parser() -> argparse.ArgumentParser:
     """Build the argument parser, with ``--source`` choices from the registry."""
     parser = argparse.ArgumentParser(
         prog="stockroom backfill",
+        # Raw formatting so the required-order list keeps its line breaks; the
+        # prose is therefore wrapped by hand.
         description=(
-            "One-shot backfill of a harness's legacy store into the warehouse. "
-            "Not scheduled, and safe to re-run: sessions already in the "
-            "warehouse are skipped, never overwritten."
+            "One-shot backfill of a harness's legacy store into the warehouse.\n"
+            "Not scheduled, and safe to re-run: sessions already in the warehouse\n"
+            "are skipped, never overwritten."
         ),
+        epilog=(
+            "REQUIRED ORDER — do all three, in order, every time:\n"
+            "  1. quit the harness (not just the window; the whole app)\n"
+            "  2. stockroom ingest\n"
+            "  3. stockroom backfill\n"
+            "\n"
+            "Both prerequisites fail silently when skipped. A store still open in\n"
+            "the harness can hide its newest conversations from the read without\n"
+            "reporting them missing, and skipping ingest makes this reconstruct\n"
+            "conversations whose transcripts are already on disk — which you then\n"
+            "pay to embed twice."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
         "--source",

@@ -6,6 +6,10 @@ Before Cursor wrote agent transcripts under `~/.cursor/projects`, IDE conversati
 
 The corpus is closed: Cursor no longer adds to it in a way ingest cannot see, so this is a run-once job.
 
+!!! warning "Quit Cursor, then ingest, then backfill"
+
+	The [required sequence](index.md#the-required-sequence) is not optional for this source, and this is the source it was written for. Cursor holds `state.vscdb` open while it runs, and on a WSL→Windows mount an open Cursor makes recent conversations **silently invisible** to the run — not skipped, not counted, not reported.
+
 ## Pointing At The Store
 
 There is no discoverable default. Under WSL the database lives on the Windows side of the mount, and there is no reliable way to guess which Windows user profile is yours — so the path is always explicit. Three ways, highest precedence first:
@@ -39,9 +43,9 @@ Config is the right home if you expect to re-run; the flag is for one-offs.
 
 The database is opened **strictly read-only** — your Cursor state is never modified.
 
-Stockroom prefers SQLite's read-only mode, and falls back to an *immutable* open on filesystems where read-only mode cannot take its locks (the WSL→Windows 9p mount is the common case). The immutable open cannot see writes still sitting in the write-ahead log, so the very newest composers may be invisible to a backfill run. That tail is current activity, which ordinary ingest already covers — and re-running the backfill later picks it up safely.
+Stockroom prefers SQLite's read-only mode, and falls back to an *immutable* open on filesystems where read-only mode cannot take its locks (the WSL→Windows 9p mount is the common case). An immutable open cannot see writes still sitting in the write-ahead log. **This is why Cursor has to be closed**, and why it matters more than it sounds: those conversations do not fail, they are simply not seen, and the run reports success without them. Quitting Cursor checkpoints the log into the database proper, which is what makes the store fully readable.
 
-A store being actively written by a running Cursor can also produce a torn read. Backfill reports that in one line and exits nonzero. **Closing Cursor before the run avoids both problems.**
+A store being actively written by a running Cursor can also produce a torn read. That failure at least announces itself — backfill reports it in one line and exits nonzero.
 
 The database can be several gigabytes. Backfill reads one conversation at a time using indexed key ranges rather than loading it whole, so memory stays flat and a slow mount stays tolerable.
 
@@ -56,7 +60,7 @@ The database can be several gigabytes. Backfill reads one conversation at a time
 | `project_id` | Cursor's own workspace id |
 | `cwd` | The workspace folder, when Cursor's workspace storage still records it |
 
-Composer ids share a namespace with agent-transcript session ids. That is what makes "skip what is already present" exact rather than a guess — and it means a conversation you backfill today is simply superseded, not duplicated, if Cursor's transcripts later cover it.
+Composer ids share a namespace with agent-transcript session ids. That is what makes "skip what is already present" exact rather than a guess — and it is why running [ingest first](index.md#why-ingest-first) is worth the wait: every conversation ingest has already claimed is one this source will correctly leave alone. Should the two overlap anyway, a later ingest supersedes the reconstruction rather than duplicating it; you just pay to embed the same conversation twice.
 
 Because `cwd` is recovered, backfilled sessions land in the same workspace grouping as ordinary transcript sessions for the same project. They show up alongside the rest of that project's history in the [dashboard](../dashboard.md) and in search.
 

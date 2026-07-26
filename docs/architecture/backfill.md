@@ -47,6 +47,10 @@ Backfill writes through `ingest.writer.write_session` — the same single SQL to
 
 It deliberately never calls `update_watermark`. A run leaves `_sync_state` exactly as it found it, so excavating history does not change what tonight's incremental ingest will read.
 
+That isolation is also what makes the [required operating sequence](../user-guide/backfill/index.md#the-required-sequence) a matter of cost rather than correctness. Because the skip set is a snapshot of what the warehouse currently holds, a backfill run before ingest has caught up will reconstruct conversations whose transcripts are already on disk. Nothing is lost — the untouched watermark means the next ingest still selects those transcripts, and delete-then-insert supersedes the reconstruction with the better copy — but the overlap is paid for twice in embedding work, and it corrupts the run summary as a measurement. Ingest first; the skip set only ever grows, and a larger skip set cannot lose history.
+
+A dry run opens through `warehouse.open_current()` instead: read-only, never migrating, and off the single-writer flock entirely. Rehearsing a backfill must not be able to create a warehouse, move its schema, or delay a running ingest — so a missing or behind-head warehouse is a typed refusal rather than a side effect nobody asked a *dry* run to perform.
+
 ## Never Clobbering What It Did Not Write
 
 The writer persists idempotently by delete-then-insert on `(harness, session_id)`, which makes a wrong skip set actively destructive rather than merely wasteful. Two things contain that:

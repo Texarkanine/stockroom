@@ -415,6 +415,27 @@ def test_dry_run_writes_nothing_but_reports_what_it_would_write(
     assert _count(migrated_con, "messages") == 0
 
 
+def test_dry_run_does_not_create_or_migrate_a_missing_warehouse(
+    warehouse_home: Path,
+    build_vscdb: Callable[..., Path],
+    only_cursor_vscdb: None,
+) -> None:
+    """A dry run opens the warehouse read-only, so it cannot conjure one.
+
+    Behavioral proof that the dry-run path is not ``open(read_only=False)``:
+    that door creates the file, migrates it, and takes the single-writer flock.
+    A dry run must do none of those, so with no warehouse on disk it has to
+    refuse — with the remedy named, and nothing left behind.
+    """
+    with pytest.raises(backfill_pkg.BackfillError) as excinfo:
+        backfill_pkg.backfill(
+            source_paths={cursor_vscdb.NAME: _one_composer_db(build_vscdb)},
+            dry_run=True,
+        )
+    assert "stockroom ingest" in str(excinfo.value)
+    assert not (warehouse_home / "warehouse.duckdb").exists()
+
+
 def test_unreadable_source_is_reported_without_a_traceback(
     migrated_con: duckdb.DuckDBPyConnection, tmp_path: Path, only_cursor_vscdb: None
 ) -> None:

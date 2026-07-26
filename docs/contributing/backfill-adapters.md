@@ -54,7 +54,7 @@ STOCKROOM_HOME=/tmp/backfill-scratch stockroom backfill --source <name> --verbos
 STOCKROOM_HOME=/tmp/backfill-scratch stockroom query "SELECT harness, count(*) FROM sessions GROUP BY 1"
 ```
 
-`--dry-run` does everything but the write, which makes it the fast loop while a parser is still wrong; `--force` re-parses what the same source previously wrote, which is the loop after it is nearly right. Note that a dry run still opens the warehouse read-write to read the skip set, so it takes the single-writer lock and will contend with a concurrent ingest.
+`--dry-run` does everything but the write, which makes it the fast loop while a parser is still wrong; `--force` re-parses what the same source previously wrote, which is the loop after it is nearly right. A dry run goes through `warehouse.open_current()` — read-only, never migrating, no single-writer flock — so it needs a warehouse that already exists and is at schema head, which is why `stockroom migrate` is the first line above.
 
 ## Guard Tests You Must Not Weaken
 

@@ -112,13 +112,14 @@ def backfill(
     nothing. ``force`` narrows the skip set to sessions *this same source*
     authored, so a corrected parser can replace its own earlier output while
     transcript-authored rows stay untouchable. When ``con`` is ``None`` the
-    warehouse is opened read-write through ``warehouse.open()``.
+    warehouse is opened read-write — or read-only for a dry run, which needs
+    only the skip set and so must not take the single-writer flock.
 
     Raises :class:`BackfillError` for an unknown ``source`` name, for an
-    explicitly named source with no configured store, and when no registered
-    source is configured at all. A source that is configured but unreadable is
-    recorded on its summary instead, so one broken store cannot hide another's
-    results.
+    explicitly named source with no configured store, when no registered
+    source is configured at all, and when a dry run finds no usable warehouse
+    to compare against. A source that is configured but unreadable is recorded
+    on its summary instead, so one broken store cannot hide another's results.
     """
     adapters = _select_adapters(source)
     overrides = source_paths or {}
@@ -145,7 +146,7 @@ def backfill(
         )
 
     owns_connection = con is None
-    connection = con if con is not None else warehouse.open(read_only=False)
+    connection = con if con is not None else _open_warehouse(dry_run)
     try:
         for name, source_path in resolved.items():
             summary.by_source[name] = _run_source(
@@ -160,6 +161,24 @@ def backfill(
         if owns_connection:
             connection.close()
     return summary
+
+
+def _open_warehouse(dry_run: bool) -> duckdb.DuckDBPyConnection:
+    """Open the warehouse for this run: read-write, or read-only for a dry run.
+
+    A dry run only needs the skip set, so it goes through ``open_current`` — the
+    read-only door that never migrates. That keeps it off the single-writer
+    flock, so rehearsing a backfill cannot queue behind (or delay) a running
+    ingest. The tradeoff is that it cannot create a warehouse either, so a
+    missing or behind-head one becomes a :class:`BackfillError` naming the
+    remedy rather than a side effect nobody asked a *dry* run to perform.
+    """
+    if not dry_run:
+        return warehouse.open(read_only=False)
+    try:
+        return warehouse.open_current()
+    except (FileNotFoundError, warehouse.WarehouseStaleError) as exc:
+        raise BackfillError(str(exc)) from exc
 
 
 def _select_adapters(source: str | None) -> dict[str, ModuleType]:
