@@ -312,3 +312,14 @@ Post-implementation semantic review of the whole branch (42 files, 4,606 inserti
     - Docs verification is `make docs-build --strict` + checklist; no pytest
 * Insights
     - None
+
+## 2026-07-26 - PREFLIGHT (architecture rework) - COMPLETE
+
+* Work completed
+    - Validated plan against live `docs/architecture/backfill.md` and user-guide `#fixing-a-run` anchor
+    - Amended Step 1 for explicit docs TDD fail-first; pinned outbound force/embed link
+    - `.preflight-status` = PASS
+* Decisions made
+    - No re-level; advisory radical innovation (mini change-surface table on the page) declined — overview already routes here
+* Insights
+    - User guide already owns the embed-after-force recipe; architecture only needs to name the trap

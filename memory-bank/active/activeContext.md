@@ -1,11 +1,11 @@
 # Active Context
 
 ## Current Task: cursor-vscdb-backfill (rework — architecture atlas)
-**Phase:** PLAN - COMPLETE
+**Phase:** PREFLIGHT - COMPLETE
 
 ## What Was Done
-- Level 2 plan written: five implementation steps on `docs/architecture/backfill.md` (Invariants → tighten skip-set para → `--force` keep-predicate fence → tighten `source_mtime` → strict docs build)
-- Behaviors B1–B5; docs verification via `make docs-build --strict` + content checklist
+- Preflight PASS with amendments: docs TDD fail-first encoded in Step 1; `--force` link pinned to `#fixing-a-run`
+- Scope confirmed: one architecture page; no product code; no user-guide edits
 
 ## Next Step
-- Preflight validation (autonomous per Level 2 workflow)
+- Build (autonomous per Level 2 workflow)

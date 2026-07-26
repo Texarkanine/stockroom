@@ -33,19 +33,21 @@ Docs-only work: no pytest behaviors. Verification is the strict docs build plus 
 
 ## Implementation Plan
 
-1. **Baseline + Invariants block**
+1. **Docs TDD baseline (fail first) + Invariants block**
    - Files: `docs/architecture/backfill.md`
-   - Changes: After the lede paragraph(s) and before `## Not On Any Automatic Path`, insert `## Invariants` with a four-bullet punch list of the load-bearing fences. Keep each bullet one line. Verify B1 by reading the first ~25 lines.
-   - Verify: content checklist B1; no other files yet
+   - Changes:
+     1. **Fail first:** read the page and confirm B1–B4 currently fail (no Invariants heading; skip-set and `source_mtime` paragraphs are the long diary forms; no keep-predicate / embed sentence under `--force`).
+     2. After the lede paragraph(s) and before `## Not On Any Automatic Path`, insert `## Invariants` with a four-bullet punch list of the load-bearing fences. Keep each bullet one line.
+   - Verify: B1 by reading the first ~25 lines
 
 2. **Tighten Reuses The Writer (skip-set / cost)**
    - Files: `docs/architecture/backfill.md`
    - Changes: Rewrite the paragraph that explains why the required operating sequence is cost rather than correctness — lead with what (skip set = warehouse snapshot), then fence why (overlap paid twice in embeds; summary corrupted; nothing lost because watermark untouched). Target ~half length. Keep the dry-run / `open_current` paragraph unless it is already tight.
-   - Verify: B2
+   - Verify: B2 (re-read the tightened paragraph against the checklist)
 
 3. **Add keep-predicate / embed fence under Never Clobbering**
    - Files: `docs/architecture/backfill.md`
-   - Changes: After the `--force` paragraph, add one sentence: changing the keep predicate under `--force` renumbers `message_id`s and invalidates embeddings. Point at the user-guide force/embed recipe; do not paste commands.
+   - Changes: After the `--force` paragraph, add one sentence: changing the keep predicate under `--force` renumbers `message_id`s and invalidates embeddings. Link to [User Guide → Fixing A Run](../user-guide/ingest/backfill/index.md#fixing-a-run); do not paste commands.
    - Verify: B4
 
 4. **Tighten Grain And Honesty (`source_mtime` / `first_seen_at`)**
@@ -54,9 +56,14 @@ Docs-only work: no pytest behaviors. Verification is the strict docs build plus 
    - Verify: B3
 
 5. **Final scan + strict docs build**
-   - Files: `docs/architecture/backfill.md` (read-only check); optionally ripgrep that user-guide files were not touched
+   - Files: `docs/architecture/backfill.md` (read-only check)
    - Changes: Confirm B1–B5; `make docs-build --strict` green
    - Verify: B5
+
+## Preflight Amendments (2026-07-26)
+
+- Encoded docs TDD order in Step 1: confirm B1–B4 fail on the live page before any edit.
+- Pin the `--force` outbound link to `#fixing-a-run` on the user-guide backfill index.
 
 ## Technology Validation
 
@@ -87,7 +94,7 @@ No new technology - validation not required.
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight (PASS with amendments)
 - [ ] Build
 - [ ] QA
 
