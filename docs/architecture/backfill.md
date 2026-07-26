@@ -13,7 +13,7 @@ Operator how-to lives in [User Guide → Backfill Legacy History](../user-guide/
 
 ## Not On Any Automatic Path
 
-`stockroom backfill` is human-run, always. No session-start hook invokes it, the scheduler entry stays exactly `stockroom ingest && stockroom embed`, and nothing reachable from the nightly path imports the `backfill` package.
+`stockroom backfill` is manually run, always. No session-start hook invokes it, the scheduler entry stays exactly `stockroom ingest && stockroom embed`, and nothing reachable from the nightly path imports the `backfill` package.
 
 That last one is the load-bearing guarantee, and it is an *absence*, so it is asserted rather than assumed: guard tests fail if the rendered schedule payload gains a `backfill` token, or if the `stockroom.ingest` package acquires an import edge onto `stockroom.backfill`. Legacy-store reads stay one deliberate command away from the thing that runs unattended every night.
 
@@ -22,8 +22,8 @@ flowchart LR
     subgraph nightly["Nightly (automatic)"]
         Sched[schedule] --> Ing[ingest] --> Emb[embed]
     end
-    subgraph oneshot["Backfill (human-run, one-shot)"]
-        Human([Human]) --> BF[backfill]
+    subgraph oneshot["Backfill (manual)"]
+        Operator([Operator]) --> BF[backfill]
     end
     Roots[(transcript roots)] --> Ing
     Legacy[(legacy store)] --> BF
@@ -54,34 +54,32 @@ Backfill writes through `ingest.writer.write_session` — the same single SQL to
 
 It deliberately never calls `update_watermark`. A run leaves `_sync_state` exactly as it found it, so excavating history does not change what tonight's incremental ingest will read.
 
-That isolation makes the [required operating sequence](../user-guide/ingest/backfill/index.md#the-required-sequence) cost, not correctness. The skip set is a snapshot of what the warehouse currently holds, so backfill before ingest reconstructs conversations whose transcripts are already on disk. Nothing is lost — the next ingest still selects them and supersedes the reconstruction — but the overlap is paid twice in embedding work and corrupts the run summary as a measurement. Ingest first; the skip set only grows.
+That isolation makes the [required operating sequence](../user-guide/ingest/backfill/index.md#the-required-sequence) merely a cost concern, not correctness issue. The skip set is a snapshot of what the warehouse currently holds, so backfill before ingest reconstructs conversations whose transcripts are already on disk. Nothing is lost — the next ingest still selects them and supersedes the reconstruction — but the overlap is paid twice in embedding work and corrupts the run summary as a measurement. Ingest first; the skip set only grows.
 
-A dry run opens through `warehouse.open_current()` instead: read-only, never migrating, and off the single-writer flock entirely. Rehearsing a backfill must not be able to create a warehouse, move its schema, or delay a running ingest — so a missing or behind-head warehouse is a typed refusal rather than a side effect nobody asked a *dry* run to perform.
+A dry run opens through `warehouse.open_current()` instead: read-only, never migrating, and off the single-writer flock entirely. Rehearsing a backfill must not be able to create a warehouse, move its schema, or delay a running ingest — so a missing or behind-head warehouse is a typed refusal. Get your (ware)house in order before a backfill.
 
 ## Never Clobbering What It Did Not Write
 
 The writer persists idempotently by delete-then-insert on `(harness, session_id)`, which makes a wrong skip set actively destructive rather than merely wasteful. Two things contain that:
 
-**Provenance is exact.** Backfilled sessions carry `entrypoint = 'ide'` and a `source_path` naming the legacy store. `entrypoint` still means *surface*, so no third value was invented for it; `source_path` is what makes a run identifiable, correctable, and reversible.
+**Provenance is exact.** Backfilled sessions carry sufficient identifiers to uniquely and exclusively identify their logical content. If some other source has been populating the same session's data... well, that data does, at least, belong in that session.
 
 **The default skip set is everything already present.** Any `session_id` already in the warehouse for the adapter's harness is skipped before parsing, not after — adapters enumerate candidate ids cheaply first, so the expensive parse only runs on what will actually be written. A test asserts a skipped row is byte-identical afterwards.
 
-`--force` narrows that skip set to sessions whose `source_path` is *this adapter's own store*, so a corrected parse can replace its own earlier output without hand-written SQL. Transcript-authored rows carry a transcript `source_path` and are therefore unmatchable even under force. The escape hatch is one predicate rather than a bookkeeping column precisely because provenance was decided first.
+`--force` narrows that skip set to sessions whose `source_path` is *this adapter's own store*, so a corrected parse can replace its own earlier output without hand-written SQL. `ingest`-authored rows carry a transcript `source_path` and are therefore unmatchable even under force.
 
-Changing the keep predicate under `--force` renumbers positional `message_id`s and invalidates embeddings — see [User Guide → Fixing A Run](../user-guide/ingest/backfill/index.md#fixing-a-run).
+Changing the keep predicate under `--force` renumbers positional `message_id`s and invalidates embeddings — see [User Guide → Fixing A Run](../user-guide/ingest/backfill/index.md#fixing-a-run). You'd only need this if you were changing how an existing backfill worked and needed to repair data in a warehouse that had already been backfilled w/ the older code path.
 
 ## Reading Foreign Stores Safely
 
-A legacy store belongs to the harness, which may be running. Adapters open it strictly read-only and are expected to fail soft: an absent, unreadable, or actively-written store yields a one-line message and a nonzero exit, never a traceback. One unparseable record does not abort a run, and one failed source does not stop the others.
-
-Source-specific consequences of that — the read-mode ladder, what an immutable open cannot see — belong on the adapter's own page: [Cursor `state.vscdb`](../user-guide/ingest/backfill/cursor-vscdb.md#how-it-reads).
+A legacy store belongs to the harness, which may be running. Adapters open it strictly read-only and are expected to fail soft: an absent, unreadable, or actively-written store yields a one-line message and a nonzero exit. One unparseable record does not abort a run, and one failed source does not stop the others.
 
 ## Grain And Honesty
 
-Two conventions matter enough to state as architecture, because both are places where a plausible convenience would have corrupted a column's meaning.
-
 **Tokens are stored at the grain the source reports.** A per-turn count lands on *that* message, and session `*_tokens` stay NULL so `session_token_usage` reports `token_grain = 'message'`. Summing message counts into the session columns is explicitly forbidden by migration `0007`, and would additionally make the rollup view mislabel the grain as `'session'`.
 
-**`source_mtime` stays NULL for a shared store.** The column means "the mtime of *this conversation's* source transcript." A legacy store is one file for thousands of conversations, so its mtime is approximately the run time and says nothing about any of them. Writing it would park every timeless conversation on today's date in the dashboard's `COALESCE(started_at, source_mtime)` window.
+That said, if a source only *has* session-grain token data, it will be written as such.
 
-When `source_mtime` is absent, the writer seeds `messages.first_seen_at` from the run clock. That field means "when stockroom first observed this message" and is [not rebuildable from sources](warehouse.md); without the fallback, any parser omitting `source_mtime` would discard observation time forever.
+**`source_mtime` stays NULL for a shared store.** The column means "the mtime of *this conversation's* source transcript." If a legacy store is one file for thousands of conversations, its mtime is approximately the last time it was updated and will be actively incorrect for the majority of sessions. In such cases, `source_mtime` is left `NULL`.
+
+When `source_mtime` is absent, the writer seeds `messages.first_seen_at` from time of the backfill run. That field means "when stockroom first observed this message" and is [not rebuildable from sources](warehouse.md#ingest-pipeline).
