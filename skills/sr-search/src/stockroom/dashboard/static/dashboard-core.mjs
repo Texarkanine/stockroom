@@ -1369,7 +1369,7 @@ function ratioSeriesHasActivity(writes, reads) {
 function lineDataset(label, data, color) {
   return {
     ...aggregateDataset(label, data, color),
-    tension: 0.3,
+    tension: 0.2,
     fill: false,
   };
 }
@@ -1515,7 +1515,7 @@ export function buildModelTrendsPanel(
       pointRadius: 0,
       pointHoverRadius: 0,
       pointBorderWidth: 0,
-      tension: .3,
+      tension:0.3,
       fill: true,
     };
   });
