@@ -292,3 +292,13 @@ Post-implementation semantic review of the whole branch (42 files, 4,606 inserti
     3. One sentence under **Never Clobbering** / `--force`: keep-predicate changes renumber `message_id`s and invalidate embeddings (husk-fix fence); user guide keeps the recipe.
 * Leave alone: diagram, Not On Any Automatic Path, Orchestrator Over Adapters, Reading Foreign Stores outbound pointer, mechanism depth vs user-guide.
 * Disposition: rework (not archive). Stale plan/context/status files cleared next; reflection + creative preserved.
+
+## 2026-07-26 - COMPLEXITY-ANALYSIS (architecture rework) - COMPLETE
+
+* Work completed
+    - Classified architecture-atlas rework as Level 2 (simple enhancement): three surgical edits on `docs/architecture/backfill.md`; no product code
+* Decisions made
+    - Level 2, not Level 1: deliberate structure + fence naming, not a typo/link fix
+    - Scope stays one page; user-guide pages from the prior rework are out of scope
+* Insights
+    - None beyond the chat review that triggered rework
