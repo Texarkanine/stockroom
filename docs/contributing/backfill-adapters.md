@@ -40,7 +40,7 @@ A parametrized conformance test in `tests/test_backfill.py` runs over `_SOURCES`
 1. **Write the adapter tests first**, in `tests/test_backfill_<source>.py`. Synthesize the store in-test rather than committing a binary fixture — see the `build_vscdb` factory in `tests/conftest.py` for the pattern.
 2. **Write the adapter**, exporting the five names above. Give it a module docstring recording the store's shape; that store is undocumented by its vendor and the docstring is the only place that knowledge lands.
 3. **Register it** in `_SOURCES`. The CLI's `--source` choices come from the registry, so nothing in `__main__.py` needs editing unless the source needs its own path flag (`--state-vscdb` is the precedent).
-4. **Add a user-guide page** under `docs/user-guide/backfill/`, sibling to `cursor-vscdb.md`, and a row in that section's index table. Per-source read caveats and warehouse-column mappings belong there, not in the shared page.
+4. **Add a user-guide page** under `docs/user-guide/ingest/backfill/`, sibling to `cursor-vscdb.md`, and a row in that section's index table. Per-source read caveats and warehouse-column mappings belong there, not in the shared page.
 5. **Run the gate**: `make ci` plus `make docs-build`.
 
 ## Trying It Against A Real Store

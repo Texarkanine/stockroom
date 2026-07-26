@@ -103,5 +103,13 @@ No new technology - validation not required.
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight (PASS with amendments)
-- [ ] Build
+- [x] Build
 - [ ] QA
+
+## Build checklist
+
+- [x] Step 1 — link hygiene (strict build red → green)
+- [x] Step 2 — `ingest/index.md` ADHD flip
+- [x] Step 3 — `backfill/index.md` Required Sequence lede
+- [x] Step 4 — `cursor-vscdb.md` config-first + silent-miss
+- [x] Step 5 — final scan (B1–B8 + `make docs-build --strict`)

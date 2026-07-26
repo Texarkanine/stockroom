@@ -81,15 +81,15 @@ Let session-start heal run, or re-run `sr-initialize`.
 
 ### Empty or sparse results after first install
 
-Confirm the first ingest + embed finished (`sr-initialize`). Wait for the nightly schedule, or run ingest/embed yourself — [Load the Warehouse](../ingest.md) · [CLI](../../advanced/cli.md).
+Confirm the first ingest + embed finished (`sr-initialize`). Wait for the nightly schedule, or run ingest/embed yourself — [Load the Warehouse](../ingest/index.md) · [CLI](../../advanced/cli.md).
 
 ### Weak semantic results for recent work
 
-Silent staleness is possible: ingest may have new messages that are not embedded yet. Catch up with `stockroom ingest` then `stockroom embed` before concluding the content is absent — [Load the Warehouse](../ingest.md).
+Silent staleness is possible: ingest may have new messages that are not embedded yet. Catch up with `stockroom ingest` then `stockroom embed` before concluding the content is absent — [Load the Warehouse](../ingest/index.md).
 
 ### Nightly schedule installed but nothing updates
 
-Check `stockroom schedule status`. If the cron daemon is not running, the entry is written but will not fire (WSL: `sudo service cron start`, or enable systemd). See [Scheduling](../ingest.md#scheduling).
+Check `stockroom schedule status`. If the cron daemon is not running, the entry is written but will not fire (WSL: `sudo service cron start`, or enable systemd). See [Scheduling](../ingest/index.md#scheduling).
 
 ## Search
 

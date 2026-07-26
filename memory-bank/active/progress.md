@@ -249,3 +249,15 @@ Post-implementation semantic review of the whole branch (42 files, 4,606 inserti
     - No re-level; advisory radical innovation (extra nav `.pages`) declined as out of ADHD-copy scope
 * Insights
     - Nesting `ingest.md` → `ingest/index.md` broke a wide fan-out of relative links; the ADHD rewrite would have been verified against a red build if Step 1 stayed narrow
+
+## 2026-07-26 - BUILD (rework) - COMPLETE
+
+* Work completed
+    - Fixed nest fallout across docs (30 → 0 strict warnings); ProperDocs requires explicit `…/index.md` not directory trailing slashes
+    - ADHD rewrites of the three user-guide pages per B1–B8; Required Sequence is four steps including embed; deleted "Why is This Even a Problem?"
+    - `make docs-build --strict` green after rewrites
+* Decisions made
+    - Config-first on cursor-vscdb; flag/env as one-off alternatives
+    - Models cell softened ("may be empty"); Model/Token detail under `## Reference`
+* Insights
+    - A naive replace of `user-guide/ingest/` → `user-guide/ingest/index.md` mangled `…/ingest/backfill/` into `…/ingest/index.mdbackfill/` — order replacements longest-prefix first next time
