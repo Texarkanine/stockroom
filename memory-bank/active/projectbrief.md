@@ -105,3 +105,28 @@ PR feedback plus a design review of the `docs/user-guide/load/` tree. The operat
 3. The `load/` section nav opens on the index and lists backfill last.
 4. `installed-layout.md`'s link to the Cursor model-enrichment section resolves to the new host page and anchor.
 5. Strict docs build passes with zero warnings.
+
+## Rework (PR #92 CodeRabbit feedback)
+
+Judged review `#pullrequestreview-4782519076` on [PR #92](https://github.com/Texarkanine/stockroom/pull/92). Operator selected nine dispositions marked **fix in this PR**; the rest stay dismissed.
+
+### Rework Requirements
+
+1. **`docs/contributing/iteration/backfill-adapters.md`:** Clarify that the Layout table paths are relative to `skills/sr-search/` (or prefix them with that root).
+2. **`docs/contributing/iteration/index.md`:** Fix typo `secion` → `section`.
+3. **`docs/user-guide/load/backfill/cursor-vscdb.md`:** In Reference, state that contemporary Cursor API tokens remain unavailable from `state.vscdb` (usage metadata ≠ credentials). Closes original brief AC #7.
+4. **`docs/user-guide/load/backfill/index.md`:** Fix “all instance of the whole application” wording in Required Sequence.
+5. **Same page, `--dry-run`:** Remove “safe to rehearse at any time”; keep the quit-harness prerequisite — dry-run still reads and reconstructs the legacy store.
+6. **Same page, undo recipe:** Wrap the `doomed` temp table + three `DELETE`s in `BEGIN`/`COMMIT` (roll back on failure).
+7. **`memory-bank/active/progress.md` lede:** Already refreshed at rework initiation; verify it names this PR-feedback rework, not the ADHD pass.
+8. **`cursor_vscdb.open_readonly`:** Close a connection when the proving read fails before trying the next open mode; percent-encode `source` in the `file:` URI.
+9. **`cursor_vscdb.candidates`:** Catch `sqlite3.Error` from the `cursorDiskKV` query and raise `BackfillError` so `_run_source` / the CLI never print a traceback.
+
+### Rework Acceptance Criteria
+
+1. Contributor layout table is unambiguous from repo root.
+2. `secion` typo is gone; Required Sequence grammar is correct; dry-run prose no longer undercuts quit-harness; undo recipe is transactional.
+3. User-guide cursor-vscdb page states API tokens are unavailable from vscdb.
+4. `open_readonly` never leaks a connection across ladder rungs; paths with `?`/`#` still open.
+5. Pointing `candidates` / backfill at a readable SQLite file that lacks `cursorDiskKV` exits with one line and code 1 — no traceback.
+6. Strict docs build green; adapter tests cover the two stability behaviors.

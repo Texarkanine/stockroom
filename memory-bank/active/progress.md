@@ -1,6 +1,6 @@
 # Progress
 
-Rework on cursor-vscdb-backfill: ADHD reorder/cut of ingest + backfill user-guide pages and link hygiene after nesting under `ingest/backfill/`. Original feature work remains in the history below.
+Rework on cursor-vscdb-backfill: PR #92 CodeRabbit feedback — docs corrections plus `cursor_vscdb` open/candidates error handling. Prior reworks (ADHD docs, architecture atlas, load-section IA) and original feature work remain in the history below.
 
 **Complexity:** Level 2
 
@@ -449,3 +449,19 @@ Post-implementation semantic review of the whole branch (42 files, 4,606 inserti
     - Under-update preferred; docs IA does not change product/tech/system altitude beyond the path fixes already landed in Build
 * Insights
     - Dual-cause broken links and docs_dir-blind skill paths are the durable lessons; see reflection
+
+## 2026-07-26 - REWORK INITIATED (PR #92 feedback)
+
+* Trigger: CodeRabbit review on PR #92 (`#pullrequestreview-4782519076`), judged via `/pr-feedback-judge`. Operator selected nine items to fix and chose rework over archive.
+* Feedback to address (docs + two adapter stability fixes; no creative-doc rewrites, no spelling/YAGNI nits):
+    1. **backfill-adapters layout paths** — state that table paths are relative to `skills/sr-search/`, or prefix them.
+    3. **`iteration/index.md` typo** — `secion` → `section`.
+    4. **cursor-vscdb Reference** — state contemporary Cursor API tokens remain unavailable from `state.vscdb` (original AC #7 gap).
+    5. **backfill index Required Sequence** — fix “all instance of the whole application” grammar.
+    6. **`--dry-run` prose** — do not imply it is safe while the harness is open; quit prerequisite still applies (reads the legacy store).
+    7. **Undo recipe** — wrap the `doomed` / three `DELETE`s in an explicit transaction.
+    10. **`progress.md` lede** — refresh current-task summary (done at rework initiation; was still describing the ADHD `ingest/backfill` pass).
+    13. **`open_readonly`** — close failed-rung connections before trying the next mode; percent-encode `source` in the `file:` URI.
+    14. **`candidates()`** — catch `sqlite3.Error` and re-raise as `BackfillError` so the CLI keeps its no-traceback contract.
+* Explicitly out of scope (judged dismiss / not selected): US “parameterized” spelling, creative keep-predicate / workspace-identity rewrites, tasks.md CLI-wording and nested-backtick lint, conftest `_build` re-entrancy.
+* Disposition: rework (not archive). Reflection + creative docs preserved; plan/context/status files cleared next.
