@@ -355,3 +355,22 @@ Post-implementation semantic review of the whole branch (42 files, 4,606 inserti
     - Under-update preferred; atlas presentation does not change system/product/tech altitude
 * Insights
     - Heading demotion must check slug consumers; Invariants-up-front is the atlas shape this page should have had initially
+
+## 2026-07-26 - REWORK INITIATED (load section IA) - IN-PROGRESS
+
+* Operator feedback (PR review + design chat)
+    - `docs/user-guide/ingest/` renamed to `docs/user-guide/load/`; `schedule.md` split out; duplicate Scheduling section deleted from `basic.md` (uncommitted). Operator did this by hand before invoking rework.
+    - `load/index.md` is now a section landing page whose entire body is the orphaned **Harness-Specific Notes** block — wrong content for a section index, and it is the first thing a reader sees.
+    - Design review found the Harness-Specific Notes block is itself a junk drawer: four of its six chunks are generic ingest content, not harness-specific.
+* Feedback to address (docs-only; no product-code changes)
+    1. `load/index.md` becomes a router: title, one-sentence purpose, the two catch-up commands, child map. No body content.
+    2. New `load/sources.md` takes the genuinely per-harness reference: default roots, `STOCKROOM_*_ROOT` overrides, Cursor chats best-effort parsing, Cursor `sessions.models` enrichment.
+    3. `load/basic.md` absorbs the generic chunks: `ingest` / `--full` / `--verbose` block, `--harness` flag, `sr-initialize` first-full-load note.
+    4. New `load/.pages` — none exists, so MkDocs sorts alphabetically and `backfill` lands first in the section.
+    5. Repair the ~15 inbound links broken by the `ingest/` → `load/` rename across user-guide, architecture, and contributing; strict docs build is currently red.
+* Decisions made
+    - Rework, not archive. Reflection + creative docs preserved; plan/context/status files cleared.
+    - Backfill stays under `load/` — design review rejected moving it to `advanced/` (hazard is a facet, not a hierarchy; `advanced/` is an escape-hatch tree).
+* Insights
+    - A section index with no children map invites orphaned content to settle in it.
+    - The `#cursor-sessionsmodels-enrichment` anchor is consumed by `installed-layout.md`; the prior build phase already broke it once via heading demotion. Moving that block must preserve the slug.

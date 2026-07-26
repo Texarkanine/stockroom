@@ -82,3 +82,24 @@ PR feedback on `docs/architecture/backfill.md`: name the fences up front, cut de
 2. The two target paragraphs are materially shorter and still state the same fences.
 3. The keep-predicate / embed invalidation consequence is named on the architecture page.
 4. Strict docs build passes; no user-guide regressions from this edit.
+
+## Rework (load section IA)
+
+PR feedback plus a design review of the `docs/user-guide/load/` tree. The operator renamed `ingest/` to `load/` and split `schedule.md` out by hand; that left `load/index.md` holding an orphaned **Harness-Specific Notes** block as its entire body, and left ~15 inbound links pointing at the old `ingest/` paths. No engine or CLI changes.
+
+### Rework Requirements
+
+1. **`load/index.md` becomes a router.** Title, one-sentence purpose, the two catch-up commands, and a map of the section's children. No body content — a section index answers "which of these do I need", nothing else.
+2. **New `load/sources.md`.** Takes the genuinely per-harness reference currently stranded in `index.md`: default transcript roots, `STOCKROOM_CURSOR_ROOT` / `STOCKROOM_CURSOR_CHATS_ROOT` / `STOCKROOM_CLAUDE_ROOT` overrides, Cursor Agent CLI chats best-effort parsing, and Cursor `sessions.models` enrichment (`ai-code-tracking.db` discovery, additive `config.toml` pins, `STOCKROOM_AI_TRACKING_DB`). The `#cursor-sessionsmodels-enrichment` slug must survive the move.
+3. **`load/basic.md` absorbs the generic chunks** from the old index: the `ingest` / `--full` / `--verbose` command block, the `--harness cursor|claude` flag, and the `sr-initialize` first-full-load timing note. These were never harness-specific.
+4. **New `load/.pages`** ordering `index.md`, `basic.md`, `schedule.md`, `sources.md`, `backfill` — without it MkDocs sorts alphabetically and `backfill` opens the section.
+5. **Link repair.** Fix every inbound link broken by `ingest/` → `load/` across `docs/user-guide/`, `docs/architecture/`, and `docs/contributing/`, including anchor targets (`#ingest`, `#scheduling`, `#cursor-sessionsmodels-enrichment`) whose host page changed.
+6. **`make docs-build` strict green.** Currently red.
+
+### Rework Acceptance Criteria
+
+1. `load/index.md` fits in one viewport and every child page is reachable from it by name.
+2. No harness-specific content remains outside `load/sources.md`; no generic ingest content remains inside it.
+3. The `load/` section nav opens on the index and lists backfill last.
+4. `installed-layout.md`'s link to the Cursor model-enrichment section resolves to the new host page and anchor.
+5. Strict docs build passes with zero warnings.
