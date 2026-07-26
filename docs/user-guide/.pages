@@ -2,8 +2,7 @@ nav:
   - index.md
   - quickstart.md
   - installed-layout.md
-  - ingest.md
-  - backfill
+  - ingest
   - search.md
   - dashboard.md
   - Skill index: skills.md

@@ -60,12 +60,6 @@ For tests or one-shots, `STOCKROOM_AI_TRACKING_DB` forces a **single** DB and di
 STOCKROOM_AI_TRACKING_DB=/path/to/ai-code-tracking.db stockroom ingest
 ```
 
-## Backfill
-
-Ingest reads the roots a harness writes *today*. History a harness left behind in an older store — finite, not growing, and worth excavating exactly once — is the job of `stockroom backfill` instead. It is never scheduled and never part of the nightly job.
-
-See [Backfill Legacy History](backfill/index.md).
-
 ## Embed
 
 Embed turns non-empty message text into local vectors ([BAAI/bge-small-en-v1.5](https://huggingface.co/BAAI/bge-small-en-v1.5), 384-dim, one row per chunk in `embeddings`). SQL query works without embeddings; **meaning-based recall does not.**
