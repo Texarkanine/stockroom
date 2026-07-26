@@ -1,19 +1,19 @@
 # Backfill Legacy History
 
-`stockroom backfill` excavates finite legacy stores that ordinary [ingest](../index.md#ingest) never reads. Run it deliberately — it is not scheduled.
+`stockroom backfill` excavates finite legacy stores that ordinary [ingest](../index.md#ingest) never reads. Run it deliberately, once, if you know you need it. Backfill is not and should not be scheduled.
 
 ## The Required Sequence
 
 !!! warning "Run these four steps in this order, every time"
 
-1. **Quit the harness completely.** Not just the window — the whole application.
+1. **Quit the harness completely.** Not just the window — all instance of the whole application.
 2. **`stockroom ingest`** — let ordinary ingest finish first.
-3. **`stockroom backfill`** — only now.
+3. **`stockroom backfill`**
 4. **`stockroom embed`** — backfill never embeds; semantic search needs this after.
 
 **Why quit:** a running harness can tear the read or leave recent writes invisible — backfill may exit 0 having silently missed conversations.
 
-**Why ingest first:** backfill skips what the warehouse already holds. Skipping ingest reconstructs live sessions that ingest would have done better, wastes embed work when those rows get superseded, and corrupts the "written" summary as a measure of legacy-only recovery.
+**Why ingest first:** backfill skips what the warehouse already holds. Skipping ingest may pull in live sessions that ingest would have done better, wastes embed work when those rows get superseded, and may corrupt the "written" summary as a measure of legacy-only recovery.
 
 ## Sources
 
@@ -78,9 +78,3 @@ DELETE FROM sessions    WHERE (harness, session_id) IN (SELECT * FROM doomed);
 ```
 
 All three tables are needed — the warehouse has no foreign keys, so nothing cascades. Any embeddings those messages owned are pruned by the next `stockroom embed`.
-
-## Where Next?
-
-* Per-source setup and caveats: [Cursor `state.vscdb`](cursor-vscdb.md)
-* Why backfill sits outside every automatic path: [Architecture → Backfill](../../../architecture/backfill.md)
-* Adding a source: [Contributing → Backfill Adapters](../../../contributing/backfill-adapters.md)
