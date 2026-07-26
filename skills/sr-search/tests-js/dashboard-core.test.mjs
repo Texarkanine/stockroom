@@ -31,6 +31,7 @@ import {
   projectHoverTitle,
   resolveWindowBounds,
   sessionsEllipsisCount,
+  sessionsListHandoff,
   sessionsPaginationVisible,
   buildTruncatedPaginationItems,
   buildSessionsPanelRows,
@@ -422,6 +423,103 @@ test("resolveWindowBounds omits default and computes ISO since/until for presets
 
   assert.equal(resolveWindowBounds("30d", now).since, "2026-06-10T18:00:00.000Z");
   assert.equal(resolveWindowBounds("90d", now).since, "2026-04-11T18:00:00.000Z");
+});
+
+test("resolveWindowBounds anchors the all preset to the warehouse's first activity", () => {
+  /*
+   * "All" cannot be expressed by omitting bounds the way the sessions list
+   * does: for metric endpoints, omitted bounds mean each endpoint's own default
+   * window (30d, or trends' 14d/12w), not all time. So it resolves to a real
+   * bounded window starting at the earliest recorded activity.
+   */
+  const now = new Date("2026-07-10T18:00:00.000Z");
+  const bounds = resolveWindowBounds("all", now, "2025-03-14");
+  assert.equal(bounds.since, "2025-03-14T00:00:00.000Z");
+  assert.equal(bounds.until, "2026-07-10T18:00:00.000Z");
+
+  // A full timestamp is accepted as readily as wrapped's date-only span start.
+  assert.equal(
+    resolveWindowBounds("all", now, "2025-03-14T09:30:00.000Z").since,
+    "2025-03-14T09:30:00.000Z",
+  );
+});
+
+test("resolveWindowBounds refuses an all window it cannot honestly anchor", () => {
+  /*
+   * Without a span start there is nothing to anchor to, and a span start at or
+   * after `now` would be a reversed window the API rejects outright. Both fall
+   * back to null rather than inventing an epoch-to-now range, which would ask
+   * every chart for hundreds of empty monthly buckets.
+   */
+  const now = new Date("2026-07-10T18:00:00.000Z");
+  assert.equal(resolveWindowBounds("all", now), null);
+  assert.equal(resolveWindowBounds("all", now, null), null);
+  assert.equal(resolveWindowBounds("all", now, "not a date"), null);
+  assert.equal(resolveWindowBounds("all", now, "2026-07-10T18:00:00.000Z"), null);
+  assert.equal(resolveWindowBounds("all", now, "2027-01-01"), null);
+
+  // The span start is ignored by every clock-derived preset.
+  assert.equal(resolveWindowBounds("7d", now, "2025-03-14").since, "2026-07-03T18:00:00.000Z");
+});
+
+test("the all preset transitions and labels itself as a first-class window", () => {
+  /*
+   * The daterange transition carries the span start, since the window it
+   * resolves depends on data rather than the clock alone; the panel subtitles
+   * read "All time" the way every other preset names its window.
+   */
+  const now = new Date("2026-07-10T18:00:00.000Z");
+  const state = {
+    harnesses: ["cursor"],
+    selected: ["cursor"],
+    mode: "aggregate",
+    dateRange: "default",
+    window: null,
+  };
+  const applied = transitionViewState(state, {
+    type: "daterange",
+    preset: "all",
+    spanStart: "2025-03-14",
+    now,
+  });
+  assert.equal(applied.effect, "refetch");
+  assert.equal(applied.state.dateRange, "all");
+  assert.deepEqual(applied.state.window, resolveWindowBounds("all", now, "2025-03-14"));
+
+  const labels = panelRangeLabels("all");
+  assert.equal(labels.daily, "All time");
+  assert.equal(labels.overviewAria, "All time overview");
+  assert.equal(labels.modelTrends, "All time · by message");
+  assert.equal(labels.firstPrompt, labels.efficiency);
+});
+
+test("sessionsListHandoff converts an all-time metrics window to the list's own All", () => {
+  /*
+   * Drilling into the conversation list from the metrics view carries the
+   * active window over. The list expresses all time by *omitting* bounds under
+   * the preset id `default`, so handing it the metrics `all` id verbatim would
+   * leave its date control with nothing selected.
+   */
+  const now = new Date("2026-07-10T18:00:00.000Z");
+  const allWindow = resolveWindowBounds("all", now, "2025-03-14");
+  assert.deepEqual(sessionsListHandoff("all", allWindow), {
+    since: null,
+    until: null,
+    preset: "default",
+  });
+
+  const week = resolveWindowBounds("7d", now);
+  assert.deepEqual(sessionsListHandoff("7d", week), {
+    since: week.since,
+    until: week.until,
+    preset: "7d",
+  });
+
+  assert.deepEqual(sessionsListHandoff("default", null), {
+    since: null,
+    until: null,
+    preset: "default",
+  });
 });
 
 test("builds aggregate and compare daily activity models", () => {

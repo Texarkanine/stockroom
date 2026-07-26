@@ -31,6 +31,8 @@ Session-start hooks also attempt to launch the dashboard automatically when plug
 
 Harness filters, time ranges, and Aggregate / Compare views over sessions, messages, projects, daily activity, tool distribution, and related rollups. The warehouse is machine-scoped: the UI stays up across harness sessions and is not stopped when one IDE closes.
 
+The date range runs `Default` · `7d` · `30d` · `90d` · `1y` · `All`. **`Default`** is not the widest setting — it lets each panel keep its own natural window (30 days for most, 14 days and 12 weeks for the activity trends). **`All`** starts at your earliest recorded activity rather than at some fixed epoch, so the axis covers your history and nothing more; the KPI cards read `New` under it, since there is no preceding period to compare against.
+
 ### Sessions
 
 The metrics **Sessions** panel shows up to 20 matching conversations (10 newest + `… N more` + 10 oldest when there are more). Click a row to open reconstruction, or `… N more` for the paginated sessions-list view. That list has its own harnesses, time range, and per-page control; filter state lives in the URL.

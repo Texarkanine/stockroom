@@ -125,3 +125,19 @@ Add an opt-in, one-shot backfill of legacy Cursor `state.vscdb` composers into t
     - The gap was a *planning* omission, not an implementation slip. The plan enumerated every other column of `sessions` and `messages` and simply never asked about `models` / `model`. Nothing in the build could have caught it: every test passed, because no test existed for a column no one had named
     - The vscdb reports model attribution **better than nightly ingest can**. Ingest has no per-message model for Cursor at all, and gets session models only from the recent `ai-code-tracking` sidecar (272 of 1,260 ingest-authored Cursor sessions) — which is the real reason the chart started in May 2026. The backfill was blamed for a hole that predates it and now partially fills it
     - The re-run is far cheaper than the first run implies: `write_session` invalidates embeddings only for removed or text-changed message ids, and this fix changes no text, so all 64,002 message vectors survive `--force`
+
+## 2026-07-26 - SIDE REQUEST (dashboard "All" date range) - COMPLETE
+
+Adjacent operator request handled on this branch while the `--force` re-run was benchmarking out of band. Not part of `cursor-vscdb-backfill`; recorded here so the branch's contents stay accounted for.
+
+* Work completed
+    - Added an **`All` date-range preset** to the metrics view (after `1y`), matching the one the sessions list already had. TDD: four JS tests and one static-markup assertion, three failing first
+    - `resolveWindowBounds` gained a `spanStart` parameter; `all` resolves to `[earliest recorded activity, now]`. New `sessionsListHandoff()` translates an all-time metrics window into the list's own `All` when drilling in
+    - Verified live against a throwaway 70-session warehouse spanning Mar 2025 – Jul 2026 (`STOCKROOM_HOME` override, second dashboard on port 58077): all ten panels relabel to "All time", the model-usage chart renders 17 monthly buckets across the full span, and the drill-through opens the list with its `All` radio checked and no bounds in the URL
+    - Gate: `make ci` green (773 passed, 4 skipped), 106 JS tests green, strict docs build green, torch restored after `ci`'s `uv sync`
+* Decisions made
+    - **`All` is anchored to the data, not to the epoch.** Omitting bounds could not express it — for metric endpoints that means each endpoint's *own* default window (30d, or trends' 14d/12w), which is also why `Default` is not the widest setting. A literal epoch-to-now range would have asked every chart for ~680 monthly buckets, nearly all empty
+    - The anchor is read from `wrapped.totals.span.start`, which is already all-time by design and already fetched with every snapshot — no new endpoint, no backend change at all. An unanchorable or reversed `all` degrades to null rather than inventing a range
+* Insights
+    - The two date controls were never one component, and their shared `default` id meant two different things — "All" on the list, "let each panel choose" on the metrics view. Adding a real `all` id is what forced that latent ambiguity into the open; the handoff helper exists purely because the two vocabularies disagree
+    - Verifying this needed a warehouse the writer lock was not holding. Standing up a scratch warehouse under `STOCKROOM_HOME` on a second port was faster than waiting out a 25-minute backfill, and is a repeatable way to exercise dashboard behavior against synthetic history

@@ -25,6 +25,7 @@ import {
   projectHoverTitle,
   buildTruncatedPaginationItems,
   resolveWindowBounds,
+  sessionsListHandoff,
   sessionsPaginationVisible,
   summarizeChartPanel,
   togglePanelHelp,
@@ -921,7 +922,13 @@ async function refreshDashboard(initial = false) {
 
 elements.dateRangeSelector.addEventListener("change", (event) => {
   if (event.target instanceof HTMLInputElement && event.target.name === "date-range") {
-    applyTransition({ type: "daterange", preset: event.target.value });
+    applyTransition({
+      type: "daterange",
+      preset: event.target.value,
+      // `wrapped` is all-time by design and fetched with every snapshot, so the
+      // warehouse's first activity is already on hand to anchor "All".
+      spanStart: state.snapshot?.wrapped?.totals?.span?.start ?? null,
+    });
   }
 });
 
@@ -1224,15 +1231,16 @@ async function refreshSessionsList() {
 }
 
 function openSessionsListFromMetrics() {
+  const handoff = sessionsListHandoff(state.dateRange, state.window);
   void navigateSessionsList(
     {
       harnesses: [...state.selected],
-      since: state.window?.since ?? null,
-      until: state.window?.until ?? null,
+      since: handoff.since,
+      until: handoff.until,
       page: 1,
       perPage: 50,
     },
-    { history: "push", dateRangePreset: state.dateRange },
+    { history: "push", dateRangePreset: handoff.preset },
   );
 }
 
