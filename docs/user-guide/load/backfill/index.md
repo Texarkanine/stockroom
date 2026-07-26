@@ -6,7 +6,7 @@
 
 !!! warning "Run these four steps in this order, every time"
 
-1. **Quit the harness completely.** Not just the window — all instance of the whole application.
+1. **Quit the harness completely.** Not just the window — quit every instance of the application.
 2. **`stockroom ingest`** — let ordinary ingest finish first.
 3. **`stockroom backfill`**
 4. **`stockroom embed`** — backfill never embeds; semantic search needs this after.
@@ -35,7 +35,7 @@ stockroom backfill --dry-run  # rehearse: report only, writes nothing
 stockroom backfill --verbose  # all sources w/ progress
 ```
 
-`--dry-run` does everything a real run does — resolves each source, works out what is already present, reconstructs the rest — then reports what it would have written instead of writing it. It opens the warehouse read-only and takes no write lock, so it is safe to rehearse at any time. It does need a warehouse to compare against, and will tell you to run `stockroom ingest` first if there is not one.
+`--dry-run` does everything a real run does — resolves each source, works out what is already present, reconstructs the rest — then reports what it would have written instead of writing it. It opens the warehouse read-only and takes no write lock, so it will not contend with ingest. It still **reads the legacy store**, so quit the harness first (step 1): an open Cursor can hide WAL-backed conversations from the read, and a dry-run exits 0 having silently missed them. It also needs a warehouse to compare against, and will tell you to run `stockroom ingest` first if there is not one.
 
 ## What To Expect
 
@@ -70,11 +70,13 @@ stockroom query "SELECT count(*) FROM sessions WHERE source_path = '/path/to/sto
 `stockroom query` opens the warehouse read-only, so the deletion itself needs a [DuckDB client](../../../advanced/duckdb.md) — with nothing else holding the warehouse open:
 
 ```sql
+BEGIN;
 CREATE TEMP TABLE doomed AS
   SELECT harness, session_id FROM sessions WHERE source_path = '/path/to/store';
 DELETE FROM tool_calls  WHERE (harness, session_id) IN (SELECT * FROM doomed);
 DELETE FROM messages    WHERE (harness, session_id) IN (SELECT * FROM doomed);
 DELETE FROM sessions    WHERE (harness, session_id) IN (SELECT * FROM doomed);
+COMMIT;
 ```
 
 All three tables are needed — the warehouse has no foreign keys, so nothing cascades. Any embeddings those messages owned are pruned by the next `stockroom embed`.

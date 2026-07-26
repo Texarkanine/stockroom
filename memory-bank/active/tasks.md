@@ -96,9 +96,21 @@ No new technology - validation not required. URI encoding uses stdlib (`pathlib.
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight
-- [ ] Build
+- [x] Build
 - [ ] QA
 
 ## Preflight Amendments (2026-07-26)
 
 - None. TDD order is explicit (adapter tests → adapter impl → docs). `Path.as_uri()` percent-encodes `?`/`#` and preserves the substring assertions in existing ladder tests. No advisory redesign.
+
+## Build Log (2026-07-26)
+
+| Step | Outcome |
+| --- | --- |
+| 1. Failing adapter tests | 3 new tests red for the right reasons (leak unclosed; `?` path opens wrong DB; bare `OperationalError`) |
+| 2. Implement open_readonly + candidates | Green; full adapter file 59/59 |
+| 3. Contributing docs | B1, B2 |
+| 4. Backfill user-guide docs | B3–B6 |
+| 5. Lede + strict build | B7 already current; B11 green |
+
+**Gates:** docs-build exit 0 / zero warnings; pytest 784 passed / 2 skipped; ruff clean.

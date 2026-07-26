@@ -6,6 +6,8 @@ Read [Architecture → Backfill](../../architecture/backfill.md) first if you ha
 
 ## Layout
 
+Paths below are relative to `skills/sr-search/`.
+
 | Path | Role |
 | --- | --- |
 | `src/stockroom/backfill/__init__.py` | Registry `_SOURCES`, skip set, write loop, per-source summary |

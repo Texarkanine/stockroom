@@ -115,6 +115,89 @@ def test_open_readonly_raises_backfill_error_for_absent_file(tmp_path: Path) -> 
     assert str(missing) in str(excinfo.value)
 
 
+def test_open_readonly_closes_connection_when_proving_read_fails(
+    build_vscdb: Callable[..., Path], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A ``mode=ro`` connect that fails its proving read is closed before fallback.
+
+    Without this, the abandoned connection leaks when ``immutable=1`` then
+    succeeds — the WSL→Windows mount path this ladder exists for.
+    """
+    db_path = build_vscdb(composers={"c1": _composer()})
+    real_connect = sqlite3.connect
+    closed_failed_rungs: list[bool] = []
+
+    class _FailingRung:
+        """Proxy: proving ``execute`` fails; ``close`` is observable."""
+
+        def __init__(self, real: sqlite3.Connection) -> None:
+            self._real = real
+
+        def execute(self, *_a: object, **_k: object) -> object:
+            raise sqlite3.OperationalError("disk I/O error")
+
+        def close(self) -> None:
+            closed_failed_rungs.append(True)
+            self._real.close()
+
+        def __getattr__(self, name: str) -> object:
+            return getattr(self._real, name)
+
+    def fake_connect(uri_string: str, *args: object, **kwargs: object):
+        con = real_connect(uri_string, *args, **kwargs)
+        if "mode=ro" in uri_string:
+            return _FailingRung(con)
+        return con
+
+    monkeypatch.setattr(sqlite3, "connect", fake_connect)
+    con = cursor_vscdb.open_readonly(db_path)
+    try:
+        count = con.execute("SELECT count(*) FROM cursorDiskKV").fetchone()[0]
+    finally:
+        con.close()
+    assert count == 1
+    assert closed_failed_rungs == [True]
+
+
+def test_open_readonly_percent_encodes_query_special_chars_in_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Paths containing ``?`` are percent-encoded in the SQLite ``file:`` URI.
+
+    A raw ``?`` would be parsed as the start of the URI query string and steal
+    the ``mode=`` / ``immutable=`` parameter.
+    """
+    db_path = tmp_path / "state?.vscdb"
+    setup = sqlite3.connect(db_path)
+    try:
+        setup.execute("CREATE TABLE cursorDiskKV (key TEXT UNIQUE, value BLOB)")
+        setup.execute(
+            "INSERT INTO cursorDiskKV (key, value) VALUES (?, ?)",
+            ("composerData:c1", "{}"),
+        )
+        setup.commit()
+    finally:
+        setup.close()
+
+    seen: list[str] = []
+    real_connect = sqlite3.connect
+
+    def fake_connect(uri_string: str, *args: object, **kwargs: object):
+        seen.append(uri_string)
+        return real_connect(uri_string, *args, **kwargs)
+
+    monkeypatch.setattr(sqlite3, "connect", fake_connect)
+    con = cursor_vscdb.open_readonly(db_path)
+    try:
+        con.execute("SELECT count(*) FROM cursorDiskKV").fetchone()
+    finally:
+        con.close()
+    assert seen, "connect was never called"
+    for uri in seen:
+        assert "state?.vscdb" not in uri
+        assert "%3F" in uri.upper() or "%3f" in uri
+
+
 def _clear_source_inputs(
     monkeypatch: pytest.MonkeyPatch, config_home: Path | None = None
 ) -> None:
@@ -182,6 +265,26 @@ def test_candidates_enumerates_composer_ids(build_vscdb: Callable[..., Path]) ->
         bubbles={"c1:b1": {"type": 1, "text": "hi"}},
     )
     assert sorted(cursor_vscdb.candidates(db_path)) == ["c1", "c2", "c3"]
+
+
+def test_candidates_raises_backfill_error_when_cursor_disk_kv_missing(
+    tmp_path: Path,
+) -> None:
+    """A readable SQLite file without ``cursorDiskKV`` is a typed ``BackfillError``.
+
+    ``open_readonly`` only proves ``sqlite_master``; misconfigured ``--state-vscdb``
+    pointing at the wrong DB must not escape as a bare ``sqlite3`` traceback.
+    """
+    db_path = tmp_path / "not-a-vscdb.sqlite"
+    setup = sqlite3.connect(db_path)
+    try:
+        setup.execute("CREATE TABLE other (x INTEGER)")
+        setup.commit()
+    finally:
+        setup.close()
+    with pytest.raises(BackfillError) as excinfo:
+        cursor_vscdb.candidates(db_path)
+    assert str(db_path) in str(excinfo.value)
 
 
 def test_bubble_reads_use_an_index_range_not_a_scan(

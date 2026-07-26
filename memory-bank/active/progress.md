@@ -496,3 +496,15 @@ Post-implementation semantic review of the whole branch (42 files, 4,606 inserti
     - No amendments; advisory declined (CLI e2e for wrong-SQLite would duplicate the unit `BackfillError` gate)
 * Insights
     - None
+
+## 2026-07-26 - BUILD (PR #92 feedback) - COMPLETE
+
+* Work completed
+    - TDD: three adapter tests first (fail), then `open_readonly` URI encode + close-on-failed-rung, `candidates` → `BackfillError`
+    - Docs: layout path base, `secion` typo, API-token boundary, Required Sequence grammar, dry-run quit/WAL, undo transaction
+    - Gates: strict docs-build green; pytest 784 passed / 2 skipped; ruff clean
+* Decisions made
+    - Leak test uses a small connection proxy (`close` on `sqlite3.Connection` is read-only, so monkeypatching the method is impossible)
+    - `Path.resolve().as_uri()` rather than hand-rolled `quote` — existing ladder substring assertions still hold
+* Insights
+    - A raw `?` in the path does not fail loudly; it silently opens the wrong/empty URI target (`no such table`), which is worse than a hard error — the encoding test caught the real failure mode

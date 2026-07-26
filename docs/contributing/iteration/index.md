@@ -1,6 +1,6 @@
 # Development Iteration Cycles
 
-This secion is day-to-day work **after** your local checkout is wired up. Don't know what that means? Go through the [Preparation](../preparation.md) process first!
+This section is day-to-day work **after** your local checkout is wired up. Don't know what that means? Go through the [Preparation](../preparation.md) process first!
 
 ## Prerequisites
 

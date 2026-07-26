@@ -162,14 +162,19 @@ def open_readonly(source: Path) -> sqlite3.Connection:
         )
     last_error: Exception | None = None
     for mode in _OPEN_MODES:
+        con: sqlite3.Connection | None = None
         try:
-            con = sqlite3.connect(f"file:{source}?{mode}", uri=True)
+            # ``as_uri()`` percent-encodes ``?`` / ``#`` so they cannot steal
+            # the SQLite URI query string that carries ``mode`` / ``immutable``.
+            con = sqlite3.connect(f"{source.resolve().as_uri()}?{mode}", uri=True)
             # SQLite opens lazily, so the first real read is what proves the
             # rung: a mount that cannot do WAL locking fails here, not above.
             con.execute("SELECT count(*) FROM sqlite_master").fetchone()
             return con
         except sqlite3.Error as exc:
             last_error = exc
+            if con is not None:
+                con.close()
     raise BackfillError(
         f"{NAME}: could not read {source} as a Cursor state.vscdb "
         f"({last_error}) — close Cursor and re-run, or check the path"
@@ -185,10 +190,15 @@ def candidates(source: Path) -> list[str]:
     low, high = _key_range(_COMPOSER_PREFIX)
     con = open_readonly(source)
     try:
-        rows = con.execute(
-            "SELECT key FROM cursorDiskKV WHERE key >= ? AND key < ? ORDER BY key",
-            (low, high),
-        ).fetchall()
+        try:
+            rows = con.execute(
+                "SELECT key FROM cursorDiskKV WHERE key >= ? AND key < ? ORDER BY key",
+                (low, high),
+            ).fetchall()
+        except sqlite3.Error as exc:
+            raise BackfillError(
+                f"{NAME}: {source} does not look like a Cursor state.vscdb ({exc})"
+            ) from exc
     finally:
         con.close()
     return [row[0][len(_COMPOSER_PREFIX) :] for row in rows]
