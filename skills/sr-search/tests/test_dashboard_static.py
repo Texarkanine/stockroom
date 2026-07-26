@@ -254,6 +254,22 @@ def test_session_ui_uses_shared_token_display_module() -> None:
     assert (STATIC_ROOT / "dashboard-tokens.mjs").is_file()
 
 
+def test_token_breakdown_popover_escapes_scroll_containers() -> None:
+    """
+    Token breakdown must use fixed positioning (not absolute+centered) so it
+    cannot expand .table-scroll / .sessions-panel into a scrollbar (#91).
+    """
+    source = (STATIC_ROOT / "index.html").read_text(encoding="utf-8")
+    start = source.index(".token-breakdown {")
+    end = source.index("}", start)
+    block = source[start:end]
+    assert "position: fixed" in block
+    assert "translateY(-50%)" not in block
+    tokens_js = (STATIC_ROOT / "dashboard-tokens.mjs").read_text(encoding="utf-8")
+    assert "tokenBreakdownPlacement" in tokens_js
+    assert "position: fixed" in source[source.index(".token-breakdown") :]
+
+
 def test_dashboard_top_controls_expose_date_range_and_segmented_mode() -> None:
     """Date-range presets and Aggregate/Compare read as exclusive segmented controls."""
     _source, parser = _document()
