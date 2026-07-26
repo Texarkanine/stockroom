@@ -238,3 +238,14 @@ Post-implementation semantic review of the whole branch (42 files, 4,606 inserti
     - Step 1 ripgreps all of `docs/` for stale paths, not only the brief's named files
 * Insights
     - `ingest/index.md` sibling links (`quickstart.md` without `../`) were already broken by the directory nest — fixing them is part of making the ADHD flip real
+
+## 2026-07-26 - PREFLIGHT (rework) - COMPLETE
+
+* Work completed
+    - Validated plan against live `docs/` tree; expanded Step 1 to every stale `ingest.md` / `backfill/` pointer (user-guide index/dashboard/search/skills/installed-layout, lifecycle, iteration, troubleshooting)
+    - Encoded docs TDD order: fail strict build → fix → green baseline → ADHD rewrites
+    - `.preflight-status` = PASS
+* Decisions made
+    - No re-level; advisory radical innovation (extra nav `.pages`) declined as out of ADHD-copy scope
+* Insights
+    - Nesting `ingest.md` → `ingest/index.md` broke a wide fan-out of relative links; the ADHD rewrite would have been verified against a red build if Step 1 stayed narrow

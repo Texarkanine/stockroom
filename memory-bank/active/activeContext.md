@@ -1,11 +1,10 @@
 # Active Context
 
 ## Current Task: cursor-vscdb-backfill (rework — ADHD docs)
-**Phase:** PLAN - COMPLETE
+**Phase:** PREFLIGHT - COMPLETE
 
 ## What Was Done
-- Level 2 plan written: five implementation steps (link hygiene → three page rewrites → strict docs build).
-- Verification via `make docs-build --strict` + behavior checklist B1–B9 (no pytest; docs-only).
+- Preflight PASS with amendments: expanded Step 1 stale-path inventory across `docs/`; encoded fail→fix→green before ADHD rewrites.
 
 ## Next Step
-- Preflight validation (automatic per Level 2 workflow).
+- Build (Level 2): execute implementation plan steps 1–5.

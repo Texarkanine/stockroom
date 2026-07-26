@@ -37,29 +37,37 @@ Docs-only work: no pytest behaviors. Verification is the strict docs build (link
 
 ## Implementation Plan
 
-1. **Link hygiene first (fail the strict build on purpose if needed, then fix)**
-   - Files: `docs/architecture/backfill.md`, `docs/contributing/backfill-adapters.md`, `docs/user-guide/troubleshooting/index.md`, and any `../ingest.md` / `user-guide/backfill/` hits under `docs/`
-   - Changes: retarget to `user-guide/ingest/backfill/…` and `../ingest/` (or `../ingest/index.md`); fix `ingest/index.md` outbound links to `../quickstart.md`, `../installed-layout.md`, `../troubleshooting/…`
-   - Verify: `rg 'user-guide/backfill[^/]|ingest\.md' docs/` clean of stale targets; `make docs-build --strict`
+1. **Link hygiene — inventory, then fix, then re-verify** *(TDD order for docs)*
+   1. **Fail first:** run `make docs-build --strict` (expect failures) and keep the ripgrep inventory of stale targets under `docs/`.
+   2. **Fix** every stale pointer found in preflight (not only the brief's named files):
+      - `docs/architecture/backfill.md` — `user-guide/backfill/` → `user-guide/ingest/backfill/`
+      - `docs/architecture/lifecycle.md` — `user-guide/ingest.md` → `user-guide/ingest/`
+      - `docs/contributing/backfill-adapters.md` — path string `docs/user-guide/backfill/`
+      - `docs/contributing/iteration.md` — `user-guide/ingest.md` → `user-guide/ingest/`
+      - `docs/user-guide/index.md` — `ingest.md` / `backfill/index.md` → `ingest/` / `ingest/backfill/`
+      - `docs/user-guide/{dashboard,search,skills,installed-layout}.md` — `ingest.md` / `backfill/…` → `ingest/` / `ingest/backfill/…`
+      - `docs/user-guide/troubleshooting/index.md` — `../ingest.md` → `../ingest/`
+      - `docs/user-guide/ingest/index.md` — outbound `quickstart.md` / `installed-layout.md` / `troubleshooting/…` → `../…`
+      - `docs/user-guide/ingest/backfill/{index,cursor-vscdb}.md` — `../ingest.md` / `../dashboard.md` → `../` / `../../dashboard.md`
+   3. **Re-verify:** `make docs-build --strict` green before any ADHD rewrite. That green build is the regression baseline for steps 2–4.
 
 2. **Rewrite `docs/user-guide/ingest/index.md` (ADHD flip)**
    - Files: `docs/user-guide/ingest/index.md`
    - Changes: open with one-sentence purpose + catch-up command block; then Embed / Scheduling as short sections; mental-model / ETL / chats best-effort below or as bullets; demote Cursor `sessions.models` Enrichment below Scheduling (or after the main flow); add **Legacy history?** → [Backfill](backfill/) link near the top catch-up block
-   - Verify: B1, B2 by reading first ~25 lines
+   - Verify against B1, B2 (read first ~25 lines) before leaving the step; re-run strict docs build
 
 3. **Rewrite `docs/user-guide/ingest/backfill/index.md` (lede = Required Sequence)**
    - Files: `docs/user-guide/ingest/backfill/index.md`
-   - Changes: one-sentence intro; Required Sequence as four steps (quit, ingest, backfill, embed); one-sentence Why Quit + one-sentence Why Ingest First; delete "Why is This Even a Problem?"; Running It leads with `stockroom backfill` then dry-run/verbose; keep Fixing / Undoing / Where Next; fix `../ingest.md` → `../index.md#ingest` (or `../#ingest`)
-   - Verify: B3–B5; architecture link to `#the-required-sequence` still valid
+   - Changes: one-sentence intro; Required Sequence as four steps (quit, ingest, backfill, embed); one-sentence Why Quit + one-sentence Why Ingest First; delete "Why is This Even a Problem?"; Running It leads with `stockroom backfill` then dry-run/verbose; keep Fixing / Undoing / Where Next
+   - Verify against B3–B5; confirm `#the-required-sequence` heading text unchanged; strict docs build
 
 4. **Rewrite `docs/user-guide/ingest/backfill/cursor-vscdb.md` (config-first + silent-miss)**
    - Files: `docs/user-guide/ingest/backfill/cursor-vscdb.md`
-   - Changes: Pointing At The Store leads with config TOML + "recommended for re-runs", then flag/env; How It Reads: bold silent-miss line + ≤2 short sentences, delete HTML TODO comment; soften `models` cell; fold Model Attribution + Token Counts under `## Reference`; fix ingest/dashboard relative links
-   - Verify: B6–B8; `#how-it-reads` still exists for architecture pointer
+   - Changes: Pointing At The Store leads with config TOML + "recommended for re-runs", then flag/env; How It Reads: bold silent-miss line + ≤2 short sentences, delete HTML TODO comment; soften `models` cell; fold Model Attribution + Token Counts under `## Reference`
+   - Verify against B6–B8; confirm `#how-it-reads` heading text unchanged; strict docs build
 
-5. **Strict docs build + final scan**
-   - Run `make docs-build --strict`
-   - Confirm B9; no leftover HTML comments in the three pages
+5. **Final scan**
+   - Confirm B9; no leftover HTML comments in the three pages; `make docs-build --strict` once more
 
 ## Technology Validation
 
@@ -82,6 +90,11 @@ No new technology - validation not required.
 - **Strict build still fails on an unlisted pointer (e.g. lifecycle, iteration):** Plan response — Step 1 is a full `docs/` ripgrep for stale `user-guide/backfill` and `ingest.md` targets, not only the files named in the brief.
 - **We rewrite tone so hard the pages diverge from architecture:** already covered by Challenge 1 (keep consequence sentences; leave ladder on architecture).
 
+## Preflight Amendments (2026-07-26)
+
+- Expanded Step 1 file list from live `docs/` ripgrep: stale `ingest.md` / `backfill/` pointers also live in `user-guide/{index,dashboard,search,skills,installed-layout}.md`, `architecture/lifecycle.md`, `contributing/iteration.md`.
+- Encoded docs TDD order explicitly: fail strict build → fix links → green baseline → ADHD rewrites with per-step B-checks + rebuild.
+
 ## Status
 
 - [x] Initialization complete
@@ -89,6 +102,6 @@ No new technology - validation not required.
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight (PASS with amendments)
 - [ ] Build
 - [ ] QA
