@@ -566,7 +566,7 @@ export function panelRangeLabels(preset) {
     writeRead: windowLabel,
     efficiency: windowLabel,
     models: windowLabel,
-    modelTrends: `${windowLabel} · by message`,
+    modelTrends: `${windowLabel}`,
     firstPrompt: windowLabel,
   };
 }

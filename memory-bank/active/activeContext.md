@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: cursor-vscdb-backfill
-**Phase:** BUILD - COMPLETE (all 9 steps; `make ci` + strict docs build green)
+**Phase:** BUILD - COMPLETE (awaiting QA); post-build addenda shipped on this branch
 
 ## What Was Done
 - Probed this machine's live `state.vscdb` (5.7 GB, WSL→Windows mount) to ground the plan: 2,039 composers, 1,131 already in the warehouse, **908 backfill candidates** (609 with resolvable bubbles + 26 legacy-inline, 273 empty drafts), ~75,800 bubbles, 2025-03 → 2026-07.
@@ -46,6 +46,18 @@
 - **Not a gap — project/cwd.** 377/610 have `project_id` and 317 have `cwd`, which is near the source's own ceiling: 500 of 2,078 composers have no `composerHeaders` row at all. The bubble-level `workspaceUris` fallback would rescue ~1 in 6 of those, usually multi-root and therefore ambiguous. Left alone by operator decision.
 - **Also learned**: the vscdb reports models *better* than nightly ingest, which has no per-message model for Cursor and gets session models only from the recent `ai-code-tracking` sidecar (272/1,260 sessions) — the actual reason the chart began in May 2026.
 
+## Post-Build Addendum 3 (dashboard side requests + failed-call husks)
+- **Metrics `All` date range** shipped (TDD): anchors to `wrapped.totals.span.start`, with `sessionsListHandoff` mapping metrics-`all` → list-`All`.
+- **Top Models clamped to top 10** (TDD): `metrics.models(limit=10)` per grain; Model Usage over Time deliberately left unclamped (operator decision). Verified live after `stockroom dashboard --replace`.
+- **First-Prompt Quality stacking declined**: panel plots averages (`avg_msgs`), which cannot stack without inventing a false total and inverting the panel's conclusion on real 1y data. Operator chose leave alone.
+- **Failed-call husks** (TDD): 17,055 blank `tool_name` rows (15.5% of warehouse tool_calls) were `toolFormerData` husks with only `additionalData.status == "error"`. `_tool_call` now requires a non-blank name. Declining also drops ~5,392 empty messages that the husk alone had been making storable.
+- **Re-run cost changed**: the model fix changed no ordinals/text so embeddings survived; the husk fix shifts ordinals (`message_id = '{session_id}#{ordinal}'`) and invalidates ~13k of ~88k message embeddings. A `--force` re-run must be followed by `stockroom embed`.
+- Latest gate on this branch: `make ci` 779 passed / 4 skipped; strict docs build green; torch restored.
+
 ## Next Step
-- Operator re-runs `stockroom backfill --force` out of band (benchmarked separately). Embeddings survive it: the writer invalidates vectors only for removed or text-changed message ids, and this fix changes no text.
-- Then QA phase (`niko-qa` skill) — post-implementation semantic review.
+- Operator re-runs the documented sequence out of band so warehouse rows match the parser fixes:
+  1. Quit Cursor
+  2. `stockroom ingest`
+  3. `stockroom backfill --force`
+  4. `stockroom embed` *(required after the husk fix — ordinal renumber invalidates embeddings)*
+- Then QA phase (`niko-qa` skill) — post-implementation semantic review of the backfill deliverable plus the post-build addenda on this branch.
