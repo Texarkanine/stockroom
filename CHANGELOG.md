@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.17.0](https://github.com/Texarkanine/stockroom/compare/v0.16.0...v0.17.0) (2026-07-26)
+
+
+### Features
+
+* **backfill:** one-shot Cursor state.vscdb excavation ([#92](https://github.com/Texarkanine/stockroom/issues/92)) ([31315f2](https://github.com/Texarkanine/stockroom/commit/31315f2a277f3e722fd3ac52e1b3f9e54a5116d7))
+
+
+### Bug Fixes
+
+* **dashboard:** keep token tooltip outside sessions scroll [[#91](https://github.com/Texarkanine/stockroom/issues/91)] ([#94](https://github.com/Texarkanine/stockroom/issues/94)) ([d13becb](https://github.com/Texarkanine/stockroom/commit/d13becbc3e4c487c073f7d342b89298cfc480868))
+
 ## [0.16.0](https://github.com/Texarkanine/stockroom/compare/v0.15.0...v0.16.0) (2026-07-23)
 
 
