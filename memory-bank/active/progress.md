@@ -46,3 +46,17 @@ Add an opt-in, one-shot backfill of legacy Cursor `state.vscdb` composers into t
     - `LIKE 'prefix%'` cannot use a SQLite index under the default case-insensitive setting; the aborted `enhance-cursor-tokens` work was slow for exactly this reason, and range bounds make per-composer reads 60× faster on the mount
     - Composer ids share a namespace with agent-transcript session ids, which is why 1,131 already match — that makes "skip existing" exact, and means ordinary ingest would later supersede a backfilled row rather than duplicate it
     - The backfill roughly doubles the message corpus (~60k new against 43,892 today), so the embed backlog it creates is a documentation obligation
+
+## 2026-07-25 - PLAN REVIEW - REVISED
+
+* Work completed
+    - Operator reviewed the plan and challenged D3 (Cursor-shaped surface) and D6 (session-grain tokens); both challenges held, and `tasks.md`, `projectbrief.md`, and the message-reconstruction creative were revised
+    - Probed 120 composers / 14,446 bubbles on the live DB to settle the token-grain question empirically
+* Decisions made
+    - **D3 revised** — `backfill` becomes a package with a source registry and a documented four-name adapter contract, mirroring `ingest`'s orchestrator-plus-per-harness-parsers shape; `backfill.cursor_vscdb` is simply the first adapter, and the CLI grows `--source`
+    - **D6 revised** — tokens are stored at message grain on the bubble that reported them; session `*_tokens` stay NULL and `session_token_usage` does the rollup
+* Insights
+    - The original D6 was inherited from the aborted `enhance-cursor-tokens` enrich design, where `sessions` was the only grain an enricher could reach. Carrying a decision forward across a change of mechanism silently carried its constraint too — worth watching for elsewhere in the plan
+    - Migration `0007` already prohibits what D6 specified ("never invent \[session tokens\] from message sums"), and the Σ would additionally have made the view mislabel the grain as `'session'`
+    - Every nonzero `tokenCount` in the sample sits on a bubble the OQ1 keep-predicate retains (0% on dropped bubbles), so the two creative decisions compose cleanly
+    - Cursor's per-bubble counts are per-request usage with full prompt context in `inputTokens` — the same semantics as Claude's per-message usage, which is what makes message grain the *consistent* choice rather than merely the finer one
