@@ -63,3 +63,22 @@ PR feedback on the shipped user-guide pages for ingest / backfill. Reorder and c
 2. Backfill Required Sequence includes quit → ingest → backfill → embed.
 3. No HTML-commented TODO left in `cursor-vscdb.md` How It Reads.
 4. Strict docs build passes; architecture/contributing links to the user-guide backfill pages resolve.
+
+## Rework (architecture atlas)
+
+PR feedback on `docs/architecture/backfill.md`: name the fences up front, cut design-diary voice in two paragraphs, and record the keep-predicate → `message_id` → embed invalidation trap. No engine or CLI changes. User-guide pages from the prior rework stay as shipped.
+
+### Rework Requirements
+
+1. **Invariants block:** Directly under the page lede, add a short named list of the four load-bearing fences (never on nightly; writer-only / no watermark; skip set + `--force` provenance; token grain + `source_mtime` NULL for a shared store).
+2. **Tighten two paragraphs:** Compress **Reuses The Writer** (skip-set / ingest-first is cost not correctness) and **Grain And Honesty** (`source_mtime` NULL + `first_seen_at` run-clock fallback) to roughly half length; lead with what-is, then fence why. No loss of meaning.
+3. **`--force` / keep-predicate fence:** One sentence under Never Clobbering: changing the keep predicate under `--force` renumbers `message_id`s and invalidates embeddings. Link or point to the user-guide recipe; do not paste the procedure.
+4. **Do not cut:** diagram, Not On Any Automatic Path, Orchestrator Over Adapters, Reading Foreign Stores outbound pointer, or mechanism depth that the user-guide deliberately left on architecture.
+5. **`make docs-build --strict` green.**
+
+### Rework Acceptance Criteria
+
+1. A changer who reads only the lede + Invariants block knows the four things they must not break.
+2. The two target paragraphs are materially shorter and still state the same fences.
+3. The keep-predicate / embed invalidation consequence is named on the architecture page.
+4. Strict docs build passes; no user-guide regressions from this edit.

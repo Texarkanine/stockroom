@@ -282,3 +282,13 @@ Post-implementation semantic review of the whole branch (42 files, 4,606 inserti
     - Under-update preferred; path move does not invalidate tech/system/product altitude
 * Insights
     - Longest-prefix-first when rewriting nested doc links; keep CLI epilog in the same edit as Required Sequence changes
+
+## 2026-07-26 - REWORK INITIATED (architecture atlas)
+
+* Trigger: PR feedback / `/nk-chat` review of `docs/architecture/backfill.md` through architecture-docs + ADHD lenses.
+* Feedback to address (docs-only; no product-code changes):
+    1. Add a short named **Invariants** block under the lede (four fences on screen before the essays).
+    2. Tighten the two diary paragraphs in **Reuses The Writer** (skip-set / ingest-first cost) and **Grain And Honesty** (`source_mtime` / `first_seen_at`) — same meaning, half the prose; lead with *what*, then fence *why*.
+    3. One sentence under **Never Clobbering** / `--force`: keep-predicate changes renumber `message_id`s and invalidate embeddings (husk-fix fence); user guide keeps the recipe.
+* Leave alone: diagram, Not On Any Automatic Path, Orchestrator Over Adapters, Reading Foreign Stores outbound pointer, mechanism depth vs user-guide.
+* Disposition: rework (not archive). Stale plan/context/status files cleared next; reflection + creative preserved.
