@@ -3,4 +3,5 @@ nav:
   - Packaging: packaging.md
   - Lifecycle: lifecycle.md
   - Warehouse: warehouse.md
+  - Backfill: backfill.md
   - Embeddings: embeddings.md

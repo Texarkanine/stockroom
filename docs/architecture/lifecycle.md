@@ -32,11 +32,7 @@ Freshness is a nightly `stockroom ingest && stockroom embed` (incremental) on th
 
 `sr-initialize` offers to install the job once. Manual catch-up remains available via CLI when results feel stale — see [User Guide → Load the Warehouse](../user-guide/ingest.md).
 
-## Backfill is not on any schedule
-
-`stockroom backfill` excavates a harness's *legacy* store — a finite corpus that does not grow — and is deliberately outside every automatic path: no hook runs it, the scheduler entry stays `ingest && embed`, and nothing on the nightly path imports it (a guard test asserts both). It is a human-run, one-shot command; see [User Guide → Backfill legacy history](../user-guide/ingest.md#backfill-legacy-history).
-
-It reuses the ingest writer, so warehouse rows land the same way ordinary ingest lands them, but it never advances an ingest watermark: a backfill run leaves `_sync_state` exactly as it found it.
+Backfill of *legacy* stores is deliberately not on this schedule, or any other — see [Backfill](backfill.md).
 
 ## Dashboard launch
 

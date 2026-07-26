@@ -99,25 +99,7 @@ However, you could use this to run the engine from a project that is not wired u
 
 ### Backfill Adapters
 
-`stockroom backfill` ([user guide](../user-guide/ingest.md#backfill-legacy-history)) is an orchestrator over a registry of per-source adapters, mirroring how ingest is an orchestrator over per-harness parsers. A second legacy store is a new module, not orchestrator surgery.
-
-| Path | Role |
-| --- | --- |
-| `src/stockroom/backfill/__init__.py` | Registry, skip set, write loop, summary |
-| `src/stockroom/backfill/cursor_vscdb.py` | Today's only adapter |
-| `src/stockroom/backfill/__main__.py` | CLI |
-
-An adapter is a module exporting four names, then added to `_SOURCES`:
-
-| Name | Contract |
-| --- | --- |
-| `NAME` | Registry key and `--source` value (e.g. `cursor-vscdb`) |
-| `HARNESS` | Scopes the skip set and labels the summary |
-| `resolve_source(override)` | Flag → env → config, raising `BackfillError` naming all three |
-| `candidates(source)` | Cheap id enumeration, so the skip set applies **before** the expensive parse |
-| `parse_all(source, ids)` | Yields `NormalizedSession` — the same contract ingest parsers produce |
-
-Adapters never touch the warehouse; the orchestrator owns every bit of SQL. A parametrized conformance test in `tests/test_backfill.py` runs over `_SOURCES`, so a new adapter is checked the day it lands.
+Teaching `stockroom backfill` to read another harness's legacy store is its own procedure — see [Backfill Adapters](backfill-adapters.md).
 
 ### Torch
 

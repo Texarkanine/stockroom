@@ -65,6 +65,7 @@ Everything that runs Stockroom on a machine goes through the on-path `stockroom`
 | Plugin manifests, skill layout, engine packaging, uv lock, torch provisioning, the shim, or heal | [Packaging](packaging.md) — especially [shim](packaging.md#the-stockroom-shim) and [heal](packaging.md#heal) |
 | Session-start hooks, nightly schedule, or dashboard process lifecycle | [Lifecycle](lifecycle.md) |
 | Schema, ingest parsers/writer, warehouse open paths, or identity/provenance | [Warehouse](warehouse.md) |
+| One-shot excavation of a harness's legacy store, or adding a backfill source | [Backfill](backfill.md) |
 | Embedding model, VSS/HNSW, semantic search, or how skills route over query/semantic | [Embeddings](embeddings.md) |
 | Human install/heal *recipes*, torch troubleshooting steps | [User Guide](../user-guide/index.md) |
 | Make / localdev / iteration loops | [Contributing](../contributing/index.md) |
