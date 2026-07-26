@@ -1,12 +1,11 @@
 # Active Context
 
 ## Current Task: cursor-vscdb-backfill (rework — architecture atlas)
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Disposition: rework (not archive) on completed ADHD user-guide docs task
-- Cleared stale `tasks.md`, `activeContext.md`, `.preflight-status`, `.qa-validation-status`
-- Complexity Level 2: surgical docs enhancement on one architecture page (Invariants block, tighten two paragraphs, one `--force` fence sentence)
+- Level 2 plan written: five implementation steps on `docs/architecture/backfill.md` (Invariants → tighten skip-set para → `--force` keep-predicate fence → tighten `source_mtime` → strict docs build)
+- Behaviors B1–B5; docs verification via `make docs-build --strict` + content checklist
 
 ## Next Step
-- Load Level 2 workflow and execute PLAN
+- Preflight validation (autonomous per Level 2 workflow)

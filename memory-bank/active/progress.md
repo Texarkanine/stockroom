@@ -302,3 +302,13 @@ Post-implementation semantic review of the whole branch (42 files, 4,606 inserti
     - Scope stays one page; user-guide pages from the prior rework are out of scope
 * Insights
     - None beyond the chat review that triggered rework
+
+## 2026-07-26 - PLAN (architecture rework) - COMPLETE
+
+* Work completed
+    - Level 2 plan in `tasks.md`: Invariants block → tighten two paragraphs → keep-predicate embed fence → strict docs build; B1–B5
+* Decisions made
+    - Invariants as punch list before essays, not a replacement for essays
+    - Docs verification is `make docs-build --strict` + checklist; no pytest
+* Insights
+    - None
