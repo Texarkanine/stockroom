@@ -104,7 +104,7 @@ No new technology - validation not required.
 - [x] Pre-Mortem complete
 - [x] Preflight (PASS with amendments)
 - [x] Build
-- [ ] QA
+- [x] QA (PASS — one trivial sync: CLI `--help` REQUIRED ORDER → four steps including embed; test tightened)
 
 ## Build checklist
 

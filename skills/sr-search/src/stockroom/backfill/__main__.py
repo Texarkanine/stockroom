@@ -31,16 +31,17 @@ def _build_parser() -> argparse.ArgumentParser:
             "are skipped, never overwritten."
         ),
         epilog=(
-            "REQUIRED ORDER — do all three, in order, every time:\n"
+            "REQUIRED ORDER — do all four, in order, every time:\n"
             "  1. quit the harness (not just the window; the whole app)\n"
             "  2. stockroom ingest\n"
             "  3. stockroom backfill\n"
+            "  4. stockroom embed\n"
             "\n"
             "Both prerequisites fail silently when skipped. A store still open in\n"
             "the harness can hide its newest conversations from the read without\n"
             "reporting them missing, and skipping ingest makes this reconstruct\n"
             "conversations whose transcripts are already on disk — which you then\n"
-            "pay to embed twice."
+            "pay to embed twice. Backfill never embeds; run embed after."
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )

@@ -108,17 +108,22 @@ def test_help_exits_zero_and_documents_the_flags(tmp_path: Path) -> None:
 
 
 def test_help_states_the_required_operating_sequence(tmp_path: Path) -> None:
-    """``--help`` names the quit-harness / ingest-first order.
+    """``--help`` names quit → ingest → backfill → embed.
 
     Both prerequisites fail silently when skipped — an unclean store read drops
     conversations without reporting them, and skipping ingest re-does embedding
     work — so the operator has to meet the order somewhere they will actually
-    look, not only in the docs.
+    look, not only in the docs. Embed is step four because backfill never embeds.
     """
     result = _run("backfill", "--help", home=tmp_path / "home")
     assert result.returncode == 0, result.stderr
-    assert "stockroom ingest" in result.stdout
-    assert "quit" in result.stdout.lower()
+    out = result.stdout
+    assert "do all four" in out
+    assert "quit" in out.lower()
+    assert "stockroom ingest" in out
+    assert "stockroom backfill" in out
+    assert "stockroom embed" in out
+    assert out.index("stockroom ingest") < out.index("stockroom embed")
 
 
 def test_end_to_end_run_writes_rows_and_prints_a_summary(

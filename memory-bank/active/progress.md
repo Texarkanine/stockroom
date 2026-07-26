@@ -261,3 +261,14 @@ Post-implementation semantic review of the whole branch (42 files, 4,606 inserti
     - Models cell softened ("may be empty"); Model/Token detail under `## Reference`
 * Insights
     - A naive replace of `user-guide/ingest/` → `user-guide/ingest/index.md` mangled `…/ingest/backfill/` into `…/ingest/index.mdbackfill/` — order replacements longest-prefix first next time
+
+## 2026-07-26 - QA (rework) - COMPLETE
+
+* Work completed
+    - Reviewed ADHD rewrites + link hygiene against rework brief; all requirements present
+    - One trivial finding: CLI `--help` still said "do all three" without embed — synced to four steps and tightened `test_help_states_the_required_operating_sequence`
+    - `.qa-validation-status` = PASS
+* Decisions made
+    - Help-text sync is documentation, not a behavior change; in scope for QA trivial fix despite "no CLI behavior" brief wording
+* Insights
+    - Elevating embed into the Required Sequence on the user guide without updating the CLI epilog recreates the old "memory bank knew, docs didn't" failure mode in reverse
