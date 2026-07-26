@@ -39,5 +39,13 @@
 - **`--dry-run` is now read-only** (TDD): it opens through `warehouse.open_current()`, so it takes no single-writer flock and cannot create or migrate a warehouse. A missing or behind-head warehouse is a typed `BackfillError` naming the remedy.
 - Gate re-run clean: `make ci` 766 passed / 4 skipped, strict docs build, torch restored.
 
+## Post-Build Addendum 2 (first real run — model attribution gap)
+- **The operator ran it for real**: `stockroom ingest` (1m15s) then `stockroom backfill` (28m53s) — 610 sessions, 64,002 messages, 50,740 tool_calls written of 2,078 candidates (1,166 already present, 302 empty). No errors.
+- **Reported symptom**: the dashboard's model-usage-over-time chart did not extend back, and old sessions showed no model and no project.
+- **Confirmed gap — model attribution was missing entirely.** `sessions.models` was 0/610 and `messages.model` 0/64,002, while the store carries both grains all along: `composerData.modelConfig.modelName` (99/119 sampled composers) and a sparse per-bubble `modelInfo.modelName`. **A planning omission** — the plan enumerated every other column and never named these two, so no test could have caught it. Fixed under TDD; 93/100 real composers now carry session models.
+- **Not a gap — project/cwd.** 377/610 have `project_id` and 317 have `cwd`, which is near the source's own ceiling: 500 of 2,078 composers have no `composerHeaders` row at all. The bubble-level `workspaceUris` fallback would rescue ~1 in 6 of those, usually multi-root and therefore ambiguous. Left alone by operator decision.
+- **Also learned**: the vscdb reports models *better* than nightly ingest, which has no per-message model for Cursor and gets session models only from the recent `ai-code-tracking` sidecar (272/1,260 sessions) — the actual reason the chart began in May 2026.
+
 ## Next Step
-- QA phase (`niko-qa` skill) — post-implementation semantic review. The build has not been exercised against the operator's real 5.7 GB `state.vscdb`; that is the obvious first QA move: quit Cursor, `stockroom ingest`, then `stockroom backfill --dry-run`.
+- Operator re-runs `stockroom backfill --force` out of band (benchmarked separately). Embeddings survive it: the writer invalidates vectors only for removed or text-changed message ids, and this fix changes no text.
+- Then QA phase (`niko-qa` skill) — post-implementation semantic review.

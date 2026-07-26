@@ -716,6 +716,158 @@ def test_tokens_on_a_dropped_bubble_are_not_smuggled_onto_a_neighbour(
     ]
 
 
+# --- model attribution --------------------------------------------------------
+
+
+def test_composer_model_config_becomes_the_session_model(
+    build_vscdb: Callable[..., Path],
+) -> None:
+    """``composerData.modelConfig.modelName`` is the conversation's model."""
+    db_path = build_vscdb(
+        composers={
+            "c1": _composer(
+                "b1", modelConfig={"modelName": "grok-4.5", "maxMode": False}
+            )
+        },
+        bubbles={"c1:b1": {"type": 1, "text": "ask"}},
+    )
+    assert _parse_one(db_path, "c1").models == ["grok-4.5"]
+
+
+def test_bubble_model_info_becomes_that_message_model(
+    build_vscdb: Callable[..., Path],
+) -> None:
+    """A bubble's ``modelInfo.modelName`` records the model that produced it.
+
+    Cursor stamps this where the model is set or changed rather than on every
+    turn, so it is deliberately sparse: only the bubbles that carry it get a
+    ``model``, and no value is carried across neighbours.
+    """
+    db_path = build_vscdb(
+        composers={"c1": _composer("b1", "b2")},
+        bubbles={
+            "c1:b1": {"type": 1, "text": "ask"},
+            "c1:b2": {
+                "type": 2,
+                "text": "answer",
+                "modelInfo": {"modelName": "claude-opus-5"},
+            },
+        },
+    )
+    messages = _parse_one(db_path, "c1").messages
+    assert [message.model for message in messages] == [None, "claude-opus-5"]
+
+
+def test_session_models_union_the_composer_default_and_every_bubble_model(
+    build_vscdb: Callable[..., Path],
+) -> None:
+    """A conversation that switched models reports both, deduped and ordered.
+
+    ``sessions.models`` is a list because a conversation can use more than one.
+    Order is the composer default first, then bubble order, so the list reads
+    as the conversation ran.
+    """
+    db_path = build_vscdb(
+        composers={
+            "c1": _composer("b1", "b2", "b3", modelConfig={"modelName": "grok-4.5"})
+        },
+        bubbles={
+            "c1:b1": {"type": 1, "text": "ask", "modelInfo": {"modelName": "grok-4.5"}},
+            "c1:b2": {
+                "type": 2,
+                "text": "switched",
+                "modelInfo": {"modelName": "claude-opus-5"},
+            },
+            "c1:b3": {
+                "type": 1,
+                "text": "again",
+                "modelInfo": {"modelName": "claude-opus-5"},
+            },
+        },
+    )
+    assert _parse_one(db_path, "c1").models == ["grok-4.5", "claude-opus-5"]
+
+
+def test_default_is_stored_as_written_not_translated(
+    build_vscdb: Callable[..., Path],
+) -> None:
+    """Cursor's literal ``default`` is a real recorded value, not a missing one.
+
+    It names the model picker's setting rather than a specific model, but the
+    ai-code-tracking sidecar already writes it for ordinary ingest, so dropping
+    it here would make the same conversation report differently depending on
+    which pipeline authored it.
+    """
+    db_path = build_vscdb(
+        composers={"c1": _composer("b1", modelConfig={"modelName": "default"})},
+        bubbles={
+            "c1:b1": {"type": 1, "text": "ask", "modelInfo": {"modelName": "default"}}
+        },
+    )
+    session = _parse_one(db_path, "c1")
+    assert session.models == ["default"]
+    assert session.messages[0].model == "default"
+
+
+def test_absent_model_data_stays_none_at_both_grains(
+    build_vscdb: Callable[..., Path],
+) -> None:
+    """No model anywhere is ``None`` — never a guess from a sibling turn."""
+    db_path = build_vscdb(
+        composers={"c1": _composer("b1", "b2")},
+        bubbles={
+            "c1:b1": {"type": 1, "text": "ask"},
+            "c1:b2": {"type": 2, "text": "answer"},
+        },
+    )
+    session = _parse_one(db_path, "c1")
+    assert session.models is None
+    assert [message.model for message in session.messages] == [None, None]
+
+
+def test_a_dropped_bubbles_model_still_counts_toward_the_session(
+    build_vscdb: Callable[..., Path],
+) -> None:
+    """Model names survive the OQ1 drop; token counts do not. Different grains.
+
+    A token count is a property *of one turn*, so moving it to a neighbour
+    would be a lie about that turn's cost. ``sessions.models`` claims only that
+    the conversation used a model — true whether or not the turn that named it
+    left a storable row behind.
+    """
+    db_path = build_vscdb(
+        composers={"c1": _composer("b1", "b2")},
+        bubbles={
+            "c1:b1": {"type": 1, "text": "ask"},
+            "c1:b2": {
+                "type": 2,
+                "text": "",
+                "thinking": {"text": "dropped"},
+                "modelInfo": {"modelName": "claude-opus-5"},
+            },
+        },
+    )
+    session = _parse_one(db_path, "c1")
+    assert session.models == ["claude-opus-5"]
+    assert [message.model for message in session.messages] == [None]
+
+
+def test_malformed_model_fields_are_ignored_without_raising(
+    build_vscdb: Callable[..., Path],
+) -> None:
+    """A non-dict ``modelConfig`` or a blank ``modelName`` degrades to ``None``."""
+    db_path = build_vscdb(
+        composers={"c1": _composer("b1", "b2", modelConfig="grok-4.5")},
+        bubbles={
+            "c1:b1": {"type": 1, "text": "ask", "modelInfo": {"modelName": ""}},
+            "c1:b2": {"type": 2, "text": "answer", "modelInfo": []},
+        },
+    )
+    session = _parse_one(db_path, "c1")
+    assert session.models is None
+    assert [message.model for message in session.messages] == [None, None]
+
+
 # --- workspace identity (OQ2) ------------------------------------------------
 
 

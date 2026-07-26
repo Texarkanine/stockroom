@@ -59,6 +59,8 @@ The database can be several gigabytes. Backfill reads one conversation at a time
 | `source_path` | The `state.vscdb` path, which is what makes a run identifiable and reversible |
 | `project_id` | Cursor's own workspace id |
 | `cwd` | The workspace folder, when Cursor's workspace storage still records it |
+| `models` | Every model the conversation used |
+| `messages.model` | The model that produced that turn, where Cursor recorded it |
 
 Composer ids share a namespace with agent-transcript session ids. That is what makes "skip what is already present" exact rather than a guess — and it is why running [ingest first](index.md#why-ingest-first) is worth the wait: every conversation ingest has already claimed is one this source will correctly leave alone. Should the two overlap anyway, a later ingest supersedes the reconstruction rather than duplicating it; you just pay to embed the same conversation twice.
 
@@ -70,6 +72,14 @@ Because `cwd` is recovered, backfilled sessions land in the same workspace group
 * **Thinking and reasoning blocks**, as everywhere else in stockroom — they are never stored.
 * **Tool results.** Tool *inputs* are kept whole; result payloads are dropped, matching ingest.
 * **Timestamps Cursor never recorded.** A composer with no recoverable times keeps NULL `started_at`, which means it is honestly absent from time-windowed dashboard metrics rather than being parked on today's date. Its messages are still fully searchable.
+
+### Model Attribution
+
+This is the one thing the old store records *better* than ordinary ingest. Ingest has no per-message model for Cursor at all, and learns session models only from the recent `ai-code-tracking` sidecar — so the further back you look, the more of your history has no model attached. The composer store kept both grains all along.
+
+Two fields are read: the conversation's selected model, and the model stamped on individual turns. Cursor stamps the per-turn one where the model was chosen or changed rather than on every turn, so `messages.model` is deliberately sparse; `sessions.models` lists every model seen, in the order the conversation used them.
+
+Where Cursor recorded the literal `default` — the model picker's setting rather than a named model — that is stored as written. It is what the sidecar already writes for ordinary ingest, and translating it here would make one conversation report differently depending on which pipeline found it.
 
 ### Token Counts
 

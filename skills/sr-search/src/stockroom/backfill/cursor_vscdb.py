@@ -4,12 +4,13 @@ Cursor's IDE "composer" conversations live in a single multi-GB SQLite store
 that nightly ingest never reads. Three shapes matter:
 
 ``cursorDiskKV(key TEXT UNIQUE, value BLOB)``
-    ``composerData:{composerId}`` — ``name``, ``createdAt`` (epoch ms), and an
-    ordered ``fullConversationHeadersOnly`` of ``{bubbleId, type}``. Older
-    composers instead carry whole bubbles inline in a legacy ``conversation``
-    array. ``bubbleId:{composerId}:{bubbleId}`` — one turn: ``type``
-    (1 = user, 2 = assistant), ``text``, optional ``toolFormerData`` (a single
-    tool call), optional ``thinking``, ``tokenCount``, and usually an ISO-8601
+    ``composerData:{composerId}`` — ``name``, ``createdAt`` (epoch ms),
+    ``modelConfig.modelName``, and an ordered ``fullConversationHeadersOnly``
+    of ``{bubbleId, type}``. Older composers instead carry whole bubbles inline
+    in a legacy ``conversation`` array. ``bubbleId:{composerId}:{bubbleId}`` —
+    one turn: ``type`` (1 = user, 2 = assistant), ``text``, optional
+    ``toolFormerData`` (a single tool call), optional ``thinking``,
+    ``tokenCount``, a sparse ``modelInfo.modelName``, and usually an ISO-8601
     ``createdAt``.
 ``composerHeaders(composerId, workspaceId, …)``
     The workspace a composer belongs to.
@@ -30,6 +31,12 @@ in the memory bank:
   Cursor CLI chats parser set), ``cwd`` is resolved from ``workspace.json``, and
   ``workspace_key`` is left to the writer so vscdb sessions converge with
   same-``cwd`` transcript sessions.
+
+Model attribution is the one grain this store reports *better* than nightly
+ingest, which has no per-message model for Cursor at all and gets session
+models only from the recent ai-code-tracking sidecar. Both grains are read
+here: ``modelConfig.modelName`` as the conversation's selected model and each
+bubble's ``modelInfo.modelName`` as that turn's.
 
 Two measured read decisions (D1/D2 in ``tasks.md``) shape every query here: the
 open ladder tries ``mode=ro`` and falls back to ``immutable=1`` (the only mode
@@ -262,6 +269,24 @@ def _token(counts: object, key: str) -> int | None:
     return value
 
 
+def _model_name(record: dict, key: str) -> str | None:
+    """Read a ``{key: {"modelName": …}}`` model label, or ``None`` when absent.
+
+    Serves both grains: ``composerData.modelConfig`` names the conversation's
+    selected model, and a bubble's ``modelInfo`` names the model that produced
+    that turn (Cursor stamps it where the model is set or changed, not on every
+    bubble). The literal ``"default"`` is a value, not a gap — it is what the
+    picker recorded, and the ai-code-tracking sidecar already writes it for
+    ordinary ingest, so translating it here would make one conversation report
+    differently depending on which pipeline authored it.
+    """
+    holder = record.get(key)
+    if not isinstance(holder, dict):
+        return None
+    name = holder.get("modelName")
+    return name if isinstance(name, str) and name else None
+
+
 def _tool_input(tool_data: dict) -> Any:
     """Recover a tool call's whole input: parsed ``rawArgs``, else ``params``.
 
@@ -325,6 +350,7 @@ def _build_message(
         role=role,
         parent_ordinal=parent_ordinal,
         text=text,
+        model=_model_name(bubble, "modelInfo"),
         ts=_parse_ts(bubble.get("createdAt")),
         input_tokens=_token(counts, "inputTokens"),
         output_tokens=_token(counts, "outputTokens"),
@@ -404,8 +430,15 @@ def _parse_composer(
         return None
 
     messages: list[NormalizedMessage] = []
+    # Collected from every bubble, including ones OQ1 drops: unlike a token
+    # count, a model name is not a property of one turn that would become a
+    # lie somewhere else. The session list only claims the conversation used it.
+    seen_models: list[str] = []
     parent_ordinal: int | None = None
     for bubble in _ordered_bubbles(con, composer_id, composer):
+        bubble_model = _model_name(bubble, "modelInfo")
+        if bubble_model is not None:
+            seen_models.append(bubble_model)
         message = _build_message(bubble, len(messages), parent_ordinal)
         if message is None:
             continue
@@ -413,6 +446,14 @@ def _parse_composer(
         parent_ordinal = message.ordinal
     if not messages:
         return None
+
+    selected_model = _model_name(composer, "modelConfig")
+    # Selected model first, then bubble order: the list reads as the run did.
+    models = list(
+        dict.fromkeys(
+            ([selected_model] if selected_model is not None else []) + seen_models
+        )
+    )
 
     stamps = [message.ts for message in messages if message.ts is not None]
     started_at = min(stamps) if stamps else _composer_created_at(composer)
@@ -437,6 +478,7 @@ def _parse_composer(
         source_mtime=None,
         project_id=workspace_id,
         cwd=cwd,
+        models=models or None,
         # workspace_key is deliberately unset: the writer derives it from cwd,
         # which is what makes a vscdb session converge with the same-cwd
         # sessions ordinary ingest authored.
