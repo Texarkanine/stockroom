@@ -1,8 +1,8 @@
 # Progress
 
-Add an opt-in, one-shot backfill of legacy Cursor `state.vscdb` composers into the warehouse ([#84](https://github.com/Texarkanine/stockroom/issues/84)), selecting every composer missing from the warehouse rather than only nonzero-token ones, while leaving core nightly ingest and Cursor watermarks untouched.
+Rework on cursor-vscdb-backfill: ADHD reorder/cut of ingest + backfill user-guide pages and link hygiene after nesting under `ingest/backfill/`. Original feature work remains in the history below.
 
-**Complexity:** Level 3
+**Complexity:** Level 2
 
 ## 2026-07-25 - COMPLEXITY-ANALYSIS - COMPLETE
 
@@ -217,3 +217,24 @@ Post-implementation semantic review of the whole branch (42 files, 4,606 inserti
     4. Soften the `models` table cell; collapse Model Attribution + Token Counts under one Reference heading.
     5. Fix path-nest fallout: relative links on the three pages (`../ingest.md` → `../index.md`, dashboard `../../…`); architecture/contributing pointers still naming `user-guide/backfill/` → `user-guide/ingest/backfill/`.
 * Disposition: rework (not archive). Stale plan/context/status files cleared next; reflection + creative preserved.
+
+## 2026-07-26 - COMPLEXITY-ANALYSIS (rework) - COMPLETE
+
+* Work completed
+    - Classified rework as Level 2 (simple enhancement): ADHD reorder/cut of three user-guide pages plus link hygiene from the `ingest/backfill/` nest; no product code
+* Decisions made
+    - Level 2, not Level 1: scope is deliberate readability restructuring across multiple pages, not a single typo/link fix
+    - Architecture/contributing path updates included so the nest fallout does not leave dead links after the user-guide edit
+* Insights
+    - None beyond the chat review that triggered rework
+
+## 2026-07-26 - PLAN (rework) - COMPLETE
+
+* Work completed
+    - Level 2 plan in `tasks.md`: link hygiene → ADHD rewrites of three user-guide pages → strict docs build; B1–B9 verification checklist
+* Decisions made
+    - Embed is step 4 of Required Sequence (not a later section)
+    - Docs verification is `make docs-build --strict` + checklist; no pytest
+    - Step 1 ripgreps all of `docs/` for stale paths, not only the brief's named files
+* Insights
+    - `ingest/index.md` sibling links (`quickstart.md` without `../`) were already broken by the directory nest — fixing them is part of making the ADHD flip real
