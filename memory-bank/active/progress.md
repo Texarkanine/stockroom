@@ -196,3 +196,13 @@ Post-implementation semantic review of the whole branch (42 files, 4,606 inserti
     - **Every finding lived in code written *after* the plan was validated.** The nine planned TDD steps came through QA clean; all seven findings trace to the post-build addenda and side requests — the work that had a real bug to chase and no preflight in front of it. Test-first caught the behavior; nothing was watching the prose and the whitespace
     - Two of the three most substantive findings were *enumerations that stopped being exhaustive*: `techContext.md`'s surface table and a docstring listing a dataclass's fields. Both were correct when written and became wrong by addition elsewhere, which is the failure mode of any document that claims completeness — the same shape as the model-attribution gap, where the plan enumerated every column of `sessions` but `models`
     - The `--force` doc gap is the cost of a fix's consequence being discovered after its docs were written. `progress.md` recorded "a `--force` re-run must be followed by `stockroom embed`" the day the husk fix landed, and the user guide never learned it — the memory bank knew something the shipped documentation did not
+
+## 2026-07-26 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `memory-bank/active/reflection/reflection-cursor-vscdb-backfill.md` — full Level 3 lifecycle review (requirements vs outcome, plan accuracy, creative hold-up, build/QA, cross-phase causal chains, technical and process insights)
+    - Reconciled persistent files: no further edits. `techContext.md` already carries the `stockroom.backfill` engine-surfaces row from QA; `systemPatterns.md` and `productContext.md` unchanged (nothing factually wrong; backfill is subsystem deep-dive / feature accretion respectively)
+* Decisions made
+    - Persistent-file under-update preferred over ritual rewrite; the QA non-finding on `systemPatterns.md` stands
+* Insights
+    - The nine planned TDD steps and the three post-build addenda had qualitatively different quality profiles: planned work came through QA clean; every finding and both substantive gaps lived in unplanned work. That is the reflection's central process observation, not a new discovery at reflect time — see the reflection doc for the full set
