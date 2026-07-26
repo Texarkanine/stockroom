@@ -1,6 +1,6 @@
 # Advanced usage
 
-Escape hatches for power users who already finished `sr-initialize` and want to operate Stockroom from a terminal — without another agent turn.
+Escape hatches, niche techniques, and complex operations for power users who already finished `sr-initialize`.
 
 ## Audience
 
@@ -11,10 +11,3 @@ You have `stockroom` on `PATH`, a warehouse under stockroom home, and a reason t
 - [CLI](cli.md) — on-path `stockroom` without an agent turn
 - [DuckDB](duckdb.md) — open the warehouse file directly
 - [Cookbook](cookbook/index.md) — starter SQL for token rollups, tools, and skill use (shared with the `sr-query` skill)
-
-## What Advanced is not
-
-- Not bootstrap or heal — that remains `sr-initialize` / User Guide troubleshooting
-- Not a second User Guide — catch-up ingest/embed, dashboard, and torch remedies stay in the User Guide
-- Not contributor localdev — checkout `make` / `uv` loops live in [Contributing](../contributing/index.md); do not use a git clone as an end-user substitute for initialize
-- Not the systems atlas — for how pieces fit and which constraints not to remove, see [Architecture](../architecture/index.md)
