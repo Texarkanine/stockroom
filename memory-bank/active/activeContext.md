@@ -33,5 +33,11 @@
 - Verification: `make ci` green (763 passed / 4 skipped, ruff clean, REUSE 323/323, lock fresh); `make docs-build` strict green; torch restored and `doctor smoke` confirms the embed path.
 - Two build-time corrections worth carrying into QA: the ingest import-edge guard now matches `stockroom.backfill` rather than the bare word (the writer's own D8 docstring tripped it), and the pre-mortem's "one-line reversal" is actually three deletes through a DuckDB client, since `stockroom query` is read-only and the schema has no foreign keys. The docs say so.
 
+## Post-Build Addendum (operator feedback, same day)
+- **Docs restructured**: backfill owns `user-guide/backfill/{index,cursor-vscdb}.md`, `architecture/backfill.md`, and `contributing/backfill-adapters.md` instead of being inlined into three existing pages. Title Case headings.
+- **Required operating sequence documented as required**: quit the harness → `stockroom ingest` → `stockroom backfill`. Stated in the user guide (with why each omission costs something silently), on the Cursor source page, and as a `REQUIRED ORDER` epilog in `stockroom backfill --help`.
+- **`--dry-run` is now read-only** (TDD): it opens through `warehouse.open_current()`, so it takes no single-writer flock and cannot create or migrate a warehouse. A missing or behind-head warehouse is a typed `BackfillError` naming the remedy.
+- Gate re-run clean: `make ci` 766 passed / 4 skipped, strict docs build, torch restored.
+
 ## Next Step
-- QA phase (`niko-qa` skill) — post-implementation semantic review. The build has not been exercised against the operator's real 5.7 GB `state.vscdb`; that is the obvious first QA move, starting with `--dry-run`.
+- QA phase (`niko-qa` skill) — post-implementation semantic review. The build has not been exercised against the operator's real 5.7 GB `state.vscdb`; that is the obvious first QA move: quit Cursor, `stockroom ingest`, then `stockroom backfill --dry-run`.
