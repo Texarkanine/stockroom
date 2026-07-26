@@ -486,3 +486,13 @@ Post-implementation semantic review of the whole branch (42 files, 4,606 inserti
     - Progress lede (item 10 / B7) already refreshed at rework initiation — plan step is verify-only
 * Insights
     - None
+
+## 2026-07-26 - PREFLIGHT (PR #92 feedback) - COMPLETE
+
+* Work completed
+    - Validated plan against `cursor_vscdb.py`, `test_backfill_cursor_vscdb.py`, and the four doc pages; TDD order confirmed for the adapter pair
+    - `.preflight-status` = PASS
+* Decisions made
+    - No amendments; advisory declined (CLI e2e for wrong-SQLite would duplicate the unit `BackfillError` gate)
+* Insights
+    - None

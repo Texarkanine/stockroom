@@ -95,6 +95,10 @@ No new technology - validation not required. URI encoding uses stdlib (`pathlib.
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
 - [ ] QA
+
+## Preflight Amendments (2026-07-26)
+
+- None. TDD order is explicit (adapter tests → adapter impl → docs). `Path.as_uri()` percent-encodes `?`/`#` and preserves the substring assertions in existing ladder tests. No advisory redesign.
