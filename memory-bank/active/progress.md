@@ -206,3 +206,14 @@ Post-implementation semantic review of the whole branch (42 files, 4,606 inserti
     - Persistent-file under-update preferred over ritual rewrite; the QA non-finding on `systemPatterns.md` stands
 * Insights
     - The nine planned TDD steps and the three post-build addenda had qualitatively different quality profiles: planned work came through QA clean; every finding and both substantive gaps lived in unplanned work. That is the reflection's central process observation, not a new discovery at reflect time — see the reflection doc for the full set
+
+## 2026-07-26 - REWORK INITIATED
+
+* Trigger: PR feedback / operator review of user-guide ingest + backfill pages through an ADHD-readability lens (`/nk-chat` + `/i-have-adhd`).
+* Feedback to address (docs-only; no product-code changes):
+    1. `ingest/index.md` — put the catch-up command block first; demote mental-model prose; add a one-line door to backfill.
+    2. `backfill/index.md` — Required Sequence is the lede (embed as step 4); delete "Why is This Even a Problem?"; collapse Why Quit / Why Ingest First to one sentence each; show plain `stockroom backfill` first in Running It.
+    3. `cursor-vscdb.md` — recommend config first in Pointing At The Store; restore the ADHD-critical "close Cursor or you silently miss conversations" fact under How It Reads (mechanism stays thin; architecture owns the ladder).
+    4. Soften the `models` table cell; collapse Model Attribution + Token Counts under one Reference heading.
+    5. Fix path-nest fallout: relative links on the three pages (`../ingest.md` → `../index.md`, dashboard `../../…`); architecture/contributing pointers still naming `user-guide/backfill/` → `user-guide/ingest/backfill/`.
+* Disposition: rework (not archive). Stale plan/context/status files cleared next; reflection + creative preserved.

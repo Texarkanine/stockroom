@@ -44,3 +44,22 @@ Authoritative intent: [#84](https://github.com/Texarkanine/stockroom/issues/84).
 6. Adding a second harness's legacy store means writing one adapter module against a documented contract — no orchestrator or CLI surgery.
 7. Docs state: run once (or rarely), corpus does not grow, contemporary Cursor API tokens still unavailable.
 8. Full test suite green.
+
+## Rework
+
+PR feedback on the shipped user-guide pages for ingest / backfill. Reorder and cut for ADHD scan/action fit; fix broken links from nesting backfill under `ingest/`. No engine or CLI behavior changes.
+
+### Rework Requirements
+
+1. **`docs/user-guide/ingest/index.md`:** First screen = one-sentence purpose + the incremental catch-up commands. Mental-model / ETL detail below. One-line link to backfill for legacy history. Demote or relocate the Cursor `sessions.models` enrichment block so it does not interrupt ingest → embed → schedule.
+2. **`docs/user-guide/ingest/backfill/index.md`:** Open with what-it-is (one sentence) then the Required Sequence warning; make `stockroom embed` step 4. Delete "Why is This Even a Problem?". Collapse Why Quit / Why Ingest First to one sentence each. Running It leads with `stockroom backfill`, then dry-run / verbose.
+3. **`docs/user-guide/ingest/backfill/cursor-vscdb.md`:** Pointing At The Store leads with config (recommended), then flag/env. How It Reads states the silent-miss consequence of leaving Cursor open (bold), with at most two short supporting sentences; uncommented architecture dump stays out. Soften `models` cell; fold Model Attribution + Token Counts under one Reference heading.
+4. **Link hygiene:** Fix relative links broken by the `ingest/backfill/` nest on those pages; update `docs/architecture/backfill.md` and `docs/contributing/backfill-adapters.md` paths that still point at `user-guide/backfill/`.
+5. **`make docs-build --strict` green.** No Python/test changes required unless a doc path is asserted somewhere.
+
+### Rework Acceptance Criteria
+
+1. An ADHD reader who only reads the first viewport of each of the three user-guide pages knows the next command to run.
+2. Backfill Required Sequence includes quit → ingest → backfill → embed.
+3. No HTML-commented TODO left in `cursor-vscdb.md` How It Reads.
+4. Strict docs build passes; architecture/contributing links to the user-guide backfill pages resolve.
