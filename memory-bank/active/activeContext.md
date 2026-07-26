@@ -1,12 +1,11 @@
 # Active Context
 
 ## Current Task: cursor-vscdb-backfill (rework — architecture atlas)
-**Phase:** QA - COMPLETE
+**Phase:** Reflect - COMPLETE; ready for archive
 
 ## What Was Done
-- QA against B1–B5 and architecture rework brief: all requirements present
-- One trivial fix: keep-predicate / embed sentence is its own paragraph (was bolted onto `--force`)
-- `.qa-validation-status` = PASS; strict docs build still green
+- Wrote `memory-bank/active/reflection/reflection-cursor-vscdb-backfill-arch-docs.md`
+- Persistent files unchanged (docs presentation; nothing factually wrong in product/system/tech context)
 
 ## Next Step
-- Reflect (autonomous per Level 2 workflow)
+- Run `/niko-archive` to archive the full cursor-vscdb-backfill work (feature + ADHD user-guide rework + architecture atlas rework)

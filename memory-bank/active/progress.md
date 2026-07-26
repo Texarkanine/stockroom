@@ -345,3 +345,13 @@ Post-implementation semantic review of the whole branch (42 files, 4,606 inserti
     - No substantive findings; diagram and structural sections left intact per B5
 * Insights
     - None beyond the slug-consumer lesson from Build
+
+## 2026-07-26 - REFLECT (architecture rework) - COMPLETE
+
+* Work completed
+    - Wrote `reflection/reflection-cursor-vscdb-backfill-arch-docs.md`
+    - Persistent files reconciled: no edits
+* Decisions made
+    - Under-update preferred; atlas presentation does not change system/product/tech altitude
+* Insights
+    - Heading demotion must check slug consumers; Invariants-up-front is the atlas shape this page should have had initially
