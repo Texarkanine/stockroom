@@ -272,3 +272,13 @@ Post-implementation semantic review of the whole branch (42 files, 4,606 inserti
     - Help-text sync is documentation, not a behavior change; in scope for QA trivial fix despite "no CLI behavior" brief wording
 * Insights
     - Elevating embed into the Required Sequence on the user guide without updating the CLI epilog recreates the old "memory bank knew, docs didn't" failure mode in reverse
+
+## 2026-07-26 - REFLECT (rework) - COMPLETE
+
+* Work completed
+    - Wrote `reflection/reflection-cursor-vscdb-backfill-adhd-docs.md`
+    - Persistent files reconciled: no edits
+* Decisions made
+    - Under-update preferred; path move does not invalidate tech/system/product altitude
+* Insights
+    - Longest-prefix-first when rewriting nested doc links; keep CLI epilog in the same edit as Required Sequence changes

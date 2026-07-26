@@ -1,11 +1,11 @@
 # Active Context
 
 ## Current Task: cursor-vscdb-backfill (rework — ADHD docs)
-**Phase:** QA - COMPLETE
+**Phase:** Reflect - COMPLETE; ready for archive
 
 ## What Was Done
-- Semantic QA against rework brief + plan: ADHD reorder complete; nest links fixed; B1–B8 hold.
-- Trivial fix: CLI `--help` epilog aligned to four-step sequence (was "all three"); `test_help_states_the_required_operating_sequence` pins embed as step 4.
+- Wrote `memory-bank/active/reflection/reflection-cursor-vscdb-backfill-adhd-docs.md`.
+- Persistent files unchanged (docs presentation + link paths; nothing factually wrong in product/system/tech context).
 
 ## Next Step
-- Reflect (automatic per Level 2 workflow).
+- Run `/niko-archive` to archive the full cursor-vscdb-backfill work (original feature + this rework).
