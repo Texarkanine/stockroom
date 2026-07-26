@@ -150,6 +150,8 @@ All seven steps executed in plan order.
 - [x] Preflight
 - [x] Build
 - [x] QA
+- [x] Reflect
+- [ ] Archive
 
 ## QA Results (2026-07-26)
 

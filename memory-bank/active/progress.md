@@ -439,3 +439,13 @@ Post-implementation semantic review of the whole branch (42 files, 4,606 inserti
     - Pre-existing debris in untouched files (`schedule.md` leading blank, `backfill/index.md` tab) left alone — not this task's accretion
 * Insights
     - None beyond the Build insights; the plan's content checklist plus the strict build left almost nothing for semantic QA to catch on a docs-only mechanical rework
+
+## 2026-07-26 - REFLECT (load section IA) - COMPLETE
+
+* Work completed
+    - Wrote `reflection/reflection-load-section-ia.md`
+    - Persistent files reconciled: no further edits
+* Decisions made
+    - Under-update preferred; docs IA does not change product/tech/system altitude beyond the path fixes already landed in Build
+* Insights
+    - Dual-cause broken links and docs_dir-blind skill paths are the durable lessons; see reflection
