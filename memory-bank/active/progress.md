@@ -78,3 +78,20 @@ Add an opt-in, one-shot backfill of legacy Cursor `state.vscdb` composers into t
     - `sessions.source_mtime` is not inert provenance: the dashboard's activity clock is `COALESCE(started_at, source_mtime)`, so what goes in it decides where a session lands on the timeline
     - A column whose meaning is defined against one source *shape* does not survive a change of shape. `source_mtime` means "this conversation's source file was last written then" — true when ingest reads one file per conversation, meaningless when 2,039 composers share one 5.7 GB store. The first preflight answer copied the mechanism (stat the source) instead of the meaning (when was this conversation last active), and would have parked timeless composers on the run date
     - `source_mtime` was silently doing two jobs — activity fallback *and* the seed for `messages.first_seen_at`. They only look like one field because every existing parser has a per-conversation file whose mtime happens to answer both. The backfill is the first source where they diverge, which is what exposed the latent gap: any parser omitting `source_mtime` was permanently discarding observation time
+
+## 2026-07-25 - BUILD - COMPLETE
+
+* Work completed
+    - All nine implementation steps executed as ordered TDD cycles (stub tests → stub interface → write and fail → implement → green), in the plan's order, with no step's implementation begun before its tests failed for the right reason
+    - New `stockroom.backfill` package: orchestrator + source registry (`__init__.py`), the `cursor_vscdb` adapter, and the CLI (`__main__.py`); `backfill` registered in the dispatcher's `SUBCOMMANDS`
+    - `[cursor].state_vscdb` config key added (with `STOCKROOM_CURSOR_STATE_VSCDB` and `--state-vscdb`); the aborted task's negative ratchet `test_settings_has_no_state_vscdb_field` deleted as a visible diff line
+    - D8 landed as the promised one-line writer change; all three pre-existing `first_seen_at` cases passed unmodified, so the inertness claim held
+    - Docs written per plan: user guide backfill section, `installed-layout` config row, lifecycle "not on any schedule" section, contributor adapter contract; `docs/advanced/cli.md` correctly left alone
+    - Verification: `make ci` green (763 passed, 4 skipped; ruff check + format-check clean; REUSE 323/323; lock fresh), `make docs-build` strict green, torch restored via `stockroom shim ensure-env` and confirmed with `doctor smoke`
+* Decisions made
+    - The `ingest`-has-no-`backfill`-import-edge guard matches on `stockroom.backfill`, not the bare word `backfill`. The bare word false-positived on the writer's own D8 docstring, which *explains* the backfill case — a guard that forbids naming the thing it protects against is a guard that gets weakened by the next person who needs to write a sentence
+    - Workspace lookups are memoized in a per-run dict threaded through the parse rather than an `lru_cache` on the module function; a process-lifetime cache keyed on a path is stale state that leaks across tests
+* Insights
+    - The documented undo is not the one-liner the pre-mortem promised. `stockroom query` opens read-only by design, and the warehouse has no foreign keys, so reversing a run is three deletes through a DuckDB client, not one through the shipped CLI. Worth noticing that a reversibility claim made during planning went unexercised until the docs step forced someone to actually write the command
+    - Orphaned embeddings need no manual cleanup: `embed` already prunes vectors whose owner message is gone, so the undo path ends at the three table deletes
+    - `--force`'s safety is entirely a consequence of D4. The flag is one predicate (`source_path = <this adapter's source>`) precisely because provenance was decided earlier; had `source_path` been anything less exact, the escape hatch would have needed its own bookkeeping column

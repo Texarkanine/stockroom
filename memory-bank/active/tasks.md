@@ -333,5 +333,5 @@ No new dependencies: `sqlite3` is stdlib (already used by `cursor_chats` and `en
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight (PASS with amendments — TDD step ordering made explicit, config ratchet named, `__main__.py` placement corrected, `cli.md` dropped, D7 `--force` added, D8 `source_mtime`/`first_seen_at` decoupling added)
-- [ ] Build
+- [x] Build (all 9 steps green; `make ci` and `make docs-build --strict` clean)
 - [ ] QA

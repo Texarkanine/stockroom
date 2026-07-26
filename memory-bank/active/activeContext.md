@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: cursor-vscdb-backfill
-**Phase:** PREFLIGHT - COMPLETE (PASS, six findings remediated in-plan)
+**Phase:** BUILD - COMPLETE (all 9 steps; `make ci` + strict docs build green)
 
 ## What Was Done
 - Probed this machine's live `state.vscdb` (5.7 GB, WSL→Windows mount) to ground the plan: 2,039 composers, 1,131 already in the warehouse, **908 backfill candidates** (609 with resolvable bubbles + 26 legacy-inline, 273 empty drafts), ~75,800 bubbles, 2025-03 → 2026-07.
@@ -27,5 +27,11 @@
   - `docs/advanced/cli.md` dropped from scope — its subcommand table is read-surfaces-only and omits `ingest`/`embed`.
   - **D7 added** — `--force` re-parses only rows whose `source_path` is this adapter's own source, so a parser fix does not require hand-written SQL while Constraint 2 still holds unconditionally.
 
+## Build Outcome
+- Shipped: `stockroom.backfill` package (orchestrator + registry, `cursor_vscdb` adapter, CLI), `[cursor].state_vscdb` config key, the D8 writer fallback, dispatcher registration, and four doc pages. ~1,500 lines across 14 files in two commits (`383e4ab` code, `b747eb9` docs).
+- Every step ran as an ordered TDD cycle; the D8 change stayed the promised one-liner and left all three pre-existing `first_seen_at` cases untouched.
+- Verification: `make ci` green (763 passed / 4 skipped, ruff clean, REUSE 323/323, lock fresh); `make docs-build` strict green; torch restored and `doctor smoke` confirms the embed path.
+- Two build-time corrections worth carrying into QA: the ingest import-edge guard now matches `stockroom.backfill` rather than the bare word (the writer's own D8 docstring tripped it), and the pre-mortem's "one-line reversal" is actually three deletes through a DuckDB client, since `stockroom query` is read-only and the schema has no foreign keys. The docs say so.
+
 ## Next Step
-- Build phase (`niko-build` skill). Gate is open: `memory-bank/active/.preflight-status` is PASS.
+- QA phase (`niko-qa` skill) — post-implementation semantic review. The build has not been exercised against the operator's real 5.7 GB `state.vscdb`; that is the obvious first QA move, starting with `--dry-run`.
