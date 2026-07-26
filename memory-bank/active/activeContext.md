@@ -1,14 +1,20 @@
 # Active Context
 
 ## Current Task: cursor-vscdb-backfill
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Loaded memory bank; `memory-bank/active/` was empty (fresh task). Branch `cursor-backfill` already checked out.
-- Probed this machine's `state.vscdb` (Cursor's `globalStorage/state.vscdb`, 5.7 GB): 2,065 `composerData` keys, 1,131 already in the warehouse, **934 backfill candidates** (418 with nonzero bubble tokens, 516 tokenless), spanning 2025-03 → 2026-07.
-- Intent clarified and operator-approved: build [#84](https://github.com/Texarkanine/stockroom/issues/84) **without** the nonzero-token selection gate.
-- Operator decisions recorded: (1) tokens are not a hard requirement — backfill tokenless composers too; (2) ponytail applies, but "don't over-cut" — good-quality software, no cruft *and* no code golf.
-- Complexity determined: **Level 3**. New vscdb parse surface + opt-in invocation + docs + tests across multiple components, with genuine design questions (bubble→message reconstruction fidelity, packaging/invocation shape, provenance, collision policy). Not L4: no architectural redesign; the writer/schema chokepoints are reused as-is.
+- Probed this machine's live `state.vscdb` (5.7 GB, WSL→Windows mount) to ground the plan: 2,039 composers, 1,131 already in the warehouse, **908 backfill candidates** (609 with resolvable bubbles + 26 legacy-inline, 273 empty drafts), ~75,800 bubbles, 2025-03 → 2026-07.
+- Component analysis: new `ingest.cursor_vscdb` parser + new sibling `backfill` orchestrator/CLI; writer, model, paths, warehouse all reused unchanged; the *absence* of an import edge from `ingest`/`schedule` is the "not nightly" guarantee and is asserted by tests.
+- Resolved OQ1 (bubble → message reconstruction) via an algorithm creative: keep storable bubbles only; drop thinking-only/empty; tool calls stay on their own bubble-message rather than being merged into the preceding turn.
+- Resolved OQ2 (workspace identity) via an architecture creative: `project_id` = native `workspaceId` (CLI-chats precedent), `cwd` from `workspaceStorage/*/workspace.json`, `workspace_key` left to the writer so vscdb sessions converge with same-`cwd` transcript sessions.
+- Recorded six evidence-backed plan decisions, two of them measured live: the `mode=ro` → `immutable=1` open ladder (only `immutable=1` works on the mount), and index range bounds instead of `LIKE` (0.05 s vs 2.88 s per composer — this retires the "hybrid prefix/scan" pain from the aborted `enhance-cursor-tokens` work).
+- Wrote the full TDD test plan (behaviors, infrastructure, integration, invariant guard tests), a 7-step implementation plan, technology validation, challenges, and a pre-mortem.
+
+## Operator Decisions On Record
+- Tokens are **not** a selection gate — tokenless composers are backfilled too (deviation from #84 as written).
+- Ponytail applies, but "don't over-cut": production-quality software, no cruft and no code golf.
+- **No personal on-disk paths in committed artifacts.** Memory-bank docs, code comments, docs pages, and test fixtures use generic placeholders (`/home/u/p`, `<globalStorage>/state.vscdb`); real machine paths stay in the chat, never in the repo.
 
 ## Next Step
-- Load the Level 3 workflow and execute the PLAN phase (`.cursor/skills/shared/niko/references/level3/level3-plan.md`).
+- Preflight phase (`niko-preflight` skill) to validate the plan before build.
