@@ -447,6 +447,72 @@ def test_tool_result_is_never_stored(build_vscdb: Callable[..., Path]) -> None:
     assert "SECRET-RESULT-PAYLOAD" not in repr(_parse_one(db_path, "c1"))
 
 
+def test_a_failed_call_husk_is_not_a_tool_call(
+    build_vscdb: Callable[..., Path],
+) -> None:
+    """``toolFormerData`` carrying only an error status names no tool.
+
+    The live store leaves ``{"additionalData": {"status": "error"}}`` behind for
+    a call that never materialized — no name, no args, no id. Treating it as a
+    call invented an unnamed tool that ranked second in the whole warehouse.
+    """
+    db_path = build_vscdb(
+        composers={"c1": _composer("b1")},
+        bubbles={
+            "c1:b1": {
+                "type": 2,
+                "text": "let me try that",
+                "toolFormerData": {"additionalData": {"status": "error"}},
+            }
+        },
+    )
+    session = _parse_one(db_path, "c1")
+    assert [m.text for m in session.messages] == ["let me try that"]
+    assert session.messages[0].tool_calls == []
+
+
+def test_a_husk_bubble_with_no_text_is_not_stored_at_all(
+    build_vscdb: Callable[..., Path],
+) -> None:
+    """A husk cannot make an otherwise-empty bubble storable.
+
+    Same OQ1 rule as any other empty bubble: with no text and no real call, the
+    row would be empty in every column.
+    """
+    db_path = build_vscdb(
+        composers={"c1": _composer("b1", "b2")},
+        bubbles={
+            "c1:b1": {
+                "type": 2,
+                "text": "",
+                "toolFormerData": {"additionalData": {"status": "error"}},
+            },
+            "c1:b2": {"type": 2, "text": "kept"},
+        },
+    )
+    session = _parse_one(db_path, "c1")
+    assert [m.text for m in session.messages] == ["kept"]
+    # Dropped, so the survivor takes ordinal 0 — message ids are ordinal-derived.
+    assert [m.ordinal for m in session.messages] == [0]
+
+
+def test_a_blank_tool_name_is_treated_as_unnamed(
+    build_vscdb: Callable[..., Path],
+) -> None:
+    """A whitespace-only ``name`` is no more attributable than a missing one."""
+    db_path = build_vscdb(
+        composers={"c1": _composer("b1")},
+        bubbles={
+            "c1:b1": {
+                "type": 2,
+                "text": "hi",
+                "toolFormerData": {"name": "   ", "rawArgs": "{}"},
+            }
+        },
+    )
+    assert _parse_one(db_path, "c1").messages[0].tool_calls == []
+
+
 # --- ordering & robustness ---------------------------------------------------
 
 

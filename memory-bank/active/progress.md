@@ -158,3 +158,21 @@ Follow-on from the `All` preset: widening the range exposed that the two Top Mod
     - The clamp *is* the scrollbar fix, with no CSS involved: `chartHeight` is `max(240, count × 34)`, so 21 models demanded a 714px canvas inside a fixed panel. Ten gives 340px and it fits
     - Palette stability came for free from the existing union order — `by_message` first, then `model_trends`. Because trends is unclamped and ranks identically, it now supplies the tail's hues that the clamped bars no longer name, and every colour assignment is byte-identical to before
     - Ranking a *time series* by a window-wide total can hide a model that dominated an era. It does not bite today (rank 11 is ~8% of its busiest month), but it is structural, and it is a second reason the area chart was the wrong place to clamp
+
+## 2026-07-26 - BUILD ADDENDUM (failed-call husks) - COMPLETE
+
+Operator spotted an unnamed slice holding 21% of Top Tools in the `All` window and suspected the backfill. Correct: 100% of it was adapter-authored.
+
+* Work completed
+    - **Diagnosed**: 17,055 `tool_calls` rows carried `tool_name = ''` — 15.5% of every tool call in the warehouse — across 227 sessions, all of them from `state.vscdb`
+    - **Probed the store before assuming a missing key**: of 131,251 bubbles with `toolFormerData`, 18,058 (14%) have exactly one key, `additionalData: {"status": "error"}`. No name, no args, no `toolCallId`. These are husks a failed call leaves behind, not calls recorded under a different field name
+    - **Fixed under TDD** (three tests, all failing first): `_tool_call` now requires a non-blank `name` and declines otherwise. `_build_message`'s existing keep predicate then drops husk bubbles that carry no text, with no change needed there
+    - Verified read-only against the real store across 400 sampled composers: 20,612 named calls, **zero** blank, top names `read_file_v2` / `edit_file_v2` / `run_terminal_command_v2`
+    - Gate: `make ci` green (779 passed, 4 skipped), strict docs build green, torch restored
+* Decisions made
+    - **The name is what makes it a call.** `tool_name` is the identity, and an unnamed call is unattributable to any tool — it can only pollute every ranking, which is exactly what it did. Blank-name calls are declined rather than stored, and `.strip()` guards the whitespace case even though the live store only produces the wholly-absent one
+    - Declining the husk deliberately shrinks `messages` too: 5,392 of the husks were the *only* thing making their bubble storable. Those rows had no text, no model, and now no real call — empty in every column, which is precisely what the OQ1 keep predicate exists to exclude
+* Insights
+    - The `or ""` in `tool_name=str(tool_data.get("name") or "")` was the whole bug, and it read as ordinary defensive coding. `tool_calls.tool_name` is `NOT NULL`, so a blank string was the only way to write an unnamed call — the schema made the lossy choice feel like the required one, when declining the row was always available
+    - **Re-running is not free, and the reason is `message_id`.** Ids are `'{session_id}#{ordinal}'`, so dropping 5,392 messages renumbers 31,782 downstream ones, changing their ids and invalidating **13,178 of 87,691** message embeddings (15%). The model-attribution fix cost nothing because it changed no text and no ordinals; this one shifts ordinals, so it does. Any future adapter change that alters the *keep predicate* carries this cost, while one that only fills columns does not
+    - Two probes, one lesson: both this and the model gap were found by asking the store what it actually contains rather than trusting the adapter's view of it. The husk was invisible from the warehouse alone, where it just looked like a tool with no name

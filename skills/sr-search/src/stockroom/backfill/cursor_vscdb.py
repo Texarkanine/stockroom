@@ -9,7 +9,8 @@ that nightly ingest never reads. Three shapes matter:
     of ``{bubbleId, type}``. Older composers instead carry whole bubbles inline
     in a legacy ``conversation`` array. ``bubbleId:{composerId}:{bubbleId}`` —
     one turn: ``type`` (1 = user, 2 = assistant), ``text``, optional
-    ``toolFormerData`` (a single tool call), optional ``thinking``,
+    ``toolFormerData`` (a single tool call, or a husk carrying nothing but
+    ``additionalData.status == "error"`` — 14% of them), optional ``thinking``,
     ``tokenCount``, a sparse ``modelInfo.modelName``, and usually an ISO-8601
     ``createdAt``.
 ``composerHeaders(composerId, workspaceId, …)``
@@ -22,10 +23,11 @@ Two creative decisions govern the reconstruction, and both have full rationale
 in the memory bank:
 
 * ``creative-vscdb-message-reconstruction.md`` — keep only *storable* bubbles
-  (non-empty text or a tool call). Thinking-only and empty bubbles are dropped:
-  thinking is never persisted, so such a row would be empty in every column.
-  Tool bubbles stay their own message rather than being merged into the
-  preceding assistant turn, because the source records no turn grouping.
+  (non-empty text or a *named* tool call). Thinking-only, empty, and
+  failed-call-husk bubbles are dropped: thinking is never persisted, so such a
+  row would be empty in every column. Tool bubbles stay their own message rather
+  than being merged into the preceding assistant turn, because the source
+  records no turn grouping.
 * ``creative-vscdb-workspace-identity.md`` — ``project_id`` is the native
   ``workspaceId`` stored verbatim (the same hash-as-``project_id`` precedent the
   Cursor CLI chats parser set), ``cwd`` is resolved from ``workspace.json``, and
@@ -314,13 +316,22 @@ def _tool_call(bubble: dict, *, has_text: bool) -> NormalizedToolCall | None:
     (mirroring an agent-transcript ``[text, tool_use]`` turn), ``0`` when the
     bubble is tool-only. ``toolFormerData.result`` is deliberately never read —
     tool *results* are not stored at any grain.
+
+    A usable ``name`` is what makes this a call at all. The store leaves a husk
+    — ``toolFormerData`` whose only key is ``additionalData.status == "error"``
+    — wherever a call failed to materialize, and a nameless call is
+    unattributable to any tool, so both are declined rather than recorded under
+    a blank name.
     """
     tool_data = bubble.get("toolFormerData")
     if not isinstance(tool_data, dict):
         return None
+    name = tool_data.get("name")
+    if not isinstance(name, str) or not name.strip():
+        return None
     return NormalizedToolCall(
         ordinal=1 if has_text else 0,
-        tool_name=str(tool_data.get("name") or ""),
+        tool_name=name,
         tool_input=_tool_input(tool_data),
         source_tool_use_id=tool_data.get("toolCallId"),
     )

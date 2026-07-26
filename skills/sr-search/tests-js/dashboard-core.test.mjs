@@ -489,7 +489,9 @@ test("the all preset transitions and labels itself as a first-class window", () 
   const labels = panelRangeLabels("all");
   assert.equal(labels.daily, "All time");
   assert.equal(labels.overviewAria, "All time overview");
-  assert.equal(labels.modelTrends, "All time · by message");
+  // The panel's own h2 already says "(by messages)", so the subtitle carries
+  // only the window, same as every other panel.
+  assert.equal(labels.modelTrends, "All time");
   assert.equal(labels.firstPrompt, labels.efficiency);
 });
 
