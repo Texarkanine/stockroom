@@ -19,3 +19,4 @@
 - [x] Failing tests written (placement + CSS escape contract)
 - [x] Fix implemented
 - [x] Full suite green (`make test`: 676 passed / 4 skipped; 105 JS)
+- [x] QA PASS — no substantive findings; fixed positioning + placement helper match brief
