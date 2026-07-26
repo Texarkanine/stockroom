@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: cursor-vscdb-backfill
-**Phase:** PLAN - COMPLETE (revised in operator review)
+**Phase:** PREFLIGHT - COMPLETE (PASS, six findings remediated in-plan)
 
 ## What Was Done
 - Probed this machine's live `state.vscdb` (5.7 GB, WSL→Windows mount) to ground the plan: 2,039 composers, 1,131 already in the warehouse, **908 backfill candidates** (609 with resolvable bubbles + 26 legacy-inline, 273 empty drafts), ~75,800 bubbles, 2025-03 → 2026-07.
@@ -19,5 +19,13 @@
 - Ponytail applies, but "don't over-cut": production-quality software, no cruft and no code golf.
 - **No personal on-disk paths in committed artifacts.** Memory-bank docs, code comments, docs pages, and test fixtures use generic placeholders (`/home/u/p`, `<globalStorage>/state.vscdb`); real machine paths stay in the chat, never in the repo.
 
+- **Preflight amended the plan in six places:**
+  - Implementation steps restructured into explicit ordered TDD substeps (stub tests → stub interface → write and fail tests → implement); the old "— TDD cycle" label sat over implementation-only bullets.
+  - `tests/test_config.py::test_settings_has_no_state_vscdb_field` — a live negative ratchet from the aborted `enhance-cursor-tokens` task — is now an explicit, justified deletion in step 1 rather than an unnamed "modify test_config.py".
+  - CLI `main` moves to `backfill/__main__.py` (the convention `stockroom.ingest` and `stockroom.dashboard` both follow).
+  - **D8 added (operator-decided)** — `source_mtime` stays NULL, and the writer seeds `messages.first_seen_at` from `utc_now()` when `source_mtime` is absent. The vscdb is one shared store, so its file mtime is not any composer's activity time; writing it would park timeless composers on the run date in the dashboard's `COALESCE(started_at, source_mtime)` window. Backfilled sessions plot historically off `started_at`/`ended_at`/`messages.ts` regardless.
+  - `docs/advanced/cli.md` dropped from scope — its subcommand table is read-surfaces-only and omits `ingest`/`embed`.
+  - **D7 added** — `--force` re-parses only rows whose `source_path` is this adapter's own source, so a parser fix does not require hand-written SQL while Constraint 2 still holds unconditionally.
+
 ## Next Step
-- Preflight phase (`niko-preflight` skill) to validate the plan before build.
+- Build phase (`niko-build` skill). Gate is open: `memory-bank/active/.preflight-status` is PASS.

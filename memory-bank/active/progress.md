@@ -60,3 +60,21 @@ Add an opt-in, one-shot backfill of legacy Cursor `state.vscdb` composers into t
     - Migration `0007` already prohibits what D6 specified ("never invent \[session tokens\] from message sums"), and the Σ would additionally have made the view mislabel the grain as `'session'`
     - Every nonzero `tokenCount` in the sample sits on a bubble the OQ1 keep-predicate retains (0% on dropped bubbles), so the two creative decisions compose cleanly
     - Cursor's per-bubble counts are per-request usage with full prompt context in `inputTokens` — the same semantics as Claude's per-message usage, which is what makes message grain the *consistent* choice rather than merely the finer one
+
+## 2026-07-25 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated the plan against the live codebase: `config.py`, `ingest/{model,writer,paths,claude,cursor_chats}.py`, `__main__.py`, migrations `0004`/`0007`/`0008`, `schedule.render_payload`, `tests/{conftest,test_config,test_dispatcher_cli,test_shim_import_graph}.py`, REUSE config, and all five candidate doc pages
+    - Six findings, all remediated in `tasks.md`; `.preflight-status` written as PASS
+* Decisions made
+    - Implementation steps restructured into explicit ordered TDD substeps (stub tests → stub interface → write and fail tests → implement) so the ordering cannot be read past
+    - CLI `main` moves to `backfill/__main__.py` — the convention both existing CLI-bearing packages follow
+    - `docs/advanced/cli.md` dropped from scope; the user-guide ingest page is the doc home
+    - **D7 added** — `--force` re-parses only rows whose `source_path` is this adapter's own source
+    - **D8 added (operator-decided)** — `source_mtime` stays NULL and the writer gains a `utc_now()` fallback for `first_seen_at`; preflight's first answer (use the vscdb file mtime) was wrong and the operator caught it
+* Insights
+    - The aborted `enhance-cursor-tokens` task left a live negative ratchet, `test_settings_has_no_state_vscdb_field`, that fails the moment step 1 lands. A plan that says "modify `test_config.py`" is not the same as a plan that says which assertion is being reversed and why — and an abort-era guard is exactly the kind of thing a later task reverses legitimately
+    - D5's skip set protects the warehouse from backfill but also protects bad backfill output from correction. The asymmetry only became visible after D4 made backfill-authored rows exactly identifiable — the provenance decision paid for the escape hatch
+    - `sessions.source_mtime` is not inert provenance: the dashboard's activity clock is `COALESCE(started_at, source_mtime)`, so what goes in it decides where a session lands on the timeline
+    - A column whose meaning is defined against one source *shape* does not survive a change of shape. `source_mtime` means "this conversation's source file was last written then" — true when ingest reads one file per conversation, meaningless when 2,039 composers share one 5.7 GB store. The first preflight answer copied the mechanism (stat the source) instead of the meaning (when was this conversation last active), and would have parked timeless composers on the run date
+    - `source_mtime` was silently doing two jobs — activity fallback *and* the seed for `messages.first_seen_at`. They only look like one field because every existing parser has a per-conversation file whose mtime happens to answer both. The backfill is the first source where they diverge, which is what exposed the latent gap: any parser omitting `source_mtime` was permanently discarding observation time
