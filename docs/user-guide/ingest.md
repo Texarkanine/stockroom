@@ -60,6 +60,63 @@ For tests or one-shots, `STOCKROOM_AI_TRACKING_DB` forces a **single** DB and di
 STOCKROOM_AI_TRACKING_DB=/path/to/ai-code-tracking.db stockroom ingest
 ```
 
+## Backfill legacy history
+
+Ingest reads the transcript roots a harness writes *today*. Some harnesses also left history behind in an older store that ingest does not read — history that is finite, does not grow, and is therefore worth excavating exactly once.
+
+`stockroom backfill` is that excavation. It is **never scheduled** (the nightly entry stays `ingest && embed`), and it is safe to re-run: any session already in the warehouse is skipped rather than overwritten.
+
+| Source | Harness | What it recovers | Where it reads |
+| --- | --- | --- | --- |
+| `cursor-vscdb` | `cursor` | Cursor IDE "composer" conversations from before agent transcripts existed | Cursor's `globalStorage/state.vscdb` |
+
+```bash
+stockroom backfill --dry-run    # report what would be written, write nothing
+stockroom backfill              # every configured source
+stockroom backfill --source cursor-vscdb --verbose
+```
+
+### Pointing at the Cursor store
+
+There is no discoverable default — on WSL the database lives on the Windows side — so the path is always explicit, by flag, env var, or config:
+
+```bash
+stockroom backfill --state-vscdb "/mnt/c/Users/you/AppData/Roaming/Cursor/User/globalStorage/state.vscdb"
+STOCKROOM_CURSOR_STATE_VSCDB=/path/to/state.vscdb stockroom backfill
+```
+
+```toml
+[cursor]
+state_vscdb = "/mnt/c/Users/you/AppData/Roaming/Cursor/User/globalStorage/state.vscdb"
+```
+
+A source with no configured path is reported and skipped so the other sources still run; naming it explicitly with `--source` makes it an error instead.
+
+### What to expect
+
+* **The database is read strictly read-only.** Your Cursor state is never modified. On mounts that do not support SQLite's locking (WSL→Windows), stockroom falls back to an immutable open, which cannot see the newest un-checkpointed writes. That tail is current activity, which ordinary ingest already covers.
+* **Close Cursor first if you can.** Reading a database a running Cursor is writing can yield a torn read; backfill reports it and exits nonzero rather than crashing.
+* **Expect a long embed afterwards.** Backfill can roughly double the message corpus, and it never embeds. The next `stockroom embed` therefore runs far longer than usual — run it when you can leave it alone.
+* **Empty drafts are skipped.** A composer with no reconstructable messages is counted and not written.
+
+### Fixing or undoing a run
+
+Backfilled rows are exactly identifiable: their `sessions.source_path` is the store they came from.
+
+`--force` re-parses sessions **this same source** authored — the escape hatch for when a corrected parse needs to replace an earlier one. Sessions ordinary ingest authored carry a transcript `source_path` and stay untouched even under `--force`.
+
+To undo a run entirely, delete by that path. `stockroom query` is read-only, so this needs a DuckDB client against `$STOCKROOM_HOME/warehouse.duckdb` — with nothing else holding the warehouse open:
+
+```sql
+CREATE TEMP TABLE doomed AS
+  SELECT harness, session_id FROM sessions WHERE source_path = '/path/to/state.vscdb';
+DELETE FROM tool_calls  WHERE (harness, session_id) IN (SELECT * FROM doomed);
+DELETE FROM messages    WHERE (harness, session_id) IN (SELECT * FROM doomed);
+DELETE FROM sessions    WHERE (harness, session_id) IN (SELECT * FROM doomed);
+```
+
+Check the count first with `stockroom query "SELECT count(*) FROM sessions WHERE source_path = '/path/to/state.vscdb'"`. Any embeddings those messages owned are pruned by the next `stockroom embed`.
+
 ## Embed
 
 Embed turns non-empty message text into local vectors ([BAAI/bge-small-en-v1.5](https://huggingface.co/BAAI/bge-small-en-v1.5), 384-dim, one row per chunk in `embeddings`). SQL query works without embeddings; **meaning-based recall does not.**
