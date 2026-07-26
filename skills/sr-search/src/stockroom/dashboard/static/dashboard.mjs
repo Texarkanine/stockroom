@@ -792,8 +792,10 @@ function renderDashboard() {
     "Top Skills",
     buildSkillsNestedPanel(snapshot.skills, state.selected, state.mode, colors),
   );
-  // Message-grain rank is canonical for palette order; conversation-only models
-  // take later slots so bars + area share hues for the same model names.
+  // Message-grain rank is canonical for palette order. The bars are clamped to
+  // a top N, so the unclamped trends payload supplies the tail's hues, and
+  // conversation-only models take later slots still. First-seen wins, so bars
+  // and area agree on a colour for every model either of them draws.
   const modelColors = assignModelColors([
     ...(snapshot.models?.by_message?.models ?? []),
     ...(snapshot.model_trends?.models ?? []),

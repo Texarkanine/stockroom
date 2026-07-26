@@ -141,3 +141,20 @@ Adjacent operator request handled on this branch while the `--force` re-run was 
 * Insights
     - The two date controls were never one component, and their shared `default` id meant two different things — "All" on the list, "let each panel choose" on the metrics view. Adding a real `all` id is what forced that latent ambiguity into the open; the handoff helper exists purely because the two vocabularies disagree
     - Verifying this needed a warehouse the writer lock was not holding. Standing up a scratch warehouse under `STOCKROOM_HOME` on a second port was faster than waiting out a 25-minute backfill, and is a repeatable way to exercise dashboard behavior against synthetic history
+
+## 2026-07-26 - SIDE REQUEST (clamp Top Models to ten) - COMPLETE
+
+Follow-on from the `All` preset: widening the range exposed that the two Top Models panels were the only ranked panels without a limit. Also not part of `cursor-vscdb-backfill`.
+
+* Work completed
+    - `metrics.models()` gained `limit: int = 10` (keyword-only), applied per grain through `_rank_model_counts`. Deliberately *not* reachable from the URL, matching `projects` / `tools`, which the endpoint dispatcher already calls as `endpoint(con, harnesses, since, until)`
+    - TDD: three tests, all three failing first — per-grain clamp with aligned series widths, a caller-tunable `limit`, and a ratchet pinning `model_trends` as unclamped so the asymmetry is not "tidied up" later
+    - Corrected `model_trends`'s docstring, which claimed its ranked order "matches `models()["by_message"]`" — now true only of the leading names
+    - Gate: `make ci` green (776 passed, 4 skipped), 106 JS tests green, strict docs build green, torch restored after `ci`'s `uv sync`. Verified live on the real warehouse after `stockroom dashboard --replace`: both bar panels 10, trends 21, no scroll box
+* Decisions made
+    - **Bars clamp; the stacked area does not.** Measured first rather than guessed: the tail past rank 10 is 3.8% of attributed turns and 5.2% of conversations. An `<other>` band to keep the stack exact would have been an invisible sliver plus a legend entry plus a pseudo-label that is not a model
+    - What decided it was that the area's height is already not a reconcilable total — 45,206 attributed turns against 97,475 assistant messages, because a turn only appears once its model is known. Preserving that height exactly buys less than it looks like. Operator chose to leave the series whole regardless, so the honesty question is moot either way
+* Insights
+    - The clamp *is* the scrollbar fix, with no CSS involved: `chartHeight` is `max(240, count × 34)`, so 21 models demanded a 714px canvas inside a fixed panel. Ten gives 340px and it fits
+    - Palette stability came for free from the existing union order — `by_message` first, then `model_trends`. Because trends is unclamped and ranks identically, it now supplies the tail's hues that the clamped bars no longer name, and every colour assignment is byte-identical to before
+    - Ranking a *time series* by a window-wide total can hide a model that dominated an era. It does not bite today (rank 11 is ~8% of its busiest month), but it is structural, and it is a second reason the area chart was the wrong place to clamp
