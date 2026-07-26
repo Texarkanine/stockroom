@@ -95,13 +95,13 @@ No new technology - validation not required.
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight (PASS with amendments)
-- [ ] Build
+- [x] Build
 - [ ] QA
 
 ## Build checklist
 
-- [ ] Step 1 — Invariants block
-- [ ] Step 2 — Tighten Reuses The Writer
-- [ ] Step 3 — keep-predicate / embed fence
-- [ ] Step 4 — Tighten Grain And Honesty
-- [ ] Step 5 — final scan + `make docs-build --strict`
+- [x] Step 1 — Invariants block
+- [x] Step 2 — Tighten Reuses The Writer
+- [x] Step 3 — keep-predicate / embed fence
+- [x] Step 4 — Tighten Grain And Honesty
+- [x] Step 5 — final scan + `make docs-build` (strict)

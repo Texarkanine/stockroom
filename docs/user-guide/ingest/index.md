@@ -98,7 +98,7 @@ Defaults are `~/.cursor/projects`, `~/.cursor/chats`, and `~/.claude/projects`.
 
 `sr-initialize` runs `stockroom ingest --full` once so you are not waiting for the first nightly job. On years of history that first pass can take many minutes (varying greatly depending on your machine's CPU and disk speed); it prints per-harness session/message/tool_call counts when done.
 
-####  `sessions.models` Enrichment
+#### Cursor `sessions.models` Enrichment
 
 Cursor has no in-band session model grain. When available, ingest fills `sessions.models` from Cursor's optional `ai-code-tracking.db` sidecar(s).
 

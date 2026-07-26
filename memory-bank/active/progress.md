@@ -323,3 +323,14 @@ Post-implementation semantic review of the whole branch (42 files, 4,606 inserti
     - No re-level; advisory radical innovation (mini change-surface table on the page) declined — overview already routes here
 * Insights
     - User guide already owns the embed-after-force recipe; architecture only needs to name the trap
+
+## 2026-07-26 - BUILD (architecture rework) - COMPLETE
+
+* Work completed
+    - `docs/architecture/backfill.md` rewritten per B1–B5 (Invariants + two tightenings + keep-predicate fence)
+    - Fixed prior-rework anchor: `#### Cursor \`sessions.models\` Enrichment` heading restored the slug `#cursor-sessionsmodels-enrichment` for `installed-layout.md`
+    - `make docs-build` strict green
+* Decisions made
+    - Anchor fix in scope under pre-mortem (“one-line path fix obvious”); not a user-guide ADHD rewrite
+* Insights
+    - Demoting a heading without checking slug consumers breaks strict builds even when the demotion itself looks fine
