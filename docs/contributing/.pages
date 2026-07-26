@@ -1,7 +1,6 @@
 nav:
   - index.md
   - Preparation: preparation.md
-  - Iteration: iteration.md
-  - Backfill Adapters: backfill-adapters.md
+  - Iteration: iteration
   - licensing.md
   - ...
