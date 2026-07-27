@@ -15,3 +15,16 @@ Fix Cursor CLI chat ingest so cleanly-closed WAL-mode `store.db` files are reada
     - Out of scope for this task: skip-count summary surfacing, watermark redesign, orphaned-WAL special case
 * Insights
     - SQLite opens lazily — retry must wrap the whole read (`_read_meta` + `_load_blobs`), not only `connect()`
+
+## 2026-07-27 - BUILD - COMPLETE
+
+* Work completed
+    - Added `_READ_URIS` / `_read_store` dual open strategy in `cursor_chats.py`
+    - Wired `parse_session` through `_read_store`
+    - Regression tests for checkpointed WAL, live sidecars, immutable fallback (mocked), corrupt skip
+    - Full test suite: 789 passed, 2 skipped
+* Decisions made
+    - Kept issue's recommended strategy; rejected copy-to-tempdir
+    - Fallback regression uses a stub connection that fails on `execute` (Connection.execute is read-only under this Python; also mirrors lazy-open failure)
+* Insights
+    - On this host, checkpointed WAL opens with `mode=ro` already (sqlite 3.37.2 / 3.50.4); #95's CANTOPEN matrix was not reproduced against live `~/.cursor/chats`, but the fallback remains the correct portable fix

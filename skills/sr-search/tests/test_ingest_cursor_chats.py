@@ -13,6 +13,8 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 
+import pytest
+
 from stockroom.ingest import cursor_chats
 
 _FIXTURE_ROOT = (
@@ -81,12 +83,23 @@ def _write_store(
     *,
     meta: dict,
     blobs: dict[str, bytes],
-) -> Path:
-    """Write a minimal meta+blobs SQLite store at ``path``."""
+    journal_mode: str | None = None,
+) -> sqlite3.Connection:
+    """Write a minimal meta+blobs SQLite store at ``path``.
+
+    Returns the open connection so callers can leave WAL sidecars live, or
+    close and strip them for the checkpointed at-rest shape.
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists():
         path.unlink()
+    for sidecar in (Path(str(path) + "-wal"), Path(str(path) + "-shm")):
+        if sidecar.exists():
+            sidecar.unlink()
     con = sqlite3.connect(path)
+    if journal_mode is not None:
+        mode = con.execute(f"PRAGMA journal_mode={journal_mode}").fetchone()[0]
+        assert str(mode).lower() == journal_mode.lower()
     con.execute("CREATE TABLE blobs (id TEXT PRIMARY KEY, data BLOB)")
     con.execute("CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT)")
     con.execute(
@@ -96,19 +109,45 @@ def _write_store(
     for bid, data in blobs.items():
         con.execute("INSERT INTO blobs (id, data) VALUES (?, ?)", (bid, data))
     con.commit()
-    con.close()
-    return path
+    return con
+
+
+def _minimal_user_blobs(text: str = "hello from wal") -> tuple[dict, dict[str, bytes]]:
+    """Build meta+blobs for a single user message (for open-strategy tests)."""
+    user = json.dumps(
+        {"role": "user", "content": [{"type": "text", "text": text}]}
+    ).encode()
+    uid = hashlib.sha256(user).hexdigest()
+    root = bytearray()
+    root.extend(b"\x0a\x20")
+    root.extend(bytes.fromhex(uid))
+    root_b = bytes(root)
+    rid = hashlib.sha256(root_b).hexdigest()
+    meta = {
+        "latestRootBlobId": rid,
+        "name": "WalFixture",
+        "createdAt": 1735689600000,
+    }
+    return meta, {uid: user, rid: root_b}
+
+
+def _strip_wal_sidecars(path: Path) -> None:
+    """Remove ``-wal``/``-shm`` to match a cleanly-closed Cursor CLI store."""
+    for sidecar in (Path(str(path) + "-wal"), Path(str(path) + "-shm")):
+        if sidecar.exists():
+            sidecar.unlink()
 
 
 def test_parse_session_empty_when_missing_root(tmp_path: Path) -> None:
     """Missing ``latestRootBlobId`` yields a session with zero messages."""
     agent = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
     store = tmp_path / agent / "store.db"
-    _write_store(
+    con = _write_store(
         store,
         meta={"agentId": agent, "name": "Empty", "createdAt": 1735689600000},
         blobs={},
     )
+    con.close()
     session = cursor_chats.parse_session(store)
     assert session is not None
     assert session.session_id == agent
@@ -137,7 +176,7 @@ def test_parse_session_skips_corrupt_leaf_continues(tmp_path: Path) -> None:
     root_b = bytes(root)
     rid = hashlib.sha256(root_b).hexdigest()
     store = tmp_path / agent / "store.db"
-    _write_store(
+    con = _write_store(
         store,
         meta={
             "agentId": agent,
@@ -147,6 +186,7 @@ def test_parse_session_skips_corrupt_leaf_continues(tmp_path: Path) -> None:
         },
         blobs={uid: user, oid: opaque, aid: assistant, rid: root_b},
     )
+    con.close()
     session = cursor_chats.parse_session(store)
     assert session is not None
     assert [m.role for m in session.messages] == ["user", "assistant"]
@@ -164,3 +204,102 @@ def test_parse_session_returns_none_for_non_sqlite_file(tmp_path: Path) -> None:
     store.parent.mkdir(parents=True)
     store.write_text("this is not a sqlite database\n", encoding="utf-8")
     assert cursor_chats.parse_session(store) is None
+
+
+def test_parse_session_reads_checkpointed_wal_store(tmp_path: Path) -> None:
+    """
+    Cleanly-closed Cursor CLI stores use WAL journal mode and then remove
+    ``-wal``/``-shm``. That at-rest shape must still parse into a populated
+    session (via ``mode=ro``, or the ``immutable=1`` fallback when ``mode=ro``
+    cannot create a shared-memory file).
+    """
+    agent = "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"
+    store = tmp_path / agent / "store.db"
+    meta, blobs = _minimal_user_blobs("checkpointed wal")
+    meta["agentId"] = agent
+    con = _write_store(store, meta=meta, blobs=blobs, journal_mode="WAL")
+    con.close()
+    _strip_wal_sidecars(store)
+    assert not Path(str(store) + "-wal").exists()
+    assert not Path(str(store) + "-shm").exists()
+
+    session = cursor_chats.parse_session(store)
+    assert session is not None
+    assert session.session_id == agent
+    assert session.entrypoint == "cli"
+    assert [m.text for m in session.messages] == ["checkpointed wal"]
+
+
+def test_parse_session_reads_wal_store_while_sidecars_present(tmp_path: Path) -> None:
+    """
+    While a WAL store still has ``-wal``/``-shm`` (live session), ``mode=ro``
+    must succeed so committed content remains visible.
+    """
+    agent = "ffffffff-ffff-ffff-ffff-ffffffffffff"
+    store = tmp_path / agent / "store.db"
+    meta, blobs = _minimal_user_blobs("live wal")
+    meta["agentId"] = agent
+    holder = _write_store(store, meta=meta, blobs=blobs, journal_mode="WAL")
+    try:
+        assert Path(str(store) + "-shm").exists()
+        session = cursor_chats.parse_session(store)
+        assert session is not None
+        assert [m.text for m in session.messages] == ["live wal"]
+    finally:
+        holder.close()
+
+
+def test_read_store_falls_back_to_immutable_when_mode_ro_fails(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """
+    When ``mode=ro`` raises on the first execute (SQLite cannot create ``-shm``),
+    ``_read_store`` must retry the whole read with ``immutable=1`` and succeed.
+    The retry wraps the read, not merely ``connect`` — SQLite opens lazily.
+    """
+    agent = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+    store = tmp_path / agent / "store.db"
+    meta, blobs = _minimal_user_blobs("fallback")
+    meta["agentId"] = agent
+    con = _write_store(store, meta=meta, blobs=blobs, journal_mode="WAL")
+    con.close()
+    _strip_wal_sidecars(store)
+
+    real_connect = sqlite3.connect
+
+    class _RoCantOpen:
+        """Stand-in connection: ``connect`` succeeds, first ``execute`` fails."""
+
+        def execute(self, *args, **kwargs):  # type: ignore[no-untyped-def]
+            raise sqlite3.OperationalError("unable to open database file")
+
+        def close(self) -> None:
+            return None
+
+    def connect_maybe_poison(database: str, *args, **kwargs):  # type: ignore[no-untyped-def]
+        if isinstance(database, str) and "immutable=1" not in database:
+            return _RoCantOpen()
+        return real_connect(database, *args, **kwargs)
+
+    monkeypatch.setattr(cursor_chats.sqlite3, "connect", connect_maybe_poison)
+
+    got = cursor_chats._read_store(store)
+    assert got is not None
+    got_meta, got_blobs = got
+    assert got_meta.get("name") == "WalFixture"
+    assert len(got_blobs) == 2
+
+    session = cursor_chats.parse_session(store)
+    assert session is not None
+    assert [m.text for m in session.messages] == ["fallback"]
+
+
+def test_read_store_returns_none_for_corrupt_file(tmp_path: Path) -> None:
+    """
+    ``_read_store`` skips (returns ``None``) for a genuinely unreadable file
+    rather than raising, matching the orchestrator's skip-not-abort contract.
+    """
+    store = tmp_path / "not-a-db" / "store.db"
+    store.parent.mkdir(parents=True)
+    store.write_text("not sqlite\n", encoding="utf-8")
+    assert cursor_chats._read_store(store) is None

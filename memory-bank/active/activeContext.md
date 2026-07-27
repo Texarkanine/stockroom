@@ -1,11 +1,13 @@
 # Active Context
 
 ## Current Task: fix-cursor-cli-wal-ingest
-**Phase:** BUILD - IN-PROGRESS
+**Phase:** BUILD - COMPLETE
 
 ## What Was Done
-- Intent clarified against [issue #95](https://github.com/Texarkanine/stockroom/issues/95); operator approved
-- Complexity determined: **Level 1** — bug fix isolated to `stockroom.ingest.cursor_chats` (WAL `mode=ro` open failure → `immutable=1` fallback) plus regression tests in the existing cursor chats suite
+- Implemented `_read_store` with `mode=ro` → `immutable=1` fallback; wired `parse_session`
+- Added WAL-at-rest, live-sidecars, fallback-retry (mocked lazy-open failure), and corrupt-file tests
+- Full suite: 789 passed, 2 skipped
+- Note: bare `mode=ro` failure on checkpointed WAL was not reproducible on this machine's SQLite 3.37.2 / 3.50.4; fallback still implemented per #95; regression covered via mock
 
 ## Next Step
-- Locate root cause in `cursor_chats.parse_session`; write failing WAL-at-rest regression test; implement `mode=ro` → `immutable=1` fallback; verify suite
+- Enter Level 1 QA (`niko-qa`)

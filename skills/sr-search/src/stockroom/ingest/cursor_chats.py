@@ -20,6 +20,8 @@ Parsing rules:
 * Dense ordinals over kept turns; linear ``parent_ordinal``
 * Unreadable SQLite (locked / corrupt / not a DB) → ``parse_session`` returns
   ``None``; the orchestrator skips that discovery without aborting the batch
+* Open strategy: try ``mode=ro`` first (live WAL with ``-shm``); on failure
+  retry with ``immutable=1`` (cleanly-closed WAL with sidecars removed)
 
 ``project_id`` is the parent hash directory and is stamped by the orchestrator
 from discovery (same pattern as the IDE parser).
@@ -48,6 +50,30 @@ _ROOT_FIELD_TAG = 0x0A
 _HASH_LEN = 32
 
 _WORKSPACE_PATH_RE = re.compile(r"^Workspace Path:\s*(.+?)\s*$", re.MULTILINE)
+
+#: Read strategies, in order. ``mode=ro`` needs the ``-shm`` sidecar, so it
+#: only works while a store is live; ``immutable=1`` covers the at-rest shape
+#: Cursor leaves after a clean close, where the WAL has been checkpointed away.
+_READ_URIS = ("file:{path}?mode=ro", "file:{path}?mode=ro&immutable=1")
+
+
+def _read_store(path: Path) -> tuple[dict[str, Any], dict[str, bytes]] | None:
+    """Open ``path`` and return ``(meta, blobs)``, or ``None`` if unreadable.
+
+    Tries each URI in :data:`_READ_URIS`. SQLite opens lazily, so failures
+    surface on the first ``execute`` inside the read — not on ``connect``.
+    The retry therefore wraps the whole read (``_read_meta`` + ``_load_blobs``).
+    """
+    for template in _READ_URIS:
+        try:
+            con = sqlite3.connect(template.format(path=path), uri=True)
+            try:
+                return _read_meta(con), _load_blobs(con)
+            finally:
+                con.close()
+        except (sqlite3.OperationalError, sqlite3.DatabaseError):
+            continue
+    return None
 
 
 def _read_meta(con: sqlite3.Connection) -> dict[str, Any]:
@@ -212,15 +238,10 @@ def parse_session(path: Path) -> NormalizedSession | None:
     """
     path = Path(path)
     session_id = path.parent.name
-    try:
-        con = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
-        try:
-            meta = _read_meta(con)
-            blobs = _load_blobs(con)
-        finally:
-            con.close()
-    except (sqlite3.OperationalError, sqlite3.DatabaseError):
+    opened = _read_store(path)
+    if opened is None:
         return None
+    meta, blobs = opened
 
     root_id = meta.get("latestRootBlobId")
     ordered_ids: list[str] = []
