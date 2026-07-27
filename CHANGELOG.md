@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.17.1](https://github.com/Texarkanine/stockroom/compare/v0.17.0...v0.17.1) (2026-07-27)
+
+
+### Bug Fixes
+
+* **ingest:** read Cursor CLI WAL stores after clean close ([#96](https://github.com/Texarkanine/stockroom/issues/96)) ([478f38b](https://github.com/Texarkanine/stockroom/commit/478f38b5099c4f96ec93ef7a0e7396c69f579447))
+
 ## [0.17.0](https://github.com/Texarkanine/stockroom/compare/v0.16.0...v0.17.0) (2026-07-26)
 
 
