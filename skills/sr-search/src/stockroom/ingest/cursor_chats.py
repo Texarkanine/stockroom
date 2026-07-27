@@ -21,7 +21,9 @@ Parsing rules:
 * Unreadable SQLite (locked / corrupt / not a DB) → ``parse_session`` returns
   ``None``; the orchestrator skips that discovery without aborting the batch
 * Open strategy: try ``mode=ro`` first (live WAL with ``-shm``); on failure
-  retry with ``immutable=1`` (cleanly-closed WAL with sidecars removed)
+  retry with ``immutable=1`` only when sidecars are absent (at-rest). If
+  ``mode=ro`` fails while both sidecars exist, skip — do not immutable-read
+  a live store
 
 ``project_id`` is the parent hash directory and is stamped by the orchestrator
 from discovery (same pattern as the IDE parser).
@@ -57,12 +59,21 @@ _WORKSPACE_PATH_RE = re.compile(r"^Workspace Path:\s*(.+?)\s*$", re.MULTILINE)
 _READ_URIS = ("file:{path}?mode=ro", "file:{path}?mode=ro&immutable=1")
 
 
+def _live_wal_sidecars(path: Path) -> bool:
+    """True when both ``-wal`` and ``-shm`` exist (a live writer is plausible)."""
+    return Path(f"{path}-wal").exists() and Path(f"{path}-shm").exists()
+
+
 def _read_store(path: Path) -> tuple[dict[str, Any], dict[str, bytes]] | None:
     """Open ``path`` and return ``(meta, blobs)``, or ``None`` if unreadable.
 
     Tries each URI in :data:`_READ_URIS`. SQLite opens lazily, so failures
     surface on the first ``execute`` inside the read — not on ``connect``.
     The retry therefore wraps the whole read (``_read_meta`` + ``_load_blobs``).
+
+    When ``mode=ro`` fails while both WAL sidecars are present, skip rather than
+    falling back to ``immutable=1``: that mode ignores the WAL and can return a
+    truncated main-file snapshot of a live store.
     """
     for template in _READ_URIS:
         try:
@@ -72,6 +83,8 @@ def _read_store(path: Path) -> tuple[dict[str, Any], dict[str, bytes]] | None:
             finally:
                 con.close()
         except (sqlite3.OperationalError, sqlite3.DatabaseError):
+            if "immutable=1" not in template and _live_wal_sidecars(path):
+                return None
             continue
     return None
 

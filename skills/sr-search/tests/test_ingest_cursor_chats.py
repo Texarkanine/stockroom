@@ -303,3 +303,45 @@ def test_read_store_returns_none_for_corrupt_file(tmp_path: Path) -> None:
     store.parent.mkdir(parents=True)
     store.write_text("not sqlite\n", encoding="utf-8")
     assert cursor_chats._read_store(store) is None
+
+
+def test_read_store_skips_immutable_when_live_sidecars_and_ro_fails(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """
+    If ``mode=ro`` fails while ``-wal`` and ``-shm`` are both present, do not
+    fall back to ``immutable=1`` (it ignores the WAL and can return a truncated
+    main-file read). Skip the store instead.
+    """
+    agent = "12121212-1212-1212-1212-121212121212"
+    store = tmp_path / agent / "store.db"
+    meta, blobs = _minimal_user_blobs("live ro fail")
+    meta["agentId"] = agent
+    holder = _write_store(store, meta=meta, blobs=blobs, journal_mode="WAL")
+    try:
+        assert Path(str(store) + "-wal").exists()
+        assert Path(str(store) + "-shm").exists()
+
+        attempted: list[str] = []
+
+        class _RoCantOpen:
+            def execute(self, *args, **kwargs):  # type: ignore[no-untyped-def]
+                raise sqlite3.OperationalError("database is locked")
+
+            def close(self) -> None:
+                return None
+
+        def connect_track(database: str, *args, **kwargs):  # type: ignore[no-untyped-def]
+            attempted.append(database)
+            if isinstance(database, str) and "immutable=1" not in database:
+                return _RoCantOpen()
+            raise AssertionError(f"immutable URI must not be attempted: {database}")
+
+        monkeypatch.setattr(cursor_chats.sqlite3, "connect", connect_track)
+
+        assert cursor_chats._read_store(store) is None
+        assert len(attempted) == 1
+        assert "immutable=1" not in attempted[0]
+        assert "mode=ro" in attempted[0]
+    finally:
+        holder.close()
