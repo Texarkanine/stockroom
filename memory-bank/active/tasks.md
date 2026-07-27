@@ -23,3 +23,7 @@ Cleanly-closed Cursor CLI `store.db` files are WAL-mode databases with `-wal`/`-
 - [x] Mocked `mode=ro` failure falls back to `immutable=1`
 - [x] Corrupt file → `_read_store` returns `None`
 - [x] Full suite: 789 passed, 2 skipped
+
+## QA
+
+- [x] PASS — KISS/DRY/YAGNI/completeness/regression/integrity/docs clean; no substantive issues

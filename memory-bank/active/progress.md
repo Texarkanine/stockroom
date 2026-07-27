@@ -28,3 +28,13 @@ Fix Cursor CLI chat ingest so cleanly-closed WAL-mode `store.db` files are reada
     - Fallback regression uses a stub connection that fails on `execute` (Connection.execute is read-only under this Python; also mirrors lazy-open failure)
 * Insights
     - On this host, checkpointed WAL opens with `mode=ro` already (sqlite 3.37.2 / 3.50.4); #95's CANTOPEN matrix was not reproduced against live `~/.cursor/chats`, but the fallback remains the correct portable fix
+
+## 2026-07-27 - QA - COMPLETE
+
+* Work completed
+    - Semantic review against project brief / issue #95
+    - Wrote `.qa-validation-status` = PASS
+* Decisions made
+    - No code changes in QA; operator docs already describe fail-soft skip without prescribing a single open URI
+* Insights
+    - None
