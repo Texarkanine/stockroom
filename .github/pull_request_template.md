@@ -6,7 +6,7 @@ Process details: [CONTRIBUTING.md](../CONTRIBUTING.md)
 
 ## Checklist
 
-- [ ] PR title is a [conventional commit](https://www.conventionalcommits.org/) — `feat` / `fix` / `chore` / `docs` only. **Squash-merge uses this as the changelog entry.**
+- [ ] PR title is a [conventional commit](https://www.conventionalcommits.org/): **`feat` or `fix`** to cut a release (changelog + docs publish); **`chore`** when it must not release. Squash-merge uses this title as the changelog entry.
 - [ ] Tests written before the fix/feature (and they failed first)
 - [ ] `make ci` passes
 - [ ] `make docs-build` passes — update `docs/` if behavior or a contributor contract changed

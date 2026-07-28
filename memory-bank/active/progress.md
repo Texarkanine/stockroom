@@ -59,3 +59,21 @@ Add GitHub issue form(s) (bug + feature minimum; component split only if warrant
     - PASS
 * Insights
     - None beyond build
+
+## 2026-07-28 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote reflection-github-issue-and-pr-templates.md
+    - Reconciled techContext.md (template pointers)
+* Decisions made
+    - productContext / systemPatterns unchanged
+* Insights
+    - Quote YAML placeholders that contain `:` / `...`
+
+## 2026-07-28 - POST-REFLECT FIX - COMPLETE
+
+* Work completed
+    - Corrected commit-type guidance: release-please releases only on `feat`/`fix`; `chore` = no-release; drop `docs` (Pages deploy on release)
+    - Updated PR template, CONTRIBUTING.md, and template contract test
+* Decisions made
+    - Gate: must-not-release → `chore`; otherwise `feat` or `fix`

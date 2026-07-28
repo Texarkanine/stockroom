@@ -155,11 +155,19 @@ def test_feature_form_does_not_require_doctor(repo_root: Path) -> None:
 
 
 def test_pr_template_pins_conventional_commit_and_ci(repo_root: Path) -> None:
-    """PR template exists and calls out changelog title + make ci."""
+    """PR template exists and pins release-please title types + make ci.
+
+    release-please only cuts a release for ``feat`` / ``fix``. Docs publish
+    on release, so ``docs`` is not an allowed type. ``chore`` is the
+    no-release escape hatch.
+    """
     path = repo_root / PR_TEMPLATE
     assert path.is_file(), f"missing {PR_TEMPLATE}"
-    text = path.read_text(encoding="utf-8").lower()
-    assert "conventional" in text
-    assert "changelog" in text
-    assert "make ci" in text
-    assert "feat" in text and "fix" in text and "chore" in text and "docs" in text
+    text = path.read_text(encoding="utf-8")
+    lowered = text.lower()
+    assert "conventional" in lowered
+    assert "changelog" in lowered
+    assert "make ci" in lowered
+    assert "`feat`" in text and "`fix`" in text and "`chore`" in text
+    assert "`docs`" not in text
+    assert "release" in lowered
