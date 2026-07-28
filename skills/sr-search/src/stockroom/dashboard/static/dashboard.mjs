@@ -45,6 +45,7 @@ import {
   buildSessionMetaEntries,
   buildSessionViewSearchParams,
   buildSessionsListSearchParams,
+  canReuseLoadedSession,
   clampSessionsListPage,
   documentTitleForView,
   formatSessionJsonExport,
@@ -52,10 +53,12 @@ import {
   isActiveSessionView,
   messageAnchorId,
   normalizePerPage,
+  parseMessageHash,
   parseSessionViewParams,
   parseSessionsListParams,
   renderSessionMessageHtml,
   resolveMessageAnchorElement,
+  sessionLocationWithMessageHash,
 } from "./dashboard-session.mjs";
 import { mountTokenDisplay } from "./dashboard-tokens.mjs";
 
@@ -1096,6 +1099,20 @@ function renderSessionDetail(detail) {
       ordinalLink.href = `#${anchorId}`;
       ordinalLink.textContent = `#${message.ordinal}`;
       ordinalLink.title = `Link to message ${message.ordinal}`;
+      ordinalLink.addEventListener("click", (event) => {
+        if (
+          event.defaultPrevented ||
+          event.button !== 0 ||
+          event.metaKey ||
+          event.ctrlKey ||
+          event.shiftKey ||
+          event.altKey
+        ) {
+          return;
+        }
+        event.preventDefault();
+        navigateToMessageOrdinal(message.ordinal);
+      });
       heading.append(ordinalLink);
     }
     const body = document.createElement("div");
@@ -1127,7 +1144,50 @@ function scrollToMessageHash(hash = window.location.hash) {
   target.scrollIntoView({ block: "start" });
 }
 
+/**
+ * Same-document jump to ``#msg-N`` without refetching the conversation.
+ *
+ * @param {unknown} ordinal
+ */
+function navigateToMessageOrdinal(ordinal) {
+  const anchor = messageAnchorId(ordinal);
+  if (!anchor) {
+    return;
+  }
+  const hash = `#${anchor}`;
+  if (window.location.hash !== hash) {
+    const next = sessionLocationWithMessageHash(
+      window.location.pathname,
+      window.location.search.startsWith("?")
+        ? window.location.search.slice(1)
+        : window.location.search,
+      ordinal,
+    );
+    window.history.pushState(
+      {
+        view: "session",
+        harness: sessionView?.harness,
+        sessionId: sessionView?.sessionId,
+      },
+      "",
+      next,
+    );
+  }
+  scrollToMessageHash(hash);
+}
+
 async function openSessionView(harness, sessionId, { push = true } = {}) {
+  if (canReuseLoadedSession(sessionView, sessionDetail, harness, sessionId)) {
+    if (push) {
+      const params = buildSessionViewSearchParams(harness, sessionId);
+      const hash = window.location.hash;
+      const next = `${window.location.pathname}?${params.toString()}${hash}`;
+      window.history.pushState({ view: "session", harness, sessionId }, "", next);
+    }
+    showSessionView();
+    scrollToMessageHash();
+    return;
+  }
   sessionsListRequestGate.begin();
   sessionView = { harness, sessionId };
   sessionDetail = null;
@@ -1520,6 +1580,10 @@ window.addEventListener("popstate", () => {
 
 window.addEventListener("hashchange", () => {
   if (!sessionView) {
+    return;
+  }
+  // Hash-only changes must never refetch; just scroll when the target exists.
+  if (parseMessageHash(window.location.hash) === null) {
     return;
   }
   scrollToMessageHash();

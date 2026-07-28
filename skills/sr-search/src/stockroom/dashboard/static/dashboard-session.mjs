@@ -438,6 +438,41 @@ export function isActiveSessionView(sessionView, harness, sessionId) {
 }
 
 /**
+ * True when the requested session is already loaded in memory (no refetch).
+ *
+ * @param {{harness: string, sessionId: string} | null | undefined} sessionView
+ * @param {{harness?: string, session_id?: string} | null | undefined} sessionDetail
+ * @param {string} harness
+ * @param {string} sessionId
+ * @returns {boolean}
+ */
+export function canReuseLoadedSession(sessionView, sessionDetail, harness, sessionId) {
+  return (
+    isActiveSessionView(sessionView, harness, sessionId) &&
+    !!sessionDetail &&
+    sessionDetail.harness === harness &&
+    sessionDetail.session_id === sessionId
+  );
+}
+
+/**
+ * Build a same-document location preserving path/query and setting ``#msg-N``.
+ *
+ * @param {string} pathname
+ * @param {string | URLSearchParams} search Query without leading ``?``.
+ * @param {unknown} ordinal
+ * @returns {string}
+ */
+export function sessionLocationWithMessageHash(pathname, search, ordinal) {
+  const params =
+    search instanceof URLSearchParams ? search : new URLSearchParams(search);
+  const query = params.toString();
+  const base = query ? `${pathname}?${query}` : pathname;
+  const anchor = messageAnchorId(ordinal);
+  return anchor ? `${base}#${anchor}` : base;
+}
+
+/**
  * Ordered meta entries for the session detail header.
  *
  * Omits Session (already shown in the title). Tokens is a structured entry for

@@ -11,6 +11,7 @@ import {
   documentTitleForView,
   formatSessionJsonExport,
   formatSessionMarkdownExport,
+  canReuseLoadedSession,
   isActiveSessionView,
   messageAnchorId,
   normalizePerPage,
@@ -20,6 +21,7 @@ import {
   perPageToLimit,
   renderSessionMessageHtml,
   resolveMessageAnchorElement,
+  sessionLocationWithMessageHash,
 } from "../src/stockroom/dashboard/static/dashboard-session.mjs";
 
 test("buildSessionViewSearchParams encodes the canonical session view", () => {
@@ -102,6 +104,38 @@ test("resolveMessageAnchorElement finds msg id under root", () => {
   assert.equal(resolveMessageAnchorElement(root, "#msg-9"), null);
   assert.equal(resolveMessageAnchorElement(root, "#nope"), null);
   assert.equal(resolveMessageAnchorElement(null, "#msg-2"), null);
+});
+
+test("sessionLocationWithMessageHash preserves path and query while setting hash", () => {
+  assert.equal(
+    sessionLocationWithMessageHash(
+      "/",
+      "view=session&harness=cursor&session=s1",
+      3,
+    ),
+    "/?view=session&harness=cursor&session=s1#msg-3",
+  );
+  assert.equal(
+    sessionLocationWithMessageHash(
+      "/",
+      new URLSearchParams("view=session&harness=cursor&session=s1"),
+      0,
+    ),
+    "/?view=session&harness=cursor&session=s1#msg-0",
+  );
+  assert.equal(
+    sessionLocationWithMessageHash("/", "view=session&harness=cursor&session=s1", -1),
+    "/?view=session&harness=cursor&session=s1",
+  );
+});
+
+test("canReuseLoadedSession requires matching view and loaded detail", () => {
+  const view = { harness: "cursor", sessionId: "s1" };
+  const detail = { harness: "cursor", session_id: "s1" };
+  assert.equal(canReuseLoadedSession(view, detail, "cursor", "s1"), true);
+  assert.equal(canReuseLoadedSession(view, null, "cursor", "s1"), false);
+  assert.equal(canReuseLoadedSession(view, detail, "claude", "s1"), false);
+  assert.equal(canReuseLoadedSession(null, detail, "cursor", "s1"), false);
 });
 
 test("formatSessionMarkdownExport builds title, turns, and fenced tools", () => {

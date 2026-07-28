@@ -268,6 +268,12 @@ def test_session_message_hash_scroll_wiring() -> None:
     assert "scrollIntoView" in adapter
     assert 'block: "start"' in adapter or "block: 'start'" in adapter
     assert "hashchange" in adapter
+    assert "canReuseLoadedSession" in adapter
+    assert "sessionLocationWithMessageHash" in adapter
+    # Ordinal same-tab clicks must not perform a document navigation/reload.
+    ordinal_idx = adapter.index("session-turn-ordinal")
+    ordinal_block = adapter[ordinal_idx : ordinal_idx + 800]
+    assert "preventDefault" in ordinal_block
 
 
 def test_session_ui_uses_shared_token_display_module() -> None:
