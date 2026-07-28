@@ -60,6 +60,12 @@ Session deep-link shape (both query params required):
 http://127.0.0.1:58008/?view=session&harness={harness}&session={session_id}
 ```
 
+Appending an optional message hash scrolls to that message after the conversation loads:
+
+```text
+http://127.0.0.1:58008/?view=session&harness={harness}&session={session_id}#msg-{ordinal}
+```
+
 ## Lifecycle notes
 
 - After a plugin update moves the engine path, the next session start should replace a stale dashboard process with one launched from the new location.

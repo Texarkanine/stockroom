@@ -1288,6 +1288,7 @@ def wrapped(
             "project_name": project_display_name(row[2], row[3]),
             "project_id": row[3],
             "harness": row[0],
+            "session_id": row[1],
         }
 
     hour_counts = Counter(activity.hour for activity in activities)

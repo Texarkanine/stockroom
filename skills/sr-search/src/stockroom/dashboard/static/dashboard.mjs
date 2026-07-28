@@ -45,15 +45,20 @@ import {
   buildSessionMetaEntries,
   buildSessionViewSearchParams,
   buildSessionsListSearchParams,
+  canReuseLoadedSession,
   clampSessionsListPage,
   documentTitleForView,
   formatSessionJsonExport,
   formatSessionMarkdownExport,
   isActiveSessionView,
+  messageAnchorId,
   normalizePerPage,
+  parseMessageHash,
   parseSessionViewParams,
   parseSessionsListParams,
   renderSessionMessageHtml,
+  resolveMessageAnchorElement,
+  sessionLocationWithMessageHash,
 } from "./dashboard-session.mjs";
 import { mountTokenDisplay } from "./dashboard-tokens.mjs";
 
@@ -722,7 +727,34 @@ function renderWrapped(wrapped) {
     label.textContent = cell.label;
     const value = document.createElement("p");
     value.className = "wrapped-value";
-    value.textContent = cell.value;
+    const sessionLink = cell.sessionLink;
+    if (sessionLink?.harness && sessionLink?.sessionId) {
+      const params = buildSessionViewSearchParams(
+        sessionLink.harness,
+        sessionLink.sessionId,
+      );
+      const anchor = document.createElement("a");
+      anchor.className = "wrapped-value-link";
+      anchor.href = `?${params.toString()}`;
+      anchor.textContent = cell.value;
+      anchor.addEventListener("click", (event) => {
+        if (
+          event.defaultPrevented ||
+          event.button !== 0 ||
+          event.metaKey ||
+          event.ctrlKey ||
+          event.shiftKey ||
+          event.altKey
+        ) {
+          return;
+        }
+        event.preventDefault();
+        void openSessionView(sessionLink.harness, sessionLink.sessionId);
+      });
+      value.append(anchor);
+    } else {
+      value.textContent = cell.value;
+    }
     const subtitle = document.createElement("p");
     subtitle.className = "wrapped-subtitle";
     subtitle.textContent = cell.subtitle;
@@ -1053,15 +1085,42 @@ function renderSessionDetail(detail) {
           ? "session-turn-assistant"
           : "";
     turn.className = ["session-turn", sideClass].filter(Boolean).join(" ");
+    const anchorId = messageAnchorId(message.ordinal);
+    const heading = document.createElement("div");
+    heading.className = "session-turn-heading";
     const role = document.createElement("p");
     role.className = "session-turn-role";
     role.textContent = roleName;
+    heading.append(role);
+    if (anchorId) {
+      turn.id = anchorId;
+      const ordinalLink = document.createElement("a");
+      ordinalLink.className = "session-turn-ordinal";
+      ordinalLink.href = `#${anchorId}`;
+      ordinalLink.textContent = `#${message.ordinal}`;
+      ordinalLink.title = `Link to message ${message.ordinal}`;
+      ordinalLink.addEventListener("click", (event) => {
+        if (
+          event.defaultPrevented ||
+          event.button !== 0 ||
+          event.metaKey ||
+          event.ctrlKey ||
+          event.shiftKey ||
+          event.altKey
+        ) {
+          return;
+        }
+        event.preventDefault();
+        navigateToMessageOrdinal(message.ordinal);
+      });
+      heading.append(ordinalLink);
+    }
     const body = document.createElement("div");
     body.className = "session-turn-body";
     body.innerHTML = renderSessionMessageHtml(message.text || "", (value) =>
       markdown.render(value),
     );
-    turn.append(role, body);
+    turn.append(heading, body);
     for (const tool of message.tool_calls ?? []) {
       const detailsEl = document.createElement("details");
       detailsEl.className = "session-tool";
@@ -1074,9 +1133,59 @@ function renderSessionDetail(detail) {
     }
     elements.sessionTurns.append(turn);
   }
+  scrollToMessageHash();
+}
+
+function scrollToMessageHash(hash = window.location.hash) {
+  const target = resolveMessageAnchorElement(elements.sessionTurns, hash);
+  if (!target) {
+    return;
+  }
+  target.scrollIntoView({ block: "start" });
+}
+
+/**
+ * Same-document jump to ``#msg-N`` without refetching the conversation.
+ *
+ * @param {unknown} ordinal
+ */
+function navigateToMessageOrdinal(ordinal) {
+  const anchor = messageAnchorId(ordinal);
+  if (!anchor) {
+    return;
+  }
+  const hash = `#${anchor}`;
+  if (window.location.hash !== hash) {
+    const next = sessionLocationWithMessageHash(
+      window.location.pathname,
+      window.location.search,
+      ordinal,
+    );
+    window.history.pushState(
+      {
+        view: "session",
+        harness: sessionView?.harness,
+        sessionId: sessionView?.sessionId,
+      },
+      "",
+      next,
+    );
+  }
+  scrollToMessageHash(hash);
 }
 
 async function openSessionView(harness, sessionId, { push = true } = {}) {
+  if (canReuseLoadedSession(sessionView, sessionDetail, harness, sessionId)) {
+    if (push) {
+      const params = buildSessionViewSearchParams(harness, sessionId);
+      const hash = window.location.hash;
+      const next = `${window.location.pathname}?${params.toString()}${hash}`;
+      window.history.pushState({ view: "session", harness, sessionId }, "", next);
+    }
+    showSessionView();
+    scrollToMessageHash();
+    return;
+  }
   sessionsListRequestGate.begin();
   sessionView = { harness, sessionId };
   sessionDetail = null;
@@ -1465,6 +1574,17 @@ document.addEventListener("click", (event) => {
 
 window.addEventListener("popstate", () => {
   syncViewFromLocation();
+});
+
+window.addEventListener("hashchange", () => {
+  if (!sessionView) {
+    return;
+  }
+  // Hash-only changes must never refetch; just scroll when the target exists.
+  if (parseMessageHash(window.location.hash) === null) {
+    return;
+  }
+  scrollToMessageHash();
 });
 
 const bootSearch = new URLSearchParams(window.location.search);

@@ -11,12 +11,17 @@ import {
   documentTitleForView,
   formatSessionJsonExport,
   formatSessionMarkdownExport,
+  canReuseLoadedSession,
   isActiveSessionView,
+  messageAnchorId,
   normalizePerPage,
+  parseMessageHash,
   parseSessionViewParams,
   parseSessionsListParams,
   perPageToLimit,
   renderSessionMessageHtml,
+  resolveMessageAnchorElement,
+  sessionLocationWithMessageHash,
 } from "../src/stockroom/dashboard/static/dashboard-session.mjs";
 
 test("buildSessionViewSearchParams encodes the canonical session view", () => {
@@ -61,6 +66,84 @@ test("buildSessionDeepLink appends encoded query to a base URL", () => {
     buildSessionDeepLink("http://127.0.0.1:58008", "cursor", "a/b"),
     "http://127.0.0.1:58008/?view=session&harness=cursor&session=a%2Fb",
   );
+});
+
+test("messageAnchorId and parseMessageHash round-trip ordinals", () => {
+  assert.equal(messageAnchorId(0), "msg-0");
+  assert.equal(messageAnchorId(12), "msg-12");
+  assert.equal(messageAnchorId(undefined), null);
+  assert.equal(messageAnchorId(-1), null);
+  assert.equal(parseMessageHash("#msg-0"), 0);
+  assert.equal(parseMessageHash("#msg-12"), 12);
+  assert.equal(parseMessageHash("#msg-12x"), null);
+  assert.equal(parseMessageHash("#turn-1"), null);
+  assert.equal(parseMessageHash(""), null);
+  assert.equal(parseMessageHash(null), null);
+});
+
+test("buildSessionDeepLink optional ordinal appends msg hash", () => {
+  assert.equal(
+    buildSessionDeepLink("http://127.0.0.1:58008/", "cursor", "s1", {
+      ordinal: 3,
+    }),
+    "http://127.0.0.1:58008/?view=session&harness=cursor&session=s1#msg-3",
+  );
+  assert.equal(
+    buildSessionDeepLink("http://127.0.0.1:58008/#stale", "cursor", "s1"),
+    "http://127.0.0.1:58008/?view=session&harness=cursor&session=s1",
+  );
+});
+
+test("resolveMessageAnchorElement finds msg id under root", () => {
+  const root = {
+    querySelector(selector) {
+      return selector === "#msg-2" ? { id: "msg-2" } : null;
+    },
+  };
+  assert.deepEqual(resolveMessageAnchorElement(root, "#msg-2"), { id: "msg-2" });
+  assert.equal(resolveMessageAnchorElement(root, "#msg-9"), null);
+  assert.equal(resolveMessageAnchorElement(root, "#nope"), null);
+  assert.equal(resolveMessageAnchorElement(null, "#msg-2"), null);
+});
+
+test("sessionLocationWithMessageHash preserves path and query while setting hash", () => {
+  assert.equal(
+    sessionLocationWithMessageHash(
+      "/",
+      "view=session&harness=cursor&session=s1",
+      3,
+    ),
+    "/?view=session&harness=cursor&session=s1#msg-3",
+  );
+  assert.equal(
+    sessionLocationWithMessageHash(
+      "/",
+      "?view=session&harness=cursor&session=s1",
+      3,
+    ),
+    "/?view=session&harness=cursor&session=s1#msg-3",
+  );
+  assert.equal(
+    sessionLocationWithMessageHash(
+      "/",
+      new URLSearchParams("view=session&harness=cursor&session=s1"),
+      0,
+    ),
+    "/?view=session&harness=cursor&session=s1#msg-0",
+  );
+  assert.equal(
+    sessionLocationWithMessageHash("/", "view=session&harness=cursor&session=s1", -1),
+    "/?view=session&harness=cursor&session=s1",
+  );
+});
+
+test("canReuseLoadedSession requires matching view and loaded detail", () => {
+  const view = { harness: "cursor", sessionId: "s1" };
+  const detail = { harness: "cursor", session_id: "s1" };
+  assert.equal(canReuseLoadedSession(view, detail, "cursor", "s1"), true);
+  assert.equal(canReuseLoadedSession(view, null, "cursor", "s1"), false);
+  assert.equal(canReuseLoadedSession(view, detail, "claude", "s1"), false);
+  assert.equal(canReuseLoadedSession(null, detail, "cursor", "s1"), false);
 });
 
 test("formatSessionMarkdownExport builds title, turns, and fenced tools", () => {

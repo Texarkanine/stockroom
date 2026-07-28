@@ -997,6 +997,10 @@ export function buildWrappedPanel(wrapped) {
           : `${finiteNumber(marathon.messages)} messages`,
       subtitle: marathonSubtitle,
       subtitleTitle: marathonSubtitleTitle,
+      sessionLink:
+        marathon.harness && marathon.session_id
+          ? { harness: String(marathon.harness), sessionId: String(marathon.session_id) }
+          : null,
     },
     {
       key: "peak",

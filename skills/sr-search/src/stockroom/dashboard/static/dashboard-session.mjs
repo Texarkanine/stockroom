@@ -51,17 +51,62 @@ export function documentTitleForView(view) {
 }
 
 /**
+ * DOM id / hash fragment (without ``#``) for a message ordinal.
+ *
+ * @param {unknown} ordinal Message ordinal from session detail.
+ * @returns {string | null}
+ */
+export function messageAnchorId(ordinal) {
+  const n = Number(ordinal);
+  if (!Number.isInteger(n) || n < 0) {
+    return null;
+  }
+  return `msg-${n}`;
+}
+
+/**
+ * Parse ``#msg-N`` from a location hash; null when malformed.
+ *
+ * @param {unknown} hash ``location.hash`` or equivalent.
+ * @returns {number | null}
+ */
+export function parseMessageHash(hash) {
+  const match = String(hash ?? "").match(/^#msg-(\d+)$/);
+  return match ? Number(match[1]) : null;
+}
+
+/**
+ * Resolve the message bubble element for a hash under ``root``.
+ *
+ * @param {{ querySelector: (selector: string) => Element | null } | null | undefined} root
+ * @param {unknown} hash
+ * @returns {Element | null}
+ */
+export function resolveMessageAnchorElement(root, hash) {
+  const ordinal = parseMessageHash(hash);
+  if (ordinal === null || root == null) {
+    return null;
+  }
+  return root.querySelector(`#${messageAnchorId(ordinal)}`);
+}
+
+/**
  * @param {string} baseUrl
  * @param {string} harness
  * @param {string} sessionId
+ * @param {{ ordinal?: number } | undefined} [options]
  * @returns {string}
  */
-export function buildSessionDeepLink(baseUrl, harness, sessionId) {
+export function buildSessionDeepLink(baseUrl, harness, sessionId, options) {
   const url = new URL(baseUrl, "http://127.0.0.1");
   url.search = "";
   url.hash = "";
   const params = buildSessionViewSearchParams(harness, sessionId);
-  return `${url.origin}${url.pathname}?${params.toString()}`;
+  const anchor = messageAnchorId(options?.ordinal);
+  if (anchor) {
+    url.hash = anchor;
+  }
+  return `${url.origin}${url.pathname}?${params.toString()}${url.hash}`;
 }
 
 /** @typedef {25 | 50 | 100 | "all"} PerPage */
@@ -390,6 +435,41 @@ export function isActiveSessionView(sessionView, harness, sessionId) {
     sessionView.harness === harness &&
     sessionView.sessionId === sessionId
   );
+}
+
+/**
+ * True when the requested session is already loaded in memory (no refetch).
+ *
+ * @param {{harness: string, sessionId: string} | null | undefined} sessionView
+ * @param {{harness?: string, session_id?: string} | null | undefined} sessionDetail
+ * @param {string} harness
+ * @param {string} sessionId
+ * @returns {boolean}
+ */
+export function canReuseLoadedSession(sessionView, sessionDetail, harness, sessionId) {
+  return (
+    isActiveSessionView(sessionView, harness, sessionId) &&
+    !!sessionDetail &&
+    sessionDetail.harness === harness &&
+    sessionDetail.session_id === sessionId
+  );
+}
+
+/**
+ * Build a same-document location preserving path/query and setting ``#msg-N``.
+ *
+ * @param {string} pathname
+ * @param {string | URLSearchParams} search Query string (leading ``?`` optional).
+ * @param {unknown} ordinal
+ * @returns {string}
+ */
+export function sessionLocationWithMessageHash(pathname, search, ordinal) {
+  const params =
+    search instanceof URLSearchParams ? search : new URLSearchParams(search);
+  const query = params.toString();
+  const base = query ? `${pathname}?${query}` : pathname;
+  const anchor = messageAnchorId(ordinal);
+  return anchor ? `${base}#${anchor}` : base;
 }
 
 /**
