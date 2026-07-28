@@ -1,10 +1,11 @@
 # Active Context
 
 ## Current Task: github-issue-and-pr-templates
-**Phase:** QA - COMPLETE
+**Phase:** REFLECT COMPLETE
 
 ## What Was Done
-- QA PASS; fixed CONTRIBUTING link visibility in PR template
+- Reflection written; techContext updated with template pointers
+- Ready for archive
 
 ## Next Step
-- Reflect phase
+- Operator: run `/niko-archive`
