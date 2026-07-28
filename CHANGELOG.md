@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.18.0](https://github.com/Texarkanine/stockroom/compare/v0.17.1...v0.18.0) (2026-07-28)
+
+
+### Features
+
+* **dashboard:** marathon session link and message ordinal deep-links ([#98](https://github.com/Texarkanine/stockroom/issues/98)) ([ed9028a](https://github.com/Texarkanine/stockroom/commit/ed9028aff2a5069bf29dc4902eaf6809c156f18d))
+
 ## [0.17.1](https://github.com/Texarkanine/stockroom/compare/v0.17.0...v0.17.1) (2026-07-27)
 
 
