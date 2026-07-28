@@ -1,12 +1,13 @@
 # Active Context
 
 ## Current Task: github-issue-and-pr-templates
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Intent clarified: #100 + #101 as goals; issue/PR sketches are ideas not gospel; design optimal templates
-- Hard constraints: blank issues on; bug + feature forms minimum; component-split only if investigation warrants; ADHD-short prose without dropping load-bearing fields
-- Complexity: Level 2 — self-contained `.github/` enhancement; design choices are content/structure, not architecture
+- Investigated troubleshooting surfaces, doctor probe facts, CONTRIBUTING/release-please, org PR templates, GitHub issue-form schema
+- Decided against per-component issue forms: one bug + one feature, each with Area dropdown
+- Planned TDD via `skills/sr-search/tests/test_github_templates.py` (repo_root packaging style)
+- Planned files: `bug_report.yml`, `feature_request.yml`, `config.yml`, `pull_request_template.md`
 
 ## Next Step
-- Load Level 2 workflow and execute planning phase
+- Preflight validation, then build
