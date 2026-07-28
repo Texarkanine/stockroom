@@ -26,3 +26,14 @@ Add GitHub issue form(s) (bug + feature minimum; component split only if warrant
     - PR template stays short; conventional-commit title called out for release-please
 * Insights
     - Field needs converge across components; routing ≠ separate YAML forms
+
+## 2026-07-28 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated TDD ordering (tests before template files)
+    - Confirmed packaging-style test home + existing `bug`/`enhancement` labels
+    - Confirmed PyYAML available transitively under engine sync
+* Decisions made
+    - PASS with amendments: Troubleshooting contact_links; title prefixes; no direct PyYAML dep
+* Insights
+    - contact_links can steer install questions to docs without disabling blank issues

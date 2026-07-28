@@ -15,6 +15,7 @@ Add GitHub issue forms (bug + feature) and a short PR template so first-contact 
 - [Bug form exists]: repo has `.github/ISSUE_TEMPLATE/bug_report.yml` → parses as YAML with `name`, `body` list
 - [Feature form exists]: repo has `.github/ISSUE_TEMPLATE/feature_request.yml` → same structure
 - [Blank issues allowed]: `.github/ISSUE_TEMPLATE/config.yml` has `blank_issues_enabled: true`
+- [Troubleshooting contact link]: `config.yml` has a `contact_links` entry pointing at the troubleshooting docs URL
 - [Doctor field load-bearing]: bug form body has a required `textarea` whose label/description mentions `stockroom doctor` (probe), and it appears before expected/actual narrative fields
 - [Area on both forms]: bug and feature forms each include a required `dropdown` for area/component routing
 - [Harness on bug form]: bug form has a required harness dropdown including Cursor, Claude Code, and CLI-only/neither
@@ -37,12 +38,15 @@ Add GitHub issue forms (bug + feature) and a short PR template so first-contact 
    - Files: `skills/sr-search/tests/test_github_templates.py`
    - Changes: new test module; use `yaml.safe_load` (PyYAML available via engine/docs deps — verify; if not in engine lock, use a minimal structural parse or add assertion via `ruamel`/`yaml` already present)
 
-2. **`config.yml`** — enable blank issues.
+2. **`config.yml`** — blank issues + triage contact link.
    - Files: `.github/ISSUE_TEMPLATE/config.yml`
-   - Changes: `blank_issues_enabled: true` only (no contact_links unless needed)
+   - Changes:
+     - `blank_issues_enabled: true`
+     - `contact_links`: one entry → Troubleshooting docs (`about`: check common install/torch/hooks/shim fixes before filing). Surfaces above the template chooser without blocking blanks.
 
 3. **`bug_report.yml`** — single optimal bug form (ADHD-short labels; keep load-bearing fields).
    - Files: `.github/ISSUE_TEMPLATE/bug_report.yml`
+   - Metadata: `title: "[Bug]: "`, `labels: ["bug"]`
    - Fields (order):
      1. `markdown` — one short line: paste doctor first; link [Troubleshooting](https://texarkanine.github.io/stockroom/user-guide/troubleshooting/)
      2. `textarea` **stockroom doctor probe** — required; `render: shell`; description notes local paths; command `stockroom doctor probe`
@@ -60,8 +64,8 @@ Add GitHub issue forms (bug + feature) and a short PR template so first-contact 
 
 4. **`feature_request.yml`** — short form; no doctor.
    - Files: `.github/ISSUE_TEMPLATE/feature_request.yml`
+   - Metadata: `title: "[Feature]: "`, `labels: ["enhancement"]`
    - Fields: short markdown · Area dropdown (same options) · Problem / motivation (required) · Proposal (required) · Alternatives (optional)
-   - Labels: `enhancement`
 
 5. **PR template** — short; load-bearing checklist first items matter most.
    - Files: `.github/pull_request_template.md`
@@ -84,7 +88,7 @@ No new technology - validation not required. Issue forms use GitHub's native YAM
 
 ## Challenges & Mitigations
 
-- **PyYAML not in engine deps**: Check lock; prefer existing dependency; else parse minimally without new dep (e.g. require files exist + key substrings) — packaging tests already do structural asserts without full schema validators.
+- **PyYAML not a direct engine dep**: It is locked transitively via `sentence-transformers` → `huggingface-hub`. Use `yaml.safe_load` in tests (present under `make sync`); do **not** add a direct dependency for this.
 - **Over-long bug form scares humans**: Cap fields to the list above; short labels; optional for non-load-bearing; do not require pre-submit checkboxes.
 - **Component-split temptation later**: Area dropdown is the escape hatch; revisit separate forms only if filed bugs show a field set that repeatedly diverges.
 - **PR template deleted wholesale**: Keep under ~15 lines of checklist; put rare Niko note in HTML comment.
@@ -103,6 +107,12 @@ No new technology - validation not required. Issue forms use GitHub's native YAM
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
 - [ ] QA
+
+## Preflight Amendments
+
+- Added Troubleshooting `contact_links` entry in `config.yml` (keeps blanks open; reduces RTM filings).
+- Added `title` prefixes `[Bug]: ` / `[Feature]: ` on issue forms.
+- Clarified PyYAML: transitive via huggingface-hub; no new direct dep.
