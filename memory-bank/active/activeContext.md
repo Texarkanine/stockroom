@@ -1,11 +1,12 @@
 # Active Context
 
 ## Current Task: dashboard-marathon-link-and-msg-deep-link-investigate
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Intent clarified and approved: (1) wrap Marathon Session as a link to that conversation; (2) investigate message ordinal URL-hash deep-links to bubbles (anchor top).
-- Complexity determined: Level 2 — small enhancement + investigation, self-contained in the dashboard session/Wrapped UI.
+- Planned marathon Wrapped → session deep-link (API must add `session_id`; cell `href`; render `<a>`).
+- Investigated message ordinal deep-links: **feasible** (`#msg-N`, post-render top-of-bubble scroll).
+- Operator confirmed scope: **both** (marathon + ordinal Steps 5–7).
 
 ## Next Step
-- Load Level 2 workflow and execute the Plan phase.
+- Preflight → Build for full scope.
