@@ -676,6 +676,45 @@ test("buildWrappedPanel marathon exposes subtitleTitle when name differs from id
   assert.equal(same.subtitleTitle, null);
 });
 
+test("buildWrappedPanel marathon exposes sessionLink when harness and session_id present", () => {
+  const linked = buildWrappedPanel({
+    totals: { sessions: 1, messages: 5, span: {} },
+    distinct_projects: 1,
+    busiest_harness: {},
+    best_streak: {},
+    marathon_session: {
+      messages: 5,
+      project_name: "stockroom",
+      project_id: "p1",
+      harness: "cursor",
+      session_id: "marathon-1",
+    },
+    peak_hour: {},
+    top_tool: {},
+  }).find((cell) => cell.key === "marathon");
+  assert.deepEqual(linked.sessionLink, {
+    harness: "cursor",
+    sessionId: "marathon-1",
+  });
+
+  const missingId = buildWrappedPanel({
+    totals: { sessions: 1, messages: 5, span: {} },
+    distinct_projects: 1,
+    busiest_harness: {},
+    best_streak: {},
+    marathon_session: {
+      messages: 5,
+      harness: "cursor",
+    },
+    peak_hour: {},
+    top_tool: {},
+  }).find((cell) => cell.key === "marathon");
+  assert.equal(missingId.sessionLink, null);
+
+  const empty = buildWrappedPanel({}).find((cell) => cell.key === "marathon");
+  assert.equal(empty.sessionLink, null);
+});
+
 test("builds aggregate doughnut and compare tool models", () => {
   const payload = {
     tools: ["Read", "Write"],

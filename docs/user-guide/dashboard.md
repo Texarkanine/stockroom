@@ -60,6 +60,14 @@ Session deep-link shape (both query params required):
 http://127.0.0.1:58008/?view=session&harness={harness}&session={session_id}
 ```
 
+Optional message hash scrolls to that turn after the conversation loads (top of the bubble). Ordinal indicators in the reconstruction view use the same fragment:
+
+```text
+http://127.0.0.1:58008/?view=session&harness={harness}&session={session_id}#msg-{ordinal}
+```
+
+On the metrics Wrapped panel, **Marathon Session** links to that conversation with the same session deep-link shape.
+
 ## Lifecycle notes
 
 - After a plugin update moves the engine path, the next session start should replace a stale dashboard process with one launched from the new location.

@@ -51,17 +51,58 @@ export function documentTitleForView(view) {
 }
 
 /**
+ * DOM id / hash fragment (without ``#``) for a message ordinal.
+ *
+ * @param {unknown} ordinal Message ordinal from session detail.
+ * @returns {string}
+ */
+export function messageAnchorId(ordinal) {
+  return `msg-${Number(ordinal)}`;
+}
+
+/**
+ * Parse ``#msg-N`` from a location hash; null when malformed.
+ *
+ * @param {unknown} hash ``location.hash`` or equivalent.
+ * @returns {number | null}
+ */
+export function parseMessageHash(hash) {
+  const match = String(hash ?? "").match(/^#msg-(\d+)$/);
+  return match ? Number(match[1]) : null;
+}
+
+/**
+ * Resolve the message bubble element for a hash under ``root``.
+ *
+ * @param {{ querySelector: (selector: string) => Element | null } | null | undefined} root
+ * @param {unknown} hash
+ * @returns {Element | null}
+ */
+export function resolveMessageAnchorElement(root, hash) {
+  const ordinal = parseMessageHash(hash);
+  if (ordinal === null || root == null) {
+    return null;
+  }
+  return root.querySelector(`#${messageAnchorId(ordinal)}`);
+}
+
+/**
  * @param {string} baseUrl
  * @param {string} harness
  * @param {string} sessionId
+ * @param {{ ordinal?: number } | undefined} [options]
  * @returns {string}
  */
-export function buildSessionDeepLink(baseUrl, harness, sessionId) {
+export function buildSessionDeepLink(baseUrl, harness, sessionId, options) {
   const url = new URL(baseUrl, "http://127.0.0.1");
   url.search = "";
   url.hash = "";
   const params = buildSessionViewSearchParams(harness, sessionId);
-  return `${url.origin}${url.pathname}?${params.toString()}`;
+  const ordinal = options?.ordinal;
+  if (Number.isInteger(ordinal) && ordinal >= 0) {
+    url.hash = messageAnchorId(ordinal);
+  }
+  return `${url.origin}${url.pathname}?${params.toString()}${url.hash}`;
 }
 
 /** @typedef {25 | 50 | 100 | "all"} PerPage */

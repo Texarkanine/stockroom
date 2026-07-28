@@ -12,11 +12,14 @@ import {
   formatSessionJsonExport,
   formatSessionMarkdownExport,
   isActiveSessionView,
+  messageAnchorId,
   normalizePerPage,
+  parseMessageHash,
   parseSessionViewParams,
   parseSessionsListParams,
   perPageToLimit,
   renderSessionMessageHtml,
+  resolveMessageAnchorElement,
 } from "../src/stockroom/dashboard/static/dashboard-session.mjs";
 
 test("buildSessionViewSearchParams encodes the canonical session view", () => {
@@ -61,6 +64,42 @@ test("buildSessionDeepLink appends encoded query to a base URL", () => {
     buildSessionDeepLink("http://127.0.0.1:58008", "cursor", "a/b"),
     "http://127.0.0.1:58008/?view=session&harness=cursor&session=a%2Fb",
   );
+});
+
+test("messageAnchorId and parseMessageHash round-trip ordinals", () => {
+  assert.equal(messageAnchorId(0), "msg-0");
+  assert.equal(messageAnchorId(12), "msg-12");
+  assert.equal(parseMessageHash("#msg-0"), 0);
+  assert.equal(parseMessageHash("#msg-12"), 12);
+  assert.equal(parseMessageHash("#msg-12x"), null);
+  assert.equal(parseMessageHash("#turn-1"), null);
+  assert.equal(parseMessageHash(""), null);
+  assert.equal(parseMessageHash(null), null);
+});
+
+test("buildSessionDeepLink optional ordinal appends msg hash", () => {
+  assert.equal(
+    buildSessionDeepLink("http://127.0.0.1:58008/", "cursor", "s1", {
+      ordinal: 3,
+    }),
+    "http://127.0.0.1:58008/?view=session&harness=cursor&session=s1#msg-3",
+  );
+  assert.equal(
+    buildSessionDeepLink("http://127.0.0.1:58008/#stale", "cursor", "s1"),
+    "http://127.0.0.1:58008/?view=session&harness=cursor&session=s1",
+  );
+});
+
+test("resolveMessageAnchorElement finds msg id under root", () => {
+  const root = {
+    querySelector(selector) {
+      return selector === "#msg-2" ? { id: "msg-2" } : null;
+    },
+  };
+  assert.deepEqual(resolveMessageAnchorElement(root, "#msg-2"), { id: "msg-2" });
+  assert.equal(resolveMessageAnchorElement(root, "#msg-9"), null);
+  assert.equal(resolveMessageAnchorElement(root, "#nope"), null);
+  assert.equal(resolveMessageAnchorElement(null, "#msg-2"), null);
 });
 
 test("formatSessionMarkdownExport builds title, turns, and fenced tools", () => {

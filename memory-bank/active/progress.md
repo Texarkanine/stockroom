@@ -46,3 +46,15 @@ Make the Wrapped Marathon Session cell a link to that conversation, and investig
 * Insights
     - `dashboard-core.mjs` and `dashboard-session.mjs` are currently import-free; still keep URL shape out of core
     - Session list rows are not `<a>` tags; marathon should be a real link with SPA progressive enhancement
+
+## 2026-07-27 - BUILD - COMPLETE
+
+* Work completed
+    - Implemented marathon link + `#msg-N` ordinal deep-links per plan (TDD)
+    - Full suite: 113 JS + 792 pytest passed (2 skipped); ruff clean
+    - Restored cu126 torch from hashed freeze after `make lint` sync stripped it
+* Decisions made
+    - Ordinal control text is `#N` linking to `#msg-N`
+    - Prefer `uv run --no-sync ruff` over `make lint` when torch must stay installed
+* Insights
+    - `make sync` / `make lint` still strips out-of-lock torch; heal from `{stockroom_home}/torch-requirements.txt`

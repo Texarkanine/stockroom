@@ -1611,6 +1611,7 @@ def test_wrapped_returns_all_time_rollups_and_ignores_selector(
             "project_name": "p1",
             "project_id": "p1",
             "harness": "claude",
+            "session_id": "a1",
         },
         "peak_hour": {"hour": 10, "count": 2},
         "top_tool": {"name": "Read", "calls": 3},

@@ -239,11 +239,35 @@ def test_session_pane_toolbar_and_bubble_layout_contracts() -> None:
     assert 'html[data-view="session"] #sessions-pane' in source
     assert ".session-tool" in source
     assert ".session-tool[open] summary" in source
+    assert "scroll-margin-top" in source
+    assert ".session-turn-ordinal" in source
     adapter = (STATIC_ROOT / "dashboard.mjs").read_text(encoding="utf-8")
     assert "session-turn-user" in adapter
     assert "session-turn-assistant" in adapter
     assert "applyViewChrome" in adapter
     assert "documentTitleForView" in adapter
+    assert "messageAnchorId" in adapter
+    assert "session-turn-ordinal" in adapter
+
+
+def test_wrapped_marathon_renders_session_deep_link() -> None:
+    """Marathon Wrapped value is a real session deep-link with SPA same-tab open."""
+    adapter = (STATIC_ROOT / "dashboard.mjs").read_text(encoding="utf-8")
+    assert "sessionLink" in adapter
+    assert "buildSessionViewSearchParams" in adapter
+    assert "openSessionView" in adapter
+    assert "wrapped-value-link" in adapter
+    source = (STATIC_ROOT / "index.html").read_text(encoding="utf-8")
+    assert ".wrapped-value-link" in source
+
+
+def test_session_message_hash_scroll_wiring() -> None:
+    """Session view scrolls to #msg-N after render and on hashchange."""
+    adapter = (STATIC_ROOT / "dashboard.mjs").read_text(encoding="utf-8")
+    assert "resolveMessageAnchorElement" in adapter
+    assert "scrollIntoView" in adapter
+    assert 'block: "start"' in adapter or "block: 'start'" in adapter
+    assert "hashchange" in adapter
 
 
 def test_session_ui_uses_shared_token_display_module() -> None:
