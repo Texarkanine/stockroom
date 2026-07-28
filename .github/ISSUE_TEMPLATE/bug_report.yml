@@ -1,0 +1,112 @@
+name: Bug report
+description: Something broke — doctor output first so we can triage without a round-trip.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Paste `stockroom doctor probe` below. It answers OS, torch, shim, and warehouse in one shot.
+
+        Stuck on a known issue? [Troubleshooting](https://texarkanine.github.io/stockroom/user-guide/troubleshooting/)
+  - type: textarea
+    id: doctor
+    attributes:
+      label: stockroom doctor probe
+      description: Run `stockroom doctor probe` and paste the full output. Includes local paths — that's expected.
+      render: shell
+      placeholder: "os: ..."
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Where it shows up.
+      options:
+        - Install / setup
+        - Hooks / harness
+        - Shim / PATH
+        - Ingest / schedule
+        - Search (SQL)
+        - Semantic / torch
+        - Dashboard
+        - Docs
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: stockroom-version
+    attributes:
+      label: stockroom version
+      description: From `stockroom --version` (or the plugin version if the command is missing).
+      placeholder: stockroom 0.x.x
+    validations:
+      required: true
+  - type: dropdown
+    id: harness
+    attributes:
+      label: Harness
+      options:
+        - Cursor
+        - Claude Code
+        - CLI only / neither
+    validations:
+      required: true
+  - type: input
+    id: harness-version
+    attributes:
+      label: Harness version
+      description: Optional. Cursor/Claude version string if you have it.
+      placeholder: e.g. Cursor 1.x / Claude Code x.y
+    validations:
+      required: false
+  - type: textarea
+    id: what-ran
+    attributes:
+      label: What you ran
+      description: Skill name or CLI command, verbatim.
+      placeholder: sr-initialize / stockroom ingest / …
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected
+      description: What should have happened.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual
+      description: What happened instead (error text helps).
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Optional. Relevant lines from `$STOCKROOM_HOME/logs/`.
+      render: shell
+    validations:
+      required: false
+  - type: dropdown
+    id: restarted
+    attributes:
+      label: Restarted harness since install or update?
+      options:
+        - "Yes"
+        - "No"
+        - Unsure
+    validations:
+      required: false
+  - type: checkboxes
+    id: presubmit
+    attributes:
+      label: Before submit
+      description: Not required — saves a round-trip when they apply.
+      options:
+        - label: I read [Troubleshooting](https://texarkanine.github.io/stockroom/user-guide/troubleshooting/)
+        - label: Torch / semantic — I read [Torch](https://texarkanine.github.io/stockroom/user-guide/troubleshooting/torch/) and re-ran `sr-initialize`
+        - label: Cursor — **Include third-party Plugins, Skills, and other configs** is enabled

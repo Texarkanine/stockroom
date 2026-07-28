@@ -37,3 +37,15 @@ Add GitHub issue form(s) (bug + feature minimum; component split only if warrant
     - PASS with amendments: Troubleshooting contact_links; title prefixes; no direct PyYAML dep
 * Insights
     - contact_links can steer install questions to docs without disabling blank issues
+
+## 2026-07-28 - BUILD - COMPLETE
+
+* Work completed
+    - Implemented bug + feature issue forms, config.yml, PR template
+    - Structural tests in test_github_templates.py (8)
+    - Verified with make ci (NODE=22) and make docs-build
+* Decisions made
+    - Kept Area dropdown options identical across forms
+    - Pre-submit checkboxes optional (not required gates)
+* Insights
+    - Unquoted `os: ...` placeholder breaks YAML (`...` / colon); quote it

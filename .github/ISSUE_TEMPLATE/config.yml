@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Troubleshooting
+    url: https://texarkanine.github.io/stockroom/user-guide/troubleshooting/
+    about: Common install, torch, hooks, and shim fixes — check here before filing.
