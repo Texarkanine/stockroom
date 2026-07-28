@@ -1158,9 +1158,7 @@ function navigateToMessageOrdinal(ordinal) {
   if (window.location.hash !== hash) {
     const next = sessionLocationWithMessageHash(
       window.location.pathname,
-      window.location.search.startsWith("?")
-        ? window.location.search.slice(1)
-        : window.location.search,
+      window.location.search,
       ordinal,
     );
     window.history.pushState(

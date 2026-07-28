@@ -118,6 +118,14 @@ test("sessionLocationWithMessageHash preserves path and query while setting hash
   assert.equal(
     sessionLocationWithMessageHash(
       "/",
+      "?view=session&harness=cursor&session=s1",
+      3,
+    ),
+    "/?view=session&harness=cursor&session=s1#msg-3",
+  );
+  assert.equal(
+    sessionLocationWithMessageHash(
+      "/",
       new URLSearchParams("view=session&harness=cursor&session=s1"),
       0,
     ),

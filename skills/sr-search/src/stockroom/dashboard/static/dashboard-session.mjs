@@ -459,7 +459,7 @@ export function canReuseLoadedSession(sessionView, sessionDetail, harness, sessi
  * Build a same-document location preserving path/query and setting ``#msg-N``.
  *
  * @param {string} pathname
- * @param {string | URLSearchParams} search Query without leading ``?``.
+ * @param {string | URLSearchParams} search Query string (leading ``?`` optional).
  * @param {unknown} ordinal
  * @returns {string}
  */
