@@ -1,11 +1,11 @@
 # Active Context
 
 ## Current Task: dashboard-marathon-link-and-msg-deep-link-investigate
-**Phase:** QA - COMPLETE
+**Phase:** REFLECT COMPLETE
 
 ## What Was Done
-- Semantic QA PASS. Trivial fix: `messageAnchorId` returns null for invalid ordinals (no `msg-NaN`); ordinal UI omitted when invalid.
-- Marathon link + `#msg-N` deep-links complete and documented.
+- Reflection written; techContext deep-link note updated for `#msg-{ordinal}`.
+- Marathon Wrapped link + message ordinal hash deep-links shipped and QA'd.
 
 ## Next Step
-- Reflect phase, then operator runs `/niko-archive`.
+- Operator: run `/niko-archive` to finalize.

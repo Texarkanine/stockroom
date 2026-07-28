@@ -67,3 +67,12 @@ Make the Wrapped Marathon Session cell a link to that conversation, and investig
     - Wrote `.qa-validation-status` PASS
 * Decisions made
     - Omit ordinal indicator/id when ordinal is not a non-negative integer
+
+## 2026-07-27 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote reflection doc
+    - Reconciled `techContext.md` with `#msg-{ordinal}` deep-link note
+* Insights
+    - Prefer real `href` + SPA click over click-only rows for shareable destinations
+    - Avoid `make lint`/`make sync` when torch must remain; use `--no-sync` ruff
