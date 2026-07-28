@@ -53,32 +53,41 @@ Recommended approach (if implemented this task):
 
 ## Implementation Plan
 
+Each step is one TDD cycle: **(a) write/extend failing test → (b) run and confirm fail → (c) implement → (d) run and confirm pass**. Do not start (c) before (b).
+
 1. **API: include marathon `session_id`**
-   - Files: `skills/sr-search/src/stockroom/dashboard/metrics.py`, `skills/sr-search/tests/test_dashboard_metrics.py`
-   - Changes: In `wrapped()`, add `"session_id": row[1]` to `marathon_session` dict. Update `test_wrapped_returns_all_time_rollups_and_ignores_selector` expected dict (`session_id: "a1"` for the 5-message claude winner).
+   - Files: `skills/sr-search/tests/test_dashboard_metrics.py`, `skills/sr-search/src/stockroom/dashboard/metrics.py`
+   - (a) Extend `test_wrapped_returns_all_time_rollups_and_ignores_selector` expected `marathon_session` with `"session_id": "a1"`.
+   - (c) In `wrapped()`, add `"session_id": row[1]` to the marathon dict.
 
-2. **Pure cell model: marathon `href`**
-   - Files: `skills/sr-search/src/stockroom/dashboard/static/dashboard-core.mjs`, `skills/sr-search/tests-js/dashboard-core.test.mjs`
-   - Changes: In `buildWrappedPanel`, when `marathon.harness` and `marathon.session_id` are present, set `href` via `buildSessionViewSearchParams` / relative query string (reuse `dashboard-session.mjs` helper — import if layering allows, or duplicate the three-param query construction only if import would create a cycle; prefer import). Empty/missing → no `href`.
+2. **Pure cell model: marathon session identity for linking**
+   - Files: `skills/sr-search/tests-js/dashboard-core.test.mjs`, `skills/sr-search/src/stockroom/dashboard/static/dashboard-core.mjs`
+   - (a) Assert marathon cell exposes `sessionHref` fields (`harness` + `sessionId`) when both present; omit when missing / empty warehouse.
+   - (c) In `buildWrappedPanel`, set those fields from `marathon.harness` / `marathon.session_id`. **Do not import session URL helpers into core** (keep URL assembly in `dashboard.mjs`, which already imports `dashboard-session.mjs`). Preflight confirmed `dashboard-core.mjs` and `dashboard-session.mjs` are both currently import-free — still avoid coupling core to URL shape.
 
-3. **DOM: render marathon as link**
-   - Files: `skills/sr-search/src/stockroom/dashboard/static/dashboard.mjs`, CSS in `index.html` if needed for link styling inside `.wrapped-value`
-   - Changes: In `renderWrapped`, when `cell.href` is set, put an `<a href="…">` (value text) instead of plain text. Prefer real navigation (works with boot URL parse; middle-click/new tab). No click-handler SPA detour unless full reload proves jarring — real `<a>` is the product "link."
+3. **DOM: render marathon as link + SPA navigation**
+   - Files: `skills/sr-search/tests/test_dashboard_static.py` (and/or JS if a pure render helper is extracted), `skills/sr-search/src/stockroom/dashboard/static/dashboard.mjs`, `index.html` CSS if needed
+   - (a) Contract test: `dashboard.mjs` builds marathon value as `<a>` using `buildSessionViewSearchParams` / `openSessionView` when identity present.
+   - (c) In `renderWrapped`, when identity present: `<a href="?view=session&…">` with value text; same-tab click `preventDefault` + `openSessionView` (preserve middle-click/new-tab via real `href`). Style link inside `.wrapped-value` to match Wrapped chrome.
 
-4. **Docs (light)**
-   - Files: only if user-facing dashboard docs mention Wrapped cells; otherwise skip. Prefer code/tests as SSOT for this micro-UX.
+4. **Pure helpers: message anchor id + hash parse + deep-link ordinal**
+   - Files: `skills/sr-search/tests-js/dashboard-session.test.mjs`, `skills/sr-search/src/stockroom/dashboard/static/dashboard-session.mjs`
+   - (a) Tests for `messageAnchorId(ordinal) → "msg-N"`, `parseMessageHash("#msg-3") → 3` / invalid → null, `buildSessionDeepLink(..., { ordinal: 3 })` appends `#msg-3`, without ordinal clears/omits hash (current behavior).
+   - (c) Implement those helpers; extend `buildSessionDeepLink` with optional ordinal option (prefer options object over 4th positional if it keeps call sites clean — update existing call sites/tests).
 
-5. **[GATED] Ordinal indicators + hash ids**
-   - Files: `dashboard.mjs` (`renderSessionDetail`), `index.html` (styles for ordinal indicator / `scroll-margin-top` on `.session-turn`), tests in `dashboard-session.test.mjs` and/or new pure helper tests
-   - Changes: Set `turn.id = \`msg-${message.ordinal}\``; add ordinal link UI; CSS `scroll-margin-top` for top-of-bubble framing.
+5. **Ordinal indicators + bubble ids**
+   - Files: `skills/sr-search/tests/test_dashboard_static.py`, `dashboard.mjs` (`renderSessionDetail`), `index.html`
+   - (a) Static contracts: `msg-` / `messageAnchorId` / ordinal link class present; CSS includes `.session-turn { scroll-margin-top: … }` and ordinal indicator styles.
+   - (c) Set `turn.id` from `messageAnchorId(message.ordinal)`; add visible `<a class="session-turn-ordinal" href="#msg-N">` (or similar); CSS for indicator + scroll-margin (top-of-bubble framing).
 
-6. **[GATED] Hash scroll after load + hashchange**
-   - Files: `dashboard.mjs` (`openSessionView` / `renderSessionDetail`), optionally extract `scrollToMessageHash(hash)` pure-adjacent helper into `dashboard-session.mjs` for testability
-   - Changes: After render, scroll if hash matches; listen for `hashchange` while in session view.
+6. **Hash scroll after load + hashchange**
+   - Files: `skills/sr-search/tests-js/dashboard-session.test.mjs` (pure resolve helper), `dashboard.mjs`
+   - (a) Test pure `resolveMessageAnchorElement(root, hash)` (or equivalent) returns the `#msg-N` node / null.
+   - (c) After successful `renderSessionDetail`, scroll match with `scrollIntoView({ block: "start" })`; on `hashchange` while in session view, re-scroll without refetch. Respect active-session gate so stale loads do not scroll.
 
-7. **[GATED] Deep-link helper accepts optional ordinal**
-   - Files: `dashboard-session.mjs`, `tests-js/dashboard-session.test.mjs`
-   - Changes: `buildSessionDeepLink(..., ordinal?)` appends `#msg-N`; copy-link button can stay session-only unless we later wire "copy message link" from the ordinal control (`href` already sufficient for copy-link-address).
+7. **User-facing docs**
+   - Files: `docs/user-guide/dashboard.md`
+   - (a/c) Document optional `#msg-{ordinal}` on session deep-links; note Wrapped Marathon Session opens that conversation. No separate test file — doc change reviewed in QA.
 
 ## Technology Validation
 
@@ -93,7 +102,8 @@ No new technology - validation not required
 ## Challenges & Mitigations
 
 - **Missing `session_id` in current API**: Already identified; Step 1 adds it. Mitigation: exact assertion update in wrapped pytest.
-- **Import cycle `dashboard-core` ↔ `dashboard-session`**: Check imports before wiring; if cycle, put a tiny `buildSessionViewSearchParams` call site string in core or move href assembly to `renderWrapped` in `dashboard.mjs` (which already imports session helpers). Prefer assembling `href` in `dashboard.mjs` from cell `{ harness, sessionId }` if that keeps core free of session URL knowledge.
+- **URL knowledge in core**: Mitigated — cell exposes `harness`/`sessionId` only; `dashboard.mjs` builds `href` + SPA click (preflight: both helper modules are import-free today; still keep URL assembly out of core).
+- **Full page reload on marathon click**: Mitigated — real `href` for open-in-new-tab + `preventDefault`/`openSessionView` for same-tab SPA (matches sessions-row navigation feel).
 - **Async hash scroll race**: Scroll only after messages are in the DOM; ignore stale requests via existing `sessionRequestGate` / `isActiveSessionView`.
 - **Ordinal gaps / non-contiguous ordinals**: Use stored `message.ordinal`, not array index, so ids stay stable with warehouse identity.
 
@@ -101,7 +111,15 @@ No new technology - validation not required
 
 - **Plan failed because marathon linked project/harness but not a specific session**: Addressed by requiring `session_id` in API + href; do not link on harness alone.
 - **Plan failed because native `#fragment` scrolled before bubbles existed**: Covered by post-render scroll step; do not rely on browser default alone.
-- **Plan failed by implementing ordinals without operator buy-in on hash shape / UI chrome**: Scope gate above — Build omits Steps 5–7 until operator confirms.
+- **Plan failed by implementing ordinals without operator buy-in on hash shape / UI chrome**: Resolved — operator chose **both**.
+
+## Preflight Amendments
+
+- Encoded explicit test-before-code substeps on every implementation unit (was blocking TDD-encoding gap).
+- Marathon cell carries identity fields; URL/`<a>` assembly stays in `dashboard.mjs`.
+- Same-tab SPA navigation via `openSessionView` while keeping real `href`.
+- Added `docs/user-guide/dashboard.md` update for `#msg-{ordinal}` + marathon link.
+- Un-gated ordinal steps (operator confirmed both).
 
 ## Status
 
@@ -112,6 +130,6 @@ No new technology - validation not required
 - [x] Pre-Mortem complete
 - [x] Investigation (ordinal deep-links) complete — feasible; approach proposed
 - [x] Operator confirmation: include ordinal Steps 5–7 in this build? (both)
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
 - [ ] QA

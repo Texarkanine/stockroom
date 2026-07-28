@@ -34,3 +34,15 @@ Make the Wrapped Marathon Session cell a link to that conversation, and investig
 
 * Decisions made
     - Operator chose **both**: marathon Wrapped link + ordinal `#msg-N` deep-links in this build
+
+## 2026-07-27 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated plan against codebase; wrote `.preflight-status` PASS
+    - Amended plan for blocking TDD encoding + SPA link pattern + docs touchpoint
+* Decisions made
+    - Cell model exposes harness/sessionId; `dashboard.mjs` owns href + `openSessionView`
+    - Document `#msg-{ordinal}` in `docs/user-guide/dashboard.md`
+* Insights
+    - `dashboard-core.mjs` and `dashboard-session.mjs` are currently import-free; still keep URL shape out of core
+    - Session list rows are not `<a>` tags; marathon should be a real link with SPA progressive enhancement
