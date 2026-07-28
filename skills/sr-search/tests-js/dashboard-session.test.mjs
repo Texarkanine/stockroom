@@ -69,6 +69,8 @@ test("buildSessionDeepLink appends encoded query to a base URL", () => {
 test("messageAnchorId and parseMessageHash round-trip ordinals", () => {
   assert.equal(messageAnchorId(0), "msg-0");
   assert.equal(messageAnchorId(12), "msg-12");
+  assert.equal(messageAnchorId(undefined), null);
+  assert.equal(messageAnchorId(-1), null);
   assert.equal(parseMessageHash("#msg-0"), 0);
   assert.equal(parseMessageHash("#msg-12"), 12);
   assert.equal(parseMessageHash("#msg-12x"), null);

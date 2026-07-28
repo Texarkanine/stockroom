@@ -33,4 +33,4 @@ Each step was one TDD cycle. Completed:
 - [x] Operator confirmation: both
 - [x] Preflight
 - [x] Build
-- [ ] QA
+- [x] QA

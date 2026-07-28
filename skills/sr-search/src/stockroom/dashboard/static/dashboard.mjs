@@ -1083,18 +1083,21 @@ function renderSessionDetail(detail) {
           : "";
     turn.className = ["session-turn", sideClass].filter(Boolean).join(" ");
     const anchorId = messageAnchorId(message.ordinal);
-    turn.id = anchorId;
     const heading = document.createElement("div");
     heading.className = "session-turn-heading";
     const role = document.createElement("p");
     role.className = "session-turn-role";
     role.textContent = roleName;
-    const ordinalLink = document.createElement("a");
-    ordinalLink.className = "session-turn-ordinal";
-    ordinalLink.href = `#${anchorId}`;
-    ordinalLink.textContent = `#${message.ordinal}`;
-    ordinalLink.title = `Link to message ${message.ordinal}`;
-    heading.append(role, ordinalLink);
+    heading.append(role);
+    if (anchorId) {
+      turn.id = anchorId;
+      const ordinalLink = document.createElement("a");
+      ordinalLink.className = "session-turn-ordinal";
+      ordinalLink.href = `#${anchorId}`;
+      ordinalLink.textContent = `#${message.ordinal}`;
+      ordinalLink.title = `Link to message ${message.ordinal}`;
+      heading.append(ordinalLink);
+    }
     const body = document.createElement("div");
     body.className = "session-turn-body";
     body.innerHTML = renderSessionMessageHtml(message.text || "", (value) =>

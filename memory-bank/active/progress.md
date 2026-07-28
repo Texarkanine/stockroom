@@ -58,3 +58,12 @@ Make the Wrapped Marathon Session cell a link to that conversation, and investig
     - Prefer `uv run --no-sync ruff` over `make lint` when torch must stay installed
 * Insights
     - `make sync` / `make lint` still strips out-of-lock torch; heal from `{stockroom_home}/torch-requirements.txt`
+
+## 2026-07-27 - QA - COMPLETE
+
+* Work completed
+    - Semantic review against plan (KISS/DRY/YAGNI/completeness/docs)
+    - Fixed invalid-ordinal guard (`messageAnchorId` → null)
+    - Wrote `.qa-validation-status` PASS
+* Decisions made
+    - Omit ordinal indicator/id when ordinal is not a non-negative integer

@@ -54,10 +54,14 @@ export function documentTitleForView(view) {
  * DOM id / hash fragment (without ``#``) for a message ordinal.
  *
  * @param {unknown} ordinal Message ordinal from session detail.
- * @returns {string}
+ * @returns {string | null}
  */
 export function messageAnchorId(ordinal) {
-  return `msg-${Number(ordinal)}`;
+  const n = Number(ordinal);
+  if (!Number.isInteger(n) || n < 0) {
+    return null;
+  }
+  return `msg-${n}`;
 }
 
 /**
@@ -98,9 +102,9 @@ export function buildSessionDeepLink(baseUrl, harness, sessionId, options) {
   url.search = "";
   url.hash = "";
   const params = buildSessionViewSearchParams(harness, sessionId);
-  const ordinal = options?.ordinal;
-  if (Number.isInteger(ordinal) && ordinal >= 0) {
-    url.hash = messageAnchorId(ordinal);
+  const anchor = messageAnchorId(options?.ordinal);
+  if (anchor) {
+    url.hash = anchor;
   }
   return `${url.origin}${url.pathname}?${params.toString()}${url.hash}`;
 }
