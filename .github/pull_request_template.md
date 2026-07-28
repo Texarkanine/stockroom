@@ -1,4 +1,4 @@
-<!-- Docs & process: CONTRIBUTING.md -->
+Process details: [CONTRIBUTING.md](../CONTRIBUTING.md)
 
 ## What & why
 

@@ -49,3 +49,13 @@ Add GitHub issue form(s) (bug + feature minimum; component split only if warrant
     - Pre-submit checkboxes optional (not required gates)
 * Insights
     - Unquoted `os: ...` placeholder breaks YAML (`...` / colon); quote it
+
+## 2026-07-28 - QA - COMPLETE
+
+* Work completed
+    - Semantic review vs plan: KISS/YAGNI/completeness OK
+    - Trivial fix: PR template now links CONTRIBUTING.md visibly
+* Decisions made
+    - PASS
+* Insights
+    - None beyond build

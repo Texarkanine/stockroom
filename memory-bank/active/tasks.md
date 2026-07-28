@@ -109,7 +109,7 @@ No new technology - validation not required. Issue forms use GitHub's native YAM
 - [x] Pre-Mortem complete
 - [x] Preflight
 - [x] Build
-- [ ] QA
+- [x] QA
 
 ## Preflight Amendments
 
