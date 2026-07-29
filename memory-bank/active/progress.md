@@ -157,3 +157,16 @@ Add per-conversation skill and tool-call distribution visualizations (pie charts
     - Source greps on HTML/CSS values are not regression tests
 * Insights
     - Same pressure as stockroom#106 mature-PR-template pytest on headings
+
+## 2026-07-29 - REFLECT - COMPLETE
+
+* Work completed
+    - Re-ran full suite after the post-QA follow-ups (119 JS; 793 passed / 4 skipped Python)
+    - Wrote `reflection/reflection-compact-session-composition-empty-state.md` covering the rework arc
+    - Reconciled persistent files — no changes needed (`techContext.md` already describes the composition doughnuts)
+* Decisions made
+    - Reflected despite L1 having no reflect phase: rework after the L3 reflection warrants its own, per `reflections.mdc`
+    - Archive next via `/niko-archive`, collapsing both reflections into one #107 archive document
+* Insights
+    - Bounce the local dashboard before suspecting the data path — the stale process cost this rework its initial framing
+    - Collapse helpers must clear `min-height`, and no-flash initial state belongs in CSS, not the JS render path
