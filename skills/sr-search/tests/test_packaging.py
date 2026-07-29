@@ -82,10 +82,26 @@ def release_config(repo_root: Path) -> dict:
 def test_all_version_sources_in_lockstep(
     cursor_manifest: dict, claude_manifest: dict, release_manifest: dict
 ) -> None:
-    """Both manifests and the release-please manifest carry the same version."""
+    """Plugin manifests, release-please manifest, and ``stockroom.__version__`` agree."""
+    import stockroom
+
     root_version = release_manifest["."]
     assert cursor_manifest["version"] == root_version
     assert claude_manifest["version"] == root_version
+    assert stockroom.__version__ == root_version
+
+
+def test_init_version_has_release_please_marker(repo_root: Path) -> None:
+    """``__init__.py`` carries ``x-release-please-version`` so generic extra-files bump it."""
+    init_py = repo_root / "skills" / "sr-search" / "src" / "stockroom" / "__init__.py"
+    text = init_py.read_text(encoding="utf-8")
+    version_lines = [
+        line for line in text.splitlines() if line.lstrip().startswith("__version__")
+    ]
+    assert version_lines, f"no __version__ assignment in {init_py}"
+    assert any("x-release-please-version" in line for line in version_lines), (
+        "__version__ line must include x-release-please-version for release-please generic updater"
+    )
 
 
 @pytest.fixture(scope="module")
@@ -224,3 +240,12 @@ def test_release_config_syncs_both_manifests(release_config: dict) -> None:
     }
     assert (".cursor-plugin/plugin.json", "$.version") in targets
     assert (".claude-plugin/plugin.json", "$.version") in targets
+
+
+def test_release_config_syncs_package_version(release_config: dict) -> None:
+    """release-please generic-updates ``stockroom.__init__`` for CLI ``--version``."""
+    extra_files = release_config["packages"]["."]["extra-files"]
+    generic_paths = {
+        ef.get("path") for ef in extra_files if ef.get("type") == "generic"
+    }
+    assert "skills/sr-search/src/stockroom/__init__.py" in generic_paths
