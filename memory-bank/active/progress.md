@@ -47,3 +47,12 @@ Add per-conversation skill and tool-call distribution visualizations (pie charts
     - Skills via `skill_usage.iter_skill_uses` on session-scoped rows
 * Insights
     - `sessions.title` already in schema but omitted from session_detail today
+
+## 2026-07-29 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated plan against codebase; `.preflight-status` = PASS
+* Decisions made
+    - Advisory only: optional `#composition` deep-link deferred
+* Insights
+    - Panel builders need harness-keyed `calls` even for a single session
