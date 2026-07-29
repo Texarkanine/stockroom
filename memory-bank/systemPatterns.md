@@ -22,7 +22,7 @@ DuckDB ``TIMESTAMP`` is timezone-naive; stockroom's contract is that every persi
 
 ## Dual-manifest plugin; engine inside `sr-search`
 
-`.cursor-plugin/plugin.json` and `.claude-plugin/plugin.json` over a shared `skills/` tree; committed layout equals install layout. release-please syncs version into both manifests and into `skills/sr-search/src/stockroom/__init__.py` (`__version__` via `generic` extra-file + `x-release-please-version` marker — CLI `--version` and the shim generator stamp). The full engine (`pyproject.toml`, `uv.lock`, `src/stockroom/`, migrations, tests) lives under `skills/sr-search/`.
+`.cursor-plugin/plugin.json` and `.claude-plugin/plugin.json` over a shared `skills/` tree; committed layout equals install layout. release-please syncs version into both manifests. The full engine (`pyproject.toml`, `uv.lock`, `src/stockroom/`, migrations, tests) lives under `skills/sr-search/`.
 
 Harness hooks are **not** the same JSON shape or event: Cursor native hooks (`hooks/cursor-hooks.json`) use flat `{ "version": 1, "hooks": { "sessionStart": [{ "command": "..." }] } }` per [Cursor Hooks](https://cursor.com/docs/hooks); Claude Code hooks (`hooks/claude-hooks.json`) keep nested `SessionStart` / `hooks[]` / `type: "command"`. Do not copy Claude structure into the Cursor file. Both harnesses bootstrap rectify with `uv python find --project … --no-config` (not bare `python3`, not `uv run --no-sync`). Cursor plugin hooks also require **Include third-party Plugins, Skills, and other configs** until [plugin hooks not loading](https://forum.cursor.com/t/plugin-hooks-not-loading-into-cursor-ide/156702) is fixed.
 
