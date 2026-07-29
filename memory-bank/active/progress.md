@@ -47,3 +47,13 @@ Rewrite the PR template to the Unautomatable-Only design and add a conventional-
     - No CONTRIBUTING.md edit (per creative/preflight)
 * Insights
     - None beyond plan
+
+## 2026-07-28 - QA - COMPLETE
+
+* Work completed
+    - Simplified title-types test (dropped text-scan fallback); tightened CONTRIBUTING link assert
+    - Noted `pr-title.yaml` in `memory-bank/techContext.md`
+* Decisions made
+    - PASS
+* Insights
+    - None

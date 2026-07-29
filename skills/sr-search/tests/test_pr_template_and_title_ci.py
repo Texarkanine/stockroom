@@ -46,8 +46,7 @@ def test_pr_template_has_unautomatable_only_headings(pr_template: str) -> None:
 
 
 def test_pr_template_links_contributing(pr_template: str) -> None:
-    assert "CONTRIBUTING.md" in pr_template
-    assert "](" in pr_template and "CONTRIBUTING" in pr_template
+    assert "[CONTRIBUTING.md](../CONTRIBUTING.md)" in pr_template
 
 
 def test_pr_template_has_no_checklist(pr_template: str) -> None:
@@ -55,57 +54,34 @@ def test_pr_template_has_no_checklist(pr_template: str) -> None:
     assert "- [x]" not in pr_template
 
 
-def test_pr_title_workflow_uses_semantic_pull_request(pr_title_workflow: dict) -> None:
-    jobs = pr_title_workflow.get("jobs") or {}
-    uses: list[str] = []
-    for job in jobs.values():
+def _semantic_pr_steps(pr_title_workflow: dict) -> list[dict]:
+    steps: list[dict] = []
+    for job in (pr_title_workflow.get("jobs") or {}).values():
         if not isinstance(job, dict):
             continue
         for step in job.get("steps") or []:
-            if isinstance(step, dict) and "uses" in step:
-                uses.append(str(step["uses"]))
-    assert any("amannn/action-semantic-pull-request" in u for u in uses), (
-        f"expected semantic-pull-request action; found uses={uses}"
+            if isinstance(step, dict) and "amannn/action-semantic-pull-request" in str(
+                step.get("uses", "")
+            ):
+                steps.append(step)
+    return steps
+
+
+def test_pr_title_workflow_uses_semantic_pull_request(pr_title_workflow: dict) -> None:
+    assert _semantic_pr_steps(pr_title_workflow), (
+        "expected a step using amannn/action-semantic-pull-request"
     )
 
 
-def test_pr_title_workflow_types_match_contributing(
-    repo_root: Path, pr_title_workflow: dict
-) -> None:
-    path = repo_root / ".github" / "workflows" / "pr-title.yaml"
-    raw = path.read_text(encoding="utf-8")
-    # Prefer structured parse of the action's `types` input when present.
-    types_block = ""
-    jobs = pr_title_workflow.get("jobs") or {}
-    for job in jobs.values():
-        if not isinstance(job, dict):
-            continue
-        for step in job.get("steps") or []:
-            if not isinstance(step, dict):
-                continue
-            if "amannn/action-semantic-pull-request" not in str(step.get("uses", "")):
-                continue
-            with_ = step.get("with") or {}
-            types_block = str(with_.get("types") or "")
-    assert types_block or "types:" in raw
+def test_pr_title_workflow_types_match_contributing(pr_title_workflow: dict) -> None:
+    steps = _semantic_pr_steps(pr_title_workflow)
+    assert steps, "expected semantic-pull-request step"
+    types_block = str((steps[0].get("with") or {}).get("types") or "")
     declared = {
         line.strip()
         for line in types_block.splitlines()
         if line.strip() and not line.strip().startswith("#")
     }
-    if not declared:
-        # Fallback: scan the YAML text under a `types: |` block.
-        in_types = False
-        for line in raw.splitlines():
-            if line.strip().startswith("types:"):
-                in_types = True
-                continue
-            if in_types:
-                if line and not line[0].isspace() and not line.startswith(" "):
-                    break
-                stripped = line.strip()
-                if stripped and not stripped.startswith("#"):
-                    declared.add(stripped)
     assert REQUIRED_TITLE_TYPES <= declared, (
         f"missing required types; declared={sorted(declared)}"
     )
