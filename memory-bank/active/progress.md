@@ -25,3 +25,11 @@ Restore lockstep between `stockroom.__version__` (CLI `--version` / shim generat
 * Insights
     - Two version surfaces: live CLI vs baked `STOCKROOM_GENERATOR_VERSION`; both heal for matching owner after plugin update once `__version__` is synced
     - `dev` owner is the localdev caveat — hooks noop foreign shims
+
+## 2026-07-28 - QA - COMPLETE
+
+* Work completed
+    - Semantic review PASS; wrote `.qa-validation-status`
+    - Reconciled systemPatterns + techContext for `__version__` / RP marker sync
+* Decisions made
+    - No further code changes; harness rectify already sufficient

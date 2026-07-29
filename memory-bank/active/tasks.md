@@ -16,3 +16,7 @@
 - `stockroom --version` is **live** from `APP_DIR`’s `__version__` (shim execs `python -m stockroom`); plugin update alone updates CLI version once `__version__` is correct — rebake not required for `--version`.
 - Baked `STOCKROOM_GENERATOR_VERSION` **is** refreshed by session-start `shim rectify` when the shim is **owned by that harness** and rendered content drifts (version stamp is part of render) → rebake.
 - Foreign owner (e.g. `dev` checkout shim while Cursor/Claude hooks rectify) → **noop**; use `make shim` for localdev.
+
+## QA
+
+**Result:** PASS — minimal packaging fix; rectify investigation documented; no over-engineering; persistent MB updated for version-sync surfaces.
