@@ -1,4 +1,6 @@
-# Build docs on PRs; deploy the site on release / manual dispatch.
+# PRs: Build docs
+# Push to Main: Build docs
+# Releases: Build and Publish docs
 name: Docs
 
 on:
