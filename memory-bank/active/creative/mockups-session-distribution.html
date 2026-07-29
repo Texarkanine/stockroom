@@ -249,6 +249,17 @@
       }
       .chart-panel .chart-card { align-items: flex-start; }
 
+      .stack { display: flex; flex-direction: column; gap: 1rem; }
+      .pill-title {
+        margin: 0 0 0.35rem;
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--accent-strong);
+      }
+      .messages-only .session-title { margin-bottom: 0.75rem; }
+
       .prior-art {
         margin-top: 1.5rem;
         padding: 1rem;
@@ -268,14 +279,16 @@
       <p class="lede">
         Visual UAT for <a href="https://github.com/Texarkanine/stockroom/issues/107">#107</a>:
         where should per-conversation tool &amp; skill distribution charts live on the session overview?
-        Tabs A / B / C / E are live mockups (D dropped). Pick a tab to inspect each placement.
+        Tabs A / B / C / E / E-2 / F (D dropped). Pick a tab to inspect each placement.
       </p>
 
       <div class="tabs" role="tablist" aria-label="Placement options">
         <button type="button" role="tab" aria-selected="true" data-tab="a">A · Side column</button>
         <button type="button" role="tab" aria-selected="false" data-tab="b">B · Inline above</button>
         <button type="button" role="tab" aria-selected="false" data-tab="c">C · Slide-in drawer</button>
-        <button type="button" role="tab" aria-selected="false" data-tab="e">E · Below conversation</button>
+        <button type="button" role="tab" aria-selected="false" data-tab="e">E · Below</button>
+        <button type="button" role="tab" aria-selected="false" data-tab="e2">E-2 · Full above</button>
+        <button type="button" role="tab" aria-selected="false" data-tab="f">F · Split pills</button>
       </div>
 
       <!-- A -->
@@ -451,8 +464,118 @@
         </div>
       </section>
 
+      <!-- E-2 -->
+      <section class="option" id="opt-e2" role="tabpanel">
+        <p class="caption">
+          <strong>E-2 · Full-size above</strong> — same dashboard-scale Tools &amp; Skills card as E, but placed <em>above</em> the conversation card (B’s position, E’s size). Conversation card still holds meta + messages. Question this answers: are single-session charts dense enough to need full panels, or is tiny B enough?
+        </p>
+        <div class="stack">
+          <section class="card" aria-label="Session composition">
+            <h2 class="session-title" style="font-size:1.1rem">Tools &amp; skills</h2>
+            <p style="color:var(--muted);margin:0 0 1rem;font-size:0.9rem">Per-conversation distribution — dashboard-scale panels.</p>
+            <div class="chart-grid">
+              <div class="chart-panel">
+                <h3>Tools</h3>
+                <div class="chart-card">
+                  <div class="donut" aria-hidden="true"></div>
+                  <ul class="legend">
+                    <li><span class="swatch" style="background:var(--c1)"></span> Read 38%</li>
+                    <li><span class="swatch" style="background:var(--c2)"></span> Edit 24%</li>
+                    <li><span class="swatch" style="background:var(--c3)"></span> Shell 18%</li>
+                    <li><span class="swatch" style="background:var(--c4)"></span> Grep 12%</li>
+                    <li><span class="swatch" style="background:var(--c5)"></span> Other 8%</li>
+                  </ul>
+                </div>
+              </div>
+              <div class="chart-panel">
+                <h3>Skills</h3>
+                <div class="chart-card">
+                  <div class="donut skills" aria-hidden="true"></div>
+                  <ul class="legend">
+                    <li><span class="swatch" style="background:var(--c2)"></span> niko 45%</li>
+                    <li><span class="swatch" style="background:var(--c1)"></span> sr-query 25%</li>
+                    <li><span class="swatch" style="background:var(--c3)"></span> ponytail 18%</li>
+                    <li><span class="swatch" style="background:var(--c5)"></span> Other 12%</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </section>
+          <div class="card">
+            <h2 class="session-title">conversation overview</h2>
+            <div class="session-meta">
+              <span><strong>harness</strong> cursor</span>
+              <span><strong>model</strong> claude-…</span>
+              <span><strong>tokens</strong> 42k in · 8k out</span>
+            </div>
+            <div class="bubble user"><div class="role">user</div>Charts get their own full-size card above — not crammed into a thin band.</div>
+            <div class="bubble"><div class="role">assistant</div>Meta still lives in this conversation card with the messages.<div class="tool">tool · Read</div></div>
+            <div class="bubble user"><div class="role">user</div>Compare density to tiny B vs this.</div>
+            <div class="bubble"><div class="role">assistant</div>Single-session distributions may be sparse enough that B is fine — this is the “what if not” check.<div class="tool">tool · Edit</div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- F -->
+      <section class="option" id="opt-f" role="tabpanel">
+        <p class="caption">
+          <strong>F · Split pills above messages</strong> — the conversation card contains <em>only messages</em>. Session summary (meta) is its own pill above; Tools &amp; Skills is a second dashboard-scale pill; then the messages card. No summary chrome inside the transcript box.
+        </p>
+        <div class="stack">
+          <section class="card" aria-label="Session summary">
+            <p class="pill-title">Session</p>
+            <h2 class="session-title" style="margin-bottom:0.5rem">conversation overview</h2>
+            <div class="session-meta" style="margin-bottom:0">
+              <span><strong>harness</strong> cursor</span>
+              <span><strong>model</strong> claude-…</span>
+              <span><strong>tokens</strong> 42k in · 8k out</span>
+              <span><strong>started</strong> 2026-07-29</span>
+            </div>
+          </section>
+          <section class="card" aria-label="Session composition">
+            <p class="pill-title">Composition</p>
+            <h2 class="session-title" style="font-size:1.1rem">Tools &amp; skills</h2>
+            <p style="color:var(--muted);margin:0 0 1rem;font-size:0.9rem">Per-conversation distribution — same chart language as the metrics dashboard.</p>
+            <div class="chart-grid">
+              <div class="chart-panel">
+                <h3>Tools</h3>
+                <div class="chart-card">
+                  <div class="donut" aria-hidden="true"></div>
+                  <ul class="legend">
+                    <li><span class="swatch" style="background:var(--c1)"></span> Read 38%</li>
+                    <li><span class="swatch" style="background:var(--c2)"></span> Edit 24%</li>
+                    <li><span class="swatch" style="background:var(--c3)"></span> Shell 18%</li>
+                    <li><span class="swatch" style="background:var(--c4)"></span> Grep 12%</li>
+                    <li><span class="swatch" style="background:var(--c5)"></span> Other 8%</li>
+                  </ul>
+                </div>
+              </div>
+              <div class="chart-panel">
+                <h3>Skills</h3>
+                <div class="chart-card">
+                  <div class="donut skills" aria-hidden="true"></div>
+                  <ul class="legend">
+                    <li><span class="swatch" style="background:var(--c2)"></span> niko 45%</li>
+                    <li><span class="swatch" style="background:var(--c1)"></span> sr-query 25%</li>
+                    <li><span class="swatch" style="background:var(--c3)"></span> ponytail 18%</li>
+                    <li><span class="swatch" style="background:var(--c5)"></span> Other 12%</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </section>
+          <div class="card messages-only" aria-label="Messages">
+            <p class="pill-title">Messages</p>
+            <div class="bubble user"><div class="role">user</div>This box is only the transcript — no meta, no charts.</div>
+            <div class="bubble"><div class="role">assistant</div>Summary and composition live in the pills above.<div class="tool">tool · Read</div></div>
+            <div class="bubble user"><div class="role">user</div>Scroll into the conversation when you’re ready to read.</div>
+            <div class="bubble"><div class="role">assistant</div>Clean separation: session facts → composition → messages.<div class="tool">tool · Edit</div></div>
+          </div>
+        </div>
+      </section>
+
       <div class="prior-art">
-        Options: <strong>A</strong> sticky side rail · <strong>B</strong> inline above turns · <strong>C</strong> viewport-edge slide-in drawer · <strong>E</strong> full-width charts below the conversation card.
+        Options: <strong>A</strong> sticky side · <strong>B</strong> tiny inline · <strong>C</strong> slide-in drawer · <strong>E</strong> full below · <strong>E-2</strong> full above · <strong>F</strong> split pills (meta + composition + messages-only).
         Dropped: D header dials.
       </div>
     </div>
@@ -491,7 +614,7 @@
 
     <script>
       const tabs = [...document.querySelectorAll(".tabs button")];
-      const opts = { a: "opt-a", b: "opt-b", c: "opt-c", e: "opt-e" };
+      const opts = { a: "opt-a", b: "opt-b", c: "opt-c", e: "opt-e", e2: "opt-e2", f: "opt-f" };
       const drawer = document.getElementById("composition-drawer");
       const openBtn = document.getElementById("drawer-open");
       const closeBtn = document.getElementById("drawer-close");

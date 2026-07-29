@@ -21,8 +21,10 @@ Authority: shipped dashboard static surface (`skills/sr-search/src/stockroom/das
 - **C · Slide-in drawer (revised “popover”)**: Sticky vertical handle on the **viewport’s right edge** that follows scroll; click slides in a higher-z panel from the right (empty wide-screen margin, or overlapping the conversation when narrow); « collapses it again. Not a `<details>` disclosure.
 - **D · Header dials**: Dropped by operator — not desired.
 - **E · Below conversation**: Conversation card ends; second full-width Tools & Skills container underneath with a 2-col chart grid echoing the metrics dashboard. Reached by scrolling past the transcript.
+- **E-2 · Full-size above**: Same dashboard-scale Tools & Skills card as E, placed above the conversation card (B’s position, E’s size). Meta still inside the conversation card.
+- **F · Split pills**: Session meta pill + Tools & Skills pill above; conversation card is **messages only** — no summary chrome in the transcript box.
 
-**Mockups:** [`mockups-session-distribution.html`](./mockups-session-distribution.html) — `http://127.0.0.1:8765/mockups-session-distribution.html?v=3`
+**Mockups:** [`mockups-session-distribution.html`](./mockups-session-distribution.html) — `http://127.0.0.1:8765/mockups-session-distribution.html?v=4`
 
 ### Independent model picks (2026-07-29)
 
