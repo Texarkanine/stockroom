@@ -259,6 +259,44 @@
         color: var(--accent-strong);
       }
       .messages-only .session-title { margin-bottom: 0.75rem; }
+      .session-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+      }
+      .session-toolbar button {
+        border: 1px solid var(--border);
+        background: var(--surface-soft);
+        color: var(--text);
+        border-radius: 8px;
+        padding: 0.4rem 0.7rem;
+        font-size: 0.85rem;
+        cursor: pointer;
+      }
+      .f-subtabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        margin: 0 0 1rem;
+      }
+      .f-subtabs button {
+        border: 1px solid var(--border);
+        background: var(--surface);
+        color: var(--muted);
+        border-radius: 8px;
+        padding: 0.35rem 0.7rem;
+        font-size: 0.82rem;
+        cursor: pointer;
+      }
+      .f-subtabs button[aria-selected="true"] {
+        border-color: var(--accent);
+        color: var(--text);
+        background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+        font-weight: 650;
+      }
+      .f-variant { display: none; }
+      .f-variant.active { display: block; }
 
       .prior-art {
         margin-top: 1.5rem;
@@ -519,58 +557,122 @@
       <!-- F -->
       <section class="option" id="opt-f" role="tabpanel">
         <p class="caption">
-          <strong>F · Overview + messages</strong> (selected) — one overview pill headed “conversation overview”, then <em>session</em> (4 metrics) and <em>composition</em> (tools + skills charts only, no explanatory copy — same language as main dash). Messages card below, transcript only.
+          <strong>F</strong> (selected) — overview pill has <em>no</em> “conversation overview” header: just <em>session</em> (4 metrics) then <em>composition</em> (tools + skills charts only). Messages pill below: conversation title (when present) heads that box. Copy/export placement is the open sub-choice — toggle F-a vs F-b.
         </p>
-        <div class="stack">
-          <section class="card" aria-label="Conversation overview">
-            <h2 class="session-title">conversation overview</h2>
-            <p class="pill-title">session</p>
-            <div class="session-meta">
-              <span><strong>harness</strong> cursor</span>
-              <span><strong>model</strong> claude-…</span>
-              <span><strong>tokens</strong> 42k in · 8k out</span>
-              <span><strong>started</strong> 2026-07-29</span>
-            </div>
-            <p class="pill-title">composition</p>
-            <div class="chart-grid">
-              <div class="chart-panel">
-                <h3>Tools</h3>
-                <div class="chart-card">
-                  <div class="donut" aria-hidden="true"></div>
-                  <ul class="legend">
-                    <li><span class="swatch" style="background:var(--c1)"></span> Read 38%</li>
-                    <li><span class="swatch" style="background:var(--c2)"></span> Edit 24%</li>
-                    <li><span class="swatch" style="background:var(--c3)"></span> Shell 18%</li>
-                    <li><span class="swatch" style="background:var(--c4)"></span> Grep 12%</li>
-                    <li><span class="swatch" style="background:var(--c5)"></span> Other 8%</li>
-                  </ul>
+        <div class="f-subtabs" role="tablist" aria-label="Copy/export placement">
+          <button type="button" role="tab" aria-selected="true" data-f="fa">F-a · toolbar in messages</button>
+          <button type="button" role="tab" aria-selected="false" data-f="fb">F-b · toolbar between pills</button>
+        </div>
+
+        <div class="f-variant active" id="f-fa">
+          <p class="caption" style="margin-top:0">F-a — copy/export at top of messages card (closest to today’s toolbar → title → turns).</p>
+          <div class="stack">
+            <section class="card" aria-label="Session overview">
+              <p class="pill-title">session</p>
+              <div class="session-meta">
+                <span><strong>harness</strong> cursor</span>
+                <span><strong>model</strong> claude-…</span>
+                <span><strong>tokens</strong> 42k in · 8k out</span>
+                <span><strong>started</strong> 2026-07-29</span>
+              </div>
+              <p class="pill-title">composition</p>
+              <div class="chart-grid">
+                <div class="chart-panel">
+                  <h3>Tools</h3>
+                  <div class="chart-card">
+                    <div class="donut" aria-hidden="true"></div>
+                    <ul class="legend">
+                      <li><span class="swatch" style="background:var(--c1)"></span> Read 38%</li>
+                      <li><span class="swatch" style="background:var(--c2)"></span> Edit 24%</li>
+                      <li><span class="swatch" style="background:var(--c3)"></span> Shell 18%</li>
+                      <li><span class="swatch" style="background:var(--c4)"></span> Grep 12%</li>
+                      <li><span class="swatch" style="background:var(--c5)"></span> Other 8%</li>
+                    </ul>
+                  </div>
+                </div>
+                <div class="chart-panel">
+                  <h3>Skills</h3>
+                  <div class="chart-card">
+                    <div class="donut skills" aria-hidden="true"></div>
+                    <ul class="legend">
+                      <li><span class="swatch" style="background:var(--c2)"></span> niko 45%</li>
+                      <li><span class="swatch" style="background:var(--c1)"></span> sr-query 25%</li>
+                      <li><span class="swatch" style="background:var(--c3)"></span> ponytail 18%</li>
+                      <li><span class="swatch" style="background:var(--c5)"></span> Other 12%</li>
+                    </ul>
+                  </div>
                 </div>
               </div>
-              <div class="chart-panel">
-                <h3>Skills</h3>
-                <div class="chart-card">
-                  <div class="donut skills" aria-hidden="true"></div>
-                  <ul class="legend">
-                    <li><span class="swatch" style="background:var(--c2)"></span> niko 45%</li>
-                    <li><span class="swatch" style="background:var(--c1)"></span> sr-query 25%</li>
-                    <li><span class="swatch" style="background:var(--c3)"></span> ponytail 18%</li>
-                    <li><span class="swatch" style="background:var(--c5)"></span> Other 12%</li>
-                  </ul>
+            </section>
+            <div class="card messages-only" aria-label="Messages">
+              <div class="session-toolbar">
+                <button type="button">🔗 Copy deep-link</button>
+                <button type="button">📥 Export markdown</button>
+                <button type="button">📥 Export JSON</button>
+              </div>
+              <h2 class="session-title">Fix flaky dashboard deep-link</h2>
+              <div class="bubble user"><div class="role">user</div>Title above is the conversation title when we have one.</div>
+              <div class="bubble"><div class="role">assistant</div>Toolbar sits with the transcript actions.<div class="tool">tool · Read</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="f-variant" id="f-fb">
+          <p class="caption" style="margin-top:0">F-b — copy/export between overview pill and messages pill (actions bridge the two cards).</p>
+          <div class="stack">
+            <section class="card" aria-label="Session overview">
+              <p class="pill-title">session</p>
+              <div class="session-meta">
+                <span><strong>harness</strong> cursor</span>
+                <span><strong>model</strong> claude-…</span>
+                <span><strong>tokens</strong> 42k in · 8k out</span>
+                <span><strong>started</strong> 2026-07-29</span>
+              </div>
+              <p class="pill-title">composition</p>
+              <div class="chart-grid">
+                <div class="chart-panel">
+                  <h3>Tools</h3>
+                  <div class="chart-card">
+                    <div class="donut" aria-hidden="true"></div>
+                    <ul class="legend">
+                      <li><span class="swatch" style="background:var(--c1)"></span> Read 38%</li>
+                      <li><span class="swatch" style="background:var(--c2)"></span> Edit 24%</li>
+                      <li><span class="swatch" style="background:var(--c3)"></span> Shell 18%</li>
+                      <li><span class="swatch" style="background:var(--c4)"></span> Grep 12%</li>
+                      <li><span class="swatch" style="background:var(--c5)"></span> Other 8%</li>
+                    </ul>
+                  </div>
+                </div>
+                <div class="chart-panel">
+                  <h3>Skills</h3>
+                  <div class="chart-card">
+                    <div class="donut skills" aria-hidden="true"></div>
+                    <ul class="legend">
+                      <li><span class="swatch" style="background:var(--c2)"></span> niko 45%</li>
+                      <li><span class="swatch" style="background:var(--c1)"></span> sr-query 25%</li>
+                      <li><span class="swatch" style="background:var(--c3)"></span> ponytail 18%</li>
+                      <li><span class="swatch" style="background:var(--c5)"></span> Other 12%</li>
+                    </ul>
+                  </div>
                 </div>
               </div>
+            </section>
+            <div class="session-toolbar" style="margin:0">
+              <button type="button">🔗 Copy deep-link</button>
+              <button type="button">📥 Export markdown</button>
+              <button type="button">📥 Export JSON</button>
             </div>
-          </section>
-          <div class="card messages-only" aria-label="Messages">
-            <div class="bubble user"><div class="role">user</div>This box is only the transcript — no meta, no charts.</div>
-            <div class="bubble"><div class="role">assistant</div>Overview (session + composition) is the pill above.<div class="tool">tool · Read</div></div>
-            <div class="bubble user"><div class="role">user</div>Scroll into the conversation when you’re ready to read.</div>
-            <div class="bubble"><div class="role">assistant</div>Two cards: overview, then messages.<div class="tool">tool · Edit</div></div>
+            <div class="card messages-only" aria-label="Messages">
+              <h2 class="session-title">Fix flaky dashboard deep-link</h2>
+              <div class="bubble user"><div class="role">user</div>Same title on the messages box; actions live in the gap above.</div>
+              <div class="bubble"><div class="role">assistant</div>Overview stays action-free.<div class="tool">tool · Read</div></div>
+            </div>
           </div>
         </div>
       </section>
 
       <div class="prior-art">
-        <strong>Selected: F</strong> — one overview pill (title + meta + tools/skills) + messages-only card.
+        <strong>Selected: F</strong> — overview pill (session + composition, no page header) + messages pill (conversation title + turns). Toolbar: pick F-a or F-b.
         Also explored: A / B / C / E / E-2. Dropped: D.
       </div>
     </div>
@@ -630,10 +732,19 @@
         if (id !== "c") setDrawer(false);
       }
 
+      const fSubs = [...document.querySelectorAll(".f-subtabs button")];
+      function showFVariant(id) {
+        fSubs.forEach((b) => b.setAttribute("aria-selected", String(b.dataset.f === id)));
+        document.getElementById("f-fa").classList.toggle("active", id === "fa");
+        document.getElementById("f-fb").classList.toggle("active", id === "fb");
+      }
+      fSubs.forEach((btn) => btn.addEventListener("click", () => showFVariant(btn.dataset.f)));
+
       tabs.forEach((btn) => btn.addEventListener("click", () => showTab(btn.dataset.tab)));
       openBtn.addEventListener("click", () => setDrawer(true));
       closeBtn.addEventListener("click", () => setDrawer(false));
       showTab("f");
+      showFVariant("fa");
     </script>
   </body>
 </html>

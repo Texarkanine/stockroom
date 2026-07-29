@@ -61,10 +61,13 @@ Key insights:
 **Rationale**: Operator visual pick. Conversation card must not mix transcript with summary chrome. One overview pill + messages-only card.
 
 **Structure**:
-1. Overview pill headed **conversation overview**
+1. Overview pill — **no** “conversation overview” page header
 2. **session** — the four metrics (harness, model, tokens, started)
 3. **composition** — Tools & Skills charts only (no explanatory copy); same visual language as main metrics dashboard
-4. Messages pill — transcript only
+4. Messages pill — conversation title (when present) as that card’s heading + transcript only
+5. Copy / export toolbar — still choosing:
+   - **F-a**: top of messages card (today’s order: toolbar → title → turns)
+   - **F-b**: between overview pill and messages pill
 
 **Tradeoff**: Charts scroll away with the overview (accepted; composition is glance-once). Drawer (C) and below-convo (E) rejected for this surface.
 
@@ -73,5 +76,6 @@ Key insights:
 - Reuse Chart.js doughnut / panel patterns from metrics (`buildToolsPanel`, skills nested or session-scoped dual doughnut) inside the overview pill under **composition**.
 - Cap categories (top N + Other) per donut best practice.
 - Empty sessions: hide composition section or show empty-state without broken charts.
-- Split session UI: overview card (title + session metrics + composition charts) vs messages card (turns only).
+- Split session UI: overview card (session metrics + composition charts) vs messages card (title + turns).
+- Preserve copy deep-link / export markdown / export JSON; lock F-a vs F-b before build.
 - Do not use sticky side rail (A), tiny inline-inside-card (B), slide-in drawer (C), or below-transcript-only (E) as the primary placement.
