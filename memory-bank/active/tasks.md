@@ -138,7 +138,7 @@ No new technology — validation not required (vendored Chart.js already in use)
 - [x] Pre-Mortem complete
 - [x] Preflight
 - [x] Build
-- [ ] QA
+- [x] QA
 
 ### Build checklist
 
