@@ -224,6 +224,31 @@
       body:not(.drawer-demo-active) .drawer-handle,
       body:not(.drawer-demo-active) .drawer { display: none; }
 
+      /* E: below conversation, full-width dashboard-like chart grid */
+      .layout-e { display: flex; flex-direction: column; gap: 1rem; }
+      .chart-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+      }
+      @media (max-width: 800px) {
+        .chart-grid { grid-template-columns: 1fr; }
+      }
+      .chart-panel {
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: var(--surface-soft);
+        padding: 1rem;
+      }
+      .chart-panel h3 { margin: 0 0 0.75rem; font-size: 1rem; }
+      .chart-panel .donut {
+        width: 160px;
+        height: 160px;
+        mask: radial-gradient(circle 52px at center, transparent 98%, #000 100%);
+        -webkit-mask: radial-gradient(circle 52px at center, transparent 98%, #000 100%);
+      }
+      .chart-panel .chart-card { align-items: flex-start; }
+
       .prior-art {
         margin-top: 1.5rem;
         padding: 1rem;
@@ -241,21 +266,22 @@
     <div class="page">
       <h1>Session distribution placement mockups</h1>
       <p class="lede">
-        Visual UAT for <a href="https://github.com/Texarkanine/stockroom/issues/107">#107</a>.
-        Revised after feedback: A rail is <em>outside</em> the conversation card; C is a sticky edge handle + slide-in drawer; D dropped.
-        Pick a tab, then tell the agent which option wins.
+        Visual UAT for <a href="https://github.com/Texarkanine/stockroom/issues/107">#107</a>:
+        where should per-conversation tool &amp; skill distribution charts live on the session overview?
+        Tabs A / B / C / E are live mockups (D dropped). Pick a tab to inspect each placement.
       </p>
 
       <div class="tabs" role="tablist" aria-label="Placement options">
         <button type="button" role="tab" aria-selected="true" data-tab="a">A · Side column</button>
         <button type="button" role="tab" aria-selected="false" data-tab="b">B · Inline above</button>
         <button type="button" role="tab" aria-selected="false" data-tab="c">C · Slide-in drawer</button>
+        <button type="button" role="tab" aria-selected="false" data-tab="e">E · Below conversation</button>
       </div>
 
       <!-- A -->
       <section class="option active" id="opt-a" role="tabpanel">
         <p class="caption">
-          <strong>A · Side column</strong> — composition rail sits <em>beside</em> the conversation card (sibling in the page grid), not nested inside the message body. Sticky while you scroll the transcript.
+          <strong>A · Side column</strong> — composition rail sits <em>beside</em> the conversation card (sibling in the page grid), sticky so it follows while you scroll. Chat column is permanently narrower.
         </p>
         <div class="layout-a">
           <div class="card">
@@ -369,9 +395,65 @@
         </div>
       </section>
 
+      <!-- E -->
+      <section class="option" id="opt-e" role="tabpanel">
+        <p class="caption">
+          <strong>E · Below conversation</strong> — the conversation card ends; a second full-width Tools &amp; Skills container sits underneath (not inside the message box). Two large panels side-by-side like the main metrics dashboard chart grid — strongest visual echo of that screen. You reach it by scrolling past the transcript.
+        </p>
+        <div class="layout-e">
+          <div class="card">
+            <h2 class="session-title">conversation overview</h2>
+            <div class="session-meta">
+              <span><strong>harness</strong> cursor</span>
+              <span><strong>model</strong> claude-…</span>
+              <span><strong>tokens</strong> 42k in · 8k out</span>
+            </div>
+            <div class="bubble user"><div class="role">user</div>Long conversation — keep scrolling…</div>
+            <div class="bubble"><div class="role">assistant</div>Reading files, editing, running commands…<div class="tool">tool · Read</div></div>
+            <div class="bubble user"><div class="role">user</div>More turns so the charts are farther down.</div>
+            <div class="bubble"><div class="role">assistant</div>Yep — composition lives after the last message, outside this card.<div class="tool">tool · Edit</div></div>
+            <div class="bubble user"><div class="role">user</div>Still going…</div>
+            <div class="bubble"><div class="role">assistant</div>End of transcript soon.<div class="tool">tool · Shell</div></div>
+            <div class="bubble user"><div class="role">user</div>Last user turn.</div>
+            <div class="bubble"><div class="role">assistant</div>Last assistant turn — card ends here.<div class="tool">tool · Grep</div></div>
+          </div>
+          <section class="card" aria-label="Session composition">
+            <h2 class="session-title" style="font-size:1.1rem">Tools &amp; skills</h2>
+            <p style="color:var(--muted);margin:0 0 1rem;font-size:0.9rem">Per-conversation distribution — same chart language as the metrics dashboard.</p>
+            <div class="chart-grid">
+              <div class="chart-panel">
+                <h3>Tools</h3>
+                <div class="chart-card">
+                  <div class="donut" aria-hidden="true"></div>
+                  <ul class="legend">
+                    <li><span class="swatch" style="background:var(--c1)"></span> Read 38%</li>
+                    <li><span class="swatch" style="background:var(--c2)"></span> Edit 24%</li>
+                    <li><span class="swatch" style="background:var(--c3)"></span> Shell 18%</li>
+                    <li><span class="swatch" style="background:var(--c4)"></span> Grep 12%</li>
+                    <li><span class="swatch" style="background:var(--c5)"></span> Other 8%</li>
+                  </ul>
+                </div>
+              </div>
+              <div class="chart-panel">
+                <h3>Skills</h3>
+                <div class="chart-card">
+                  <div class="donut skills" aria-hidden="true"></div>
+                  <ul class="legend">
+                    <li><span class="swatch" style="background:var(--c2)"></span> niko 45%</li>
+                    <li><span class="swatch" style="background:var(--c1)"></span> sr-query 25%</li>
+                    <li><span class="swatch" style="background:var(--c3)"></span> ponytail 18%</li>
+                    <li><span class="swatch" style="background:var(--c5)"></span> Other 12%</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+
       <div class="prior-art">
-        <strong>Still in play:</strong> A (outside-card rail), B (inline simplicity you liked), C (edge handle + slide-in).
-        <strong>Dropped:</strong> D header dials.
+        Options: <strong>A</strong> sticky side rail · <strong>B</strong> inline above turns · <strong>C</strong> viewport-edge slide-in drawer · <strong>E</strong> full-width charts below the conversation card.
+        Dropped: D header dials.
       </div>
     </div>
 
@@ -409,7 +491,7 @@
 
     <script>
       const tabs = [...document.querySelectorAll(".tabs button")];
-      const opts = { a: "opt-a", b: "opt-b", c: "opt-c" };
+      const opts = { a: "opt-a", b: "opt-b", c: "opt-c", e: "opt-e" };
       const drawer = document.getElementById("composition-drawer");
       const openBtn = document.getElementById("drawer-open");
       const closeBtn = document.getElementById("drawer-close");

@@ -20,8 +20,20 @@ Authority: shipped dashboard static surface (`skills/sr-search/src/stockroom/das
 - **B · Inline above**: Full-width summary band under session meta, above turns, inside the conversation card. Operator noted liking its simplicity. Scrolls away with content.
 - **C · Slide-in drawer (revised “popover”)**: Sticky vertical handle on the **viewport’s right edge** that follows scroll; click slides in a higher-z panel from the right (empty wide-screen margin, or overlapping the conversation when narrow); « collapses it again. Not a `<details>` disclosure.
 - **D · Header dials**: Dropped by operator — not desired.
+- **E · Below conversation**: Conversation card ends; second full-width Tools & Skills container underneath with a 2-col chart grid echoing the metrics dashboard. Reached by scrolling past the transcript.
 
-**Mockups:** [`mockups-session-distribution.html`](./mockups-session-distribution.html) (serve over http for integrated browser; e.g. `http://127.0.0.1:8765/mockups-session-distribution.html`)
+**Mockups:** [`mockups-session-distribution.html`](./mockups-session-distribution.html) — `http://127.0.0.1:8765/mockups-session-distribution.html?v=3`
+
+### Independent model picks (2026-07-29)
+
+Unseeded (task + candidates + mockup URL only; no operator reasoning):
+
+| Model | Pick | Runner-up |
+|-------|------|-----------|
+| GPT (`gpt-5.6-sol-high`) | **B** | A (persistent but costs width) |
+| Opus (`claude-opus-5-thinking-high`) | **B** | A (sticky persistence unused for static aggregates; narrows primary content) |
+
+Both framed composition as a once-on-entry summary that should not permanently tax the transcript.
 
 ## Analysis
 
