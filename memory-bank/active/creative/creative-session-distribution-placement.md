@@ -16,45 +16,38 @@ Authority: shipped dashboard static surface (`skills/sr-search/src/stockroom/das
 
 ## Options Evaluated
 
-- **A · Side column**: Sticky ~240px rail beside the transcript with Tools + Skills doughnuts + legends. Charts stay visible while scrolling; chat column narrows.
-- **B · Inline above**: Full-width summary band under session meta, above turns. Preserves full chat width; scrolls away with content.
-- **C · Popover / disclosure**: Collapsed “Tool & skill composition” control near meta; expands to dual doughnuts on demand. Minimal permanent chrome.
-- **D · Header dials** (internet prior art): Compact dual doughnuts + totals in a header band under meta — pattern seen in conversation usage header stats ([PocketDev #231](https://github.com/tetrixdev/pocket-dev/issues/231), [AgentsView session header](https://agentsview.io/usage/)). Branch name `per-convo-dials` foreshadows this. At-a-glance without a permanent side rail; legend/detail can be progressive.
+- **A · Side column (revised)**: Sticky ~240px composition rail as a **sibling outside** the conversation card (page grid), not nested inside the message body. Charts stay visible; chat card narrows within the 1200px page.
+- **B · Inline above**: Full-width summary band under session meta, above turns, inside the conversation card. Operator noted liking its simplicity. Scrolls away with content.
+- **C · Slide-in drawer (revised “popover”)**: Sticky vertical handle on the **viewport’s right edge** that follows scroll; click slides in a higher-z panel from the right (empty wide-screen margin, or overlapping the conversation when narrow); « collapses it again. Not a `<details>` disclosure.
+- **D · Header dials**: Dropped by operator — not desired.
 
-**Mockups (open in browser):** [`mockups-session-distribution.html`](./mockups-session-distribution.html)
-
-```bash
-# from repo root
-xdg-open memory-bank/active/creative/mockups-session-distribution.html
-# or: open / file://… on macOS
-```
+**Mockups:** [`mockups-session-distribution.html`](./mockups-session-distribution.html) (serve over http for integrated browser; e.g. `http://127.0.0.1:8765/mockups-session-distribution.html`)
 
 ## Analysis
 
-| Criterion | A Side | B Inline | C Popover | D Header dials |
-|-----------|--------|----------|-----------|----------------|
-| Usability (glance while reading) | High while scrolling | High at open; lost when scrolled | Low until open | High at open; compact |
-| Clarity (hierarchy) | Strong separation | Strong band | Hidden until expand | Strong if totals labeled |
-| Accessibility | Sticky aside OK if labeled | Straightforward landmark | Needs button/details semantics | Compact — legend via expand/tooltip |
-| Consistency w/ metrics doughnuts | High | High | High | High (smaller) |
-| Feasibility | Medium (new grid; mobile stack) | Easy | Easy | Easy–medium |
-| Simplicity | Extra column forever | Always-on chrome | Least chrome | Light always-on chrome |
-| Design system adherence | Fits tokens; new layout mode | Fits | Fits | Fits; matches meta band |
+| Criterion | A Side (outside card) | B Inline | C Slide-in drawer |
+|-----------|----------------------|----------|-------------------|
+| Usability (glance while reading) | High while scrolling | High at open; lost when scrolled | On demand; handle always reachable |
+| Clarity (hierarchy) | Card vs rail separation | Strong band | Conversation primary until open |
+| Accessibility | Labeled sticky aside | Straightforward landmark | Focus trap / Esc / aria-expanded needed |
+| Consistency w/ metrics doughnuts | High | High | High |
+| Feasibility | Medium (page grid) | Easy | Medium (fixed handle + drawer) |
+| Simplicity | Always-on second column | Always-on band (operator liked) | Least permanent chrome |
+| Design system adherence | Fits tokens | Fits | Fits; new interaction pattern |
 
 Key insights:
-- Prior art for *per-conversation* usage favors **header/stats band** more than a permanent analytics sidebar (sidebars more common when the product is support/observability with many metadata tabs).
-- Long tool names make pure pie legends cramped in a narrow rail — metrics already use doughnut + legend; same risk in A.
-- Operator asked for visual pick among A/B/C and openness to a better pattern → D is that candidate, not a silent winner.
+- First A mock nested the rail inside the message card — wrong; operator expects sibling outside the body.
+- Operator’s “popover” meant edge-affordance + slide-over, not disclosure expand-in-place.
+- D removed from consideration.
 
 ## Decision
 
-**Low-Confidence Result**: Placement is a taste/attention-budget call the operator must make by looking at the mockups. No clear winner from criteria alone — A wins persistence-while-scrolling, B/D win simplicity and prior-art alignment, C wins minimalism.
-
-**Recommendation (non-binding):** Prefer **D (header dials)** if the goal is “see composition without shrinking the transcript,” with optional expand for full legends; fall back to **B** if dual medium doughnuts + legends feel more readable than mini dials. Avoid A unless sticky visibility while reading long threads is the top priority.
+**Low-Confidence Result**: Still awaiting operator visual pick among revised A / B / C. Soft lean toward **B** given operator’s simplicity comment, unless sticky-while-scrolling (A) or get-out-of-the-way (C) wins on second look.
 
 ## Implementation Notes
 
-Deferred until operator selects A/B/C/D (or a hybrid). Regardless of placement:
+Deferred until operator selects A/B/C (or a hybrid). Regardless of placement:
 - Reuse Chart.js doughnut patterns from metrics (`buildToolsPanel` / skills nested or a session-scoped dual doughnut).
 - Cap categories (top N + Other) per donut best practice.
 - Hide or show empty-state copy when a session has zero tools/skills.
+- If C: keyboard dismiss, `aria-expanded` on handle, prefer `prefers-reduced-motion` for the slide.

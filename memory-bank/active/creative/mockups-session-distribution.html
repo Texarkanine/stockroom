@@ -46,7 +46,7 @@
         font-family: Inter, ui-sans-serif, system-ui, sans-serif;
         line-height: 1.5;
       }
-      .wrap { width: min(1200px, calc(100% - 2rem)); margin: 0 auto; padding: 1.5rem 0 3rem; }
+      .page { width: min(1200px, calc(100% - 2rem)); margin: 0 auto; padding: 1.5rem 0 3rem; }
       h1 { margin: 0 0 0.35rem; letter-spacing: -0.04em; font-size: clamp(1.5rem, 3vw, 2rem); }
       .lede { color: var(--muted); margin: 0 0 1.25rem; max-width: 52rem; }
       .tabs { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
@@ -63,16 +63,21 @@
         border-color: var(--accent);
         color: #fff;
       }
-      .panel {
-        display: none;
+      .option { display: none; }
+      .option.active { display: block; }
+      .caption {
+        color: var(--muted);
+        font-size: 0.9rem;
+        margin: 0 0 1rem;
+        max-width: 52rem;
+      }
+      .card {
         border: 1px solid var(--border);
         border-radius: var(--radius);
         background: var(--surface);
         box-shadow: var(--shadow);
         padding: 1rem 1.1rem 1.25rem;
       }
-      .panel.active { display: block; }
-      .caption { color: var(--muted); font-size: 0.9rem; margin: 0 0 1rem; }
       .session-title { margin: 0 0 0.25rem; font-size: 1.25rem; }
       .session-meta {
         display: flex; flex-wrap: wrap; gap: 0.75rem 1.25rem;
@@ -88,7 +93,10 @@
         border: 1px solid var(--border);
       }
       .bubble.user { margin-left: auto; background: color-mix(in srgb, var(--accent) 12%, var(--surface)); }
-      .bubble .role { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.25rem; }
+      .bubble .role {
+        font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em;
+        text-transform: uppercase; color: var(--muted); margin-bottom: 0.25rem;
+      }
       .tool { font-size: 0.85rem; color: var(--muted); margin-top: 0.4rem; }
 
       .donut {
@@ -107,19 +115,30 @@
       .chart-pair { display: flex; gap: 1rem; flex-wrap: wrap; }
       .chart-card { display: flex; gap: 0.75rem; align-items: center; }
 
-      /* A: side column */
-      .layout-side { display: grid; grid-template-columns: minmax(0, 1fr) 240px; gap: 1rem; align-items: start; }
-      .side-rail {
-        position: sticky; top: 1rem;
+      /* A: rail OUTSIDE the conversation card */
+      .layout-a {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 240px;
+        gap: 1rem;
+        align-items: start;
+      }
+      .layout-a .rail {
+        position: sticky;
+        top: 1rem;
         border: 1px solid var(--border);
-        border-radius: 14px;
-        background: var(--surface-soft);
+        border-radius: var(--radius);
+        background: var(--surface);
+        box-shadow: var(--shadow);
         padding: 0.85rem;
       }
-      .side-rail .chart-card { flex-direction: column; align-items: flex-start; margin-bottom: 1rem; }
-      @media (max-width: 800px) {
-        .layout-side { grid-template-columns: 1fr; }
-        .side-rail { position: static; }
+      .layout-a .rail .chart-card {
+        flex-direction: column;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+      }
+      @media (max-width: 900px) {
+        .layout-a { grid-template-columns: 1fr; }
+        .layout-a .rail { position: static; }
       }
 
       /* B: inline */
@@ -131,30 +150,79 @@
         margin-bottom: 1rem;
       }
 
-      /* C: popover */
-      .disclosure {
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        background: var(--surface-soft);
-        margin-bottom: 1rem;
-        padding: 0.55rem 0.85rem;
+      /* C: sticky edge handle + slide-in drawer */
+      .option-c-stage {
+        position: relative;
+        min-height: 28rem;
       }
-      .disclosure summary { cursor: pointer; font-weight: 650; }
-      .disclosure[open] .popover-body { margin-top: 0.75rem; }
-
-      /* D: header dials */
-      .header-dials {
-        display: flex; flex-wrap: wrap; gap: 1rem;
+      .drawer-handle {
+        position: fixed;
+        top: 45%;
+        right: 0;
+        z-index: 40;
+        transform: translateY(-50%);
         border: 1px solid var(--border);
-        border-radius: 14px;
-        background: var(--surface-soft);
-        padding: 0.75rem 1rem;
-        margin-bottom: 1rem;
+        border-right: none;
+        border-radius: 12px 0 0 12px;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+        color: var(--text);
+        padding: 0.85rem 0.45rem;
+        writing-mode: vertical-rl;
+        text-orientation: mixed;
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        cursor: pointer;
+      }
+      .drawer-handle:hover { background: var(--surface-soft); }
+      .drawer {
+        position: fixed;
+        top: 0;
+        right: 0;
+        z-index: 50;
+        width: min(320px, 92vw);
+        height: 100vh;
+        border-left: 1px solid var(--border);
+        background: var(--surface);
+        box-shadow: -16px 0 40px rgb(31 41 55 / 14%);
+        padding: 1rem 1.1rem;
+        transform: translateX(100%);
+        transition: transform 220ms ease;
+        overflow: auto;
+      }
+      .drawer.open { transform: translateX(0); }
+      .drawer-head {
+        display: flex;
         align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
       }
-      .header-dials .donut { width: 72px; height: 72px; mask: radial-gradient(circle 24px at center, transparent 98%, #000 100%); -webkit-mask: radial-gradient(circle 24px at center, transparent 98%, #000 100%); }
-      .dial-label { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
-      .dial-total { font-size: 0.9rem; font-weight: 650; }
+      .drawer-head h2 { margin: 0; font-size: 1.05rem; }
+      .drawer-close {
+        border: 1px solid var(--border);
+        background: var(--surface-soft);
+        color: var(--text);
+        border-radius: 8px;
+        padding: 0.35rem 0.65rem;
+        cursor: pointer;
+        font-weight: 650;
+      }
+      .drawer .chart-card {
+        flex-direction: column;
+        align-items: flex-start;
+        margin-bottom: 1.25rem;
+      }
+      .drawer-hint {
+        margin-top: 0.75rem;
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+      body.drawer-demo-active .drawer-handle,
+      body.drawer-demo-active .drawer { display: block; }
+      body:not(.drawer-demo-active) .drawer-handle,
+      body:not(.drawer-demo-active) .drawer { display: none; }
 
       .prior-art {
         margin-top: 1.5rem;
@@ -170,38 +238,41 @@
     </style>
   </head>
   <body>
-    <div class="wrap">
+    <div class="page">
       <h1>Session distribution placement mockups</h1>
       <p class="lede">
         Visual UAT for <a href="https://github.com/Texarkanine/stockroom/issues/107">#107</a>.
-        Fake conversation + Chart.js-style doughnuts (CSS stand-ins). Pick a tab, then tell the agent which option wins.
-        Tokens/colors match the dashboard design system.
+        Revised after feedback: A rail is <em>outside</em> the conversation card; C is a sticky edge handle + slide-in drawer; D dropped.
+        Pick a tab, then tell the agent which option wins.
       </p>
 
       <div class="tabs" role="tablist" aria-label="Placement options">
         <button type="button" role="tab" aria-selected="true" data-tab="a">A · Side column</button>
         <button type="button" role="tab" aria-selected="false" data-tab="b">B · Inline above</button>
-        <button type="button" role="tab" aria-selected="false" data-tab="c">C · Popover</button>
-        <button type="button" role="tab" aria-selected="false" data-tab="d">D · Header dials</button>
+        <button type="button" role="tab" aria-selected="false" data-tab="c">C · Slide-in drawer</button>
       </div>
 
       <!-- A -->
-      <section class="panel active" id="panel-a" role="tabpanel">
-        <p class="caption"><strong>A · Side column</strong> — sticky rail beside the transcript inside the 1200px page. Narrows chat width; charts stay visible while scrolling.</p>
-        <h2 class="session-title">conversation overview</h2>
-        <div class="session-meta">
-          <span><strong>harness</strong> cursor</span>
-          <span><strong>model</strong> claude-…</span>
-          <span><strong>tokens</strong> 42k in · 8k out</span>
-        </div>
-        <div class="layout-side">
-          <div>
+      <section class="option active" id="opt-a" role="tabpanel">
+        <p class="caption">
+          <strong>A · Side column</strong> — composition rail sits <em>beside</em> the conversation card (sibling in the page grid), not nested inside the message body. Sticky while you scroll the transcript.
+        </p>
+        <div class="layout-a">
+          <div class="card">
+            <h2 class="session-title">conversation overview</h2>
+            <div class="session-meta">
+              <span><strong>harness</strong> cursor</span>
+              <span><strong>model</strong> claude-…</span>
+              <span><strong>tokens</strong> 42k in · 8k out</span>
+            </div>
             <div class="bubble user"><div class="role">user</div>Can we add pie charts for tools and skills on this conversation?</div>
             <div class="bubble"><div class="role">assistant</div>Sure — I'll look at the session layout and Chart.js patterns we already use on the metrics pane.<div class="tool">tool · Read · dashboard.mjs</div></div>
             <div class="bubble user"><div class="role">user</div>Also a query cookbook recipe, please.</div>
             <div class="bubble"><div class="role">assistant</div>Will do — tools.md already has global counts; we'll add a per-session variant.<div class="tool">tool · Grep · cookbook</div></div>
+            <div class="bubble user"><div class="role">user</div>Scrolling… the rail should still be visible.</div>
+            <div class="bubble"><div class="role">assistant</div>Yep — sticky sibling, outside this card.<div class="tool">tool · Edit</div></div>
           </div>
-          <aside class="side-rail" aria-label="Session composition">
+          <aside class="rail" aria-label="Session composition">
             <div class="chart-card">
               <h3>Tools</h3>
               <div class="donut" aria-hidden="true"></div>
@@ -228,147 +299,141 @@
       </section>
 
       <!-- B -->
-      <section class="panel" id="panel-b" role="tabpanel">
-        <p class="caption"><strong>B · Inline above</strong> — full-width summary band under meta, above turns. Same chat width; scrolls away with content.</p>
-        <h2 class="session-title">conversation overview</h2>
-        <div class="session-meta">
-          <span><strong>harness</strong> cursor</span>
-          <span><strong>model</strong> claude-…</span>
-          <span><strong>tokens</strong> 42k in · 8k out</span>
-        </div>
-        <div class="inline-summary" aria-label="Session composition">
-          <div class="chart-pair">
-            <div class="chart-card">
-              <div>
-                <h3>Tools</h3>
-                <ul class="legend">
-                  <li><span class="swatch" style="background:var(--c1)"></span> Read 38%</li>
-                  <li><span class="swatch" style="background:var(--c2)"></span> Edit 24%</li>
-                  <li><span class="swatch" style="background:var(--c3)"></span> Shell 18%</li>
-                  <li><span class="swatch" style="background:var(--c4)"></span> Grep 12%</li>
-                  <li><span class="swatch" style="background:var(--c5)"></span> Other 8%</li>
-                </ul>
+      <section class="option" id="opt-b" role="tabpanel">
+        <p class="caption">
+          <strong>B · Inline above</strong> — full-width summary band inside the conversation card, under meta, above turns. Simple; scrolls away with content.
+        </p>
+        <div class="card">
+          <h2 class="session-title">conversation overview</h2>
+          <div class="session-meta">
+            <span><strong>harness</strong> cursor</span>
+            <span><strong>model</strong> claude-…</span>
+            <span><strong>tokens</strong> 42k in · 8k out</span>
+          </div>
+          <div class="inline-summary" aria-label="Session composition">
+            <div class="chart-pair">
+              <div class="chart-card">
+                <div>
+                  <h3>Tools</h3>
+                  <ul class="legend">
+                    <li><span class="swatch" style="background:var(--c1)"></span> Read 38%</li>
+                    <li><span class="swatch" style="background:var(--c2)"></span> Edit 24%</li>
+                    <li><span class="swatch" style="background:var(--c3)"></span> Shell 18%</li>
+                    <li><span class="swatch" style="background:var(--c4)"></span> Grep 12%</li>
+                    <li><span class="swatch" style="background:var(--c5)"></span> Other 8%</li>
+                  </ul>
+                </div>
+                <div class="donut" aria-hidden="true"></div>
               </div>
-              <div class="donut" aria-hidden="true"></div>
-            </div>
-            <div class="chart-card">
-              <div>
-                <h3>Skills</h3>
-                <ul class="legend">
-                  <li><span class="swatch" style="background:var(--c2)"></span> niko 45%</li>
-                  <li><span class="swatch" style="background:var(--c1)"></span> sr-query 25%</li>
-                  <li><span class="swatch" style="background:var(--c3)"></span> ponytail 18%</li>
-                  <li><span class="swatch" style="background:var(--c5)"></span> Other 12%</li>
-                </ul>
+              <div class="chart-card">
+                <div>
+                  <h3>Skills</h3>
+                  <ul class="legend">
+                    <li><span class="swatch" style="background:var(--c2)"></span> niko 45%</li>
+                    <li><span class="swatch" style="background:var(--c1)"></span> sr-query 25%</li>
+                    <li><span class="swatch" style="background:var(--c3)"></span> ponytail 18%</li>
+                    <li><span class="swatch" style="background:var(--c5)"></span> Other 12%</li>
+                  </ul>
+                </div>
+                <div class="donut skills" aria-hidden="true"></div>
               </div>
-              <div class="donut skills" aria-hidden="true"></div>
             </div>
           </div>
+          <div class="bubble user"><div class="role">user</div>Can we add pie charts for tools and skills on this conversation?</div>
+          <div class="bubble"><div class="role">assistant</div>Sure — I'll look at the session layout…<div class="tool">tool · Read</div></div>
+          <div class="bubble user"><div class="role">user</div>Also a query cookbook recipe, please.</div>
+          <div class="bubble"><div class="role">assistant</div>Cookbook recipe coming up.<div class="tool">tool · Grep</div></div>
         </div>
-        <div class="bubble user"><div class="role">user</div>Can we add pie charts for tools and skills on this conversation?</div>
-        <div class="bubble"><div class="role">assistant</div>Sure — I'll look at the session layout…<div class="tool">tool · Read</div></div>
-        <div class="bubble user"><div class="role">user</div>Also a query cookbook recipe, please.</div>
       </section>
 
       <!-- C -->
-      <section class="panel" id="panel-c" role="tabpanel">
-        <p class="caption"><strong>C · Popover / disclosure</strong> — collapsed by default next to meta; expand on demand. Least permanent chrome; one click away.</p>
-        <h2 class="session-title">conversation overview</h2>
-        <div class="session-meta">
-          <span><strong>harness</strong> cursor</span>
-          <span><strong>model</strong> claude-…</span>
-          <span><strong>tokens</strong> 42k in · 8k out</span>
-        </div>
-        <details class="disclosure">
-          <summary>Tool &amp; skill composition ▾</summary>
-          <div class="popover-body chart-pair">
-            <div class="chart-card">
-              <div>
-                <h3>Tools</h3>
-                <ul class="legend">
-                  <li><span class="swatch" style="background:var(--c1)"></span> Read 38%</li>
-                  <li><span class="swatch" style="background:var(--c2)"></span> Edit 24%</li>
-                  <li><span class="swatch" style="background:var(--c3)"></span> Shell 18%</li>
-                  <li><span class="swatch" style="background:var(--c4)"></span> Grep 12%</li>
-                  <li><span class="swatch" style="background:var(--c5)"></span> Other 8%</li>
-                </ul>
-              </div>
-              <div class="donut" aria-hidden="true"></div>
+      <section class="option" id="opt-c" role="tabpanel">
+        <p class="caption">
+          <strong>C · Slide-in drawer</strong> — a small sticky tab hugs the right edge of the viewport and follows you. Click it → a panel slides in from the right (uses empty wide-screen space, or overlaps the conversation on narrower viewports). Click « to slide it away again.
+        </p>
+        <div class="option-c-stage">
+          <div class="card">
+            <h2 class="session-title">conversation overview</h2>
+            <div class="session-meta">
+              <span><strong>harness</strong> cursor</span>
+              <span><strong>model</strong> claude-…</span>
+              <span><strong>tokens</strong> 42k in · 8k out</span>
             </div>
-            <div class="chart-card">
-              <div>
-                <h3>Skills</h3>
-                <ul class="legend">
-                  <li><span class="swatch" style="background:var(--c2)"></span> niko 45%</li>
-                  <li><span class="swatch" style="background:var(--c1)"></span> sr-query 25%</li>
-                  <li><span class="swatch" style="background:var(--c3)"></span> ponytail 18%</li>
-                  <li><span class="swatch" style="background:var(--c5)"></span> Other 12%</li>
-                </ul>
-              </div>
-              <div class="donut skills" aria-hidden="true"></div>
-            </div>
+            <div class="bubble user"><div class="role">user</div>The conversation stays full-width — charts live in the slide-over.</div>
+            <div class="bubble"><div class="role">assistant</div>Try the vertical tab on the far right of the window.<div class="tool">tool · Read</div></div>
+            <div class="bubble user"><div class="role">user</div>Scroll down — the handle should still be there.</div>
+            <div class="bubble"><div class="role">assistant</div>Fixed to the viewport edge, not the card.<div class="tool">tool · Edit</div></div>
+            <div class="bubble user"><div class="role">user</div>Wide screens: drawer can sit in empty margin; compressed screens: it overlaps.</div>
+            <div class="bubble"><div class="role">assistant</div>Exactly — higher z-index over the transcript when needed.<div class="tool">tool · Shell</div></div>
           </div>
-        </details>
-        <div class="bubble user"><div class="role">user</div>Can we add pie charts for tools and skills on this conversation?</div>
-        <div class="bubble"><div class="role">assistant</div>Sure — I'll look at the session layout…<div class="tool">tool · Read</div></div>
-      </section>
-
-      <!-- D -->
-      <section class="panel" id="panel-d" role="tabpanel">
-        <p class="caption"><strong>D · Header dials</strong> (internet prior art) — compact dual doughnuts in the session header band (like conversation cost/token header stats elsewhere). At-a-glance without a side rail; legend can be tooltip/expand later.</p>
-        <h2 class="session-title">conversation overview</h2>
-        <div class="session-meta">
-          <span><strong>harness</strong> cursor</span>
-          <span><strong>model</strong> claude-…</span>
-          <span><strong>tokens</strong> 42k in · 8k out</span>
         </div>
-        <div class="header-dials" aria-label="Session composition">
-          <div>
-            <div class="dial-label">Tools</div>
-            <div class="dial-total">47 calls</div>
-          </div>
-          <div class="donut" title="Read / Edit / Shell / Grep / Other" aria-hidden="true"></div>
-          <div>
-            <div class="dial-label">Skills</div>
-            <div class="dial-total">11 uses</div>
-          </div>
-          <div class="donut skills" title="niko / sr-query / ponytail / Other" aria-hidden="true"></div>
-          <ul class="legend" style="margin-left:auto">
-            <li><span class="swatch" style="background:var(--c1)"></span> dominant: Read / niko</li>
-            <li><span class="swatch" style="background:var(--c5)"></span> hover/details TBD in build</li>
-          </ul>
-        </div>
-        <div class="bubble user"><div class="role">user</div>Can we add pie charts for tools and skills on this conversation?</div>
-        <div class="bubble"><div class="role">assistant</div>Sure — I'll look at the session layout…<div class="tool">tool · Read</div></div>
-        <div class="bubble user"><div class="role">user</div>Also a query cookbook recipe, please.</div>
       </section>
 
       <div class="prior-art">
-        <strong>Prior art notes (for picking):</strong>
-        Conversation products often put usage in a <em>header stats bar</em>
-        (<a href="https://github.com/tetrixdev/pocket-dev/issues/231">(PocketDev /usage discussion)</a>
-        or session-detail header tokens
-        (<a href="https://agentsview.io/usage/">AgentsView</a>).
-        Support-style UIs use a <em>transcript + right metadata sidebar</em>
-        (<a href="https://docs.helvia.ai/observatory/inside-a-session.md">Helvia Observatory</a>.
-        Aggregate tool charts elsewhere prefer horizontal bars for long names; our metrics pane already speaks doughnut — matching that language keeps consistency.
+        <strong>Still in play:</strong> A (outside-card rail), B (inline simplicity you liked), C (edge handle + slide-in).
+        <strong>Dropped:</strong> D header dials.
       </div>
     </div>
+
+    <button type="button" class="drawer-handle" id="drawer-open" aria-controls="composition-drawer" aria-expanded="false">
+      Tools · Skills ›
+    </button>
+    <aside class="drawer" id="composition-drawer" aria-label="Session composition" aria-hidden="true">
+      <div class="drawer-head">
+        <h2>Composition</h2>
+        <button type="button" class="drawer-close" id="drawer-close" aria-label="Close composition drawer">«</button>
+      </div>
+      <div class="chart-card">
+        <h3>Tools</h3>
+        <div class="donut" aria-hidden="true"></div>
+        <ul class="legend">
+          <li><span class="swatch" style="background:var(--c1)"></span> Read 38%</li>
+          <li><span class="swatch" style="background:var(--c2)"></span> Edit 24%</li>
+          <li><span class="swatch" style="background:var(--c3)"></span> Shell 18%</li>
+          <li><span class="swatch" style="background:var(--c4)"></span> Grep 12%</li>
+          <li><span class="swatch" style="background:var(--c5)"></span> Other 8%</li>
+        </ul>
+      </div>
+      <div class="chart-card">
+        <h3>Skills</h3>
+        <div class="donut skills" aria-hidden="true"></div>
+        <ul class="legend">
+          <li><span class="swatch" style="background:var(--c2)"></span> niko 45%</li>
+          <li><span class="swatch" style="background:var(--c1)"></span> sr-query 25%</li>
+          <li><span class="swatch" style="background:var(--c3)"></span> ponytail 18%</li>
+          <li><span class="swatch" style="background:var(--c5)"></span> Other 12%</li>
+        </ul>
+      </div>
+      <p class="drawer-hint">On a wide viewport this can occupy empty space to the right of the 1200px column; on a narrow one it overlaps the conversation.</p>
+    </aside>
+
     <script>
       const tabs = [...document.querySelectorAll(".tabs button")];
-      const panels = {
-        a: document.getElementById("panel-a"),
-        b: document.getElementById("panel-b"),
-        c: document.getElementById("panel-c"),
-        d: document.getElementById("panel-d"),
-      };
-      tabs.forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const id = btn.dataset.tab;
-          tabs.forEach((t) => t.setAttribute("aria-selected", String(t === btn)));
-          Object.entries(panels).forEach(([k, el]) => el.classList.toggle("active", k === id));
+      const opts = { a: "opt-a", b: "opt-b", c: "opt-c" };
+      const drawer = document.getElementById("composition-drawer");
+      const openBtn = document.getElementById("drawer-open");
+      const closeBtn = document.getElementById("drawer-close");
+
+      function setDrawer(open) {
+        drawer.classList.toggle("open", open);
+        drawer.setAttribute("aria-hidden", String(!open));
+        openBtn.setAttribute("aria-expanded", String(open));
+        openBtn.hidden = open;
+      }
+
+      function showTab(id) {
+        tabs.forEach((t) => t.setAttribute("aria-selected", String(t.dataset.tab === id)));
+        Object.entries(opts).forEach(([k, elId]) => {
+          document.getElementById(elId).classList.toggle("active", k === id);
         });
-      });
+        document.body.classList.toggle("drawer-demo-active", id === "c");
+        if (id !== "c") setDrawer(false);
+      }
+
+      tabs.forEach((btn) => btn.addEventListener("click", () => showTab(btn.dataset.tab)));
+      openBtn.addEventListener("click", () => setDrawer(true));
+      closeBtn.addEventListener("click", () => setDrawer(false));
+      showTab("a");
     </script>
   </body>
 </html>
