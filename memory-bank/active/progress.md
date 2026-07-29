@@ -35,3 +35,15 @@ Rewrite the PR template to the Unautomatable-Only design and add a conventional-
     - PASS — proceed to build
 * Insights
     - Heading/link/no-checklist asserts are structural, not the prose tests #103 removed
+
+## 2026-07-28 - BUILD - COMPLETE
+
+* Work completed
+    - Added `test_pr_template_and_title_ci.py` (5 structural tests); observed red, then green
+    - Rewrote `.github/pull_request_template.md` to Option D (no checklist)
+    - Added `.github/workflows/pr-title.yaml` (amannn/action-semantic-pull-request@v6; docs excluded)
+    - `make format` + `make ci` green (797 passed, 4 skipped; REUSE clean)
+* Decisions made
+    - No CONTRIBUTING.md edit (per creative/preflight)
+* Insights
+    - None beyond plan

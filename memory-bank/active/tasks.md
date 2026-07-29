@@ -88,5 +88,5 @@ New GitHub Action dependency: `amannn/action-semantic-pull-request@v6` (pinned m
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight
-- [ ] Build
+- [x] Build
 - [ ] QA
