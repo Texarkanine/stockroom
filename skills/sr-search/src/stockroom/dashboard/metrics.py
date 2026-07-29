@@ -1113,6 +1113,71 @@ def _parse_tool_input(value: Any) -> Any:
     return value
 
 
+def _session_tools_payload(
+    harness: str,
+    tool_rows: Sequence[tuple[Any, ...]],
+    *,
+    limit: int = 10,
+) -> dict[str, Any]:
+    """Build a single-harness tools doughnut payload from session tool rows.
+
+    ``tool_rows`` are ``(message_id, ordinal, tool_name, tool_input)`` as loaded
+    by :func:`session_detail`. Shape matches :func:`tools` so the dashboard can
+    reuse ``buildToolsPanel``.
+    """
+    counts: Counter[str] = Counter()
+    for _message_id, _ordinal, tool_name, _tool_input in tool_rows:
+        counts[tool_name] += 1
+    ranked = sorted(counts, key=lambda name: (-counts[name], name))[:limit]
+    return {
+        "tools": ranked,
+        "calls": {harness: [counts[name] for name in ranked]},
+    }
+
+
+def _session_skills_payload(
+    harness: str,
+    message_rows: Sequence[tuple[Any, ...]],
+    tool_rows: Sequence[tuple[Any, ...]],
+    *,
+    limit: int = 10,
+) -> dict[str, Any]:
+    """Build a single-harness skills doughnut payload for one session.
+
+    Message rows are ``(message_id, ordinal, role, text, model, ts)``; tool rows
+    match :func:`_session_tools_payload`. Uses :func:`skill_usage.iter_skill_uses`
+    — same extractors as warehouse-window :func:`skills`.
+    """
+    skill_messages: list[skill_usage.MessageRow] = [
+        (harness, text)
+        for _message_id, _ordinal, role, text, _model, _ts in message_rows
+        if role == "user"
+    ]
+    skill_tools: list[skill_usage.ToolRow] = [
+        (harness, tool_name, tool_input)
+        for _message_id, _ordinal, tool_name, tool_input in tool_rows
+    ]
+    counts: dict[str, dict[str, int]] = {}
+    for use in skill_usage.iter_skill_uses(harness, skill_messages, skill_tools):
+        per_skill = counts.setdefault(use.skill, {})
+        per_skill[use.invoker] = per_skill.get(use.invoker, 0) + 1
+
+    def _total(skill: str) -> int:
+        return sum(counts[skill].values())
+
+    ranked = sorted(counts, key=lambda skill: (-_total(skill), skill))[:limit]
+    return {
+        "skills": ranked,
+        "invokers": list(_SKILL_INVOKERS),
+        "calls": {
+            harness: {
+                invoker: [counts.get(skill, {}).get(invoker, 0) for skill in ranked]
+                for invoker in _SKILL_INVOKERS
+            }
+        },
+    }
+
+
 def session_detail(
     con: duckdb.DuckDBPyConnection,
     harness: str,
@@ -1123,10 +1188,13 @@ def session_detail(
     Unlike :func:`sessions`, this path does not truncate message text and does
     not exclude subagents — any ``(harness, session_id)`` present in the
     warehouse is addressable. Missing identity returns ``None``.
+
+    Also includes ``title`` (nullable) and session-scoped ``tools`` / ``skills``
+    aggregates shaped like :func:`tools` / :func:`skills` for Chart.js reuse.
     """
     row = con.execute(
         f"SELECT s.harness, s.session_id, s.project_id, s.cwd, s.models, "
-        f"{ACTIVITY_TIME_SQL}, s.is_subagent, s.parent_session_id, "
+        f"{ACTIVITY_TIME_SQL}, s.is_subagent, s.parent_session_id, s.title, "
         "t.token_grain, t.input_tokens_total, t.output_tokens_total, "
         "t.cache_creation_tokens_total, t.cache_read_tokens_total "
         "FROM sessions s "
@@ -1147,6 +1215,7 @@ def session_detail(
         activity,
         is_subagent,
         parent_session_id,
+        title,
         token_grain,
         input_tokens_total,
         output_tokens_total,
@@ -1212,6 +1281,7 @@ def session_detail(
         "started": _iso(activity),
         "is_subagent": bool(is_subagent),
         "parent_session_id": parent_session_id,
+        "title": title,
         "model": session_model,
         "tokens": _tokens_payload(
             token_grain,
@@ -1220,6 +1290,8 @@ def session_detail(
             cache_creation_tokens_total,
             cache_read_tokens_total,
         ),
+        "tools": _session_tools_payload(row_harness, tool_rows),
+        "skills": _session_skills_payload(row_harness, message_rows, tool_rows),
         "messages": messages,
     }
 

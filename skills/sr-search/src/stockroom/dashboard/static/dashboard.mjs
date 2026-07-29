@@ -43,6 +43,7 @@ import {
 import {
   buildSessionDeepLink,
   buildSessionMetaEntries,
+  sessionMessagesHeading,
   buildSessionViewSearchParams,
   buildSessionsListSearchParams,
   canReuseLoadedSession,
@@ -1041,18 +1042,19 @@ function renderSessionDetail(detail) {
   sessionDetail = detail;
   const harness = detail?.harness ?? sessionView?.harness ?? "";
   const sessionId = detail?.session_id ?? sessionView?.sessionId ?? "";
-  elements.sessionTitle.textContent = `${displayHarness(harness)} / ${sessionId}`;
-  const project = detail?.project_name || detail?.project_id || "—";
+  const harnessLabel = displayHarness(harness);
+  elements.sessionTitle.textContent = sessionMessagesHeading({
+    title: detail?.title,
+    harnessLabel,
+    sessionId,
+  });
   const started = detail?.started ? formatDate(detail.started) : "—";
   elements.sessionMeta.innerHTML = "";
   const metaBits = buildSessionMetaEntries({
-    harnessLabel: displayHarness(harness),
-    project,
+    harnessLabel,
     started,
     model: detail?.model,
     tokens: detail?.tokens,
-    isSubagent: Boolean(detail?.is_subagent),
-    parentSessionId: detail?.parent_session_id,
   });
   elements.sessionMeta.append(
     ...metaBits.flatMap((entry, index) => {
@@ -1072,6 +1074,28 @@ function renderSessionDetail(detail) {
       nodes.push(strong, document.createTextNode(String(entry.text)));
       return nodes;
     }),
+  );
+
+  const selected = [harness];
+  const colors = harnessColors(selected);
+  renderChart(
+    "session-tools",
+    "Tools",
+    buildToolsPanel(detail?.tools ?? { tools: [], calls: {} }, selected, "aggregate", colors),
+  );
+  renderChart(
+    "session-skills-nested",
+    "Skills",
+    buildSkillsNestedPanel(
+      detail?.skills ?? {
+        skills: [],
+        invokers: ["user", "agent"],
+        calls: {},
+      },
+      selected,
+      "aggregate",
+      colors,
+    ),
   );
 
   elements.sessionTurns.replaceChildren();

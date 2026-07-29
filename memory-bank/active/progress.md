@@ -56,3 +56,14 @@ Add per-conversation skill and tool-call distribution visualizations (pie charts
     - Advisory only: optional `#composition` deep-link deferred
 * Insights
     - Panel builders need harness-keyed `calls` even for a single session
+
+## 2026-07-29 - BUILD - COMPLETE
+
+* Work completed
+    - session_detail: title + tools/skills aggregates via skill_usage
+    - Session pane split F-a; Chart.js composition; cookbook recipe; docs note
+    - Full test suite green
+* Decisions made
+    - Overview meta is harness/model/tokens/started only (no project/subagent in that band)
+* Insights
+    - Canvas count in static test rose from 10 → 12 for session composition

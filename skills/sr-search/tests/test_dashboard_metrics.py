@@ -1689,6 +1689,64 @@ def test_session_detail_reconstructs_ordered_messages_and_nested_tools(
         {"ordinal": 0, "tool_name": "Read", "tool_input": {"path": "a.py"}},
         {"ordinal": 1, "tool_name": "Shell", "tool_input": {"command": "ls"}},
     ]
+    assert result["title"] is None
+    assert result["tools"] == {
+        "tools": ["Read", "Shell"],
+        "calls": {"cursor": [1, 1]},
+    }
+    assert result["skills"] == {
+        "skills": [],
+        "invokers": ["user", "agent"],
+        "calls": {"cursor": {"user": [], "agent": []}},
+    }
+
+
+def test_session_detail_includes_title_and_skill_aggregates(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Detail exposes sessions.title and session-scoped skill doughnut payload."""
+    _seed_session(
+        migrated_con,
+        harness="claude",
+        session_id="detail-skills",
+        activity=datetime(2026, 1, 7, 12),
+        project_id="p",
+        message_count=2,
+    )
+    migrated_con.execute(
+        "UPDATE sessions SET title = ? WHERE session_id = 'detail-skills'",
+        ["Plan the pie charts"],
+    )
+    _seed_tool(
+        migrated_con,
+        harness="claude",
+        session_id="detail-skills",
+        message_ordinal=1,
+        ordinal=0,
+        tool_name="Skill",
+        tool_input={"skill": "niko", "args": "plan"},
+    )
+    _seed_tool(
+        migrated_con,
+        harness="claude",
+        session_id="detail-skills",
+        message_ordinal=1,
+        ordinal=1,
+        tool_name="Read",
+        tool_input={"path": "x.py"},
+    )
+
+    result = metrics.session_detail(migrated_con, "claude", "detail-skills")
+    assert result is not None
+    assert result["title"] == "Plan the pie charts"
+    assert result["tools"] == {
+        "tools": ["Read", "Skill"],
+        "calls": {"claude": [1, 1]},
+    }
+    assert result["skills"]["skills"] == ["niko"]
+    assert result["skills"]["invokers"] == ["user", "agent"]
+    assert result["skills"]["calls"]["claude"]["agent"] == [1]
+    assert result["skills"]["calls"]["claude"]["user"] == [0]
 
 
 def test_session_detail_includes_model_and_message_grain_tokens(

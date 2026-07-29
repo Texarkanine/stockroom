@@ -228,8 +228,13 @@ export function formatSessionMarkdownExport(detail) {
   const sessionId = detail?.session_id ?? "";
   const project =
     detail?.project_name || detail?.project_id || "—";
+  const heading = sessionMessagesHeading({
+    title: detail?.title,
+    harnessLabel: harness,
+    sessionId,
+  });
   const lines = [
-    `# ${harness} / ${sessionId}`,
+    `# ${heading}`,
     "",
     `project: ${project}`,
     "",
@@ -492,22 +497,37 @@ export function sessionLocationWithMessageHash(pathname, search, ordinal) {
  *   | { kind: "tokens", label: string, tokens: unknown }
  * >}
  */
+/**
+ * Overview-pill meta for session view (F-a): harness, model, tokens, started.
+ *
+ * @param {{
+ *   harnessLabel: string,
+ *   started: string,
+ *   model?: string | null,
+ *   tokens?: unknown,
+ * }} fields
+ * @returns {Array<{ kind: "text", label: string, text: string } | { kind: "tokens", label: string, tokens: unknown }>}
+ */
 export function buildSessionMetaEntries(fields) {
-  /** @type {Array<{ kind: "text", label: string, text: string } | { kind: "tokens", label: string, tokens: unknown }>} */
-  const entries = [
+  return [
     { kind: "text", label: "Harness", text: fields.harnessLabel },
-    { kind: "text", label: "Project", text: fields.project },
-    { kind: "text", label: "Started", text: fields.started },
     { kind: "text", label: "Model", text: fields.model || "—" },
     { kind: "tokens", label: "Tokens", tokens: fields.tokens ?? null },
+    { kind: "text", label: "Started", text: fields.started },
   ];
-  if (fields.isSubagent) {
-    entries.push({
-      kind: "text",
-      label: "Subagent of",
-      text: fields.parentSessionId || "—",
-    });
+}
+
+/**
+ * Messages-pill heading: warehouse title when present, else harness / session id.
+ *
+ * @param {{ title?: string | null, harnessLabel: string, sessionId: string }} fields
+ * @returns {string}
+ */
+export function sessionMessagesHeading(fields) {
+  const title = typeof fields.title === "string" ? fields.title.trim() : "";
+  if (title) {
+    return title;
   }
-  return entries;
+  return `${fields.harnessLabel} / ${fields.sessionId}`;
 }
 

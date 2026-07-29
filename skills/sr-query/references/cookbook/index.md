@@ -8,6 +8,7 @@ Starter SQL for gnarly warehouse questions. Open a recipe only after you know yo
 | [tools.md](tools.md) | Full tool rankings (activity window + harness) |
 | [skills-claude.md](skills-claude.md) | Claude skill × invoker SQL |
 | [skills-cursor.md](skills-cursor.md) | Cursor skill × invoker SQL |
+| [session-tools-skills.md](session-tools-skills.md) | Tool + skill distribution for one conversation |
 
 ```bash
 stockroom query --format table "<SQL from a recipe>"

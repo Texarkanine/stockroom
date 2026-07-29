@@ -5,6 +5,7 @@ import {
   ansiToHtml,
   buildSessionDeepLink,
   buildSessionMetaEntries,
+  sessionMessagesHeading,
   buildSessionViewSearchParams,
   buildSessionsListSearchParams,
   clampSessionsListPage,
@@ -312,10 +313,9 @@ test("clampSessionsListPage clamps beyond last non-empty page", () => {
   assert.equal(clampSessionsListPage(2, 100, "all"), 1);
 });
 
-test("buildSessionMetaEntries shows Model and Tokens, omits Session", () => {
+test("buildSessionMetaEntries is overview F-a order: harness model tokens started", () => {
   const entries = buildSessionMetaEntries({
     harnessLabel: "Claude Code",
-    project: "stockroom",
     started: "2026-01-02 09:00",
     model: "claude-sonnet",
     tokens: {
@@ -327,38 +327,48 @@ test("buildSessionMetaEntries shows Model and Tokens, omits Session", () => {
   });
   assert.deepEqual(
     entries.map((entry) => entry.label),
-    ["Harness", "Project", "Started", "Model", "Tokens"],
+    ["Harness", "Model", "Tokens", "Started"],
   );
   assert.equal(
     entries.find((entry) => entry.label === "Model")?.text,
     "claude-sonnet",
   );
   assert.equal(entries.find((entry) => entry.label === "Tokens")?.kind, "tokens");
-  assert.equal(
-    entries.find((entry) => entry.label === "Model")?.kind,
-    "text",
-  );
 });
 
 test("buildSessionMetaEntries uses emdash for unknown model and null tokens", () => {
   const entries = buildSessionMetaEntries({
     harnessLabel: "Cursor",
-    project: "—",
     started: "—",
     model: null,
     tokens: null,
-    isSubagent: true,
-    parentSessionId: "parent-1",
   });
   assert.deepEqual(
     entries.map((entry) => [entry.label, entry.kind, entry.text ?? null]),
     [
       ["Harness", "text", "Cursor"],
-      ["Project", "text", "—"],
-      ["Started", "text", "—"],
       ["Model", "text", "—"],
       ["Tokens", "tokens", null],
-      ["Subagent of", "text", "parent-1"],
+      ["Started", "text", "—"],
     ],
+  );
+});
+
+test("sessionMessagesHeading prefers trimmed title else harness/session", () => {
+  assert.equal(
+    sessionMessagesHeading({
+      title: "  Fix flaky deep-link  ",
+      harnessLabel: "Cursor",
+      sessionId: "abc",
+    }),
+    "Fix flaky deep-link",
+  );
+  assert.equal(
+    sessionMessagesHeading({
+      title: null,
+      harnessLabel: "Cursor",
+      sessionId: "abc",
+    }),
+    "Cursor / abc",
   );
 });

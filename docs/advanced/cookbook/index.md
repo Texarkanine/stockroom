@@ -21,6 +21,7 @@ Each recipe page is the same markdown file the `sr-query` skill ships. Edit the 
 | [Tools](tools.md) | The full `tool_name` ranking (not just the dashboard top-10), with an activity window |
 | [Skills — Claude](skills-claude.md) | Claude skill × invoker counts from warehouse SQL |
 | [Skills — Cursor](skills-cursor.md) | Cursor skill × invoker counts from warehouse SQL |
+| [Per-session tools & skills](session-tools-skills.md) | Tool + skill distribution for one conversation |
 
 ## How to run a recipe
 

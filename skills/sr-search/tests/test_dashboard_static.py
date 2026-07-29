@@ -68,7 +68,7 @@ def test_dashboard_document_has_semantic_controls_panels_and_fallbacks() -> None
     assert "table" in tags
     assert tags.count("th") >= 6
     canvases = [attrs for tag, attrs in parser.elements if tag == "canvas"]
-    assert len(canvases) == 10
+    assert len(canvases) == 12  # metrics panes + session composition Tools/Skills
     assert all(canvas.get("role") == "img" for canvas in canvases)
     assert all(canvas.get("aria-label") for canvas in canvases)
 
@@ -179,6 +179,11 @@ def test_session_pane_exposes_navigation_export_and_turn_landmarks() -> None:
     assert by_id["session-export-md"][0] == "button"
     assert by_id["session-export-json"][0] == "button"
     assert "session-meta" in by_id
+    assert "session-overview" in by_id
+    assert "session-composition" in by_id
+    assert "session-messages" in by_id
+    assert "session-tools-chart" in by_id
+    assert "session-skills-nested-chart" in by_id
     assert "session-turns" in by_id
     assert "session-error" in by_id
     assert ".session-row" in source

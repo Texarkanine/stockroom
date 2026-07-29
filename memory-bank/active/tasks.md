@@ -137,5 +137,13 @@ No new technology — validation not required (vendored Chart.js already in use)
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight
-- [ ] Build
+- [x] Build
 - [ ] QA
+
+### Build checklist
+
+- [x] API session_detail title + tools/skills aggregates
+- [x] JS meta/heading helpers + F-a HTML/CSS + renderSessionDetail charts
+- [x] Cookbook session-tools-skills + docs symlink
+- [x] User-guide session inspection note
+- [x] `make test-dashboard-py` / `make test-dashboard-js`
