@@ -57,3 +57,13 @@ Rewrite the PR template to the Unautomatable-Only design and add a conventional-
     - PASS
 * Insights
     - None
+
+## 2026-07-28 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `reflection/reflection-mature-pr-template-title-ci.md`
+    - Reconciled persistent files: techContext already updated in QA; productContext/systemPatterns untouched
+* Decisions made
+    - Open PR next (brief requirement), then archive via operator
+* Insights
+    - Title CI and checklist deletion must ship together or the policy regresses
