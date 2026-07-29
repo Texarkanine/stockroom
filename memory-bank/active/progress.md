@@ -67,3 +67,12 @@ Rewrite the PR template to the Unautomatable-Only design and add a conventional-
     - Open PR next (brief requirement), then archive via operator
 * Insights
     - Title CI and checklist deletion must ship together or the policy regresses
+
+## 2026-07-29 - ARCHIVE - IN-PROGRESS
+
+* Work completed
+    - Operator invoked `/niko-archive` after reflect; post-reflect follow-up deleted structural PR-template pytest (`334faf7`) per operator: do not pytest-lock prose/templates
+* Decisions made
+    - Proceed to Level 2 archive (enhancements/)
+* Insights
+    - always-tdd pressure invented a "structural marker" loophole that operator rejected; carve-out tracked in .cursor-rules#95
