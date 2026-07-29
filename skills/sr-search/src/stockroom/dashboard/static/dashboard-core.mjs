@@ -97,6 +97,33 @@ function panelModel(kind, labels, datasets, options = {}) {
             strokeStyle: item.strokeStyle ?? item.fillStyle,
           })),
         }),
+    ...(options.legendPosition === undefined
+      ? {}
+      : { legendPosition: options.legendPosition }),
+  };
+}
+
+/** Shorter doughnut wrap for session overview composition (above the transcript). */
+export const SESSION_COMPOSITION_CHART_HEIGHT = 176;
+
+/**
+ * Densify a tools/skills doughnut for the session composition band.
+ *
+ * Shorter canvas height plus a right-side legend reclaim the horizontal dead
+ * space of a top-legend doughnut so the transcript starts higher on the page.
+ *
+ * @param {Record<string, unknown>} panel Panel model from a builder.
+ * @returns {Record<string, unknown>} Panel with session composition layout hints.
+ */
+export function withSessionCompositionLayout(panel) {
+  const source = panel && typeof panel === "object" ? panel : {};
+  if (source.empty) {
+    return { ...source, legendPosition: "right" };
+  }
+  return {
+    ...source,
+    height: SESSION_COMPOSITION_CHART_HEIGHT,
+    legendPosition: "right",
   };
 }
 
@@ -1073,7 +1100,9 @@ export function chartWrapLayoutStyle(empty, height = 280) {
   }
   const px = Number(height);
   const resolved = Number.isFinite(px) && px > 0 ? px : 280;
-  return { height: `${resolved}px`, minHeight: "" };
+  // Clear the stylesheet `.chart-wrap { min-height: 260px }` floor so shorter
+  // session-composition heights actually take effect.
+  return { height: `${resolved}px`, minHeight: "0px" };
 }
 
 /**

@@ -127,3 +127,33 @@ Add per-conversation skill and tool-call distribution visualizations (pie charts
     - No persistent memory-bank edits required
 * Insights
     - None
+
+## 2026-07-29 - FOLLOW-UP - denser session composition
+
+* Work completed
+    - `withSessionCompositionLayout`: height 176 + `legendPosition: "right"` for session Tools/Skills
+    - `chartWrapLayoutStyle` clears CSS min-height floor so shorter wraps apply
+* Decisions made
+    - Keep summary above transcript; densify in place rather than relocating the band
+* Insights
+    - Top-legend doughnuts waste L/R space; side legend trades width for height
+
+## 2026-07-29 - FOLLOW-UP - session composition FOUC
+
+* Work completed
+    - Session composition wraps default CSS `height: 0`; expand to 176 only when data paints
+    - `resetSessionCompositionCharts` on session load clears prior doughnuts / avoids false empty copy
+* Decisions made
+    - Prefer collapse-then-expand over shrink-from-metrics-280
+* Insights
+    - Shrink FOUC hit both empty and populated sessions because pane shows before fetch completes
+
+## 2026-07-29 - FOLLOW-UP - drop prose-style static locks
+
+* Work completed
+    - Removed CSS/constant/function-name string asserts added for FOUC densify (per .cursor-rules#95)
+    - Kept executable unit tests for layout helpers
+* Decisions made
+    - Source greps on HTML/CSS values are not regression tests
+* Insights
+    - Same pressure as stockroom#106 mature-PR-template pytest on headings

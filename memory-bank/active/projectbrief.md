@@ -49,6 +49,8 @@ Operator UAT on a real session (`8512de74-…`) showed empty Tools/Skills compos
 
 1. When a conversation has no tool calls and/or no skill uses, do **not** reserve full doughnut chart height for empty panels. Still surface a compact “none found” signal so emptiness is distinguishable from a load/render failure.
 2. Bounce / `--replace` the local dashboard after verifying so live UAT matches current code.
+3. Session composition doughnuts should be denser than metrics-pane defaults (shorter height, side legend) so the transcript starts higher.
+4. No shrink FOUC: wraps must not paint at metrics height then collapse/densify after the session fetch.
 
 ### Out of scope (unless re-requested)
 

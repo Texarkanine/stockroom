@@ -654,7 +654,26 @@
       }
 
       .session-composition-grid {
+        --session-composition-chart-height: 176px; /* keep in sync with SESSION_COMPOSITION_CHART_HEIGHT */
         margin-top: 0.35rem;
+      }
+
+      /*
+       * Start collapsed (not metrics 280px). JS expands to
+       * --session-composition-chart-height when data arrives; empty stays 0.
+       * Avoids shrink FOUC while the session detail request is in flight.
+       */
+      .session-composition-grid .chart-wrap {
+        height: 0;
+        min-height: 0;
+      }
+
+      .session-composition-grid .panel {
+        padding-bottom: 0.65rem;
+      }
+
+      .session-composition-grid .chart-scroll {
+        max-height: none;
       }
 
       .session-toolbar {

@@ -29,6 +29,7 @@ import {
   sessionsPaginationVisible,
   summarizeChartPanel,
   chartWrapLayoutStyle,
+  withSessionCompositionLayout,
   togglePanelHelp,
   tooltipLabelColors,
   tooltipTitleFromLabelTitles,
@@ -360,10 +361,16 @@ function chartOptions(model) {
           model.kind === "doughnut" ||
           model.datasets.length > 1 ||
           state.mode === "compare",
+        ...(typeof model.legendPosition === "string"
+          ? { position: model.legendPosition }
+          : {}),
         labels: {
           color: text,
           usePointStyle: true,
           boxWidth: 10,
+          ...(model.legendPosition === "right"
+            ? { padding: 8, font: { size: 11 } }
+            : {}),
           ...(Array.isArray(model.legendItems)
             ? {
                 generateLabels() {
@@ -456,6 +463,11 @@ function chartOptions(model) {
   return options;
 }
 
+const SESSION_COMPOSITION_CHART_NAMES = Object.freeze([
+  "session-tools",
+  "session-skills-nested",
+]);
+
 function renderChart(name, title, model) {
   const canvas = document.querySelector(`#${name}-chart`);
   const wrapper = document.querySelector(`#${name}-chart-wrap`);
@@ -488,6 +500,33 @@ function renderChart(name, title, model) {
     options: chartOptions(model),
   });
   chartRegistry.set(name, chart);
+}
+
+/**
+ * Collapse session composition wraps and clear prior charts while a detail
+ * fetch is in flight — prevents shrink FOUC from the metrics chart-wrap size
+ * (or a previous session's doughnuts) before the new payload paints.
+ */
+function resetSessionCompositionCharts() {
+  const layout = chartWrapLayoutStyle(true);
+  for (const name of SESSION_COMPOSITION_CHART_NAMES) {
+    chartRegistry.get(name)?.destroy();
+    chartRegistry.delete(name);
+    const wrapper = document.querySelector(`#${name}-chart-wrap`);
+    const canvas = document.querySelector(`#${name}-chart`);
+    const empty = document.querySelector(`#${name}-empty`);
+    if (wrapper) {
+      wrapper.style.height = layout.height;
+      wrapper.style.minHeight = layout.minHeight;
+    }
+    if (canvas) {
+      canvas.hidden = true;
+    }
+    if (empty) {
+      // Hide until render decides empty vs populated — avoid a false "none".
+      empty.hidden = true;
+    }
+  }
 }
 
 function appendCell(row, value, className) {
@@ -1084,20 +1123,29 @@ function renderSessionDetail(detail) {
   renderChart(
     "session-tools",
     "Tools",
-    buildToolsPanel(detail?.tools ?? { tools: [], calls: {} }, selected, "aggregate", colors),
+    withSessionCompositionLayout(
+      buildToolsPanel(
+        detail?.tools ?? { tools: [], calls: {} },
+        selected,
+        "aggregate",
+        colors,
+      ),
+    ),
   );
   renderChart(
     "session-skills-nested",
     "Skills",
-    buildSkillsNestedPanel(
-      detail?.skills ?? {
-        skills: [],
-        invokers: ["user", "agent"],
-        calls: {},
-      },
-      selected,
-      "aggregate",
-      colors,
+    withSessionCompositionLayout(
+      buildSkillsNestedPanel(
+        detail?.skills ?? {
+          skills: [],
+          invokers: ["user", "agent"],
+          calls: {},
+        },
+        selected,
+        "aggregate",
+        colors,
+      ),
     ),
   );
 
@@ -1218,6 +1266,7 @@ async function openSessionView(harness, sessionId, { push = true } = {}) {
   sessionDetail = null;
   clearSessionError();
   showSessionView();
+  resetSessionCompositionCharts();
   elements.sessionTurns.replaceChildren();
   elements.sessionTitle.textContent = `${displayHarness(harness)} / ${sessionId}`;
   elements.sessionMeta.textContent = "Loading session…";
