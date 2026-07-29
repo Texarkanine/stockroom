@@ -67,3 +67,21 @@ Add per-conversation skill and tool-call distribution visualizations (pie charts
     - Overview meta is harness/model/tokens/started only (no project/subagent in that band)
 * Insights
     - Canvas count in static test rose from 10 → 12 for session composition
+
+## 2026-07-29 - QA - COMPLETE
+
+* Work completed
+    - Semantic review vs plan/creative F-a; `.qa-validation-status` = PASS
+* Decisions made
+    - No substantive fixes required
+* Insights
+    - None beyond build notes
+
+## 2026-07-29 - REFLECT - COMPLETE
+
+* Work completed
+    - Reflection document written; techContext session-view note reconciled
+* Decisions made
+    - Archive next via `/niko-archive`
+* Insights
+    - Harness-keyed chart payloads required even for single-session composition
