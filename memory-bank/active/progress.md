@@ -31,8 +31,19 @@ Add per-conversation skill and tool-call distribution visualizations (pie charts
 
 * Work completed
     - Operator selected **F**: overview pill + messages-only card
-    - Structure locked: title → session (4 metrics) → composition (tools/skills charts only, no prose)
+    - Structure locked: session (4 metrics) → composition (tools/skills charts only, no prose); no overview page header
 * Decisions made
     - F refined; A/B/C/D/E/E-2 not primary placement
+    - **F-a** locked for toolbar (in messages card); F-b rejected
 * Insights
     - Transcript box must stay messages-only; summary chrome lives above
+
+## 2026-07-29 - PLAN - COMPLETE
+
+* Work completed
+    - Implementation plan for F-a: session_detail title+aggregates, UI split, Chart.js reuse, cookbook recipe, TDD map
+* Decisions made
+    - Reuse `buildToolsPanel` / `buildSkillsNestedPanel` with session-scoped API payloads
+    - Skills via `skill_usage.iter_skill_uses` on session-scoped rows
+* Insights
+    - `sessions.title` already in schema but omitted from session_detail today

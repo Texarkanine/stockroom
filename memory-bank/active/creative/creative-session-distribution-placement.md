@@ -65,9 +65,7 @@ Key insights:
 2. **session** — the four metrics (harness, model, tokens, started)
 3. **composition** — Tools & Skills charts only (no explanatory copy); same visual language as main metrics dashboard
 4. Messages pill — conversation title (when present) as that card’s heading + transcript only
-5. Copy / export toolbar — still choosing:
-   - **F-a**: top of messages card (today’s order: toolbar → title → turns)
-   - **F-b**: between overview pill and messages pill
+5. Copy / export toolbar — **F-a** (operator locked): top of messages card (toolbar → conversation title → turns). F-b rejected.
 
 **Tradeoff**: Charts scroll away with the overview (accepted; composition is glance-once). Drawer (C) and below-convo (E) rejected for this surface.
 

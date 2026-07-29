@@ -1,11 +1,11 @@
 # Active Context
 
 ## Current Task: conversation-summary-tool-skill-pie-charts
-**Phase:** PLAN - IN-PROGRESS (creative resolved — resume plan)
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Creative placement decided: **F** — overview pill (`conversation overview` → session metrics → composition charts) + messages-only card
-- Mockup refined to match (no Session/Composition as separate pills; section labels inside one overview pill; composition has charts only)
+- Locked **F-a**: overview pill (session 4 metrics + composition charts, no page header) + messages pill (toolbar → title → turns)
+- Full L3 plan written: API aggregates + title, HTML/CSS split, Chart.js reuse, cookbook recipe, TDD map
 
 ## Next Step
-- Operator runs `/niko-plan` to finish the Level 3 plan against decision F
+- Preflight, then build (operator requested build)
