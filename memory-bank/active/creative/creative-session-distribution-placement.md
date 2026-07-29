@@ -56,12 +56,22 @@ Key insights:
 
 ## Decision
 
-**Low-Confidence Result**: Still awaiting operator visual pick among revised A / B / C. Soft lean toward **B** given operator’s simplicity comment, unless sticky-while-scrolling (A) or get-out-of-the-way (C) wins on second look.
+**Selected**: **F · Overview + messages** (refined)
+
+**Rationale**: Operator visual pick. Conversation card must not mix transcript with summary chrome. One overview pill + messages-only card.
+
+**Structure**:
+1. Overview pill headed **conversation overview**
+2. **session** — the four metrics (harness, model, tokens, started)
+3. **composition** — Tools & Skills charts only (no explanatory copy); same visual language as main metrics dashboard
+4. Messages pill — transcript only
+
+**Tradeoff**: Charts scroll away with the overview (accepted; composition is glance-once). Drawer (C) and below-convo (E) rejected for this surface.
 
 ## Implementation Notes
 
-Deferred until operator selects A/B/C (or a hybrid). Regardless of placement:
-- Reuse Chart.js doughnut patterns from metrics (`buildToolsPanel` / skills nested or a session-scoped dual doughnut).
+- Reuse Chart.js doughnut / panel patterns from metrics (`buildToolsPanel`, skills nested or session-scoped dual doughnut) inside the overview pill under **composition**.
 - Cap categories (top N + Other) per donut best practice.
-- Hide or show empty-state copy when a session has zero tools/skills.
-- If C: keyboard dismiss, `aria-expanded` on handle, prefer `prefers-reduced-motion` for the slide.
+- Empty sessions: hide composition section or show empty-state without broken charts.
+- Split session UI: overview card (title + session metrics + composition charts) vs messages card (turns only).
+- Do not use sticky side rail (A), tiny inline-inside-card (B), slide-in drawer (C), or below-transcript-only (E) as the primary placement.

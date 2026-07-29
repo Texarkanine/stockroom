@@ -288,7 +288,7 @@
         <button type="button" role="tab" aria-selected="false" data-tab="c">C · Slide-in drawer</button>
         <button type="button" role="tab" aria-selected="false" data-tab="e">E · Below</button>
         <button type="button" role="tab" aria-selected="false" data-tab="e2">E-2 · Full above</button>
-        <button type="button" role="tab" aria-selected="false" data-tab="f">F · Split pills</button>
+        <button type="button" role="tab" aria-selected="false" data-tab="f">F · Overview + messages</button>
       </div>
 
       <!-- A -->
@@ -519,23 +519,19 @@
       <!-- F -->
       <section class="option" id="opt-f" role="tabpanel">
         <p class="caption">
-          <strong>F · Split pills above messages</strong> — the conversation card contains <em>only messages</em>. Session summary (meta) is its own pill above; Tools &amp; Skills is a second dashboard-scale pill; then the messages card. No summary chrome inside the transcript box.
+          <strong>F · Overview + messages</strong> (selected) — one overview pill headed “conversation overview”, then <em>session</em> (4 metrics) and <em>composition</em> (tools + skills charts only, no explanatory copy — same language as main dash). Messages card below, transcript only.
         </p>
         <div class="stack">
-          <section class="card" aria-label="Session summary">
-            <p class="pill-title">Session</p>
-            <h2 class="session-title" style="margin-bottom:0.5rem">conversation overview</h2>
-            <div class="session-meta" style="margin-bottom:0">
+          <section class="card" aria-label="Conversation overview">
+            <h2 class="session-title">conversation overview</h2>
+            <p class="pill-title">session</p>
+            <div class="session-meta">
               <span><strong>harness</strong> cursor</span>
               <span><strong>model</strong> claude-…</span>
               <span><strong>tokens</strong> 42k in · 8k out</span>
               <span><strong>started</strong> 2026-07-29</span>
             </div>
-          </section>
-          <section class="card" aria-label="Session composition">
-            <p class="pill-title">Composition</p>
-            <h2 class="session-title" style="font-size:1.1rem">Tools &amp; skills</h2>
-            <p style="color:var(--muted);margin:0 0 1rem;font-size:0.9rem">Per-conversation distribution — same chart language as the metrics dashboard.</p>
+            <p class="pill-title">composition</p>
             <div class="chart-grid">
               <div class="chart-panel">
                 <h3>Tools</h3>
@@ -565,18 +561,17 @@
             </div>
           </section>
           <div class="card messages-only" aria-label="Messages">
-            <p class="pill-title">Messages</p>
             <div class="bubble user"><div class="role">user</div>This box is only the transcript — no meta, no charts.</div>
-            <div class="bubble"><div class="role">assistant</div>Summary and composition live in the pills above.<div class="tool">tool · Read</div></div>
+            <div class="bubble"><div class="role">assistant</div>Overview (session + composition) is the pill above.<div class="tool">tool · Read</div></div>
             <div class="bubble user"><div class="role">user</div>Scroll into the conversation when you’re ready to read.</div>
-            <div class="bubble"><div class="role">assistant</div>Clean separation: session facts → composition → messages.<div class="tool">tool · Edit</div></div>
+            <div class="bubble"><div class="role">assistant</div>Two cards: overview, then messages.<div class="tool">tool · Edit</div></div>
           </div>
         </div>
       </section>
 
       <div class="prior-art">
-        Options: <strong>A</strong> sticky side · <strong>B</strong> tiny inline · <strong>C</strong> slide-in drawer · <strong>E</strong> full below · <strong>E-2</strong> full above · <strong>F</strong> split pills (meta + composition + messages-only).
-        Dropped: D header dials.
+        <strong>Selected: F</strong> — one overview pill (title + meta + tools/skills) + messages-only card.
+        Also explored: A / B / C / E / E-2. Dropped: D.
       </div>
     </div>
 
@@ -638,7 +633,7 @@
       tabs.forEach((btn) => btn.addEventListener("click", () => showTab(btn.dataset.tab)));
       openBtn.addEventListener("click", () => setDrawer(true));
       closeBtn.addEventListener("click", () => setDrawer(false));
-      showTab("a");
+      showTab("f");
     </script>
   </body>
 </html>

@@ -33,7 +33,7 @@ Per-conversation skill and tool-call distribution visualizations on the dashboar
 
 ## Open Questions
 
-- [ ] **Session overview distribution placement & presentation** → Unresolved: awaiting operator visual pick. Explored A side / B inline / C popover / D header dials (+ internet prior art). See `memory-bank/active/creative/creative-session-distribution-placement.md` and open `memory-bank/active/creative/mockups-session-distribution.html`.
+- [x] **Session overview distribution placement & presentation** → Resolved: **F** — overview pill (title → session 4 metrics → composition tools/skills charts, no prose) + messages-only card. See `memory-bank/active/creative/creative-session-distribution-placement.md`.
 
 ## Status
 

@@ -1,12 +1,11 @@
 # Active Context
 
 ## Current Task: conversation-summary-tool-skill-pie-charts
-**Phase:** PLAN - IN-PROGRESS (blocked on creative / operator layout pick)
+**Phase:** PLAN - IN-PROGRESS (creative resolved — resume plan)
 
 ## What Was Done
-- Classified Level 3; component analysis mapped session UI, Chart.js metrics helpers, `session_detail` API gaps, cookbook recipes
-- Creative mockups revised after operator feedback: A = rail **outside** convo card; B liked for simplicity; C = sticky viewport-edge handle + slide-in drawer (not disclosure); **D dropped**
-- Soft lean B pending final visual pick
+- Creative placement decided: **F** — overview pill (`conversation overview` → session metrics → composition charts) + messages-only card
+- Mockup refined to match (no Session/Composition as separate pills; section labels inside one overview pill; composition has charts only)
 
 ## Next Step
-- Operator picks A / B / C (or hybrid), then `/niko-plan` to finish the plan
+- Operator runs `/niko-plan` to finish the Level 3 plan against decision F

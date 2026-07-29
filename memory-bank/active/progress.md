@@ -26,3 +26,13 @@ Add per-conversation skill and tool-call distribution visualizations (pie charts
 * Insights
     - Metrics pane already owns doughnut language; session view has no side rail today
     - Skills need session-scoped derivation; tools can aggregate from nested tool_calls or SQL
+
+## 2026-07-29 - CREATIVE DECISION - COMPLETE
+
+* Work completed
+    - Operator selected **F**: overview pill + messages-only card
+    - Structure locked: title → session (4 metrics) → composition (tools/skills charts only, no prose)
+* Decisions made
+    - F refined; A/B/C/D/E/E-2 not primary placement
+* Insights
+    - Transcript box must stay messages-only; summary chrome lives above
