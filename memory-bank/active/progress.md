@@ -77,3 +77,10 @@ Add GitHub issue form(s) (bug + feature minimum; component split only if warrant
     - Updated PR template, CONTRIBUTING.md, and template contract test
 * Decisions made
     - Gate: must-not-release → `chore`; otherwise `feat` or `fix`
+
+## 2026-07-28 - ARCHIVE - IN-PROGRESS
+
+* Work completed
+    - Leaving REFLECT (complete); starting archive for github-issue-and-pr-templates
+* Decisions made
+    - Category: enhancements/
