@@ -43,7 +43,7 @@ Rewrite `.github/pull_request_template.md` to the Unautomatable-Only (Option D) 
    - Changes: replace checklist body with v2 draft from creative doc (Goal / What's here / How I know it works / What changes for a user / Effect on an existing warehouse); release guidance in top HTML comment; keep CONTRIBUTING link
 
 3. **Add PR title CI workflow**
-   - Files: `.github/workflows/pr-title.yaml` (new; keep `ci.yml` focused on engine)
+   - Files: `.github/workflows/pr-title.yaml` (new; keep `ci.yaml` focused on engine)
    - Changes: job on `pull_request` types `opened|edited|synchronize|reopened` using `amannn/action-semantic-pull-request@v6` with types `feat`, `fix`, `chore`, `refactor`, `perf`, `test`, `build`, `ci`, `revert` (exclude `docs`); `pull_request_target` **not** used (safer; works for same-repo PRs; fork PRs still get the check on `pull_request`)
    - Permissions: `pull-requests: read` only as needed by the action
 

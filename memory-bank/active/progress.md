@@ -20,7 +20,7 @@ Rewrite the PR template to the Unautomatable-Only design and add a conventional-
     - Wrote Level 2 plan with TDD structural tests (headings/link/no-checklist/title workflow; no prose)
     - Chose `amannn/action-semantic-pull-request@v6` in a dedicated `pr-title.yaml` (exclude `docs`)
 * Decisions made
-    - Separate workflow file keeps `ci.yml` engine-focused
+    - Separate workflow file keeps `ci.yaml` engine-focused
     - Types allowlist: feat/fix/chore + common non-release types; exclude docs per CONTRIBUTING
 * Insights
     - Packaging-style `repo_root` tests can pin structure without re-testing instructional prose
