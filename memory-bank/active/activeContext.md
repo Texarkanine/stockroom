@@ -1,12 +1,12 @@
 # Active Context
 
 ## Current Task: conversation-summary-tool-skill-pie-charts
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - IN-PROGRESS (blocked on creative / operator layout pick)
 
 ## What Was Done
-- Intent clarified and approved for [issue #107](https://github.com/Texarkanine/stockroom/issues/107): per-conversation skill/tool pie charts on dashboard conversation overview + advanced query recipe
-- Operator requires internet prior-art scan and mockups (side / inline / popover / +better) for visual layout pick before locking placement
-- Complexity determined: **Level 3** — multi-surface feature (dashboard UI, data/API, docs recipe) with an open UI/UX design question that needs a creative phase and operator decision
+- Classified Level 3; component analysis mapped session UI, Chart.js metrics helpers, `session_detail` API gaps (no skill/tool aggregates), cookbook recipes
+- Creative UI/UX: internet prior art + HTML mockups for A side / B inline / C popover / D header dials
+- Soft recommendation D (or B); decision deferred to operator visual UAT
 
 ## Next Step
-- Load Level 3 workflow and execute Plan phase
+- Operator opens mockups, picks A/B/C/D (or hybrid), then `/niko-plan` to finish the plan

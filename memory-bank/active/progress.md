@@ -13,3 +13,16 @@ Add per-conversation skill and tool-call distribution visualizations (pie charts
     - Level 3 (not L2): open placement design needing creative/mockups + operator pick; spans dashboard UI, data surface, and docs
 * Insights
     - L2 plan has no creative loop; L3 creative (low-confidence stop) matches "show me mockups and I'll pick"
+
+## 2026-07-29 - CREATIVE (session-distribution-placement) - COMPLETE (unresolved)
+
+* Work completed
+    - Component analysis for #107 (session pane, Chart.js doughnuts, session_detail gaps, cookbook)
+    - Internet prior art: header usage stats (PocketDev, AgentsView); transcript+sidebar (Helvia)
+    - HTML mockups A/B/C/D with dashboard design tokens
+* Decisions made
+    - Low confidence — operator must visually pick placement
+    - Non-binding recommendation: D header dials (else B inline)
+* Insights
+    - Metrics pane already owns doughnut language; session view has no side rail today
+    - Skills need session-scoped derivation; tools can aggregate from nested tool_calls or SQL
