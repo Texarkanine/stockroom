@@ -1,12 +1,10 @@
-# Enforce conventional-commit PR titles (squash-merge uses the title as the changelog entry).
-# feat/fix cut a release; chore must not. docs is disallowed (does not release / republish Pages).
 name: PR Title
 
 on:
   pull_request:
     types:
       - opened
-      - edited
+      - edited # when title is edited - necessary for checking convcommits in title
       - synchronize
       - reopened
 
@@ -28,9 +26,4 @@ jobs:
             feat
             fix
             chore
-            refactor
-            perf
-            test
-            build
-            ci
-            revert
+
