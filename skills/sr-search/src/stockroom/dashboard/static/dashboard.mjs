@@ -28,6 +28,7 @@ import {
   sessionsListHandoff,
   sessionsPaginationVisible,
   summarizeChartPanel,
+  chartWrapLayoutStyle,
   togglePanelHelp,
   tooltipLabelColors,
   tooltipTitleFromLabelTitles,
@@ -461,7 +462,9 @@ function renderChart(name, title, model) {
   const empty = document.querySelector(`#${name}-empty`);
   chartRegistry.get(name)?.destroy();
   chartRegistry.delete(name);
-  wrapper.style.height = `${model.height ?? 280}px`;
+  const layout = chartWrapLayoutStyle(Boolean(model.empty), model.height ?? 280);
+  wrapper.style.height = layout.height;
+  wrapper.style.minHeight = layout.minHeight;
   canvas.hidden = model.empty;
   empty.hidden = !model.empty;
   const summary = summarizeChartPanel(title, state.mode, model);

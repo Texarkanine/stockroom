@@ -108,3 +108,22 @@ Add per-conversation skill and tool-call distribution visualizations (pie charts
     - L1 not L2/L3: single UI/layout fix; query rewrite out of scope after bounce confirmation
 * Insights
     - `renderChart` still assigns full chart-wrap height when `model.empty` — that drives the tall empty boxes
+
+## 2026-07-29 - BUILD - COMPLETE
+
+* Work completed
+    - Added `chartWrapLayoutStyle`; `renderChart` collapses wrap when empty
+    - JS unit coverage; full suite green
+* Decisions made
+    - Apply collapse to all chart panels (not session-only) — same empty UX debt elsewhere
+* Insights
+    - CSS `min-height: 260px` on `.chart-wrap` is overridden by inline `minHeight: 0px` when empty
+
+## 2026-07-29 - QA - COMPLETE
+
+* Work completed
+    - Semantic review vs rework brief; `.qa-validation-status` = PASS
+* Decisions made
+    - No persistent memory-bank edits required
+* Insights
+    - None

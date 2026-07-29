@@ -1058,6 +1058,25 @@ export function chartHeight(labelCount, options) {
 }
 
 /**
+ * Inline size styles for a chart wrap given empty vs populated state.
+ *
+ * Empty charts must not reserve doughnut height — keep the ``no-data`` line
+ * visible without a tall blank box. Populated charts keep the usual height.
+ *
+ * @param {boolean} empty Whether the panel model has no series to draw.
+ * @param {number} [height=280] Pixel height when not empty.
+ * @returns {{height: string, minHeight: string}} CSS pixel lengths for the wrap.
+ */
+export function chartWrapLayoutStyle(empty, height = 280) {
+  if (empty) {
+    return { height: "0px", minHeight: "0px" };
+  }
+  const px = Number(height);
+  const resolved = Number.isFinite(px) && px > 0 ? px : 280;
+  return { height: `${resolved}px`, minHeight: "" };
+}
+
+/**
  * Build a concise accessible summary for a chart panel model.
  *
  * Reads only ``empty``, ``labels``, and ``datasets`` from the model. Empty
