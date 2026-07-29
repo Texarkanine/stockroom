@@ -1,11 +1,13 @@
 # Active Context
 
 ## Current Task: fix-cli-version-release-please-sync
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** BUILD - COMPLETE
 
 ## What Was Done
-- Intent approved: fix `__version__` / release-please sync + open PR; also determine whether session-start rectify updates the version a shim reports
-- Classified Level 1 (bug fix, single packaging/version surface; rectify question is verify/document unless a harness gap appears)
+- TDD: packaging lockstep + marker tests failed on stale `0.1.2`, then passed after fix
+- Bumped `__version__` to `0.18.0` with `x-release-please-version` marker
+- Full suite: 792 passed, 4 skipped
+- Confirmed: harness-owned session-start rectify rebakes generator stamp on version drift; `--version` is live from engine; `dev`-owned shim not touched by harness hooks
 
 ## Next Step
-- Load Level 1 workflow and execute its next phase
+- QA phase (`niko-qa`), then open PR

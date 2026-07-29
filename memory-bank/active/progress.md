@@ -13,3 +13,15 @@ Restore lockstep between `stockroom.__version__` (CLI `--version` / shim generat
     - Level 1 — single component (`__init__.py` + packaging tests); no shim redesign unless investigation forces it
 * Insights
     - Root cause already known: `generic` extra-file listed without `x-release-please-version` marker; lockstep test omits `__version__`
+
+## 2026-07-28 - BUILD - COMPLETE
+
+* Work completed
+    - Failing packaging tests for `__version__` lockstep + RP marker
+    - `__version__ = "0.18.0"  # x-release-please-version`
+    - Full suite green (792 passed, 4 skipped)
+* Decisions made
+    - No shim code change: harness-owned rectify already rebakes on content (including version) drift; `--version` reads live `__version__`
+* Insights
+    - Two version surfaces: live CLI vs baked `STOCKROOM_GENERATOR_VERSION`; both heal for matching owner after plugin update once `__version__` is synced
+    - `dev` owner is the localdev caveat — hooks noop foreign shims
