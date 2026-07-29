@@ -2,7 +2,7 @@
 
 Add per-conversation skill and tool-call distribution visualizations (pie charts, pending layout pick) on the dashboard conversation overview, plus an advanced query recipe; layout chosen via internet prior art + mockups and operator visual UAT ([issue #107](https://github.com/Texarkanine/stockroom/issues/107)).
 
-**Complexity:** Level 3
+**Complexity:** Level 1
 
 ## 2026-07-29 - COMPLEXITY-ANALYSIS - COMPLETE
 
@@ -85,3 +85,26 @@ Add per-conversation skill and tool-call distribution visualizations (pie charts
     - Archive next via `/niko-archive`
 * Insights
     - Harness-keyed chart payloads required even for single-session composition
+
+## 2026-07-29 - REWORK INITIATED
+
+* Operator feedback
+    - Session view composition looked empty for a real Cursor session with many nested tool calls / skill uses
+    - Suspected aggregation path; suggested harness-scoped focused query (data object / visitor) vs warehouse-window aggregates
+    - Empty composition must not keep full-height empty chart boxes — keep a compact “none found” signal
+    - Operator later confirmed root cause of empty charts was **not bouncing the dashboard process** after the build (stale Python modules)
+* Findings
+    - Fresh `session_detail` against warehouse for `8512de74-…` already returns tools/skills correctly (session-scoped SQL + in-memory counters)
+    - Live `:58008` process started before the feature land; API lacked `title`/`tools`/`skills` until restart
+* Rework scope (remaining)
+    - Compact empty state for session composition panels (still show “none”, do not reserve doughnut height)
+    - No visitor/query rewrite unless operator still wants it after bounce — current path is already single-session / single-harness
+
+## 2026-07-29 - COMPLEXITY-ANALYSIS - COMPLETE
+
+* Work completed
+    - Reclassified remaining rework as Level 1 (compact empty composition UX)
+* Decisions made
+    - L1 not L2/L3: single UI/layout fix; query rewrite out of scope after bounce confirmation
+* Insights
+    - `renderChart` still assigns full chart-wrap height when `model.empty` — that drives the tall empty boxes

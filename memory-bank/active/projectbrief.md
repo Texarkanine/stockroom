@@ -38,3 +38,18 @@ Before layout is locked, review mockups of candidate placements (side column, in
 2. Empty / sparse sessions degrade gracefully (no broken charts).
 3. An advanced query recipe documents how to obtain the same distribution via the query surface.
 4. Operator has visually selected layout from mockups before build proceeds on placement.
+
+## Rework
+
+### Trigger
+
+Operator UAT on a real session (`8512de74-…`) showed empty Tools/Skills composition boxes despite nested tool calls in the transcript. Initially framed as a bad aggregation query (prefer harness-scoped / visitor-style session metrics). Operator later confirmed the dashboard process had not been bounced after the feature land — stale modules, not a wrong query. Fresh `session_detail` already returns correct tools/skills for that session.
+
+### Remaining requirements
+
+1. When a conversation has no tool calls and/or no skill uses, do **not** reserve full doughnut chart height for empty panels. Still surface a compact “none found” signal so emptiness is distinguishable from a load/render failure.
+2. Bounce / `--replace` the local dashboard after verifying so live UAT matches current code.
+
+### Out of scope (unless re-requested)
+
+Visitor / per-harness query-object rewrite for session composition — current implementation already loads one `(harness, session_id)` and aggregates in memory; warehouse-window multi-harness path stays on the main metrics dashboard only.
