@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.18.1](https://github.com/Texarkanine/stockroom/compare/v0.18.0...v0.18.1) (2026-07-29)
+
+
+### Bug Fixes
+
+* **packaging:** sync stockroom.__version__ with release-please ([#104](https://github.com/Texarkanine/stockroom/issues/104)) ([a4feaa4](https://github.com/Texarkanine/stockroom/commit/a4feaa4f12f2b7e3483692444646ffdf2475b98e))
+
 ## [0.18.0](https://github.com/Texarkanine/stockroom/compare/v0.17.1...v0.18.0) (2026-07-28)
 
 
