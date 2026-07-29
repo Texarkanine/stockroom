@@ -12,7 +12,7 @@ Day-to-day checkout work (localdev enter/exit, engine/Torch/docs loops, licensin
 
 1. Fork (or use a branch on a write-enabled clone) and open a PR against `main`.
 2. Keep the change focused: one concern per PR when practical.
-3. Use [conventional commits](https://www.conventionalcommits.org/) (`feat`, `fix`, `chore`, `docs` only!).
+3. Use [conventional commits](https://www.conventionalcommits.org/): `feat` or `fix` to cut a release (changelog + docs site publish with it); `chore` when the change must not release. Do not use `docs` — it will not release, so Pages will not republish.
 4. Update the docs site (under `docs/`) when behavior or contributor contracts change — preview with `make docs`, gate with `make docs-build`.
 5. Prefer path aggregates in [`REUSE.toml`](REUSE.toml) over per-file SPDX headers when adding many files. Licensing detail: [Licensing](https://texarkanine.github.io/stockroom/contributing/licensing/).
 
