@@ -24,3 +24,14 @@ Rewrite the PR template to the Unautomatable-Only design and add a conventional-
     - Types allowlist: feat/fix/chore + common non-release types; exclude docs per CONTRIBUTING
 * Insights
     - Packaging-style `repo_root` tests can pin structure without re-testing instructional prose
+
+## 2026-07-28 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated TDD ordering (tests → template → workflow)
+    - Confirmed Dependabot already covers new GHA; release-please/Dependabot title prefixes stay valid under allowlist
+    - Dropped CONTRIBUTING.md edit per creative constraint
+* Decisions made
+    - PASS — proceed to build
+* Insights
+    - Heading/link/no-checklist asserts are structural, not the prose tests #103 removed

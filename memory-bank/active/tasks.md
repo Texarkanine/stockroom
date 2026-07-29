@@ -47,13 +47,14 @@ Rewrite `.github/pull_request_template.md` to the Unautomatable-Only (Option D) 
    - Changes: job on `pull_request` types `opened|edited|synchronize|reopened` using `amannn/action-semantic-pull-request@v6` with types `feat`, `fix`, `chore`, `refactor`, `perf`, `test`, `build`, `ci`, `revert` (exclude `docs`); `pull_request_target` **not** used (safer; works for same-repo PRs; fork PRs still get the check on `pull_request`)
    - Permissions: `pull-requests: read` only as needed by the action
 
-4. **Align CONTRIBUTING if needed**
-   - Files: `CONTRIBUTING.md`
-   - Changes: one sentence under Pull requests that CI enforces conventional-commit titles (do not duplicate the type table)
-
-5. **Verify**
+4. **Verify**
    - Run the new tests (red→green), then `make ci` / relevant slice
    - Open PR with the new template filled honestly
+
+### Preflight amendments
+
+- Dropped CONTRIBUTING.md edit (creative: no change needed; template + CI carry the policy).
+- Structural heading/link/checklist-absence tests are allowed; instructional HTML-comment prose is not asserted (#103).
 
 ## Technology Validation
 
@@ -86,6 +87,6 @@ New GitHub Action dependency: `amannn/action-semantic-pull-request@v6` (pinned m
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
 - [ ] QA
