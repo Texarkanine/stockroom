@@ -57,3 +57,15 @@ ORDER BY uses DESC, skill, invoker
 ```
 
 Agent skill name is the parent directory of `SKILL.md`. User regex is slightly looser than the extractor's line-anchored `^Skill Name:`.
+
+## One session
+
+For one conversation (dashboard session composition), replace the warehouse-window `activity` CTE with:
+
+```sql
+WITH activity AS (
+  SELECT 'cursor' AS harness, 'YOUR_SESSION_ID' AS session_id
+),
+```
+
+The rest of the query is unchanged.

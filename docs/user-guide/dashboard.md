@@ -50,7 +50,7 @@ http://127.0.0.1:58008/?view=sessions&per_page=all
 
 ### Session inspection
 
-Open a conversation from Sessions (or a deep link) to see session metrics and tool/skill composition charts, then read the thread below. Copy a deep-link or export markdown/JSON when in-dashboard rendering is not enough.
+Open a conversation from Sessions (or a deep link) to see session metrics and tool/skill composition charts, then read through the whole conversation. Copy a deep-link or export markdown/JSON when in-dashboard rendering is not enough.
 
 ![Stockroom dashboard — session conversation view](../img/stockroom-dashboard-convo-light.png)
 
