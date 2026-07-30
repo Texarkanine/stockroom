@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.20.0](https://github.com/Texarkanine/stockroom/compare/v0.19.0...v0.20.0) (2026-07-30)
+
+
+### Features
+
+* **hooks:** path-only beforeSubmitPrompt suspenders and dashboard recovery page ([#110](https://github.com/Texarkanine/stockroom/issues/110)) ([f7a3b8f](https://github.com/Texarkanine/stockroom/commit/f7a3b8f3c401522af4fb02b3d5b283d77bb79508))
+
 ## [0.19.0](https://github.com/Texarkanine/stockroom/compare/v0.18.1...v0.19.0) (2026-07-30)
 
 
