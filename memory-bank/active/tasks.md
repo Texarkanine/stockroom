@@ -154,7 +154,7 @@ No new technology — validation not required. Uses existing Cursor hook events 
 - [x] Pre-Mortem complete
 - [x] Preflight (re-validated after MVP amendment 2026-07-30)
 - [x] Build
-- [ ] QA
+- [x] QA
 
 ## Preflight Amendments
 

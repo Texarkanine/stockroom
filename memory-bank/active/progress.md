@@ -81,3 +81,13 @@ Add a Cursor `beforeSubmitPrompt` trimmed non-blocking shim-rectify suspenders p
     - Traversal/static escapes also get HTML recovery (same static-miss path)
 * Insights
     - Packaging module fixture reloads from disk per process — fine under xdist workers
+
+## 2026-07-30 - QA - COMPLETE
+
+* Work completed
+    - Semantic review vs plan + creative (KISS/DRY/YAGNI/completeness/regression/integrity/docs)
+    - Wrote `.qa-validation-status` PASS
+* Decisions made
+    - Accept duplicated `_running_server` helper in recovery tests (keeps suite self-contained; not worth a shared fixture for one file)
+* Insights
+    - No classifier / no debris; API/static 404 split holds
