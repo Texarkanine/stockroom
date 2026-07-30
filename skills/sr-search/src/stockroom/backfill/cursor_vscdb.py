@@ -1,4 +1,4 @@
-"""Clean-room parser for Cursor's legacy ``globalStorage/state.vscdb`` composers.
+"""Parser for Cursor's legacy ``globalStorage/state.vscdb`` composers.
 
 Cursor's IDE "composer" conversations live in a single multi-GB SQLite store
 that nightly ingest never reads. Three shapes matter:

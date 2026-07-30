@@ -1,4 +1,4 @@
-"""Clean-room parser for Cursor Agent CLI ``store.db`` chats.
+"""Parser for Cursor Agent CLI ``store.db`` chats.
 
 CLI chats live at ``~/.cursor/chats/<project-hash>/<agentId>/store.db`` — a
 SQLite DB with ``meta`` (hex-encoded JSON) and ``blobs(id, data)``. Conversation

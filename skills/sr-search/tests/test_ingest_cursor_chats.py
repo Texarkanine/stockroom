@@ -1,4 +1,4 @@
-"""Clean-room Cursor Agent CLI ``store.db`` parser tests.
+"""Cursor Agent CLI ``store.db`` parser tests.
 
 The fixture under ``fixtures/ingest/cursor_chats/`` is a synthetic SQLite store
 with a root-hash chain (system + user_info + opaque + user_query + assistant

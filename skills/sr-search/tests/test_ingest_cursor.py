@@ -1,4 +1,4 @@
-"""Clean-room Cursor parser tests.
+"""Cursor parser tests.
 
 Cursor transcripts are metadata-sparse ``role``/``message`` JSONL with no native
 ids, no per-turn wall-clock, and no per-message model. Identity is therefore

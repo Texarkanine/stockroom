@@ -5,7 +5,7 @@ history, writing through the ``warehouse.open()`` chokepoint.
 The pipeline is, per harness, per run:
 
     sources (discover + watermark) -> cursor.py / cursor_chats.py / claude.py
-    (clean-room parse -> model.NormalizedSession) -> writer (delete-then-insert
+    (parse -> model.NormalizedSession) -> writer (delete-then-insert
     by (harness, session_id)) -> _sync_state watermark update
 
 with an optional ``enrich`` step that folds Cursor ``ai-code-tracking.db``

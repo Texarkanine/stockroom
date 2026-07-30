@@ -7,7 +7,7 @@ tests), it walks the real on-disk layout and yields one
 transcripts, the verbatim project-dir slug, and the file mtime that drives the
 incremental watermark.
 
-On-disk layouts (reverse-engineered, clean-room):
+On-disk layouts (reverse-engineered):
 
 * **Cursor IDE** — ``<projects-root>/<encoded-project>/agent-transcripts/<conv>/<conv>.jsonl``
   with subagents at ``<conv>/subagents/*.jsonl``. The conversation id is the
