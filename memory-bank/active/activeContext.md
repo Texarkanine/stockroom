@@ -1,6 +1,6 @@
 # Active Context
 
 **Current Task:** cursor-beforesubmit-shim-rectify-and-dashboard-recovery-ux
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
-**What Was Done:** Complexity Level 3 determined — multi-component enhancement (Cursor hooks + dashboard recovery UX) with design tradeoffs on non-blocking trim and shim-vs-replace detection.
-**Next Step:** Load Level 3 workflow and execute plan phase.
+**Phase:** PLAN - COMPLETE
+**What Was Done:** Level 3 plan finished. OQ1 → continue-first + `--path-only` rectify. OQ2 → ordered recovery classifier (shim_rectify | dashboard_replace | generic) with HTML static 404s; API JSON preserved.
+**Next Step:** Preflight phase to validate the plan.
