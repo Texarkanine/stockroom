@@ -203,12 +203,46 @@ def test_cursor_hook_schema_and_combined_command(cursor_hooks: dict) -> None:
     assert "cat >/dev/null" in cmd, "must drain Cursor hook stdin JSON"
     assert "export PATH=" in cmd, "must export PATH so children see ~/.local/bin"
     assert "$HOME/.local/bin" in cmd, "must put ~/.local/bin on PATH for uv/stockroom"
+    assert "--path-only" not in cmd, "sessionStart must run full ensure rectify"
     _assert_combined_rectify_then_dashboard(
         cmd,
         plugin_root_token="${CURSOR_PLUGIN_ROOT}",
         owner="cursor",
         silence_stderr=False,
     )
+
+
+def test_cursor_beforesubmit_path_only_suspenders(cursor_hooks: dict) -> None:
+    """beforeSubmitPrompt continues immediately and backgrounds path-only rectify.
+
+    Must never gate send on ensure-env or dashboard: emit continue JSON, spawn
+    path-only rectify in the background, exit. Small timeout covers parent only.
+    """
+    assert "beforeSubmitPrompt" in cursor_hooks["hooks"]
+    assert "workspaceOpen" not in cursor_hooks["hooks"]
+    entries = cursor_hooks["hooks"]["beforeSubmitPrompt"]
+    assert len(entries) == 1, "exactly one beforeSubmitPrompt command"
+    entry = entries[0]
+    assert "command" in entry
+    assert "hooks" not in entry
+    assert "type" not in entry
+    timeout = entry.get("timeout")
+    assert isinstance(timeout, int) and 1 <= timeout <= 15, (
+        f"parent-only timeout must be small (got {timeout!r})"
+    )
+    cmd = entry["command"]
+    assert "cat >/dev/null" in cmd, "must drain Cursor hook stdin JSON"
+    assert '{"continue":true}' in cmd or '{"continue": true}' in cmd, (
+        "must emit continue so prompt submit is not blocked"
+    )
+    assert "shim rectify" in cmd
+    assert "--path-only" in cmd, "suspenders path must skip ensure-env"
+    assert "--owner cursor" in cmd
+    assert "${CURSOR_PLUGIN_ROOT}" in cmd
+    assert "uv python find --project" in cmd
+    assert "stockroom dashboard" not in cmd, "dashboard stays on sessionStart only"
+    assert "&" in cmd, "rectify work must be backgrounded after continue"
+    assert "|| true" in cmd, "hook must never fail the triggering event"
 
 
 def test_claude_hook_schema_and_combined_command(claude_hooks: dict) -> None:

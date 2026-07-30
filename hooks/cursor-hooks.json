@@ -6,6 +6,12 @@
         "command": "cat >/dev/null; export PATH=\"$HOME/.local/bin:/usr/bin:/bin:$PATH\"; { APP=\"${CURSOR_PLUGIN_ROOT}/skills/sr-search\"; PY=$(uv python find --project \"$APP\" --no-config) && PYTHONPATH=\"$APP/src\" \"$PY\" -m stockroom shim rectify --owner cursor --app-dir \"$APP\"; stockroom dashboard; } >/dev/null || true",
         "timeout": 300
       }
+    ],
+    "beforeSubmitPrompt": [
+      {
+        "command": "cat >/dev/null; export PATH=\"$HOME/.local/bin:/usr/bin:/bin:$PATH\"; printf '%s\\n' '{\"continue\":true}'; { APP=\"${CURSOR_PLUGIN_ROOT}/skills/sr-search\"; PY=$(uv python find --project \"$APP\" --no-config) && PYTHONPATH=\"$APP/src\" \"$PY\" -m stockroom shim rectify --path-only --owner cursor --app-dir \"$APP\"; } >/dev/null || true &",
+        "timeout": 10
+      }
     ]
   }
 }

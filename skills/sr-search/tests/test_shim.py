@@ -300,7 +300,7 @@ class TestRectify:
         engine_dir: Path,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-        """Rectify always runs ensure_engine_env for app_dir first,
+        """Default rectify runs ensure_engine_env for app_dir first,
         including when the dest is absent (then creates the shim)."""
         from stockroom.engine_env import EnsureReport
 
@@ -316,3 +316,49 @@ class TestRectify:
         assert dest.exists()
         assert len(calls) == 1
         assert Path(os.path.abspath(calls[0])) == Path(os.path.abspath(engine_dir))
+
+    def test_path_only_skips_ensure_env_and_creates_missing(
+        self,
+        dest: Path,
+        engine_dir: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Path-only rectify skips ensure_engine_env but still creates a missing shim."""
+        from stockroom.engine_env import EnsureReport
+
+        calls: list[Path] = []
+
+        def fake_ensure(app_dir, **kwargs):  # noqa: ANN001
+            calls.append(Path(app_dir))
+            return EnsureReport(action="synced", app_dir=Path(app_dir))
+
+        monkeypatch.setattr(shim, "ensure_engine_env", fake_ensure)
+        report = shim.rectify(dest, engine_dir, "cursor", ensure_env=False)
+        assert report.action == "installed"
+        assert dest.exists()
+        assert dest.read_text() == shim.render(engine_dir, "cursor")
+        assert calls == [], "path-only must not call ensure_engine_env"
+
+    def test_path_only_skips_ensure_env_and_rebakes_owned_drift(
+        self,
+        dest: Path,
+        engine_dir: Path,
+        other_engine_dir: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Path-only rectify rebakes an owned drifted shim without ensuring the env."""
+        from stockroom.engine_env import EnsureReport
+
+        calls: list[Path] = []
+
+        def fake_ensure(app_dir, **kwargs):  # noqa: ANN001
+            calls.append(Path(app_dir))
+            return EnsureReport(action="synced", app_dir=Path(app_dir))
+
+        monkeypatch.setattr(shim, "ensure_engine_env", fake_ensure)
+        shim.install(dest, engine_dir, "cursor")
+        calls.clear()
+        report = shim.rectify(dest, other_engine_dir, "cursor", ensure_env=False)
+        assert report.action == "rectified"
+        assert dest.read_text() == shim.render(other_engine_dir, "cursor")
+        assert calls == [], "path-only must not call ensure_engine_env"

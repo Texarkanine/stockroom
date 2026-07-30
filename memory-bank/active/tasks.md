@@ -97,12 +97,12 @@ flowchart LR
 
 ## Implementation Plan
 
-1. **Shim path-only mode**
+1. **Shim path-only mode** ✅
     - Files: `skills/sr-search/src/stockroom/shim.py`, `tests/test_shim.py`, `tests/test_shim_cli.py`
     - TDD: (a) add failing tests for `rectify(..., ensure_env=False)` / CLI `--path-only` skipping ensure + still create/rebake; (b) keep/adjust default “always ensures” regression; (c) implement `ensure_env` kwarg + `--path-only` until green
     - Creative ref: `creative-beforesubmit-rectify-trim.md`
 
-2. **Cursor beforeSubmitPrompt hook**
+2. **Cursor beforeSubmitPrompt hook** ✅
     - Files: `hooks/cursor-hooks.json`, `tests/test_packaging.py`
     - TDD: (a) add failing packaging tests for `beforeSubmitPrompt` (continue JSON, `--path-only`, no dashboard, background/detach marker, small timeout) and sessionStart unchanged; (b) edit `cursor-hooks.json` until green
     - Creative ref: `creative-beforesubmit-rectify-trim.md`
@@ -112,6 +112,7 @@ flowchart LR
     - TDD: (a) failing tests that rendered HTML has ordered remedies (shim/session → ensure-env/`sr-initialize` → `--replace`) + docs URLs; (b) implement in-memory HTML renderer until green — **no classifier**
     - Ensure `server` imports recovery at module load (so it survives plugin-dir deletion)
     - Creative ref: `creative-dashboard-recovery-ux.md` (MVP)
+
 
 4. **Server wires HTML 404 for static/document misses**
     - Files: `skills/sr-search/src/stockroom/dashboard/server.py`, `tests/test_dashboard_server.py`, `tests/test_dashboard_recovery.py`
