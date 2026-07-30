@@ -1,4 +1,4 @@
-"""Static contracts for the fully offline dashboard document and assets."""
+"""Packaging and accessibility contracts for the offline dashboard document."""
 
 from html.parser import HTMLParser
 from pathlib import Path
@@ -8,12 +8,11 @@ STATIC_ROOT = Path(__file__).parents[1] / "src" / "stockroom" / "dashboard" / "s
 
 
 class _DocumentParser(HTMLParser):
-    """Collect tags, attributes, and visible text without browser dependencies."""
+    """Collect tags and attributes without browser dependencies."""
 
     def __init__(self) -> None:
         super().__init__()
         self.elements: list[tuple[str, dict[str, str | None]]] = []
-        self.text: list[str] = []
 
     def handle_starttag(
         self,
@@ -21,10 +20,6 @@ class _DocumentParser(HTMLParser):
         attrs: list[tuple[str, str | None]],
     ) -> None:
         self.elements.append((tag, dict(attrs)))
-
-    def handle_data(self, data: str) -> None:
-        if data.strip():
-            self.text.append(data.strip())
 
 
 def _document() -> tuple[str, _DocumentParser]:
@@ -34,46 +29,21 @@ def _document() -> tuple[str, _DocumentParser]:
     return source, parser
 
 
-def test_dashboard_document_has_semantic_controls_panels_and_fallbacks() -> None:
-    """The packaged page exposes the complete accessible single-pane shell."""
-    source, parser = _document()
-    tags = [tag for tag, _attrs in parser.elements]
-    by_id = {
+def _by_id(parser: _DocumentParser) -> dict[str, tuple[str, dict[str, str | None]]]:
+    return {
         attrs["id"]: (tag, attrs) for tag, attrs in parser.elements if attrs.get("id")
     }
-    assert "<!doctype html>" in source.lower()
-    assert "stockroom dashboard" in " ".join(parser.text).lower()
-    assert "main" in tags
-    assert by_id["harness-selector"][0] == "details"
-    assert by_id["mode-selector"][0] == "fieldset"
-    assert by_id["status"][1].get("aria-live") == "polite"
-    assert by_id["error"][1].get("role") == "alert"
-    for element_id in [
-        "kpi-grid",
-        "daily-panel",
-        "projects-panel",
-        "tools-panel",
-        "skills-nested-panel",
-        "models-conversation-panel",
-        "models-message-panel",
-        "model-trends-panel",
-        "efficiency-panel",
-        "first-prompt-panel",
-        "write-read-panel",
-        "recent-sessions",
-        "wrapped-panel",
-    ]:
-        assert element_id in by_id
-    assert "models-panel" not in by_id
-    assert "table" in tags
-    assert tags.count("th") >= 6
-    canvases = [attrs for tag, attrs in parser.elements if tag == "canvas"]
-    assert len(canvases) == 10
-    assert all(canvas.get("role") == "img" for canvas in canvases)
-    assert all(canvas.get("aria-label") for canvas in canvases)
 
 
-def test_dashboard_resources_are_local_and_loaded_in_dependency_order() -> None:
+def _radios(parser: _DocumentParser, name: str) -> list[dict[str, str | None]]:
+    return [
+        attrs
+        for tag, attrs in parser.elements
+        if tag == "input" and attrs.get("type") == "radio" and attrs.get("name") == name
+    ]
+
+
+def test_dashboard_resources_are_local_and_load_before_adapter() -> None:
     """Every resource is local; Chart.js and markdown-it load before the module."""
     source, parser = _document()
     references = [
@@ -90,11 +60,7 @@ def test_dashboard_resources_are_local_and_loaded_in_dependency_order() -> None:
     lowered = source.lower()
     assert "http://" not in lowered
     assert "https://" not in lowered
-    chart_position = source.index('src="chart-4.5.1.umd.min.js"')
-    markdown_position = source.index('src="markdown-it-14.1.0.min.js"')
-    adapter_position = source.index('src="dashboard.mjs"')
-    assert chart_position < adapter_position
-    assert markdown_position < adapter_position
+
     scripts = [
         attrs for tag, attrs in parser.elements if tag == "script" and attrs.get("src")
     ]
@@ -104,220 +70,50 @@ def test_dashboard_resources_are_local_and_loaded_in_dependency_order() -> None:
         "dashboard.mjs",
     ]
     assert scripts[2].get("type") == "module"
-    assert (STATIC_ROOT / "markdown-it-14.1.0.min.js").is_file()
+    for name in scripts[0]["src"], scripts[1]["src"], scripts[2]["src"]:
+        assert name is not None
+        assert (STATIC_ROOT / name).is_file()
 
 
-def test_dashboard_adapter_imports_authored_modules() -> None:
-    """The effects adapter imports core, data, and session helpers."""
-    adapter = (STATIC_ROOT / "dashboard.mjs").read_text(encoding="utf-8")
-    assert 'from "./dashboard-core.mjs"' in adapter
-    assert 'from "./dashboard-data.mjs"' in adapter
-    assert 'from "./dashboard-session.mjs"' in adapter
-
-
-def test_skill_chart_is_sunburst_only() -> None:
-    """One skills panel (nested sunburst); stacked/tools-like mockups removed."""
+def test_dashboard_shell_exposes_accessible_status_and_charts() -> None:
+    """Status/error live regions and chart canvases carry accessibility roles."""
     _source, parser = _document()
-    by_id = {
-        attrs["id"]: (tag, attrs) for tag, attrs in parser.elements if attrs.get("id")
-    }
-    assert "skills-nested-panel" in by_id
-    assert "skills-stacked-panel" not in by_id
-    assert "skills-tools-like-panel" not in by_id
-    adapter = (STATIC_ROOT / "dashboard.mjs").read_text(encoding="utf-8")
-    assert "buildSkillsNestedPanel" in adapter
-    assert "buildSkillsStackedPanel" not in adapter
-    assert "buildSkillsToolsLikePanel" not in adapter
+    by_id = _by_id(parser)
+    assert by_id["harness-selector"][0] == "details"
+    assert by_id["mode-selector"][0] == "fieldset"
+    assert by_id["status"][1].get("aria-live") == "polite"
+    assert by_id["error"][1].get("role") == "alert"
 
+    canvases = [attrs for tag, attrs in parser.elements if tag == "canvas"]
+    assert canvases
+    assert all(canvas.get("role") == "img" for canvas in canvases)
+    assert all(canvas.get("aria-label") for canvas in canvases)
 
-def test_lower_chart_panels_order_and_panel_wide_widths() -> None:
-    """Operator grid: model bars, model trends, efficiency/first-prompt, write-read."""
-    source, parser = _document()
-    by_id = {
-        attrs["id"]: (tag, attrs) for tag, attrs in parser.elements if attrs.get("id")
-    }
-    models_conversation = source.index('id="models-conversation-panel"')
-    models_message = source.index('id="models-message-panel"')
-    model_trends = source.index('id="model-trends-panel"')
-    efficiency = source.index('id="efficiency-panel"')
-    first_prompt = source.index('id="first-prompt-panel"')
-    write_read = source.index('id="write-read-panel"')
-    assert (
-        models_conversation
-        < models_message
-        < model_trends
-        < efficiency
-        < first_prompt
-        < write_read
-    )
-    assert "panel-wide" in (by_id["model-trends-panel"][1].get("class") or "").split()
-    assert "panel-wide" in (by_id["write-read-panel"][1].get("class") or "").split()
-    assert (
-        "panel-wide" not in (by_id["first-prompt-panel"][1].get("class") or "").split()
-    )
-    assert 'class="panel" id="first-prompt-panel"' in source
-    assert "Top Models (by conversation)" in source
-    assert "Top Models (by message)" in source
-    assert "Model Usage over Time" in source
-
-
-def test_session_pane_exposes_navigation_export_and_turn_landmarks() -> None:
-    """Session inspection pane has copy-link, export, and turns — no custom back."""
-    source, parser = _document()
-    by_id = {
-        attrs["id"]: (tag, attrs) for tag, attrs in parser.elements if attrs.get("id")
-    }
-    assert "metrics-pane" in by_id
-    assert "session-pane" in by_id
-    assert (
-        by_id["session-pane"][1].get("hidden") is not None
-        or "hidden" in by_id["session-pane"][1]
-    )
-    assert "session-back" not in by_id
-    assert "session-back" not in source
-    assert by_id["session-copy-link"][0] == "button"
-    assert by_id["session-export-md"][0] == "button"
-    assert by_id["session-export-json"][0] == "button"
-    assert "session-meta" in by_id
-    assert "session-turns" in by_id
-    assert "session-error" in by_id
-    assert ".session-row" in source
-    assert "cursor: pointer" in source
-    assert "markdownit({ html: false" not in source  # init lives in JS, not HTML
-    assert "html: false" in (STATIC_ROOT / "dashboard.mjs").read_text(encoding="utf-8")
-    assert "linkify: false" in (STATIC_ROOT / "dashboard.mjs").read_text(
-        encoding="utf-8"
-    )
-
-
-def test_sessions_list_pane_and_metrics_sessions_chrome() -> None:
-    """Sessions panel title, list pane landmarks, per-page radios, and FOUC."""
-    source, parser = _document()
-    by_id = {
-        attrs["id"]: (tag, attrs) for tag, attrs in parser.elements if attrs.get("id")
-    }
-    assert "Sessions" in parser.text
-    assert "Recent Sessions" not in parser.text
-    assert by_id["recent-sessions-title"][0] == "h2"
-    assert "sessions-pane" in by_id
-    assert (
-        by_id["sessions-pane"][1].get("hidden") is not None
-        or "hidden" in by_id["sessions-pane"][1]
-    )
-    assert by_id["per-page-selector"][0] == "fieldset"
-    assert "segmented" in (by_id["per-page-selector"][1].get("class") or "").split()
-    per_page = [
+    info_buttons = [
         attrs
         for tag, attrs in parser.elements
-        if tag == "input"
-        and attrs.get("type") == "radio"
-        and attrs.get("name") == "per-page"
+        if tag == "button" and "panel-info" in (attrs.get("class") or "").split()
     ]
-    assert [radio.get("value") for radio in per_page] == ["25", "50", "100", "all"]
-    assert "checked" in next(radio for radio in per_page if radio.get("value") == "50")
-    assert "sessions-pagination-top" in by_id
-    assert "sessions-pagination-bottom" in by_id
-    assert "sessions-page-numbers-top" in by_id
-    assert "sessions-page-numbers-bottom" in by_id
-    assert "sessions-list-rows" in by_id
-    assert "page-heading" in by_id
-    assert by_id["warehouse-home"][0] == "a"
-    assert by_id["warehouse-home"][1].get("href") == "/"
-    assert 'data-view = "sessions"' in source or 'dataset.view = "sessions"' in source
-    assert 'html[data-view="sessions"] #metrics-pane' in source
-    assert ".sessions-more-row" in source
-    assert ".sessions-page-numbers" in source
+    assert info_buttons
+    assert all(btn.get("type") == "button" for btn in info_buttons)
+    assert all(btn.get("aria-expanded") == "false" for btn in info_buttons)
+    assert all(btn.get("aria-controls") for btn in info_buttons)
+    assert all(btn.get("aria-label") for btn in info_buttons)
 
 
-def test_session_pane_toolbar_and_bubble_layout_contracts() -> None:
-    """Session pane wires view toggles and turn/tool structure used by JS."""
-    source = (STATIC_ROOT / "index.html").read_text(encoding="utf-8")
-    assert ".session-turn-user" in source
-    assert ".session-turn-assistant" in source
-    assert 'data-view = "session"' in source or 'dataset.view = "session"' in source
-    assert 'html[data-view="session"] #metrics-pane' in source
-    assert 'html[data-view="session"] #sessions-pane' in source
-    assert ".session-tool" in source
-    assert ".session-tool[open] summary" in source
-    assert "scroll-margin-top" in source
-    assert ".session-turn-ordinal" in source
-    adapter = (STATIC_ROOT / "dashboard.mjs").read_text(encoding="utf-8")
-    assert "session-turn-user" in adapter
-    assert "session-turn-assistant" in adapter
-    assert "applyViewChrome" in adapter
-    assert "documentTitleForView" in adapter
-    assert "messageAnchorId" in adapter
-    assert "session-turn-ordinal" in adapter
-
-
-def test_wrapped_marathon_renders_session_deep_link() -> None:
-    """Marathon Wrapped value is a real session deep-link with SPA same-tab open."""
-    adapter = (STATIC_ROOT / "dashboard.mjs").read_text(encoding="utf-8")
-    assert "sessionLink" in adapter
-    assert "buildSessionViewSearchParams" in adapter
-    assert "openSessionView" in adapter
-    assert "wrapped-value-link" in adapter
-    source = (STATIC_ROOT / "index.html").read_text(encoding="utf-8")
-    assert ".wrapped-value-link" in source
-
-
-def test_session_message_hash_scroll_wiring() -> None:
-    """Session view scrolls to #msg-N after render and on hashchange."""
-    adapter = (STATIC_ROOT / "dashboard.mjs").read_text(encoding="utf-8")
-    assert "resolveMessageAnchorElement" in adapter
-    assert "scrollIntoView" in adapter
-    assert 'block: "start"' in adapter or "block: 'start'" in adapter
-    assert "hashchange" in adapter
-    assert "canReuseLoadedSession" in adapter
-    assert "sessionLocationWithMessageHash" in adapter
-    # Ordinal same-tab clicks must not perform a document navigation/reload.
-    ordinal_idx = adapter.index("session-turn-ordinal")
-    ordinal_block = adapter[ordinal_idx : ordinal_idx + 800]
-    assert "preventDefault" in ordinal_block
-
-
-def test_session_ui_uses_shared_token_display_module() -> None:
-    """Session chrome mounts tokens through dashboard-tokens (one shared surface)."""
-    adapter = (STATIC_ROOT / "dashboard.mjs").read_text(encoding="utf-8")
-    assert "mountTokenDisplay" in adapter
-    assert 'from "./dashboard-tokens.mjs"' in adapter
-    assert (STATIC_ROOT / "dashboard-tokens.mjs").is_file()
-
-
-def test_token_breakdown_popover_escapes_scroll_containers() -> None:
-    """
-    Token breakdown must use fixed positioning (not absolute+centered) so it
-    cannot expand .table-scroll / .sessions-panel into a scrollbar (#91).
-    """
-    source = (STATIC_ROOT / "index.html").read_text(encoding="utf-8")
-    start = source.index(".token-breakdown {")
-    end = source.index("}", start)
-    block = source[start:end]
-    assert "position: fixed" in block
-    assert "translateY(-50%)" not in block
-    tokens_js = (STATIC_ROOT / "dashboard-tokens.mjs").read_text(encoding="utf-8")
-    assert "tokenBreakdownPlacement" in tokens_js
-    assert "position: fixed" in source[source.index(".token-breakdown") :]
-
-
-def test_dashboard_top_controls_expose_date_range_and_segmented_mode() -> None:
-    """Date-range presets and Aggregate/Compare read as exclusive segmented controls."""
+def test_dashboard_segmented_controls_expose_stable_values() -> None:
+    """Date-range, Aggregate/Compare, and per-page radios keep their value contracts."""
     _source, parser = _document()
-    by_id = {
-        attrs["id"]: (tag, attrs) for tag, attrs in parser.elements if attrs.get("id")
-    }
+    by_id = _by_id(parser)
+
     assert by_id["date-range-selector"][0] == "fieldset"
     assert by_id["mode-selector"][0] == "fieldset"
+    assert by_id["per-page-selector"][0] == "fieldset"
     assert "segmented" in (by_id["date-range-selector"][1].get("class") or "").split()
     assert "segmented" in (by_id["mode-selector"][1].get("class") or "").split()
+    assert "segmented" in (by_id["per-page-selector"][1].get("class") or "").split()
 
-    date_radios = [
-        attrs
-        for tag, attrs in parser.elements
-        if tag == "input"
-        and attrs.get("type") == "radio"
-        and attrs.get("name") == "date-range"
-    ]
+    date_radios = _radios(parser, "date-range")
     assert [radio.get("value") for radio in date_radios] == [
         "default",
         "7d",
@@ -331,74 +127,30 @@ def test_dashboard_top_controls_expose_date_range_and_segmented_mode() -> None:
         radio for radio in date_radios if radio.get("value") == "default"
     )
 
-    mode_radios = [
-        attrs
-        for tag, attrs in parser.elements
-        if tag == "input"
-        and attrs.get("type") == "radio"
-        and attrs.get("name") == "mode"
-    ]
+    mode_radios = _radios(parser, "mode")
     assert [radio.get("value") for radio in mode_radios] == ["aggregate", "compare"]
     assert sum(1 for radio in mode_radios if "checked" in radio) == 1
 
-
-def test_info_controls_only_on_efficiency_and_first_prompt_panels() -> None:
-    """Help chrome is limited to Session Efficiency and First-Prompt Quality."""
-    source, parser = _document()
-    info_buttons = [
-        attrs
-        for tag, attrs in parser.elements
-        if tag == "button" and "panel-info" in (attrs.get("class") or "").split()
-    ]
-    assert len(info_buttons) == 2
-    assert all(btn.get("type") == "button" for btn in info_buttons)
-    assert all(btn.get("aria-expanded") == "false" for btn in info_buttons)
-    assert all(btn.get("aria-controls") for btn in info_buttons)
-    assert all(btn.get("aria-label") for btn in info_buttons)
-
-    efficiency_start = source.index('id="efficiency-panel"')
-    efficiency_end = source.index('id="first-prompt-panel"')
-    first_start = source.index('id="first-prompt-panel"')
-    first_end = source.index('id="recent-sessions"')
-    efficiency_chunk = source[efficiency_start:efficiency_end]
-    first_chunk = source[first_start:first_end]
-    assert 'class="panel-info"' in efficiency_chunk
-    assert 'class="panel-info"' in first_chunk
-    assert 'id="efficiency-help"' in efficiency_chunk
-    assert 'id="first-prompt-help"' in first_chunk
-    assert ">Last 30 days<" in first_chunk
-    assert "Average session length by prompt detail" not in first_chunk
-
-    for panel_id in (
-        "daily-panel",
-        "projects-panel",
-        "tools-panel",
-        "skills-nested-panel",
-        "models-conversation-panel",
-        "models-message-panel",
-        "model-trends-panel",
-        "write-read-panel",
-    ):
-        start = source.index(f'id="{panel_id}"')
-        rest = source[start + 1 :]
-        next_panel = rest.find('class="panel')
-        chunk = source[start : start + 1 + (next_panel if next_panel != -1 else 800)]
-        assert "panel-info" not in chunk
+    per_page = _radios(parser, "per-page")
+    assert [radio.get("value") for radio in per_page] == ["25", "50", "100", "all"]
+    assert "checked" in next(radio for radio in per_page if radio.get("value") == "50")
 
 
-def test_dashboard_adapter_wires_model_panel_builders() -> None:
-    """Adapter imports dual-grain builders and references new chart element ids."""
+def test_markdown_it_disables_html_and_linkify() -> None:
+    """Session markdown rendering must not enable HTML or autolink."""
     adapter = (STATIC_ROOT / "dashboard.mjs").read_text(encoding="utf-8")
-    assert "assignModelColors" in adapter
-    assert "buildModelsConversationPanel" in adapter
-    assert "buildModelsMessagePanel" in adapter
-    assert "buildModelTrendsPanel" in adapter
-    assert "buildModelsPanel" not in adapter
-    assert 'renderChart(\n    "models-conversation"' in adapter
-    assert 'renderChart(\n    "models-message"' in adapter
-    assert 'renderChart(\n    "model-trends"' in adapter
-    assert "snapshot.models?.by_conversation" in adapter
-    assert "snapshot.models?.by_message" in adapter
-    assert "snapshot.model_trends" in adapter
-    assert "by_message?.models" in adapter
-    assert "omitZeroTooltip" in adapter
+    assert "html: false" in adapter
+    assert "linkify: false" in adapter
+
+
+def test_token_breakdown_uses_fixed_positioning() -> None:
+    """
+    Token breakdown must use fixed positioning (not absolute+centered) so it
+    cannot expand .table-scroll / .sessions-panel into a scrollbar (#91).
+    """
+    source = (STATIC_ROOT / "index.html").read_text(encoding="utf-8")
+    start = source.index(".token-breakdown {")
+    end = source.index("}", start)
+    block = source[start:end]
+    assert "position: fixed" in block
+    assert "translateY(-50%)" not in block

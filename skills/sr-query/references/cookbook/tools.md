@@ -38,3 +38,17 @@ ORDER BY s.harness, calls DESC, t.tool_name
 ```
 
 Activity clock is session `COALESCE(started_at, source_mtime)`, not `messages.ts`. Subagents stay excluded unless you want that noise.
+
+## One session
+
+Tool distribution for one conversation (dashboard session composition). Replace the harness / session id:
+
+```sql
+SELECT t.tool_name,
+       count(*) AS calls
+FROM tool_calls t
+WHERE t.harness = 'cursor'
+  AND t.session_id = 'YOUR_SESSION_ID'
+GROUP BY t.tool_name
+ORDER BY calls DESC, t.tool_name
+```

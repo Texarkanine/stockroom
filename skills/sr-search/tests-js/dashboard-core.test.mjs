@@ -17,6 +17,9 @@ import {
   buildWrappedPanel,
   buildWriteReadPanel,
   chartHeight,
+  chartWrapLayoutStyle,
+  withSessionCompositionLayout,
+  SESSION_COMPOSITION_CHART_HEIGHT,
   chartInteractionOptions,
   closePanelHelp,
   deriveHarnessBreakdown,
@@ -1327,6 +1330,67 @@ test("summarizes empty panel without inventing values", () => {
     summarizeChartPanel("Daily session activity", "aggregate", model),
     "Daily session activity. Aggregate view. No data in this period.",
   );
+});
+
+test("chartWrapLayoutStyle collapses height when the panel is empty", () => {
+  /**
+   * Empty composition/metrics charts must not keep the 260–280px doughnut
+   * box; only a compact no-data line should remain.
+   */
+  assert.deepEqual(chartWrapLayoutStyle(true), {
+    height: "0px",
+    minHeight: "0px",
+  });
+  assert.deepEqual(chartWrapLayoutStyle(true, 320), {
+    height: "0px",
+    minHeight: "0px",
+  });
+});
+
+test("chartWrapLayoutStyle keeps configured height when the panel has data", () => {
+  /**
+   * Populated charts still get an explicit pixel height (default 280).
+   * minHeight must be 0 so the stylesheet's 260px floor cannot defeat a
+   * shorter session-composition height.
+   */
+  assert.deepEqual(chartWrapLayoutStyle(false), {
+    height: "280px",
+    minHeight: "0px",
+  });
+  assert.deepEqual(chartWrapLayoutStyle(false, 320), {
+    height: "320px",
+    minHeight: "0px",
+  });
+});
+
+test("withSessionCompositionLayout densifies doughnuts for the session overview", () => {
+  /**
+   * Session composition sits above the transcript — use a shorter wrap and a
+   * right-side legend so dead left/right space becomes legend, not blank.
+   */
+  const populated = {
+    kind: "doughnut",
+    labels: ["Shell"],
+    datasets: [{ data: [1] }],
+    empty: false,
+  };
+  assert.deepEqual(withSessionCompositionLayout(populated), {
+    ...populated,
+    height: SESSION_COMPOSITION_CHART_HEIGHT,
+    legendPosition: "right",
+  });
+
+  const empty = {
+    kind: "doughnut",
+    labels: [],
+    datasets: [{ data: [] }],
+    empty: true,
+  };
+  assert.deepEqual(withSessionCompositionLayout(empty), {
+    ...empty,
+    legendPosition: "right",
+  });
+  assert.equal("height" in withSessionCompositionLayout(empty), false);
 });
 
 test("summarizes write-share ratio panel including idle zeros", () => {

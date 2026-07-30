@@ -99,3 +99,15 @@ ORDER BY uses DESC, skill, invoker
 ```
 
 Only the first `<command-name>` match per message is taken. Builtin `NOT IN` list tracks `_CLAUDE_BUILTIN_COMMANDS` in `skill_usage.py` (test-pinned).
+
+## One session
+
+For one conversation (dashboard session composition), replace the warehouse-window `activity` CTE with:
+
+```sql
+WITH activity AS (
+  SELECT 'claude' AS harness, 'YOUR_SESSION_ID' AS session_id
+),
+```
+
+The rest of the query is unchanged (including the builtin denylist).

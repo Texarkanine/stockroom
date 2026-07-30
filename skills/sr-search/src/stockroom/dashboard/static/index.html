@@ -623,11 +623,57 @@
       }
 
       .session-pane {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        background: transparent;
+        border: 0;
+        box-shadow: none;
+        padding: 0;
+      }
+
+      .session-card {
         border: 1px solid var(--border);
         border-radius: var(--radius);
         background: var(--surface);
         box-shadow: var(--shadow);
         padding: 1.25rem 1.35rem 1.75rem;
+      }
+
+      .session-section-label {
+        margin: 0 0 0.35rem;
+        color: var(--accent-strong);
+        font-size: 0.76rem;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .session-section-label + .session-meta {
+        margin-bottom: 1.25rem;
+      }
+
+      .session-composition-grid {
+        --session-composition-chart-height: 176px; /* keep in sync with SESSION_COMPOSITION_CHART_HEIGHT */
+        margin-top: 0.35rem;
+      }
+
+      /*
+       * Start collapsed (not metrics 280px). JS expands to
+       * --session-composition-chart-height when data arrives; empty stays 0.
+       * Avoids shrink FOUC while the session detail request is in flight.
+       */
+      .session-composition-grid .chart-wrap {
+        height: 0;
+        min-height: 0;
+      }
+
+      .session-composition-grid .panel {
+        padding-bottom: 0.65rem;
+      }
+
+      .session-composition-grid .chart-scroll {
+        max-height: none;
       }
 
       .session-toolbar {
@@ -1387,15 +1433,45 @@
       </section>
 
       <section class="session-pane" id="session-pane" aria-labelledby="session-title" hidden>
-        <div class="session-toolbar">
-          <button type="button" id="session-copy-link">🔗 Copy deep-link</button>
-          <button type="button" id="session-export-md">📥 Export markdown</button>
-          <button type="button" id="session-export-json">📥 Export JSON</button>
-        </div>
-        <h2 id="session-title">Session</h2>
-        <p class="session-meta" id="session-meta"></p>
-        <div class="error" id="session-error" role="alert" hidden></div>
-        <div class="session-turns" id="session-turns" aria-live="polite"></div>
+        <section class="session-card" id="session-overview" aria-label="Session overview">
+          <p class="session-section-label">session</p>
+          <p class="session-meta" id="session-meta"></p>
+          <p class="session-section-label">composition</p>
+          <div class="chart-grid session-composition-grid" id="session-composition">
+            <article class="panel" id="session-tools-panel">
+              <header class="panel-header">
+                <h2>Tools</h2>
+              </header>
+              <div class="chart-scroll">
+                <div class="chart-wrap" id="session-tools-chart-wrap">
+                  <canvas id="session-tools-chart" role="img" aria-label="Session tools chart">Session tools chart.</canvas>
+                </div>
+              </div>
+              <p class="no-data" id="session-tools-empty" hidden>No tool calls in this conversation.</p>
+            </article>
+            <article class="panel" id="session-skills-nested-panel">
+              <header class="panel-header">
+                <h2>Skills</h2>
+              </header>
+              <div class="chart-scroll">
+                <div class="chart-wrap" id="session-skills-nested-chart-wrap">
+                  <canvas id="session-skills-nested-chart" role="img" aria-label="Session skills chart">Session skills chart.</canvas>
+                </div>
+              </div>
+              <p class="no-data" id="session-skills-nested-empty" hidden>No skill uses in this conversation.</p>
+            </article>
+          </div>
+        </section>
+        <section class="session-card" id="session-messages" aria-label="Messages">
+          <div class="session-toolbar">
+            <button type="button" id="session-copy-link">🔗 Copy deep-link</button>
+            <button type="button" id="session-export-md">📥 Export markdown</button>
+            <button type="button" id="session-export-json">📥 Export JSON</button>
+          </div>
+          <h2 id="session-title">Session</h2>
+          <div class="error" id="session-error" role="alert" hidden></div>
+          <div class="session-turns" id="session-turns" aria-live="polite"></div>
+        </section>
       </section>
     </main>
 

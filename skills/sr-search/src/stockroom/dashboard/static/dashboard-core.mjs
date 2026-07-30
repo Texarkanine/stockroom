@@ -97,6 +97,33 @@ function panelModel(kind, labels, datasets, options = {}) {
             strokeStyle: item.strokeStyle ?? item.fillStyle,
           })),
         }),
+    ...(options.legendPosition === undefined
+      ? {}
+      : { legendPosition: options.legendPosition }),
+  };
+}
+
+/** Shorter doughnut wrap for session overview composition (above the transcript). */
+export const SESSION_COMPOSITION_CHART_HEIGHT = 176;
+
+/**
+ * Densify a tools/skills doughnut for the session composition band.
+ *
+ * Shorter canvas height plus a right-side legend reclaim the horizontal dead
+ * space of a top-legend doughnut so the transcript starts higher on the page.
+ *
+ * @param {Record<string, unknown>} panel Panel model from a builder.
+ * @returns {Record<string, unknown>} Panel with session composition layout hints.
+ */
+export function withSessionCompositionLayout(panel) {
+  const source = panel && typeof panel === "object" ? panel : {};
+  if (source.empty) {
+    return { ...source, legendPosition: "right" };
+  }
+  return {
+    ...source,
+    height: SESSION_COMPOSITION_CHART_HEIGHT,
+    legendPosition: "right",
   };
 }
 
@@ -1055,6 +1082,27 @@ export function chartHeight(labelCount, options) {
   const perLabel = finiteNumber(settings.perLabel) || 34;
   const count = Math.max(0, Math.floor(finiteNumber(labelCount)));
   return Math.max(minimum, count * perLabel);
+}
+
+/**
+ * Inline size styles for a chart wrap given empty vs populated state.
+ *
+ * Empty charts must not reserve doughnut height — keep the ``no-data`` line
+ * visible without a tall blank box. Populated charts keep the usual height.
+ *
+ * @param {boolean} empty Whether the panel model has no series to draw.
+ * @param {number} [height=280] Pixel height when not empty.
+ * @returns {{height: string, minHeight: string}} CSS pixel lengths for the wrap.
+ */
+export function chartWrapLayoutStyle(empty, height = 280) {
+  if (empty) {
+    return { height: "0px", minHeight: "0px" };
+  }
+  const px = Number(height);
+  const resolved = Number.isFinite(px) && px > 0 ? px : 280;
+  // Clear the stylesheet `.chart-wrap { min-height: 260px }` floor so shorter
+  // session-composition heights actually take effect.
+  return { height: `${resolved}px`, minHeight: "0px" };
 }
 
 /**

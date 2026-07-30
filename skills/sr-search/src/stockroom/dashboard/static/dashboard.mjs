@@ -28,6 +28,8 @@ import {
   sessionsListHandoff,
   sessionsPaginationVisible,
   summarizeChartPanel,
+  chartWrapLayoutStyle,
+  withSessionCompositionLayout,
   togglePanelHelp,
   tooltipLabelColors,
   tooltipTitleFromLabelTitles,
@@ -43,6 +45,7 @@ import {
 import {
   buildSessionDeepLink,
   buildSessionMetaEntries,
+  sessionMessagesHeading,
   buildSessionViewSearchParams,
   buildSessionsListSearchParams,
   canReuseLoadedSession,
@@ -358,10 +361,16 @@ function chartOptions(model) {
           model.kind === "doughnut" ||
           model.datasets.length > 1 ||
           state.mode === "compare",
+        ...(typeof model.legendPosition === "string"
+          ? { position: model.legendPosition }
+          : {}),
         labels: {
           color: text,
           usePointStyle: true,
           boxWidth: 10,
+          ...(model.legendPosition === "right"
+            ? { padding: 8, font: { size: 11 } }
+            : {}),
           ...(Array.isArray(model.legendItems)
             ? {
                 generateLabels() {
@@ -454,13 +463,20 @@ function chartOptions(model) {
   return options;
 }
 
+const SESSION_COMPOSITION_CHART_NAMES = Object.freeze([
+  "session-tools",
+  "session-skills-nested",
+]);
+
 function renderChart(name, title, model) {
   const canvas = document.querySelector(`#${name}-chart`);
   const wrapper = document.querySelector(`#${name}-chart-wrap`);
   const empty = document.querySelector(`#${name}-empty`);
   chartRegistry.get(name)?.destroy();
   chartRegistry.delete(name);
-  wrapper.style.height = `${model.height ?? 280}px`;
+  const layout = chartWrapLayoutStyle(Boolean(model.empty), model.height ?? 280);
+  wrapper.style.height = layout.height;
+  wrapper.style.minHeight = layout.minHeight;
   canvas.hidden = model.empty;
   empty.hidden = !model.empty;
   const summary = summarizeChartPanel(title, state.mode, model);
@@ -484,6 +500,33 @@ function renderChart(name, title, model) {
     options: chartOptions(model),
   });
   chartRegistry.set(name, chart);
+}
+
+/**
+ * Collapse session composition wraps and clear prior charts while a detail
+ * fetch is in flight — prevents shrink FOUC from the metrics chart-wrap size
+ * (or a previous session's doughnuts) before the new payload paints.
+ */
+function resetSessionCompositionCharts() {
+  const layout = chartWrapLayoutStyle(true);
+  for (const name of SESSION_COMPOSITION_CHART_NAMES) {
+    chartRegistry.get(name)?.destroy();
+    chartRegistry.delete(name);
+    const wrapper = document.querySelector(`#${name}-chart-wrap`);
+    const canvas = document.querySelector(`#${name}-chart`);
+    const empty = document.querySelector(`#${name}-empty`);
+    if (wrapper) {
+      wrapper.style.height = layout.height;
+      wrapper.style.minHeight = layout.minHeight;
+    }
+    if (canvas) {
+      canvas.hidden = true;
+    }
+    if (empty) {
+      // Hide until render decides empty vs populated — avoid a false "none".
+      empty.hidden = true;
+    }
+  }
 }
 
 function appendCell(row, value, className) {
@@ -1041,18 +1084,19 @@ function renderSessionDetail(detail) {
   sessionDetail = detail;
   const harness = detail?.harness ?? sessionView?.harness ?? "";
   const sessionId = detail?.session_id ?? sessionView?.sessionId ?? "";
-  elements.sessionTitle.textContent = `${displayHarness(harness)} / ${sessionId}`;
-  const project = detail?.project_name || detail?.project_id || "—";
+  const harnessLabel = displayHarness(harness);
+  elements.sessionTitle.textContent = sessionMessagesHeading({
+    title: detail?.title,
+    harnessLabel,
+    sessionId,
+  });
   const started = detail?.started ? formatDate(detail.started) : "—";
   elements.sessionMeta.innerHTML = "";
   const metaBits = buildSessionMetaEntries({
-    harnessLabel: displayHarness(harness),
-    project,
+    harnessLabel,
     started,
     model: detail?.model,
     tokens: detail?.tokens,
-    isSubagent: Boolean(detail?.is_subagent),
-    parentSessionId: detail?.parent_session_id,
   });
   elements.sessionMeta.append(
     ...metaBits.flatMap((entry, index) => {
@@ -1072,6 +1116,37 @@ function renderSessionDetail(detail) {
       nodes.push(strong, document.createTextNode(String(entry.text)));
       return nodes;
     }),
+  );
+
+  const selected = [harness];
+  const colors = harnessColors(selected);
+  renderChart(
+    "session-tools",
+    "Tools",
+    withSessionCompositionLayout(
+      buildToolsPanel(
+        detail?.tools ?? { tools: [], calls: {} },
+        selected,
+        "aggregate",
+        colors,
+      ),
+    ),
+  );
+  renderChart(
+    "session-skills-nested",
+    "Skills",
+    withSessionCompositionLayout(
+      buildSkillsNestedPanel(
+        detail?.skills ?? {
+          skills: [],
+          invokers: ["user", "agent"],
+          calls: {},
+        },
+        selected,
+        "aggregate",
+        colors,
+      ),
+    ),
   );
 
   elements.sessionTurns.replaceChildren();
@@ -1191,6 +1266,7 @@ async function openSessionView(harness, sessionId, { push = true } = {}) {
   sessionDetail = null;
   clearSessionError();
   showSessionView();
+  resetSessionCompositionCharts();
   elements.sessionTurns.replaceChildren();
   elements.sessionTitle.textContent = `${displayHarness(harness)} / ${sessionId}`;
   elements.sessionMeta.textContent = "Loading session…";
