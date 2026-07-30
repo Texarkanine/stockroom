@@ -114,3 +114,14 @@ Add a Cursor `beforeSubmitPrompt` trimmed non-blocking shim-rectify suspenders p
     - Do not prescribe a single root cause on the recovery docs path
 * Insights
     - Dead shim makes any `stockroom …` tip circular — hooks / initialize own the plugin root
+
+## 2026-07-30 - POST-REFLECT CI FIX (loose-text-oracle)
+
+* Work completed
+    - CI run failed: `test_static_root_and_traversal_guard` pinned recovery headline prose
+    - Rewrote asserts to packaged `index.html` bytes + diagnostic HTML equality + no passwd leak
+    - Local pre-commit: `make format` + re-stage staged `*.py` (machine-local only)
+* Decisions made
+    - Traversal/static-miss contract is “same diagnostic page,” not English copy
+* Insights
+    - Substring oracles on recovery HTML are change-detectors under always-tdd / SLOBAC loose-text-oracle

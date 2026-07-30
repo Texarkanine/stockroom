@@ -13,7 +13,7 @@ import duckdb
 import pytest
 
 from stockroom import ingest, migrate, warehouse
-from stockroom.dashboard import metrics
+from stockroom.dashboard import metrics, recovery
 from stockroom.dashboard import server as dashboard_server
 from stockroom.migrations import discover
 
@@ -292,16 +292,21 @@ def test_missing_stale_and_busy_warehouses_return_actionable_503(
 
 def test_static_root_and_traversal_guard(warehouse_home: Path) -> None:
     """The root serves packaged HTML and encoded traversal cannot escape it."""
+    packaged_index = (
+        Path(dashboard_server.__file__).resolve().parent / "static" / "index.html"
+    ).read_bytes()
     with _running_server() as (_httpd, base):
         status, content_type, body = _get(f"{base}/")
         assert status == 200
         assert content_type.startswith("text/html")
-        assert b"stockroom dashboard" in body
+        assert body == packaged_index
 
         status, content_type, body = _get(f"{base}/%2e%2e/%2e%2e/etc/passwd")
         assert status == 404
         assert content_type.startswith("text/html")
-        assert b"stockroom dashboard could not load" in body
+        # Same in-memory diagnostic page as other static misses — not a prose pin.
+        assert body == recovery.render_diagnostic_html().encode("utf-8")
+        assert b"root:" not in body  # did not escape to /etc/passwd
 
 
 def test_dashboard_javascript_assets_have_browser_mime_types(
