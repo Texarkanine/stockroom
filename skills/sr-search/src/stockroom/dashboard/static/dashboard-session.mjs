@@ -478,26 +478,6 @@ export function sessionLocationWithMessageHash(pathname, search, ordinal) {
 }
 
 /**
- * Ordered meta entries for the session detail header.
- *
- * Omits Session (already shown in the title). Tokens is a structured entry for
- * the shared token mount; unknown model renders as an emdash.
- *
- * @param {{
- *   harnessLabel: string,
- *   project: string,
- *   started: string,
- *   model?: string | null,
- *   tokens?: unknown,
- *   isSubagent?: boolean,
- *   parentSessionId?: string | null,
- * }} fields
- * @returns {Array<
- *   | { kind: "text", label: string, text: string }
- *   | { kind: "tokens", label: string, tokens: unknown }
- * >}
- */
-/**
  * Overview-pill meta for session view (F-a): harness, model, tokens, started.
  *
  * @param {{
