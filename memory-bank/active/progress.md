@@ -125,3 +125,13 @@ Add a Cursor `beforeSubmitPrompt` trimmed non-blocking shim-rectify suspenders p
     - Traversal/static-miss contract is “same diagnostic page,” not English copy
 * Insights
     - Substring oracles on recovery HTML are change-detectors under always-tdd / SLOBAC loose-text-oracle
+
+## 2026-07-30 - ARCHIVE - IN-PROGRESS
+
+* Work completed
+    - PR #110 merged to main as `f7a3b8f`
+    - Entering archive phase to inline ephemeral MB and clear active task state
+* Decisions made
+    - Archive category: enhancements (extends Cursor hooks lifecycle + dashboard static-miss UX)
+* Insights
+    - (none yet)
