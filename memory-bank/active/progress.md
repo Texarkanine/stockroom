@@ -58,3 +58,13 @@ Add a Cursor `beforeSubmitPrompt` trimmed non-blocking shim-rectify suspenders p
     - Exact FS diagnosis deferred; copy must still be shim-first and mention ensure-env (path-only gap)
 * Insights
     - Running process can probe more later, but only if recovery code was imported before plugin-dir deletion
+
+## 2026-07-30 - BUILD - IN-PROGRESS
+
+* Work completed
+    - Creative decisions re-reviewed (path-only continue-first; one diagnostic HTML page)
+    - Preflight confirmed PASS; beginning TDD step 1 (shim path-only)
+* Decisions made
+    - Build to MVP plan (no classifier)
+* Insights
+    - (none yet)
