@@ -61,20 +61,22 @@ Key insights:
 - **Probe imports pull duckdb into 404 path:** checked — keep probe on stdlib + existing shim header helpers; no warehouse open on 404.
 - **API clients break if `/api/unknown` becomes HTML:** checked — keep `Content-Type` JSON for `/api/*` 404s; HTML recovery for static/document requests only (or `Accept: text/html`).
 
-**Selected**: Option A — **ordered recovery probe** with Option B as the terminal bucket (unknown / healthy-looking miss)
-**Rationale**: Encodes the hard rule in control flow (shim-dead → never `--replace`). Still always ships a pretty page instead of bare JSON for document/static 404s. Generic bucket satisfies the brief's explicit fallback.
-**Tradeoff**: Slightly more server logic and tests than a single static HTML blurb; worth it for the hard rule.
+**Selected (original creative):** Option A — ordered recovery probe with Option B as terminal bucket  
+**Superseded (operator MVP, 2026-07-30):** Option B only — **one generic diagnostic page**
+
+**Rationale (MVP):** Path-only `beforeSubmitPrompt` leaves env-heal undiagnosed; a half-wrong classifier that can still push `--replace` is worse than one honest page. The running process can do richer FS probes later, but MVP is “recognize broken → serve in-memory diagnostic HTML.” Exact classification deferred.
+
+**Tradeoff:** Less targeted in-page root-cause messaging; relies on ordered remedies + online manual links (including ensure-env / `sr-initialize`, not only path rectify / `--replace`).
 
 ## Implementation Notes
 
-- Add something like `dashboard.recovery.classify() -> shim_rectify | dashboard_replace | generic` using:
-  1. Read on-path shim header (absent/unreadable/foreign → treat as needs rectify guidance, not `--replace`)
-  2. `APP_DIR/pyproject.toml` missing → shim_rectify
-  3. Else if `static_root` missing expected files (e.g. `index.html`) OR identity `app_dir` ≠ shim `APP_DIR` → dashboard_replace
-  4. Else → generic troubleshooting (ordered: rectify / new session, then `--replace`, docs link)
-- `_not_found` for non-API: render small self-contained HTML (inline CSS ok; match dashboard tokens lightly if easy — not a design-system project)
-- Canonical docs link: `docs/user-guide/troubleshooting/index.md#dashboard` (and/or dashboard lifecycle) — use the published properdocs URL pattern already used elsewhere if one exists
-- Remedies copy:
-  - shim: new Cursor session (sessionStart) / wait for beforeSubmitPrompt heal / `sr-initialize` / last-resort bind — **no** `--replace`
-  - replace: `stockroom dashboard --replace`
-- Tests: unit-test classifier matrix; HTTP test that static 404 returns HTML with expected substring per class; API 404 stays JSON
+### MVP (ship this)
+
+- `dashboard.recovery`: render one self-contained HTML page from string constants (import at server startup so it survives plugin-dir deletion)
+- Static/document miss (including `/` when `index.html` is gone) → that page; keep `_not_found()` JSON for `/api/*` and session miss
+- Page content: short explanation + **ordered** remedies (shim/session heal → `shim ensure-env` / `sr-initialize` → `stockroom dashboard --replace`) + links to `https://texarkanine.github.io/stockroom/user-guide/troubleshooting/` (and anchors for dashboard / installed-layout / torch as docs allow)
+- Tests: HTML content contracts + HTTP static 404 → HTML; API 404 → JSON. **No classifier matrix.**
+
+### Deferred
+
+- FS probes / `classify()` for shim-dead vs needs-replace vs env-incomplete (process *can* do some of this while code is still in memory; not this task)

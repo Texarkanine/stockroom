@@ -47,3 +47,14 @@ Add a Cursor `beforeSubmitPrompt` trimmed non-blocking shim-rectify suspenders p
     - Keep `_not_found()` JSON-only; static miss gets a separate HTML recovery path
 * Insights
     - `_serve_session` and unknown API share `_not_found()` today — converting that helper would break SPA contracts
+
+## 2026-07-30 - PLAN AMENDMENT - MVP RECOVERY
+
+* Work completed
+    - Operator accepted MVP: recognize broken listener → one diagnostic HTML page (ordered remedies + online manual links)
+    - Dropped shim-vs-replace classifier and public shim header reader from this task
+    - Updated `tasks.md`, `projectbrief.md`, creative recovery doc; preflight re-validated PASS
+* Decisions made
+    - Exact FS diagnosis deferred; copy must still be shim-first and mention ensure-env (path-only gap)
+* Insights
+    - Running process can probe more later, but only if recovery code was imported before plugin-dir deletion
