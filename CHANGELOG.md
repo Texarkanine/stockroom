@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.19.0](https://github.com/Texarkanine/stockroom/compare/v0.18.1...v0.19.0) (2026-07-30)
+
+
+### Features
+
+* **dashboard:** show per-conversation tool and skill composition charts ([#108](https://github.com/Texarkanine/stockroom/issues/108)) ([867fad4](https://github.com/Texarkanine/stockroom/commit/867fad4f663566aaf9ab602cfd4bed6066951018))
+
 ## [0.18.1](https://github.com/Texarkanine/stockroom/compare/v0.18.0...v0.18.1) (2026-07-29)
 
 
