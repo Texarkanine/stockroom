@@ -395,9 +395,7 @@ def main(argv: list[str] | None = None) -> int:
             )
         return 0
 
-    report = rectify(
-        args.dest, app_dir, args.owner, ensure_env=not args.path_only
-    )
+    report = rectify(args.dest, app_dir, args.owner, ensure_env=not args.path_only)
     if report.action == "rectified":
         print(f"rectified {report.dest} (owner={args.owner}, app-dir={app_dir})")
     elif report.action == "installed":

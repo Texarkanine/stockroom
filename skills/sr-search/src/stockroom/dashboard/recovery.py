@@ -5,9 +5,7 @@ plugin tree cannot remove the recovery page. MVP: one generic page — no
 shim-vs-replace classifier. Short rundown only; detail lives in the online manual.
 """
 
-_TROUBLESHOOTING = (
-    "https://texarkanine.github.io/stockroom/user-guide/troubleshooting/"
-)
+_TROUBLESHOOTING = "https://texarkanine.github.io/stockroom/user-guide/troubleshooting/"
 _RECOVERY_SECTION = f"{_TROUBLESHOOTING}#dashboard-ui-will-not-load"
 
 _DIAGNOSTIC_HTML = f"""\
