@@ -1,6 +1,15 @@
 # Active Context
 
 **Current Task:** cursor-beforesubmit-shim-rectify-and-dashboard-recovery-ux
-**Phase:** BUILD - IN-PROGRESS
-**What Was Done:** Preflight PASS (MVP recovery). Entering build: shim `--path-only` → beforeSubmitPrompt → recovery HTML → server wire → docs → full suite.
-**Next Step:** TDD implementation per `tasks.md` steps 1–6.
+**Phase:** BUILD - COMPLETE
+**What Was Done:**
+- Shim: `rectify(..., ensure_env=False)` + CLI `--path-only`
+- Cursor `beforeSubmitPrompt`: continue-first + background path-only rectify (timeout 10); `sessionStart` unchanged
+- `dashboard/recovery.py`: one in-memory diagnostic HTML page (shim-first ordered remedies + troubleshooting links)
+- Server: static/document misses → HTML recovery; `_not_found()` stays JSON for API/session
+- Docs: lifecycle, dashboard, troubleshooting
+- Verification: `make test` 793 passed / 4 skipped + 119 JS; `make lint` clean
+
+**Deviations:** None — built to MVP plan (no classifier).
+
+**Next Step:** QA (`/niko-qa` will run automatically per L3 workflow).

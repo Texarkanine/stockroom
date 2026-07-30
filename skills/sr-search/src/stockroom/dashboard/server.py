@@ -19,7 +19,7 @@ from urllib.parse import parse_qs, unquote, urlsplit
 import duckdb
 
 from stockroom import warehouse
-from stockroom.dashboard import metrics
+from stockroom.dashboard import metrics, recovery
 
 
 class _DashboardServer(ThreadingHTTPServer):
@@ -56,7 +56,17 @@ class _DashboardHandler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def _not_found(self) -> None:
+        """JSON 404 for API / session misses (machine contract — not browser recovery)."""
         self._send_json(404, {"error": "not found"})
+
+    def _recovery_page(self) -> None:
+        """HTML 404 for static/document misses (in-memory; survives plugin wipe)."""
+        body = recovery.render_diagnostic_html().encode("utf-8")
+        self.send_response(404)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
     def _open_readonly(self) -> duckdb.DuckDBPyConnection | None:
         """Open a short-lived read-only warehouse connection, or send a 503."""
@@ -203,7 +213,7 @@ class _DashboardHandler(BaseHTTPRequestHandler):
             not candidate.is_relative_to(self.server.static_root)
             or not candidate.is_file()
         ):
-            self._not_found()
+            self._recovery_page()
             return
         body = candidate.read_bytes()
         content_type = (

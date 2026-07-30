@@ -68,3 +68,16 @@ Add a Cursor `beforeSubmitPrompt` trimmed non-blocking shim-rectify suspenders p
     - Build to MVP plan (no classifier)
 * Insights
     - (none yet)
+
+## 2026-07-30 - BUILD - COMPLETE
+
+* Work completed
+    - Path-only rectify (`ensure_env` / `--path-only`) + Cursor `beforeSubmitPrompt` suspenders
+    - In-memory diagnostic HTML for static/document 404s; API JSON 404 preserved
+    - Docs updated (lifecycle, dashboard, troubleshooting)
+    - Full suite + lint green
+* Decisions made
+    - No classifier; one diagnostic page (MVP)
+    - Traversal/static escapes also get HTML recovery (same static-miss path)
+* Insights
+    - Packaging module fixture reloads from disk per process — fine under xdist workers

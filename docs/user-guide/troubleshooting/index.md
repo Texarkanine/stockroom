@@ -75,7 +75,7 @@ Follow the remedy printed on stderr. Often that is: open a new session so `shim 
 
 ### Engine env cannot import locked deps
 
-Let session-start heal run, or re-run `sr-initialize`.
+Let session-start heal run (`shim rectify` includes ensure-env), run `stockroom shim ensure-env` yourself, or re-run `sr-initialize`.
 
 ## Ingest
 
@@ -109,11 +109,21 @@ Confirm the warehouse has embeddings (ingest + embed), then decide structured vs
 
 ### Port 58008 already in use / stale UI after plugin update
 
-Session start should replace an owned listener. If a pre-identity-tracking process remains, stop the old `stockroom.dashboard` process once, then `/sr-dashboard` — [Dashboard](../dashboard.md).
+Prefer, in order:
+
+1. **New harness session** — session-start runs full `shim rectify` (ensure-env + rebake) and launches/replaces an owned dashboard listener. On Cursor, each prompt submit also backgrounds a path-only `shim rectify --path-only` as suspenders when session start misses.
+2. **`stockroom shim ensure-env`** or **`sr-initialize`** — if the engine env / Torch stack is empty or broken after a plugin move (path-only heal does not sync deps). See [Engine env cannot import locked deps](#engine-env-cannot-import-locked-deps) and [Torch](torch.md).
+3. **`stockroom dashboard --replace`** — only after the on-path shim points at a live engine. This kills the stale listener and starts one from the current bake. Do not lead with `--replace` when `stockroom` itself is missing or refuses.
+
+If a pre-identity-tracking process remains and `--replace` cannot take it over, stop the old `stockroom.dashboard` process once, then `/sr-dashboard` — [Dashboard](../dashboard.md).
+
+### Diagnostic page instead of the UI
+
+When the bound listener cannot serve real UI assets, the server returns a pretty diagnostic HTML page (not bare JSON) with the same shim-first order as above and links back here. Follow those steps; API clients still see JSON 404 for unknown `/api/*` routes.
 
 ### Auto-start missing on Cursor
 
-Third-party plugins setting ([Quickstart](#cursor-hooks--auto-dashboard-never-fire) above); then `/sr-dashboard` or `stockroom dashboard` — [Dashboard](../dashboard.md).
+Third-party plugins setting ([Quickstart](#cursor-hooks--auto-dashboard-never-fire) above); then `/sr-dashboard` or `stockroom dashboard` — [Dashboard](../dashboard.md). On some macOS Cursor installs, `sessionStart` may not fire even when that setting is on — path-only suspenders on prompt submit still try to rebake the shim; open a new session or run `sr-initialize` for a full heal.
 
 ## Still stuck
 

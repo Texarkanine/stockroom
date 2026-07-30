@@ -107,24 +107,23 @@ flowchart LR
     - TDD: (a) add failing packaging tests for `beforeSubmitPrompt` (continue JSON, `--path-only`, no dashboard, background/detach marker, small timeout) and sessionStart unchanged; (b) edit `cursor-hooks.json` until green
     - Creative ref: `creative-beforesubmit-rectify-trim.md`
 
-3. **Diagnostic page module**
+3. **Diagnostic page module** ✅
     - Files: new `skills/sr-search/src/stockroom/dashboard/recovery.py`, `tests/test_dashboard_recovery.py`
     - TDD: (a) failing tests that rendered HTML has ordered remedies (shim/session → ensure-env/`sr-initialize` → `--replace`) + docs URLs; (b) implement in-memory HTML renderer until green — **no classifier**
     - Ensure `server` imports recovery at module load (so it survives plugin-dir deletion)
     - Creative ref: `creative-dashboard-recovery-ux.md` (MVP)
 
-
-4. **Server wires HTML 404 for static/document misses**
+4. **Server wires HTML 404 for static/document misses** ✅
     - Files: `skills/sr-search/src/stockroom/dashboard/server.py`, `tests/test_dashboard_server.py`, `tests/test_dashboard_recovery.py`
     - TDD: (a) failing HTTP tests: `/cute-puppies` and `/` with missing index → 404 HTML; `/api/nope` and missing session → JSON 404 unchanged; (b) route **static miss** through recovery HTML — keep `_not_found()` as JSON for API/session
     - Creative ref: `creative-dashboard-recovery-ux.md` (MVP)
 
-5. **Docs** (prose; no behavior tests)
+5. **Docs** (prose; no behavior tests) ✅
     - Files: `docs/architecture/lifecycle.md`, `docs/user-guide/dashboard.md`, `docs/user-guide/troubleshooting/index.md`
     - Changes: suspenders path-only beforeSubmitPrompt; diagnostic page behavior; macOS sessionStart note; ensure anchors the page links to exist and mention shim / ensure-env / `--replace`
 
-6. **Full suite**
-    - Run whole test suite before claiming build done
+6. **Full suite** ✅
+    - Run whole test suite before claiming build done (`make test`: 793 passed / 4 skipped Python; 119 JS; `make lint` clean)
 
 ## Technology Validation
 
@@ -154,7 +153,7 @@ No new technology — validation not required. Uses existing Cursor hook events 
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight (re-validated after MVP amendment 2026-07-30)
-- [ ] Build
+- [x] Build
 - [ ] QA
 
 ## Preflight Amendments

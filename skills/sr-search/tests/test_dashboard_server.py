@@ -298,9 +298,10 @@ def test_static_root_and_traversal_guard(warehouse_home: Path) -> None:
         assert content_type.startswith("text/html")
         assert b"stockroom dashboard" in body
 
-        status, payload = _json_get(f"{base}/%2e%2e/%2e%2e/etc/passwd")
+        status, content_type, body = _get(f"{base}/%2e%2e/%2e%2e/etc/passwd")
         assert status == 404
-        assert payload["error"] == "not found"
+        assert content_type.startswith("text/html")
+        assert b"stockroom dashboard could not load" in body
 
 
 def test_dashboard_javascript_assets_have_browser_mime_types(
