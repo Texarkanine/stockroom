@@ -44,7 +44,7 @@ The dashboard is a **local, read-only, fully offline** metrics UI (default port 
 
 Session-start hooks attempt to launch it automatically. The CLI is idempotent: if something already listens on the port, the command still prints the URL and exits cleanly. The process uses a torch-safe engine env (same shim contract as other subcommands) and opens the warehouse through `open_current()` so a UI process never becomes the migrator — see [Warehouse](warehouse.md#concurrency-and-open-paths).
 
-When the listener cannot serve real static UI (missing `index.html`, unknown document path, stale assets after a plugin move), it returns an in-memory **diagnostic HTML** page with shim-first ordered remedies — not bare JSON `{"error":"not found"}`. API and session-miss responses stay JSON.
+When the listener cannot serve real static UI (missing `index.html`, unknown document path, stale assets after a plugin move), it returns an in-memory **recovery HTML** page: short harness-first rundown (new chat / prompt → `sr-initialize` if the shim stays dead) plus a link to the user-guide troubleshooting section — not bare JSON `{"error":"not found"}`, and not circular `stockroom …` CLI while PATH is broken. API and session-miss responses stay JSON.
 
 ## Rendered-out artifacts
 

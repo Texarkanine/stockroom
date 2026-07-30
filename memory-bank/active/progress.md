@@ -101,3 +101,16 @@ Add a Cursor `beforeSubmitPrompt` trimmed non-blocking shim-rectify suspenders p
     - productContext / techContext unchanged (no factual invalidation)
 * Insights
     - ensure_env thrash vs path-only split is load-bearing; recovery HTML must be import-time resident
+
+## 2026-07-30 - POST-REFLECT REWORK (saved)
+
+* Work completed
+    - Draft PR #110 opened on `hookers`
+    - Recovery page: harness-first short rundown; link to `#dashboard-ui-will-not-load`; no circular CLI / torch on page; dashboard `--page`/`--text` colors + readable column
+    - Troubleshooting section rewritten softer (“things that sometimes contribute” / “things to try”)
+    - Tests updated for new content contracts; suite green earlier in session
+* Decisions made
+    - Prefer `/sr-initialize` when shim is dead; `/sr-dashboard` only useful once PATH works (operator also iterating page copy toward `/sr-dashboard` first)
+    - Do not prescribe a single root cause on the recovery docs path
+* Insights
+    - Dead shim makes any `stockroom …` tip circular — hooks / initialize own the plugin root

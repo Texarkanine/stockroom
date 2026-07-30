@@ -57,35 +57,35 @@ def _get(url: str) -> tuple[int, str, bytes]:
         return exc.code, exc.headers.get("Content-Type", ""), exc.read()
 
 
-def test_diagnostic_html_orders_remedies_shim_first() -> None:
-    """Rendered page lists shim/session heal before ensure-env/init before --replace."""
+def test_diagnostic_html_harness_first_not_circular_cli() -> None:
+    """Page explains harness heal first; does not pretend a dead shim can CLI-heal itself."""
     html = recovery.render_diagnostic_html()
     assert "<!DOCTYPE html>" in html or "<!doctype html>" in html.lower()
-    assert "text/html" not in html  # page body, not a Content-Type header string
 
-    shim_idx = html.find("shim rectify")
-    if shim_idx < 0:
-        shim_idx = html.find("new session")
-    ensure_idx = html.find("ensure-env")
-    if ensure_idx < 0:
-        ensure_idx = html.find("sr-initialize")
-    replace_idx = html.find("dashboard --replace")
-    if replace_idx < 0:
-        replace_idx = html.find("--replace")
+    harness_idx = html.find("new chat")
+    if harness_idx < 0:
+        harness_idx = html.find("new session")
+    if harness_idx < 0:
+        harness_idx = html.find("Submit a prompt")
+    init_idx = html.find("sr-initialize")
 
-    assert shim_idx >= 0, "must mention shim rectify and/or new session"
-    assert ensure_idx >= 0, "must mention ensure-env and/or sr-initialize"
-    assert replace_idx >= 0, "must mention dashboard --replace (after shim guidance)"
-    assert shim_idx < ensure_idx < replace_idx, (
-        "remedies must be ordered: shim/session → ensure-env/init → --replace"
-    )
+    assert harness_idx >= 0, "must start with harness session / prompt heal"
+    assert init_idx >= 0, "must offer sr-initialize when hooks cannot restore PATH"
+    assert harness_idx < init_idx, "harness before agent initialize"
+
+    # Circular / wrong surface: dead shim cannot CLI-heal; dashboard does not use torch.
+    assert "stockroom shim rectify" not in html
+    assert "stockroom dashboard --replace" not in html
+    assert "ensure-env" not in html
+    assert "torch" not in html.lower()
+    assert "Torch" not in html
 
 
-def test_diagnostic_html_links_online_troubleshooting_manual() -> None:
-    """Page links the published troubleshooting index (and useful anchors)."""
+def test_diagnostic_html_links_dedicated_troubleshooting_section() -> None:
+    """Page ends at the dedicated recovery troubleshooting section (not a CLI cookbook)."""
     html = recovery.render_diagnostic_html()
     assert TROUBLESHOOTING_BASE in html
-    assert f"{TROUBLESHOOTING_BASE}#dashboard" in html
+    assert f"{TROUBLESHOOTING_BASE}#dashboard-ui-will-not-load" in html
 
 
 def test_unknown_static_path_returns_diagnostic_html(
@@ -97,9 +97,10 @@ def test_unknown_static_path_returns_diagnostic_html(
         assert status == 404
         assert content_type.startswith("text/html")
         text = body.decode("utf-8")
-        assert "shim rectify" in text or "new session" in text
-        assert "--replace" in text
-        assert TROUBLESHOOTING_BASE in text
+        assert "sr-initialize" in text
+        assert "new chat" in text or "new session" in text or "prompt" in text.lower()
+        assert "#dashboard-ui-will-not-load" in text
+        assert "stockroom shim rectify" not in text
         with pytest.raises(json.JSONDecodeError):
             json.loads(body)
 
@@ -116,7 +117,8 @@ def test_missing_index_html_returns_diagnostic_html(
         assert content_type.startswith("text/html")
         text = body.decode("utf-8")
         assert TROUBLESHOOTING_BASE in text
-        assert "--replace" in text
+        assert "#dashboard-ui-will-not-load" in text
+        assert "stockroom shim rectify" not in text
 
 
 def test_unknown_api_still_returns_json_404(warehouse_home: Path) -> None:

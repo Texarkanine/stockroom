@@ -107,23 +107,33 @@ Confirm the warehouse has embeddings (ingest + embed), then decide structured vs
 
 ## Dashboard
 
-### Port 58008 already in use / stale UI after plugin update
+### Dashboard UI will not load
 
-Prefer, in order:
+Something is answering on the dashboard port, but you are not getting the real UI — blank page, odd HTML, or the short in-browser recovery page that says the dashboard could not load this page. There is no single root cause; the steps below are common things worth trying, not a diagnosis of your machine.
 
-1. **New harness session** — session-start runs full `shim rectify` (ensure-env + rebake) and launches/replaces an owned dashboard listener. On Cursor, each prompt submit also backgrounds a path-only `shim rectify --path-only` as suspenders when session start misses.
-2. **`stockroom shim ensure-env`** or **`sr-initialize`** — if the engine env / Torch stack is empty or broken after a plugin move (path-only heal does not sync deps). See [Engine env cannot import locked deps](#engine-env-cannot-import-locked-deps) and [Torch](torch.md).
-3. **`stockroom dashboard --replace`** — only after the on-path shim points at a live engine. This kills the stale listener and starts one from the current bake. Do not lead with `--replace` when `stockroom` itself is missing or refuses.
+#### Things that sometimes contribute
 
-If a pre-identity-tracking process remains and `--replace` cannot take it over, stop the old `stockroom.dashboard` process once, then `/sr-dashboard` — [Dashboard](../dashboard.md).
+- A **stale dashboard process** left over after a plugin update, still bound to the port but no longer able to serve current static assets.
+- An on-path **`stockroom` shim** that is missing, or still baked to an old plugin path. Harness hooks are one way that path gets refreshed (they can see `CURSOR_PLUGIN_ROOT` / `CLAUDE_PLUGIN_ROOT`). If `stockroom` itself is missing or refuses, terminal commands that start with `stockroom …` may not be able to find the correct install on their own.
+- Less often for *this* symptom: a broken **engine env** (locked deps missing from the engine `.venv`) that blocks starting a *new* listener. The dashboard does not use Torch, so Torch issues are usually a different problem — [Torch](torch.md) · [Engine env cannot import locked deps](#engine-env-cannot-import-locked-deps).
 
-### Diagnostic page instead of the UI
+#### Things to try
 
-When the bound listener cannot serve real UI assets, the server returns a pretty diagnostic HTML page (not bare JSON) with the same shim-first order as above and links back here. Follow those steps; API clients still see JSON 404 for unknown `/api/*` routes.
+1. **From the harness.** Open a **new chat** and run **`/sr-dashboard`** (Claude Code: `/stockroom:sr-dashboard`), or submit a short prompt so session-start / Cursor’s before-submit suspenders get a chance to run. Reload [http://127.0.0.1:58008/](http://127.0.0.1:58008/) afterward.
+2. **Cursor hooks.** If auto-heal never seems to run, check the third-party plugins setting — [Quickstart](#cursor-hooks--auto-dashboard-never-fire).
+3. **If `stockroom` is missing or refuses.** In a chat, try **`/sr-initialize`** (Claude Code: `/stockroom:sr-initialize`) and ask it to restore the on-path shim and get the dashboard serving. That skill can see the plugin tree even when the shim cannot.
+4. **If `stockroom --version` already works** but the page is still wrong, `stockroom dashboard --replace` can replace a stale listener. If the shim is not healthy yet, `--replace` often does nothing useful.
+5. **Without an agent turn.** Last-resort manual bind — [last-resort bind](#last-resort-bind-the-shim-yourself) under [`stockroom: command not found`](#stockroom-command-not-found).
+
+The in-browser recovery page links here for the longer walkthrough. API clients still see JSON 404 for unknown `/api/*` routes.
+
+### Port 58008 already in use
+
+When `stockroom --version` works but the UI looks stale, try `stockroom dashboard --replace` (or stop the old `stockroom.dashboard` process once, then `/sr-dashboard`) — [Dashboard](../dashboard.md). If you are not sure the shim is healthy, the broader checklist above may be a better starting point.
 
 ### Auto-start missing on Cursor
 
-Third-party plugins setting ([Quickstart](#cursor-hooks--auto-dashboard-never-fire) above); then `/sr-dashboard` or `stockroom dashboard` — [Dashboard](../dashboard.md). On some macOS Cursor installs, `sessionStart` may not fire even when that setting is on — path-only suspenders on prompt submit still try to rebake the shim; open a new session or run `sr-initialize` for a full heal.
+Third-party plugins setting ([Quickstart](#cursor-hooks--auto-dashboard-never-fire) above). If that is already on and nothing seems to auto-heal, the [Dashboard UI will not load](#dashboard-ui-will-not-load) checklist is the next place to look.
 
 ## Still stuck
 
