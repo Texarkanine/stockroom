@@ -35,15 +35,11 @@ def _by_id(parser: _DocumentParser) -> dict[str, tuple[str, dict[str, str | None
     }
 
 
-def _radios(
-    parser: _DocumentParser, name: str
-) -> list[dict[str, str | None]]:
+def _radios(parser: _DocumentParser, name: str) -> list[dict[str, str | None]]:
     return [
         attrs
         for tag, attrs in parser.elements
-        if tag == "input"
-        and attrs.get("type") == "radio"
-        and attrs.get("name") == name
+        if tag == "input" and attrs.get("type") == "radio" and attrs.get("name") == name
     ]
 
 
