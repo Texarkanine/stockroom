@@ -119,7 +119,7 @@ Something is answering on the dashboard port, but you are not getting the real U
 
 #### Things to try
 
-1. **From the harness.** Open a **new chat** and run **`/sr-dashboard`** (Claude Code: `/stockroom:sr-dashboard`), or submit a short prompt so session-start / Cursor’s before-submit suspenders get a chance to run. Reload [http://127.0.0.1:58008/](http://127.0.0.1:58008/) afterward.
+1. **From the harness.** Open a **new chat** and run **`/sr-dashboard`** (Claude Code: `/stockroom:sr-dashboard`), then reload [http://127.0.0.1:58008/](http://127.0.0.1:58008/). On Cursor, submitting a short prompt can refresh the on-path shim via before-submit suspenders, but that path does **not** validate the engine env or launch/replace the dashboard — still run `/sr-dashboard` (or rely on session-start) before expecting the UI to recover.
 2. **Cursor hooks.** If auto-heal never seems to run, check the third-party plugins setting — [Quickstart](#cursor-hooks--auto-dashboard-never-fire).
 3. **If `stockroom` is missing or refuses.** In a chat, try **`/sr-initialize`** (Claude Code: `/stockroom:sr-initialize`) and ask it to restore the on-path shim and get the dashboard serving. That skill can see the plugin tree even when the shim cannot.
 4. **If `stockroom --version` already works** but the page is still wrong, `stockroom dashboard --replace` can replace a stale listener. If the shim is not healthy yet, `--replace` often does nothing useful.

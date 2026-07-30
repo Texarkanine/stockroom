@@ -37,11 +37,10 @@ _DIAGNOSTIC_HTML = f"""\
 </style>
 </head>
 <body>
-  <h1>stockroom dashboard<h1>
+  <h1>stockroom dashboard</h1>
   <h2>could not load this page</h2>
   <p>
     If you think this is a mistake and this page actually should have loaded,
-  <p>
   <ol>
     <li>
       <strong>Heal from the harness.</strong>
