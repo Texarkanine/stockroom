@@ -1,7 +1,6 @@
-"""Clean-room parser for Claude Code's native on-disk transcript format.
+"""Parser for Claude Code's native on-disk transcript format.
 
-Reverse-engineered from the harness's own files (no reference to any
-third-party tool). A Claude session lives at ``<project>/<sessionId>.jsonl`` —
+A Claude session lives at ``<project>/<sessionId>.jsonl`` —
 one self-describing JSON record per line. Records carry a native ``uuid`` and
 ``parentUuid`` (a tree that genuinely *branches*), a ``type`` drawn from a large
 set, and — for assistant turns — ``message.model``, ``message.usage`` token

@@ -1,7 +1,6 @@
-"""Clean-room parser for Cursor's native on-disk transcript format.
+"""Parser for Cursor's native on-disk transcript format.
 
-Reverse-engineered from the harness's own files (no reference to any
-third-party tool). A Cursor conversation lives at
+A Cursor conversation lives at
 ``<project>/agent-transcripts/<conv>/<conv>.jsonl`` — one JSON record per line,
 each a ``{"role": ..., "message": {"content": [blocks]}}`` turn, with a
 trailing ``{"role": "turn_ended", ...}`` boundary marker. Records are

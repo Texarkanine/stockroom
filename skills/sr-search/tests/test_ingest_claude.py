@@ -1,4 +1,4 @@
-"""Clean-room Claude Code parser tests.
+"""Claude Code parser tests.
 
 Claude transcripts are self-describing JSONL with a native ``uuid``/``parentUuid``
 tree, per-message ``model`` and token ``usage``, per-record timestamps, and a
