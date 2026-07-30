@@ -1,6 +1,6 @@
 # Active Context
 
 **Current Task:** cursor-beforesubmit-shim-rectify-and-dashboard-recovery-ux
-**Phase:** QA - COMPLETE
-**What Was Done:** Semantic QA PASS against MVP plan (path-only suspenders + one diagnostic HTML page). No substantive findings.
-**Next Step:** Reflect (`/niko-reflect` will run automatically per L3 workflow).
+**Phase:** REFLECT - COMPLETE
+**What Was Done:** Reflection written; `systemPatterns.md` updated for Cursor `beforeSubmitPrompt` path-only suspenders. QA and build already PASS.
+**Next Step:** Operator runs `/niko-archive` to archive and clear the memory bank.

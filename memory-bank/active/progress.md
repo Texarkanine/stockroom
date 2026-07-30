@@ -91,3 +91,13 @@ Add a Cursor `beforeSubmitPrompt` trimmed non-blocking shim-rectify suspenders p
     - Accept duplicated `_running_server` helper in recovery tests (keeps suite self-contained; not worth a shared fixture for one file)
 * Insights
     - No classifier / no debris; API/static 404 split holds
+
+## 2026-07-30 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `reflection-cursor-beforesubmit-shim-rectify-and-dashboard-recovery-ux.md`
+    - Reconciled `systemPatterns.md` (Cursor beforeSubmitPrompt path-only suspenders)
+* Decisions made
+    - productContext / techContext unchanged (no factual invalidation)
+* Insights
+    - ensure_env thrash vs path-only split is load-bearing; recovery HTML must be import-time resident
