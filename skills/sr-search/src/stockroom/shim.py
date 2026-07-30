@@ -238,23 +238,32 @@ def install(
     return report
 
 
-def rectify(dest: Path | str, app_dir: Path | str, owner: str) -> ShimReport:
+def rectify(
+    dest: Path | str,
+    app_dir: Path | str,
+    owner: str,
+    *,
+    ensure_env: bool = True,
+) -> ShimReport:
     """Heal ``dest`` for ``owner``: create if absent, rebake if owned and drifted.
 
-    The hook-safe path: always ensures the engine env for ``app_dir`` first
-    (torch-safe inexact sync when locked deps are missing). Then:
+    The default hook-safe path ensures the engine env for ``app_dir`` first
+    (torch-safe inexact sync when locked deps are missing). Pass
+    ``ensure_env=False`` for a path-only heal (create/rebake only) used by
+    high-frequency suspenders hooks. Then:
 
     * dest absent → write (same as a first ``install`` for this owner/app-dir).
     * dest present, this owner, content differs → rebake.
     * dest present, this owner, content matches → noop.
     * dest present, foreign owner → silent noop (never takeover/force).
     """
-    ensure_report = ensure_engine_env(app_dir)
-    if ensure_report.action == "failed":
-        print(
-            f"stockroom shim: ensure-env failed — {ensure_report.reason}",
-            file=sys.stderr,
-        )
+    if ensure_env:
+        ensure_report = ensure_engine_env(app_dir)
+        if ensure_report.action == "failed":
+            print(
+                f"stockroom shim: ensure-env failed — {ensure_report.reason}",
+                file=sys.stderr,
+            )
     dest = _absolute(dest)
 
     if not dest.exists():
@@ -326,6 +335,14 @@ def _build_parser() -> argparse.ArgumentParser:
             "shim (dangerous; for localdev / recovery — not the default)"
         ),
     )
+    parser.add_argument(
+        "--path-only",
+        action="store_true",
+        help=(
+            "rectify only: create/rebake the on-path shim without running "
+            "ensure-env (for high-frequency suspenders hooks)"
+        ),
+    )
     return parser
 
 
@@ -378,7 +395,7 @@ def main(argv: list[str] | None = None) -> int:
             )
         return 0
 
-    report = rectify(args.dest, app_dir, args.owner)
+    report = rectify(args.dest, app_dir, args.owner, ensure_env=not args.path_only)
     if report.action == "rectified":
         print(f"rectified {report.dest} (owner={args.owner}, app-dir={app_dir})")
     elif report.action == "installed":

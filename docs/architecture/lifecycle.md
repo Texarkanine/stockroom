@@ -26,6 +26,10 @@ On session start, Stockroom does two things through the shim:
 
 Session start does **not** ingest, embed, or migrate as its primary work. Those are heavier, longer, and already owned by the schedule and explicit CLI/skill paths. Putting them on the hook would fight timeout limits and turn every new chat into an inelegant ETL termination race.
 
+### Cursor beforeSubmitPrompt suspenders
+
+On Cursor, `sessionStart` has been observed to miss on some macOS setups. Cursor also registers a trimmed **`beforeSubmitPrompt`** hook that must never block prompt send: it emits `{"continue":true}` immediately, then backgrounds a **path-only** `shim rectify --path-only` (create/rebake the on-path shim; **skip** `ensure-env`). Full ensure + dashboard launch stay on `sessionStart` only. Claude Code does not get this suspenders event.
+
 ## Scheduled ingest and embed
 
 Freshness is a nightly `stockroom ingest && stockroom embed` (incremental) on the platform scheduler — cron on Linux/WSL, launchd on macOS. The job invokes the shim by name; it does not embed a raw engine path. Output lands under stockroom home logs.
@@ -40,11 +44,13 @@ The dashboard is a **local, read-only, fully offline** metrics UI (default port 
 
 Session-start hooks attempt to launch it automatically. The CLI is idempotent: if something already listens on the port, the command still prints the URL and exits cleanly. The process uses a torch-safe engine env (same shim contract as other subcommands) and opens the warehouse through `open_current()` so a UI process never becomes the migrator — see [Warehouse](warehouse.md#concurrency-and-open-paths).
 
+When the listener cannot serve real static UI (missing `index.html`, unknown document path, stale assets after a plugin move), it returns an in-memory **recovery HTML** page: short harness-first rundown (new chat / prompt → `sr-initialize` if the shim stays dead) plus a link to the user-guide troubleshooting section — not bare JSON `{"error":"not found"}`, and not circular `stockroom …` CLI while PATH is broken. API and session-miss responses stay JSON.
+
 ## Rendered-out artifacts
 
 Shim, harness hooks (`hooks/*.json`), and scheduler entries are each owned by one module with structural idempotency. No rendered artifact carries a raw engine path — callers invoke `stockroom` by name so plugin moves are healed by rectify rather than by rewriting every consumer.
 
-Harness hooks are not the same JSON shape or event: Cursor uses flat `sessionStart` commands; Claude Code uses nested `SessionStart` / `hooks[]` / `type: "command"`. Do not copy one harness's structure into the other.
+Harness hooks are not the same JSON shape or event: Cursor uses flat `sessionStart` / `beforeSubmitPrompt` commands; Claude Code uses nested `SessionStart` / `hooks[]` / `type: "command"`. Do not copy one harness's structure into the other.
 
 ## Related procedures
 

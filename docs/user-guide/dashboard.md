@@ -68,7 +68,8 @@ http://127.0.0.1:58008/?view=session&harness={harness}&session={session_id}#msg-
 
 ## Lifecycle notes
 
-- After a plugin update moves the engine path, the next session start should replace a stale dashboard process with one launched from the new location.
+- After a plugin update moves the engine path, harness hooks are what rebake the on-path shim (they know the plugin root). Cursor also runs a non-blocking path-only `shim rectify` on each prompt submit as suspenders when `sessionStart` misses (common on some macOS Cursor setups); full ensure + dashboard launch still belong to session start.
+- If a document request cannot be served as real UI, the listener may return a short **recovery HTML** page (instead of bare JSON) with a few starting steps and a link into troubleshooting. Many causes are possible — [Dashboard UI will not load](troubleshooting/index.md#dashboard-ui-will-not-load).
 - Port conflicts and auto-start misses: [Troubleshooting > Dashboard](troubleshooting/index.md#dashboard).
 
 For search (not browsing), see [Search](search.md). For every skill at a glance, see [Skill index](skills.md).

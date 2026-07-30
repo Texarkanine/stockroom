@@ -75,7 +75,7 @@ Follow the remedy printed on stderr. Often that is: open a new session so `shim 
 
 ### Engine env cannot import locked deps
 
-Let session-start heal run, or re-run `sr-initialize`.
+Let session-start heal run (`shim rectify` includes ensure-env), run `stockroom shim ensure-env` yourself, or re-run `sr-initialize`.
 
 ## Ingest
 
@@ -107,13 +107,33 @@ Confirm the warehouse has embeddings (ingest + embed), then decide structured vs
 
 ## Dashboard
 
-### Port 58008 already in use / stale UI after plugin update
+### Dashboard UI will not load
 
-Session start should replace an owned listener. If a pre-identity-tracking process remains, stop the old `stockroom.dashboard` process once, then `/sr-dashboard` — [Dashboard](../dashboard.md).
+Something is answering on the dashboard port, but you are not getting the real UI — blank page, odd HTML, or the short in-browser recovery page that says the dashboard could not load this page. There is no single root cause; the steps below are common things worth trying, not a diagnosis of your machine.
+
+#### Things that sometimes contribute
+
+- A **stale dashboard process** left over after a plugin update, still bound to the port but no longer able to serve current static assets.
+- An on-path **`stockroom` shim** that is missing, or still baked to an old plugin path. Harness hooks are one way that path gets refreshed (they can see `CURSOR_PLUGIN_ROOT` / `CLAUDE_PLUGIN_ROOT`). If `stockroom` itself is missing or refuses, terminal commands that start with `stockroom …` may not be able to find the correct install on their own.
+- Less often for *this* symptom: a broken **engine env** (locked deps missing from the engine `.venv`) that blocks starting a *new* listener. The dashboard does not use Torch, so Torch issues are usually a different problem — [Torch](torch.md) · [Engine env cannot import locked deps](#engine-env-cannot-import-locked-deps).
+
+#### Things to try
+
+1. **From the harness.** Open a **new chat** and run **`/sr-dashboard`** (Claude Code: `/stockroom:sr-dashboard`), then reload [http://127.0.0.1:58008/](http://127.0.0.1:58008/). On Cursor, submitting a short prompt can refresh the on-path shim via before-submit suspenders, but that path does **not** validate the engine env or launch/replace the dashboard — still run `/sr-dashboard` (or rely on session-start) before expecting the UI to recover.
+2. **Cursor hooks.** If auto-heal never seems to run, check the third-party plugins setting — [Quickstart](#cursor-hooks--auto-dashboard-never-fire).
+3. **If `stockroom` is missing or refuses.** In a chat, try **`/sr-initialize`** (Claude Code: `/stockroom:sr-initialize`) and ask it to restore the on-path shim and get the dashboard serving. That skill can see the plugin tree even when the shim cannot.
+4. **If `stockroom --version` already works** but the page is still wrong, `stockroom dashboard --replace` can replace a stale listener. If the shim is not healthy yet, `--replace` often does nothing useful.
+5. **Without an agent turn.** Last-resort manual bind — [last-resort bind](#last-resort-bind-the-shim-yourself) under [`stockroom: command not found`](#stockroom-command-not-found).
+
+The in-browser recovery page links here for the longer walkthrough. API clients still see JSON 404 for unknown `/api/*` routes.
+
+### Port 58008 already in use
+
+When `stockroom --version` works but the UI looks stale, try `stockroom dashboard --replace` (or stop the old `stockroom.dashboard` process once, then `/sr-dashboard`) — [Dashboard](../dashboard.md). If you are not sure the shim is healthy, the broader checklist above may be a better starting point.
 
 ### Auto-start missing on Cursor
 
-Third-party plugins setting ([Quickstart](#cursor-hooks--auto-dashboard-never-fire) above); then `/sr-dashboard` or `stockroom dashboard` — [Dashboard](../dashboard.md).
+Third-party plugins setting ([Quickstart](#cursor-hooks--auto-dashboard-never-fire) above). If that is already on and nothing seems to auto-heal, the [Dashboard UI will not load](#dashboard-ui-will-not-load) checklist is the next place to look.
 
 ## Still stuck
 

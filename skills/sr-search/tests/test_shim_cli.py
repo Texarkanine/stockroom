@@ -83,8 +83,40 @@ def test_help_documents_subactions_and_flags(tmp_path: Path) -> None:
         "--owner",
         "--takeover",
         "--force",
+        "--path-only",
     ):
         assert token in result.stdout
+
+
+def test_path_only_rectify_skips_ensure_env(
+    tmp_path: Path, dest: Path, engine_dir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """CLI ``rectify --path-only`` creates/rebakes without calling ensure_engine_env."""
+    from stockroom import engine_env, shim
+
+    calls: list[Path] = []
+
+    def fake_ensure(app_dir, **kwargs):  # noqa: ANN001
+        calls.append(Path(app_dir))
+        return engine_env.EnsureReport(action="noop", app_dir=Path(app_dir))
+
+    monkeypatch.setattr(shim, "ensure_engine_env", fake_ensure)
+    monkeypatch.setattr(engine_env, "ensure_engine_env", fake_ensure)
+    code = shim.main(
+        [
+            "rectify",
+            "--path-only",
+            "--dest",
+            str(dest),
+            "--app-dir",
+            str(engine_dir),
+            "--owner",
+            "cursor",
+        ]
+    )
+    assert code == 0
+    assert dest.exists()
+    assert calls == [], "rectify --path-only must skip ensure_engine_env"
 
 
 def test_install_force_flag_accepted_and_wired(
