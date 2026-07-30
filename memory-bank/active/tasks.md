@@ -98,31 +98,33 @@ flowchart LR
 
 ## Implementation Plan
 
-1. **Shim path-only mode (TDD)**
+1. **Shim path-only mode**
     - Files: `skills/sr-search/src/stockroom/shim.py`, `tests/test_shim.py`, `tests/test_shim_cli.py`
-    - Changes: `rectify(..., *, ensure_env: bool = True)`; CLI `--path-only` sets `ensure_env=False`; docs in argparse help; update “always ensure” tests for default vs path-only
+    - TDD: (a) add failing tests for `rectify(..., ensure_env=False)` / CLI `--path-only` skipping ensure + still create/rebake; (b) keep/adjust default “always ensures” regression; (c) implement `ensure_env` kwarg + `--path-only` until green
+    - Also: expose a small public header reader for recovery (do not import private `_read_header` from dashboard)
     - Creative ref: `creative-beforesubmit-rectify-trim.md`
 
-2. **Cursor beforeSubmitPrompt hook (TDD)**
+2. **Cursor beforeSubmitPrompt hook**
     - Files: `hooks/cursor-hooks.json`, `tests/test_packaging.py`
-    - Changes: add event; continue-first; background path-only rectify via `uv python find`; no dashboard; timeout ~10; keep sessionStart as-is
+    - TDD: (a) add failing packaging tests for `beforeSubmitPrompt` (continue JSON, `--path-only`, no dashboard, background/detach marker, small timeout) and sessionStart unchanged; (b) edit `cursor-hooks.json` until green
     - Creative ref: `creative-beforesubmit-rectify-trim.md`
 
-3. **Recovery classifier (TDD)**
+3. **Recovery classifier**
     - Files: new `skills/sr-search/src/stockroom/dashboard/recovery.py`, `tests/test_dashboard_recovery.py`
-    - Changes: `classify(...)` + HTML render helpers; shim-dead never includes `--replace`
+    - TDD: (a) failing classifier matrix + HTML substring contracts (shim-dead must not contain `dashboard --replace`); (b) implement `classify` + HTML render until green
     - Creative ref: `creative-dashboard-recovery-ux.md`
 
-4. **Server wires HTML 404 for non-API (TDD)**
+4. **Server wires HTML 404 for static/document misses**
     - Files: `skills/sr-search/src/stockroom/dashboard/server.py`, `tests/test_dashboard_server.py`, `tests/test_dashboard_recovery.py`
-    - Changes: `_not_found` / static miss → HTML via classifier; API path keeps JSON `_send_json(404, …)`
+    - TDD: (a) failing HTTP tests: `/cute-puppies` → 404 HTML; `/api/nope` and missing session → JSON 404 unchanged; (b) implement by routing **static miss** through recovery HTML — keep `_not_found()` as JSON for API/session (do not convert the shared helper wholesale)
+    - Creative ref: `creative-dashboard-recovery-ux.md`
 
-5. **Docs**
-    - Files: `docs/architecture/lifecycle.md`, `docs/user-guide/dashboard.md`, `docs/user-guide/troubleshooting/index.md` (and architecture packaging note if needed)
-    - Changes: document suspenders path-only beforeSubmitPrompt; recovery page + shim-first / `--replace` rule; mention macOS sessionStart unreliability briefly
+5. **Docs** (prose; no behavior tests)
+    - Files: `docs/architecture/lifecycle.md`, `docs/user-guide/dashboard.md`, `docs/user-guide/troubleshooting/index.md`
+    - Changes: suspenders path-only beforeSubmitPrompt; recovery page + shim-first / `--replace` rule; macOS sessionStart unreliability note
 
 6. **Full suite**
-    - `make test` (or project-equivalent) before claiming build done
+    - Run whole test suite before claiming build done
 
 ## Technology Validation
 
@@ -150,6 +152,12 @@ No new technology — validation not required. Uses existing Cursor hook events,
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
 - [ ] QA
+
+## Preflight Amendments
+
+- Per-unit TDD ordering made explicit (test → implement) for steps 1–4.
+- Static HTML recovery must not reuse `_not_found()` wholesale — API/session JSON 404 stays on that helper.
+- Recovery reads shim headers via a public shim helper, not `shim._read_header`.

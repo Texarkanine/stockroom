@@ -36,3 +36,14 @@ Add a Cursor `beforeSubmitPrompt` trimmed non-blocking shim-rectify suspenders p
     - Six implementation steps: shim flag → hook → classifier → server HTML → docs → full suite
 * Insights
     - Existing packaging/shim tests assert “exactly one sessionStart” / “rectify always ensures” — must be extended, not blindly preserved
+
+## 2026-07-30 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated plan against shim/dashboard/packaging tests and hook doctrine
+    - Amended implementation steps for explicit TDD ordering, API/static 404 split, public header reader
+    - Wrote `.preflight-status` PASS
+* Decisions made
+    - Keep `_not_found()` JSON-only; static miss gets a separate HTML recovery path
+* Insights
+    - `_serve_session` and unknown API share `_not_found()` today — converting that helper would break SPA contracts
