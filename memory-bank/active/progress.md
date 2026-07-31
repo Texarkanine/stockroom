@@ -110,3 +110,13 @@ Investigate dashboard refresh cost when the warehouse is unchanged, then add cac
     - Single SPA component (boot routing in `dashboard.mjs` + pure helper); cause known; no architecture redesign
 * Insights
     - Efficiency win is omit unnecessary fetches; server cache remains complementary for metrics home
+
+## 2026-07-31 - BUILD - COMPLETE (rework)
+
+* Work completed
+    - `shouldRefreshMetricsOnBoot` + gated boot `refreshDashboard`; JS test added
+    - Verification: 120 JS passed; full pytest 808 passed / 4 skipped
+* Decisions made
+    - Sessions-list boot still loads metrics (harness discovery) — out of this fix’s change set
+* Insights
+    - Same inefficiency class as caching: do not run work the current view does not need

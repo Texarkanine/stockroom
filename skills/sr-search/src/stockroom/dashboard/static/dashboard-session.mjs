@@ -35,6 +35,20 @@ export function parseSessionViewParams(searchParams) {
 }
 
 /**
+ * Whether boot should fan out the metrics snapshot (``fetchSnapshot``).
+ *
+ * Conversation deep-links only need ``/api/session``. Metrics home and the
+ * sessions list still refresh metrics (list harness controls discover from
+ * overview).
+ *
+ * @param {URLSearchParams} searchParams
+ * @returns {boolean}
+ */
+export function shouldRefreshMetricsOnBoot(searchParams) {
+  return parseSessionViewParams(searchParams) === null;
+}
+
+/**
  * Document / heading title for a dashboard SPA view.
  *
  * @param {"metrics" | "sessions" | "session" | string} view

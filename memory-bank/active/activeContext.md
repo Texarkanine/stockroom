@@ -1,11 +1,11 @@
 # Active Context
 
 ## Current Task: dashboard-freshness-cache (rework)
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** BUILD - COMPLETE
 
 ## What Was Done
-- Operator initiated rework: goal is make the dashboard faster by making it more efficient.
-- Classified **Level 1** — wasteful metrics fan-out on conversation-detail boot is a single-component SPA routing bug (`dashboard.mjs` / `dashboard-session.mjs`); cause already known.
+- Session deep-link boot no longer fans out metrics; only `/api/session` path runs via `openSessionView`.
+- Helper + unit test; list/metrics boots unchanged.
 
 ## Next Step
-- Load Level 1 workflow → Build (skip plan/creative/preflight).
+- QA phase.
