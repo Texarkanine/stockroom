@@ -83,6 +83,38 @@ def test_response_cache_is_thread_safe_for_concurrent_puts() -> None:
     assert not errors
 
 
+def test_response_cache_evicts_lru_when_over_max_entries() -> None:
+    """Putting past max_entries drops the least-recently-used entry, not newer ones."""
+    store = dashboard_cache.ResponseCache(max_entries=2)
+    fp = (1, 1)
+    store.put(fp, "overview", ("a",), {"k": "a"})
+    store.put(fp, "overview", ("b",), {"k": "b"})
+    store.put(fp, "overview", ("c",), {"k": "c"})
+    assert store.get(fp, "overview", ("a",)) is None
+    assert store.get(fp, "overview", ("b",)) == {"k": "b"}
+    assert store.get(fp, "overview", ("c",)) == {"k": "c"}
+
+
+def test_response_cache_get_refreshes_lru_order() -> None:
+    """A get marks an entry as recently used so it survives a later eviction."""
+    store = dashboard_cache.ResponseCache(max_entries=2)
+    fp = (1, 1)
+    store.put(fp, "overview", ("a",), {"k": "a"})
+    store.put(fp, "overview", ("b",), {"k": "b"})
+    assert store.get(fp, "overview", ("a",)) == {"k": "a"}
+    store.put(fp, "overview", ("c",), {"k": "c"})
+    assert store.get(fp, "overview", ("b",)) is None
+    assert store.get(fp, "overview", ("a",)) == {"k": "a"}
+    assert store.get(fp, "overview", ("c",)) == {"k": "c"}
+
+
+def test_response_cache_default_max_entries_is_finite() -> None:
+    """Default construction exposes a positive finite max_entries bound."""
+    store = dashboard_cache.ResponseCache()
+    assert store.max_entries > 0
+    assert store.max_entries < 10_000
+
+
 def test_canonical_request_key_sorts_harnesses_and_uses_last_wins_scalars() -> None:
     """Harness lists are order-insensitive; repeated scalars keep the last value."""
     left = dashboard_cache.canonical_request_key(

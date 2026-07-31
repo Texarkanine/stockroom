@@ -4,11 +4,16 @@ The dashboard server consults this cache before opening DuckDB. Freshness is
 the warehouse file's ``(mtime_ns, size)`` fingerprint — any writer (ingest,
 backfill, embed, migrate) that changes the file invalidates the cache without
 hooks into those writers.
+
+Within one fingerprint epoch, entries are kept under a hard max-entry LRU so
+a long-lived process cannot grow the cache without bound while the user
+explores.
 """
 
 from __future__ import annotations
 
 import threading
+from collections import OrderedDict
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
@@ -16,6 +21,9 @@ from typing import Any
 
 Fingerprint = tuple[int, int]
 RequestKey = tuple[Any, ...]
+
+#: Default cap on cached JSON responses per warehouse fingerprint epoch.
+DEFAULT_MAX_ENTRIES = 64
 
 
 def warehouse_fingerprint(path: Path) -> Fingerprint | None:
@@ -78,12 +86,16 @@ def _last(values: Sequence[str] | None) -> str | None:
 
 
 class ResponseCache:
-    """Thread-safe store of successful 200 JSON payloads for one warehouse epoch."""
+    """Thread-safe LRU store of successful 200 JSON payloads for one warehouse epoch."""
 
-    def __init__(self) -> None:
+    def __init__(self, max_entries: int = DEFAULT_MAX_ENTRIES) -> None:
+        """Create an empty cache capped at ``max_entries`` responses."""
+        if max_entries < 1:
+            raise ValueError("max_entries must be >= 1")
+        self.max_entries = max_entries
         self._lock = threading.Lock()
         self._fingerprint: Fingerprint | None = None
-        self._entries: dict[tuple[str, RequestKey], Any] = {}
+        self._entries: OrderedDict[tuple[str, RequestKey], Any] = OrderedDict()
 
     def get(
         self,
@@ -91,12 +103,19 @@ class ResponseCache:
         endpoint: str,
         request_key: RequestKey,
     ) -> Any | None:
-        """Return a cached payload, or ``None`` on miss / fingerprint drift."""
+        """Return a cached payload, or ``None`` on miss / fingerprint drift.
+
+        A hit moves the entry to most-recently-used.
+        """
         with self._lock:
             self._drop_if_stale(fingerprint)
             if self._fingerprint != fingerprint:
                 return None
-            return self._entries.get((endpoint, request_key))
+            key = (endpoint, request_key)
+            if key not in self._entries:
+                return None
+            self._entries.move_to_end(key)
+            return self._entries[key]
 
     def put(
         self,
@@ -108,13 +127,18 @@ class ResponseCache:
         """Store ``payload`` under ``(fingerprint, endpoint, request_key)``.
 
         Entries from a different fingerprint are dropped (clear-all on drift).
+        When over ``max_entries``, the least-recently-used entry is evicted.
         """
         with self._lock:
             self._drop_if_stale(fingerprint)
             if self._fingerprint != fingerprint:
                 self._fingerprint = fingerprint
-                self._entries = {}
-            self._entries[(endpoint, request_key)] = payload
+                self._entries = OrderedDict()
+            key = (endpoint, request_key)
+            self._entries[key] = payload
+            self._entries.move_to_end(key)
+            while len(self._entries) > self.max_entries:
+                self._entries.popitem(last=False)
 
     def invalidate_if_stale(self, fingerprint: Fingerprint) -> None:
         """Drop all entries when ``fingerprint`` differs from the cached epoch."""
@@ -128,4 +152,4 @@ class ResponseCache:
         """
         if self._fingerprint is not None and self._fingerprint != fingerprint:
             self._fingerprint = None
-            self._entries = {}
+            self._entries = OrderedDict()
