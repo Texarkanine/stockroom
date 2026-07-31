@@ -1,11 +1,11 @@
 # Active Context
 
-## Current Task: dashboard-freshness-cache (rework)
-**Phase:** QA - COMPLETE
+## Current Task: dashboard-freshness-cache
+**Phase:** Reflect - COMPLETE
 
 ## What Was Done
-- L3 server file-fingerprint cache + L1 efficiency rework: session deep-links skip metrics fan-out.
-- QA PASS.
+- Combined L3+L1 reflection: file-fingerprint response cache + session-boot metrics fan-out gate.
+- Persistent MB files already current (no reconcile edits).
 
 ## Next Step
-- Operator: `/niko-archive` to archive L3+L1 (do not `rm -rf memory-bank/active` — that would drop reflections/creative without archiving).
+- Operator: `/niko-archive` to archive L3+L1 (collapse both reflections). Do not `rm -rf memory-bank/active` without archiving.

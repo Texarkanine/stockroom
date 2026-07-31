@@ -130,3 +130,14 @@ Investigate dashboard refresh cost when the warehouse is unchanged, then add cac
     - Leave sessions-list metrics prefetch as-is (justified by harness discovery)
 * Insights
     - Prefer omit unnecessary fetches over caching them
+
+## 2026-07-31 - REFLECT - COMPLETE (L3 + L1 rework)
+
+* Work completed
+    - Rewrote `reflection-dashboard-freshness-cache.md` to cover full lifecycle (L3 cache + UAT + L1 efficiency rework)
+    - Kept brief `reflection-dashboard-freshness-cache-rework.md` for archive collapse
+    - Reconciled persistent files: no further edits (systemPatterns already had cache sentence)
+* Decisions made
+    - Same task id; archive collapses both reflections; next step is operator-gated `/niko-archive`
+* Insights
+    - Warm cache exposed unused SPA boot fan-out; omit-then-cache is the performance ordering that mattered
