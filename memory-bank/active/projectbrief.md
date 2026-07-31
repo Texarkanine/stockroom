@@ -51,3 +51,21 @@ Refreshing a conversation detail page (`view=session`) still issues the full met
 2. Stop metrics snapshot fan-out on conversation-detail boot/refresh; fetch only what that view needs.
 3. Preserve correct metrics load when entering/returning to the metrics home (and any path that still needs harness discovery).
 4. Keep the existing server response cache; this rework complements it by not asking for unused endpoints.
+
+## Rework: cache bound
+
+### Goal
+
+Guarantee the in-process response cache cannot grow unbounded within one warehouse fingerprint epoch and exhaust memory. Prefer the simplest hard bound (entry cap and/or LRU); over-engineering is out of scope.
+
+### Trigger
+
+Shipping an unbounded `ResponseCache` is a memory landmine for a long-lived dashboard process when the user explores widely and the warehouse is not rewritten.
+
+### Rework requirements
+
+1. Bound the cache so entry count (or equivalent) cannot grow without limit within one fingerprint epoch.
+2. Keep the metrics-home refresh/reload path fast when entries are still warm — that is the expensive work we must not recompute every time.
+3. Cache misses are acceptable, especially for conversation pages not recently viewed.
+4. Preserve fingerprint clear-all invalidation (ingest/backfill/etc.) and existing API contracts.
+5. Do not special-case endpoints unless a simple global cap is insufficient; a hard max-entry policy is enough.

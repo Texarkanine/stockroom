@@ -141,3 +141,16 @@ Investigate dashboard refresh cost when the warehouse is unchanged, then add cac
     - Same task id; archive collapses both reflections; next step is operator-gated `/niko-archive`
 * Insights
     - Warm cache exposed unused SPA boot fan-out; omit-then-cache is the performance ordering that mattered
+
+## 2026-07-31 - REWORK - INITIATED (cache bound)
+
+* Work completed
+    - Operator chose rework over archive; unbounded in-epoch cache is a memory landmine
+* Operator feedback
+    - Caching without a bound can grow forever while exploring within one warehouse epoch
+    - Hard entry cap or LRU is fine — do not over-engineer; guarantee it cannot take all memory
+    - Aggressive eviction OK; cache misses fine (esp. unfamiliar conversation pages)
+    - Hot path that must stay cheap: main metrics dashboard refresh/reload
+    - Nightly ingest / fingerprint drift still clear-all; plugin-update bounce kills the process (heap gone)
+* Decisions made
+    - Keep task id `dashboard-freshness-cache`; clear plan/QA gates and re-classify for the bound
