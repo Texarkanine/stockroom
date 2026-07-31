@@ -196,3 +196,10 @@ Investigate dashboard refresh cost when the warehouse is unchanged, then add cac
 * Work completed
     - Updated combined reflection for L3 + efficiency + bound; added `reflection-dashboard-freshness-cache-bound.md`
     - PR #113 body/title refreshed for LRU bound; branch pushed
+
+## 2026-07-31 - ARCHIVE - IN-PROGRESS
+
+* Work completed
+    - Operator invoked `/niko-archive` to collapse L3 + both L1 reflections under the same task id
+* Decisions made
+    - Route as Level 3 archive (original complexity + creative/reflections present); do not `rm -rf memory-bank/active` without archiving
