@@ -190,3 +190,9 @@ Investigate dashboard refresh cost when the warehouse is unchanged, then add cac
     - `DEFAULT_MAX_ENTRIES = 64` accepted (named constant; metrics fan-out ≪ cap)
 * Insights
     - Nothing beyond build
+
+## 2026-07-31 - NK-SAVE (reflections + PR sync)
+
+* Work completed
+    - Updated combined reflection for L3 + efficiency + bound; added `reflection-dashboard-freshness-cache-bound.md`
+    - PR #113 body/title refreshed for LRU bound; branch pushed
