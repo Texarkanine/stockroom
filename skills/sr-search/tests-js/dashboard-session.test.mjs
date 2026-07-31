@@ -23,7 +23,28 @@ import {
   renderSessionMessageHtml,
   resolveMessageAnchorElement,
   sessionLocationWithMessageHash,
+  shouldRefreshMetricsOnBoot,
 } from "../src/stockroom/dashboard/static/dashboard-session.mjs";
+
+test("shouldRefreshMetricsOnBoot skips metrics fan-out for session deep-links", () => {
+  assert.equal(
+    shouldRefreshMetricsOnBoot(
+      new URLSearchParams("view=session&harness=cursor&session=abc"),
+    ),
+    false,
+  );
+  assert.equal(
+    shouldRefreshMetricsOnBoot(new URLSearchParams("view=sessions")),
+    true,
+  );
+  assert.equal(shouldRefreshMetricsOnBoot(new URLSearchParams("")), true);
+  assert.equal(
+    shouldRefreshMetricsOnBoot(
+      new URLSearchParams("view=session&harness=cursor"),
+    ),
+    true,
+  );
+});
 
 test("buildSessionViewSearchParams encodes the canonical session view", () => {
   const params = buildSessionViewSearchParams("cursor", "abc/def+1");

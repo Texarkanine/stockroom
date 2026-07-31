@@ -62,6 +62,7 @@ import {
   renderSessionMessageHtml,
   resolveMessageAnchorElement,
   sessionLocationWithMessageHash,
+  shouldRefreshMetricsOnBoot,
 } from "./dashboard-session.mjs";
 import { mountTokenDisplay } from "./dashboard-tokens.mjs";
 
@@ -1673,5 +1674,8 @@ if (bootSession) {
 } else {
   showMetricsView();
 }
-void refreshDashboard(true);
+// Conversation deep-links only need /api/session; do not fan out metrics.
+if (shouldRefreshMetricsOnBoot(bootSearch)) {
+  void refreshDashboard(true);
+}
 

@@ -419,3 +419,245 @@ def test_ingest_to_server_integration(
         assert status == 200
         assert payload["per_harness"]["cursor"]["sessions"] > 0
         assert payload["per_harness"]["claude"]["sessions"] > 0
+
+
+def _counting_opener() -> tuple[
+    Callable[..., duckdb.DuckDBPyConnection], dict[str, int]
+]:
+    """Wrap ``warehouse.open_current`` with an open-call counter."""
+    opens = {"n": 0}
+    real = warehouse.open_current
+
+    def _open(**kwargs: object) -> duckdb.DuckDBPyConnection:
+        opens["n"] += 1
+        return real(**kwargs)
+
+    return _open, opens
+
+
+def test_api_cache_hit_skips_warehouse_open(warehouse_home: Path) -> None:
+    """Identical GET after a cold miss returns the same JSON without reopening."""
+    warehouse.open(read_only=False).close()
+    opener, opens = _counting_opener()
+    with _running_server(open_warehouse=opener) as (_httpd, base):
+        status1, body1 = _json_get(f"{base}/api/overview")
+        assert status1 == 200
+        assert opens["n"] == 1
+        status2, body2 = _json_get(f"{base}/api/overview")
+        assert status2 == 200
+        assert body2 == body1
+        assert opens["n"] == 1
+
+
+def test_api_cache_isolates_request_keys(warehouse_home: Path) -> None:
+    """Different query strings do not share cache entries (each misses once)."""
+    warehouse.open(read_only=False).close()
+    opener, opens = _counting_opener()
+    with _running_server(open_warehouse=opener) as (_httpd, base):
+        status_a, body_a = _json_get(f"{base}/api/overview?harness=cursor")
+        status_b, body_b = _json_get(f"{base}/api/overview?harness=claude")
+        assert status_a == 200
+        assert status_b == 200
+        assert opens["n"] == 2
+        _json_get(f"{base}/api/overview?harness=cursor")
+        _json_get(f"{base}/api/overview?harness=claude")
+        assert opens["n"] == 2
+        assert body_a == _json_get(f"{base}/api/overview?harness=cursor")[1]
+        assert body_b == _json_get(f"{base}/api/overview?harness=claude")[1]
+
+
+def test_api_cache_invalidates_after_ingest(
+    warehouse_home: Path,
+    cursor_root: Path,
+    claude_root: Path,
+    ai_tracking_db: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Warm cache, ingest new rows, then overview recomputes with fresh data."""
+    monkeypatch.setenv("STOCKROOM_CURSOR_ROOT", str(cursor_root))
+    monkeypatch.setenv("STOCKROOM_CLAUDE_ROOT", str(claude_root))
+    warehouse.open(read_only=False).close()
+    opener, opens = _counting_opener()
+    with _running_server(open_warehouse=opener) as (_httpd, base):
+        status, before = _json_get(
+            f"{base}/api/overview?since=2000-01-01&until=2100-01-01"
+        )
+        assert status == 200
+        assert before["distinct_projects"] == 0
+        assert opens["n"] == 1
+
+        con = warehouse.open(read_only=False)
+        try:
+            ingest.ingest(full=True, con=con, ai_tracking_db=ai_tracking_db)
+        finally:
+            con.close()
+
+        status, after = _json_get(
+            f"{base}/api/overview?since=2000-01-01&until=2100-01-01"
+        )
+        assert status == 200
+        assert opens["n"] == 2
+        assert after["per_harness"]["cursor"]["sessions"] > 0
+        assert after != before
+
+
+def test_api_cache_invalidates_after_write_without_sync_state(
+    warehouse_home: Path,
+) -> None:
+    """A content insert that leaves ``_sync_state`` untouched still busts the cache.
+
+    Models the backfill contract: warehouse rows change without watermark moves.
+    """
+
+    def _write_session(session_id: str, project_id: str, when: datetime) -> list:
+        """Insert one session and return the current ``_sync_state`` snapshot.
+
+        Uses a nested scope so the writer connection (and its flock) is
+        released before the caller opens again — ``close()`` alone is not
+        enough while a name still references the connection.
+        """
+        con = warehouse.open(read_only=False)
+        try:
+            con.execute(
+                "INSERT INTO sessions "
+                "(harness, session_id, project_id, source_path, is_subagent, "
+                "source_mtime) VALUES "
+                "('cursor', ?, ?, ?, false, ?)",
+                [session_id, project_id, f"/tmp/{session_id}.jsonl", when],
+            )
+            return con.execute(
+                "SELECT harness, source_root, last_mtime, last_path, updated_at "
+                "FROM _sync_state ORDER BY 1, 2"
+            ).fetchall()
+        finally:
+            con.close()
+
+    sync_before = _write_session("pre", "p0", datetime(2026, 1, 1))
+
+    opener, opens = _counting_opener()
+    with _running_server(open_warehouse=opener) as (_httpd, base):
+        status, before = _json_get(
+            f"{base}/api/overview?since=2000-01-01&until=2100-01-01"
+        )
+        assert status == 200
+        assert before["per_harness"]["cursor"]["sessions"] == 1
+        assert opens["n"] == 1
+
+        sync_after = _write_session("backfilled", "p1", datetime(2026, 2, 1))
+        assert sync_after == sync_before
+
+        status, after = _json_get(
+            f"{base}/api/overview?since=2000-01-01&until=2100-01-01"
+        )
+        assert status == 200
+        assert opens["n"] == 2
+        assert after["per_harness"]["cursor"]["sessions"] == 2
+
+
+def test_api_cache_put_keeps_fingerprint_from_get(
+    warehouse_home: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Do not key a pre-write payload under a post-write fingerprint.
+
+    Models ingest/backfill committing after the query and before a re-stat in
+    ``put``. Re-statting would sticky-cache stale JSON under the new epoch.
+    """
+    warehouse.open(read_only=False).close()
+    # miss-get under epoch A, (buggy put would re-stat B), then get under B.
+    fps = [(1, 100), (2, 200), (2, 200)]
+    calls = {"i": 0}
+
+    def fake_fp(_path: Path) -> tuple[int, int]:
+        i = calls["i"]
+        calls["i"] += 1
+        return fps[min(i, len(fps) - 1)]
+
+    monkeypatch.setattr(
+        "stockroom.dashboard.server.dashboard_cache.warehouse_fingerprint",
+        fake_fp,
+    )
+    opener, opens = _counting_opener()
+    with _running_server(open_warehouse=opener) as (_httpd, base):
+        status1, _body1 = _json_get(f"{base}/api/overview")
+        assert status1 == 200
+        assert opens["n"] == 1
+        status2, _body2 = _json_get(f"{base}/api/overview")
+        assert status2 == 200
+        # Fixed: epoch-B get misses and reopens. Buggy: sticky hit under B, opens stays 1.
+        assert opens["n"] == 2
+
+
+def test_api_cache_does_not_stick_non_200_responses(warehouse_home: Path) -> None:
+    """503 busy and 404 session-miss are not served forever after recovery."""
+    warehouse.open(read_only=False).close()
+    state = {"busy": True}
+    real = warehouse.open_current
+
+    def _maybe_busy(**kwargs: object) -> duckdb.DuckDBPyConnection:
+        if state["busy"]:
+            raise warehouse.WarehouseBusyError("busy")
+        return real(**kwargs)
+
+    with _running_server(open_warehouse=_maybe_busy) as (_httpd, base):
+        status, payload = _json_get(f"{base}/api/overview")
+        assert status == 503
+        assert "retry" in payload["action"]
+        state["busy"] = False
+        status, payload = _json_get(f"{base}/api/overview")
+        assert status == 200
+        assert payload["distinct_projects"] == 0
+
+    with _running_server() as (_httpd, base):
+        status, payload = _json_get(f"{base}/api/session?harness=cursor&session=later")
+        assert status == 404
+        con = warehouse.open(read_only=False)
+        try:
+            con.execute(
+                "INSERT INTO sessions "
+                "(harness, session_id, project_id, cwd, source_path, is_subagent, "
+                "source_mtime) VALUES "
+                "('cursor', 'later', 'p', '/tmp/p', '/tmp/later.jsonl', false, ?)",
+                [datetime(2026, 3, 1)],
+            )
+            con.execute(
+                "INSERT INTO messages "
+                "(harness, session_id, message_id, ordinal, role, text) "
+                "VALUES ('cursor', 'later', 'later#0', 0, 'user', 'hi')"
+            )
+        finally:
+            con.close()
+        status, payload = _json_get(f"{base}/api/session?harness=cursor&session=later")
+        assert status == 200
+        assert payload["session_id"] == "later"
+
+
+def test_api_cache_concurrent_hits_return_identical_json(
+    warehouse_home: Path,
+) -> None:
+    """Concurrent identical GETs after warm-up return the same JSON body."""
+    warehouse.open(read_only=False).close()
+    opener, opens = _counting_opener()
+    with _running_server(open_warehouse=opener) as (_httpd, base):
+        url = f"{base}/api/overview"
+        status, warm = _json_get(url)
+        assert status == 200
+        assert opens["n"] == 1
+
+        results: list[tuple[int, dict | list]] = []
+        errors: list[BaseException] = []
+
+        def worker() -> None:
+            try:
+                results.append(_json_get(url))
+            except BaseException as exc:  # noqa: BLE001 - collect for main thread
+                errors.append(exc)
+
+        threads = [threading.Thread(target=worker) for _ in range(16)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join(timeout=10)
+        assert not errors
+        assert len(results) == 16
+        assert all(status == 200 and body == warm for status, body in results)
+        assert opens["n"] == 1

@@ -32,7 +32,7 @@ The generated on-path shim (`~/.local/bin/stockroom`, from [`stockroom.shim`](..
 
 ## Two-layer warehouse lock behind chokepoints
 
-[`warehouse.open()`](../skills/sr-search/src/stockroom/warehouse.py) owns path resolution, lazy migration, and VSS load. Coordination uses `fcntl.flock` on a sidecar lock file; data integrity uses DuckDB's own file lock. Readers open read-only and back off to `WarehouseBusyError`. `open_current()` is the dashboard exception: read-only, no migrate, typed stale/busy errors. Migrations are numbered SQL under `src/stockroom/migrations/`; `schema_version` is runner-owned.
+[`warehouse.open()`](../skills/sr-search/src/stockroom/warehouse.py) owns path resolution, lazy migration, and VSS load. Coordination uses `fcntl.flock` on a sidecar lock file; data integrity uses DuckDB's own file lock. Readers open read-only and back off to `WarehouseBusyError`. `open_current()` is the dashboard exception: read-only, no migrate, typed stale/busy errors. The dashboard HTTP server keeps a bounded in-process LRU of API JSON keyed by warehouse file `(mtime_ns, size)` so unchanged refreshes skip reopening DuckDB (ingest/backfill/other writers invalidate by changing the file; entry count is capped within an epoch). Migrations are numbered SQL under `src/stockroom/migrations/`; `schema_version` is runner-owned.
 
 ## Embeddings and semantic search
 
