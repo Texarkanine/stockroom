@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.21.0](https://github.com/Texarkanine/stockroom/compare/v0.20.0...v0.21.0) (2026-07-31)
+
+
+### Features
+
+* **dashboard:** cache API responses, skip session-boot fan-out, bound LRU ([#113](https://github.com/Texarkanine/stockroom/issues/113)) ([971927b](https://github.com/Texarkanine/stockroom/commit/971927b8fd02df0d85f416b93b930ee4f394e30b))
+
 ## [0.20.0](https://github.com/Texarkanine/stockroom/compare/v0.19.0...v0.20.0) (2026-07-30)
 
 
