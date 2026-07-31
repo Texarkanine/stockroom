@@ -90,3 +90,14 @@ Investigate dashboard refresh cost when the warehouse is unchanged, then add cac
     - Archive is operator-gated next (`/niko-archive`)
 * Insights
     - Writer flock held until connection GC/finalize — nested write helpers in tests that reopen while a server runs
+
+## 2026-07-31 - REWORK - INITIATED
+
+* Work completed
+    - Operator chose rework over archive; goal reframed: make the dashboard faster by making it more efficient
+* Operator feedback
+    - UAT: refreshing a conversation detail page still fans out all metrics `/api/*` calls; those must not run on session view — only `/api/session` is needed
+    - Root cause already identified in investigation: `dashboard.mjs` boot always calls `void refreshDashboard(true)` after `openSessionView`, even for `view=session` deep-links
+    - Server cache is working (~0.8s → ~0.02s API fan-out when warm); remaining win is stop unnecessary work, not more caching of wrong fetches
+* Decisions made
+    - Keep task id `dashboard-freshness-cache`; clear plan/QA gates and re-classify for the efficiency rework

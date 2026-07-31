@@ -30,3 +30,24 @@ A one-shot backfill has written warehouse rows without advancing `_sync_state` w
 1. Changing ingest or backfill scheduling / CLI UX.
 2. Embedding, migration, or warehouse schema redesign beyond what caching/invalidation requires.
 3. Browser-only workarounds that ignore server-side warehouse freshness.
+
+## Rework
+
+### Goal
+
+Make the dashboard faster by making it more efficient — do less work on paths that do not need it, not only cache work that should not have run.
+
+### Trigger (UAT)
+
+Refreshing a conversation detail page (`view=session`) still issues the full metrics snapshot fan-out (`/api/overview`, trends, tools, …). That view only needs `/api/session`.
+
+### Known cause
+
+`dashboard.mjs` boot always runs `void refreshDashboard(true)` after opening a session deep-link. `syncViewFromLocation` already avoids that when navigating to session; boot does not.
+
+### Rework requirements
+
+1. Investigate efficiency gaps on dashboard load paths (session detail confirmed; check whether sessions-list boot has the same waste or a justified metrics prefetch).
+2. Stop metrics snapshot fan-out on conversation-detail boot/refresh; fetch only what that view needs.
+3. Preserve correct metrics load when entering/returning to the metrics home (and any path that still needs harness discovery).
+4. Keep the existing server response cache; this rework complements it by not asking for unused endpoints.
