@@ -115,19 +115,29 @@ class _DashboardHandler(BaseHTTPRequestHandler):
 
     def _cached_get(
         self, endpoint_name: str, query: dict[str, list[str]]
-    ) -> Any | None:
-        """Return a cached 200 payload for the live warehouse fingerprint, if any."""
+    ) -> tuple[dashboard_cache.Fingerprint | None, Any | None]:
+        """Return ``(fingerprint, payload)`` for a hit, or ``(fingerprint, None)`` on miss.
+
+        ``fingerprint`` is captured once before the warehouse is opened so a
+        later ``put`` can key the payload under the same epoch — never under a
+        post-query re-stat that advanced while a writer committed.
+        """
         fingerprint = dashboard_cache.warehouse_fingerprint(warehouse.warehouse_path())
         if fingerprint is None:
-            return None
+            return None, None
         key = dashboard_cache.canonical_request_key(endpoint_name, query)
-        return self.server.response_cache.get(fingerprint, endpoint_name, key)
+        return fingerprint, self.server.response_cache.get(
+            fingerprint, endpoint_name, key
+        )
 
     def _cached_put(
-        self, endpoint_name: str, query: dict[str, list[str]], payload: Any
+        self,
+        fingerprint: dashboard_cache.Fingerprint | None,
+        endpoint_name: str,
+        query: dict[str, list[str]],
+        payload: Any,
     ) -> None:
-        """Store a successful 200 payload under the live warehouse fingerprint."""
-        fingerprint = dashboard_cache.warehouse_fingerprint(warehouse.warehouse_path())
+        """Store ``payload`` under the fingerprint captured before the query ran."""
         if fingerprint is None:
             return
         key = dashboard_cache.canonical_request_key(endpoint_name, query)
@@ -181,7 +191,7 @@ class _DashboardHandler(BaseHTTPRequestHandler):
             self._send_json(400, {"error": str(exc)})
             return
 
-        cached = self._cached_get(endpoint_name, query)
+        fingerprint, cached = self._cached_get(endpoint_name, query)
         if cached is not None:
             self._send_json(200, cached)
             return
@@ -205,7 +215,7 @@ class _DashboardHandler(BaseHTTPRequestHandler):
                 payload = endpoint(con, harnesses, since, until)
         finally:
             con.close()
-        self._cached_put(endpoint_name, query, payload)
+        self._cached_put(fingerprint, endpoint_name, query, payload)
         self._send_json(200, payload)
 
     def _serve_session(
@@ -223,7 +233,7 @@ class _DashboardHandler(BaseHTTPRequestHandler):
             self._send_json(400, {"error": str(exc)})
             return
 
-        cached = self._cached_get("session", query)
+        fingerprint, cached = self._cached_get("session", query)
         if cached is not None:
             self._send_json(200, cached)
             return
@@ -239,7 +249,7 @@ class _DashboardHandler(BaseHTTPRequestHandler):
         if payload is None:
             self._not_found()
             return
-        self._cached_put("session", query, payload)
+        self._cached_put(fingerprint, "session", query, payload)
         self._send_json(200, payload)
 
     def _serve_static(self, raw_path: str) -> None:

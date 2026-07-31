@@ -554,6 +554,39 @@ def test_api_cache_invalidates_after_write_without_sync_state(
         assert after["per_harness"]["cursor"]["sessions"] == 2
 
 
+def test_api_cache_put_keeps_fingerprint_from_get(
+    warehouse_home: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Do not key a pre-write payload under a post-write fingerprint.
+
+    Models ingest/backfill committing after the query and before a re-stat in
+    ``put``. Re-statting would sticky-cache stale JSON under the new epoch.
+    """
+    warehouse.open(read_only=False).close()
+    # miss-get under epoch A, (buggy put would re-stat B), then get under B.
+    fps = [(1, 100), (2, 200), (2, 200)]
+    calls = {"i": 0}
+
+    def fake_fp(_path: Path) -> tuple[int, int]:
+        i = calls["i"]
+        calls["i"] += 1
+        return fps[min(i, len(fps) - 1)]
+
+    monkeypatch.setattr(
+        "stockroom.dashboard.server.dashboard_cache.warehouse_fingerprint",
+        fake_fp,
+    )
+    opener, opens = _counting_opener()
+    with _running_server(open_warehouse=opener) as (_httpd, base):
+        status1, _body1 = _json_get(f"{base}/api/overview")
+        assert status1 == 200
+        assert opens["n"] == 1
+        status2, _body2 = _json_get(f"{base}/api/overview")
+        assert status2 == 200
+        # Fixed: epoch-B get misses and reopens. Buggy: sticky hit under B, opens stays 1.
+        assert opens["n"] == 2
+
+
 def test_api_cache_does_not_stick_non_200_responses(warehouse_home: Path) -> None:
     """503 busy and 404 session-miss are not served forever after recovery."""
     warehouse.open(read_only=False).close()
