@@ -80,3 +80,13 @@ Investigate dashboard refresh cost when the warehouse is unchanged, then add cac
     - `invalidate_if_stale` kept (plan API; used by unit tests; get/put already drift-clear)
 * Insights
     - None beyond build flock note
+
+## 2026-07-30 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `memory-bank/active/reflection/reflection-dashboard-freshness-cache.md`
+    - Reconciled persistent files (systemPatterns already current from QA; product/tech unchanged)
+* Decisions made
+    - Archive is operator-gated next (`/niko-archive`)
+* Insights
+    - Writer flock held until connection GC/finalize — nested write helpers in tests that reopen while a server runs
