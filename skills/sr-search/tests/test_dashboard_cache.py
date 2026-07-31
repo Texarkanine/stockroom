@@ -81,3 +81,45 @@ def test_response_cache_is_thread_safe_for_concurrent_puts() -> None:
     for thread in threads:
         thread.join(timeout=5)
     assert not errors
+
+
+def test_canonical_request_key_sorts_harnesses_and_uses_last_wins_scalars() -> None:
+    """Harness lists are order-insensitive; repeated scalars keep the last value."""
+    left = dashboard_cache.canonical_request_key(
+        "overview",
+        {"harness": ["cursor", "claude"], "since": ["2020-01-01", "2024-01-01"]},
+    )
+    right = dashboard_cache.canonical_request_key(
+        "overview",
+        {"harness": ["claude", "cursor"], "since": ["2024-01-01"]},
+    )
+    assert left == right
+    assert left == (
+        ("claude", "cursor"),
+        "2024-01-01",
+        None,
+    )
+
+
+def test_canonical_request_key_sessions_includes_paging_defaults() -> None:
+    """Sessions keys include effective limit/offset/order (defaults when omitted)."""
+    bare = dashboard_cache.canonical_request_key("sessions", {})
+    explicit = dashboard_cache.canonical_request_key(
+        "sessions",
+        {"limit": ["50"], "offset": ["0"], "order": ["desc"]},
+    )
+    assert bare == explicit
+    capped = dashboard_cache.canonical_request_key("sessions", {"limit": ["9999"]})
+    assert capped[3] == 500
+
+
+def test_canonical_request_key_session_uses_harness_and_session_id() -> None:
+    """Session detail keys are (harness, session) with last-wins scalars."""
+    key = dashboard_cache.canonical_request_key(
+        "session",
+        {
+            "harness": ["cursor", "claude"],
+            "session": ["old", "abc"],
+        },
+    )
+    assert key == ("claude", "abc")

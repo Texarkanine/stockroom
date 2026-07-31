@@ -1,10 +1,12 @@
 """Loopback-only HTTP routing for dashboard JSON and static assets.
 
 Each API request opens a fresh read-only connection through
-``warehouse.open_current`` with a short backoff budget. The dashboard therefore
-never migrates, never writes, and never holds a reader lock between refreshes.
-Expected warehouse states become stable ``503 {error, action}`` payloads; all
-other exceptions are contained behind a clean JSON 500 response.
+``warehouse.open_current`` with a short backoff budget, unless an in-process
+response cache already holds a successful 200 for the current warehouse file
+fingerprint and request key. The dashboard therefore never migrates, never
+writes, and never holds a reader lock between refreshes. Expected warehouse
+states become stable ``503 {error, action}`` payloads; all other exceptions are
+contained behind a clean JSON 500 response.
 """
 
 import json
@@ -19,6 +21,7 @@ from urllib.parse import parse_qs, unquote, urlsplit
 import duckdb
 
 from stockroom import warehouse
+from stockroom.dashboard import cache as dashboard_cache
 from stockroom.dashboard import metrics, recovery
 
 
@@ -36,6 +39,7 @@ class _DashboardServer(ThreadingHTTPServer):
     ) -> None:
         self.open_warehouse = open_warehouse
         self.static_root = static_root.resolve()
+        self.response_cache = dashboard_cache.ResponseCache()
         super().__init__(address, _DashboardHandler)
 
 
@@ -109,6 +113,26 @@ class _DashboardHandler(BaseHTTPRequestHandler):
         except Exception:
             self._send_json(500, {"error": "internal server error"})
 
+    def _cached_get(
+        self, endpoint_name: str, query: dict[str, list[str]]
+    ) -> Any | None:
+        """Return a cached 200 payload for the live warehouse fingerprint, if any."""
+        fingerprint = dashboard_cache.warehouse_fingerprint(warehouse.warehouse_path())
+        if fingerprint is None:
+            return None
+        key = dashboard_cache.canonical_request_key(endpoint_name, query)
+        return self.server.response_cache.get(fingerprint, endpoint_name, key)
+
+    def _cached_put(
+        self, endpoint_name: str, query: dict[str, list[str]], payload: Any
+    ) -> None:
+        """Store a successful 200 payload under the live warehouse fingerprint."""
+        fingerprint = dashboard_cache.warehouse_fingerprint(warehouse.warehouse_path())
+        if fingerprint is None:
+            return
+        key = dashboard_cache.canonical_request_key(endpoint_name, query)
+        self.server.response_cache.put(fingerprint, endpoint_name, key, payload)
+
     def _serve_api(self, endpoint_name: str, query_string: str) -> None:
         endpoint = metrics.ENDPOINTS.get(endpoint_name)
         if endpoint is None:
@@ -157,6 +181,11 @@ class _DashboardHandler(BaseHTTPRequestHandler):
             self._send_json(400, {"error": str(exc)})
             return
 
+        cached = self._cached_get(endpoint_name, query)
+        if cached is not None:
+            self._send_json(200, cached)
+            return
+
         con = self._open_readonly()
         if con is None:
             return
@@ -176,6 +205,7 @@ class _DashboardHandler(BaseHTTPRequestHandler):
                 payload = endpoint(con, harnesses, since, until)
         finally:
             con.close()
+        self._cached_put(endpoint_name, query, payload)
         self._send_json(200, payload)
 
     def _serve_session(
@@ -193,6 +223,11 @@ class _DashboardHandler(BaseHTTPRequestHandler):
             self._send_json(400, {"error": str(exc)})
             return
 
+        cached = self._cached_get("session", query)
+        if cached is not None:
+            self._send_json(200, cached)
+            return
+
         con = self._open_readonly()
         if con is None:
             return
@@ -204,6 +239,7 @@ class _DashboardHandler(BaseHTTPRequestHandler):
         if payload is None:
             self._not_found()
             return
+        self._cached_put("session", query, payload)
         self._send_json(200, payload)
 
     def _serve_static(self, raw_path: str) -> None:

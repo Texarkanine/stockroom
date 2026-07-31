@@ -100,7 +100,7 @@ sequenceDiagram
     - Changes: `warehouse_fingerprint(path) -> tuple[int, int] | None`; thread-safe `ResponseCache` with `get`/`put`/`invalidate_if_stale` keyed by fingerprint + endpoint + canonical query; clear-all on fingerprint change.
     - Creative ref: `creative-dashboard-cache-architecture.md`
 
-2. **Canonical request key + server miss/hit wiring** (TDD)
+2. **Canonical request key + server miss/hit wiring** (TDD) — DONE
     - Files: `tests/test_dashboard_cache.py`, `tests/test_dashboard_server.py`, `src/stockroom/dashboard/cache.py`, `src/stockroom/dashboard/server.py`
     - Changes: shared `canonical_request_key(endpoint, query)` (sorted harnesses; last-wins scalars; same semantics as current query parsing) used for cache keys; `_DashboardServer` holds a `ResponseCache`; `_serve_api` / `_serve_session` fingerprint + cache **before** `_open_readonly`; on 200 success, `put`; injectable opener counter proves hits skip DuckDB open entirely.
     - Creative ref: same

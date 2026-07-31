@@ -419,3 +419,48 @@ def test_ingest_to_server_integration(
         assert status == 200
         assert payload["per_harness"]["cursor"]["sessions"] > 0
         assert payload["per_harness"]["claude"]["sessions"] > 0
+
+
+def _counting_opener() -> tuple[
+    Callable[..., duckdb.DuckDBPyConnection], dict[str, int]
+]:
+    """Wrap ``warehouse.open_current`` with an open-call counter."""
+    opens = {"n": 0}
+    real = warehouse.open_current
+
+    def _open(**kwargs: object) -> duckdb.DuckDBPyConnection:
+        opens["n"] += 1
+        return real(**kwargs)
+
+    return _open, opens
+
+
+def test_api_cache_hit_skips_warehouse_open(warehouse_home: Path) -> None:
+    """Identical GET after a cold miss returns the same JSON without reopening."""
+    warehouse.open(read_only=False).close()
+    opener, opens = _counting_opener()
+    with _running_server(open_warehouse=opener) as (_httpd, base):
+        status1, body1 = _json_get(f"{base}/api/overview")
+        assert status1 == 200
+        assert opens["n"] == 1
+        status2, body2 = _json_get(f"{base}/api/overview")
+        assert status2 == 200
+        assert body2 == body1
+        assert opens["n"] == 1
+
+
+def test_api_cache_isolates_request_keys(warehouse_home: Path) -> None:
+    """Different query strings do not share cache entries (each misses once)."""
+    warehouse.open(read_only=False).close()
+    opener, opens = _counting_opener()
+    with _running_server(open_warehouse=opener) as (_httpd, base):
+        status_a, body_a = _json_get(f"{base}/api/overview?harness=cursor")
+        status_b, body_b = _json_get(f"{base}/api/overview?harness=claude")
+        assert status_a == 200
+        assert status_b == 200
+        assert opens["n"] == 2
+        _json_get(f"{base}/api/overview?harness=cursor")
+        _json_get(f"{base}/api/overview?harness=claude")
+        assert opens["n"] == 2
+        assert body_a == _json_get(f"{base}/api/overview?harness=cursor")[1]
+        assert body_b == _json_get(f"{base}/api/overview?harness=claude")[1]
