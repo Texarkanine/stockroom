@@ -33,3 +33,8 @@ Investigate dashboard refresh cost when the warehouse is unchanged, then add cac
     - Cache only successful 200 JSON bodies; normalize request keys; prove hits skip `open_warehouse` via injectable counter
 * Insights
     - Backfill invalidation can be proven with a no-watermark warehouse write if full vscdb fixtures are too heavy for CI
+
+## 2026-07-30 - PLAN - SAVED BEFORE PREFLIGHT
+
+* Work completed
+    - Plan finalized; transitioning to preflight validation
