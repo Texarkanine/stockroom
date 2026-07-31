@@ -68,3 +68,15 @@ Investigate dashboard refresh cost when the warehouse is unchanged, then add cac
     - Cache only successful 200 JSON; shared `canonical_request_key` for query identity
 * Insights
     - Writer-connection flock is released by GC/finalize, not `close()` — tests that reopen for write must drop the closed connection reference (nested helper) or they self-deadlock
+
+## 2026-07-30 - QA - COMPLETE
+
+* Work completed
+    - Semantic review vs plan + creative Option A; completeness/KISS/YAGNI/docs checked
+    - Trivial fixes: `RequestKey` typing on `ResponseCache`; surgical `systemPatterns.md` warehouse/dashboard cache sentence
+    - Wrote `.qa-validation-status` = PASS; cache-focused tests re-run green
+* Decisions made
+    - Limit-parse duplication between server validation and `canonical_request_key` accepted (plan’s shared key helper; full parse extract is out of scope)
+    - `invalidate_if_stale` kept (plan API; used by unit tests; get/put already drift-clear)
+* Insights
+    - None beyond build flock note

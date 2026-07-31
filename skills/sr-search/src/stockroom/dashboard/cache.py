@@ -83,13 +83,13 @@ class ResponseCache:
     def __init__(self) -> None:
         self._lock = threading.Lock()
         self._fingerprint: Fingerprint | None = None
-        self._entries: dict[tuple[str, object], Any] = {}
+        self._entries: dict[tuple[str, RequestKey], Any] = {}
 
     def get(
         self,
         fingerprint: Fingerprint,
         endpoint: str,
-        request_key: object,
+        request_key: RequestKey,
     ) -> Any | None:
         """Return a cached payload, or ``None`` on miss / fingerprint drift."""
         with self._lock:
@@ -102,7 +102,7 @@ class ResponseCache:
         self,
         fingerprint: Fingerprint,
         endpoint: str,
-        request_key: object,
+        request_key: RequestKey,
         payload: Any,
     ) -> None:
         """Store ``payload`` under ``(fingerprint, endpoint, request_key)``.
