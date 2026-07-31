@@ -58,3 +58,13 @@ Investigate dashboard refresh cost when the warehouse is unchanged, then add cac
     - Proceed with creative Option A unchanged (file fingerprint + in-process ResponseCache)
 * Insights
     - (none yet)
+
+## 2026-07-30 - BUILD - COMPLETE
+
+* Work completed
+    - Implemented `dashboard/cache.py` + server hit/miss wiring; invalidation via warehouse file fingerprint; docs
+    - Verification: 147 dashboard-py, 119 JS, 808 pytest (+4 skipped), ruff clean
+* Decisions made
+    - Cache only successful 200 JSON; shared `canonical_request_key` for query identity
+* Insights
+    - Writer-connection flock is released by GC/finalize, not `close()` — tests that reopen for write must drop the closed connection reference (nested helper) or they self-deadlock

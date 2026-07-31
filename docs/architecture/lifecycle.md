@@ -40,7 +40,7 @@ Backfill of *legacy* stores is deliberately not on this schedule, or any other �
 
 ## Dashboard launch
 
-The dashboard is a **local, read-only, fully offline** metrics UI (default port 58008). Front-end assets are vendored — no CDN or external web requests at runtime. It does not ingest, embed, or migrate; freshness is owned by ingest/embed.
+The dashboard is a **local, read-only, fully offline** metrics UI (default port 58008). Front-end assets are vendored — no CDN or external web requests at runtime. It does not ingest, embed, or migrate; warehouse content freshness is owned by ingest/embed/backfill. The long-lived listener caches API JSON until the warehouse file's on-disk fingerprint changes, so a refresh does not re-query when nothing has been written.
 
 Session-start hooks attempt to launch it automatically. The CLI is idempotent: if something already listens on the port, the command still prints the URL and exits cleanly. The process uses a torch-safe engine env (same shim contract as other subcommands) and opens the warehouse through `open_current()` so a UI process never becomes the migrator — see [Warehouse](warehouse.md#concurrency-and-open-paths).
 

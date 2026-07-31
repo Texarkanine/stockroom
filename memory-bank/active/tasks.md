@@ -106,20 +106,21 @@ sequenceDiagram
     - Creative ref: same
     - Preflight amendment: canonicalize keys in one helper so routing and cache cannot drift.
 
-3. **Invalidation via warehouse write** (TDD)
+3. **Invalidation via warehouse write** (TDD) — DONE
     - Files: `tests/test_dashboard_server.py` (and/or `test_dashboard_cache.py`)
     - Changes: tests that write to the warehouse (ingest and a no-watermark mutation representing backfill) and assert subsequent responses are fresh.
 
-4. **Error / concurrency contracts** (TDD)
+4. **Error / concurrency contracts** (TDD) — DONE
     - Files: `tests/test_dashboard_server.py`
     - Changes: assert non-200 not cached; concurrent GETs return identical valid JSON after warm-up.
 
-5. **Docs**
+5. **Docs** — DONE
     - Files: `docs/user-guide/dashboard.md`; `docs/architecture/lifecycle.md` (dashboard freshness sentence); `docs/contributing/iteration/dashboard.md` only if it currently implies every refresh always re-queries.
     - Changes: document that the long-lived server caches API JSON until `warehouse.duckdb` changes on disk (ingest, backfill, or other writers). Prose-only — no change-detector tests.
 
-6. **Verification**
+6. **Verification** — DONE
     - Run targeted dashboard tests, then full suite per project rules.
+    - Results: dashboard py 147 passed; JS 119 passed; full pytest 808 passed / 4 skipped; ruff clean.
 
 ## Technology Validation
 
@@ -148,7 +149,7 @@ No new technology - validation not required. Uses stdlib `threading` + `Path.sta
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight — PASS (2026-07-30); amendment: shared `canonical_request_key`; architecture lifecycle docs in step 5
-- [ ] Build
+- [x] Build — COMPLETE (2026-07-30)
 - [ ] QA
 
 ## Preflight Findings

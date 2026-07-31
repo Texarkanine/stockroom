@@ -21,7 +21,7 @@ Static ESM is read from disk on each request; Python changes only get picked up 
 	make local-dashboard
 	```
 
-3. Hard-refresh the browser so cached ESM is not stale.
+3. Hard-refresh the browser so cached ESM is not stale. (API JSON is server-cached until `warehouse.duckdb` changes; that does not cover static module edits.)
 4. Run the dashboard contract gates:
 
 	```bash
