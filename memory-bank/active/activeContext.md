@@ -1,11 +1,12 @@
 # Active Context
 
 ## Current Task: dashboard-freshness-cache
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Intent clarified and approved: cache dashboard data across refresh when warehouse freshness is unchanged; invalidate on ingest and backfill.
-- Complexity determined: **Level 3**. Rationale: enhancement with real design choices (cache key cannot be watermark-only because backfill never touches `_sync_state`); correctness spans dashboard serving plus ingest/backfill write semantics; creative/plan rigor warranted before build.
+- Complexity Level 3.
+- Creative (architecture): server in-process API response cache keyed by warehouse file `(mtime_ns, size)` + request identity; no ingest/backfill hooks — watermark-only rejected because backfill never touches `_sync_state`.
+- Full L3 plan written in `tasks.md` (components, TDD behaviors, 6 implementation steps, challenges, pre-mortem).
 
 ## Next Step
-- Load Level 3 workflow and enter plan phase.
+- Preflight validation of the plan (`/niko-preflight` / autonomous L3 preflight).
