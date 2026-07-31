@@ -120,3 +120,13 @@ Investigate dashboard refresh cost when the warehouse is unchanged, then add cac
     - Sessions-list boot still loads metrics (harness discovery) — out of this fix’s change set
 * Insights
     - Same inefficiency class as caching: do not run work the current view does not need
+
+## 2026-07-31 - QA - COMPLETE (rework)
+
+* Work completed
+    - Semantic review: fix matches rework brief; no over-engineering; docs N/A for boot gating
+    - Wrote `.qa-validation-status` = PASS; brief L1 reflection for archive collapse
+* Decisions made
+    - Leave sessions-list metrics prefetch as-is (justified by harness discovery)
+* Insights
+    - Prefer omit unnecessary fetches over caching them

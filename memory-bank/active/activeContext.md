@@ -1,11 +1,11 @@
 # Active Context
 
 ## Current Task: dashboard-freshness-cache (rework)
-**Phase:** BUILD - COMPLETE
+**Phase:** QA - COMPLETE
 
 ## What Was Done
-- Session deep-link boot no longer fans out metrics; only `/api/session` path runs via `openSessionView`.
-- Helper + unit test; list/metrics boots unchanged.
+- L3 server file-fingerprint cache + L1 efficiency rework: session deep-links skip metrics fan-out.
+- QA PASS.
 
 ## Next Step
-- QA phase.
+- Operator: `/niko-archive` to archive L3+L1 (do not `rm -rf memory-bank/active` — that would drop reflections/creative without archiving).

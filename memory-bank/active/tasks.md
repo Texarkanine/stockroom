@@ -27,4 +27,4 @@ Conversation-detail deep-links (`?view=session&…`) still ran the full metrics 
 ## Status
 
 - [x] Build
-- [ ] QA
+- [x] QA — PASS (2026-07-31); no substantive issues; sessions-list metrics prefetch left intentional
