@@ -1,8 +1,8 @@
 # Progress
 
-Investigate dashboard refresh cost when the warehouse is unchanged, then add caching so dashboard data is not regenerated on every page load unless ingest or backfill has written new content. Invalidation must cover ingest watermark advancement and backfill (which does not update `_sync_state`).
+Investigate dashboard refresh cost when the warehouse is unchanged, then add caching so dashboard data is not regenerated on every page load unless ingest or backfill has written new content. Invalidation must cover ingest watermark advancement and backfill (which does not update `_sync_state`). Rework: stop inefficient metrics fan-out on conversation-detail boot.
 
-**Complexity:** Level 3
+**Complexity:** Level 1
 
 ## 2026-07-30 - COMPLEXITY-ANALYSIS - COMPLETE
 
@@ -101,3 +101,12 @@ Investigate dashboard refresh cost when the warehouse is unchanged, then add cac
     - Server cache is working (~0.8s → ~0.02s API fan-out when warm); remaining win is stop unnecessary work, not more caching of wrong fetches
 * Decisions made
     - Keep task id `dashboard-freshness-cache`; clear plan/QA gates and re-classify for the efficiency rework
+
+## 2026-07-31 - COMPLEXITY-ANALYSIS - COMPLETE (rework)
+
+* Work completed
+    - Classified rework as Level 1 Quick Bug Fix
+* Decisions made
+    - Single SPA component (boot routing in `dashboard.mjs` + pure helper); cause known; no architecture redesign
+* Insights
+    - Efficiency win is omit unnecessary fetches; server cache remains complementary for metrics home
