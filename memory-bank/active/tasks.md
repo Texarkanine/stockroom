@@ -95,7 +95,7 @@ sequenceDiagram
 
 ## Implementation Plan
 
-1. **Unit: fingerprint + store** (TDD)
+1. **Unit: fingerprint + store** (TDD) — DONE
     - Files: `skills/sr-search/tests/test_dashboard_cache.py` (new), `skills/sr-search/src/stockroom/dashboard/cache.py` (new)
     - Changes: `warehouse_fingerprint(path) -> tuple[int, int] | None`; thread-safe `ResponseCache` with `get`/`put`/`invalidate_if_stale` keyed by fingerprint + endpoint + canonical query; clear-all on fingerprint change.
     - Creative ref: `creative-dashboard-cache-architecture.md`

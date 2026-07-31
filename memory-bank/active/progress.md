@@ -49,3 +49,12 @@ Investigate dashboard refresh cost when the warehouse is unchanged, then add cac
     - No rearchitect; proceed to operator-gated build
 * Insights
     - Existing “cache_*” metrics fields are LLM token counters, not a response cache to extend
+
+## 2026-07-30 - BUILD - IN-PROGRESS
+
+* Work completed
+    - Operator invoked `/niko-build`; prerequisites verified (preflight PASS, plan complete, creative Option A)
+* Decisions made
+    - Proceed with creative Option A unchanged (file fingerprint + in-process ResponseCache)
+* Insights
+    - (none yet)
