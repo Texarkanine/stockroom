@@ -1,11 +1,11 @@
 # Active Context
 
 ## Current Task: dashboard-freshness-cache (cache bound rework)
-**Phase:** BUILD - COMPLETE
+**Phase:** QA - COMPLETE
 
 ## What Was Done
-- Bounded `ResponseCache` with max-entry LRU (default 64); fingerprint clear-all unchanged.
-- Tests + docs; 811 pytest / 120 JS / ruff green.
+- Bounded LRU `ResponseCache` (default 64); QA PASS.
+- Trivial docs fix: user-guide now says bounded LRU.
 
 ## Next Step
-- QA phase.
+- Level 1 wrap-up complete after commit. Prefer `/niko-archive` (L3+reworks + reflections) over `rm -rf memory-bank/active`.

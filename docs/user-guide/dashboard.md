@@ -2,7 +2,7 @@
 
 The stockroom dashboard is a **local, read-only, fully offline** metrics UI over your warehouse — an at-a-glance view of cross-harness agentic-coding history. It does not ingest, embed, or migrate; freshness is owned by [Load the Warehouse](load/index.md).
 
-The long-lived dashboard process caches successful API JSON responses in memory until `warehouse.duckdb` changes on disk (ingest, backfill, or any other writer). A browser refresh against an unchanged warehouse reuses that cache instead of reopening and re-querying DuckDB.
+The long-lived dashboard process caches successful API JSON responses in memory (bounded LRU) until `warehouse.duckdb` changes on disk (ingest, backfill, or any other writer). A browser refresh against an unchanged warehouse reuses that cache instead of reopening and re-querying DuckDB.
 
 Default URL: [http://localhost:58008](http://localhost:58008/) (also `http://127.0.0.1:58008/`). Every front-end asset is vendored — no CDN or external web requests are made at runtime. You can use it w/out an internet connection!
 

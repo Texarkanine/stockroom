@@ -179,3 +179,14 @@ Investigate dashboard refresh cost when the warehouse is unchanged, then add cac
     - Global entry cap only — no per-endpoint special cases
 * Insights
     - Metrics-home fan-out stays well under 64; conversation browsing is what the cap bounds
+
+## 2026-07-31 - QA - COMPLETE (cache bound)
+
+* Work completed
+    - Semantic review vs rework brief: bound, metrics-home warm path, fingerprint clear-all, no special cases
+    - Trivial fix: user-guide dashboard.md “bounded LRU” wording
+    - Wrote `.qa-validation-status` = PASS
+* Decisions made
+    - `DEFAULT_MAX_ENTRIES = 64` accepted (named constant; metrics fan-out ≪ cap)
+* Insights
+    - Nothing beyond build

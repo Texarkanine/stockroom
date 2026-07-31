@@ -30,4 +30,4 @@ Clear-all only runs on fingerprint drift; nothing capped entry count inside an e
 ## Status
 
 - [x] Build
-- [ ] QA
+- [x] QA — PASS (2026-07-31); trivial fix: user-guide “bounded LRU” wording that missed the earlier commit
