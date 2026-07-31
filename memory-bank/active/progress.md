@@ -38,3 +38,14 @@ Investigate dashboard refresh cost when the warehouse is unchanged, then add cac
 
 * Work completed
     - Plan finalized; transitioning to preflight validation
+
+## 2026-07-30 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated TDD encoding, conventions, dependencies, conflicts, completeness
+    - Wrote `.preflight-status` = PASS
+    - Amended plan: shared `canonical_request_key`; architecture lifecycle docs in step 5
+* Decisions made
+    - No rearchitect; proceed to operator-gated build
+* Insights
+    - Existing “cache_*” metrics fields are LLM token counters, not a response cache to extend

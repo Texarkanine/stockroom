@@ -100,22 +100,23 @@ sequenceDiagram
     - Changes: `warehouse_fingerprint(path) -> tuple[int, int] | None`; thread-safe `ResponseCache` with `get`/`put`/`invalidate_if_stale` keyed by fingerprint + endpoint + canonical query; clear-all on fingerprint change.
     - Creative ref: `creative-dashboard-cache-architecture.md`
 
-2. **Server miss/hit wiring** (TDD)
-    - Files: `tests/test_dashboard_server.py`, `src/stockroom/dashboard/server.py`
-    - Changes: `_DashboardServer` holds a `ResponseCache`; `_serve_api` / `_serve_session` check fingerprint + cache before `_open_readonly`; on 200 success, `put`; count `open_warehouse` calls via injectable opener to prove hits skip open.
+2. **Canonical request key + server miss/hit wiring** (TDD)
+    - Files: `tests/test_dashboard_cache.py`, `tests/test_dashboard_server.py`, `src/stockroom/dashboard/cache.py`, `src/stockroom/dashboard/server.py`
+    - Changes: shared `canonical_request_key(endpoint, query)` (sorted harnesses; last-wins scalars; same semantics as current query parsing) used for cache keys; `_DashboardServer` holds a `ResponseCache`; `_serve_api` / `_serve_session` fingerprint + cache **before** `_open_readonly`; on 200 success, `put`; injectable opener counter proves hits skip DuckDB open entirely.
     - Creative ref: same
+    - Preflight amendment: canonicalize keys in one helper so routing and cache cannot drift.
 
 3. **Invalidation via warehouse write** (TDD)
     - Files: `tests/test_dashboard_server.py` (and/or `test_dashboard_cache.py`)
-    - Changes: tests that write to the warehouse (ingest and a no-watermark mutation representing backfill) and assert subsequent responses are fresh; implement any canonical-query normalization needed so keys are stable.
+    - Changes: tests that write to the warehouse (ingest and a no-watermark mutation representing backfill) and assert subsequent responses are fresh.
 
 4. **Error / concurrency contracts** (TDD)
     - Files: `tests/test_dashboard_server.py`
     - Changes: assert non-200 not cached; concurrent GETs return identical valid JSON after warm-up.
 
 5. **Docs**
-    - Files: `docs/user-guide/dashboard.md` (short freshness/caching note); update `docs/contributing/iteration/dashboard.md` only if it currently implies every refresh always re-queries.
-    - Changes: document that the long-lived server caches API JSON until `warehouse.duckdb` changes on disk (ingest, backfill, or other writers).
+    - Files: `docs/user-guide/dashboard.md`; `docs/architecture/lifecycle.md` (dashboard freshness sentence); `docs/contributing/iteration/dashboard.md` only if it currently implies every refresh always re-queries.
+    - Changes: document that the long-lived server caches API JSON until `warehouse.duckdb` changes on disk (ingest, backfill, or other writers). Prose-only — no change-detector tests.
 
 6. **Verification**
     - Run targeted dashboard tests, then full suite per project rules.
@@ -146,6 +147,14 @@ No new technology - validation not required. Uses stdlib `threading` + `Path.sta
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight — PASS (2026-07-30); amendment: shared `canonical_request_key`; architecture lifecycle docs in step 5
 - [ ] Build
 - [ ] QA
+
+## Preflight Findings
+
+- TDD encoding: steps 1–4 are test-before-code per executable unit; step 5 docs are prose-only (no change-detectors).
+- Conventions: new `dashboard/cache.py` matches sibling modules (`recovery`, `identity`, `metrics`); tests under `tests/test_dashboard_*.py`.
+- No existing response-cache utility to reuse; LLM token “cache_*” fields are unrelated.
+- Dependency impact confined to dashboard server + tests + docs; ingest/backfill untouched for invalidation.
+- Advisory applied: shared canonical request key helper to prevent query-key drift.

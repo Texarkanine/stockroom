@@ -1,12 +1,11 @@
 # Active Context
 
 ## Current Task: dashboard-freshness-cache
-**Phase:** PREFLIGHT - READY
+**Phase:** PREFLIGHT - COMPLETE
 
 ## What Was Done
-- Complexity Level 3.
-- Creative (architecture): server in-process API response cache keyed by warehouse file `(mtime_ns, size)` + request identity; no ingest/backfill hooks — watermark-only rejected because backfill never touches `_sync_state`.
-- Full L3 plan written in `tasks.md` (components, TDD behaviors, 6 implementation steps, challenges, pre-mortem).
+- Complexity Level 3; creative + plan complete.
+- Preflight PASS: TDD ordering OK; conventions OK; no conflicting cache util; amendment — shared `canonical_request_key` + include `docs/architecture/lifecycle.md` in docs step.
 
 ## Next Step
-- Execute preflight validation against the plan.
+- Operator runs `/niko-build` to implement (L3 build is operator-gated).
