@@ -1,6 +1,6 @@
 # Progress
 
-Investigate dashboard refresh cost when the warehouse is unchanged, then add caching so dashboard data is not regenerated on every page load unless ingest or backfill has written new content. Invalidation must cover ingest watermark advancement and backfill (which does not update `_sync_state`). Rework: stop inefficient metrics fan-out on conversation-detail boot.
+Investigate dashboard refresh cost when the warehouse is unchanged, then add caching so dashboard data is not regenerated on every page load unless ingest or backfill has written new content. Invalidation must cover ingest watermark advancement and backfill (which does not update `_sync_state`). Reworks: stop inefficient metrics fan-out on conversation-detail boot; bound the in-process response cache so it cannot grow unbounded within one warehouse epoch.
 
 **Complexity:** Level 1
 
@@ -154,3 +154,17 @@ Investigate dashboard refresh cost when the warehouse is unchanged, then add cac
     - Nightly ingest / fingerprint drift still clear-all; plugin-update bounce kills the process (heap gone)
 * Decisions made
     - Keep task id `dashboard-freshness-cache`; clear plan/QA gates and re-classify for the bound
+
+## 2026-07-31 - COMPLEXITY-ANALYSIS - COMPLETE (cache bound)
+
+* Work completed
+    - Classified as Level 1 Quick Bug Fix
+* Decisions made
+    - Single component (`ResponseCache`); hard max-entry / LRU; no architecture redesign
+* Insights
+    - Metrics-home warm hits matter; conversation misses are acceptable collateral of a tight cap
+
+## 2026-07-31 - BUILD - IN-PROGRESS (cache bound)
+
+* Work completed
+    - Leaving complexity analysis; starting Level 1 build for max-entry LRU bound
