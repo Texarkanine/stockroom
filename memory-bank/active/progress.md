@@ -168,3 +168,14 @@ Investigate dashboard refresh cost when the warehouse is unchanged, then add cac
 
 * Work completed
     - Leaving complexity analysis; starting Level 1 build for max-entry LRU bound
+
+## 2026-07-31 - BUILD - COMPLETE (cache bound)
+
+* Work completed
+    - `ResponseCache` max-entry LRU (`DEFAULT_MAX_ENTRIES = 64`); get refreshes MRU
+    - Tests for eviction, get-refresh, finite default; docs + systemPatterns note
+    - Verification: 811 pytest (+4 skipped), 120 JS, ruff clean
+* Decisions made
+    - Global entry cap only — no per-endpoint special cases
+* Insights
+    - Metrics-home fan-out stays well under 64; conversation browsing is what the cap bounds
