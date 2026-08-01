@@ -1,15 +1,15 @@
 # Active Context
 
 **Current Task:** codecov-readme-badges
-**Phase:** PLAN - COMPLETE
+**Phase:** PREFLIGHT - COMPLETE
 **Complexity:** Level 3 (canonical in `progress.md`)
 
 ## What Was Done
 
-- Component analysis for dual test-run roots (engine pytest + dashboard JS)
-- Creative resolved OQ1: Flags + aggregate README (a16n-lite)
-- Full L3 plan written: TDD collection tests, pytest-cov, Make targets, codecov.yml, CI dual upload, README badge, docs
+- Preflight validated the plan against codebase reality
+- Amendments: clearer TDD step split; CI/local SSOT via root Make coverage targets
+- Awaiting operator `/niko-build` (L3 gate after preflight PASS)
 
 ## Next Step
 
-Preflight phase to validate the plan before build.
+Operator runs `/niko-build` to implement.

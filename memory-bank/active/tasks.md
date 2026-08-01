@@ -85,47 +85,51 @@ flowchart LR
 
 ## Implementation Plan
 
-1. **Stub failing coverage-collection tests** (TDD)
+1. **Stub coverage-collection tests** (TDD — empty bodies)
     - Files: `skills/sr-search/tests/test_coverage_collection.py`
-    - Changes: empty then implemented tests for engine + JS lcov emit / include scope (subprocess against Make-equivalent commands or documented argv)
-    - Expect fail until deps/commands exist
+    - Changes: suite + case signatures for engine lcov emit, JS lcov emit, JS include scope, and `make test-dashboard-js` unchanged semantics; no assertions yet
 
-2. **Add pytest-cov + coverage config**
+2. **Implement coverage-collection tests** (TDD — red)
+    - Files: `skills/sr-search/tests/test_coverage_collection.py`
+    - Changes: fill assertions; subprocess the **root Make targets** (`coverage-engine`, `coverage-dashboard-js`, `test-dashboard-js`) so local/CI/Make stay one SSOT; expect fail until steps 3–4 exist
+    - Note: narrow the engine coverage invocation via a Make variable (e.g. `COVERAGE_PYTEST_ARGS`) if full-suite subprocess is too heavy for the unit test — default Make target still runs the full suite
+
+3. **Add pytest-cov + coverage config**
     - Files: `skills/sr-search/pyproject.toml`, `skills/sr-search/uv.lock` (via `make lock`)
     - Changes: `pytest-cov` in `dev`; `[tool.coverage.run]` source=`stockroom` / omit tests & vendored; `[tool.coverage.report]` as needed; do **not** put `--cov` in default `addopts` (keep `make test` fast/unchanged — coverage opt-in)
     - Creative ref: engine flag paths → `skills/sr-search/src/stockroom/`
 
-3. **Make targets for coverage**
+4. **Make targets for coverage**
     - Files: `Makefile`
-    - Changes: `coverage-engine` (pytest with `--cov=stockroom --cov-report=lcov:coverage/lcov.info` etc., `-n auto` ok or match CI), `coverage-dashboard-js` (mkdir + node experimental coverage + lcov destination + `--test-coverage-include` for static), `coverage` depending on both; leave `test` / `test-dashboard-js` as-is
+    - Changes: `coverage-engine` (pytest with `--cov=stockroom --cov-report=lcov:coverage/lcov.info` etc.), `coverage-dashboard-js` (mkdir + node experimental coverage + lcov destination + `--test-coverage-include` for static), `coverage` depending on both; leave `test` / `test-dashboard-js` as-is
     - Creative ref: dual-root collection
 
-4. **Green the collection tests** against those commands; iterate include/omit until assertions pass
+5. **Green the collection tests**; iterate include/omit / Make knobs until assertions pass
 
-5. **codecov.yml**
+6. **codecov.yml**
     - Files: `codecov.yml` (repo root)
     - Changes: flags `engine` / `dashboard-js` with paths + `carryforward: true`; project/patch status `enabled: false` initially; comment config optional (condensed like a16n)
     - Creative ref: a16n-lite flags
 
-6. **CI upload**
+7. **CI upload**
     - Files: `.github/workflows/ci.yaml`
-    - Changes: replace plain pytest/JS test steps with coverage-producing runs (or add coverage runs after tests — prefer one run with coverage to avoid double suite cost); two `codecov/codecov-action@v7` steps with `files:`, `flags:`, `token: ${{ secrets.CODECOV_TOKEN }}`, `fail_ci_if_error: false`
+    - Changes: replace plain pytest/JS test steps with **root Make** `coverage-engine` / `coverage-dashboard-js` (working-directory `${{ github.workspace }}`) so CI and local share SSOT; avoid a second full suite run; two `codecov/codecov-action@v7` steps with `files:` (paths under `skills/sr-search/…`), `flags:`, `token: ${{ secrets.CODECOV_TOKEN }}`, `fail_ci_if_error: false`
     - Creative ref: dual flagged uploads
 
-7. **gitignore coverage artifacts**
+8. **gitignore coverage artifacts**
     - Files: `.gitignore`
     - Changes: `.coverage`, `coverage/`, `coverage-js/`, `htmlcov/` under engine or repo-wide patterns as appropriate
 
-8. **README badge**
+9. **README badge**
     - Files: `README.md`
     - Changes: aggregate Codecov badge URL for `Texarkanine/stockroom` next to REUSE
     - Creative ref: aggregate-only README surface
 
-9. **Contributor docs**
+10. **Contributor docs** (prose — no behavior tests owed)
     - Files: `docs/contributing/iteration/engine.md`, `docs/contributing/iteration/dashboard.md` (and index table if targets are listed there)
     - Changes: document coverage Make targets; note `CODECOV_TOKEN` required for uploads; badge 404 until first successful upload is expected
 
-10. **Verification**
+11. **Verification**
     - Run new collection tests; full `make test` / `make ci` locally as feasible; confirm lcov artifacts gitignored
 
 ## Technology Validation
@@ -150,6 +154,12 @@ flowchart LR
 - **Plan failed because default `addopts --cov` slowed every local pytest and annoyed contributors**: Keep coverage off default `addopts`; only Make coverage targets / CI enable it
 - **Plan failed because Codecov rejected Node lcov path layout**: Assert SF paths in tests; adjust `--test-coverage-include` / working-directory before relying on upload
 
+## Preflight Amendments
+
+- Split TDD into stub → implement tests (red) → production → green (explicit test-before-code per executable unit)
+- CI invokes root Make coverage targets (SSOT with local) instead of inlining pytest/node argv in the workflow
+- Collection tests subprocess Make targets (same SSOT); optional `COVERAGE_PYTEST_ARGS` for narrow test-time engine runs
+
 ## Status
 
 - [x] Component analysis complete
@@ -158,6 +168,6 @@ flowchart LR
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
 - [ ] QA

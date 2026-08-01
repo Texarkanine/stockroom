@@ -41,3 +41,15 @@ Wire Codecov into stockroom: collect coverage from the engine pytest and dashboa
 * Insights
     - Node needs no new npm dep for Codecov-ready lcov
     - Stockroom's single README favors aggregate badge; flag badges are a cheap later add
+
+## 2026-08-01 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated TDD encoding, conventions, deps, conflicts, completeness
+    - Amended plan: stub→red tests→prod→green; CI uses Make coverage targets as SSOT
+    - Wrote `.preflight-status` PASS
+* Decisions made
+    - Collection tests subprocess Make targets (not duplicated argv in workflow)
+* Insights
+    - No existing coverage/codecov machinery to conflict with
+    - Ops dependency: `CODECOV_TOKEN` GitHub secret required before badges leave 404 (outside build; document only)
