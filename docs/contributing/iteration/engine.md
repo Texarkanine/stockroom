@@ -32,12 +32,16 @@ Prefer `make sync` + restore torch via `stockroom shim ensure-env` when you want
 | `sync` | Install deps from the committed lock (torch-free; strips torch if already installed — see [Torch](#torch)) |
 | `lock` | Regenerate `uv.lock` hermetically |
 | `lock-check` | Fail if the lock is stale vs `pyproject.toml` |
-| `test` | pytest + dashboard JS tests (runs `sync` first) |
+| `test` | pytest + dashboard JS tests (runs `sync` first; no coverage) |
+| `coverage-engine` | pytest with `pytest-cov` → `skills/sr-search/coverage/lcov.info` (CI upload flag `engine`) |
+| `coverage` | Both roots' lcov reports (`coverage-engine` + `coverage-dashboard-js`) |
 | `lint` / `format` / `format-check` | ruff check / format / format --check |
 | `reuse` | Whole-tree REUSE lint |
-| `ci` | Full engine gate (matches CI) |
+| `ci` | Full engine gate (lint/format/test/reuse; Codecov upload is CI-only) |
 | `shim` | Bake this checkout onto PATH (owner `dev`; takeover flags in Local workflow) |
 | `local-engine` | Claim shim + `ensure-env` for this checkout |
+
+Coverage is opt-in: `make test` does not enable `--cov`. CI runs `make coverage-engine` (and the dashboard JS sibling) and uploads with `codecov/codecov-action`; the repository secret `CODECOV_TOKEN` is required before the README Codecov badge leaves 404 (expected until the first successful upload).
 
 Engine pytest defaults to process workers via [`pytest-xdist`](https://pytest-xdist.readthedocs.io/) (`addopts = ["-n", "auto"]` in [`skills/sr-search/pyproject.toml`](https://github.com/Texarkanine/stockroom/blob/main/skills/sr-search/pyproject.toml)). Make and CI call bare `pytest`, so they inherit that. For serial debugging (or a single flaky case), override with `-n0`:
 

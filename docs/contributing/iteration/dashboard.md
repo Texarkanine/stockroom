@@ -33,7 +33,10 @@ Static ESM is read from disk on each request; Python changes only get picked up 
 
 | Target | Role |
 | --- | --- |
-| `test-dashboard-js` | Dashboard ES-module tests (`node --test`; Node 22; no sync) |
+| `test-dashboard-js` | Dashboard ES-module tests (`node --test`; Node 22; no sync; no lcov) |
+| `coverage-dashboard-js` | Same tests with Node coverage → `skills/sr-search/coverage-js/lcov.info` (CI upload flag `dashboard-js`) |
 | `test-dashboard-py` | `tests/test_dashboard_*.py` only (torch-safe; no sync) |
 | `test` | Full pytest (xdist `-n auto`) + JS (runs `sync` first — strips torch) |
 | `local-dashboard` | Force-replace `stockroom dashboard` for this checkout (`--replace`) |
+
+`make test-dashboard-js` stays the human-readable default. Use `make coverage-dashboard-js` (or `make coverage`) when you need the Codecov-ready lcov artifact. Uploads happen in GitHub Actions via `CODECOV_TOKEN`; the aggregate README badge 404s until that secret exists and CI has uploaded at least once.

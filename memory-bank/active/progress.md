@@ -54,11 +54,15 @@ Wire Codecov into stockroom: collect coverage from the engine pytest and dashboa
     - No existing coverage/codecov machinery to conflict with
     - Ops dependency: `CODECOV_TOKEN` GitHub secret required before badges leave 404 (outside build; document only)
 
-## 2026-08-01 - BUILD - IN-PROGRESS
+## 2026-08-01 - BUILD - COMPLETE
 
 * Work completed
-    - Leaving preflight; starting implementation of codecov-readme-badges
+    - Dual-root lcov via Make (`coverage-engine` / `coverage-dashboard-js`); collection tests green
+    - CI uploads flagged reports; `codecov.yml` + README aggregate badge + contributor docs
+    - Full `make test` green (816 pytest / 120 JS); format/lint/lock-check/reuse clean
 * Decisions made
-    - (none yet — build starting)
+    - Coverage stays opt-in (not in pytest `addopts`); CI replaces bare test steps with Make coverage (no double suite)
+    - Collection tests subprocess Make with `COVERAGE_PYTEST_ARGS` for a narrow engine case
 * Insights
-    - (none yet)
+    - Node `--test-coverage-include` cleanly keeps `tests-js` out of SF paths
+    - Badge/upload still need ops `CODECOV_TOKEN` before Codecov UI/badge go live

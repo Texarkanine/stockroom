@@ -1,0 +1,27 @@
+# Codecov configuration for stockroom dual-root coverage
+# https://docs.codecov.com/docs/codecov-yaml
+
+coverage:
+  status:
+    project:
+      default:
+        # Disable until coverage baseline is established
+        enabled: false
+    patch:
+      default:
+        enabled: false
+
+flags:
+  engine:
+    paths:
+      - skills/sr-search/src/stockroom/
+    carryforward: true
+  dashboard-js:
+    paths:
+      - skills/sr-search/src/stockroom/dashboard/static/
+    carryforward: true
+
+comment:
+  layout: "condensed_header, condensed_files, condensed_footer"
+  behavior: default
+  require_changes: true

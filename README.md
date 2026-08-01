@@ -1,6 +1,7 @@
 # stockroom
 
 [![REUSE status](https://api.reuse.software/badge/github.com/Texarkanine/stockroom)](https://api.reuse.software/info/github.com/Texarkanine/stockroom)
+[![codecov](https://codecov.io/github/Texarkanine/stockroom/graph/badge.svg)](https://codecov.io/github/Texarkanine/stockroom)
 
 **A local, faithful, searchable warehouse of your agentic-coding history.**
 

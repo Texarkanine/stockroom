@@ -160,6 +160,20 @@ flowchart LR
 - CI invokes root Make coverage targets (SSOT with local) instead of inlining pytest/node argv in the workflow
 - Collection tests subprocess Make targets (same SSOT); optional `COVERAGE_PYTEST_ARGS` for narrow test-time engine runs
 
+## Implementation Progress
+
+- [x] 1. Stub coverage-collection tests
+- [x] 2. Implement coverage-collection tests (red)
+- [x] 3. Add pytest-cov + coverage config + lock
+- [x] 4. Make targets (`coverage-engine` / `coverage-dashboard-js` / `coverage`)
+- [x] 5. Green collection tests
+- [x] 6. `codecov.yml` (flags + carryforward; status off)
+- [x] 7. CI: Make coverage + two flagged `codecov-action@v7` uploads
+- [x] 8. gitignore coverage artifacts
+- [x] 9. README aggregate Codecov badge
+- [x] 10. Contributor docs (engine.md / dashboard.md)
+- [x] 11. Verification (full suite / format / lock-check)
+
 ## Status
 
 - [x] Component analysis complete
@@ -169,5 +183,5 @@ flowchart LR
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight
-- [ ] Build
+- [x] Build
 - [ ] QA
