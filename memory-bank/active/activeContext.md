@@ -1,15 +1,14 @@
 # Active Context
 
 **Current Task:** codecov-readme-badges
-**Phase:** PREFLIGHT - COMPLETE
+**Phase:** BUILD - IN-PROGRESS
 **Complexity:** Level 3 (canonical in `progress.md`)
 
 ## What Was Done
 
-- Preflight validated the plan against codebase reality
-- Amendments: clearer TDD step split; CI/local SSOT via root Make coverage targets
-- Awaiting operator `/niko-build` (L3 gate after preflight PASS)
+- Preflight PASS; operator invoked `/niko-build`
+- Entering Level 3 build: TDD coverage collection → Make/CI/Codecov/README
 
 ## Next Step
 
-Operator runs `/niko-build` to implement.
+Execute implementation plan steps 1–11 in order (stub tests → red → pytest-cov/Make → green → codecov.yml/CI/gitignore/README/docs → verify).

@@ -53,3 +53,12 @@ Wire Codecov into stockroom: collect coverage from the engine pytest and dashboa
 * Insights
     - No existing coverage/codecov machinery to conflict with
     - Ops dependency: `CODECOV_TOKEN` GitHub secret required before badges leave 404 (outside build; document only)
+
+## 2026-08-01 - BUILD - IN-PROGRESS
+
+* Work completed
+    - Leaving preflight; starting implementation of codecov-readme-badges
+* Decisions made
+    - (none yet — build starting)
+* Insights
+    - (none yet)
