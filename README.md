@@ -1,5 +1,7 @@
 # stockroom
 
+[![REUSE status](https://api.reuse.software/badge/github.com/Texarkanine/stockroom)](https://api.reuse.software/info/github.com/Texarkanine/stockroom)
+
 **A local, faithful, searchable warehouse of your agentic-coding history.**
 
 Stockroom captures prompts, responses, and tool inputs from [Cursor](https://cursor.com/) and [Claude Code](https://code.claude.com/) into a single-file [DuckDB](https://duckdb.org/) warehouse with local [`sentence-transformers`](https://www.sbert.net/) embeddings. Kept content is stored **whole** — truncation is a read-time convenience, never a storage-time loss.
