@@ -1,15 +1,15 @@
 # Active Context
 
 **Current Task:** codecov-readme-badges
-**Phase:** QA - COMPLETE
+**Phase:** REFLECT - COMPLETE
 **Complexity:** Level 3 (canonical in `progress.md`)
 
 ## What Was Done
 
-- Semantic QA against plan + Creative B
-- Trivial fixes: drop unused `_run_make` `env_extra`; dedupe gitignore coverage paths; clarify `make ci` help vs CI coverage upload
-- Collection tests + lint/format still green
+- Reflection written: `memory-bank/active/reflection/reflection-codecov-readme-badges.md`
+- Reconciled `techContext.md` (coverage Make targets, Codecov/CI, opt-in pytest-cov)
+- Build + QA PASS; Creative B held
 
 ## Next Step
 
-Reflect phase (L3 autonomous after QA PASS).
+Operator runs `/niko-archive` to archive and clear the active memory bank.
