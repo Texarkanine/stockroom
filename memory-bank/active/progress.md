@@ -16,3 +16,14 @@ Wire Codecov into stockroom: collect coverage from the engine pytest and dashboa
     - Stockroom currently has no Codecov / no `--cov` in CI; README only has REUSE badge
     - a16n uses per-package Codecov Flags + carryforward; root README aggregate badge, package READMEs flag badges
     - Two stockroom test-run roots today: `uv run pytest` (engine) and `make test-dashboard-js` (Node 22)
+
+## 2026-08-01 - CREATIVE (coverage-aggregation) - COMPLETE
+
+* Work completed
+    - Explored aggregate-only vs flags vs multi-badge README surfaces
+    - Verified Node 22 can emit Codecov-ready `lcov` via `--experimental-test-coverage --test-reporter=lcov`
+* Decisions made
+    - **B — Flags + aggregate README (a16n-lite):** flagged CI uploads for `engine` and `dashboard-js`; single project aggregate badge on root README; flag badges deferred (easy add later)
+* Insights
+    - Codecov project badge already aggregates multi-upload commits — flags are for slicing/carryforward, not a prerequisite for aggregation
+    - Python LOC will dominate an aggregate %; flags keep JS regressions inspectable without three README badges
