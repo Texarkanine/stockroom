@@ -66,3 +66,13 @@ Wire Codecov into stockroom: collect coverage from the engine pytest and dashboa
 * Insights
     - Node `--test-coverage-include` cleanly keeps `tests-js` out of SF paths
     - Badge/upload still need ops `CODECOV_TOKEN` before Codecov UI/badge go live
+
+## 2026-08-01 - QA - COMPLETE
+
+* Work completed
+    - Reviewed build vs plan/Creative B (KISS/DRY/YAGNI/completeness/regression/integrity/docs)
+    - Applied trivial cleanups; wrote `.qa-validation-status` PASS
+* Decisions made
+    - No substantive plan/design failures — PASS
+* Insights
+    - Local `make ci` remains coverage-free by design; GitHub CI is where lcov + upload happen

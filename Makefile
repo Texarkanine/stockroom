@@ -101,7 +101,7 @@ shim: ## Install on-path shim for this checkout (owner: dev; TAKEOVER=1 / FORCE=
 reuse: sync ## Run reuse lint on the whole repo (REUSE.toml at root)
 	$(UV) run --project $(ENGINE) --no-sync $(UV_NO_CFG) reuse lint
 
-ci: sync lock-check lint format-check test reuse ## Full gate (matches CI)
+ci: sync lock-check lint format-check test reuse ## Full local gate (CI also collects/uploads coverage)
 
 # Docs site (root pyproject.toml docs group — separate from the engine project).
 # Requires uv: https://docs.astral.sh/uv/

@@ -13,8 +13,6 @@ __pycache__/
 htmlcov/
 coverage/
 coverage-js/
-skills/sr-search/coverage/
-skills/sr-search/coverage-js/
 
 # properdocs / MkDocs build output
 site/

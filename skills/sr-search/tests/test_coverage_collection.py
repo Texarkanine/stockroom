@@ -7,7 +7,6 @@ produced.
 
 from __future__ import annotations
 
-import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -28,18 +27,12 @@ def _sf_paths(lcov_text: str) -> list[str]:
     ]
 
 
-def _run_make(
-    repo_root: Path, *targets: str, env_extra: dict[str, str] | None = None
-) -> subprocess.CompletedProcess[str]:
-    env = os.environ.copy()
-    if env_extra:
-        env.update(env_extra)
+def _run_make(repo_root: Path, *targets: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         ["make", *targets],
         cwd=repo_root,
         capture_output=True,
         text=True,
-        env=env,
         check=False,
     )
 
