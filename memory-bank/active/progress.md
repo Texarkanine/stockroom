@@ -27,3 +27,17 @@ Wire Codecov into stockroom: collect coverage from the engine pytest and dashboa
 * Insights
     - Codecov project badge already aggregates multi-upload commits — flags are for slicing/carryforward, not a prerequisite for aggregation
     - Python LOC will dominate an aggregate %; flags keep JS regressions inspectable without three README badges
+
+## 2026-08-01 - PLAN - COMPLETE
+
+* Work completed
+    - Mapped components (pytest-cov, Node lcov, CI, codecov.yml, README, Make, gitignore, docs)
+    - TDD plan: `tests/test_coverage_collection.py` for dual-root lcov emit/include
+    - Ordered implementation steps (10) + challenges + pre-mortem
+* Decisions made
+    - Coverage opt-in via Make/CI only — do not put `--cov` in default pytest `addopts`
+    - CI: one coverage-enabled run per root (avoid double suite); two flagged codecov uploads
+    - Match a16n: `fail_ci_if_error: false`, status checks off initially, carryforward flags
+* Insights
+    - Node needs no new npm dep for Codecov-ready lcov
+    - Stockroom's single README favors aggregate badge; flag badges are a cheap later add

@@ -1,14 +1,15 @@
 # Active Context
 
 **Current Task:** codecov-readme-badges
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 **Complexity:** Level 3 (canonical in `progress.md`)
 
 ## What Was Done
 
-- Intent clarified and approved: Codecov badges in README, collect coverage, decide aggregate vs engine+dashboard separate presentation; a16n as multi-root reference.
-- Complexity determined as Level 3: multi-component CI/tooling feature with an open design decision (badge/flag aggregation) that warrants creative exploration before a locked plan.
+- Component analysis for dual test-run roots (engine pytest + dashboard JS)
+- Creative resolved OQ1: Flags + aggregate README (a16n-lite)
+- Full L3 plan written: TDD collection tests, pytest-cov, Make targets, codecov.yml, CI dual upload, README badge, docs
 
 ## Next Step
 
-Load the Level 3 workflow and execute the Plan phase (which may route to Creative for the aggregation decision).
+Preflight phase to validate the plan before build.
