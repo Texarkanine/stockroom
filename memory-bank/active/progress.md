@@ -76,3 +76,13 @@ Wire Codecov into stockroom: collect coverage from the engine pytest and dashboa
     - No substantive plan/design failures — PASS
 * Insights
     - Local `make ci` remains coverage-free by design; GitHub CI is where lcov + upload happen
+
+## 2026-08-01 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `reflection/reflection-codecov-readme-badges.md`
+    - Updated `techContext.md` for coverage/Codecov tooling
+* Decisions made
+    - Product/systemPatterns unchanged (CI/tooling only)
+* Insights
+    - Make-SSOT for coverage collection is the durable lesson; badge activation is ops (`CODECOV_TOKEN`)
