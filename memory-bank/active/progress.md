@@ -86,3 +86,14 @@ Wire Codecov into stockroom: collect coverage from the engine pytest and dashboa
     - Product/systemPatterns unchanged (CI/tooling only)
 * Insights
     - Make-SSOT for coverage collection is the durable lesson; badge activation is ops (`CODECOV_TOKEN`)
+
+## 2026-08-01 - POST-REFLECT (PR #116) - IN-PROGRESS
+
+* Work completed
+    - Opened draft PR #116 (`ci: wire Codecov dual-root coverage and README badge`)
+    - Judged CodeRabbit: dismiss `fetch-depth`; fix coverage-js xdist race with `COVERAGE_ENGINE_DIR` / `COVERAGE_JS_DIR` + per-test `tmp_path` (not serialize); dismiss Node-22 Make DRY nit
+* Decisions made
+    - Keep `codecov.yml` (Codecov does not document `codecov.yaml`)
+    - Badge needs main uploads; PR upload path left as-is for now
+* Insights
+    - Parallel-safe Make output knobs beat locks/xdist groups for a 4-test plumbing suite
