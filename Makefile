@@ -33,8 +33,10 @@ LOCALDEV_SH := $(SCRIPTS)/localdev.sh
 	local-skills local-engine local-dashboard localdev localdev-clean localdev-status shim \
 	docs docs-build require-harness
 
-# Optional pytest argv for ``coverage-engine`` (e.g. narrow subset in tests).
+# Optional knobs for coverage targets (tests override dirs for xdist isolation).
 COVERAGE_PYTEST_ARGS ?=
+COVERAGE_ENGINE_DIR ?= coverage
+COVERAGE_JS_DIR ?= coverage-js
 
 help: ## List targets
 	@printf "stockroom dev targets (engine: %s)\n\n" "$(ENGINE)"
@@ -67,19 +69,19 @@ test-dashboard-py: ## Dashboard pytest (tests/test_dashboard_*.py; torch-safe; n
 	cd $(ENGINE) && $(UV) run --no-sync $(UV_NO_CFG) pytest tests/test_dashboard_*.py
 
 coverage-engine: sync ## Engine pytest coverage → skills/sr-search/coverage/lcov.info
-	cd $(ENGINE) && $(UV) run --no-sync $(UV_NO_CFG) pytest \
+	cd $(ENGINE) && mkdir -p $(COVERAGE_ENGINE_DIR) && $(UV) run --no-sync $(UV_NO_CFG) pytest \
 		--cov=stockroom \
-		--cov-report=lcov:coverage/lcov.info \
+		--cov-report=lcov:$(COVERAGE_ENGINE_DIR)/lcov.info \
 		$(COVERAGE_PYTEST_ARGS)
 
 coverage-dashboard-js: ## Dashboard JS coverage → skills/sr-search/coverage-js/lcov.info (Node 22)
 	@command -v $(NODE) >/dev/null 2>&1 || { echo "Node 22 is required for dashboard tests"; exit 1; }
 	@version="$$($(NODE) --version)"; case "$$version" in v22.*) ;; *) echo "Node 22 is required for dashboard tests (found $$version)"; exit 1;; esac
-	cd $(ENGINE) && mkdir -p coverage-js && $(NODE) \
+	cd $(ENGINE) && mkdir -p $(COVERAGE_JS_DIR) && $(NODE) \
 		--experimental-test-coverage \
 		--test-coverage-include='src/stockroom/dashboard/static/**' \
 		--test-reporter=lcov \
-		--test-reporter-destination=coverage-js/lcov.info \
+		--test-reporter-destination=$(COVERAGE_JS_DIR)/lcov.info \
 		--test tests-js/*.test.mjs
 
 coverage: coverage-engine coverage-dashboard-js ## Emit both Codecov lcov reports
