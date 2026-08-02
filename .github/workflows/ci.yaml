@@ -45,11 +45,31 @@ jobs:
       - name: Format check
         run: uv run --no-sync --no-config ruff format --check
 
-      - name: Test
-        run: uv run --no-sync --no-config pytest
+      # Coverage-enabled suite (same Make targets as local). Replaces bare
+      # pytest / node --test so CI does not run each root twice.
+      - name: Coverage engine
+        working-directory: ${{ github.workspace }}
+        run: make coverage-engine
 
-      - name: Test dashboard JavaScript
-        run: node --test tests-js/*.test.mjs
+      - name: Coverage dashboard JavaScript
+        working-directory: ${{ github.workspace }}
+        run: make coverage-dashboard-js
+
+      - name: Upload engine coverage
+        uses: codecov/codecov-action@v7
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: skills/sr-search/coverage/lcov.info
+          flags: engine
+          fail_ci_if_error: false
+
+      - name: Upload dashboard-js coverage
+        uses: codecov/codecov-action@v7
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: skills/sr-search/coverage-js/lcov.info
+          flags: dashboard-js
+          fail_ci_if_error: false
 
       # REUSE compliance for the whole tree (REUSE.toml lives at the repo root).
       - name: REUSE lint

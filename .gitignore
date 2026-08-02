@@ -7,6 +7,13 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 
+# Coverage artifacts (Make coverage-* / CI → Codecov)
+.coverage
+.coverage.*
+htmlcov/
+coverage/
+coverage-js/
+
 # properdocs / MkDocs build output
 site/
 

@@ -27,9 +27,16 @@ HARNESS ?=
 SCRIPTS := scripts
 LOCALDEV_SH := $(SCRIPTS)/localdev.sh
 
-.PHONY: help sync lock lock-check test test-dashboard-js test-dashboard-py lint format format-check reuse ci torch \
+.PHONY: help sync lock lock-check test test-dashboard-js test-dashboard-py \
+	coverage coverage-engine coverage-dashboard-js \
+	lint format format-check reuse ci torch \
 	local-skills local-engine local-dashboard localdev localdev-clean localdev-status shim \
 	docs docs-build require-harness
+
+# Optional knobs for coverage targets (tests override dirs for xdist isolation).
+COVERAGE_PYTEST_ARGS ?=
+COVERAGE_ENGINE_DIR ?= coverage
+COVERAGE_JS_DIR ?= coverage-js
 
 help: ## List targets
 	@printf "stockroom dev targets (engine: %s)\n\n" "$(ENGINE)"
@@ -61,6 +68,24 @@ test-dashboard-js: ## Dashboard ES-module tests (Node 22; no sync)
 test-dashboard-py: ## Dashboard pytest (tests/test_dashboard_*.py; torch-safe; no sync)
 	cd $(ENGINE) && $(UV) run --no-sync $(UV_NO_CFG) pytest tests/test_dashboard_*.py
 
+coverage-engine: sync ## Engine pytest coverage → skills/sr-search/coverage/lcov.info
+	cd $(ENGINE) && mkdir -p $(COVERAGE_ENGINE_DIR) && $(UV) run --no-sync $(UV_NO_CFG) pytest \
+		--cov=stockroom \
+		--cov-report=lcov:$(COVERAGE_ENGINE_DIR)/lcov.info \
+		$(COVERAGE_PYTEST_ARGS)
+
+coverage-dashboard-js: ## Dashboard JS coverage → skills/sr-search/coverage-js/lcov.info (Node 22)
+	@command -v $(NODE) >/dev/null 2>&1 || { echo "Node 22 is required for dashboard tests"; exit 1; }
+	@version="$$($(NODE) --version)"; case "$$version" in v22.*) ;; *) echo "Node 22 is required for dashboard tests (found $$version)"; exit 1;; esac
+	cd $(ENGINE) && mkdir -p $(COVERAGE_JS_DIR) && $(NODE) \
+		--experimental-test-coverage \
+		--test-coverage-include='src/stockroom/dashboard/static/**' \
+		--test-reporter=lcov \
+		--test-reporter-destination=$(COVERAGE_JS_DIR)/lcov.info \
+		--test tests-js/*.test.mjs
+
+coverage: coverage-engine coverage-dashboard-js ## Emit both Codecov lcov reports
+
 lint: sync ## Run ruff check
 	$(UV_RUN) ruff check
 
@@ -78,7 +103,7 @@ shim: ## Install on-path shim for this checkout (owner: dev; TAKEOVER=1 / FORCE=
 reuse: sync ## Run reuse lint on the whole repo (REUSE.toml at root)
 	$(UV) run --project $(ENGINE) --no-sync $(UV_NO_CFG) reuse lint
 
-ci: sync lock-check lint format-check test reuse ## Full gate (matches CI)
+ci: sync lock-check lint format-check test reuse ## Full local gate (CI also collects/uploads coverage)
 
 # Docs site (root pyproject.toml docs group — separate from the engine project).
 # Requires uv: https://docs.astral.sh/uv/
