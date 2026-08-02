@@ -87,7 +87,7 @@ Wire Codecov into stockroom: collect coverage from the engine pytest and dashboa
 * Insights
     - Make-SSOT for coverage collection is the durable lesson; badge activation is ops (`CODECOV_TOKEN`)
 
-## 2026-08-01 - POST-REFLECT (PR #116) - IN-PROGRESS
+## 2026-08-01 - POST-REFLECT (PR #116) - COMPLETE
 
 * Work completed
     - Opened draft PR #116 (`ci: wire Codecov dual-root coverage and README badge`)
@@ -97,3 +97,10 @@ Wire Codecov into stockroom: collect coverage from the engine pytest and dashboa
     - Badge needs main uploads; PR upload path left as-is for now
 * Insights
     - Parallel-safe Make output knobs beat locks/xdist groups for a 4-test plumbing suite
+
+## 2026-08-01 - ARCHIVE - IN-PROGRESS
+
+* Work completed
+    - Leaving reflect/post-reflect; archiving codecov-readme-badges
+* Decisions made
+    - Archive category: features (new Codecov/coverage capability)
