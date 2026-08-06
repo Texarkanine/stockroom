@@ -26,3 +26,13 @@ Investigate dashboard Sessions panel ordering below the ellipsis fold; confirm b
     - Fix at API contract (not JS) so all consumers get consistent order
 * Insights
     - Original “10 ASC” note was correct for *selection* but wrong as a *display* contract
+
+## 2026-08-06 - QA - IN-PROGRESS
+
+* Work completed
+    - Full `make test` green (120 JS + 816 Python passed, 4 skipped)
+    - Draft PR #117 opened
+* Decisions made
+    - Proceed to Level 1 semantic QA
+* Insights
+    - None yet
