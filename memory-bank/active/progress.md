@@ -27,12 +27,13 @@ Investigate dashboard Sessions panel ordering below the ellipsis fold; confirm b
 * Insights
     - Original “10 ASC” note was correct for *selection* but wrong as a *display* contract
 
-## 2026-08-06 - QA - IN-PROGRESS
+## 2026-08-06 - QA - COMPLETE
 
 * Work completed
-    - Full `make test` green (120 JS + 816 Python passed, 4 skipped)
-    - Draft PR #117 opened
+    - Semantic review against project brief (KISS/DRY/YAGNI/completeness/regression/integrity/docs)
+    - Wrote `.qa-validation-status` = PASS
+    - Reconciled persistent memory-bank files: no updates required
 * Decisions made
-    - Proceed to Level 1 semantic QA
+    - No further code changes after QA
 * Insights
-    - None yet
+    - Selection ASC vs display DESC is the load-bearing distinction for this panel end
