@@ -15,11 +15,14 @@ Investigate dashboard Sessions panel ordering below the ellipsis fold; confirm b
 * Insights
     - Existing design docs specify newest 10 DESC + oldest 10 ASC below the fold; confirmation must decide if that ASC presentation is the defect users feel
 
-## 2026-08-06 - BUILD - IN-PROGRESS
+## 2026-08-06 - BUILD - COMPLETE
 
 * Work completed
-    - Leaving complexity analysis; entering Level 1 build
+    - Confirmed oldest-first below the ellipsis is a presentation bug (ASC wire order of the oldest end)
+    - TDD: updated `test_sessions_ends_splits_newest_and_oldest_when_total_over_20` to expect oldest-end DESC
+    - Fixed `sessions_ends` to reverse the ASC-selected oldest 10 before return
 * Decisions made
-    - None yet
+    - Keep “10 newest + … + 10 oldest” membership; only fix within-block order to DESC for reading continuity
+    - Fix at API contract (not JS) so all consumers get consistent order
 * Insights
-    - None yet
+    - Original “10 ASC” note was correct for *selection* but wrong as a *display* contract

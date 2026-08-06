@@ -1081,7 +1081,10 @@ def sessions_ends(
 
     When ``total <= 20``, ``newest`` holds all matching sessions (DESC) and
     ``oldest`` is empty. When ``total > 20``, ``newest`` is 10 DESC and
-    ``oldest`` is 10 ASC. Uses COUNT + bounded queries — not a full dump.
+    ``oldest`` is the 10 oldest sessions ordered DESC (selected ASC, then
+    reversed) so the panel reads newest→older through the ellipsis instead of
+    jumping to absolute-oldest first. Uses COUNT + bounded queries — not a
+    full dump.
     """
     names = _active_harnesses(con, harnesses)
     if not names:
@@ -1096,7 +1099,9 @@ def sessions_ends(
         )
         return {"total": total, "newest": newest, "oldest": []}
     newest = _fetch_ordered_sessions(con, where_sql, params, limit=10, order="desc")
+    # ASC selects the oldest end; reverse so wire order stays newest→older.
     oldest = _fetch_ordered_sessions(con, where_sql, params, limit=10, order="asc")
+    oldest.reverse()
     return {"total": total, "newest": newest, "oldest": oldest}
 
 
