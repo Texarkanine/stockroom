@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.21.1](https://github.com/Texarkanine/stockroom/compare/v0.21.0...v0.21.1) (2026-08-07)
+
+
+### Bug Fixes
+
+* **dashboard:** 2nd half of session list was sorted oldest-first ([#117](https://github.com/Texarkanine/stockroom/issues/117)) ([2407fe4](https://github.com/Texarkanine/stockroom/commit/2407fe49e87bedc9f114485a9fbc1defb896689e))
+
 ## [0.21.0](https://github.com/Texarkanine/stockroom/compare/v0.20.0...v0.21.0) (2026-07-31)
 
 
