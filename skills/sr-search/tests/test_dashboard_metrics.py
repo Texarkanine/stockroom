@@ -1413,12 +1413,17 @@ def test_sessions_ends_returns_all_in_newest_when_total_at_most_20(
 def test_sessions_ends_splits_newest_and_oldest_when_total_over_20(
     migrated_con: duckdb.DuckDBPyConnection,
 ) -> None:
-    """When total > 20, newest is 10 DESC and oldest is 10 ASC; N = total − 20."""
+    """When total > 20, newest is 10 DESC and oldest is 10 oldest DESC; N = total − 20.
+
+    The oldest block is the 10 oldest sessions, but ordered DESC so the panel
+    reads newest→older through the ellipsis instead of jumping to absolute-oldest
+    first.
+    """
     ids = _seed_n_sessions(migrated_con, 25)
     result = metrics.sessions_ends(migrated_con)
     assert result["total"] == 25
     assert [row["session_id"] for row in result["newest"]] == list(reversed(ids[-10:]))
-    assert [row["session_id"] for row in result["oldest"]] == ids[:10]
+    assert [row["session_id"] for row in result["oldest"]] == list(reversed(ids[:10]))
     assert len(result["newest"]) == 10
     assert len(result["oldest"]) == 10
 
