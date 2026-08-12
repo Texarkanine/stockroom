@@ -18,7 +18,8 @@ You're not locked in to inference, though: after setup it can run **fully offlin
 - **Faithful history** — full prompts, responses, and tool inputs in one local warehouse, not a truncated scrapbook.
 - **Skill-first** — day-to-day use is ask-the-agent or slash-invoke `sr-*`; the CLI is an escape hatch after setup.
 - **Local by design** — DuckDB + on-machine embeddings; no cloud index of your coding sessions.
-- **Two harnesses, one tree** — Cursor and Claude Code share the same skills and engine.
+- **Outlive the sources** — Your records stay in stockroom even if your harnesses' primary sources get wiped.
+- **Two harnesses, one warehouse** — Cursor and Claude Code share the same database and query surface.
 
 ## Quickstart
 
