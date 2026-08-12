@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.0.0](https://github.com/Texarkanine/stockroom/compare/v0.21.1...v1.0.0) (2026-08-12)
+
+
+### ⚠ BREAKING CHANGES
+
+* **docs:** Add hero image to README ([#119](https://github.com/Texarkanine/stockroom/issues/119))
+
+### Features
+
+* **docs:** Add hero image to README ([#119](https://github.com/Texarkanine/stockroom/issues/119)) ([f843660](https://github.com/Texarkanine/stockroom/commit/f843660f527e4363fc986a7e75ef047c1eec8f3a))
+
+
+### Bug Fixes
+
+* **docs:** small README text adjust ([6b4c37a](https://github.com/Texarkanine/stockroom/commit/6b4c37a0be067fea486871c8a59726279fa6ba0d))
+
 ## [0.21.1](https://github.com/Texarkanine/stockroom/compare/v0.21.0...v0.21.1) (2026-08-07)
 
 
