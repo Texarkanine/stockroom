@@ -1,3 +1,5 @@
+[![Stockroom](docs/img/stockroom-hero.gif)](https://texarkanine.github.io/stockroom/)
+
 # stockroom
 
 [![codecov](https://codecov.io/github/Texarkanine/stockroom/graph/badge.svg)](https://codecov.io/github/Texarkanine/stockroom)
