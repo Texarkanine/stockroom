@@ -27,3 +27,14 @@ Fix session-view markdown rendering so Cursor backslash paths keep hidden-dot se
     - Live :58008 and the on-path shim left alone for the other worker.
 * Insights
     - A naive preprocess that doubles backslashes would corrupt fenced code; configuring the parser avoids that.
+
+## 2026-08-26 - QA - COMPLETE (PASS)
+
+* Work completed
+    - Re-verified `bindSessionMarkdown` is the dashboard's one markdown-it instance and sole session-body call site.
+    - Re-ran `node --test tests-js/dashboard-session.test.mjs` (25/25) and `make test-dashboard-js` (121/121) worktree-local; no `make sync`, torch, shim, or :58008 touched.
+    - Probed the vendored parser with `escape` disabled: bold/italic/code/links/fenced code/space hard-breaks unaffected; only literal `\`-newline hard breaks and `\*text\*` suppression are lost, both within the intentionally-removed escape class and outside the stated acceptance criteria.
+* Decisions made
+    - No KISS/DRY/YAGNI/completeness/regression/integrity/documentation findings block acceptance. PASS.
+* Insights
+    - Import-list ordering in `dashboard.mjs` is only loosely alphabetized already; placing `bindSessionMarkdown` next to `renderSessionMessageHtml` matches existing drift, not a new violation.

@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: dashboard-md-backslash-escape
-**Phase:** BUILD - COMPLETE
+**Phase:** QA - COMPLETE (PASS)
 
 ## What Was Done
 - Root cause: CommonMark `escape` on session-body markdown-it. Stored `\.cursor` is intact.
@@ -9,4 +9,4 @@
 - Tests: new JS case on the vendored markdown-it; full worktree `make test` green.
 
 ## Next Step
-- Commit, then spawn Level 1 QA. Do not hit :58008 or the shared `stockroom` shim.
+- L1 wrap-up: persistent files skipped; completion commit. Live :58008 still deferred.
