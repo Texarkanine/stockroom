@@ -82,3 +82,15 @@ Surface warehouse-linked subagent sessions in the dashboard conversation reconst
     - `association_method` advisory declined for this task.
 * Insights
     - The first plan's unit 4 had no failing render test because `dashboard.mjs` has no DOM harness. A pure item list in `dashboard-session.mjs` is the existing-suite way to specify sibling insertion.
+
+## 2026-08-26 - PREFLIGHT - COMPLETE (PASS WITH ADVISORY)
+
+* Work completed
+    - Re-validated the repaired plan against the dashboard code: `session_detail`, `/api/session` dispatch, `dashboard-session.mjs` helpers, the `dashboard.mjs` hashchange/mount paths, the existing metrics and static tests, and the Cursor ingest slot rule.
+    - Wrote `PASS WITH ADVISORY` to `.preflight-status`; no in-phase plan edits were needed.
+* Decisions made
+    - Build is unblocked. All five prior blocking/high/medium findings are encoded in the plan; the remaining eight findings are low-severity notes and one advisory.
+* Insights
+    - `ingest/sources.py` sorts child transcripts with `sorted(subagents_dir.glob("*.jsonl"))` and `_parent_subagent_types` walks messages then tool calls skipping untyped Tasks, so the planned `source_path` + typed-Task zip reproduces ingest's own slot list exactly.
+    - `test_dashboard_static.py` gates resources, radios, and accessibility roles but not element ids, so `#session-parent` and `.session-subagent` add no static-contract work.
+    - Existing in-app session links intercept clicks to keep SPA state; the planned plain anchors are a deliberate, functionally correct deviation worth naming in QA notes.

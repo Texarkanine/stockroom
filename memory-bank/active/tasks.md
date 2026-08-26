@@ -232,6 +232,6 @@ No new technology - validation not required. No jsdom, no new front-end dependen
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
 - [ ] QA
