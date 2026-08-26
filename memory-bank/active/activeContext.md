@@ -1,11 +1,12 @@
 # Active Context
 
 ## Current Task: dashboard-subagent-pills
-**Phase:** BUILD COMPLETE
+**Phase:** QA - COMPLETE (PASS)
 
 ## What Was Done
 - Built all five plan units (TDD). Association, `session_detail` payload, hash/export helpers, transcript mount, and session-fragment docs are in.
 - Live UAT on a **separate** worktree dashboard at `:58018` (did not touch `:58008`). Parent `604ead72-0402-49f2-bceb-c22ebed2ec33` shows one pill on turn 48 (`#msg-48-sa-1`, label `L3 QA 16-hex-leafset`) linking to child `bc960b66-605b-4e83-baac-be61435555f5`. Child view shows `parent:` back to `#msg-48-sa-1`. Untyped Task at msg 55 is not a slot — no second pill.
+- QA passed with no blocking semantic findings. Lint, format, 133 JavaScript tests, and 840 Python tests passed; 4 Python tests skipped.
 
 ## Operator decisions
 - **Claude unmatched spawn id:** refuse to guess. No leftover placement.
@@ -39,4 +40,4 @@ None material — built to plan. Residual Cursor risk (two compensating holes, o
 - Live parent: 79 turns, 1 pill, `#msg-48` still present, `parent:` hidden. Live child: 19 turns, `parent:` visible, no grandchild pills. Browser-tool click on `parent:` focused the link but did not navigate; hop-back verified via href + hash boot (pill in view at `#msg-48-sa-1`).
 
 ## Next Step
-- QA review (spawned).
+- Proceed to `/niko-reflect`.

@@ -127,3 +127,13 @@ Surface warehouse-linked subagent sessions in the dashboard conversation reconst
 * Insights
     - Live parent has a typed Task at msg 48 (one pill) and an untyped "Nudge L3 QA" Task at msg 55 (not a slot). Browser-tool click on `parent:` did not navigate; href + hash boot did.
 
+## 2026-08-26 - QA - COMPLETE (PASS)
+
+* Work completed
+    - Reviewed the implementation against the re-planned requirements and both creative decisions across association, session payload, navigation, rendering, exports, and documentation.
+    - Re-ran lint, format, and the full test suite: 133 JavaScript tests passed; 840 Python tests passed, 4 skipped.
+* Decisions made
+    - PASS with no blocking semantic findings. Build does not need to rerun.
+* Insights
+    - The implementation keeps the risk-bearing association policy isolated in a pure helper and adds no schema, ingest, HTTP route, or dependency surface.
+    - Composite harness identity, stable `#msg-N` anchors, omit-if-uncorroborated placement, and loading-state parent cleanup all match the plan.
