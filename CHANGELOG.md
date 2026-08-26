@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.1.0](https://github.com/Texarkanine/stockroom/compare/v1.0.1...v1.1.0) (2026-08-26)
+
+
+### Features
+
+* **dashboard:** show spawned subagents as SUB-AGENT pills ([#126](https://github.com/Texarkanine/stockroom/issues/126)) ([3193cf5](https://github.com/Texarkanine/stockroom/commit/3193cf55709e291e61a5fb036efa404dacafb45e))
+
+
+### Bug Fixes
+
+* **dashboard:** keep hidden-dot paths in session reconstruction ([#123](https://github.com/Texarkanine/stockroom/issues/123)) ([efc38e3](https://github.com/Texarkanine/stockroom/commit/efc38e3498a4c48b064c0c7e193539ff0264ef4a))
+
 ## [1.0.1](https://github.com/Texarkanine/stockroom/compare/v1.0.0...v1.0.1) (2026-08-26)
 
 
