@@ -9,6 +9,8 @@ optionally ``conversation_summaries``) and no-ops when the DB or tables are
 absent.
 """
 
+import errno
+import os
 import sqlite3
 from pathlib import Path
 
@@ -380,3 +382,92 @@ def test_load_enrichment_empty_when_no_paths(
     """No resolved paths → empty enrichment map."""
     monkeypatch.setattr(enrich, "resolve_db_paths", lambda settings=None: [])
     assert enrich.load_enrichment() == {}
+
+
+def _tracking_db(mnt: Path, drive: str, user: str) -> Path:
+    """Create a modern ``ai-code-tracking.db`` under a fake ``/mnt`` tree."""
+    db = (
+        mnt / drive / "Users" / user / ".cursor" / "ai-tracking" / "ai-code-tracking.db"
+    )
+    db.parent.mkdir(parents=True)
+    db.write_bytes(b"x")
+    return db
+
+
+def test_wsl_walker_skips_stale_drive_letter(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """A drive letter that raises OSError on stat does not hide a sibling home."""
+    mnt = tmp_path / "mnt"
+    modern = _tracking_db(mnt, "s", "Ada")
+    stale = mnt / "i"
+    stale.mkdir()
+    real_is_dir = Path.is_dir
+
+    def is_dir(self: Path) -> bool:
+        if self == stale:
+            raise OSError(errno.ENXIO, "No such device", str(self))
+        return real_is_dir(self)
+
+    monkeypatch.setattr(Path, "is_dir", is_dir)
+    found = enrich._wsl_windows_candidate_paths(mnt=mnt)
+    legacy = mnt / "s" / "Users" / "Ada" / ".cursor" / "ai-code-tracking.db"
+    assert modern in found
+    assert legacy in found
+    assert not any(stale in path.parents or path == stale for path in found)
+
+
+def test_wsl_walker_skips_unstatable_user_home(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """One Users child that cannot be statted does not drop sibling homes."""
+    mnt = tmp_path / "mnt"
+    modern = _tracking_db(mnt, "s", "Ada")
+    bob = mnt / "s" / "Users" / "Bob"
+    bob.mkdir()
+    real_is_dir = Path.is_dir
+
+    def is_dir(self: Path) -> bool:
+        if self == bob:
+            raise OSError(errno.ENXIO, "No such device", str(self))
+        return real_is_dir(self)
+
+    monkeypatch.setattr(Path, "is_dir", is_dir)
+    found = enrich._wsl_windows_candidate_paths(mnt=mnt)
+    assert modern in found
+    assert not any(bob in path.parents or path == bob for path in found)
+
+
+def test_wsl_walker_skips_drive_when_users_listing_fails(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """A Users listing OSError on one drive does not hide another drive."""
+    mnt = tmp_path / "mnt"
+    modern = _tracking_db(mnt, "s", "Ada")
+    bad_users = mnt / "c" / "Users"
+    bad_users.mkdir(parents=True)
+    real_listdir = os.listdir
+
+    def listdir(path: str | os.PathLike[str]) -> list[str]:
+        if Path(path) == bad_users:
+            raise OSError(errno.EACCES, "Permission denied", str(path))
+        return real_listdir(path)
+
+    monkeypatch.setattr(os, "listdir", listdir)
+    found = enrich._wsl_windows_candidate_paths(mnt=mnt)
+    assert modern in found
+
+
+def test_wsl_walker_missing_mnt_returns_empty(tmp_path: Path) -> None:
+    """A missing ``mnt`` root yields no candidates and does not raise."""
+    assert enrich._wsl_windows_candidate_paths(mnt=tmp_path / "nope") == []
+
+
+def test_wsl_walker_skips_drive_without_users(tmp_path: Path) -> None:
+    """A drive with no ``Users/`` directory is skipped; others still contribute."""
+    mnt = tmp_path / "mnt"
+    modern = _tracking_db(mnt, "s", "Ada")
+    (mnt / "d").mkdir(parents=True)
+    found = enrich._wsl_windows_candidate_paths(mnt=mnt)
+    assert modern in found
+    assert not any((mnt / "d") in path.parents or path == (mnt / "d") for path in found)

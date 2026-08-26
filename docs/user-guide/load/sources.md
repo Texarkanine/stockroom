@@ -29,7 +29,7 @@ Cursor has no in-band session model grain. When available, ingest fills `session
 **Default ingest walks and merges every readable candidate:**
 
 * Linux/Mac paths under `~/.cursor/`
-* WSL Windows-home mounts under `/mnt/<drive>/Users/*/.cursor/...`
+* WSL Windows-home mounts under `/mnt/<drive>/Users/*/.cursor/...` — a stale `/mnt/<letter>` is skipped so other Windows homes are still merged
 
 Optional **additive** pins (if you've got a weird setup) live in XDG config — `$XDG_CONFIG_HOME/stockroom/config.toml` or `~/.config/stockroom/config.toml`:
 
