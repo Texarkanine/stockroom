@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/Texarkanine/stockroom/compare/v1.0.0...v1.0.1) (2026-08-26)
+
+
+### Bug Fixes
+
+* **ingest:** survive stale WSL mounts when discovering Cursor models ([#121](https://github.com/Texarkanine/stockroom/issues/121)) ([c58dda1](https://github.com/Texarkanine/stockroom/commit/c58dda1b05cfd0ad2b56e997df0c91cf5d71ddc8))
+
 ## [1.0.0](https://github.com/Texarkanine/stockroom/compare/v0.21.1...v1.0.0) (2026-08-12)
 
 
