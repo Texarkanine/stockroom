@@ -67,3 +67,8 @@ Surface warehouse-linked subagent sessions in the dashboard conversation reconst
 * Decisions made
     - Claude unmatched `spawning_tool_use_id`: refuse to guess; no leftover pill.
     - JSON export keeps the new fields; do not redact.
+
+## 2026-08-26 - PLAN - IN-PROGRESS (re-plan after blocking preflight)
+
+* Work completed
+    - Operator guidance recorded; re-entering Plan to encode the blocking findings.
