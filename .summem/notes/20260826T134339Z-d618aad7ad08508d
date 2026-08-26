@@ -1,0 +1,1 @@
+Cursor skill Path lines use Windows backslashes; warehouse keeps \.cursor; dashboard markdown-it collapses \. so .cursor glues to the parent dir.

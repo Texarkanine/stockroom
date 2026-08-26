@@ -653,6 +653,31 @@
         margin-bottom: 1.25rem;
       }
 
+      .session-parent {
+        margin: -0.85rem 0 1.25rem;
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+
+      .session-parent[hidden] {
+        display: none;
+      }
+
+      .session-parent strong {
+        color: var(--text);
+        font-weight: 700;
+      }
+
+      .session-parent a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+
+      .session-parent a:hover,
+      .session-parent a:focus-visible {
+        text-decoration: underline;
+      }
+
       .session-composition-grid {
         --session-composition-chart-height: 176px; /* keep in sync with SESSION_COMPOSITION_CHART_HEIGHT */
         margin-top: 0.35rem;
@@ -865,6 +890,33 @@
         padding: 0.75rem;
         border-radius: 0.55rem;
         background: color-mix(in srgb, var(--page) 70%, var(--surface));
+      }
+
+      .session-turn-subagent {
+        align-self: flex-start;
+        width: calc(90% - 1.5rem);
+        max-width: calc(90% - 1.5rem);
+        margin-left: 1.5rem;
+        background: color-mix(in srgb, var(--accent) 12%, var(--surface-soft));
+        border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+      }
+
+      .session-subagent-convo {
+        display: inline-block;
+        max-width: 100%;
+        padding: 0.55rem 0.85rem;
+        border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border));
+        border-radius: 0.9rem;
+        background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+        color: var(--text);
+        font-weight: 700;
+        text-decoration: none;
+      }
+
+      .session-subagent-convo:hover,
+      .session-subagent-convo:focus-visible {
+        color: var(--accent);
+        text-decoration: underline;
       }
 
       .session-tool {
@@ -1436,6 +1488,7 @@
         <section class="session-card" id="session-overview" aria-label="Session overview">
           <p class="session-section-label">session</p>
           <p class="session-meta" id="session-meta"></p>
+          <p class="session-parent" id="session-parent" hidden></p>
           <p class="session-section-label">composition</p>
           <div class="chart-grid session-composition-grid" id="session-composition">
             <article class="panel" id="session-tools-panel">

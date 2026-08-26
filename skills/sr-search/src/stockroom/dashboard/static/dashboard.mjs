@@ -56,13 +56,14 @@ import {
   isActiveSessionView,
   messageAnchorId,
   normalizePerPage,
-  parseMessageHash,
+  parseSessionFragment,
   parseSessionViewParams,
   parseSessionsListParams,
   renderSessionMessageHtml,
   bindSessionMarkdown,
   resolveMessageAnchorElement,
-  sessionLocationWithMessageHash,
+  sessionParentLine,
+  sessionTranscriptItems,
   shouldRefreshMetricsOnBoot,
 } from "./dashboard-session.mjs";
 import { mountTokenDisplay } from "./dashboard-tokens.mjs";
@@ -86,6 +87,7 @@ const elements = {
   sessionExportJson: document.querySelector("#session-export-json"),
   sessionTitle: document.querySelector("#session-title"),
   sessionMeta: document.querySelector("#session-meta"),
+  sessionParent: document.querySelector("#session-parent"),
   sessionError: document.querySelector("#session-error"),
   sessionTurns: document.querySelector("#session-turns"),
   selector: document.querySelector("#harness-selector"),
@@ -1121,6 +1123,7 @@ function renderSessionDetail(detail) {
       return nodes;
     }),
   );
+  renderSessionParentLine(detail);
 
   const selected = [harness];
   const colors = harnessColors(selected);
@@ -1154,66 +1157,143 @@ function renderSessionDetail(detail) {
   );
 
   elements.sessionTurns.replaceChildren();
-  for (const message of detail?.messages ?? []) {
-    const turn = document.createElement("article");
-    const roleName = message.role || "unknown";
-    const sideClass =
-      roleName === "user"
-        ? "session-turn-user"
-        : roleName === "assistant"
-          ? "session-turn-assistant"
-          : "";
-    turn.className = ["session-turn", sideClass].filter(Boolean).join(" ");
-    const anchorId = messageAnchorId(message.ordinal);
-    const heading = document.createElement("div");
-    heading.className = "session-turn-heading";
-    const role = document.createElement("p");
-    role.className = "session-turn-role";
-    role.textContent = roleName;
-    heading.append(role);
-    if (anchorId) {
-      turn.id = anchorId;
-      const ordinalLink = document.createElement("a");
-      ordinalLink.className = "session-turn-ordinal";
-      ordinalLink.href = `#${anchorId}`;
-      ordinalLink.textContent = `#${message.ordinal}`;
-      ordinalLink.title = `Link to message ${message.ordinal}`;
-      ordinalLink.addEventListener("click", (event) => {
-        if (
-          event.defaultPrevented ||
-          event.button !== 0 ||
-          event.metaKey ||
-          event.ctrlKey ||
-          event.shiftKey ||
-          event.altKey
-        ) {
-          return;
-        }
-        event.preventDefault();
-        navigateToMessageOrdinal(message.ordinal);
-      });
-      heading.append(ordinalLink);
+  const baseUrl = window.location.origin + window.location.pathname;
+  for (const item of sessionTranscriptItems(detail, { baseUrl })) {
+    if (item.kind === "subagent") {
+      elements.sessionTurns.append(renderSessionSubagent(item));
+      continue;
     }
-    const body = document.createElement("div");
-    body.className = "session-turn-body";
-    body.innerHTML = renderSessionMessageHtml(
-      message.text || "",
-      markdownRender,
-    );
-    turn.append(heading, body);
-    for (const tool of message.tool_calls ?? []) {
-      const detailsEl = document.createElement("details");
-      detailsEl.className = "session-tool";
-      const summary = document.createElement("summary");
-      summary.textContent = tool.tool_name || "tool";
-      const pre = document.createElement("pre");
-      pre.textContent = JSON.stringify(tool.tool_input ?? {}, null, 2);
-      detailsEl.append(summary, pre);
-      turn.append(detailsEl);
-    }
-    elements.sessionTurns.append(turn);
+    elements.sessionTurns.append(renderSessionTurn(item.message));
   }
   scrollToMessageHash();
+}
+
+function clearSessionParent() {
+  if (!elements.sessionParent) {
+    return;
+  }
+  elements.sessionParent.hidden = true;
+  elements.sessionParent.replaceChildren();
+}
+
+function renderSessionParentLine(detail) {
+  if (!elements.sessionParent) {
+    return;
+  }
+  const parentLine = sessionParentLine(detail, {
+    baseUrl: window.location.origin + window.location.pathname,
+  });
+  if (!parentLine) {
+    clearSessionParent();
+    return;
+  }
+  const label = document.createElement("strong");
+  label.textContent = "Parent: ";
+  const link = document.createElement("a");
+  link.href = parentLine.href;
+  link.textContent = parentLine.sessionId;
+  elements.sessionParent.hidden = false;
+  elements.sessionParent.replaceChildren(label, link);
+}
+
+function renderSessionSubagent(item) {
+  const card = document.createElement("article");
+  card.className = "session-turn session-turn-subagent";
+  card.id = item.anchorId;
+  const heading = document.createElement("div");
+  heading.className = "session-turn-heading";
+  const role = document.createElement("p");
+  role.className = "session-turn-role";
+  role.textContent = item.roleLabel;
+  heading.append(role);
+  if (item.anchorId) {
+    const ordinalLink = document.createElement("a");
+    ordinalLink.className = "session-turn-ordinal";
+    ordinalLink.href = `#${item.anchorId}`;
+    ordinalLink.textContent = item.ordinalLabel;
+    ordinalLink.title = `Link to ${item.ordinalLabel}`;
+    ordinalLink.addEventListener("click", (event) => {
+      if (
+        event.defaultPrevented ||
+        event.button !== 0 ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey
+      ) {
+        return;
+      }
+      event.preventDefault();
+      navigateToSessionHash(`#${item.anchorId}`);
+    });
+    heading.append(ordinalLink);
+  }
+  const body = document.createElement("div");
+  body.className = "session-turn-body";
+  const link = document.createElement("a");
+  link.className = "session-subagent-convo";
+  link.href = item.href;
+  link.textContent = item.label;
+  body.append(link);
+  card.append(heading, body);
+  return card;
+}
+
+function renderSessionTurn(message) {
+  const turn = document.createElement("article");
+  const roleName = message.role || "unknown";
+  const sideClass =
+    roleName === "user"
+      ? "session-turn-user"
+      : roleName === "assistant"
+        ? "session-turn-assistant"
+        : "";
+  turn.className = ["session-turn", sideClass].filter(Boolean).join(" ");
+  const anchorId = messageAnchorId(message.ordinal);
+  const heading = document.createElement("div");
+  heading.className = "session-turn-heading";
+  const role = document.createElement("p");
+  role.className = "session-turn-role";
+  role.textContent = roleName;
+  heading.append(role);
+  if (anchorId) {
+    turn.id = anchorId;
+    const ordinalLink = document.createElement("a");
+    ordinalLink.className = "session-turn-ordinal";
+    ordinalLink.href = `#${anchorId}`;
+    ordinalLink.textContent = `#${message.ordinal}`;
+    ordinalLink.title = `Link to message ${message.ordinal}`;
+    ordinalLink.addEventListener("click", (event) => {
+      if (
+        event.defaultPrevented ||
+        event.button !== 0 ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey
+      ) {
+        return;
+      }
+      event.preventDefault();
+      navigateToMessageOrdinal(message.ordinal);
+    });
+    heading.append(ordinalLink);
+  }
+  const body = document.createElement("div");
+  body.className = "session-turn-body";
+  body.innerHTML = renderSessionMessageHtml(message.text || "", markdownRender);
+  turn.append(heading, body);
+  for (const tool of message.tool_calls ?? []) {
+    const detailsEl = document.createElement("details");
+    detailsEl.className = "session-tool";
+    const summary = document.createElement("summary");
+    summary.textContent = tool.tool_name || "tool";
+    const pre = document.createElement("pre");
+    pre.textContent = JSON.stringify(tool.tool_input ?? {}, null, 2);
+    detailsEl.append(summary, pre);
+    turn.append(detailsEl);
+  }
+  return turn;
 }
 
 function scrollToMessageHash(hash = window.location.hash) {
@@ -1234,13 +1314,19 @@ function navigateToMessageOrdinal(ordinal) {
   if (!anchor) {
     return;
   }
-  const hash = `#${anchor}`;
+  navigateToSessionHash(`#${anchor}`);
+}
+
+/**
+ * Same-document jump to ``#msg-N`` or ``#msg-N-sa-M`` without refetching.
+ *
+ * @param {unknown} hash
+ */
+function navigateToSessionHash(hash) {
+  if (parseSessionFragment(hash) === null) {
+    return;
+  }
   if (window.location.hash !== hash) {
-    const next = sessionLocationWithMessageHash(
-      window.location.pathname,
-      window.location.search,
-      ordinal,
-    );
     window.history.pushState(
       {
         view: "session",
@@ -1248,7 +1334,7 @@ function navigateToMessageOrdinal(ordinal) {
         sessionId: sessionView?.sessionId,
       },
       "",
-      next,
+      `${window.location.pathname}${window.location.search}${hash}`,
     );
   }
   scrollToMessageHash(hash);
@@ -1275,6 +1361,7 @@ async function openSessionView(harness, sessionId, { push = true } = {}) {
   elements.sessionTurns.replaceChildren();
   elements.sessionTitle.textContent = `${displayHarness(harness)} / ${sessionId}`;
   elements.sessionMeta.textContent = "Loading session…";
+  clearSessionParent();
   if (push) {
     const params = buildSessionViewSearchParams(harness, sessionId);
     const next = `${window.location.pathname}?${params.toString()}`;
@@ -1304,6 +1391,7 @@ async function openSessionView(harness, sessionId, { push = true } = {}) {
     ) {
       showSessionError(error);
       elements.sessionMeta.textContent = "Session could not be loaded.";
+      clearSessionParent();
       setStatus(
         error?.status === 404
           ? "Session not found."
@@ -1662,7 +1750,7 @@ window.addEventListener("hashchange", () => {
     return;
   }
   // Hash-only changes must never refetch; just scroll when the target exists.
-  if (parseMessageHash(window.location.hash) === null) {
+  if (parseSessionFragment(window.location.hash) === null) {
     return;
   }
   scrollToMessageHash();
