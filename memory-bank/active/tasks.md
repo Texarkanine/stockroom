@@ -164,7 +164,7 @@ flowchart TD
 3. Write tests and run red: assert the motivating Cursor pair (typed Task @ 48, untyped Task @ 55, one child with matching `agent_type`) places `launch_ordinal=48, spawn_index=1`. Assert a Claude child whose spawn id does not join is absent. Assert two same-type children with one slot (or one missing sibling) produce no placements. Assert a unique `explore` child still places when a `generalPurpose` sibling is missing.
 4. Write code and run green: implement join / corroborated zip / unique-type rescue / omit / label in `spawns.py` only. Branch on harness only as a map onto those two techniques; unknown harness returns no placements. Put a comment on that map: a third harness is the moment to extract `provenance_join` / `corroborated_zip` (order, slots, corroboration), not to copy Cursor's Task/`source_path` knobs into another `elif`. Also name `_parent_subagent_types` in the `spawns.py` docstring as the sibling slot rule.
 
-### 2. session_detail payload — executable
+### 2. session_detail payload — executable ✅
 
 - Files: `skills/sr-search/src/stockroom/dashboard/metrics.py`, `skills/sr-search/tests/test_dashboard_metrics.py`
 - Creative ref: `creative-spawn-association.md`

@@ -20,20 +20,34 @@ def _seed_session(
     started_at: datetime | None = None,
     cwd: str | None = None,
     workspace_key: str | None = None,
+    is_subagent: bool = False,
+    parent_session_id: str | None = None,
+    spawning_tool_use_id: str | None = None,
+    agent_type: str | None = None,
+    agent_name: str | None = None,
+    title: str | None = None,
+    source_path: str | None = None,
 ) -> None:
-    """Insert one main session and a deterministic run of messages."""
+    """Insert one session and a deterministic run of messages."""
     con.execute(
         "INSERT INTO sessions "
         "(harness, session_id, project_id, cwd, workspace_key, source_path, "
-        "is_subagent, started_at, source_mtime) "
-        "VALUES (?, ?, ?, ?, ?, ?, false, ?, ?)",
+        "is_subagent, parent_session_id, spawning_tool_use_id, agent_type, "
+        "agent_name, title, started_at, source_mtime) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [
             harness,
             session_id,
             project_id,
             cwd,
             workspace_key,
-            f"/tmp/{session_id}.jsonl",
+            source_path or f"/tmp/{session_id}.jsonl",
+            is_subagent,
+            parent_session_id,
+            spawning_tool_use_id,
+            agent_type,
+            agent_name,
+            title,
             started_at,
             activity,
         ],
@@ -64,12 +78,14 @@ def _seed_tool(
     tool_name: str,
     message_ordinal: int = 0,
     tool_input: object | None = None,
+    source_tool_use_id: str | None = None,
 ) -> None:
     payload = "{}" if tool_input is None else json.dumps(tool_input)
     con.execute(
         "INSERT INTO tool_calls "
-        "(harness, session_id, message_id, ordinal, tool_name, tool_input) "
-        "VALUES (?, ?, ?, ?, ?, ?)",
+        "(harness, session_id, message_id, ordinal, tool_name, tool_input, "
+        "source_tool_use_id) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)",
         [
             harness,
             session_id,
@@ -77,6 +93,7 @@ def _seed_tool(
             ordinal,
             tool_name,
             payload,
+            source_tool_use_id,
         ],
     )
 
@@ -1679,6 +1696,7 @@ def test_session_detail_reconstructs_ordered_messages_and_nested_tools(
     assert result["model"] == "gpt-5"
     assert result["tokens"] is None
     assert [message["ordinal"] for message in result["messages"]] == [0, 1]
+    assert result["parent_spawn"] is None
     assert result["messages"][0] == {
         "message_id": "detail-1#0",
         "ordinal": 0,
@@ -1687,6 +1705,7 @@ def test_session_detail_reconstructs_ordered_messages_and_nested_tools(
         "model": "gpt-5",
         "ts": "2026-01-05T12:00:01Z",
         "tool_calls": [],
+        "subagents": [],
     }
     assert "…(+" not in result["messages"][0]["text"]
     assert result["messages"][1]["text"] == "assistant reply"
@@ -1826,6 +1845,437 @@ def test_session_detail_serves_subagent_when_addressed_directly(
     assert "child" not in {
         row["session_id"]
         for row in metrics.sessions(migrated_con, limit=50)["sessions"]
+    }
+
+
+def _message_at(detail: dict, ordinal: int) -> dict:
+    return next(
+        message for message in detail["messages"] if message["ordinal"] == ordinal
+    )
+
+
+def test_session_detail_nests_subagents_and_child_parent_spawn(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Claude join and Cursor typed-zip both nest on the parent and agree on the child."""
+    when = datetime(2026, 1, 8, 12)
+    _seed_session(
+        migrated_con,
+        harness="claude",
+        session_id="claude-parent",
+        activity=when,
+        project_id="p",
+        message_count=2,
+    )
+    _seed_tool(
+        migrated_con,
+        harness="claude",
+        session_id="claude-parent",
+        message_ordinal=1,
+        ordinal=0,
+        tool_name="Task",
+        tool_input={"description": "Look around", "subagent_type": "explore"},
+        source_tool_use_id="toolu_join",
+    )
+    _seed_session(
+        migrated_con,
+        harness="claude",
+        session_id="claude-kid",
+        activity=when,
+        project_id="p",
+        is_subagent=True,
+        parent_session_id="claude-parent",
+        spawning_tool_use_id="toolu_join",
+        agent_type="explore",
+        agent_name="Scout",
+        title="Explore run",
+    )
+    _seed_session(
+        migrated_con,
+        harness="cursor",
+        session_id="cursor-parent",
+        activity=when,
+        project_id="p",
+        message_count=3,
+    )
+    _seed_tool(
+        migrated_con,
+        harness="cursor",
+        session_id="cursor-parent",
+        message_ordinal=1,
+        ordinal=0,
+        tool_name="Task",
+        tool_input={"description": "Do the work", "subagent_type": "generalPurpose"},
+    )
+    _seed_tool(
+        migrated_con,
+        harness="cursor",
+        session_id="cursor-parent",
+        message_ordinal=2,
+        ordinal=0,
+        tool_name="Task",
+        tool_input={"description": "Nudge L3 QA"},
+    )
+    _seed_session(
+        migrated_con,
+        harness="cursor",
+        session_id="cursor-kid",
+        activity=when,
+        project_id="p",
+        is_subagent=True,
+        parent_session_id="cursor-parent",
+        agent_type="generalPurpose",
+        source_path="/tmp/cursor-kid.jsonl",
+    )
+
+    claude_parent = metrics.session_detail(migrated_con, "claude", "claude-parent")
+    assert claude_parent is not None
+    assert claude_parent["parent_spawn"] is None
+    assert _message_at(claude_parent, 0)["subagents"] == []
+    assert _message_at(claude_parent, 1)["subagents"] == [
+        {
+            "session_id": "claude-kid",
+            "agent_type": "explore",
+            "agent_name": "Scout",
+            "title": "Explore run",
+            "spawn_index": 1,
+            "label": "Look around",
+        }
+    ]
+    claude_kid = metrics.session_detail(migrated_con, "claude", "claude-kid")
+    assert claude_kid is not None
+    assert claude_kid["parent_spawn"] == {
+        "session_id": "claude-parent",
+        "message_ordinal": 1,
+        "spawn_index": 1,
+    }
+
+    cursor_parent = metrics.session_detail(migrated_con, "cursor", "cursor-parent")
+    assert cursor_parent is not None
+    assert _message_at(cursor_parent, 1)["subagents"] == [
+        {
+            "session_id": "cursor-kid",
+            "agent_type": "generalPurpose",
+            "agent_name": None,
+            "title": None,
+            "spawn_index": 1,
+            "label": "Do the work",
+        }
+    ]
+    assert _message_at(cursor_parent, 2)["subagents"] == []
+    cursor_kid = metrics.session_detail(migrated_con, "cursor", "cursor-kid")
+    assert cursor_kid is not None
+    assert cursor_kid["parent_spawn"] == {
+        "session_id": "cursor-parent",
+        "message_ordinal": 1,
+        "spawn_index": 1,
+    }
+
+
+def test_session_detail_parent_spawn_null_when_parent_row_missing(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """A child whose parent is absent still has parent_session_id and null parent_spawn."""
+    _seed_session(
+        migrated_con,
+        harness="claude",
+        session_id="orphan",
+        activity=datetime(2026, 1, 8, 13),
+        project_id="p",
+        is_subagent=True,
+        parent_session_id="ghost-parent",
+        spawning_tool_use_id="toolu_x",
+        agent_type="explore",
+    )
+    result = metrics.session_detail(migrated_con, "claude", "orphan")
+    assert result is not None
+    assert result["is_subagent"] is True
+    assert result["parent_session_id"] == "ghost-parent"
+    assert result["parent_spawn"] is None
+
+
+def test_session_detail_omits_unmatched_claude_child_from_parent(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Claude children whose spawn id does not join a parent tool are omitted."""
+    when = datetime(2026, 1, 8, 14)
+    _seed_session(
+        migrated_con,
+        harness="claude",
+        session_id="p",
+        activity=when,
+        project_id="p",
+        message_count=2,
+    )
+    _seed_tool(
+        migrated_con,
+        harness="claude",
+        session_id="p",
+        message_ordinal=1,
+        ordinal=0,
+        tool_name="Task",
+        tool_input={"description": "Spawn"},
+        source_tool_use_id="toolu_real",
+    )
+    _seed_session(
+        migrated_con,
+        harness="claude",
+        session_id="unmatched",
+        activity=when,
+        project_id="p",
+        is_subagent=True,
+        parent_session_id="p",
+        spawning_tool_use_id="toolu_other",
+        agent_type="explore",
+    )
+    parent = metrics.session_detail(migrated_con, "claude", "p")
+    assert parent is not None
+    assert all(message["subagents"] == [] for message in parent["messages"])
+
+
+def test_session_detail_unmatched_claude_child_viewed_directly(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Unmatched Claude child is still a subagent; parent_spawn stays null."""
+    when = datetime(2026, 1, 8, 15)
+    _seed_session(
+        migrated_con,
+        harness="claude",
+        session_id="p",
+        activity=when,
+        project_id="p",
+        message_count=2,
+    )
+    _seed_tool(
+        migrated_con,
+        harness="claude",
+        session_id="p",
+        message_ordinal=1,
+        ordinal=0,
+        tool_name="Task",
+        source_tool_use_id="toolu_real",
+    )
+    _seed_session(
+        migrated_con,
+        harness="claude",
+        session_id="unmatched",
+        activity=when,
+        project_id="p",
+        is_subagent=True,
+        parent_session_id="p",
+        spawning_tool_use_id=None,
+        agent_type="explore",
+    )
+    result = metrics.session_detail(migrated_con, "claude", "unmatched")
+    assert result is not None
+    assert result["is_subagent"] is True
+    assert result["parent_session_id"] == "p"
+    assert result["parent_spawn"] is None
+
+
+def test_session_detail_omits_uncorroborated_cursor_child(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Cursor extras, null agent_type, and colliding holes do not become pills."""
+    when = datetime(2026, 1, 8, 16)
+    _seed_session(
+        migrated_con,
+        harness="cursor",
+        session_id="p",
+        activity=when,
+        project_id="p",
+        message_count=3,
+    )
+    _seed_tool(
+        migrated_con,
+        harness="cursor",
+        session_id="p",
+        message_ordinal=1,
+        ordinal=0,
+        tool_name="Task",
+        tool_input={"subagent_type": "explore"},
+    )
+    _seed_tool(
+        migrated_con,
+        harness="cursor",
+        session_id="p",
+        message_ordinal=2,
+        ordinal=0,
+        tool_name="Task",
+        tool_input={"subagent_type": "generalPurpose"},
+    )
+    _seed_session(
+        migrated_con,
+        harness="cursor",
+        session_id="typeless",
+        activity=when,
+        project_id="p",
+        is_subagent=True,
+        parent_session_id="p",
+        agent_type=None,
+        source_path="/tmp/a.jsonl",
+    )
+    _seed_session(
+        migrated_con,
+        harness="cursor",
+        session_id="e1",
+        activity=when,
+        project_id="p",
+        is_subagent=True,
+        parent_session_id="p",
+        agent_type="explore",
+        source_path="/tmp/b.jsonl",
+    )
+    _seed_session(
+        migrated_con,
+        harness="cursor",
+        session_id="e2",
+        activity=when,
+        project_id="p",
+        is_subagent=True,
+        parent_session_id="p",
+        agent_type="explore",
+        source_path="/tmp/c.jsonl",
+    )
+    parent = metrics.session_detail(migrated_con, "cursor", "p")
+    assert parent is not None
+    assert all(message["subagents"] == [] for message in parent["messages"])
+
+
+def test_session_detail_uncorroborated_cursor_child_viewed_directly(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Uncorroborated Cursor child viewed directly has null parent_spawn."""
+    when = datetime(2026, 1, 8, 17)
+    _seed_session(
+        migrated_con,
+        harness="cursor",
+        session_id="p",
+        activity=when,
+        project_id="p",
+        message_count=2,
+    )
+    _seed_tool(
+        migrated_con,
+        harness="cursor",
+        session_id="p",
+        message_ordinal=1,
+        ordinal=0,
+        tool_name="Task",
+        tool_input={"subagent_type": "generalPurpose"},
+    )
+    _seed_session(
+        migrated_con,
+        harness="cursor",
+        session_id="typeless",
+        activity=when,
+        project_id="p",
+        is_subagent=True,
+        parent_session_id="p",
+        agent_type=None,
+        source_path="/tmp/typeless.jsonl",
+    )
+    result = metrics.session_detail(migrated_con, "cursor", "typeless")
+    assert result is not None
+    assert result["is_subagent"] is True
+    assert result["parent_session_id"] == "p"
+    assert result["parent_spawn"] is None
+
+
+def test_session_detail_does_not_leak_children_across_harnesses(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Same session_id string on two harnesses keeps children and parent_spawn apart."""
+    when = datetime(2026, 1, 8, 18)
+    _seed_session(
+        migrated_con,
+        harness="cursor",
+        session_id="P",
+        activity=when,
+        project_id="p",
+        message_count=2,
+    )
+    _seed_tool(
+        migrated_con,
+        harness="cursor",
+        session_id="P",
+        message_ordinal=1,
+        ordinal=0,
+        tool_name="Task",
+        tool_input={"description": "Cursor spawn", "subagent_type": "explore"},
+    )
+    _seed_session(
+        migrated_con,
+        harness="cursor",
+        session_id="cursor-child",
+        activity=when,
+        project_id="p",
+        is_subagent=True,
+        parent_session_id="P",
+        agent_type="explore",
+        source_path="/tmp/cursor-child.jsonl",
+    )
+    _seed_session(
+        migrated_con,
+        harness="claude",
+        session_id="P",
+        activity=when,
+        project_id="p",
+        message_count=2,
+    )
+    _seed_tool(
+        migrated_con,
+        harness="claude",
+        session_id="P",
+        message_ordinal=1,
+        ordinal=0,
+        tool_name="Task",
+        tool_input={"description": "Claude spawn"},
+        source_tool_use_id="toolu_claude",
+    )
+    _seed_session(
+        migrated_con,
+        harness="claude",
+        session_id="claude-child",
+        activity=when,
+        project_id="p",
+        is_subagent=True,
+        parent_session_id="P",
+        spawning_tool_use_id="toolu_claude",
+        agent_type="generalPurpose",
+    )
+
+    cursor_parent = metrics.session_detail(migrated_con, "cursor", "P")
+    assert cursor_parent is not None
+    cursor_subs = [
+        child["session_id"]
+        for message in cursor_parent["messages"]
+        for child in message["subagents"]
+    ]
+    assert cursor_subs == ["cursor-child"]
+
+    claude_parent = metrics.session_detail(migrated_con, "claude", "P")
+    assert claude_parent is not None
+    claude_subs = [
+        child["session_id"]
+        for message in claude_parent["messages"]
+        for child in message["subagents"]
+    ]
+    assert claude_subs == ["claude-child"]
+
+    cursor_child = metrics.session_detail(migrated_con, "cursor", "cursor-child")
+    assert cursor_child is not None
+    assert cursor_child["parent_spawn"] == {
+        "session_id": "P",
+        "message_ordinal": 1,
+        "spawn_index": 1,
+    }
+    claude_child = metrics.session_detail(migrated_con, "claude", "claude-child")
+    assert claude_child is not None
+    assert claude_child["parent_spawn"] == {
+        "session_id": "P",
+        "message_ordinal": 1,
+        "spawn_index": 1,
     }
 
 

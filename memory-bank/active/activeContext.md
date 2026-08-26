@@ -28,4 +28,4 @@
 - Advisory `placements(con, harness, session_id)` declined for this task (same YAGNI as `association_method`).
 
 ## Next Step
-- Unit 2: `session_detail` payload (`subagents` / `parent_spawn`) — TDD.
+- Unit 3: hash, fragment, parent-link, and export helpers — TDD.

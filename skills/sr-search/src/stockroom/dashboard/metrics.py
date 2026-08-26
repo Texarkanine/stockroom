@@ -24,6 +24,7 @@ from typing import Any
 import duckdb
 
 from stockroom.dashboard import model_usage, skill_usage
+from stockroom.dashboard.spawns import ChildSession, ParentTool, associate_children
 from stockroom.timestamps import to_utc_naive, utc_now
 from stockroom.truncate import truncate_cell
 
@@ -1183,6 +1184,101 @@ def _session_skills_payload(
     }
 
 
+def _spawn_parent_tools(
+    con: duckdb.DuckDBPyConnection,
+    harness: str,
+    session_id: str,
+) -> list[ParentTool]:
+    """Load parent tool rows for spawn association (includes provenance id)."""
+    rows = con.execute(
+        "SELECT m.ordinal, t.ordinal, t.tool_name, t.tool_input, "
+        "t.source_tool_use_id "
+        "FROM tool_calls t "
+        "JOIN messages m ON m.harness = t.harness AND m.session_id = t.session_id "
+        "AND m.message_id = t.message_id "
+        "WHERE t.harness = ? AND t.session_id = ? "
+        "ORDER BY m.ordinal, t.ordinal",
+        [harness, session_id],
+    ).fetchall()
+    return [
+        ParentTool(
+            message_ordinal=message_ordinal,
+            tool_ordinal=tool_ordinal,
+            tool_name=tool_name,
+            tool_input=_parse_tool_input(tool_input),
+            source_tool_use_id=source_tool_use_id,
+        )
+        for (
+            message_ordinal,
+            tool_ordinal,
+            tool_name,
+            tool_input,
+            source_tool_use_id,
+        ) in rows
+    ]
+
+
+def _spawn_children(
+    con: duckdb.DuckDBPyConnection,
+    harness: str,
+    parent_session_id: str,
+) -> list[ChildSession]:
+    """Load child sessions of one parent, keyed by composite identity."""
+    rows = con.execute(
+        "SELECT session_id, agent_type, agent_name, title, "
+        "spawning_tool_use_id, source_path "
+        "FROM sessions WHERE harness = ? AND parent_session_id = ?",
+        [harness, parent_session_id],
+    ).fetchall()
+    return [
+        ChildSession(
+            session_id=session_id,
+            agent_type=agent_type,
+            agent_name=agent_name,
+            title=title,
+            spawning_tool_use_id=spawning_tool_use_id,
+            source_path=source_path,
+        )
+        for (
+            session_id,
+            agent_type,
+            agent_name,
+            title,
+            spawning_tool_use_id,
+            source_path,
+        ) in rows
+    ]
+
+
+def _parent_spawn_for_child(
+    con: duckdb.DuckDBPyConnection,
+    harness: str,
+    session_id: str,
+    parent_session_id: str | None,
+) -> dict[str, Any] | None:
+    """Return parent_spawn for an opened child, or None if unplaced/missing parent."""
+    if not parent_session_id:
+        return None
+    parent = con.execute(
+        "SELECT session_id FROM sessions WHERE harness = ? AND session_id = ?",
+        [harness, parent_session_id],
+    ).fetchone()
+    if parent is None:
+        return None
+    for placement in associate_children(
+        harness,
+        _spawn_parent_tools(con, harness, parent_session_id),
+        _spawn_children(con, harness, parent_session_id),
+    ):
+        if placement.session_id == session_id:
+            return {
+                "session_id": parent_session_id,
+                "message_ordinal": placement.launch_ordinal,
+                "spawn_index": placement.spawn_index,
+            }
+    return None
+
+
 def session_detail(
     con: duckdb.DuckDBPyConnection,
     harness: str,
@@ -1196,6 +1292,11 @@ def session_detail(
 
     Also includes ``title`` (nullable) and session-scoped ``tools`` / ``skills``
     aggregates shaped like :func:`tools` / :func:`skills` for Chart.js reuse.
+
+    Every message includes ``subagents`` (possibly ``[]``):
+    ``{session_id, agent_type, agent_name, title, spawn_index, label}``.
+    Top-level ``parent_spawn`` is always present: ``None`` or
+    ``{session_id, message_ordinal, spawn_index}`` for the opened child.
     """
     row = con.execute(
         f"SELECT s.harness, s.session_id, s.project_id, s.cwd, s.models, "
@@ -1266,8 +1367,35 @@ def session_detail(
                 "model": model,
                 "ts": _iso(ts),
                 "tool_calls": tools_by_message.get(message_id, []),
+                "subagents": [],
             }
         )
+
+    by_ordinal = {message["ordinal"]: message for message in messages}
+    for placement in associate_children(
+        row_harness,
+        _spawn_parent_tools(con, row_harness, row_session_id),
+        _spawn_children(con, row_harness, row_session_id),
+    ):
+        host = by_ordinal.get(placement.launch_ordinal)
+        if host is None:
+            continue
+        host["subagents"].append(
+            {
+                "session_id": placement.session_id,
+                "agent_type": placement.agent_type,
+                "agent_name": placement.agent_name,
+                "title": placement.title,
+                "spawn_index": placement.spawn_index,
+                "label": placement.label,
+            }
+        )
+
+    parent_spawn = (
+        _parent_spawn_for_child(con, row_harness, row_session_id, parent_session_id)
+        if is_subagent
+        else None
+    )
 
     session_model: str | None = None
     if model_counts:
@@ -1286,6 +1414,7 @@ def session_detail(
         "started": _iso(activity),
         "is_subagent": bool(is_subagent),
         "parent_session_id": parent_session_id,
+        "parent_spawn": parent_spawn,
         "title": title,
         "model": session_model,
         "tokens": _tokens_payload(
