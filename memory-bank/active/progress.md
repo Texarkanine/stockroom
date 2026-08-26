@@ -71,3 +71,10 @@ Diagnose why Cursor model fields go dark after ~2026-08-20, and — if Stockroom
 * Insights
     - List names, then stat: an `iterdir()` try/except does not survive a child `is_dir()` raise
     - Transcript ingest and model enrichment are different roots; only enrichment walks `/mnt`
+
+## 2026-08-25 - ARCHIVE - IN-PROGRESS
+
+* Work completed
+    - Entering archive after REFLECT COMPLETE
+* Decisions made
+    - Category: `bug-fixes/` (missing Cursor models, not a new feature)
