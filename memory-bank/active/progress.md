@@ -137,3 +137,14 @@ Surface warehouse-linked subagent sessions in the dashboard conversation reconst
 * Insights
     - The implementation keeps the risk-bearing association policy isolated in a pure helper and adds no schema, ingest, HTTP route, or dependency surface.
     - Composite harness identity, stable `#msg-N` anchors, omit-if-uncorroborated placement, and loading-state parent cleanup all match the plan.
+
+## 2026-08-26 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `memory-bank/active/reflection/reflection-dashboard-subagent-pills.md`.
+    - Reconciled persistent files: productContext and systemPatterns unchanged; techContext already named both fragment forms in Build unit 5.
+* Decisions made
+    - Archive is the next operator command (`/niko-archive`). No L4 milestones file.
+* Insights
+    - The first plan's leftover and untested `dashboard.mjs` mount would have shipped a guessed turn or a spawn hash that `hashchange` ignored. Preflight blocking those was the high-leverage phase.
+    - An untyped parent Task is not a spawn slot. Omit-if-uncorroborated is the policy the tests now encode.
