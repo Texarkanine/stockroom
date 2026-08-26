@@ -1188,7 +1188,7 @@ function renderSessionParentLine(detail) {
     return;
   }
   const label = document.createElement("strong");
-  label.textContent = "parent: ";
+  label.textContent = "Parent: ";
   const link = document.createElement("a");
   link.href = parentLine.href;
   link.textContent = parentLine.sessionId;
