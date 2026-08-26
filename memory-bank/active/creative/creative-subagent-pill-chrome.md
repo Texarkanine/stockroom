@@ -56,7 +56,7 @@ Key insights:
 
 **Selected**: Option B — sibling inset card under the launching turn, plus the already-chosen `parent:` line under session metadata.
 **Rationale**: It is the operator's placement, it keeps `#msg-N` stable, and it gives the spawn its own scroll target and color without inventing a new page region.
-**Tradeoff**: A turn that launched several children grows several inset cards (acceptable; `sa-n` exists for that). Unmatched leftover children (algorithm fallback) use the same chrome under their fallback turn — they will look like they belong to that turn.
+**Tradeoff**: A turn that launched several children grows several inset cards (acceptable; `sa-n` exists for that). Children that cannot be corroborated are omitted — no fallback chrome on a guessed turn.
 
 ## Implementation Notes
 

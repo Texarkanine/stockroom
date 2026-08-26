@@ -6,7 +6,7 @@
 
 Surface warehouse-linked subagent sessions as distinct inline pills in the dashboard conversation reconstruction, plus a `parent:` line on subagent views. Existing `#msg-N` numbering stays; new anchors are `#msg-{ordinal}-sa-{n}`.
 
-This is a re-plan after preflight `FAIL (blocking)`. Operator decisions: Claude unmatched spawn ids are omitted (no leftover); JSON export keeps the new session-detail fields.
+This is a re-plan after preflight `FAIL (blocking)`. Operator decisions: Claude unmatched spawn ids are omitted; JSON export keeps the new session-detail fields; a pill is a positive claim and must never be a guessed turn.
 
 ## Pinned Info
 
@@ -28,7 +28,7 @@ flowchart TD
 
 ### Association policy
 
-Read-time placement. Claude never guesses a turn. Cursor leftover still needs the parent's message ordinals when there are no tools.
+A pill is a positive claim. Omit when uncorroborated. Missing a pill is acceptable; a pill on the wrong turn is not.
 
 ```mermaid
 flowchart TD
@@ -38,14 +38,18 @@ flowchart TD
     classDef drop fill:#fff3e0,stroke:#ef6c00;
 
     Kids["Children WHERE harness AND parent_session_id"]:::store --> Branch{"harness"}:::logic
-    Tools["Parent tools + message ordinals"]:::store --> Branch
+    Tools["Parent tools"]:::store --> Branch
     Branch -->|"claude"| Join["Join spawning_tool_use_id = source_tool_use_id"]:::logic
-    Branch -->|"cursor"| Zip["Zip source_path-sorted children to typed Task slots"]:::logic
-    Join -->|"no join"| Omit["Omit — no pill"]:::drop
+    Branch -->|"cursor"| Cursor["Candidates with agent_type, typed Task slots"]:::logic
+    Branch -->|"other"| Omit["Omit — no pill"]:::drop
+    Join -->|"no join"| Omit
     Join -->|"joined"| Index["spawn_index 1-based per launch_ordinal"]:::logic
-    Zip -->|"extra children"| Leftover["Last Task-bearing turn, else last message ordinal"]:::logic
-    Zip -->|"zipped"| Index
-    Leftover --> Index
+    Cursor --> Aligned{"counts equal and type sequence matches?"}:::logic
+    Aligned -->|"yes"| Zip["Place the zip"]:::logic
+    Aligned -->|"no"| Unique["Place unique agent_type pairs only"]:::logic
+    Zip --> Index
+    Unique --> Index
+    Unique -->|"ambiguous or extra"| Omit
     Index --> Msg["messages[].subagents"]:::out
     Index --> Back["parent_spawn on child view"]:::out
 ```
@@ -54,7 +58,7 @@ flowchart TD
 
 ### Affected Components
 
-- **`stockroom.dashboard.spawns` (new)**: none today → pure read-time association + label. No warehouse writes. Inputs are harness, parent tools, children, and parent message ordinals.
+- **`stockroom.dashboard.spawns` (new)**: none today → pure read-time association + label. No warehouse writes. Inputs are harness, parent tools, and children.
 - **`stockroom.dashboard.metrics.session_detail`**: reconstructs one session (messages + nested tools; already returns `is_subagent` / `parent_session_id`; does not exclude subagents) → attach `messages[].subagents` and `parent_spawn`. Child, parent, and sibling queries filter on `(harness, session_id)`.
 - **`/api/session` (`dashboard.server`)**: already serves `session_detail` JSON → no new route; payload grows.
 - **`dashboard-session.mjs`**: `#msg-N` helpers and exporters only → spawn anchors, generic fragment parser, parent-line href, transcript/parent-line render model, JSON identity export of the new fields.
@@ -63,7 +67,7 @@ flowchart TD
 
 ### Cross-Module Dependencies
 
-- `session_detail` → `associate_children` (in-process). Extra `sessions` query for children of this `(harness, session_id)`. For a child view: parent row + parent tools + parent message ordinals + sibling children, all keyed by the same harness.
+- `session_detail` → `associate_children` (in-process). Extra `sessions` query for children of this `(harness, session_id)`. For a child view: parent row + parent tools + sibling children, all keyed by the same harness.
 - Render model in `dashboard-session.mjs` → `/api/session` JSON. `dashboard.mjs` only mounts that model and wires hashchange to the fragment helper.
 - Sessions list / metrics stay `NOT is_subagent`. No ingest, no schema.
 
@@ -80,9 +84,10 @@ flowchart TD
 
 - `#msg-N` still identifies the existing turn card; `parseMessageHash` stays `^#msg-(\d+)$`.
 - A child session appears in at most one pill.
-- Claude children attach only via the provenance join. Missing or unmatched `spawning_tool_use_id` yields no pill and no leftover placement.
-- Cursor leftover (extra children beyond typed Task slots) hangs off the last Task-bearing turn, else the last parent message ordinal. The helper receives those ordinals so a no-tool parent still has a fallback.
-- Cursor zip uses the same typed-Task slots ingest uses for `agent_type`.
+- Claude children attach only via the provenance join. Missing or unmatched `spawning_tool_use_id` yields no pill.
+- A pill is a corroborated assignment. Cursor leftover is forbidden. An unchecked zip that can shift after a hole is forbidden.
+- Cursor places only when corroborated: aligned zip (`len(candidates) == len(slots)` and each `child.agent_type == slot.subagent_type`) or, failing that, unique `agent_type` pairs. Candidates are children with non-null `agent_type`. Slots are the same typed-Task list ingest uses (`_parent_subagent_types`).
+- Association is a harness→technique map (`claude` → provenance join, `cursor` → corroborated zip). Unknown harness → no placements. The map site in `spawns.py` gets a comment: adding a third harness is the cue to lift the two techniques out, not to add another `elif` that copies Cursor knobs.
 - Child, parent, and sibling SQL filters on both `harness` and `session_id` / `parent_session_id`.
 - Sessions browse list remains top-level only.
 - Child transcript text is never copied into the parent view.
@@ -90,10 +95,11 @@ flowchart TD
 
 ## Open Questions
 
-- [x] Spawn-to-turn association → Resolved: Claude provenance join + Cursor typed-Task zip at read time; Cursor leftover hangs off the last Task-bearing turn else last message (see `memory-bank/active/creative/creative-spawn-association.md`).
+- [x] Spawn-to-turn association → Resolved: Claude provenance join + Cursor corroborated zip (aligned type sequence, else unique `agent_type` only). No leftover (see `memory-bank/active/creative/creative-spawn-association.md`).
 - [x] Subagent pill chrome → Resolved: sibling inset card under the launching turn; heading-as-single-link; `parent:` under session metadata (see `memory-bank/active/creative/creative-subagent-pill-chrome.md`).
-- [x] Claude unmatched spawn id → Resolved by operator: refuse to guess; omit the child; no leftover.
+- [x] Claude unmatched spawn id → Resolved by operator: refuse to guess; omit the child.
 - [x] JSON export of new fields → Resolved by operator: keep `messages[].subagents` and `parent_spawn`; do not redact.
+- [x] False-positive pills → Resolved by operator: omit rather than guess. Cursor leftover and unchecked shifting zip are forbidden.
 
 ## Test Plan (TDD)
 
@@ -101,12 +107,14 @@ flowchart TD
 
 - Claude child with `spawning_tool_use_id` matching a parent Task → pill on that Task's message ordinal, `spawn_index` 1.
 - Claude child whose `spawning_tool_use_id` is missing or does not join any parent tool → no placement (not leftover).
-- Cursor children ordered by `source_path` zip to `Task` calls that have `subagent_type`, in `(message.ordinal, tool.ordinal)` order.
-- Cursor `Task` with null `subagent_type` (nudge) does not consume a zip slot (motivating session: child on 48, not 55).
-- Two children on one turn → `sa-1` then `sa-2` without changing message ordinals.
-- Extra typed Tasks beyond child count → no pill for the extra Task.
-- Extra Cursor children beyond typed Tasks → leftover on last Task-bearing turn, else last message ordinal.
-- Parent with messages and no tools plus extra Cursor children → leftover uses the last message ordinal (helper is given `message_ordinals`).
+- Cursor children with `agent_type` set, counts equal to typed Task slots, and `agent_type` matching each slot's `subagent_type` in `source_path` / `(message.ordinal, tool.ordinal)` order → aligned zip, place all.
+- Cursor `Task` with null `subagent_type` (nudge) does not consume a slot (motivating session: one typed Task @ 48, one child → place on 48).
+- Two corroborated children on one turn → `sa-1` then `sa-2` without changing message ordinals.
+- Extra typed Tasks beyond candidate count → no zip; place only unique `agent_type` pairs; extras omitted (not leftover).
+- Extra Cursor children, or children with `agent_type is None` → omitted, not hung on the last Task or last message.
+- Missing middle child (counts disagree) and remaining types collide → no placements (do not shift).
+- Missing child of a unique type, other types still unique → place the remaining unique pairs only.
+- Aligned zip type-sequence mismatch (counts equal, one `agent_type` ≠ slot type) → do not zip; unique pairs only.
 - Every message in `session_detail` has `subagents` (possibly `[]`); top-level sessions have `parent_spawn: null`.
 - Child `session_detail` sets `parent_spawn` from the same association; missing parent row → `parent_spawn` is null but `parent_session_id` still set.
 - Same `session_id` string on two harnesses does not leak children or parent_spawn across harnesses.
@@ -127,6 +135,7 @@ flowchart TD
 - Invalid hashes (`#msg-48-sa-0`, `#msg-48-sa-`, `#msg-12x`) → fragment helper is null; no scroll target.
 - Message ordinal 0 is a valid launch ordinal (do not treat 0 as missing).
 - Unmatched Claude child viewed directly → `is_subagent` true, `parent_spawn` null, hash-less parent href.
+- Uncorroborated Cursor child viewed directly → `is_subagent` true, `parent_spawn` null, hash-less parent href.
 
 ### Test Infrastructure
 
@@ -150,20 +159,20 @@ flowchart TD
 - Files: `skills/sr-search/src/stockroom/dashboard/spawns.py`, `skills/sr-search/tests/test_dashboard_spawns.py`
 - Creative ref: `memory-bank/active/creative/creative-spawn-association.md` (including Operator Amendment), label rule in `creative-subagent-pill-chrome.md`
 
-1. Stub tests: empty cases in `test_dashboard_spawns.py` for Claude join, Claude unmatched omit, Cursor typed zip, untyped Task skipped, multi-child `spawn_index`, leftover fallback, no-tool parent leftover, label chain.
-2. Stub interface: `associate_children(harness, tools, children, message_ordinals) -> list[placement]`, `spawn_label(...)`, small dataclasses/`TypedDict`s for tool rows, child rows, placements (`launch_ordinal`, `spawn_index`, `session_id`, `label`, identity fields). Do not implement join/zip yet.
-3. Write tests and run red: assert the motivating Cursor pair (typed Task @ 48, untyped Task @ 55, one child) places `launch_ordinal=48, spawn_index=1`. Assert a Claude child whose spawn id does not join is absent from the placement list. Assert a Cursor leftover on a no-tool parent uses `message_ordinals[-1]`.
-4. Write code and run green: implement join / zip / Cursor leftover / Claude omit / label in `spawns.py` only.
+1. Stub tests: empty cases in `test_dashboard_spawns.py` for Claude join, Claude unmatched omit, Cursor aligned zip, untyped Task skipped, unique-type rescue, count-mismatch omit (no shift), extra-child omit, null-`agent_type` omit, type-sequence mismatch, multi-child `spawn_index`, label chain.
+2. Stub interface: `associate_children(harness, tools, children) -> list[placement]`, `spawn_label(...)`, small dataclasses/`TypedDict`s for tool rows, child rows, placements (`launch_ordinal`, `spawn_index`, `session_id`, `label`, identity fields). Do not implement join/zip yet. No `message_ordinals`.
+3. Write tests and run red: assert the motivating Cursor pair (typed Task @ 48, untyped Task @ 55, one child with matching `agent_type`) places `launch_ordinal=48, spawn_index=1`. Assert a Claude child whose spawn id does not join is absent. Assert two same-type children with one slot (or one missing sibling) produce no placements. Assert a unique `explore` child still places when a `generalPurpose` sibling is missing.
+4. Write code and run green: implement join / corroborated zip / unique-type rescue / omit / label in `spawns.py` only. Branch on harness only as a map onto those two techniques; unknown harness returns no placements. Put a comment on that map: a third harness is the moment to extract `provenance_join` / `corroborated_zip` (order, slots, corroboration), not to copy Cursor's Task/`source_path` knobs into another `elif`. Also name `_parent_subagent_types` in the `spawns.py` docstring as the sibling slot rule.
 
 ### 2. session_detail payload — executable
 
 - Files: `skills/sr-search/src/stockroom/dashboard/metrics.py`, `skills/sr-search/tests/test_dashboard_metrics.py`
 - Creative ref: `creative-spawn-association.md`
 
-1. Stub tests: new cases for parent `messages[].subagents`, child `parent_spawn`, missing-parent `parent_spawn is None`, unmatched Claude child omitted from the parent payload, cross-harness collision; extend `_seed_tool` with optional `source_tool_use_id`.
+1. Stub tests: new cases for parent `messages[].subagents`, child `parent_spawn`, missing-parent `parent_spawn is None`, unmatched Claude child omitted from the parent payload, uncorroborated Cursor child omitted (count hole / null `agent_type`), cross-harness collision; extend `_seed_tool` with optional `source_tool_use_id`.
 2. Stub interface: keep `session_detail` the same function; document the new keys on the return value only. Do not add child/parent SQL or call `associate_children` in this step.
 3. Write tests and run red: existing exact message dict fails until `subagents: []` / `parent_spawn: null` are specified — update that fixture as part of writing the new assertions, not by weakening it. Cross-harness case fails until queries include `harness`.
-4. Write code and run green: `session_detail` selects `source_tool_use_id` for association only (omit from public `tool_calls`); query children with `harness = ? AND parent_session_id = ?`; when `is_subagent`, load the parent by `(harness, parent_session_id)` plus that parent's tools, message ordinals, and sibling children; call `associate_children`; nest results. Do not add a new HTTP route.
+4. Write code and run green: `session_detail` selects `source_tool_use_id` for association only (omit from public `tool_calls`); query children with `harness = ? AND parent_session_id = ?`; when `is_subagent`, load the parent by `(harness, parent_session_id)` plus that parent's tools and sibling children; call `associate_children`; nest results. Do not add a new HTTP route.
 
 ### 3. Hash, fragment, parent-link, and export helpers — executable
 
@@ -207,8 +216,8 @@ No new technology - validation not required. No jsdom, no new front-end dependen
 - **Existing exact `session_detail` message dict** will fail when `subagents` is added: update that assertion in the same TDD step; do not drop exactness.
 - **`_seed_tool` omits `source_tool_use_id`**: extend the helper so Claude fixtures do not hand-roll SQL.
 - **`dashboard.mjs` is not unit-tested**: specify pill order, parent-line visibility, and href/anchor data in `sessionTranscriptItems` / `sessionParentLine`; `dashboard.mjs` only mounts that model and swaps the hashchange predicate.
-- **Cursor leftover looks like it belongs to the last Task turn**: documented fallback; test the no-tool parent so the last-message path is intentional.
-- **Preflight advisory `association_method`**: out of scope. Operator did not ask for a confidence badge; leftover is Cursor-only and already documented. Do not add the field in this task.
+- **Cursor zip can still lie when two compensating holes leave one shared type**: documented residual; no further warehouse signal. Do not invent leftover or time-proximity to "fix" it.
+- **Preflight advisory `association_method`**: out of scope. Confidence badges do not make a guessed turn true. Do not add the field in this task.
 - **Live UAT** on `604ead72-…` / `bc960b66-…` is verification after build, not a substitute for seeded tests (warehouse recency can move). This machine has one live dashboard; do not rectify the shim or restart `:58008` from a parallel worktree.
 
 ## Pre-Mortem
@@ -218,8 +227,8 @@ No new technology - validation not required. No jsdom, no new front-end dependen
 - **Plan treated this as an ingest/schema feature**: cut that — current rows are sufficient; if build discovers they are not, stop and open a new question rather than sneaking a migration.
 - **Pills rendered inside `#msg-N` so spawn hashes scroll to the turn**: the render model must emit sibling items; if a review finds pills nested inside the turn article, that is a failed unit 4, not a CSS tweak.
 - **Unit 4 again schedules no failing render test**: already covered — model tests go red before any `dashboard.mjs` / `index.html` edit.
-- **`associate_children` cannot place leftover without messages**: already covered — `message_ordinals` is a required argument.
-- **Claude unmatched silently becomes leftover**: already covered — negative helper + `session_detail` tests.
+- **Cursor extras silently become leftover**: already covered — leftover is gone; extra/null-`agent_type` children are omit tests.
+- **Count mismatch still zips and shifts**: already covered — aligned zip requires count and type sequence; hole with colliding types must place nothing.
 - **JSON export surprise**: already covered — invariant revised; JSON keeps the fields; markdown stays pill-free; both have tests.
 - **Cross-harness `session_id` collision attaches the wrong child**: already covered — composite-identity queries + collision test.
 - **Operator sees the nudge Task and expects a second pill**: not a bug — untyped Task is not a spawn slot. Mention in QA notes if the live example is used.

@@ -53,13 +53,16 @@ Key insights:
 
 **Selected**: Option C — Claude provenance join + Cursor typed-Task zip, computed at read time in `session_detail`.
 **Rationale**: It is the only option that places the motivating Cursor child under `#msg-48` without a schema change, and it uses the same Task slots ingest already uses for `agent_type`.
-**Tradeoff**: Cursor placement stays best-effort (same honesty as ingest). Extra Cursor children (more children than typed Tasks) still get a pill, hung off the last Task-bearing turn if any, else the last message, so the `#msg-{ordinal}-sa-{n}` grammar stays one scheme. Claude unmatched spawn ids do not use that leftover (see Operator Amendment).
+**Tradeoff**: Cursor placement is omit-if-uncorroborated, not best-effort leftover. Extra children and holes produce missing pills, not a guessed turn. Claude unmatched spawn ids are omitted (see Operator Amendment).
 
 ## Implementation Notes
 
-- Add a pure helper (e.g. `stockroom.dashboard.spawns.associate_children`) that takes parent tool rows, child session rows, **and the parent's message ordinals** (needed for the no-tool leftover). `session_detail` is the only caller.
-- **Claude**: for each child with `spawning_tool_use_id`, find the parent tool call with matching `source_tool_use_id`; `launch_ordinal` is that call's message ordinal. Unmatched or missing spawn ids are omitted — no leftover pill.
-- **Cursor**: children ordered by `source_path` (same as `sorted(subagents_dir.glob("*.jsonl"))`). Slots are parent tools where `tool_name == "Task"` and `tool_input.subagent_type is not None`, in message/tool ordinal order. Zip 1:1. Extra typed Tasks get no pill. Extra children use the leftover rule (last Task-bearing turn, else last parent message ordinal).
+- Add a pure helper (e.g. `stockroom.dashboard.spawns.associate_children`) that takes parent tool rows and child session rows. `session_detail` is the only caller. No `message_ordinals` — leftover is gone.
+- **Claude**: for each child with `spawning_tool_use_id`, find the parent tool call with matching `source_tool_use_id`; `launch_ordinal` is that call's message ordinal. Unmatched or missing spawn ids are omitted.
+- **Cursor**: candidates are children with non-null `agent_type`, ordered by `source_path`. Slots are parent tools where `tool_name == "Task"` and `tool_input.subagent_type is not None`, in message/tool ordinal order. Place only when corroborated:
+  1. **Aligned zip** if `len(candidates) == len(slots)` and every pair has `child.agent_type == slot.subagent_type`. Then place all.
+  2. **Else unique type** only: a type that appears once among candidates and once among slots places that pair. Everything else is omitted.
+  Never leftover. Never zip when counts or the type sequence disagree (that is the shift). Children with `agent_type is None` are omitted.
 - `spawn_index` is 1-based among children that share the same `launch_ordinal`, in the order they were assigned (Claude: stable by `session_id`; Cursor: `source_path` order).
 - `session_detail` payload:
   - Each message gains `subagents: [{session_id, agent_type, agent_name, title, spawn_index}]` (empty list when none).
@@ -74,18 +77,23 @@ flowchart TD
     classDef out fill:#e8f5e9,stroke:#2e7d32;
 
     Kids["Child sessions WHERE harness + parent_session_id"]:::store --> Branch{"harness"}:::logic
-    Tools["Parent tool_calls + message ordinals"]:::store --> Branch
+    Tools["Parent tool_calls"]:::store --> Branch
     Branch -->|"claude"| Join["Join spawning_tool_use_id = source_tool_use_id"]:::logic
-    Branch -->|"cursor"| Zip["Zip source_path-sorted children to Task calls with subagent_type"]:::logic
-    Join -->|"unmatched or missing id"| Omit["Omit child — no pill"]:::logic
+    Branch -->|"cursor"| Cursor["Candidates with agent_type, typed Task slots"]:::logic
+    Join -->|"unmatched or missing id"| Omit["Omit — no pill"]:::logic
     Join -->|"matched"| Index
-    Zip -->|"extra children"| Leftover["Last Task-bearing turn, else last message"]:::logic
-    Zip -->|"zipped"| Index
-    Leftover --> Index["spawn_index = 1-based per launch_ordinal"]:::logic
+    Cursor --> Aligned{"counts equal and type sequence matches?"}:::logic
+    Aligned -->|"yes"| Zip["Place the zip"]:::logic
+    Aligned -->|"no"| Unique["Place unique agent_type pairs only"]:::logic
+    Zip --> Index["spawn_index = 1-based per launch_ordinal"]:::logic
+    Unique --> Index
+    Unique -->|"ambiguous or extra"| Omit
     Index --> Msg["messages[].subagents"]:::out
     Index --> Back["parent_spawn on child session_detail"]:::out
 ```
 
 ## Operator Amendment
 
-2026-08-26, after blocking preflight: Claude children whose `spawning_tool_use_id` is missing or does not join a parent tool are **omitted**. Do not invent a turn. Cursor leftover is unchanged. Child/parent/sibling queries use composite identity `(harness, session_id)`.
+2026-08-26, after blocking preflight: Claude children whose `spawning_tool_use_id` is missing or does not join a parent tool are **omitted**. Do not invent a turn. Child/parent/sibling queries use composite identity `(harness, session_id)`.
+
+2026-08-26, after zip-blindness review: a pill is a positive claim and must not be false. Missing a pill is acceptable. Cursor leftover is forbidden. Positional zip runs only when counts match **and** each `child.agent_type` equals that slot's `subagent_type` (the same index ingest used). Otherwise place only types that appear once on both sides. Residual risk: two compensating holes when every remaining pair shares one type still looks aligned — no further warehouse signal exists.

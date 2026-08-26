@@ -94,3 +94,12 @@ Surface warehouse-linked subagent sessions in the dashboard conversation reconst
     - `ingest/sources.py` sorts child transcripts with `sorted(subagents_dir.glob("*.jsonl"))` and `_parent_subagent_types` walks messages then tool calls skipping untyped Tasks, so the planned `source_path` + typed-Task zip reproduces ingest's own slot list exactly.
     - `test_dashboard_static.py` gates resources, radios, and accessibility roles but not element ids, so `#session-parent` and `.session-subagent` add no static-contract work.
     - Existing in-app session links intercept clicks to keep SPA state; the planned plain anchors are a deliberate, functionally correct deviation worth naming in QA notes.
+
+## 2026-08-26 - PLAN - OPERATOR GUIDANCE (no false-positive pills)
+
+* Decisions made
+    - A pill is a positive claim. Omit when uncorroborated. Missing a pill is acceptable.
+    - Cursor leftover is forbidden. `associate_children` no longer takes `message_ordinals`.
+    - Cursor places only via aligned zip (count + `agent_type`/`subagent_type` sequence) or unique `agent_type` pairs.
+* Insights
+    - A missing Task or child would shift an unchecked zip. Count+type catches that unless two compensating holes leave one shared type.

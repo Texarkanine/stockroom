@@ -37,6 +37,7 @@ Opening a session that `is_subagent` shows a `parent:` line under the session me
 4. Offline, committed ES modules under `stockroom/dashboard/static/`; no new front-end dependencies.
 5. Claude unmatched spawn ids: refuse to guess. Assume Claude Code provides good data; do not invent a pill for a join that failed.
 6. JSON export keeps `messages[].subagents` and `parent_spawn`. Do not redact — export is enough to rebuild a UI in front of the JSON.
+7. Never present a pill on a turn unless that assignment is corroborated. A missing pill is acceptable; a pill on the wrong turn is not. Cursor leftover (hang extras on the last Task / last message) is forbidden. An unchecked positional zip that can shift after a hole is forbidden.
 
 ## Acceptance Criteria
 
@@ -48,3 +49,4 @@ Opening a session that `is_subagent` shows a `parent:` line under the session me
 6. No child transcript text is copied into the parent view.
 7. A Claude child whose spawn id does not match any parent tool gets no pill.
 8. Export JSON includes the new session-detail fields (no redaction).
+9. A Cursor child is placed only when the assignment is corroborated (aligned zip or unique `agent_type`). Extra or unassigned children get no pill, not a guessed turn.
