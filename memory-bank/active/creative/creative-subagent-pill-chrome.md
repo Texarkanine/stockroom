@@ -74,3 +74,5 @@ Key insights:
 ## Operator Amendment
 
 2026-08-26, after blocking preflight: JSON export keeps the new session-detail fields (do not redact). That is enough to rebuild a UI in front of the JSON; it is not a hard product promise that every future payload key is a public contract. Markdown export still has no pills. Render behavior is specified by a testable model helper before `dashboard.mjs` / `index.html` production changes.
+
+2026-08-26, after live look: the spawn card uses the same outer chrome as assistant/user turns (`.session-turn` + `.session-turn-role`), labeled `sub-agent` (CSS renders `SUB-AGENT`). The conversation name is an inner clickable pill (`.session-subagent-convo`), not a heading-as-link on the outer card. Still one focusable link. Still a sibling after the launching turn, not nested inside `#msg-N`.

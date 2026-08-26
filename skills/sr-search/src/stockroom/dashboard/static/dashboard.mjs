@@ -1196,15 +1196,22 @@ function renderSessionParentLine(detail) {
 
 function renderSessionSubagent(item) {
   const card = document.createElement("article");
-  card.className = "session-subagent";
+  card.className = "session-turn session-turn-subagent";
   card.id = item.anchorId;
-  const heading = document.createElement("h3");
-  heading.className = "session-subagent-heading";
+  const heading = document.createElement("div");
+  heading.className = "session-turn-heading";
+  const role = document.createElement("p");
+  role.className = "session-turn-role";
+  role.textContent = item.roleLabel;
+  heading.append(role);
+  const body = document.createElement("div");
+  body.className = "session-turn-body";
   const link = document.createElement("a");
+  link.className = "session-subagent-convo";
   link.href = item.href;
   link.textContent = item.label;
-  heading.append(link);
-  card.append(heading);
+  body.append(link);
+  card.append(heading, body);
   return card;
 }
 

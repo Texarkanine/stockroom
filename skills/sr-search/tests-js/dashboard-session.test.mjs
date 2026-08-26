@@ -584,6 +584,7 @@ test("sessionTranscriptItems emits turn then sibling subagent items", () => {
     spawnIndex: 1,
     anchorId: "msg-48-sa-1",
     href: "http://127.0.0.1:58008/?view=session&harness=cursor&session=kid-a",
+    roleLabel: "sub-agent",
     label: "First",
     sessionId: "kid-a",
   });
@@ -593,6 +594,7 @@ test("sessionTranscriptItems emits turn then sibling subagent items", () => {
     spawnIndex: 2,
     anchorId: "msg-48-sa-2",
     href: "http://127.0.0.1:58008/?view=session&harness=cursor&session=kid-b",
+    roleLabel: "sub-agent",
     label: "Second",
     sessionId: "kid-b",
   });
