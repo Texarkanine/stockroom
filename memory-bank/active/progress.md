@@ -103,3 +103,12 @@ Surface warehouse-linked subagent sessions in the dashboard conversation reconst
     - Cursor places only via aligned zip (count + `agent_type`/`subagent_type` sequence) or unique `agent_type` pairs.
 * Insights
     - A missing Task or child would shift an unchecked zip. Count+type catches that unless two compensating holes leave one shared type.
+
+## 2026-08-26 - PREFLIGHT - COMPLETE (PASS WITH ADVISORY, ready for Build)
+
+* Work completed
+    - Preflight gate is `PASS WITH ADVISORY`. Operator invoked `/niko-build`.
+* Decisions made
+    - Build proceeds on the re-planned tasks.md (no leftover, corroborated zip, omit unknown harness).
+* Insights
+    - Association policy changed after the last preflight; the plan already encodes that. No `/niko-plan` re-gate.

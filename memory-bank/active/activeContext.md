@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: dashboard-subagent-pills
-**Phase:** PREFLIGHT - COMPLETE (PASS WITH ADVISORY)
+**Phase:** BUILD - IN-PROGRESS
 
 ## What Was Done
 - Re-planned after the first preflight `FAIL (blocking)`. Second preflight: `PASS WITH ADVISORY`.
@@ -28,4 +28,4 @@
 - Advisory `placements(con, harness, session_id)` declined for this task (same YAGNI as `association_method`).
 
 ## Next Step
-- Operator: invoke `/niko-build`. Association policy changed after the last preflight; a `/niko-plan` re-gate is optional.
+- Execute implementation units 1–5 in order (TDD).
