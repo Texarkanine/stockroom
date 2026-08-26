@@ -159,3 +159,12 @@ Surface warehouse-linked subagent sessions in the dashboard conversation reconst
 * Insights
     - `dashboard.mjs` is cached separately from inline `index.html` CSS — a CSS-only refresh can lie about JS chrome.
 
+## 2026-08-26 - ARCHIVE - IN PROGRESS
+
+* Work completed
+    - Operator invoked `/niko-archive` with PR #126 chrome accepted.
+* Decisions made
+    - Category `enhancements/` — session reconstruction already existed; this extends it with spawn pills and parent deep-links.
+* Insights
+    - None beyond the reflection.
+
