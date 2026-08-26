@@ -74,6 +74,19 @@ No new technology - validation not required
 - Tests keep mocking `_wsl_windows_candidate_paths` for the new cases: the OSError path would never run; new tests must call the real walker.
 - Ship the walker fix and skip `--full`: dashboard/SQL stay empty for Aug 20–25 until those transcripts grow.
 
+## QA Results
+
+Verdict: **PASS** (semantic review vs plan; two trivial docstring fixes applied)
+
+- KISS/DRY/YAGNI: clean — `_iter_dirs` is a flat helper with two callsites (drive letters + `Users/` listing); `mnt` param is plan-required, test-used, and keeps all nine existing `lambda: []` mocks valid (sole production callsite passes no args).
+- Completeness: plan steps 1–4 implemented as written; step 5 (`stockroom ingest --full`) is operator-only and correctly open. All five walker behaviors tested against the **real** walker (no walker mocks). `read_enrichment` SQL has zero diff hunks vs `321a506`.
+- Regression: style indistinguishable from module (`Path | None = None` resolve-inside mirrors `_candidate_db_paths`; `except OSError` per entry; deterministic sort preserved). Docs sentence sits under Cursor `sessions.models` enrichment, no new config keys, does not overclaim.
+- Trivial fixes applied (Integrity): "cannot be stated" → "cannot be statted" in `_iter_dirs` docstring (`enrich.py`) and `test_wsl_walker_skips_unstatable_user_home` docstring.
+- Non-blocking observations (pre-existing, out of plan scope — for Reflect):
+  - `_append_model` null/empty guard has no direct test anywhere (fixture seeds only non-null rows); path unchanged by this build.
+  - Two residual unguarded stats of the same failure class remain: `mnt.is_dir()` at walker entry (raises if `/mnt` itself is unstatable, e.g. EACCES/ENXIO) and `resolve_db_paths._add`'s `normalized.is_file()` (TOCTOU if a drive goes stale between discovery and the existence check). Both unlikely; fixing them is a TDD'd behavior change, not a QA fix.
+- Verification: ruff check + format clean on both touched files; `pytest tests/test_ingest_enrich.py -k wsl_walker -n0` 5/5; full engine suite 821 passed / 4 skipped (independently re-run at QA).
+
 ## Status
 
 - [x] Initialization complete
@@ -83,4 +96,4 @@ No new technology - validation not required
 - [x] Pre-Mortem complete
 - [x] Preflight
 - [x] Build
-- [ ] QA
+- [x] QA

@@ -49,3 +49,14 @@ Diagnose why Cursor model fields go dark after ~2026-08-20, and — if Stockroom
     - Operator `--full` ingest left as a post-fix restore, not a new command
 * Insights
     - Listing names first (`os.listdir`) is what makes a stale `/mnt/i` survivable; catching only the outer `iterdir()` is not enough
+
+## 2026-08-25 - QA - COMPLETE
+
+* Work completed
+    - Fable semantic QA: PASS
+    - Trivial docstring fix: "stated" → "statted" (matches `cache.py` wording)
+    - `.qa-validation-status` written
+* Decisions made
+    - Residual unguarded `mnt.is_dir()` / `is_file()` TOCTOU left as pre-existing, not in this patch
+* Insights
+    - `_append_model` null/empty guard still has no direct test; unchanged by this build

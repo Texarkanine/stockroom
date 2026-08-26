@@ -420,7 +420,7 @@ def test_wsl_walker_skips_stale_drive_letter(
 def test_wsl_walker_skips_unstatable_user_home(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    """One Users child that cannot be stated does not drop sibling homes."""
+    """One Users child that cannot be statted does not drop sibling homes."""
     mnt = tmp_path / "mnt"
     modern = _tracking_db(mnt, "s", "Ada")
     bob = mnt / "s" / "Users" / "Bob"

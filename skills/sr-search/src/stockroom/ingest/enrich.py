@@ -34,7 +34,7 @@ _LEGACY_REL = Path("ai-code-tracking.db")
 
 
 def _iter_dirs(root: Path) -> list[Path]:
-    """Return child directories of ``root``, skipping entries that cannot be stated.
+    """Return child directories of ``root``, skipping entries that cannot be statted.
 
     Lists names first (``os.listdir`` does not stat) so one stale child cannot
     abort the walk. Each child's ``is_dir()`` runs in its own ``OSError``
