@@ -28,3 +28,25 @@ Surface warehouse-linked subagent sessions in the dashboard conversation reconst
 * Insights
     - Parent and child `source_mtime` can be identical; time-proximity matching is not available.
     - An untyped Task ("Nudge L3 QA" at msg 55) must not consume a zip slot.
+
+## 2026-08-26 - CREATIVE - COMPLETE (subagent pill chrome)
+
+* Work completed
+    - Compared in-turn chip, sibling inset card, and transcript-top child list against the shipped session design tokens.
+* Decisions made
+    - Sibling inset card after the launching turn; one heading-as-link; extra left padding and a `color-mix` tint.
+    - `parent:` stays under the session metadata line; link text is parent `session_id`.
+    - Server sends `label` (Task description → agent_name → title → agent_type → "Subagent").
+    - No export or sessions-list changes.
+* Insights
+    - The spawn cannot live inside `#msg-N` if `#msg-N-sa-M` must scroll to the pill itself.
+
+## 2026-08-26 - PLAN - COMPLETE
+
+* Work completed
+    - Component analysis, TDD map, five-step implementation plan, challenges, pre-mortem.
+* Decisions made
+    - New `stockroom.dashboard.spawns` helper; `session_detail` is the only API boundary change.
+    - No new HTTP route, schema, or ingest rewrite.
+* Insights
+    - Existing exact message-dict assertion in `test_session_detail_reconstructs_ordered_messages_and_nested_tools` must gain `subagents: []` and `parent_spawn: null` in the same TDD step.

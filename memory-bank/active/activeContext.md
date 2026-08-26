@@ -1,11 +1,11 @@
 # Active Context
 
 ## Current Task: dashboard-subagent-pills
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Operator approved the intent restatement and chose parent-link placement: a `parent:` line directly under the session metadata row (harness / model / tokens / started).
-- Classified as Level 3: new session-reconstruction surface (API children + spawn-to-turn association, transcript pills, hash contract) with design-shop work on pill content.
+- Classified Level 3. Resolved two creatives: spawn-to-turn association (Claude join + Cursor typed-Task zip) and pill chrome (sibling inset + `parent:` under session metadata).
+- Planned five implementation units: `spawns.py` helper, `session_detail` payload, JS hash/parent helpers, session render/CSS, docs.
 
 ## Next Step
-- Load the Level 3 workflow and enter the Plan phase.
+- Preflight (subagent) to validate the plan before `/niko-build`.
