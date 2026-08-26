@@ -447,20 +447,13 @@ def test_wsl_walker_skips_drive_when_users_listing_fails(
     bad_users = mnt / "c" / "Users"
     bad_users.mkdir(parents=True)
     real_listdir = os.listdir
-    real_iterdir = Path.iterdir
 
     def listdir(path: str | os.PathLike[str]) -> list[str]:
         if Path(path) == bad_users:
             raise OSError(errno.EACCES, "Permission denied", str(path))
         return real_listdir(path)
 
-    def iterdir(self: Path):
-        if self == bad_users:
-            raise OSError(errno.EACCES, "Permission denied", str(self))
-        return real_iterdir(self)
-
     monkeypatch.setattr(os, "listdir", listdir)
-    monkeypatch.setattr(Path, "iterdir", iterdir)
     found = enrich._wsl_windows_candidate_paths(mnt=mnt)
     assert modern in found
 
