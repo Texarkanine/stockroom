@@ -1,5 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
+const markdownit = require("../src/stockroom/dashboard/static/markdown-it-14.1.0.min.js");
 
 import {
   ansiToHtml,
@@ -21,6 +25,7 @@ import {
   parseSessionsListParams,
   perPageToLimit,
   renderSessionMessageHtml,
+  bindSessionMarkdown,
   resolveMessageAnchorElement,
   sessionLocationWithMessageHash,
   shouldRefreshMetricsOnBoot,
@@ -234,6 +239,20 @@ test("renderSessionMessageHtml uses ANSI path when CSI present else markdown", (
   const ansiHtml = renderSessionMessageHtml("a\u001b[1mb\u001b[0m", md);
   assert.match(ansiHtml, /<strong>b<\/strong>/);
   assert.doesNotMatch(ansiHtml, /<p>/);
+});
+
+test("bindSessionMarkdown keeps hidden-dot path segments CommonMark would escape", () => {
+  const render = bindSessionMarkdown(
+    markdownit({ html: false, linkify: false, typographer: false }),
+  );
+  const html = render(
+    String.raw`Path: \home\user\SumMem\.cursor\proj\.git\HEAD`,
+  );
+  assert.equal(html.includes(String.raw`SumMem\.cursor`), true);
+  assert.equal(html.includes("SumMem.cursor"), false);
+  assert.equal(html.includes(String.raw`proj\.git`), true);
+  assert.equal(html.includes("proj.git"), false);
+  assert.match(render("hello **x**"), /<strong>x<\/strong>/);
 });
 
 test("isActiveSessionView requires matching harness and session id", () => {
