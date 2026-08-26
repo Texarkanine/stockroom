@@ -53,13 +53,13 @@ Key insights:
 
 **Selected**: Option C — Claude provenance join + Cursor typed-Task zip, computed at read time in `session_detail`.
 **Rationale**: It is the only option that places the motivating Cursor child under `#msg-48` without a schema change, and it uses the same Task slots ingest already uses for `agent_type`.
-**Tradeoff**: Cursor placement stays best-effort (same honesty as ingest). Leftover children (more children than typed Tasks, or a Claude child whose `toolUseId` is missing) still get a pill, hung off the last Task-bearing turn if any, else the last message, so the `#msg-{ordinal}-sa-{n}` grammar stays one scheme.
+**Tradeoff**: Cursor placement stays best-effort (same honesty as ingest). Extra Cursor children (more children than typed Tasks) still get a pill, hung off the last Task-bearing turn if any, else the last message, so the `#msg-{ordinal}-sa-{n}` grammar stays one scheme. Claude unmatched spawn ids do not use that leftover (see Operator Amendment).
 
 ## Implementation Notes
 
-- Add a pure helper (e.g. `stockroom.dashboard.spawns.associate_children`) that takes parent tool rows + child session rows and returns `{session_id: (launch_ordinal, spawn_index)}`. `session_detail` is the only caller.
-- **Claude**: for each child with `spawning_tool_use_id`, find the parent tool call with matching `source_tool_use_id`; `launch_ordinal` is that call's message ordinal. Unmatched spawn ids fall through to the leftover rule.
-- **Cursor**: children ordered by `source_path` (same as `sorted(subagents_dir.glob("*.jsonl"))`). Slots are parent tools where `tool_name == "Task"` and `tool_input.subagent_type is not None`, in message/tool ordinal order. Zip 1:1. Extra typed Tasks get no pill. Extra children use the leftover rule.
+- Add a pure helper (e.g. `stockroom.dashboard.spawns.associate_children`) that takes parent tool rows, child session rows, **and the parent's message ordinals** (needed for the no-tool leftover). `session_detail` is the only caller.
+- **Claude**: for each child with `spawning_tool_use_id`, find the parent tool call with matching `source_tool_use_id`; `launch_ordinal` is that call's message ordinal. Unmatched or missing spawn ids are omitted — no leftover pill.
+- **Cursor**: children ordered by `source_path` (same as `sorted(subagents_dir.glob("*.jsonl"))`). Slots are parent tools where `tool_name == "Task"` and `tool_input.subagent_type is not None`, in message/tool ordinal order. Zip 1:1. Extra typed Tasks get no pill. Extra children use the leftover rule (last Task-bearing turn, else last parent message ordinal).
 - `spawn_index` is 1-based among children that share the same `launch_ordinal`, in the order they were assigned (Claude: stable by `session_id`; Cursor: `source_path` order).
 - `session_detail` payload:
   - Each message gains `subagents: [{session_id, agent_type, agent_name, title, spawn_index}]` (empty list when none).
@@ -73,13 +73,19 @@ flowchart TD
     classDef logic fill:#e1f5fe,stroke:#01579b;
     classDef out fill:#e8f5e9,stroke:#2e7d32;
 
-    Kids["Child sessions WHERE parent_session_id"]:::store --> Branch{"harness"}:::logic
+    Kids["Child sessions WHERE harness + parent_session_id"]:::store --> Branch{"harness"}:::logic
     Tools["Parent tool_calls + message ordinals"]:::store --> Branch
     Branch -->|"claude"| Join["Join spawning_tool_use_id = source_tool_use_id"]:::logic
     Branch -->|"cursor"| Zip["Zip source_path-sorted children to Task calls with subagent_type"]:::logic
-    Join --> Leftover["Unmatched → last Task-bearing turn, else last message"]:::logic
-    Zip --> Leftover
+    Join -->|"unmatched or missing id"| Omit["Omit child — no pill"]:::logic
+    Join -->|"matched"| Index
+    Zip -->|"extra children"| Leftover["Last Task-bearing turn, else last message"]:::logic
+    Zip -->|"zipped"| Index
     Leftover --> Index["spawn_index = 1-based per launch_ordinal"]:::logic
     Index --> Msg["messages[].subagents"]:::out
     Index --> Back["parent_spawn on child session_detail"]:::out
 ```
+
+## Operator Amendment
+
+2026-08-26, after blocking preflight: Claude children whose `spawning_tool_use_id` is missing or does not join a parent tool are **omitted**. Do not invent a turn. Cursor leftover is unchanged. Child/parent/sibling queries use composite identity `(harness, session_id)`.

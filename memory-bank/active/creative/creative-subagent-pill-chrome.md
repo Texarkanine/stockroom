@@ -66,7 +66,11 @@ Key insights:
 - Heading is visible text; a single `<a>` ("Open conversation") is the reconstruction link (`?view=session&harness=&session=` of the child, no hash). The whole card may be wrapped or the heading may also be the link — prefer **one** focusable link per pill (heading-as-link, no second "Open" control) so keyboard users do not tab twice.
 - CSS: `align-self: flex-start`; width ~70–80%; `margin-left: 1.5rem`; background `color-mix(in srgb, var(--accent) 6%, var(--page))`; border `color-mix(in srgb, var(--accent) 40%, var(--border))` — readable in light and dark, distinct from `.session-turn-assistant` (`--surface-soft`) and `.session-turn-user` (10% accent on `--surface`).
 - Parent chrome: `<p class="session-parent">` immediately after `#session-meta`, only when `is_subagent`. Content: muted `parent:` + `<a>` to the parent session. `href` includes `#msg-{message_ordinal}-sa-{spawn_index}` when `parent_spawn` is present; otherwise the parent session with no hash. Link text is the parent `session_id` (titles are often null).
-- Hash helpers: keep `parseMessageHash` as `^#msg-(\d+)$` only. Add a sibling parser for `^#msg-(\d+)-sa-(\d+)$`. `resolveMessageAnchorElement` becomes a general fragment resolver (or gains a twin) so boot/hashchange can scroll either target.
+- Hash helpers: keep `parseMessageHash` as `^#msg-(\d+)$` only. Add a sibling parser for `^#msg-(\d+)-sa-(\d+)$`. Add a generic fragment-validity helper that accepts either form so `hashchange` (which currently rejects anything `parseMessageHash` does not accept) can scroll spawn targets. `resolveMessageAnchorElement` becomes a general fragment resolver (or gains a twin) so boot/hashchange can scroll either target.
 - `buildSessionDeepLink` gains an optional `spawnIndex` that appends `-sa-N` only when both ordinal and spawn index are valid integers `>= 1` for spawn (ordinal may be 0).
-- Do not add subagent pills to markdown/JSON export in this task (not requested; exports stay the current conversation body).
+- Markdown export stays the conversation body (roles, text, tools) — no pill chrome in the markdown. JSON export serializes the full `session_detail` object, including `messages[].subagents` and `parent_spawn`.
 - Do not list children on the sessions browse view.
+
+## Operator Amendment
+
+2026-08-26, after blocking preflight: JSON export keeps the new session-detail fields (do not redact). That is enough to rebuild a UI in front of the JSON; it is not a hard product promise that every future payload key is a public contract. Markdown export still has no pills. Render behavior is specified by a testable model helper before `dashboard.mjs` / `index.html` production changes.

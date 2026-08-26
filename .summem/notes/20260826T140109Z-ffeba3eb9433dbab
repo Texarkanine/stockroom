@@ -1,0 +1,1 @@
+Dashboard subagent pills: Claude unmatched spawn ids omitted (no leftover); JSON export keeps messages[].subagents and parent_spawn; leftover is Cursor-only and needs parent message ordinals.

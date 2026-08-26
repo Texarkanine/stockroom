@@ -68,7 +68,17 @@ Surface warehouse-linked subagent sessions in the dashboard conversation reconst
     - Claude unmatched `spawning_tool_use_id`: refuse to guess; no leftover pill.
     - JSON export keeps the new fields; do not redact.
 
-## 2026-08-26 - PLAN - IN-PROGRESS (re-plan after blocking preflight)
+## 2026-08-26 - PLAN - COMPLETE (re-plan after blocking preflight)
 
 * Work completed
-    - Operator guidance recorded; re-entering Plan to encode the blocking findings.
+    - Encoded every blocking/high/medium preflight finding into the implementation units.
+    - Added a testable transcript render model so sibling pills and the parent line have a red test before `dashboard.mjs` / `index.html` edits.
+    - Amended both creatives so leftover, export, hashchange, and composite identity no longer contradict the plan.
+* Decisions made
+    - `associate_children(harness, tools, children, message_ordinals)` — leftover can use the last message when there are no tools.
+    - Claude unmatched/missing spawn id: omit. Cursor leftover unchanged.
+    - JSON export keeps the new fields; markdown stays pill-free.
+    - Hashchange uses a generic fragment helper (`#msg-N` or `#msg-N-sa-M`).
+    - `association_method` advisory declined for this task.
+* Insights
+    - The first plan's unit 4 had no failing render test because `dashboard.mjs` has no DOM harness. A pure item list in `dashboard-session.mjs` is the existing-suite way to specify sibling insertion.
