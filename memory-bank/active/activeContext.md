@@ -1,13 +1,13 @@
 # Active Context
 
 ## Current Task: dashboard-subagent-pills
-**Phase:** REFLECT COMPLETE
+**Phase:** REFLECT COMPLETE (post-reflect chrome on PR #126)
 
 ## What Was Done
-- Built all five plan units (TDD). Association, `session_detail` payload, hash/export helpers, transcript mount, and session-fragment docs are in.
-- Live UAT on a **separate** worktree dashboard at `:58018` (did not touch `:58008`). Parent `604ead72-0402-49f2-bceb-c22ebed2ec33` shows one pill on turn 48 (`#msg-48-sa-1`, label `L3 QA 16-hex-leafset`) linking to child `bc960b66-605b-4e83-baac-be61435555f5`. Child view shows `parent:` back to `#msg-48-sa-1`. Untyped Task at msg 55 is not a slot — no second pill.
-- QA passed with no blocking semantic findings. Lint, format, 133 JavaScript tests, and 840 Python tests passed; 4 Python tests skipped.
-- Reflection written: `memory-bank/active/reflection/reflection-dashboard-subagent-pills.md`. Persistent files scanned; no surgical updates (techContext already names both fragment forms from Build unit 5).
+- Built all five plan units (TDD). QA PASS. Reflection written. Persistent files already named both fragment forms.
+- Live example: parent `604ead72-0402-49f2-bceb-c22ebed2ec33` / child `bc960b66-605b-4e83-baac-be61435555f5`. One pill on turn 48 (`#msg-48-sa-1`, label `L3 QA 16-hex-leafset`). Untyped Task at msg 55 is not a slot.
+- Draft PR: https://github.com/Texarkanine/stockroom/pull/126 (`subagent-insets`).
+- Post-reflect chrome (operator live look): outer card matches assistant/user (`SUB-AGENT` role); inner `.session-subagent-convo` is the child link; `margin-left: 1.5rem` + accent wash on `--surface-soft`; heading ordinal `#48-sa-1` (same muted `.session-turn-ordinal` as turns). Merged `origin/main` (`#123` `bindSessionMarkdown` + `#125` CONTRIBUTING). Turn bodies use `markdownRender`, not raw `markdown.render`. Dashboard JS 134 green. In-IDE browser verification was crashy — do not rely on it; hard-refresh `:58008` for `dashboard.mjs`.
 
 ## Operator decisions
 - **Claude unmatched spawn id:** refuse to guess. No leftover placement.
@@ -23,4 +23,4 @@
 - Residual: two compensating holes when every remaining pair shares one type still looks aligned. No further warehouse signal.
 
 ## Next Step
-- Run `/niko-archive` to create the archive document and finalize the current project.
+- Run `/niko-archive` when the operator accepts the chrome on PR #126 (or review/merge the PR first). Do not start a new Niko task on this bank until archive.

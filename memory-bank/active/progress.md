@@ -148,3 +148,14 @@ Surface warehouse-linked subagent sessions in the dashboard conversation reconst
 * Insights
     - The first plan's leftover and untested `dashboard.mjs` mount would have shipped a guessed turn or a spawn hash that `hashchange` ignored. Preflight blocking those was the high-leverage phase.
     - An untyped parent Task is not a spawn slot. Omit-if-uncorroborated is the policy the tests now encode.
+
+## 2026-08-26 - POST-REFLECT CHROME / PR
+
+* Work completed
+    - Operator live-look chrome: `SUB-AGENT` outer turn, inner convo pill, 1.5rem inset + accent tint, visible `#N-sa-M` ordinal.
+    - Draft PR #126. Merged `origin/main` (kept spawn mount; wired `bindSessionMarkdown` from #123).
+* Decisions made
+    - In-IDE browser tools were crashy this session; verify by hard-refresh of `:58008`, not another worktree listener.
+* Insights
+    - `dashboard.mjs` is cached separately from inline `index.html` CSS — a CSS-only refresh can lie about JS chrome.
+
