@@ -1,0 +1,1 @@
+Cursor model enrich WSL walker lists /mnt names then stats each child; one stale drive letter must not abort the walk.
