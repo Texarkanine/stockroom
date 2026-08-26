@@ -20,7 +20,7 @@ Opening a session that `is_subagent` shows a `parent:` line under the session me
 
 ## Requirements
 
-1. For each conversation, if it spawned one or more subagent sessions, render a visually distinct pill in the transcript for each child.
+1. For each conversation, if it spawned one or more subagent sessions, render a visually distinct pill in the transcript for each child that can be associated with a launching turn. A Claude child whose `spawning_tool_use_id` does not join a parent tool is omitted — do not guess a turn.
 2. Place each pill inline under the launching turn, left-aligned with a little left padding and a slightly different color from ordinary message pills.
 3. The pill is a clickable link to that child's session reconstruction. Do not inline the child's history.
 4. Pill heading/label (name vs link-only vs both) is a design-shop decision.
@@ -35,6 +35,8 @@ Opening a session that `is_subagent` shows a `parent:` line under the session me
 2. Existing `#msg-N` deep links and visible turn numbers must keep working.
 3. Read-only dashboard; no ingest rewrite unless spawn-to-turn association cannot be derived from current rows.
 4. Offline, committed ES modules under `stockroom/dashboard/static/`; no new front-end dependencies.
+5. Claude unmatched spawn ids: refuse to guess. Assume Claude Code provides good data; do not invent a pill for a join that failed.
+6. JSON export keeps `messages[].subagents` and `parent_spawn`. Do not redact — export is enough to rebuild a UI in front of the JSON.
 
 ## Acceptance Criteria
 
@@ -44,3 +46,5 @@ Opening a session that `is_subagent` shows a `parent:` line under the session me
 4. Opening `#msg-N` still scrolls to the existing message pill.
 5. Opening `#msg-N-sa-M` scrolls to that subagent pill.
 6. No child transcript text is copied into the parent view.
+7. A Claude child whose spawn id does not match any parent tool gets no pill.
+8. Export JSON includes the new session-detail fields (no redaction).

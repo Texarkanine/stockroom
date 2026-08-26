@@ -50,3 +50,20 @@ Surface warehouse-linked subagent sessions in the dashboard conversation reconst
     - No new HTTP route, schema, or ingest rewrite.
 * Insights
     - Existing exact message-dict assertion in `test_session_detail_reconstructs_ordered_messages_and_nested_tools` must gain `subagents: []` and `parent_spawn: null` in the same TDD step.
+
+## 2026-08-26 - PREFLIGHT - COMPLETE (FAIL (blocking))
+
+* Work completed
+    - Validated the plan's TDD ordering, file conventions, dependency impacts, fragment navigation, exports, and association inputs against the current dashboard implementation.
+    - Wrote `FAIL (blocking)` to `.preflight-status`.
+* Decisions made
+    - Build is gated until the session-render unit has a real test-first path and the association, hashchange, export, Claude fallback, and composite-identity gaps are resolved in the plan.
+* Insights
+    - `associate_children(harness, tools, children)` cannot implement the no-tool “last message” fallback without parent message information.
+    - The current hashchange listener accepts only `#msg-N`, and the JSON exporter serializes the complete session-detail payload; both are integration surfaces the plan omitted.
+
+## 2026-08-26 - PREFLIGHT - OPERATOR GUIDANCE
+
+* Decisions made
+    - Claude unmatched `spawning_tool_use_id`: refuse to guess; no leftover pill.
+    - JSON export keeps the new fields; do not redact.

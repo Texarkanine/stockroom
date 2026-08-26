@@ -1,0 +1,1 @@
+Dashboard JSON export serializes full session_detail; API payload additions automatically change exported JSON unless filtered.
