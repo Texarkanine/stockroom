@@ -585,6 +585,7 @@ test("sessionTranscriptItems emits turn then sibling subagent items", () => {
     anchorId: "msg-48-sa-1",
     href: "http://127.0.0.1:58008/?view=session&harness=cursor&session=kid-a",
     roleLabel: "sub-agent",
+    ordinalLabel: "#48-sa-1",
     label: "First",
     sessionId: "kid-a",
   });
@@ -595,6 +596,7 @@ test("sessionTranscriptItems emits turn then sibling subagent items", () => {
     anchorId: "msg-48-sa-2",
     href: "http://127.0.0.1:58008/?view=session&harness=cursor&session=kid-b",
     roleLabel: "sub-agent",
+    ordinalLabel: "#48-sa-2",
     label: "Second",
     sessionId: "kid-b",
   });

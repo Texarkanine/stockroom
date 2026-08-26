@@ -61,7 +61,6 @@ import {
   parseSessionsListParams,
   renderSessionMessageHtml,
   resolveMessageAnchorElement,
-  sessionLocationWithMessageHash,
   sessionParentLine,
   sessionTranscriptItems,
   shouldRefreshMetricsOnBoot,
@@ -1204,6 +1203,28 @@ function renderSessionSubagent(item) {
   role.className = "session-turn-role";
   role.textContent = item.roleLabel;
   heading.append(role);
+  if (item.anchorId) {
+    const ordinalLink = document.createElement("a");
+    ordinalLink.className = "session-turn-ordinal";
+    ordinalLink.href = `#${item.anchorId}`;
+    ordinalLink.textContent = item.ordinalLabel;
+    ordinalLink.title = `Link to ${item.ordinalLabel}`;
+    ordinalLink.addEventListener("click", (event) => {
+      if (
+        event.defaultPrevented ||
+        event.button !== 0 ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey
+      ) {
+        return;
+      }
+      event.preventDefault();
+      navigateToSessionHash(`#${item.anchorId}`);
+    });
+    heading.append(ordinalLink);
+  }
   const body = document.createElement("div");
   body.className = "session-turn-body";
   const link = document.createElement("a");
@@ -1292,13 +1313,19 @@ function navigateToMessageOrdinal(ordinal) {
   if (!anchor) {
     return;
   }
-  const hash = `#${anchor}`;
+  navigateToSessionHash(`#${anchor}`);
+}
+
+/**
+ * Same-document jump to ``#msg-N`` or ``#msg-N-sa-M`` without refetching.
+ *
+ * @param {unknown} hash
+ */
+function navigateToSessionHash(hash) {
+  if (parseSessionFragment(hash) === null) {
+    return;
+  }
   if (window.location.hash !== hash) {
-    const next = sessionLocationWithMessageHash(
-      window.location.pathname,
-      window.location.search,
-      ordinal,
-    );
     window.history.pushState(
       {
         view: "session",
@@ -1306,7 +1333,7 @@ function navigateToMessageOrdinal(ordinal) {
         sessionId: sessionView?.sessionId,
       },
       "",
-      next,
+      `${window.location.pathname}${window.location.search}${hash}`,
     );
   }
   scrollToMessageHash(hash);

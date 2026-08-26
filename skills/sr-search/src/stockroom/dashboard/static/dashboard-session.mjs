@@ -606,7 +606,7 @@ export function sessionMessagesHeading(fields) {
  * @param {{ baseUrl?: string } | undefined} [options]
  * @returns {Array<
  *   | { kind: "turn", ordinal: number, message: object }
- *   | { kind: "subagent", ordinal: number, spawnIndex: number, anchorId: string, href: string, roleLabel: string, label: string, sessionId: string }
+ *   | { kind: "subagent", ordinal: number, spawnIndex: number, anchorId: string, href: string, roleLabel: string, ordinalLabel: string, label: string, sessionId: string }
  * >}
  */
 export function sessionTranscriptItems(detail, options) {
@@ -629,6 +629,7 @@ export function sessionTranscriptItems(detail, options) {
         anchorId,
         href: buildSessionDeepLink(baseUrl, harness, sessionId),
         roleLabel: "sub-agent",
+        ordinalLabel: `#${message.ordinal}-sa-${spawnIndex}`,
         label: child.label || "Subagent",
         sessionId,
       });
