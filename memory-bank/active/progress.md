@@ -60,3 +60,14 @@ Diagnose why Cursor model fields go dark after ~2026-08-20, and — if Stockroom
     - Residual unguarded `mnt.is_dir()` / `is_file()` TOCTOU left as pre-existing, not in this patch
 * Insights
     - `_append_model` null/empty guard still has no direct test; unchanged by this build
+
+## 2026-08-25 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `memory-bank/active/reflection/reflection-cursor-model-ingest.md`
+    - Reconciled persistent files: no edits
+* Decisions made
+    - Product/system/tech context still accurate; no briefing-altitude change
+* Insights
+    - List names, then stat: an `iterdir()` try/except does not survive a child `is_dir()` raise
+    - Transcript ingest and model enrichment are different roots; only enrichment walks `/mnt`

@@ -1,11 +1,11 @@
 # Active Context
 
 ## Current Task: cursor-model-ingest
-**Phase:** QA - COMPLETE
+**Phase:** REFLECT COMPLETE
 
 ## What Was Done
-- QA PASS (Fable). Two docstring typos fixed. No substantive findings.
-- Non-blocking for Reflect: `_append_model` empty-row gap; unguarded `mnt.is_dir()` / `is_file()` on a dead `/mnt`.
+- Reflection written. Persistent files unchanged (ingest still walks/merges tracking DBs; this was a walker robustness fix).
+- Operator still needs `stockroom ingest --full` once to refill Aug 20+ NULL `models`.
 
 ## Next Step
-- Reflect, then operator `/niko-archive` and `stockroom ingest --full`
+- `/niko-archive`
