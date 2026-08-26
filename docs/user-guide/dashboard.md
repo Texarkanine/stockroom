@@ -62,10 +62,11 @@ Session deep-link shape (both query params required):
 http://127.0.0.1:58008/?view=session&harness={harness}&session={session_id}
 ```
 
-Appending an optional message hash scrolls to that message after the conversation loads:
+Appending an optional message hash scrolls to that message after the conversation loads. A spawn hash scrolls to the subagent pill under that turn:
 
 ```text
 http://127.0.0.1:58008/?view=session&harness={harness}&session={session_id}#msg-{ordinal}
+http://127.0.0.1:58008/?view=session&harness={harness}&session={session_id}#msg-{ordinal}-sa-{n}
 ```
 
 ## Lifecycle notes

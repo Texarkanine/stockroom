@@ -599,3 +599,62 @@ export function sessionMessagesHeading(fields) {
   return `${fields.harnessLabel} / ${fields.sessionId}`;
 }
 
+/**
+ * Flatten session messages into turn items with sibling subagent items after each launch turn.
+ *
+ * @param {object | null | undefined} detail
+ * @param {{ baseUrl?: string } | undefined} [options]
+ * @returns {Array<
+ *   | { kind: "turn", ordinal: number, message: object }
+ *   | { kind: "subagent", ordinal: number, spawnIndex: number, anchorId: string, href: string, label: string, sessionId: string }
+ * >}
+ */
+export function sessionTranscriptItems(detail, options) {
+  const baseUrl = options?.baseUrl ?? "";
+  const harness = detail?.harness ?? "";
+  const items = [];
+  for (const message of detail?.messages ?? []) {
+    items.push({ kind: "turn", ordinal: message.ordinal, message });
+    for (const child of message.subagents ?? []) {
+      const spawnIndex = child.spawn_index;
+      const sessionId = child.session_id;
+      const anchorId = subagentAnchorId(message.ordinal, spawnIndex);
+      if (!anchorId || !sessionId) {
+        continue;
+      }
+      items.push({
+        kind: "subagent",
+        ordinal: message.ordinal,
+        spawnIndex,
+        anchorId,
+        href: buildSessionDeepLink(baseUrl, harness, sessionId),
+        label: child.label || "Subagent",
+        sessionId,
+      });
+    }
+  }
+  return items;
+}
+
+/**
+ * Parent-line model for a subagent view; null when the opened session is not a child.
+ *
+ * @param {object | null | undefined} detail
+ * @param {{ baseUrl?: string } | undefined} [options]
+ * @returns {{ href: string, sessionId: string } | null}
+ */
+export function sessionParentLine(detail, options) {
+  if (!detail?.is_subagent || !detail.parent_session_id) {
+    return null;
+  }
+  return {
+    href: buildParentLineHref(
+      options?.baseUrl ?? "",
+      detail.harness ?? "",
+      detail.parent_session_id,
+      detail.parent_spawn,
+    ),
+    sessionId: detail.parent_session_id,
+  };
+}
+

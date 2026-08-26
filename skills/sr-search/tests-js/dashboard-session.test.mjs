@@ -26,6 +26,8 @@ import {
   renderSessionMessageHtml,
   resolveMessageAnchorElement,
   sessionLocationWithMessageHash,
+  sessionParentLine,
+  sessionTranscriptItems,
   shouldRefreshMetricsOnBoot,
   subagentAnchorId,
 } from "../src/stockroom/dashboard/static/dashboard-session.mjs";
@@ -539,5 +541,122 @@ test("sessionMessagesHeading prefers trimmed title else harness/session", () => 
       sessionId: "abc",
     }),
     "Cursor / abc",
+  );
+});
+
+test("sessionTranscriptItems emits turn then sibling subagent items", () => {
+  const items = sessionTranscriptItems(
+    {
+      harness: "cursor",
+      session_id: "parent",
+      messages: [
+        { ordinal: 47, role: "user", text: "go", subagents: [] },
+        {
+          ordinal: 48,
+          role: "assistant",
+          text: "spawning",
+          subagents: [
+            {
+              session_id: "kid-a",
+              spawn_index: 1,
+              label: "First",
+            },
+            {
+              session_id: "kid-b",
+              spawn_index: 2,
+              label: "Second",
+            },
+          ],
+        },
+      ],
+    },
+    { baseUrl: "http://127.0.0.1:58008/" },
+  );
+  assert.equal(items.length, 4);
+  assert.equal(items[0].kind, "turn");
+  assert.equal(items[0].ordinal, 47);
+  assert.equal(items[1].kind, "turn");
+  assert.equal(items[1].ordinal, 48);
+  assert.equal(items[1].subagents, undefined);
+  assert.deepEqual(items[2], {
+    kind: "subagent",
+    ordinal: 48,
+    spawnIndex: 1,
+    anchorId: "msg-48-sa-1",
+    href: "http://127.0.0.1:58008/?view=session&harness=cursor&session=kid-a",
+    label: "First",
+    sessionId: "kid-a",
+  });
+  assert.deepEqual(items[3], {
+    kind: "subagent",
+    ordinal: 48,
+    spawnIndex: 2,
+    anchorId: "msg-48-sa-2",
+    href: "http://127.0.0.1:58008/?view=session&harness=cursor&session=kid-b",
+    label: "Second",
+    sessionId: "kid-b",
+  });
+  assert.doesNotMatch(items[2].href, /#/);
+});
+
+test("sessionTranscriptItems is turns only when subagents are empty", () => {
+  const items = sessionTranscriptItems({
+    harness: "cursor",
+    messages: [{ ordinal: 0, role: "user", text: "hi", subagents: [] }],
+  });
+  assert.deepEqual(
+    items.map((item) => item.kind),
+    ["turn"],
+  );
+});
+
+test("sessionParentLine is hidden for a top-level session", () => {
+  assert.equal(
+    sessionParentLine({
+      is_subagent: false,
+      parent_session_id: null,
+      parent_spawn: null,
+    }),
+    null,
+  );
+});
+
+test("sessionParentLine href includes spawn hash when parent_spawn is set", () => {
+  assert.deepEqual(
+    sessionParentLine(
+      {
+        harness: "cursor",
+        is_subagent: true,
+        parent_session_id: "parent",
+        parent_spawn: {
+          session_id: "parent",
+          message_ordinal: 48,
+          spawn_index: 1,
+        },
+      },
+      { baseUrl: "http://127.0.0.1:58008/" },
+    ),
+    {
+      href: "http://127.0.0.1:58008/?view=session&harness=cursor&session=parent#msg-48-sa-1",
+      sessionId: "parent",
+    },
+  );
+});
+
+test("sessionParentLine is hash-less when parent_spawn is null", () => {
+  assert.deepEqual(
+    sessionParentLine(
+      {
+        harness: "claude",
+        is_subagent: true,
+        parent_session_id: "parent",
+        parent_spawn: null,
+      },
+      { baseUrl: "http://127.0.0.1:58008/" },
+    ),
+    {
+      href: "http://127.0.0.1:58008/?view=session&harness=claude&session=parent",
+      sessionId: "parent",
+    },
   );
 });

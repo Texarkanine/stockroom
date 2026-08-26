@@ -184,7 +184,7 @@ flowchart TD
 3. Write tests and run red: `#msg-0-sa-1` is valid; `#msg-48-sa-0` is not; ordinal-only deep links unchanged; `parseSessionFragment("#msg-48-sa-1")` is non-null so a hashchange gate using it would scroll; JSON stringify of a detail with the new fields still matches `formatSessionJsonExport`; markdown of the same detail has no `session-subagent` / "Open conversation" / `#msg-N-sa-M` chrome.
 4. Write code and run green: keep `parseMessageHash` exclusive; spawn parser is `^#msg-(\d+)-sa-(\d+)$` with `spawnIndex >= 1`; fragment helper is the OR of the two parsers. Do not change `dashboard.mjs` in this unit except if a one-line hashchange swap can land after the helper is green — prefer that swap in unit 4 with the other `dashboard.mjs` edits so this unit stays helper-only.
 
-### 4. Transcript render model, then session mount — executable
+### 4. Transcript render model, then session mount — executable ✅
 
 - Files: `skills/sr-search/src/stockroom/dashboard/static/dashboard-session.mjs`, `skills/sr-search/tests-js/dashboard-session.test.mjs`, then `dashboard.mjs`, `index.html`
 - Creative ref: `creative-subagent-pill-chrome.md`
@@ -198,7 +198,7 @@ This unit exists so sibling pill insertion, parent-line visibility, and generate
    1. Implement the render-model helpers until the new tests pass.
    2. Only then mount: `#session-parent` immediately after `#session-meta`; `.session-subagent` CSS (`align-self: flex-start`; width ~70–80%; `margin-left: 1.5rem`; tinted `color-mix` surface/border); `elements.sessionParent` in `dashboard.mjs`; walk `sessionTranscriptItems` and append sibling `<article class="session-subagent" id="msg-N-sa-M">` with one heading `<a>` to the child session (no hash); fill `#session-parent` from `sessionParentLine`; `scrollToMessageHash` uses the extended resolver; hashchange uses `parseSessionFragment` (or equivalent) instead of `parseMessageHash` alone; clear `sessionParent` on the loading/reset path so a parent session does not keep a stale `parent:` line.
 
-### 5. Session deep-link docs — prose/policy
+### 5. Session deep-link docs — prose/policy ✅
 
 - Files: `docs/user-guide/dashboard.md`, `memory-bank/techContext.md`
 - No tests: prose/policy artifact
@@ -242,5 +242,5 @@ No new technology - validation not required. No jsdom, no new front-end dependen
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight
-- [ ] Build
+- [x] Build
 - [ ] QA

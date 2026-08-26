@@ -112,3 +112,18 @@ Surface warehouse-linked subagent sessions in the dashboard conversation reconst
     - Build proceeds on the re-planned tasks.md (no leftover, corroborated zip, omit unknown harness).
 * Insights
     - Association policy changed after the last preflight; the plan already encodes that. No `/niko-plan` re-gate.
+
+## 2026-08-26 - BUILD - COMPLETE
+
+* Work completed
+    - Unit 1: `stockroom.dashboard.spawns` — provenance join, corroborated zip, unique-type rescue, omit unknown harness (12 tests).
+    - Unit 2: `session_detail` always emits `messages[].subagents` and `parent_spawn`; queries keyed by `(harness, session_id)` (7 new payload tests, including two integration cases).
+    - Unit 3: `#msg-N-sa-M` helpers, generic fragment parser, parent-line href, JSON keeps new fields, markdown stays pill-free.
+    - Unit 4: `sessionTranscriptItems` / `sessionParentLine` model, then mount sibling pills and `parent:` in `dashboard.mjs` / `index.html`.
+    - Unit 5: user-guide + techContext name both fragment forms.
+    - Full suite green; live UAT on `:58018` for `604ead72-…` / `bc960b66-…`.
+* Decisions made
+    - Built to plan. Plain `<a>` full-reload for pill and `parent:` links. Verification server on **58018** so `:58008` was left alone.
+* Insights
+    - Live parent has a typed Task at msg 48 (one pill) and an untyped "Nudge L3 QA" Task at msg 55 (not a slot). Browser-tool click on `parent:` did not navigate; href + hash boot did.
+

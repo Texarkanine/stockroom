@@ -1,0 +1,1 @@
+Dashboard session view now shows corroborated subagent pills (#msg-N-sa-M) and a parent: line; Claude joins spawn ids, Cursor places only aligned or unique agent_type pairs, unknown harness omits.
