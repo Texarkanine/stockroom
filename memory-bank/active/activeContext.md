@@ -28,4 +28,4 @@
 - Advisory `placements(con, harness, session_id)` declined for this task (same YAGNI as `association_method`).
 
 ## Next Step
-- Unit 3: hash, fragment, parent-link, and export helpers — TDD.
+- Unit 4: transcript render model, then session mount — TDD.

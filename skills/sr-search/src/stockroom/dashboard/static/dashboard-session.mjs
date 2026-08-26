@@ -90,25 +90,79 @@ export function parseMessageHash(hash) {
 }
 
 /**
- * Resolve the message bubble element for a hash under ``root``.
+ * DOM id / hash fragment (without ``#``) for a spawn pill.
+ *
+ * @param {unknown} ordinal Launch message ordinal.
+ * @param {unknown} spawnIndex 1-based index among children of that turn.
+ * @returns {string | null}
+ */
+export function subagentAnchorId(ordinal, spawnIndex) {
+  const n = Number(ordinal);
+  const m = Number(spawnIndex);
+  if (!Number.isInteger(n) || n < 0 || !Number.isInteger(m) || m < 1) {
+    return null;
+  }
+  return `msg-${n}-sa-${m}`;
+}
+
+/**
+ * Parse ``#msg-N-sa-M`` from a location hash; null when malformed.
+ * ``M`` must be an integer ``>= 1``. Ordinal ``0`` is valid.
+ *
+ * @param {unknown} hash
+ * @returns {{ ordinal: number, spawnIndex: number } | null}
+ */
+export function parseSubagentHash(hash) {
+  const match = String(hash ?? "").match(/^#msg-(\d+)-sa-(\d+)$/);
+  if (!match) {
+    return null;
+  }
+  const spawnIndex = Number(match[2]);
+  if (spawnIndex < 1) {
+    return null;
+  }
+  return { ordinal: Number(match[1]), spawnIndex };
+}
+
+/**
+ * Accept ``#msg-N`` or ``#msg-N-sa-M``; null when neither matches.
+ *
+ * @param {unknown} hash
+ * @returns {{ ordinal: number, spawnIndex?: number } | null}
+ */
+export function parseSessionFragment(hash) {
+  const spawn = parseSubagentHash(hash);
+  if (spawn) {
+    return spawn;
+  }
+  const ordinal = parseMessageHash(hash);
+  return ordinal === null ? null : { ordinal };
+}
+
+/**
+ * Resolve a ``#msg-N`` or ``#msg-N-sa-M`` element under ``root``.
  *
  * @param {{ querySelector: (selector: string) => Element | null } | null | undefined} root
  * @param {unknown} hash
  * @returns {Element | null}
  */
 export function resolveMessageAnchorElement(root, hash) {
-  const ordinal = parseMessageHash(hash);
-  if (ordinal === null || root == null) {
+  const fragment = parseSessionFragment(hash);
+  if (fragment === null || root == null) {
     return null;
   }
-  return root.querySelector(`#${messageAnchorId(ordinal)}`);
+  const id =
+    fragment.spawnIndex == null
+      ? messageAnchorId(fragment.ordinal)
+      : subagentAnchorId(fragment.ordinal, fragment.spawnIndex);
+  return id ? root.querySelector(`#${id}`) : null;
 }
 
 /**
  * @param {string} baseUrl
  * @param {string} harness
  * @param {string} sessionId
- * @param {{ ordinal?: number } | undefined} [options]
+ * @param {{ ordinal?: number, spawnIndex?: number } | undefined} [options]
  * @returns {string}
  */
 export function buildSessionDeepLink(baseUrl, harness, sessionId, options) {
@@ -116,11 +170,31 @@ export function buildSessionDeepLink(baseUrl, harness, sessionId, options) {
   url.search = "";
   url.hash = "";
   const params = buildSessionViewSearchParams(harness, sessionId);
-  const anchor = messageAnchorId(options?.ordinal);
+  const spawn = subagentAnchorId(options?.ordinal, options?.spawnIndex);
+  const anchor = spawn ?? messageAnchorId(options?.ordinal);
   if (anchor) {
     url.hash = anchor;
   }
   return `${url.origin}${url.pathname}?${params.toString()}${url.hash}`;
+}
+
+/**
+ * Parent-line href: spawn hash when ``parentSpawn`` is present, else the parent session.
+ *
+ * @param {string} baseUrl
+ * @param {string} harness
+ * @param {string} parentSessionId
+ * @param {{ session_id?: string, message_ordinal?: number, spawn_index?: number } | null | undefined} parentSpawn
+ * @returns {string}
+ */
+export function buildParentLineHref(baseUrl, harness, parentSessionId, parentSpawn) {
+  if (parentSpawn && parentSpawn.spawn_index != null) {
+    return buildSessionDeepLink(baseUrl, harness, parentSessionId, {
+      ordinal: parentSpawn.message_ordinal,
+      spawnIndex: parentSpawn.spawn_index,
+    });
+  }
+  return buildSessionDeepLink(baseUrl, harness, parentSessionId);
 }
 
 /** @typedef {25 | 50 | 100 | "all"} PerPage */

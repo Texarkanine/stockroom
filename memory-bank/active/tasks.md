@@ -174,7 +174,7 @@ flowchart TD
 3. Write tests and run red: existing exact message dict fails until `subagents: []` / `parent_spawn: null` are specified — update that fixture as part of writing the new assertions, not by weakening it. Cross-harness case fails until queries include `harness`.
 4. Write code and run green: `session_detail` selects `source_tool_use_id` for association only (omit from public `tool_calls`); query children with `harness = ? AND parent_session_id = ?`; when `is_subagent`, load the parent by `(harness, parent_session_id)` plus that parent's tools and sibling children; call `associate_children`; nest results. Do not add a new HTTP route.
 
-### 3. Hash, fragment, parent-link, and export helpers — executable
+### 3. Hash, fragment, parent-link, and export helpers — executable ✅
 
 - Files: `skills/sr-search/src/stockroom/dashboard/static/dashboard-session.mjs`, `skills/sr-search/tests-js/dashboard-session.test.mjs`
 - Creative ref: `creative-subagent-pill-chrome.md` (including Operator Amendment)
