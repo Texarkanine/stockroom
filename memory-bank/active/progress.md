@@ -26,3 +26,13 @@ Diagnose why Cursor model fields go dark after ~2026-08-20, and — if Stockroom
     - Already-ingested NULL rows are restored by `stockroom ingest --full`, not a new backfill surface
 * Insights
     - `STOCKROOM_AI_TRACKING_DB` or an `ai_tracking_dbs` pin would have papered over this; the default walk must survive a single dead `/mnt/<letter>`
+
+## 2026-08-25 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Gemini 3.1 Pro preflight: PASS
+    - `.preflight-status` written; Preflight checkbox marked
+* Decisions made
+    - No plan amendments
+* Insights
+    - Optional `mnt` on `_wsl_windows_candidate_paths` keeps existing `lambda: []` mocks valid (no args)
