@@ -60,6 +60,7 @@ import {
   parseSessionViewParams,
   parseSessionsListParams,
   renderSessionMessageHtml,
+  bindSessionMarkdown,
   resolveMessageAnchorElement,
   sessionParentLine,
   sessionTranscriptItems,
@@ -68,11 +69,13 @@ import {
 import { mountTokenDisplay } from "./dashboard-tokens.mjs";
 
 // Richer markdown → use export. Do not add markdown-it plugins.
-const markdown = window.markdownit({
-  html: false,
-  linkify: false,
-  typographer: false,
-});
+const markdownRender = bindSessionMarkdown(
+  window.markdownit({
+    html: false,
+    linkify: false,
+    typographer: false,
+  }),
+);
 
 const elements = {
   dashboard: document.querySelector("#dashboard"),
@@ -1278,9 +1281,7 @@ function renderSessionTurn(message) {
   }
   const body = document.createElement("div");
   body.className = "session-turn-body";
-  body.innerHTML = renderSessionMessageHtml(message.text || "", (value) =>
-    markdown.render(value),
-  );
+  body.innerHTML = renderSessionMessageHtml(message.text || "", markdownRender);
   turn.append(heading, body);
   for (const tool of message.tool_calls ?? []) {
     const detailsEl = document.createElement("details");

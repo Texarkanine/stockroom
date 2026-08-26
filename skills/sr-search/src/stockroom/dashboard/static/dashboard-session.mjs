@@ -515,6 +515,22 @@ export function renderSessionMessageHtml(text, markdownRender) {
 }
 
 /**
+ * Bind the dashboard markdown-it instance for session bodies.
+ *
+ * CommonMark backslash-escapes eat punctuation after ``\``, so a stored
+ * Windows-separator path like ``SumMem\.cursor`` renders as ``SumMem.cursor``.
+ * Configure the existing instance (not a plugin) so stored path text survives
+ * while bold, code, and other markdown still render.
+ *
+ * @param {{ disable: (rule: string) => unknown, render: (src: string) => string }} markdown
+ * @returns {(value: string) => string}
+ */
+export function bindSessionMarkdown(markdown) {
+  markdown.disable("escape");
+  return (value) => markdown.render(value);
+}
+
+/**
  * True when ``sessionView`` still addresses the given identity.
  *
  * @param {{harness: string, sessionId: string} | null | undefined} sessionView
