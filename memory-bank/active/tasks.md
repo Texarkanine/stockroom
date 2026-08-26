@@ -154,7 +154,7 @@ flowchart TD
 
 ## Implementation Plan
 
-### 1. Spawn association helper — executable
+### 1. Spawn association helper — executable ✅
 
 - Files: `skills/sr-search/src/stockroom/dashboard/spawns.py`, `skills/sr-search/tests/test_dashboard_spawns.py`
 - Creative ref: `memory-bank/active/creative/creative-spawn-association.md` (including Operator Amendment), label rule in `creative-subagent-pill-chrome.md`
