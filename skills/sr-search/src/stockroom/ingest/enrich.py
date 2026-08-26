@@ -33,31 +33,51 @@ _MODERN_REL = Path("ai-tracking") / "ai-code-tracking.db"
 _LEGACY_REL = Path("ai-code-tracking.db")
 
 
-def _wsl_windows_candidate_paths() -> list[Path]:
+def _iter_dirs(root: Path) -> list[Path]:
+    """Return child directories of ``root``, skipping entries that cannot be stated.
+
+    Lists names first (``os.listdir`` does not stat) so one stale child cannot
+    abort the walk. Each child's ``is_dir()`` runs in its own ``OSError``
+    handler. A listing failure on ``root`` itself yields an empty list.
+    """
+    try:
+        names = os.listdir(root)
+    except OSError:
+        return []
+    dirs: list[Path] = []
+    for name in names:
+        child = root / name
+        try:
+            if child.is_dir():
+                dirs.append(child)
+        except OSError:
+            continue
+    dirs.sort()
+    return dirs
+
+
+def _wsl_windows_candidate_paths(mnt: Path | None = None) -> list[Path]:
     """Return candidate DB paths under WSL ``/mnt/<drive>/Users/*/.cursor/...``.
 
     Searches both the modern ``ai-tracking/`` layout and the legacy flat path.
     Missing mounts or permission errors yield an empty list — never raise.
+    One stale ``/mnt/<letter>`` (or ``Users/*`` child) is skipped so sibling
+    homes are still discovered. ``mnt`` defaults to ``/mnt``; tests inject a
+    stand-in tree.
     """
-    mnt = Path("/mnt")
+    mnt = Path("/mnt") if mnt is None else mnt
     if not mnt.is_dir():
         return []
 
     candidates: list[Path] = []
-    try:
-        drives = sorted(p for p in mnt.iterdir() if p.is_dir())
-    except OSError:
-        return []
-
-    for drive in drives:
+    for drive in _iter_dirs(mnt):
         users_root = drive / "Users"
-        if not users_root.is_dir():
-            continue
         try:
-            user_homes = sorted(p for p in users_root.iterdir() if p.is_dir())
+            if not users_root.is_dir():
+                continue
         except OSError:
             continue
-        for user_home in user_homes:
+        for user_home in _iter_dirs(users_root):
             cursor_dir = user_home / ".cursor"
             candidates.append(cursor_dir / _MODERN_REL)
             candidates.append(cursor_dir / _LEGACY_REL)

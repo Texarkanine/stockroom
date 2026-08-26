@@ -37,19 +37,19 @@ Backwards compatibility is already true for the SQL reader. The required patch i
 
 ## Implementation Plan
 
-1. Add failing walker tests (injectable `mnt` root; do not mock `_wsl_windows_candidate_paths` for these cases)
+1. [x] Add failing walker tests (injectable `mnt` root; do not mock `_wsl_windows_candidate_paths` for these cases)
    - Files: `skills/sr-search/tests/test_ingest_enrich.py`
    - Changes: tests for the behaviors above using a `tmp_path` stand-in for `/mnt` and a targeted `Path.is_dir` (or helper) monkeypatch that raises `OSError(errno.ENXIO, …)` on the stale child only
-2. Fail-soft `/mnt` walk
+2. [x] Fail-soft `/mnt` walk
    - Files: `skills/sr-search/src/stockroom/ingest/enrich.py`
    - Changes: give `_wsl_windows_candidate_paths` an optional `mnt: Path | None = None` (default `Path("/mnt")`). Replace `Path.iterdir()` + unguarded `is_dir()` list-comps with a helper that lists names via `os.listdir` (does not stat) and stats each child in its own `try`/`except OSError`. Use that helper for both `/mnt` drive letters and each `Users/` listing. Keep modern + legacy candidate paths. Do not change `read_enrichment` SQL.
-3. Confirm existing enrich/orchestrator tests still pass (schema reader + merge/pin/env override)
+3. [x] Confirm existing enrich/orchestrator tests still pass (schema reader + merge/pin/env override)
    - Files: `skills/sr-search/tests/test_ingest_enrich.py`, `skills/sr-search/tests/test_ingest_orchestrator.py`
    - Changes: none expected unless a signature leak requires callers to stay defaulted
-4. Document the skip-dead-letter behavior
+4. [x] Document the skip-dead-letter behavior
    - Files: `docs/user-guide/load/sources.md`
    - Changes: one sentence under Cursor `sessions.models` enrichment — a stale `/mnt/<letter>` is skipped so other Windows homes are still merged. No new config keys.
-5. Operator restore of already-written NULL rows (no code)
+5. [ ] Operator restore of already-written NULL rows (no code)
    - After the walker fix, incremental ingest only rewrites sessions whose source mtime advances. A one-shot `stockroom ingest --full` is required to refill `models` on Aug 20+ rows that are already in the warehouse.
 
 ## Technology Validation
@@ -82,5 +82,5 @@ No new technology - validation not required
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight
-- [ ] Build
+- [x] Build
 - [ ] QA

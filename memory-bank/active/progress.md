@@ -36,3 +36,16 @@ Diagnose why Cursor model fields go dark after ~2026-08-20, and — if Stockroom
     - No plan amendments
 * Insights
     - Optional `mnt` on `_wsl_windows_candidate_paths` keeps existing `lambda: []` mocks valid (no args)
+
+## 2026-08-25 - BUILD - COMPLETE
+
+* Work completed
+    - Added `_iter_dirs` and switched the WSL walker to per-entry fail-soft
+    - Added five walker tests; enrich + orchestrator 47/47; full engine 821 passed / 4 skipped; dashboard JS 120 passed
+    - Documented stale `/mnt/<letter>` skip in `docs/user-guide/load/sources.md`
+    - Confirmed live discovery now merges the Windows tracking DB
+* Decisions made
+    - No SQL reader changes
+    - Operator `--full` ingest left as a post-fix restore, not a new command
+* Insights
+    - Listing names first (`os.listdir`) is what makes a stale `/mnt/i` survivable; catching only the outer `iterdir()` is not enough
