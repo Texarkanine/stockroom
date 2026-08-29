@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/Texarkanine/stockroom/compare/v1.1.0...v1.2.0) (2026-08-29)
+
+
+### Features
+
+* **sr-query:** add generated warehouse ERD with CI lockstep [127] ([#128](https://github.com/Texarkanine/stockroom/issues/128)) ([b1da55f](https://github.com/Texarkanine/stockroom/commit/b1da55f0a072c9aa56d48e8054ba091efc49f880))
+
 ## [1.1.0](https://github.com/Texarkanine/stockroom/compare/v1.0.1...v1.1.0) (2026-08-26)
 
 
