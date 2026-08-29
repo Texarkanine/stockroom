@@ -2,5 +2,5 @@ nav:
   - Overview: index.md
   - CLI: cli.md
   - DuckDB: duckdb.md
-  - Warehouse schema: warehouse-schema.md
+  - Warehouse Schema: warehouse-schema.md
   - Cookbook: cookbook

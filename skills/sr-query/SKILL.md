@@ -100,6 +100,13 @@ Prefer VIEW `session_token_usage` for conversation rollups. Columns: `*_from_mes
 
 `_sync_state` is ingest watermark bookkeeping; not interesting to query.
 
+You can inspect the complete live schema by running:
+
+```bash
+stockroom query "SELECT table_name, column_name, data_type
+  FROM information_schema.columns ORDER BY table_name, ordinal_position"
+```
+
 ## Worked examples
 
 All verified against a real warehouse.
