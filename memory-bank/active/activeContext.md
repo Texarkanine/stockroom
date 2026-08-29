@@ -4,9 +4,9 @@
 **Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Level 3 plan written: generate a Mermaid ERD from the existing head schema golden snapshot (`0008_snapshot.json` today) via a stdlib `scripts/gen_warehouse_schema.py`, commit SSOT at `skills/sr-query/references/warehouse-schema.md`, expose it in Advanced via cookbook-style symlink, CI/`make schema-docs-check` fails on drift.
-- Dummy DuckDB generation rejected: goldens already lock migrated schema; operator preferred a lighter technique.
-- No creative phase — approach is determined by existing goldens + cookbook dual-audience pattern + stated constraints.
+- First preflight: FAIL (fixable). Re-planned: ruff lane for `scripts/*.py`; generated body link-free (unit-tested); `.pages` nav lands with the symlink; engine.md documents the previously undocumented golden-update loop.
+- Deferred preflight's `@rel` migration-comment idea (edges still a hand list; new tables still appear as entities).
+- Dummy DuckDB still rejected; SSOT still skill reference + Advanced symlink.
 
 ## Next Step
-- Preflight: spawn `/niko-preflight` subagent to validate the plan against the codebase
+- Re-run Preflight to validate the revised plan
