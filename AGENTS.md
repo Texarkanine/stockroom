@@ -8,7 +8,7 @@ Run `.summem/summem wake` from the repository root. If you can see a prior proje
 
 ## While Working: Register Memories (mandatory)
 
-`.summem/summem note "…"` records one short line for a fact another contributor would still need. Personal, machine-local, and user preference facts stay out. `note` may sometimes print further instructions; always follow them.
+`.summem/summem note "…"` records one short line another contributor needs to work on this repository. Personal, machine-local, and user preference facts stay out. `note` may sometimes print further instructions; always follow them.
 
 Never invent filenames, rewrite note bytes, or delete memory files by hand. The script is the only writer. The files it writes are part of your work; do not leave them untracked.
 
