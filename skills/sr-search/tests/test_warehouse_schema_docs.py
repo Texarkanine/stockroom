@@ -223,10 +223,16 @@ def test_render_includes_logical_relationship_lines(gen: ModuleType) -> None:
     assert "||--o{ orphans" not in diagram
 
 
-def test_rendered_diagram_has_no_relative_links(gen: ModuleType) -> None:
-    """Generated Mermaid contains no relative markdown links (https URLs allowed)."""
-    diagram = gen.render_er_diagram(_TOY_SNAPSHOT, gen.parse_rels(_TOY_SQL))
-    assert _RELATIVE_MD_LINK.search(diagram) is None
+def test_committed_ssot_has_no_relative_links(repo_root: Path, gen: ModuleType) -> None:
+    """The dual-path schema page has no relative markdown links (https URLs allowed).
+
+    The same bytes are served from the skill path and the Advanced docs symlink.
+    A relative link such as ``[DuckDB](duckdb.md)`` resolves on one path and 404s
+    on the other. Generated mermaid cannot contain ``](...)``; this asserts the
+    authored page around the fence.
+    """
+    page = gen.ssot_path(repo_root).read_text(encoding="utf-8")
+    assert _RELATIVE_MD_LINK.search(page) is None
 
 
 def test_splice_mermaid_replaces_only_the_one_fence(gen: ModuleType) -> None:
