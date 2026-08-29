@@ -104,3 +104,16 @@ Put a visual warehouse schema (ERD or equivalent) in the `sr-query` skill and in
     - Declined this run's advisory (generated relationship-source appendix) unless asked
 * Insights
     - `make schema-docs-check` is a content lockstep, not a Python quality gate
+
+## 2026-08-29 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Re-validated the 10-step `@rel` plan against the checkout: confirmed the CI ruff-lane fix (unit 6) closes the prior `FAIL (fixable)`; grepped the full `migrations/` tree to confirm only `0001`/`0007` create tables/views (matches the plan's two-migration annotation scope); cross-checked head `0008_snapshot.json` PKs against the pinned `@rel` column lists and the empty-PK view heuristic; confirmed no existing ERD/schema diagram or `scripts/*.py` to conflict with
+    - `.preflight-status` first line: `PASS WITH ADVISORY`
+    - TDD Plan Encoding: PASS (units 1-5 order stub tests/interface before red tests before green code; prose/policy units 6-10 correctly carry no tests and no change-detectors; no in-phase `tasks.md` edits needed)
+* Decisions made
+    - No further plan changes required; proceed to Build
+* Insights
+    - `../scripts` has no ancestor `[tool.ruff]` config (root `pyproject.toml` is docs-only), so it lints under ruff defaults rather than the engine's `py311` pin - immaterial for stdlib code, noted as advisory only
+    - Unit 3's field labeled `No tests: n/a — this step is executable` is a copy-paste leftover from the prose/policy template (the unit does schedule tests correctly) - cosmetic, not a TDD violation
+    - Radical innovation offered (not applied): a sibling `-- @doc <column>: <description>` comment convention would let the generator absorb `sr-query`'s remaining hand-maintained column-meaning prose too

@@ -1,0 +1,1 @@
+Warehouse ERD edges: -- @rel / -- @rel-none comments in migrations/*.sql plus coverage against the head schema golden; not a Python relationship list and not a dummy DuckDB.
