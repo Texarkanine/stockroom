@@ -1,11 +1,12 @@
 # Active Context
 
 ## Current Task: warehouse-schema-docs
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Intent confirmed against [issue #127](https://github.com/Texarkanine/stockroom/issues/127), with operator refinements: prefer a generation technique that does not require a dummy DuckDB if equally faithful; CI must fail on drift; local developers must be able to regenerate; this checkout is not a localdev stockroom install and should not need one.
-- Complexity determined Level 3: complete feature spanning skill payload, human docs, generator, and CI; real design tradeoffs on generation technique and placement; not a warehouse architecture change.
+- Level 3 plan written: generate a Mermaid ERD from the existing head schema golden snapshot (`0008_snapshot.json` today) via a stdlib `scripts/gen_warehouse_schema.py`, commit SSOT at `skills/sr-query/references/warehouse-schema.md`, expose it in Advanced via cookbook-style symlink, CI/`make schema-docs-check` fails on drift.
+- Dummy DuckDB generation rejected: goldens already lock migrated schema; operator preferred a lighter technique.
+- No creative phase — approach is determined by existing goldens + cookbook dual-audience pattern + stated constraints.
 
 ## Next Step
-- Load the Level 3 workflow and execute the Plan phase
+- Preflight: spawn `/niko-preflight` subagent to validate the plan against the codebase
