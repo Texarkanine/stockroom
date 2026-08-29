@@ -1,0 +1,26 @@
+FAIL
+
+QA (round 2) of `warehouse-schema-docs` (Level 3). The prior round's blocking finding is resolved. One new blocking finding: `sr-query/SKILL.md` deleted column *meanings* that the generated ERD cannot carry, and did not relocate them anywhere in the skill payload.
+
+## Verified
+
+- **Prior QA finding resolved.** `render_markdown` now emits a Mermaid entity-name alias for empty-PK entities (`session_token_usage["session_token_usage (view)"]`), which renders as the box title. Alias syntax confirmed against Mermaid's ER grammar (Entity Name Aliases, v10.5.0+, quoted alias supported). `test_view_heuristic_marks_empty_primary_key_as_view` asserts the alias in the fence and explicitly rejects `%% view:`, so the non-rendering marker cannot come back silently.
+- **Derivation pipeline matches the pinned design.** Boxes/columns from the highest `NNNN_snapshot.json`; edges from `-- @rel` / `-- @rel-none` in the migration SQL; `assert_coverage` gates unknown names, missing columns, contradictions, and unaccounted snapshot entities. No DDL change, no DB-level FOREIGN KEY, no dummy DuckDB.
+- **Stdlib-only generator.** `argparse`/`json`/`re`/`dataclasses`/`pathlib` only — no engine venv, torch, or on-path `stockroom` needed to regenerate (brief requirements 5 and 7).
+- **Lockstep is gated in the always-run lane.** `check()` compares committed SSOT to a fresh render and never writes on failure; pytest `test_committed_ssot_matches_head_snapshot_render`, `make schema-docs-check` in `ci`, and the CI step `Warehouse schema docs lockstep` all call the same function. `scripts/` is now in the ruff lane in both Make and CI.
+- **Dual audience without a fork.** `docs/advanced/warehouse-schema.md` is a symlink to the skill SSOT (cookbook contract), with a nav entry in `docs/advanced/.pages` and a test asserting `is_symlink` + `resolve()`. Generated body has no relative links, asserted by test.
+- **Test quality.** 18 tests, all behavioral (render output, parser, coverage failures, write/check round-trip, symlink contract, Make existence pin). No SKILL.md phrase or `ci.yaml` text change-detectors, as the plan required. Re-ran: 18 passed.
+
+## Blocking Findings
+
+1. **Non-structural column meanings were deleted from `sr-query/SKILL.md` and relocated nowhere.** Plan unit 7 called for removing the version-pinned per-column catalog, and the ERD replaces its *structural* content (names, types, keys, joins). But the same edit also removed meanings an ERD cannot express, and they are now absent from the entire skill payload: `project_id` is the verbatim project-dir slug and *the* grouping key; `cwd` / `workspace_key` are nullable and serve different rollups; `entrypoint` should be discovered with `SELECT DISTINCT` rather than guessed; `messages.text` is the whole message and **thinking is not captured**; `tool_calls` holds tool **inputs only, never outputs**. Grep confirms these now appear nowhere under `skills/` except inside test fixtures and migration SQL comments; `references/system-model.md` covers `message_id` shape, `source_*` provenance, and stored-whole/truncation, but none of the five above. Two of them (thinking not captured; no tool outputs) are the guardrails that stop an agent from confidently answering a question the warehouse cannot answer. This also contradicts the doctrine recorded in this very task when the operator rejected `-- @doc` (tasks.md Invariants): meanings a human must read belong in one current document — SKILL guardrails or the generated ERD — not nowhere.
+
+   Remediation (Build, prose/policy, no test): add a compact "what the columns mean" note to `sr-query/SKILL.md` under "What's in the warehouse" — a few lines covering the items above, with no exhaustive column enumeration and no `as of migrations NNNN-NNNN` pin, so the drift vector the plan removed does not return.
+
+## Advisory
+
+1. **All edges are drawn `||--o{`.** `sessions ||--o{ session_token_usage` is one row per session, and the two polymorphic `embeddings` edges each look like an unconditional parent. The `@rel` grammar has no cardinality field and the plan accepted this, so it does not block; if the picture is later judged misleading, the fix is an optional cardinality token in the comment grammar, not hand-editing the output.
+2. **`assert_coverage` re-runs `_contradiction`,** which both `parse_rels` and `parse_rels_dir` already enforce. Defensible (a `RelGraph` can be constructed directly, as one test does), but it is duplicated invariant enforcement.
+3. **`render_markdown` computes `pk = set(entity["primary_key"])` and then branches on the raw list.** Trivial; branch on `pk`.
+4. **`make lint` / `format` / `format-check` use two ruff invocations** (`ruff check`, then `ruff check ../../scripts`) while CI uses one combined `ruff check . ../../scripts`. Equivalent today; one form in both places would be less surprising.
+5. **`tasks.md` has a duplicated Challenges bullet** ("Mermaid vs DuckDB types" appears twice, lines 241-242). Memory-bank hygiene only.

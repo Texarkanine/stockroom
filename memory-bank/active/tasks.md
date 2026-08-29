@@ -130,6 +130,7 @@ None - implementation approach is clear. Dummy DuckDB was rejected in favor of t
 - [x] 9. Contributor regen loop
 - [x] 10. Standing-contract memory-bank pointers
 - [x] 11. Visible Mermaid view alias (QA rework)
+- [ ] 12. Compact SKILL column-meaning guardrails (QA rework)
 
 ### 1. ERD generator and @rel parser — executable
 
@@ -232,6 +233,14 @@ None - implementation approach is clear. Dummy DuckDB was rejected in favor of t
 1. Tighten `test_view_heuristic_marks_empty_primary_key_as_view` to require a Mermaid entity alias `name["name (view)"]` and to reject `%% view:` comments. Drop the toy-render ban on all `[` `]` in the fence (that was a FLOAT[384] belt; keep the unsanitized-type asserts).
 2. Run red, then emit aliases for empty-PK entities; keep relationship ids as the SQL name. `make schema-docs` to refresh the SSOT.
 
+### 12. Compact SKILL column-meaning guardrails (QA rework) — prose/policy
+
+- Files: `skills/sr-query/SKILL.md`
+- No tests: prose/policy artifact
+
+1. Under "What's in the warehouse", after the ERD pointer, add a compact note covering only what the picture cannot show: `project_id` as verbatim slug/grouping key; `cwd` / `workspace_key` nullable and different rollups; `entrypoint` via `SELECT DISTINCT`; `messages.text` is the whole turn and thinking is not captured; `tool_calls` is inputs only, never outputs.
+2. Do not restore the exhaustive catalog or an `as of migrations NNNN` pin.
+
 ## Technology Validation
 
 No new technology - validation not required. Stdlib `python3` + `re`, existing pytest, existing Mermaid in properdocs, existing cookbook symlink pattern, existing schema goldens. `@rel` is a comment convention, not a DuckDB feature.
@@ -270,7 +279,10 @@ No new technology - validation not required. Stdlib `python3` + `re`, existing p
 - [x] Build
 - [x] QA — FAIL
 - [x] Build (QA rework)
+- [x] QA — FAIL (round 2)
+- [ ] Build (QA rework: SKILL column meanings)
 
 ## QA Results
 
-- **FAIL (Build must rerun):** The generated Mermaid ERD marks `session_token_usage` with `%% view: …`, which is a Mermaid comment and does not appear in the rendered diagram. Consequently, views are visually indistinguishable from tables, failing the visual-schema requirement. Make the view designation visible in the Mermaid output and add a behavioral test for the rendered designation.
+- **FAIL (round 1, resolved):** The generated Mermaid ERD marked `session_token_usage` with `%% view: …`, which does not render. Rework emits `name["name (view)"]` aliases.
+- **FAIL (round 2, Build must rerun):** Plan unit 7 removed the version-pinned per-column catalog, which is correct for *structure*. The same edit also deleted meanings the ERD cannot express, and they now appear nowhere in the skill payload: `project_id` is the verbatim project-dir slug and grouping key; `cwd` / `workspace_key` are nullable and serve different rollups; `entrypoint` should be discovered with `SELECT DISTINCT`; `messages.text` is the whole message and thinking is not captured; `tool_calls` holds inputs only, never outputs. Add a compact note under "What's in the warehouse" — no exhaustive column list, no `as of migrations NNNN` pin.

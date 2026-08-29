@@ -180,3 +180,13 @@ Put a visual warehouse schema (ERD or equivalent) in the `sr-query` skill and in
     - Mermaid ERD entity aliases are the visible designation; relationship ids stay the SQL name
 * Insights
     - A regex that matches `view` anywhere in the mermaid source (including `%%` comments) is not a test of what readers see
+
+## 2026-08-29 - QA - COMPLETE (FAIL, round 2)
+
+* Work completed
+    - Re-reviewed after the view-alias rework; prior `%% view:` finding is resolved
+    - Subagent was interrupted after writing `.qa-validation-status`; parent transcribed the remaining QA log from that file
+* Decisions made
+    - Return to Build: restore non-structural column meanings that the ERD cannot carry
+* Insights
+    - Replacing a SKILL column catalog with a generated ERD removes types/keys/joins from the drift vector, but also drops meanings the picture cannot show (`thinking` not stored, tool outputs not stored, `project_id`/`cwd`/`workspace_key`/`entrypoint` roles) unless those stay in the skill as guardrails

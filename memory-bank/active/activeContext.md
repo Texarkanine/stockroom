@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: warehouse-schema-docs
-**Phase:** BUILD - COMPLETE
+**Phase:** QA - COMPLETE (FAIL)
 
 ## What Was Done
 - Implemented the 10-step `@rel` plan: stdlib generator, migration comments, committed ERD SSOT, docs symlink, Make/CI lockstep, skill + human docs routing, contributor loop, memory-bank pointers.
@@ -31,4 +31,4 @@
 - `make lint`, `make format-check`, `make schema-docs-check`, `make reuse`, `make docs-build`: passed.
 
 ## Next Step
-- QA review (`/niko-qa`) runs automatically.
+- Return to Build: restore a compact column-meaning note in `sr-query/SKILL.md` (no exhaustive catalog, no migration pin), then rerun QA.
