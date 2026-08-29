@@ -1,60 +1,33 @@
-FAIL (fixable)
+PASS WITH ADVISORY
 
-Preflight of `warehouse-schema-docs` (Level 3) against the checkout on branch `show-da-skema` (clean tree). Two fixable gaps; the rest of the plan verified true against the codebase.
+Re-preflight of `warehouse-schema-docs` (Level 3) against the revised `tasks.md`, on branch `show-da-skema` (clean tree). Both fixable gaps from the prior `FAIL (fixable)` run are resolved in-plan; no new blocking or fixable issues found.
 
-## Verified true against the codebase
+## Prior fixable gaps — verified resolved
 
-- Head golden is `skills/sr-search/tests/fixtures/schema/0008_snapshot.json`; shape is `{"indexes": [...], "tables": {name: {"columns": [{name,type,nullable}], "primary_key": [...]}}}`. Six names, exactly as the plan states. `0005_snapshot.json` is genuinely absent (`test_schema_0005.py` reuses `0003`'s introspector), so max-numeric head discovery is the right rule.
-- View heuristic is safe today and not merely asserted: `session_token_usage` is the **only** entity with `primary_key: []`; `_sync_state`, `embeddings`, `messages`, `sessions`, `tool_calls` all carry PKs. `embeddings` in particular has a 4-column PK, so it will not be mislabeled a view.
-- Types requiring Mermaid sanitization are present and worth unit-testing: `FLOAT[384]`, `VARCHAR[]`, `HUGEINT`, `JSON`, `TIMESTAMP`.
-- Indexes payload is a single HNSW entry on `embeddings.vector` — the plan's decision to omit indexes from the ERD and emit a one-line note is proportionate.
-- Cookbook dual-audience precedent is exactly as described: SSOT under `skills/sr-query/references/cookbook/`, `docs/advanced/cookbook/*.md` are real symlinks, and `test_query_cookbook.py::test_docs_cookbook_pages_symlink_to_ssot_recipes` is the right assertion shape to copy (`is_symlink()` + `resolve()` equality).
-- Running Make from pytest is precedented: `test_coverage_collection.py::_run_make` shells out to `make` from `repo_root`. Step 4's `make schema-docs-check` test fits.
-- Engine CI job defaults to `working-directory: skills/sr-search`; the plan's `working-directory: ${{ github.workspace }}` for the new step matches the existing `Coverage engine` / `REUSE lint` steps.
-- Mermaid renders on the docs site: `pymdownx.superfences` custom fence `mermaid` is configured in `properdocs.yaml`, and `docs/architecture/index.md`, `docs/architecture/backfill.md`, `docs/user-guide/index.md` already ship mermaid fences.
-- Licensing needs no REUSE.toml edit: `skills/**/references/**` already overrides to PPL-S (so the new SSOT is PPL-S automatically), and `scripts/**` falls to base AGPL under `**/*`. No test enumerates `skills/**/references/` membership, so adding a file there breaks nothing; `test_licensing.py` pins named representative paths only.
-- `sr-query/SKILL.md` does carry the stale-prone catalog ("as of migrations 0001–0008", line 96). No test asserts on that prose, so step 6's deletion is safe. `test_skill_hygiene.py` only checks invocation plumbing.
-- Steps 5–9 are correctly classified prose/policy: workflow YAML, SKILL prose, docs pages, nav, contributor prose, memory-bank pointers. None owes a test, and the plan already forbids SKILL/nav/CI-text change-detectors (tasks.md "Integration Tests").
+1. **Lint lane for `scripts/gen_warehouse_schema.py`.** Step 4 now states the fix explicitly: extend `lint` / `format` / `format-check` with `$(UV_RUN) ruff check ../scripts` (and `ruff format` / `ruff format --check`). Re-verified against the current `Makefile`: `UV_RUN := $(UV) --directory skills/sr-search --no-config run --no-sync`, so ruff's cwd is `skills/sr-search`; `../scripts` correctly resolves to the repo-root `scripts/` dir. `SCRIPTS := scripts` is otherwise only used for `LOCALDEV_SH`, so this is additive, not a collision.
+2. **Link-free generated body.** Step 1 now states "with zero relative markdown links" explicitly as an output-template requirement, and the Test Plan's "Link-free body" behavior asserts it. Human cross-links moved to step 7's pages, which are single-path.
+
+## Prior advisories — verified folded in
+
+- Advisory 1 (nav-lands-with-symlink): step 3 now adds the `Warehouse schema` entry to `docs/advanced/.pages` in the same step as the symlink. Re-verified `docs/advanced/.pages` still has no `- ...` wildcard (unlike `cookbook/.pages`), so this was a real gap and is now closed at the right step.
+- Advisory 2 (step 8 premise): step 8 now says "Add a new section (this loop is not documented anywhere in `docs/` today...)" instead of assuming an existing owner to append to.
+- Advisory 4 (step 4 test redundancy): step 4 now says "Keep the Make pytest as an existence pin only — do not duplicate lockstep assertions there."
+- Advisory 3 (`sessions` at ~24 attributes) and the radical-innovation `@rel` migration-comment convention are informational/deferred by operator choice (see `activeContext.md`), not required fixes — carried forward here as non-blocking.
+
+## Re-verified against the codebase (unchanged since prior run)
+
+- `scripts/gen_warehouse_schema.py` and `skills/sr-query/references/warehouse-schema.md` do not exist yet — no naming collisions with the plan's new files (`scripts/` currently holds only `localdev.sh`; `skills/sr-query/references/` currently holds only `cookbook/`).
+- `skills/sr-query/SKILL.md:96` still carries the stale "as of migrations 0001–0008" catalog step 6 will delete; `information_schema` introspection query at line 93 stays as the "verify" query per the plan.
+- Head golden shape, view heuristic, Mermaid type sanitization needs, cookbook symlink precedent, Make-from-pytest precedent, CI job working-directory, and REUSE overrides were all directly verified in the prior preflight run and are unaffected by this plan revision (no code changed between runs, only planning text).
 
 ## TDD Plan Encoding — PASS
 
-Executable units 1–4 each order substeps stub-tests → stub-interface → write-tests-and-run-red → write-code-and-run-green, with the concrete pytest invocation named. No unit has implementation-only steps under a TDD disclaimer. No scheduled change-detectors found: every planned assertion (render content, sanitized types, empty-PK view marking, relationship lines, head-snapshot table coverage, `check` nonzero on missing/mismatch, write-then-check, symlink resolve, `make` returncode) goes red on a product/contract break, not on a deliberate document edit. No in-phase edits to `tasks.md` were needed.
+Executable units 1–4 still order stub-tests → stub-interface → write-tests-and-run-red → write-code-and-run-green, with concrete pytest invocations named. The Gap-1/Gap-2 fixes and both nav/test-scope advisories were folded into the *content* of existing steps (1, 3, 4) without breaking that ordering or introducing implementation-only steps. No scheduled change-detectors. No in-phase edits to `tasks.md` were needed by this run.
 
-## Fixable gap 1 — the generator lands outside the repo's only Python lint lane
+## Convention Compliance / Dependency Impact / Conflict Detection / Completeness — no new findings
 
-`make lint` / `make format-check` are `$(UV_RUN) ruff check` / `ruff format --check`, and `UV_RUN` is `uv --directory skills/sr-search --no-config run --no-sync`, so ruff's cwd is the engine dir. CI's `Lint` and `Format check` steps likewise run under `defaults.run.working-directory: skills/sr-search`. Root `pyproject.toml` has no `[tool.ruff]`, there is no pre-commit config, and the only existing repo-root script is POSIX shell (`scripts/localdev.sh`, wired via `SCRIPTS :=` in the Makefile).
+Plan continues to follow the cookbook dual-audience symlink pattern (`systemPatterns.md` "Docs ownership"), keeps DDL authority in the migration chain, and keeps Architecture free of a DDL dump. All six acceptance criteria in `projectbrief.md` map to concrete steps (1–4 for generator/lockstep/symlink/Make; 5 for CI; 6–7 for skill/docs routing; 3 for install-time contract). No overlapping existing implementation found for the generator or the ERD.
 
-Consequence: `scripts/gen_warehouse_schema.py` would be the first Python file in the repo that no lint or format gate ever sees, and the plan does not decide that. Fix, using the precedent already in the Makefile's `reuse` target (root-cwd invocation of an engine-env tool):
+## Radical Innovation (advisory, not applied)
 
-```make
-lint: sync
-	$(UV_RUN) ruff check
-	$(UV) run --project $(ENGINE) --no-sync $(UV_NO_CFG) ruff check $(SCRIPTS)
-```
-
-(and the parallel `ruff format` / `ruff format --check` lines). Step 4 already edits the `Makefile`, so this is additive to work in flight, not a new unit. The alternative — placing the generator under `skills/sr-search/` where bare `ruff check` already covers it — also satisfies the stdlib/no-venv constraint (the file would still be run as `python3 skills/sr-search/…`), but breaks the plan's clean "repo tooling lives in `scripts/`" read and makes the Make target uglier. Recommend keeping `scripts/` and extending the lint lane. Either way, the plan must say which.
-
-## Fixable gap 2 — generated body must be link-free (dual-path constraint)
-
-The same bytes are served from two path contexts: `skills/sr-query/references/warehouse-schema.md` (agent-relative) and `docs/advanced/warehouse-schema.md` (site-relative symlink). Any relative markdown link is therefore wrong in at least one context. This is why every existing cookbook recipe body contains **zero** markdown links — the constraint is real and already honored, but only implicitly.
-
-Step 1's output template ("title, logical-relationships note, mermaid fence, short index note") does not state it. `properdocs.yaml` sets `strict: true` with `validation.unrecognized_links: warn` and `anchors: warn`, so a bad relative link fails the docs job; but a link that resolves from `docs/` and is wrong from the skill path fails silently for the agent audience, which no gate catches. Fix: state in step 1 that the generated body carries no relative links (absolute `https://github.com/…` URLs only, if any are wanted at all), and put the human cross-links in the human-owned pages that step 7 already edits.
-
-## Advisories
-
-1. **Step ordering vs. `make docs-build`.** `docs/advanced/.pages` is an explicit nav list with no `- ...` wildcard (unlike `docs/advanced/cookbook/.pages`, which has one). `properdocs.yaml` combines `strict: true` with `validation.omitted_files: warn`, so a page present in `docs/` but absent from nav is an error. Step 3 creates `docs/advanced/warehouse-schema.md`; the nav entry does not arrive until step 7. `make ci` does not build docs, so the plan's own verification stays green, but any `make docs-build` (or a pushed intermediate commit hitting the docs workflow) between steps 3 and 7 fails. Cheapest fix: move the one-line `.pages` nav entry into step 3.
-2. **Step 8's premise is slightly false.** No file under `docs/contributing/` mentions `STOCKROOM_UPDATE_SCHEMA_GOLDEN` today — the env var lives only in `tests/test_schema_*.py`. So there is no existing owner to append to; `docs/contributing/iteration/engine.md` (which has a "Development Loop" and a "Relevant Make Targets" section) is the natural new home, and the step is really "document a loop that was never documented," slightly larger than "add two lines."
-3. **`sessions` at 24 attributes** will be the biggest entity on the diagram. Noted in the plan's Challenges; the head snapshot confirms the number. Fine for a site page; do not pre-emptively split.
-4. **Step 4's `make schema-docs-check` test partly duplicates the direct `check(repo_root)` assertion.** Keep it — its distinct value is pinning that the Make target exists and is spelled as documented — but do not grow it into a second lockstep assertion.
-
-## Advisory — radical innovation (not applied)
-
-The plan's own pre-mortem names the one durable weakness and then accepts it: `RELATIONSHIPS` is a hand-maintained list inside the generator, so a future migration that adds a joinable table produces a diagram with a floating box and **nothing fails**. Drift moves from the column catalog (which step 6 deletes) into the generator — smaller and better-located, but still unguarded.
-
-Concrete alternative: make each migration declare its own edges, and make missing declarations a CI failure.
-
-- Adopt a comment convention in the migration SQL, e.g. `-- @rel messages(harness,session_id) -> sessions(harness,session_id)` beside the `CREATE TABLE`, plus `-- @rel-none` for a deliberately edge-free table (`_sync_state`) and repeated `@rel` lines for the polymorphic `embeddings.owner_table` case.
-- The generator (still stdlib: `pathlib` + a regex over `skills/sr-search/src/stockroom/migrations/*.sql`) collects those declarations and keeps the golden snapshot as the entity/attribute source. Comments are invisible to DuckDB introspection, so the golden format never changes and the 0001 "no DB-level FOREIGN KEYs" invariant is untouched.
-- Add one assertion: every entity in the head snapshot is either the target of an `@rel` or explicitly `@rel-none`. That converts "remember to update `RELATIONSHIPS`" into a gate, and puts the edge in the same diff as the DDL that creates the join.
-
-Cost: one regex parser plus a convention to document, and the generator gains a second input directory. Judged worth surfacing because it retires the plan's only accepted-drift item at roughly the cost of the `RELATIONSHIPS` constant it replaces. Not applied — the operator decides whether it belongs in this task or a follow-up.
+Unchanged from the prior run: retire the plan's only accepted-drift item (`RELATIONSHIPS` hand list) by moving edge declarations into `-- @rel` migration-SQL comments plus a coverage assertion that every head-snapshot entity is either targeted by an `@rel` or explicitly `@rel-none`. Operator has already deferred this (see `activeContext.md`); recorded again here only because the check requires it, not as a new blocking finding.

@@ -59,3 +59,27 @@ Put a visual warehouse schema (ERD or equivalent) in the `sr-query` skill and in
 * Insights
     - Cookbook recipe bodies already have zero markdown links for the same dual-path reason; the agent index is not symlinked and may link
     - `UV_RUN` cwd is the engine dir, so `../scripts` is the correct ruff path (reuse-style root invocation is unnecessary)
+
+## 2026-08-29 - PREFLIGHT - COMPLETE (re-run on revised plan)
+
+* Work completed
+    - Re-validated the revised 9-step plan against the checkout: confirmed both prior fixable gaps and both actionable advisories were folded into steps 1, 3, and 4; re-verified `Makefile` `UV_RUN` cwd, `docs/advanced/.pages` nav-wildcard absence, `scripts/`/`skills/sr-query/references/` non-collision, and the stale SKILL catalog line targeted for deletion
+    - `.preflight-status` first line: `PASS WITH ADVISORY`
+    - TDD Plan Encoding: PASS (fixes were folded into existing steps without breaking test-before-code ordering; no change-detectors; no in-phase `tasks.md` edits needed)
+* Decisions made
+    - No further plan changes required; proceed to Build
+* Insights
+    - The two remaining advisories (`sessions` ~24-attribute entity size; `@rel` migration-comment convention replacing the hand-maintained `RELATIONSHIPS` list) are operator-deferred, not new findings
+
+## 2026-08-29 - PLAN - COMPLETE (fold in @rel)
+
+* Work completed
+    - Operator asked to take preflight's radical innovation; rewrote the edge source from a Python list to `-- @rel` / `-- @rel-none` in migrations plus coverage
+    - Renumbered implementation to 10 steps (new executable unit: annotate 0001/0007)
+* Decisions made
+    - Grammar: `-- @rel from(cols) -> to(cols) [: label]` and `-- @rel-none entity`; child→parent draws `to ||--o{ from`
+    - Coverage: every snapshot entity is from, to, or rel-none; names and column lists must exist on the snapshot; `@rel-none` cannot also be a from
+    - `check()` runs coverage before comparing markdown
+* Insights
+    - Comments do not change DuckDB apply or golden JSON; the new gate is a regex over SQL the contributor already edits
+    - `sessions` needs no `@rel-none` because it is a `<to>`

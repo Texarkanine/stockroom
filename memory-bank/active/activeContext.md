@@ -4,9 +4,8 @@
 **Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- First preflight: FAIL (fixable). Re-planned: ruff lane for `scripts/*.py`; generated body link-free (unit-tested); `.pages` nav lands with the symlink; engine.md documents the previously undocumented golden-update loop.
-- Deferred preflight's `@rel` migration-comment idea (edges still a hand list; new tables still appear as entities).
-- Dummy DuckDB still rejected; SSOT still skill reference + Advanced symlink.
+- Operator asked to fold in preflight's `@rel` radical innovation. Plan now: edges live as `-- @rel` / `-- @rel-none` comments in migration SQL; coverage fails if a head-snapshot entity is undeclared; goldens still supply boxes/columns; no dummy DuckDB.
+- Prior preflight fixes kept: ruff `../scripts`, link-free generated body, `.pages` nav with the symlink, engine.md documents the regen loop (now including `@rel`).
 
 ## Next Step
-- Re-run Preflight to validate the revised plan
+- Re-run Preflight on the `@rel`-expanded plan
