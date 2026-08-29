@@ -125,3 +125,12 @@ Put a visual warehouse schema (ERD or equivalent) in the `sr-query` skill and in
 * Insights
     - Forward-only migrations are a write log. Prose a human must read cannot live there: an older file can still contain a string that a later migration made false, sitting next to strings that are still true
     - `@rel` is a different shape: coverage checks names against the *head* snapshot, so stale structural declarations fail; column essays would have to be merged across the chain and would not
+
+## 2026-08-29 - BUILD - IN-PROGRESS
+
+* Work completed
+    - Preflight `PASS WITH ADVISORY`; entering the 10-step `@rel` implementation
+* Decisions made
+    - Follow the validated plan; no creative docs to apply (creative was skipped)
+* Insights
+    - None yet; implementation has not started

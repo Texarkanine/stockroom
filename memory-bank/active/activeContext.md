@@ -1,11 +1,10 @@
 # Active Context
 
 ## Current Task: warehouse-schema-docs
-**Phase:** PREFLIGHT - COMPLETE (PASS WITH ADVISORY)
+**Phase:** BUILD - IN-PROGRESS
 
 ## What Was Done
-- Re-validated the 10-step `@rel` plan; confirmed the CI ruff-lane fix (unit 6) resolved the prior `FAIL (fixable)`.
-- Operator rejected `-- @doc` / harvesting migration-chain comments as a data dictionary: layered SQL is a write log, not one place to read current meaning.
+- Preflight complete (`PASS WITH ADVISORY`); `@doc` data-dictionary idea rejected by operator.
 
 ## Next Step
-- Proceed to Build (`/niko-build`)
+- Execute implementation plan steps 1–10 with TDD, then integration tests and QA spawn.

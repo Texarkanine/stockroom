@@ -244,6 +244,6 @@ No new technology - validation not required. Stdlib `python3` + `re`, existing p
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
 - [ ] QA
