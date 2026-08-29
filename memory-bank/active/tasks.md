@@ -130,7 +130,7 @@ None - implementation approach is clear. Dummy DuckDB was rejected in favor of t
 - [x] 9. Contributor regen loop
 - [x] 10. Standing-contract memory-bank pointers
 - [x] 11. Visible Mermaid view alias (QA rework)
-- [ ] 12. Compact SKILL column-meaning guardrails (QA rework)
+- [x] 12. Compact SKILL column-meaning guardrails (QA rework)
 
 ### 1. ERD generator and @rel parser — executable
 
@@ -280,7 +280,7 @@ No new technology - validation not required. Stdlib `python3` + `re`, existing p
 - [x] QA — FAIL
 - [x] Build (QA rework)
 - [x] QA — FAIL (round 2)
-- [ ] Build (QA rework: SKILL column meanings)
+- [x] Build (QA rework: SKILL column meanings)
 
 ## QA Results
 

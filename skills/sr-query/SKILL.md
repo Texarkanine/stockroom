@@ -95,6 +95,12 @@ stockroom query "SELECT table_name, column_name, data_type
   FROM information_schema.columns ORDER BY table_name, ordinal_position"
 ```
 
+The picture does not carry these meanings:
+
+- `sessions.project_id` is the verbatim project-dir slug — the grouping key (for Cursor CLI chats, the chats hash directory). `cwd` is a real path and may be `NULL`. `workspace_key` is a separate nullable cross-harness path rollup. `entrypoint` is surface provenance when known and may be `NULL` — `SELECT DISTINCT entrypoint` rather than guessing literals.
+- `messages.text` is the whole turn; thinking/reasoning is **not** captured.
+- `tool_calls` stores tool **inputs only**, never outputs (`tool_input` is heterogeneous JSON — see the guardrail).
+
 Always join on the uniform `message_id` / `(harness, session_id)`, never on the `source_*` provenance columns. A value that only exists at one grain per harness is honestly `NULL` for the other (e.g. `messages.model` is Claude-only; `sessions.models` is Cursor-only; the same dual-grain honesty applies to tokens).
 
 Prefer VIEW `session_token_usage` for conversation rollups. Columns: `*_from_messages` (SUM of message tokens), `*_native` (session columns), `*_total` (`COALESCE(native, from_messages)`), `token_grain` (`'session'`|`'message'`|`'none'`). Totals are warehouse rollups of reported fields, not vendor invoices. Do not also `SUM` message tokens on top of `*_total`.

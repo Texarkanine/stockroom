@@ -190,3 +190,14 @@ Put a visual warehouse schema (ERD or equivalent) in the `sr-query` skill and in
     - Return to Build: restore non-structural column meanings that the ERD cannot carry
 * Insights
     - Replacing a SKILL column catalog with a generated ERD removes types/keys/joins from the drift vector, but also drops meanings the picture cannot show (`thinking` not stored, tool outputs not stored, `project_id`/`cwd`/`workspace_key`/`entrypoint` roles) unless those stay in the skill as guardrails
+
+## 2026-08-29 - BUILD - COMPLETE (QA rework: SKILL column meanings)
+
+* Work completed
+    - Added a compact "picture does not carry these meanings" note to `sr-query/SKILL.md` covering project_id/cwd/workspace_key/entrypoint, thinking not captured, and tool inputs only
+    - Did not restore the exhaustive catalog or an `as of migrations` pin
+    - `test_skill_hygiene.py`: 4 passed
+* Decisions made
+    - Meanings live next to the ERD pointer in the skill, not in migration comments and not in a generated data dictionary
+* Insights
+    - Plan unit 7's "delete the catalog" is still right for structure; the missing piece was a short guardrail list for what boxes cannot say
