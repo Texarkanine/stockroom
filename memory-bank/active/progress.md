@@ -201,3 +201,13 @@ Put a visual warehouse schema (ERD or equivalent) in the `sr-query` skill and in
     - Meanings live next to the ERD pointer in the skill, not in migration comments and not in a generated data dictionary
 * Insights
     - Plan unit 7's "delete the catalog" is still right for structure; the missing piece was a short guardrail list for what boxes cannot say
+
+## 2026-08-29 - QA - COMPLETE (PASS, round 3)
+
+* Work completed
+    - Reviewed the completed warehouse-schema-docs feature against the project brief and Level 3 plan after both QA reworks
+    - Validated `make schema-docs-check`, 18 ERD-generator/lockstep tests, 4 skill-hygiene tests, and ruff check/format validation for the generator
+* Decisions made
+    - Accept the compact SKILL meaning guardrails as the durable complement to the generated structural ERD
+* Insights
+    - The generated visual and short human-readable semantic guardrails now divide responsibility cleanly: snapshots and `@rel` comments own structure, while the skill owns meanings that the diagram cannot express

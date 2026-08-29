@@ -281,8 +281,10 @@ No new technology - validation not required. Stdlib `python3` + `re`, existing p
 - [x] Build (QA rework)
 - [x] QA — FAIL (round 2)
 - [x] Build (QA rework: SKILL column meanings)
+- [x] QA — PASS (round 3)
 
 ## QA Results
 
 - **FAIL (round 1, resolved):** The generated Mermaid ERD marked `session_token_usage` with `%% view: …`, which does not render. Rework emits `name["name (view)"]` aliases.
 - **FAIL (round 2, Build must rerun):** Plan unit 7 removed the version-pinned per-column catalog, which is correct for *structure*. The same edit also deleted meanings the ERD cannot express, and they now appear nowhere in the skill payload: `project_id` is the verbatim project-dir slug and grouping key; `cwd` / `workspace_key` are nullable and serve different rollups; `entrypoint` should be discovered with `SELECT DISTINCT`; `messages.text` is the whole message and thinking is not captured; `tool_calls` holds inputs only, never outputs. Add a compact note under "What's in the warehouse" — no exhaustive column list, no `as of migrations NNNN` pin.
+- **PASS (round 3):** The compact `sr-query` guardrail note now preserves every non-structural meaning identified in round 2 without restoring a drift-prone catalog. The ERD remains generated from the head golden and migration `@rel` declarations, with a visible view alias. Focused schema-docs and skill-hygiene validation passed.

@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: warehouse-schema-docs
-**Phase:** BUILD - COMPLETE
+**Phase:** QA - COMPLETE (PASS)
 
 ## What Was Done
 - Implemented the 10-step `@rel` plan plus two QA reworks: visible Mermaid view aliases, then compact SKILL column-meaning guardrails the ERD cannot carry.
@@ -28,4 +28,4 @@
 - Earlier `make test` with Node 22: JS 134 passed; engine 856 passed, 5 skipped, 1 pre-existing `/tmp` identity fail.
 
 ## Next Step
-- QA review (`/niko-qa`) runs automatically.
+- QA passed. Proceed to `/niko-reflect`.
