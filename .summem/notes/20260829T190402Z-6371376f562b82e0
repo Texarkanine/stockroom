@@ -1,0 +1,1 @@
+QA for warehouse-schema-docs failed: Mermaid %% view comment is invisible in rendered ERD, so session_token_usage is not visually distinguished from tables; Build must make views visibly labeled/styled and add a rendered-output contract.

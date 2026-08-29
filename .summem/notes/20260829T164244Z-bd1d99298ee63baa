@@ -1,0 +1,1 @@
+From skills/sr-search (uv --directory / Make UV_RUN cwd), repo-root scripts/ is ../../scripts — not ../scripts (that is skills/scripts).

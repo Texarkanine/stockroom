@@ -77,10 +77,11 @@ Coordination uses `fcntl.flock` on a sidecar lock file; data integrity uses Duck
 
 ### Migrations
 
-Migrations are numbered forward-only SQL under the engine's `migrations/` tree; `schema_version` is runner-owned. Schema changes go through the `open()` chokepoint — Architecture does not list DDL here.
+Migrations are numbered forward-only SQL under the engine's `migrations/` tree; `schema_version` is runner-owned. Schema changes go through the `open()` chokepoint — Architecture does not list DDL here. The query-facing picture of the current schema is [Advanced → Warehouse schema](../advanced/warehouse-schema.md).
 
 ## Related procedures
 
 - Operating ingest/embed/schedule: [User Guide → Load the Warehouse](../user-guide/load/index.md)
 - Escape-hatch SQL: [Advanced → DuckDB](../advanced/duckdb.md)
+- Query-facing schema picture: [Advanced → Warehouse schema](../advanced/warehouse-schema.md)
 - Contributor engine/schema work: [Contributing → Iteration](../contributing/iteration/index.md)

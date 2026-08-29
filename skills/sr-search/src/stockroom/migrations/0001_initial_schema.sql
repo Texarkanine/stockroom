@@ -47,6 +47,7 @@ CREATE TABLE sessions (
 
 -- The message-identity contract + reconstruction keys. Column meanings are
 -- harness-independent; per-harness extraction differs but yields one meaning.
+-- @rel messages(harness, session_id) -> sessions(harness, session_id)
 CREATE TABLE messages (
     harness               TEXT,
     session_id            TEXT,
@@ -66,6 +67,7 @@ CREATE TABLE messages (
 );
 
 -- Tool INPUTS only — never outputs. Tool calls are children of a message turn.
+-- @rel tool_calls(harness, session_id, message_id) -> messages(harness, session_id, message_id)
 CREATE TABLE tool_calls (
     harness            TEXT,
     session_id         TEXT,
@@ -78,6 +80,8 @@ CREATE TABLE tool_calls (
 );
 
 -- Forward-declared; populated in Phase 2 (embeddings + search). No HNSW index.
+-- @rel embeddings(harness, owner_id) -> messages(harness, message_id) : owner_table=messages
+-- @rel embeddings(harness, owner_id) -> tool_calls(harness, message_id) : owner_table=tool_calls
 CREATE TABLE embeddings (
     harness     TEXT,
     owner_table TEXT,                 -- 'messages' | 'tool_calls'
@@ -89,6 +93,7 @@ CREATE TABLE embeddings (
 );
 
 -- Incremental-ingest watermark + non-append mutation detector (per source root).
+-- @rel-none _sync_state
 CREATE TABLE _sync_state (
     harness     TEXT,
     source_root TEXT,

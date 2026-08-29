@@ -26,6 +26,10 @@ duckdb -readonly "${STOCKROOM_HOME:-${XDG_DATA_HOME:-$HOME/.local/share}/stockro
 
 (`-readonly` is a DuckDB CLI flag — see `duckdb --help`.)
 
+## Tables and joins
+
+For the tables, views, keys, and logical joins, see [Warehouse schema](warehouse-schema.md).
+
 ## Prefer stockroom query
 
 For routine lookups, prefer `stockroom query`. It already opens the warehouse read-only and applies the project's `--format` / `--detail` conventions. Reach for raw DuckDB when those conventions get in the way (exploratory joins, DuckDB-native tooling, or SQL you do not want wrapped by the presentation layer).
@@ -42,5 +46,6 @@ See [CLI](cli.md) for out-of-band `stockroom` invocation.
 ## See also
 
 - [CLI](cli.md) — `stockroom query` / `semantic` with format and detail
+- [Warehouse schema](warehouse-schema.md) — tables, views, and logical relationships
 - [Architecture → Warehouse](../architecture/warehouse.md) — what is stored and how locks/migrations work
 - [Search](../user-guide/search.md) — product how-to for asking questions
