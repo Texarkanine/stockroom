@@ -182,9 +182,10 @@ def render_markdown(snapshot: dict, rels: RelGraph) -> str:
     for name in sorted(tables):
         entity = tables[name]
         pk = set(entity["primary_key"])
-        if not entity["primary_key"]:
-            lines.append(f"    %% view: {name}")
-        lines.append(f"    {name} {{")
+        if entity["primary_key"]:
+            lines.append(f"    {name} {{")
+        else:
+            lines.append(f'    {name}["{name} (view)"] {{')
         for col in entity["columns"]:
             typ = _sanitize_type(col["type"])
             marker = " PK" if col["name"] in pk else ""

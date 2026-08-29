@@ -117,8 +117,9 @@ def test_toy_render_includes_entities_pk_and_sanitized_types(gen: ModuleType) ->
     assert "PK" in body
     assert "FLOAT[384]" not in body
     assert "VARCHAR[]" not in body
-    assert "[" not in body.split("```mermaid")[1].split("```")[0]
-    assert "]" not in body.split("```mermaid")[1].split("```")[0]
+    mermaid = body.split("```mermaid")[1].split("```")[0]
+    assert "FLOAT[384]" not in mermaid
+    assert "VARCHAR[]" not in mermaid
     assert "FLOAT_384" in body
     assert "VARCHAR_ARRAY" in body
     assert "HUGEINT" in body
@@ -126,11 +127,15 @@ def test_toy_render_includes_entities_pk_and_sanitized_types(gen: ModuleType) ->
 
 
 def test_view_heuristic_marks_empty_primary_key_as_view(gen: ModuleType) -> None:
-    """An entity with ``primary_key: []`` is emitted as a view, not a base table."""
+    """Empty-PK entities get a visible Mermaid alias; ``%%`` comments do not count."""
     rels = gen.parse_rels(_TOY_SQL)
     body = gen.render_markdown(_TOY_SNAPSHOT, rels)
-    assert "rollups" in body
-    assert re.search(r"view[^\n]*rollups|rollups[^\n]*view", body, re.IGNORECASE)
+    mermaid = body.split("```mermaid")[1].split("```")[0]
+    assert 'rollups["rollups (view)"]' in mermaid
+    assert "%% view:" not in mermaid
+    assert 'parents["' not in mermaid
+    assert 'children["' not in mermaid
+    assert 'orphans["' not in mermaid
 
 
 def test_parse_rels_reads_rel_and_rel_none_ignores_ordinary_sql(

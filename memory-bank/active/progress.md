@@ -159,3 +159,24 @@ Put a visual warehouse schema (ERD or equivalent) in the `sr-query` skill and in
     - Return to Build for one semantic acceptance gap
 * Insights
     - Mermaid `%%` comments do not render. The generator's `%% view: session_token_usage` marker therefore does not distinguish the view from a table for readers of the visual schema.
+
+## 2026-08-29 - BUILD - IN-PROGRESS (QA rework)
+
+* Work completed
+    - QA FAIL (fixable): empty-PK view marker is a non-rendered Mermaid comment
+* Decisions made
+    - Use Mermaid entity-name aliases (`name["name (view)"]`) so the view label is the box title; keep relationship ids as the SQL name
+* Insights
+    - Official ERD alias syntax (Mermaid 10.5+) renders; `%%` never will
+
+## 2026-08-29 - BUILD - COMPLETE (QA rework)
+
+* Work completed
+    - Empty-PK entities now emit `name["name (view)"]` aliases; `%% view:` comments removed
+    - View heuristic test requires the alias and rejects comments; toy-render no longer bans all `[` `]` in the mermaid fence
+    - Regenerated `skills/sr-query/references/warehouse-schema.md`
+    - Schema-docs tests 18 passed; lint/format/schema-docs-check/reuse/docs-build passed; `make test` with Node 22: JS 134 passed, engine 856 passed / 5 skipped / 1 pre-existing identity fail
+* Decisions made
+    - Mermaid ERD entity aliases are the visible designation; relationship ids stay the SQL name
+* Insights
+    - A regex that matches `view` anywhere in the mermaid source (including `%%` comments) is not a test of what readers see

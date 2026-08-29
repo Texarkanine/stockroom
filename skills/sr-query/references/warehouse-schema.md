@@ -36,8 +36,7 @@ erDiagram
         VARCHAR source_uuid
         TIMESTAMP first_seen_at
     }
-    %% view: session_token_usage
-    session_token_usage {
+    session_token_usage["session_token_usage (view)"] {
         VARCHAR harness
         VARCHAR session_id
         HUGEINT input_tokens_from_messages

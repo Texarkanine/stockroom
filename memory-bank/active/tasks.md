@@ -129,6 +129,7 @@ None - implementation approach is clear. Dummy DuckDB was rejected in favor of t
 - [x] 8. Human docs routing
 - [x] 9. Contributor regen loop
 - [x] 10. Standing-contract memory-bank pointers
+- [x] 11. Visible Mermaid view alias (QA rework)
 
 ### 1. ERD generator and @rel parser — executable
 
@@ -223,6 +224,14 @@ None - implementation approach is clear. Dummy DuckDB was rejected in favor of t
 
 1. Surgical only if the standing-contract probe fires: techContext points at generated Advanced/skill ERD + `make schema-docs` + `@rel` comments as logical-edge SSOT; systemPatterns docs-ownership mentions schema SSOT beside the cookbook. Skip productContext (no product-audience change).
 
+### 11. Visible Mermaid view alias (QA rework) — executable
+
+- Files: `scripts/gen_warehouse_schema.py`, `skills/sr-search/tests/test_warehouse_schema_docs.py`, `skills/sr-query/references/warehouse-schema.md` (regenerated)
+- Creative ref: none (QA finding)
+
+1. Tighten `test_view_heuristic_marks_empty_primary_key_as_view` to require a Mermaid entity alias `name["name (view)"]` and to reject `%% view:` comments. Drop the toy-render ban on all `[` `]` in the fence (that was a FLOAT[384] belt; keep the unsanitized-type asserts).
+2. Run red, then emit aliases for empty-PK entities; keep relationship ids as the SQL name. `make schema-docs` to refresh the SSOT.
+
 ## Technology Validation
 
 No new technology - validation not required. Stdlib `python3` + `re`, existing pytest, existing Mermaid in properdocs, existing cookbook symlink pattern, existing schema goldens. `@rel` is a comment convention, not a DuckDB feature.
@@ -260,6 +269,7 @@ No new technology - validation not required. Stdlib `python3` + `re`, existing p
 - [x] Preflight
 - [x] Build
 - [x] QA — FAIL
+- [x] Build (QA rework)
 
 ## QA Results
 
