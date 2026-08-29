@@ -1,6 +1,6 @@
 # Warehouse schema
 
-Logical relationships only — DuckDB has no FOREIGN KEY constraints (deliberate). Boxes and columns come from the head schema golden snapshot; edges come from `-- @rel` / `-- @rel-none` comments in the migration SQL.
+Logical relationships only — DuckDB has no FOREIGN KEY constraints (deliberate).
 
 ```mermaid
 erDiagram

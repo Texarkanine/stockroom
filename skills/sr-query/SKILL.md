@@ -86,20 +86,13 @@ Each failure is a clean stderr message + exit code — read it and take the matc
 
 ## What's in the warehouse
 
-The visual schema (tables, views, keys, logical relationships) is [`references/warehouse-schema.md`](references/warehouse-schema.md). Edges are logical only — DuckDB has no FOREIGN KEY constraints.
-
-Confirm the live warehouse still matches that picture:
-
-```bash
-stockroom query "SELECT table_name, column_name, data_type
-  FROM information_schema.columns ORDER BY table_name, ordinal_position"
-```
+The visual schema is [`references/warehouse-schema.md`](references/warehouse-schema.md).
 
 The picture does not carry these meanings:
 
 - `sessions.project_id` is the verbatim project-dir slug — the grouping key (for Cursor CLI chats, the chats hash directory). `cwd` is a real path and may be `NULL`. `workspace_key` is a separate nullable cross-harness path rollup. `entrypoint` is surface provenance when known and may be `NULL` — `SELECT DISTINCT entrypoint` rather than guessing literals.
 - `messages.text` is the whole turn; thinking/reasoning is **not** captured.
-- `tool_calls` stores tool **inputs only**, never outputs (`tool_input` is heterogeneous JSON — see the guardrail).
+- `tool_calls` stores tool **inputs only**, never outputs.
 
 Always join on the uniform `message_id` / `(harness, session_id)`, never on the `source_*` provenance columns. A value that only exists at one grain per harness is honestly `NULL` for the other (e.g. `messages.model` is Claude-only; `sessions.models` is Cursor-only; the same dual-grain honesty applies to tokens).
 

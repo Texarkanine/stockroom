@@ -171,9 +171,7 @@ def render_markdown(snapshot: dict, rels: RelGraph) -> str:
         "# Warehouse schema",
         "",
         "Logical relationships only — DuckDB has no FOREIGN KEY constraints"
-        " (deliberate). Boxes and columns come from the head schema golden"
-        " snapshot; edges come from `-- @rel` / `-- @rel-none` comments in"
-        " the migration SQL.",
+        " (deliberate).",
         "",
         "```mermaid",
         "erDiagram",
