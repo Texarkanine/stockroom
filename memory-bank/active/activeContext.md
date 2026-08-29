@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: warehouse-schema-docs
-**Phase:** BUILD - COMPLETE
+**Phase:** QA - COMPLETE (FAIL)
 
 ## What Was Done
 - Implemented the 10-step `@rel` plan: stdlib generator, migration comments, committed ERD SSOT, docs symlink, Make/CI lockstep, skill + human docs routing, contributor loop, memory-bank pointers.
@@ -29,4 +29,4 @@
 - `make ci` stopped at `test-dashboard-js` (Node 22 pin) after lint/format/schema-docs-check had already passed.
 
 ## Next Step
-- QA review (`/niko-qa`) runs automatically.
+- Return to Build: make `session_token_usage` visibly identifiable as a view in the rendered Mermaid ERD, then add a behavioral test for the visible designation and rerun QA.

@@ -1,0 +1,7 @@
+FAIL
+
+QA review of `warehouse-schema-docs` found one blocking acceptance gap.
+
+## Finding
+
+- **Views are not visually identified in the rendered ERD.** `render_markdown()` emits `%% view: session_token_usage`, but `%%` is a Mermaid comment and is omitted from the rendered diagram. The resulting box is visually indistinguishable from a base table. This fails the requirement that the visual schema reflect tables and views, and it defeats the declared empty-primary-key view heuristic. Build must emit a visible view label or style that Mermaid renders, and add a behavioral test for that visible output.

@@ -259,4 +259,8 @@ No new technology - validation not required. Stdlib `python3` + `re`, existing p
 - [x] Pre-Mortem complete
 - [x] Preflight
 - [x] Build
-- [ ] QA
+- [x] QA — FAIL
+
+## QA Results
+
+- **FAIL (Build must rerun):** The generated Mermaid ERD marks `session_token_usage` with `%% view: …`, which is a Mermaid comment and does not appear in the rendered diagram. Consequently, views are visually indistinguishable from tables, failing the visual-schema requirement. Make the view designation visible in the Mermaid output and add a behavioral test for the rendered designation.

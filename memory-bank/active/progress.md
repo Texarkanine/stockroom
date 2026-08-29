@@ -149,3 +149,13 @@ Put a visual warehouse schema (ERD or equivalent) in the `sr-query` skill and in
 * Insights
     - Empty `primary_key` → `%% view:` in the Mermaid body; DuckDB types `FLOAT[384]` / `VARCHAR[]` sanitize to `FLOAT_384` / `VARCHAR_ARRAY`
     - `make ci` still stops at `test-dashboard-js` on this machine (Node 22 pin vs PATH Node v26) after schema-docs-check has already passed
+
+## 2026-08-29 - QA - COMPLETE (FAIL)
+
+* Work completed
+    - Reviewed the completed warehouse-schema-docs implementation against the Level 3 plan and project brief
+    - Re-ran the schema-docs lockstep and the 18 focused ERD-generator tests; both passed
+* Decisions made
+    - Return to Build for one semantic acceptance gap
+* Insights
+    - Mermaid `%%` comments do not render. The generator's `%% view: session_token_usage` marker therefore does not distinguish the view from a table for readers of the visual schema.
