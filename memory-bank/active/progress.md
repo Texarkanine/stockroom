@@ -211,3 +211,13 @@ Put a visual warehouse schema (ERD or equivalent) in the `sr-query` skill and in
     - Accept the compact SKILL meaning guardrails as the durable complement to the generated structural ERD
 * Insights
     - The generated visual and short human-readable semantic guardrails now divide responsibility cleanly: snapshots and `@rel` comments own structure, while the skill owns meanings that the diagram cannot express
+
+## 2026-08-29 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `memory-bank/active/reflection/reflection-warehouse-schema-docs.md`
+    - Reconciled persistent files: one surgical sentence on `techContext.md`; productContext and systemPatterns unchanged
+* Decisions made
+    - Residual-prose lists belong in the same plan unit that deletes a catalog; tests of visuals must assert rendered constructs
+* Insights
+    - Structure (goldens + `@rel`) and meaning (SKILL / Architecture) are different documentation sources; the migration chain is a write log

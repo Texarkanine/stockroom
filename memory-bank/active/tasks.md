@@ -282,6 +282,7 @@ No new technology - validation not required. Stdlib `python3` + `re`, existing p
 - [x] QA — FAIL (round 2)
 - [x] Build (QA rework: SKILL column meanings)
 - [x] QA — PASS (round 3)
+- [x] Reflect
 
 ## QA Results
 
