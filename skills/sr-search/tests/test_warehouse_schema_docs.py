@@ -1,0 +1,271 @@
+"""Warehouse schema ERD generator: render, @rel parse/coverage, lockstep, dual-audience.
+
+The generator lives at repo-root ``scripts/gen_warehouse_schema.py`` (stdlib,
+not an engine package). Tests load it via importlib so pytest does not need
+that path on ``PYTHONPATH``.
+"""
+
+from __future__ import annotations
+
+import importlib.util
+import json
+import re
+import sys
+from pathlib import Path
+from types import ModuleType
+
+import pytest
+
+_RELATIVE_MD_LINK = re.compile(r"\]\((?!https://)[^)]+\)")
+
+_TOY_SNAPSHOT = {
+    "indexes": [],
+    "tables": {
+        "parents": {
+            "columns": [
+                {"name": "id", "nullable": False, "type": "VARCHAR"},
+                {"name": "vec", "nullable": True, "type": "FLOAT[384]"},
+            ],
+            "primary_key": ["id"],
+        },
+        "children": {
+            "columns": [
+                {"name": "id", "nullable": False, "type": "VARCHAR"},
+                {"name": "parent_id", "nullable": False, "type": "VARCHAR"},
+                {"name": "tags", "nullable": True, "type": "VARCHAR[]"},
+            ],
+            "primary_key": ["id"],
+        },
+        "rollups": {
+            "columns": [
+                {"name": "id", "nullable": False, "type": "HUGEINT"},
+                {"name": "payload", "nullable": True, "type": "JSON"},
+            ],
+            "primary_key": [],
+        },
+        "orphans": {
+            "columns": [{"name": "id", "nullable": False, "type": "VARCHAR"}],
+            "primary_key": ["id"],
+        },
+    },
+}
+
+_TOY_SQL = """
+-- ordinary design comment, not an edge
+CREATE TABLE parents (
+    id VARCHAR,
+    vec FLOAT[384],
+    PRIMARY KEY (id)
+);
+
+-- @rel children(parent_id) -> parents(id)
+CREATE TABLE children (
+    id VARCHAR,
+    parent_id VARCHAR,
+    tags VARCHAR[],
+    PRIMARY KEY (id)
+);
+
+-- @rel rollups(id) -> parents(id) : rolls up
+CREATE VIEW rollups AS SELECT id FROM parents;
+
+-- @rel-none orphans
+CREATE TABLE orphans (
+    id VARCHAR,
+    PRIMARY KEY (id)
+);
+"""
+
+
+@pytest.fixture(scope="session")
+def gen(repo_root: Path) -> ModuleType:
+    """Load ``scripts/gen_warehouse_schema.py`` as a module."""
+    path = repo_root / "scripts" / "gen_warehouse_schema.py"
+    spec = importlib.util.spec_from_file_location("gen_warehouse_schema", path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def _mini_repo(tmp_path: Path, gen: ModuleType, ssot_text: str | None = None) -> Path:
+    """Build a tiny repo_root with one snapshot, one migration, optional SSOT."""
+    fixtures = tmp_path / "skills/sr-search/tests/fixtures/schema"
+    fixtures.mkdir(parents=True)
+    (fixtures / "0001_snapshot.json").write_text(
+        json.dumps(_TOY_SNAPSHOT), encoding="utf-8"
+    )
+    migrations = tmp_path / "skills/sr-search/src/stockroom/migrations"
+    migrations.mkdir(parents=True)
+    (migrations / "0001_toy.sql").write_text(_TOY_SQL, encoding="utf-8")
+    if ssot_text is not None:
+        ssot = gen.ssot_path(tmp_path)
+        ssot.parent.mkdir(parents=True, exist_ok=True)
+        ssot.write_text(ssot_text, encoding="utf-8")
+    return tmp_path
+
+
+def test_toy_render_includes_entities_pk_and_sanitized_types(gen: ModuleType) -> None:
+    """A 2-table snapshot renders both names, PK markers, and sanitized types."""
+    rels = gen.parse_rels(_TOY_SQL)
+    body = gen.render_markdown(_TOY_SNAPSHOT, rels)
+    assert "erDiagram" in body
+    assert "parents" in body
+    assert "children" in body
+    assert "PK" in body
+    assert "FLOAT[384]" not in body
+    assert "VARCHAR[]" not in body
+    assert "[" not in body.split("```mermaid")[1].split("```")[0]
+    assert "]" not in body.split("```mermaid")[1].split("```")[0]
+    assert "FLOAT_384" in body
+    assert "VARCHAR_ARRAY" in body
+    assert "HUGEINT" in body
+    assert "JSON" in body
+
+
+def test_view_heuristic_marks_empty_primary_key_as_view(gen: ModuleType) -> None:
+    """An entity with ``primary_key: []`` is emitted as a view, not a base table."""
+    rels = gen.parse_rels(_TOY_SQL)
+    body = gen.render_markdown(_TOY_SNAPSHOT, rels)
+    assert "rollups" in body
+    assert re.search(r"view[^\n]*rollups|rollups[^\n]*view", body, re.IGNORECASE)
+
+
+def test_parse_rels_reads_rel_and_rel_none_ignores_ordinary_sql(gen: ModuleType) -> None:
+    """Toy SQL with two ``@rel`` lines and one ``@rel-none`` yields those edges/entities."""
+    graph = gen.parse_rels(_TOY_SQL)
+    assert graph.isolated == frozenset({"orphans"})
+    pairs = {(rel.source, rel.target, rel.label) for rel in graph.relationships}
+    assert pairs == {
+        ("children", "parents", None),
+        ("rollups", "parents", "rolls up"),
+    }
+    children = next(rel for rel in graph.relationships if rel.source == "children")
+    assert children.source_columns == ("parent_id",)
+    assert children.target_columns == ("id",)
+    spaced = gen.parse_rels(
+        "-- @rel embeddings(harness, owner_id) -> messages(harness, message_id)"
+        " : owner_table=messages\n"
+    )
+    edge = spaced.relationships[0]
+    assert edge.source_columns == ("harness", "owner_id")
+    assert edge.target_columns == ("harness", "message_id")
+    assert edge.label == "owner_table=messages"
+
+
+def test_parse_rels_rejects_rel_none_plus_rel_from_same_entity(gen: ModuleType) -> None:
+    """A contradictory ``@rel-none`` plus ``@rel`` for the same ``<from>`` is an error."""
+    sql = """
+-- @rel-none children
+-- @rel children(parent_id) -> parents(id)
+"""
+    with pytest.raises(ValueError, match="children"):
+        gen.parse_rels(sql)
+
+
+def test_assert_coverage_passes_when_every_snapshot_name_is_accounted(
+    gen: ModuleType,
+) -> None:
+    """Every snapshot table name is a from, a to, or rel-none."""
+    gen.assert_coverage(_TOY_SNAPSHOT, gen.parse_rels(_TOY_SQL))
+
+
+def test_assert_coverage_fails_unknown_name_and_unaccounted_snapshot(
+    gen: ModuleType,
+) -> None:
+    """An unknown ``@rel`` name fails; a snapshot name in neither set fails."""
+    unknown = gen.parse_rels("-- @rel children(parent_id) -> ghosts(id)\n")
+    with pytest.raises(ValueError, match="ghosts"):
+        gen.assert_coverage(_TOY_SNAPSHOT, unknown)
+
+    partial = gen.parse_rels(
+        "-- @rel children(parent_id) -> parents(id)\n-- @rel-none orphans\n"
+    )
+    with pytest.raises(ValueError, match="rollups"):
+        gen.assert_coverage(_TOY_SNAPSHOT, partial)
+
+
+def test_assert_coverage_fails_when_rel_column_missing_from_entity(
+    gen: ModuleType,
+) -> None:
+    """A column listed in ``@rel`` that is missing from that entity fails."""
+    rels = gen.parse_rels("-- @rel children(missing_col) -> parents(id)\n")
+    with pytest.raises(ValueError, match="missing_col"):
+        gen.assert_coverage(_TOY_SNAPSHOT, rels)
+
+
+def test_render_includes_logical_relationship_lines(gen: ModuleType) -> None:
+    """``@rel`` edges appear as Mermaid relationship lines; ``@rel-none`` has none."""
+    rels = gen.parse_rels(_TOY_SQL)
+    body = gen.render_markdown(_TOY_SNAPSHOT, rels)
+    mermaid = body.split("```mermaid")[1].split("```")[0]
+    assert "parents ||--o{ children" in mermaid
+    assert "parents ||--o{ rollups" in mermaid
+    assert "rolls up" in mermaid
+    assert "orphans ||--" not in mermaid
+    assert "||--o{ orphans" not in mermaid
+
+
+def test_rendered_markdown_has_no_relative_links(gen: ModuleType) -> None:
+    """Rendered markdown contains no relative markdown links (https URLs allowed)."""
+    body = gen.render_markdown(_TOY_SNAPSHOT, gen.parse_rels(_TOY_SQL))
+    assert _RELATIVE_MD_LINK.search(body) is None
+
+
+def test_head_snapshot_render_includes_every_table(
+    repo_root: Path, gen: ModuleType
+) -> None:
+    """Rendering the repo head ``NNNN_snapshot.json`` includes every ``tables`` key."""
+    snapshot = gen.load_head_snapshot(
+        repo_root / "skills/sr-search/tests/fixtures/schema"
+    )
+    isolated = gen.RelGraph(relationships=(), isolated=frozenset(snapshot["tables"]))
+    body = gen.render_markdown(snapshot, isolated)
+    for name in snapshot["tables"]:
+        assert name in body
+
+
+def test_load_head_snapshot_picks_highest_numeric_prefix(
+    tmp_path: Path, gen: ModuleType
+) -> None:
+    """Highest numeric ``NNNN_snapshot.json`` wins when several snapshots exist."""
+    fixtures = tmp_path / "schema"
+    fixtures.mkdir()
+    low = {"indexes": [], "tables": {"old": {"columns": [], "primary_key": []}}}
+    high = {"indexes": [], "tables": {"new": {"columns": [], "primary_key": []}}}
+    (fixtures / "0003_snapshot.json").write_text(json.dumps(low), encoding="utf-8")
+    (fixtures / "0012_snapshot.json").write_text(json.dumps(high), encoding="utf-8")
+    loaded = gen.load_head_snapshot(fixtures)
+    assert "new" in loaded["tables"]
+    assert "old" not in loaded["tables"]
+
+
+def test_check_fails_when_ssot_missing_and_does_not_write(
+    tmp_path: Path, gen: ModuleType
+) -> None:
+    """``check`` is nonzero and does not write when the committed SSOT is missing."""
+    repo = _mini_repo(tmp_path, gen)
+    ssot = gen.ssot_path(repo)
+    assert not ssot.exists()
+    assert gen.check(repo) != 0
+    assert not ssot.exists()
+
+
+def test_write_then_check_succeeds(tmp_path: Path, gen: ModuleType) -> None:
+    """CLI/write default writes the SSOT so a subsequent ``check`` passes."""
+    repo = _mini_repo(tmp_path, gen)
+    gen.write(repo)
+    assert gen.ssot_path(repo).is_file()
+    assert gen.check(repo) == 0
+
+
+def test_check_fails_when_ssot_differs_and_does_not_rewrite(
+    tmp_path: Path, gen: ModuleType
+) -> None:
+    """``check`` is nonzero on mismatch and leaves the committed file unchanged."""
+    repo = _mini_repo(tmp_path, gen, ssot_text="# stale\n")
+    ssot = gen.ssot_path(repo)
+    before = ssot.read_text(encoding="utf-8")
+    assert gen.check(repo) != 0
+    assert ssot.read_text(encoding="utf-8") == before

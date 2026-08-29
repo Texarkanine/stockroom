@@ -117,6 +117,19 @@ None - implementation approach is clear. Dummy DuckDB was rejected in favor of t
 
 ## Implementation Plan
 
+**Build progress**
+
+- [x] 1. ERD generator and @rel parser
+- [ ] 2. Migration @rel annotations and repo coverage
+- [ ] 3. Commit SSOT + repo lockstep
+- [ ] 4. Dual-audience docs symlink
+- [ ] 5. Make check wrapper
+- [ ] 6. Engine CI step
+- [ ] 7. sr-query skill text
+- [ ] 8. Human docs routing
+- [ ] 9. Contributor regen loop
+- [ ] 10. Standing-contract memory-bank pointers
+
 ### 1. ERD generator and @rel parser — executable
 
 - Files: `scripts/gen_warehouse_schema.py`, `skills/sr-search/tests/test_warehouse_schema_docs.py`
