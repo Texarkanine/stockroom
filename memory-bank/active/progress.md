@@ -134,3 +134,18 @@ Put a visual warehouse schema (ERD or equivalent) in the `sr-query` skill and in
     - Follow the validated plan; no creative docs to apply (creative was skipped)
 * Insights
     - None yet; implementation has not started
+
+## 2026-08-29 - BUILD - COMPLETE
+
+* Work completed
+    - Implemented all 10 plan steps: stdlib generator + `@rel` parser, migration comments on 0001/0007, committed ERD SSOT, Advanced symlink + nav, Make/CI lockstep and ruff coverage of `scripts/`, sr-query + human docs routing, contributor regen loop, memory-bank pointers
+    - 18 new tests in `tests/test_warehouse_schema_docs.py`; engine pytest 853 passed, 5 skipped (4 pre-existing env failures unrelated to this task)
+    - `make lint`, `make format-check`, `make schema-docs-check`, `make reuse`, `make docs-build` passed
+* Decisions made
+    - Followed the validated `@rel` plan; no creative docs to apply
+    - Ruff path from engine cwd is `../../scripts` (not `../scripts`); Makefile and CI use the corrected path
+    - `assert_coverage` reports missing `@rel` columns before unaccounted snapshot names
+    - Importlib test fixture registers the generator in `sys.modules` so dataclasses load under Python 3.14
+* Insights
+    - Empty `primary_key` → `%% view:` in the Mermaid body; DuckDB types `FLOAT[384]` / `VARCHAR[]` sanitize to `FLOAT_384` / `VARCHAR_ARRAY`
+    - `make ci` still stops at `test-dashboard-js` on this machine (Node 22 pin vs PATH Node v26) after schema-docs-check has already passed

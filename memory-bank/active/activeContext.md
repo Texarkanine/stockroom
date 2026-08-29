@@ -1,10 +1,32 @@
 # Active Context
 
 ## Current Task: warehouse-schema-docs
-**Phase:** BUILD - IN-PROGRESS
+**Phase:** BUILD - COMPLETE
 
 ## What Was Done
-- Preflight complete (`PASS WITH ADVISORY`); `@doc` data-dictionary idea rejected by operator.
+- Implemented the 10-step `@rel` plan: stdlib generator, migration comments, committed ERD SSOT, docs symlink, Make/CI lockstep, skill + human docs routing, contributor loop, memory-bank pointers.
+- 18 new tests in `tests/test_warehouse_schema_docs.py` (toy render, parser, coverage, lockstep, symlink, Make pin).
+
+## Files created or modified
+- Created: `scripts/gen_warehouse_schema.py`, `skills/sr-query/references/warehouse-schema.md`, `docs/advanced/warehouse-schema.md` (symlink), `skills/sr-search/tests/test_warehouse_schema_docs.py`
+- Migrations (comments only): `0001_initial_schema.sql`, `0007_session_token_usage.sql`
+- Wiring: `Makefile`, `.github/workflows/ci.yaml`, `docs/advanced/.pages`, `skills/sr-query/SKILL.md`, Advanced/Search/Architecture/contributing engine docs, `memory-bank/techContext.md`, `memory-bank/systemPatterns.md`
+
+## Key implementation decisions
+- `@rel` parser is stdlib regex; coverage runs inside `check()` / `write()`.
+- Empty `primary_key` → `%% view: <name>` in the Mermaid body.
+- DuckDB types `FLOAT[384]` / `VARCHAR[]` sanitize to `FLOAT_384` / `VARCHAR_ARRAY`.
+
+## Deviations from the plan
+- Ruff path from the engine cwd is `../../scripts`, not `../scripts` (that resolves to `skills/scripts`). Makefile and CI use the corrected path.
+- `assert_coverage` reports missing `@rel` columns before unaccounted snapshot names, so a typo’d column is visible even on a partial rel set.
+- The importlib test fixture registers the generator in `sys.modules` so dataclasses load under Python 3.14.
+
+## Integration test results
+- `tests/test_warehouse_schema_docs.py`: 18 passed.
+- Engine pytest: 853 passed, 5 skipped; 4 failed are pre-existing environment issues (PATH Node is v26, required Node 22 binary missing; `test_dashboard_identity` `/tmp` vs `/private/tmp` on macOS). None are in the schema-docs files.
+- `make lint`, `make format-check`, `make schema-docs-check`, `make reuse`, `make docs-build`: passed.
+- `make ci` stopped at `test-dashboard-js` (Node 22 pin) after lint/format/schema-docs-check had already passed.
 
 ## Next Step
-- Execute implementation plan steps 1–10 with TDD, then integration tests and QA spawn.
+- QA review (`/niko-qa`) runs automatically.

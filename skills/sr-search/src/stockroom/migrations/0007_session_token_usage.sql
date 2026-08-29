@@ -20,6 +20,7 @@ ALTER TABLE sessions ADD COLUMN output_tokens BIGINT;
 ALTER TABLE sessions ADD COLUMN cache_creation_tokens BIGINT;
 ALTER TABLE sessions ADD COLUMN cache_read_tokens BIGINT;
 
+-- @rel session_token_usage(harness, session_id) -> sessions(harness, session_id) : rolls up
 CREATE VIEW session_token_usage AS
 SELECT
     s.harness,

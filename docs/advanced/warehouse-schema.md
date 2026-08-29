@@ -1,0 +1,1 @@
+../../skills/sr-query/references/warehouse-schema.md

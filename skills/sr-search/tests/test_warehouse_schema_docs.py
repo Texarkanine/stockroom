@@ -10,6 +10,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 from types import ModuleType
@@ -132,7 +133,9 @@ def test_view_heuristic_marks_empty_primary_key_as_view(gen: ModuleType) -> None
     assert re.search(r"view[^\n]*rollups|rollups[^\n]*view", body, re.IGNORECASE)
 
 
-def test_parse_rels_reads_rel_and_rel_none_ignores_ordinary_sql(gen: ModuleType) -> None:
+def test_parse_rels_reads_rel_and_rel_none_ignores_ordinary_sql(
+    gen: ModuleType,
+) -> None:
     """Toy SQL with two ``@rel`` lines and one ``@rel-none`` yields those edges/entities."""
     graph = gen.parse_rels(_TOY_SQL)
     assert graph.isolated == frozenset({"orphans"})
@@ -269,3 +272,45 @@ def test_check_fails_when_ssot_differs_and_does_not_rewrite(
     before = ssot.read_text(encoding="utf-8")
     assert gen.check(repo) != 0
     assert ssot.read_text(encoding="utf-8") == before
+
+
+def test_repo_migrations_rel_coverage(repo_root: Path, gen: ModuleType) -> None:
+    """Parsing the real ``migrations/`` tree accounts for every head-snapshot entity."""
+    snapshot = gen.load_head_snapshot(
+        repo_root / "skills/sr-search/tests/fixtures/schema"
+    )
+    rels = gen.parse_rels_dir(repo_root / "skills/sr-search/src/stockroom/migrations")
+    gen.assert_coverage(snapshot, rels)
+
+
+def test_committed_ssot_matches_head_snapshot_render(
+    repo_root: Path, gen: ModuleType
+) -> None:
+    """``check(repo_root)`` succeeds when the committed SSOT matches a fresh render."""
+    assert gen.check(repo_root) == 0
+
+
+def test_docs_warehouse_schema_symlinks_to_skill_ssot(
+    repo_root: Path, gen: ModuleType
+) -> None:
+    """Advanced docs expose the ERD via a symlink to the skill SSOT."""
+    link = repo_root / "docs/advanced/warehouse-schema.md"
+    target = gen.ssot_path(repo_root).resolve()
+    assert link.is_symlink(), f"expected symlink: {link}"
+    assert link.resolve() == target, (
+        f"{link} should resolve to {target}, got {link.resolve()}"
+    )
+
+
+def test_make_schema_docs_check_passes(repo_root: Path) -> None:
+    """``make schema-docs-check`` from the repo root exits 0 (existence pin)."""
+    result = subprocess.run(
+        ["make", "schema-docs-check"],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, (
+        f"make schema-docs-check failed:\n{result.stdout}\n{result.stderr}"
+    )

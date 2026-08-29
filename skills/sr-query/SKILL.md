@@ -86,23 +86,20 @@ Each failure is a clean stderr message + exit code — read it and take the matc
 
 ## What's in the warehouse
 
-**Discover the live schema first** — this stays correct as the schema evolves:
+The visual schema (tables, views, keys, logical relationships) is [`references/warehouse-schema.md`](references/warehouse-schema.md). Edges are logical only — DuckDB has no FOREIGN KEY constraints.
+
+Confirm the live warehouse still matches that picture:
 
 ```bash
 stockroom query "SELECT table_name, column_name, data_type
   FROM information_schema.columns ORDER BY table_name, ordinal_position"
 ```
 
-Quick reference of the load-bearing columns **as of migrations 0001–0008** (confirm with the introspection query above):
+Always join on the uniform `message_id` / `(harness, session_id)`, never on the `source_*` provenance columns. A value that only exists at one grain per harness is honestly `NULL` for the other (e.g. `messages.model` is Claude-only; `sessions.models` is Cursor-only; the same dual-grain honesty applies to tokens).
 
-- **`sessions`** — one row per conversation. `harness` (`'cursor'`|`'claude'`), `session_id`, `project_id` (verbatim project-dir slug — the grouping key; for Cursor CLI chats this is the chats hash directory), `cwd` (real path, may be `NULL`), `workspace_key` (cross-harness path rollup, may be `NULL`), `entrypoint` (surface provenance from the harness when known; may be `NULL` — use `SELECT DISTINCT entrypoint` rather than guessing literals), `models` (`VARCHAR[]`, Cursor only), `title`, `git_branch`, `is_subagent`, `parent_session_id`, `started_at`, `ended_at`, `source_mtime` (source transcript mtime at last ingest), and four nullable session-grain token `BIGINT`s (`input_tokens`, `output_tokens`, `cache_creation_tokens`, `cache_read_tokens` — filled only when a harness reports conversation-level usage; Claude/Cursor leave them `NULL`). PK `(harness, session_id)`.
-- **`messages`** — one row per turn. `message_id = '{session_id}#{ordinal}'` (uniform across harnesses), `parent_id`, `ordinal`, `role` (`'user'`|`'assistant'`), `text` (whole; thinking is **not** captured), `model` (per-message, Claude only), `ts`, `first_seen_at` (when stockroom first observed the message), and four token `BIGINT`s: `input_tokens`, `output_tokens`, `cache_creation_tokens`, `cache_read_tokens` (Claude message usage; Cursor `NULL`). PK `(harness, session_id, message_id)`.
-- **`session_token_usage`** — VIEW over sessions + message token sums. Prefer this for conversation rollups. Columns: `*_from_messages` (SUM), `*_native` (session columns), `*_total` (`COALESCE(native, from_messages)`), `token_grain` (`'session'`|`'message'`|`'none'`). Totals are warehouse rollups of reported fields, not vendor invoices. Do not also `SUM` message tokens on top of `*_total`.
-- **`tool_calls`** — tool **inputs only** (never outputs). `message_id` (the turn that emitted it), `ordinal`, `tool_name`, `tool_input` (heterogeneous `JSON`, stored whole — see the guardrail). PK `(harness, session_id, message_id, ordinal)`.
-- **`embeddings`** — per-chunk vectors for semantic search (`owner_table`, `owner_id`, `chunk_index`, `embed_model`, `vector FLOAT[384]`). You rarely query this directly — use the `sr-semantic` skill.
-- **`_sync_state`** — ingest watermark bookkeeping; not interesting to query.
+Prefer VIEW `session_token_usage` for conversation rollups. Columns: `*_from_messages` (SUM of message tokens), `*_native` (session columns), `*_total` (`COALESCE(native, from_messages)`), `token_grain` (`'session'`|`'message'`|`'none'`). Totals are warehouse rollups of reported fields, not vendor invoices. Do not also `SUM` message tokens on top of `*_total`.
 
-One identity rule worth knowing before you write a join: always join on the uniform `message_id` / `(harness, session_id)`, never on the `source_*` provenance columns. A value that only exists at one grain per harness is honestly `NULL` for the other (e.g. `messages.model` is Claude-only; `sessions.models` is Cursor-only; the same dual-grain honesty applies to tokens).
+`_sync_state` is ingest watermark bookkeeping; not interesting to query.
 
 ## Worked examples
 

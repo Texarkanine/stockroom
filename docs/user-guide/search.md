@@ -38,7 +38,7 @@ If one surface comes back empty or thin, it should try the other before concludi
 
 ### `sr-query`
 
-Read-only SQL against the warehouse (`sessions`, `messages`, `tool_calls`, `embeddings`, and views such as `session_token_usage`). Reach for it when the question has a **known shape**: a message or session id, `WHERE` filters, counts, `GROUP BY`, joins, date ranges, token sums.
+Read-only SQL against the warehouse (`sessions`, `messages`, `tool_calls`, `embeddings`, and views such as `session_token_usage`). Reach for it when the question has a **known shape**: a message or session id, `WHERE` filters, counts, `GROUP BY`, joins, date ranges, token sums. The picture of those entities and how they join is [Advanced → Warehouse schema](../advanced/warehouse-schema.md).
 
 ```bash
 stockroom query "SELECT DISTINCT harness FROM sessions ORDER BY harness"

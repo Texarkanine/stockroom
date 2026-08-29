@@ -35,9 +35,11 @@ Prefer `make sync` + restore torch via `stockroom shim ensure-env` when you want
 | `test` | pytest + dashboard JS tests (runs `sync` first; no coverage) |
 | `coverage-engine` | pytest with `pytest-cov` → `skills/sr-search/coverage/lcov.info` (CI upload flag `engine`) |
 | `coverage` | Both roots' lcov reports (`coverage-engine` + `coverage-dashboard-js`) |
-| `lint` / `format` / `format-check` | ruff check / format / format --check |
+| `lint` / `format` / `format-check` | ruff check / format / format --check (engine tree and repo-root `scripts/`) |
 | `reuse` | Whole-tree REUSE lint |
-| `ci` | Full engine gate (lint/format/test/reuse; Codecov upload is CI-only) |
+| `schema-docs` | Generate the warehouse ERD markdown from the head schema golden + migration `@rel` comments |
+| `schema-docs-check` | Fail if the committed ERD is stale (also part of `ci`) |
+| `ci` | Full engine gate (lint/format/schema-docs-check/test/reuse; Codecov upload is CI-only) |
 | `shim` | Bake this checkout onto PATH (owner `dev`; takeover flags in Local workflow) |
 | `local-engine` | Claim shim + `ensure-env` for this checkout |
 
@@ -48,6 +50,18 @@ Engine pytest defaults to process workers via [`pytest-xdist`](https://pytest-xd
 ```bash
 cd skills/sr-search && uv run --no-sync --no-config pytest -n0 tests/test_smoke.py -v
 ```
+
+## Warehouse schema docs
+
+The query-facing ERD is generated, not hand-maintained. Authoritative DDL stays the forward-only files under `skills/sr-search/src/stockroom/migrations/`. Golden snapshots under `skills/sr-search/tests/fixtures/schema/` lock the migrated product schema. Logical relationships are `-- @rel` / `-- @rel-none` comments in those migration files (DuckDB has no FOREIGN KEY constraints). The generator reads the highest `NNNN_snapshot.json` plus those comments and writes `skills/sr-query/references/warehouse-schema.md` (Advanced docs symlink the same file).
+
+After a schema change:
+
+1. Declare `-- @rel` / `-- @rel-none` on the new entity in that migration (every head-snapshot name must be a `<from>`, a `<to>`, or `@rel-none`; omitting the line fails coverage).
+2. Update the head golden: `STOCKROOM_UPDATE_SCHEMA_GOLDEN=1` on the relevant `test_schema_NNNN.py`.
+3. Run `make schema-docs` and commit the migration comments, the snapshot, and the generated ERD together.
+
+Regen needs CPython 3 and the repo. It does not need `sr-initialize`, torch, or an on-path shim.
 
 ## Ad-hoc Invocation
 

@@ -40,10 +40,10 @@ jobs:
         run: uv lock --locked --no-config
 
       - name: Lint
-        run: uv run --no-sync --no-config ruff check
+        run: uv run --no-sync --no-config ruff check . ../../scripts
 
       - name: Format check
-        run: uv run --no-sync --no-config ruff format --check
+        run: uv run --no-sync --no-config ruff format --check . ../../scripts
 
       # Coverage-enabled suite (same Make targets as local). Replaces bare
       # pytest / node --test so CI does not run each root twice.
@@ -54,6 +54,10 @@ jobs:
       - name: Coverage dashboard JavaScript
         working-directory: ${{ github.workspace }}
         run: make coverage-dashboard-js
+
+      - name: Warehouse schema docs lockstep
+        working-directory: ${{ github.workspace }}
+        run: make schema-docs-check
 
       - name: Upload engine coverage
         uses: codecov/codecov-action@v7

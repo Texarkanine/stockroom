@@ -120,15 +120,15 @@ None - implementation approach is clear. Dummy DuckDB was rejected in favor of t
 **Build progress**
 
 - [x] 1. ERD generator and @rel parser
-- [ ] 2. Migration @rel annotations and repo coverage
-- [ ] 3. Commit SSOT + repo lockstep
-- [ ] 4. Dual-audience docs symlink
-- [ ] 5. Make check wrapper
-- [ ] 6. Engine CI step
-- [ ] 7. sr-query skill text
-- [ ] 8. Human docs routing
-- [ ] 9. Contributor regen loop
-- [ ] 10. Standing-contract memory-bank pointers
+- [x] 2. Migration @rel annotations and repo coverage
+- [x] 3. Commit SSOT + repo lockstep
+- [x] 4. Dual-audience docs symlink
+- [x] 5. Make check wrapper
+- [x] 6. Engine CI step
+- [x] 7. sr-query skill text
+- [x] 8. Human docs routing
+- [x] 9. Contributor regen loop
+- [x] 10. Standing-contract memory-bank pointers
 
 ### 1. ERD generator and @rel parser — executable
 
@@ -258,5 +258,5 @@ No new technology - validation not required. Stdlib `python3` + `re`, existing p
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight
-- [ ] Build
+- [x] Build
 - [ ] QA

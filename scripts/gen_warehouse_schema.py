@@ -71,7 +71,9 @@ def _split_cols(text: str) -> tuple[str, ...]:
     return tuple(part.strip() for part in text.split(",") if part.strip())
 
 
-def _contradiction(isolated: set[str] | frozenset[str], rels: list[Relationship]) -> None:
+def _contradiction(
+    isolated: set[str] | frozenset[str], rels: list[Relationship]
+) -> None:
     overlap = set(isolated) & {rel.source for rel in rels}
     if overlap:
         names = ", ".join(sorted(overlap))

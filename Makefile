@@ -30,6 +30,7 @@ LOCALDEV_SH := $(SCRIPTS)/localdev.sh
 .PHONY: help sync lock lock-check test test-dashboard-js test-dashboard-py \
 	coverage coverage-engine coverage-dashboard-js \
 	lint format format-check reuse ci torch \
+	schema-docs schema-docs-check \
 	local-skills local-engine local-dashboard localdev localdev-clean localdev-status shim \
 	docs docs-build require-harness
 
@@ -88,12 +89,15 @@ coverage: coverage-engine coverage-dashboard-js ## Emit both Codecov lcov report
 
 lint: sync ## Run ruff check
 	$(UV_RUN) ruff check
+	$(UV_RUN) ruff check ../../scripts
 
 format: sync ## Apply ruff format
 	$(UV_RUN) ruff format
+	$(UV_RUN) ruff format ../../scripts
 
 format-check: sync ## Check ruff format (no writes)
 	$(UV_RUN) ruff format --check
+	$(UV_RUN) ruff format --check ../../scripts
 
 # Absolute paths are load-bearing: `uv --directory` moves the cwd into the
 # engine dir, so relative PYTHONPATH/--app-dir values would resolve wrong.
@@ -103,7 +107,13 @@ shim: ## Install on-path shim for this checkout (owner: dev; TAKEOVER=1 / FORCE=
 reuse: sync ## Run reuse lint on the whole repo (REUSE.toml at root)
 	$(UV) run --project $(ENGINE) --no-sync $(UV_NO_CFG) reuse lint
 
-ci: sync lock-check lint format-check test reuse ## Full local gate (CI also collects/uploads coverage)
+ci: sync lock-check lint format-check schema-docs-check test reuse ## Full local gate (CI also collects/uploads coverage)
+
+schema-docs: ## Generate warehouse schema ERD from the head golden
+	python3 scripts/gen_warehouse_schema.py
+
+schema-docs-check: ## Fail if committed warehouse schema ERD is stale
+	python3 scripts/gen_warehouse_schema.py --check
 
 # Docs site (root pyproject.toml docs group — separate from the engine project).
 # Requires uv: https://docs.astral.sh/uv/
