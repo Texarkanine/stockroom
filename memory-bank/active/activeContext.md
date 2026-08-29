@@ -5,8 +5,7 @@
 
 ## What Was Done
 - Re-validated the 10-step `@rel` plan; confirmed the CI ruff-lane fix (unit 6) resolved the prior `FAIL (fixable)`.
-- Verified migrations, head snapshot PKs, and doc/test precedents against the checkout; no plan changes required.
-- Advisories recorded (cosmetic unit-3 field label, `../scripts` ruff config gap, `@doc` comment radical-innovation idea) - none block Build.
+- Operator rejected `-- @doc` / harvesting migration-chain comments as a data dictionary: layered SQL is a write log, not one place to read current meaning.
 
 ## Next Step
-- Proceed to Build
+- Proceed to Build (`/niko-build`)

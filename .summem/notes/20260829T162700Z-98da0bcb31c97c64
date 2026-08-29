@@ -1,0 +1,1 @@
+Do not generate column-meaning docs from migration SQL comments: the chain is a write log, not a glossary. @rel vs head snapshot is the ERD edge source; @doc is rejected.

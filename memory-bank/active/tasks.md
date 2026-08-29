@@ -70,10 +70,11 @@ Logical FKs are **not** in DuckDB (deliberate 0001 invariant). Edges come from `
 - Must hold: generator and `--check` run with CPython stdlib only (no plugin install, no engine `.venv` required to regenerate).
 - Must preserve Architecture as explanation, not a DDL dump (`docs/architecture/warehouse.md`).
 - Non-goal: a `stockroom schema` CLI, live-warehouse dump as the SSOT, or generating files on the `main` branch after merge.
+- Non-goal: `-- @doc` column-meaning comments, or harvesting inline `--` comments from the migration chain into a generated data dictionary. Operator rejected (2026-08-29): forward-only migrations scatter prose across files; an older file can still contain a string that a later migration made false, sitting next to strings that are still true. Meanings that a human must *read* belong in one current document (Architecture / SKILL guardrails / the generated ERD of *head* structure), not in the historical SQL log.
 
 ## Open Questions
 
-None - implementation approach is clear. Dummy DuckDB was rejected in favor of the existing head golden snapshot. Dual-audience placement follows the cookbook symlink pattern. Operator chose preflight's `@rel` comment convention over a Python `RELATIONSHIPS` list (2026-08-29). No creative phase.
+None - implementation approach is clear. Dummy DuckDB was rejected in favor of the existing head golden snapshot. Dual-audience placement follows the cookbook symlink pattern. Operator chose preflight's `@rel` comment convention over a Python `RELATIONSHIPS` list (2026-08-29). Operator rejected `-- @doc` / harvesting migration inline comments as a data dictionary (2026-08-29): layered migrations are a write log, not a readable glossary. No creative phase.
 
 ## Test Plan (TDD)
 
@@ -142,7 +143,7 @@ None - implementation approach is clear. Dummy DuckDB was rejected in favor of t
 ### 3. Commit SSOT + repo lockstep — executable
 
 - Files: `skills/sr-query/references/warehouse-schema.md` (generated), `skills/sr-search/tests/test_warehouse_schema_docs.py` (add lockstep against `repo_root`)
-- No tests: n/a — this step is executable
+- Creative ref: none
 
 1. Stub tests: add `test_committed_ssot_matches_head_snapshot_render(repo_root)` (empty).
 2. Stub interface: none new (`check(repo_root)` already stubbed in step 1).
@@ -232,6 +233,7 @@ No new technology - validation not required. Stdlib `python3` + `re`, existing p
 - **`scripts/*.py` silently unlinted**: first Python outside the engine dir. Plan step 5 extends root Make ruff to `../scripts`. Plan step 6 extends the engine-job `Lint` / `Format check` commands the same way, because CI does not invoke `make lint`.
 - **Relative links in the generated body work in docs and break in the skill (or vice versa)**: plan step 1 forbids them; a unit test asserts it.
 - **New table ships as a floating box because edges lived in a Python list nobody updated**: `@rel` coverage in the same migration file. Already the point of step 2.
+- **`-- @doc` as a generated data dictionary**: rejected. Migrations are layered; readers would assemble meaning from a dozen files where an old comment can be wrong next to a still-correct one. `@rel` stays viable because coverage is against the *head* snapshot (current names only) and edges are structural, not prose to read.
 - **Hub≠install because someone generates the ERD in a post-merge main job**: non-goal / invariant; files are committed on the PR.
 
 ## Status

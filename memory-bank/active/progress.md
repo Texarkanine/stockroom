@@ -117,3 +117,11 @@ Put a visual warehouse schema (ERD or equivalent) in the `sr-query` skill and in
     - `../scripts` has no ancestor `[tool.ruff]` config (root `pyproject.toml` is docs-only), so it lints under ruff defaults rather than the engine's `py311` pin - immaterial for stdlib code, noted as advisory only
     - Unit 3's field labeled `No tests: n/a — this step is executable` is a copy-paste leftover from the prose/policy template (the unit does schedule tests correctly) - cosmetic, not a TDD violation
     - Radical innovation offered (not applied): a sibling `-- @doc <column>: <description>` comment convention would let the generator absorb `sr-query`'s remaining hand-maintained column-meaning prose too
+
+## 2026-08-29 - DECISION - @doc rejected
+
+* Decisions made
+    - Do not add `-- @doc`, and do not harvest inline `--` comments from the migration chain into generated docs
+* Insights
+    - Forward-only migrations are a write log. Prose a human must read cannot live there: an older file can still contain a string that a later migration made false, sitting next to strings that are still true
+    - `@rel` is a different shape: coverage checks names against the *head* snapshot, so stale structural declarations fail; column essays would have to be merged across the chain and would not
