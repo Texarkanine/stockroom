@@ -83,3 +83,24 @@ Put a visual warehouse schema (ERD or equivalent) in the `sr-query` skill and in
 * Insights
     - Comments do not change DuckDB apply or golden JSON; the new gate is a regex over SQL the contributor already edits
     - `sessions` needs no `@rel-none` because it is a `<to>`
+
+## 2026-08-29 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Re-validated the 10-step `@rel` plan against the checkout, including migrations, head golden, cookbook symlink precedent, Make targets, and the engine CI job
+    - `.preflight-status` first line: `FAIL (fixable)`
+    - TDD Plan Encoding passed; all executable units schedule tests before production changes
+* Decisions made
+    - Return to planning before Build to close the CI lint/format lane for the repo-root generator
+* Insights
+    - Root `make lint` and `make format-check` can cover `../scripts`, but CI currently invokes ruff directly from `skills/sr-search`, so the planned Makefile change alone does not enforce generator style in CI
+
+## 2026-08-29 - PLAN - COMPLETE (CI ruff covers scripts/)
+
+* Work completed
+    - Step 6 now extends engine-job Lint / Format check to `ruff … . ../scripts` in addition to `make schema-docs-check`
+* Decisions made
+    - Do not replace CI ruff with `make lint` (would double-sync); pass `../scripts` on the existing uv ruff invocations
+    - Declined this run's advisory (generated relationship-source appendix) unless asked
+* Insights
+    - `make schema-docs-check` is a content lockstep, not a Python quality gate

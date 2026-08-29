@@ -1,33 +1,17 @@
-PASS WITH ADVISORY
+FAIL (fixable)
 
-Re-preflight of `warehouse-schema-docs` (Level 3) against the revised `tasks.md`, on branch `show-da-skema` (clean tree). Both fixable gaps from the prior `FAIL (fixable)` run are resolved in-plan; no new blocking or fixable issues found.
+Re-preflight of `warehouse-schema-docs` (Level 3) after the plan adopted migration `@rel` declarations.
 
-## Prior fixable gaps — verified resolved
+## Findings
 
-1. **Lint lane for `scripts/gen_warehouse_schema.py`.** Step 4 now states the fix explicitly: extend `lint` / `format` / `format-check` with `$(UV_RUN) ruff check ../scripts` (and `ruff format` / `ruff format --check`). Re-verified against the current `Makefile`: `UV_RUN := $(UV) --directory skills/sr-search --no-config run --no-sync`, so ruff's cwd is `skills/sr-search`; `../scripts` correctly resolves to the repo-root `scripts/` dir. `SCRIPTS := scripts` is otherwise only used for `LOCALDEV_SH`, so this is additive, not a collision.
-2. **Link-free generated body.** Step 1 now states "with zero relative markdown links" explicitly as an output-template requirement, and the Test Plan's "Link-free body" behavior asserts it. Human cross-links moved to step 7's pages, which are single-path.
+1. **Fixable — CI does not lint or format-check the new generator.** Step 5 correctly adds `../scripts` to the root Makefile's `lint`, `format`, and `format-check` targets. However, `.github/workflows/ci.yaml` does not invoke those targets: its engine job runs `uv run --no-sync --no-config ruff check` and `ruff format --check` from `skills/sr-search`. Those commands omit the repo-root `scripts/gen_warehouse_schema.py`. Update the CI lint and format commands to include `../scripts`, or replace them with the equivalent root Make targets. The planned `make schema-docs-check` verifies generated-content drift but cannot catch Python style or static-analysis failures in the generator.
 
-## Prior advisories — verified folded in
+## Verified
 
-- Advisory 1 (nav-lands-with-symlink): step 3 now adds the `Warehouse schema` entry to `docs/advanced/.pages` in the same step as the symlink. Re-verified `docs/advanced/.pages` still has no `- ...` wildcard (unlike `cookbook/.pages`), so this was a real gap and is now closed at the right step.
-- Advisory 2 (step 8 premise): step 8 now says "Add a new section (this loop is not documented anywhere in `docs/` today...)" instead of assuming an existing owner to append to.
-- Advisory 4 (step 4 test redundancy): step 4 now says "Keep the Make pytest as an existence pin only — do not duplicate lockstep assertions there."
-- Advisory 3 (`sessions` at ~24 attributes) and the radical-innovation `@rel` migration-comment convention are informational/deferred by operator choice (see `activeContext.md`), not required fixes — carried forward here as non-blocking.
+- **TDD Plan Encoding — PASS.** Executable units 1–5 each place stub tests and interfaces, then red tests, before production code. The workflow, skill, docs, contributor guide, and memory-bank text are correctly classified as prose/policy; no change-detector tests are scheduled.
+- **Convention, dependency, conflict, and completeness checks — PASS apart from the CI lint lane above.** The plan uses the established cookbook symlink contract, derives boxes and columns from the head golden snapshot, keeps migration SQL authoritative, retains Architecture as routing rather than a DDL dump, and maps all project-brief requirements to concrete steps. The declared `@rel` / `@rel-none` grammar covers all six head entities without changing DuckDB DDL or runtime behavior.
+- **No collision found.** The proposed generator and generated skill reference do not exist yet; the target directories and PPL-S reference override are appropriate.
 
-## Re-verified against the codebase (unchanged since prior run)
+## Advisory
 
-- `scripts/gen_warehouse_schema.py` and `skills/sr-query/references/warehouse-schema.md` do not exist yet — no naming collisions with the plan's new files (`scripts/` currently holds only `localdev.sh`; `skills/sr-query/references/` currently holds only `cookbook/`).
-- `skills/sr-query/SKILL.md:96` still carries the stale "as of migrations 0001–0008" catalog step 6 will delete; `information_schema` introspection query at line 93 stays as the "verify" query per the plan.
-- Head golden shape, view heuristic, Mermaid type sanitization needs, cookbook symlink precedent, Make-from-pytest precedent, CI job working-directory, and REUSE overrides were all directly verified in the prior preflight run and are unaffected by this plan revision (no code changed between runs, only planning text).
-
-## TDD Plan Encoding — PASS
-
-Executable units 1–4 still order stub-tests → stub-interface → write-tests-and-run-red → write-code-and-run-green, with concrete pytest invocations named. The Gap-1/Gap-2 fixes and both nav/test-scope advisories were folded into the *content* of existing steps (1, 3, 4) without breaking that ordering or introducing implementation-only steps. No scheduled change-detectors. No in-phase edits to `tasks.md` were needed by this run.
-
-## Convention Compliance / Dependency Impact / Conflict Detection / Completeness — no new findings
-
-Plan continues to follow the cookbook dual-audience symlink pattern (`systemPatterns.md` "Docs ownership"), keeps DDL authority in the migration chain, and keeps Architecture free of a DDL dump. All six acceptance criteria in `projectbrief.md` map to concrete steps (1–4 for generator/lockstep/symlink/Make; 5 for CI; 6–7 for skill/docs routing; 3 for install-time contract). No overlapping existing implementation found for the generator or the ERD.
-
-## Radical Innovation (advisory, not applied)
-
-Unchanged from the prior run: retire the plan's only accepted-drift item (`RELATIONSHIPS` hand list) by moving edge declarations into `-- @rel` migration-SQL comments plus a coverage assertion that every head-snapshot entity is either targeted by an `@rel` or explicitly `@rel-none`. Operator has already deferred this (see `activeContext.md`); recorded again here only because the check requires it, not as a new blocking finding.
+Have `parse_rels_dir()` retain the migration filename for each parsed relationship and emit a short generated relationship-source appendix. This would let a reader trace a diagram edge directly to the migration comment that declares it, without adding another source of truth. Do not add it unless the operator accepts the additional generated-document scope.

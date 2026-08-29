@@ -175,6 +175,7 @@ None - implementation approach is clear. Dummy DuckDB was rejected in favor of t
 - No tests: prose/policy artifact (workflow YAML). Drift is already gated by pytest in this same job.
 
 1. Add a named step `Warehouse schema docs lockstep` with `working-directory: ${{ github.workspace }}` running `make schema-docs-check` (after engine tests so a missing Make target still fails the job if pytest were skipped in a future CI edit).
+2. Engine-job `Lint` and `Format check` currently run `ruff check` / `ruff format --check` with cwd `skills/sr-search` and **do not** call root `make lint`. Extend those two commands to also cover `../scripts` (e.g. `ruff check . ../scripts` and `ruff format --check . ../scripts`) so the generator is gated in CI, not only on a local `make lint`. `make schema-docs-check` does not substitute for this.
 
 ### 7. sr-query skill text — prose/policy
 
@@ -228,7 +229,7 @@ No new technology - validation not required. Stdlib `python3` + `re`, existing p
 - **SKILL column catalog left in place, ERD added beside it, they drift independently**: plan step 7 deletes the catalog and points at the generated file.
 - **Check only in docs CI, so a migration PR that skips docs job description still merges**: put pytest lockstep + `make schema-docs-check` on the engine CI job (always runs on PRs).
 - **Generator heuristic mis-labels a future heap table as a view**: product tables have PKs by invariant; contributing note covers it. Already covered by Challenges (view heuristic).
-- **`scripts/*.py` silently unlinted**: first Python outside the engine dir. Plan step 5 extends ruff to `../scripts`.
+- **`scripts/*.py` silently unlinted**: first Python outside the engine dir. Plan step 5 extends root Make ruff to `../scripts`. Plan step 6 extends the engine-job `Lint` / `Format check` commands the same way, because CI does not invoke `make lint`.
 - **Relative links in the generated body work in docs and break in the skill (or vice versa)**: plan step 1 forbids them; a unit test asserts it.
 - **New table ships as a floating box because edges lived in a Python list nobody updated**: `@rel` coverage in the same migration file. Already the point of step 2.
 - **Hub≠install because someone generates the ERD in a post-merge main job**: non-goal / invariant; files are committed on the PR.
