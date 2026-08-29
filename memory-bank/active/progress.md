@@ -221,3 +221,12 @@ Put a visual warehouse schema (ERD or equivalent) in the `sr-query` skill and in
     - Residual-prose lists belong in the same plan unit that deletes a catalog; tests of visuals must assert rendered constructs
 * Insights
     - Structure (goldens + `@rel`) and meaning (SKILL / Architecture) are different documentation sources; the migration chain is a write log
+
+## 2026-08-29 - ARCHIVE - IN-PROGRESS
+
+* Work completed
+    - Post-reflect on the PR: mermaid splice-only generation, SKILL prose trim, dual-path relative-link lock
+* Decisions made
+    - Archive as `features/` (new query-facing schema picture)
+* Insights
+    - None; writing the standing archive next
