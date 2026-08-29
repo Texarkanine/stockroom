@@ -51,6 +51,18 @@ _TOY_SNAPSHOT = {
     },
 }
 
+_SKELETON = """# Warehouse Schema
+
+Prose stays.
+
+```mermaid
+erDiagram
+```
+
+Footer stays.
+"""
+
+
 _TOY_SQL = """
 -- ordinary design comment, not an edge
 CREATE TABLE parents (
@@ -110,32 +122,29 @@ def _mini_repo(tmp_path: Path, gen: ModuleType, ssot_text: str | None = None) ->
 def test_toy_render_includes_entities_pk_and_sanitized_types(gen: ModuleType) -> None:
     """A 2-table snapshot renders both names, PK markers, and sanitized types."""
     rels = gen.parse_rels(_TOY_SQL)
-    body = gen.render_markdown(_TOY_SNAPSHOT, rels)
-    assert "erDiagram" in body
-    assert "parents" in body
-    assert "children" in body
-    assert "PK" in body
-    assert "FLOAT[384]" not in body
-    assert "VARCHAR[]" not in body
-    mermaid = body.split("```mermaid")[1].split("```")[0]
-    assert "FLOAT[384]" not in mermaid
-    assert "VARCHAR[]" not in mermaid
-    assert "FLOAT_384" in body
-    assert "VARCHAR_ARRAY" in body
-    assert "HUGEINT" in body
-    assert "JSON" in body
+    diagram = gen.render_er_diagram(_TOY_SNAPSHOT, rels)
+    assert diagram.startswith("erDiagram")
+    assert "```" not in diagram
+    assert "parents" in diagram
+    assert "children" in diagram
+    assert "PK" in diagram
+    assert "FLOAT[384]" not in diagram
+    assert "VARCHAR[]" not in diagram
+    assert "FLOAT_384" in diagram
+    assert "VARCHAR_ARRAY" in diagram
+    assert "HUGEINT" in diagram
+    assert "JSON" in diagram
 
 
 def test_view_heuristic_marks_empty_primary_key_as_view(gen: ModuleType) -> None:
     """Empty-PK entities get a visible Mermaid alias; ``%%`` comments do not count."""
     rels = gen.parse_rels(_TOY_SQL)
-    body = gen.render_markdown(_TOY_SNAPSHOT, rels)
-    mermaid = body.split("```mermaid")[1].split("```")[0]
-    assert 'rollups["rollups (view)"]' in mermaid
-    assert "%% view:" not in mermaid
-    assert 'parents["' not in mermaid
-    assert 'children["' not in mermaid
-    assert 'orphans["' not in mermaid
+    diagram = gen.render_er_diagram(_TOY_SNAPSHOT, rels)
+    assert 'rollups["rollups (view)"]' in diagram
+    assert "%% view:" not in diagram
+    assert 'parents["' not in diagram
+    assert 'children["' not in diagram
+    assert 'orphans["' not in diagram
 
 
 def test_parse_rels_reads_rel_and_rel_none_ignores_ordinary_sql(
@@ -206,19 +215,38 @@ def test_assert_coverage_fails_when_rel_column_missing_from_entity(
 def test_render_includes_logical_relationship_lines(gen: ModuleType) -> None:
     """``@rel`` edges appear as Mermaid relationship lines; ``@rel-none`` has none."""
     rels = gen.parse_rels(_TOY_SQL)
-    body = gen.render_markdown(_TOY_SNAPSHOT, rels)
-    mermaid = body.split("```mermaid")[1].split("```")[0]
-    assert "parents ||--o{ children" in mermaid
-    assert "parents ||--o{ rollups" in mermaid
-    assert "rolls up" in mermaid
-    assert "orphans ||--" not in mermaid
-    assert "||--o{ orphans" not in mermaid
+    diagram = gen.render_er_diagram(_TOY_SNAPSHOT, rels)
+    assert "parents ||--o{ children" in diagram
+    assert "parents ||--o{ rollups" in diagram
+    assert "rolls up" in diagram
+    assert "orphans ||--" not in diagram
+    assert "||--o{ orphans" not in diagram
 
 
-def test_rendered_markdown_has_no_relative_links(gen: ModuleType) -> None:
-    """Rendered markdown contains no relative markdown links (https URLs allowed)."""
-    body = gen.render_markdown(_TOY_SNAPSHOT, gen.parse_rels(_TOY_SQL))
-    assert _RELATIVE_MD_LINK.search(body) is None
+def test_rendered_diagram_has_no_relative_links(gen: ModuleType) -> None:
+    """Generated Mermaid contains no relative markdown links (https URLs allowed)."""
+    diagram = gen.render_er_diagram(_TOY_SNAPSHOT, gen.parse_rels(_TOY_SQL))
+    assert _RELATIVE_MD_LINK.search(diagram) is None
+
+
+def test_splice_mermaid_replaces_only_the_one_fence(gen: ModuleType) -> None:
+    """Surrounding markdown is preserved; only the mermaid fence body is replaced."""
+    page = "# Title\n\nIntro.\n\n```mermaid\nerDiagram\n    stale\n```\n\nOutro.\n"
+    spliced = gen.splice_mermaid(page, "erDiagram\n    fresh")
+    assert spliced.startswith("# Title\n\nIntro.\n")
+    assert spliced.endswith("Outro.\n")
+    assert "stale" not in spliced
+    assert "erDiagram\n    fresh\n" in spliced
+    assert spliced.count("```") == 2
+
+
+def test_splice_mermaid_rejects_missing_or_multiple_fences(gen: ModuleType) -> None:
+    """Exactly one `` ```mermaid `` fence is required."""
+    with pytest.raises(ValueError, match="mermaid"):
+        gen.splice_mermaid("# no fence\n", "erDiagram")
+    two = "```mermaid\na\n```\n```mermaid\nb\n```\n"
+    with pytest.raises(ValueError, match="mermaid"):
+        gen.splice_mermaid(two, "erDiagram")
 
 
 def test_head_snapshot_render_includes_every_table(
@@ -229,9 +257,9 @@ def test_head_snapshot_render_includes_every_table(
         repo_root / "skills/sr-search/tests/fixtures/schema"
     )
     isolated = gen.RelGraph(relationships=(), isolated=frozenset(snapshot["tables"]))
-    body = gen.render_markdown(snapshot, isolated)
+    diagram = gen.render_er_diagram(snapshot, isolated)
     for name in snapshot["tables"]:
-        assert name in body
+        assert name in diagram
 
 
 def test_load_head_snapshot_picks_highest_numeric_prefix(
@@ -261,18 +289,38 @@ def test_check_fails_when_ssot_missing_and_does_not_write(
 
 
 def test_write_then_check_succeeds(tmp_path: Path, gen: ModuleType) -> None:
-    """CLI/write default writes the SSOT so a subsequent ``check`` passes."""
-    repo = _mini_repo(tmp_path, gen)
+    """CLI/write splices the diagram into an existing page so ``check`` passes."""
+    repo = _mini_repo(tmp_path, gen, ssot_text=_SKELETON)
     gen.write(repo)
     assert gen.ssot_path(repo).is_file()
     assert gen.check(repo) == 0
 
 
+def test_write_preserves_surrounding_prose(tmp_path: Path, gen: ModuleType) -> None:
+    """``write`` does not regenerate title, intro, or footer around the fence."""
+    repo = _mini_repo(tmp_path, gen, ssot_text=_SKELETON)
+    gen.write(repo)
+    text = gen.ssot_path(repo).read_text(encoding="utf-8")
+    assert "Prose stays." in text
+    assert "Footer stays." in text
+    assert "parents" in text
+    assert text.startswith("# Warehouse Schema\n")
+
+
+def test_write_fails_when_ssot_missing(tmp_path: Path, gen: ModuleType) -> None:
+    """``write`` does not invent the markdown page; the fence must already exist."""
+    repo = _mini_repo(tmp_path, gen)
+    with pytest.raises(FileNotFoundError):
+        gen.write(repo)
+    assert not gen.ssot_path(repo).exists()
+
+
 def test_check_fails_when_ssot_differs_and_does_not_rewrite(
     tmp_path: Path, gen: ModuleType
 ) -> None:
-    """``check`` is nonzero on mismatch and leaves the committed file unchanged."""
-    repo = _mini_repo(tmp_path, gen, ssot_text="# stale\n")
+    """``check`` is nonzero on a stale mermaid fence and leaves the page unchanged."""
+    stale = _SKELETON.replace("erDiagram\n", "erDiagram\n    stale\n")
+    repo = _mini_repo(tmp_path, gen, ssot_text=stale)
     ssot = gen.ssot_path(repo)
     before = ssot.read_text(encoding="utf-8")
     assert gen.check(repo) != 0

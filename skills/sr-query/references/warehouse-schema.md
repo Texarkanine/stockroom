@@ -1,4 +1,4 @@
-# Warehouse schema
+# Warehouse Schema
 
 Logical relationships only — DuckDB has no FOREIGN KEY constraints (deliberate).
 

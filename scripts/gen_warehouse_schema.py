@@ -4,6 +4,8 @@ Stdlib only: no engine venv, no torch, no on-path ``stockroom``. Boxes and
 columns come from the highest ``NNNN_snapshot.json`` under the schema fixtures
 directory. Edges come from ``-- @rel`` / ``-- @rel-none`` comments in
 ``migrations/*.sql``. Logical relationships are not DuckDB FOREIGN KEYs.
+The CLI splices the diagram into the single mermaid fence of the committed
+skill markdown; surrounding prose is authored.
 """
 
 from __future__ import annotations
@@ -165,17 +167,9 @@ def _sanitize_type(duckdb_type: str) -> str:
     return duckdb_type.replace("[", "_").replace("]", "")
 
 
-def render_markdown(snapshot: dict, rels: RelGraph) -> str:
-    """Return the dual-audience markdown body (Mermaid ``erDiagram``, no relative links)."""
-    lines = [
-        "# Warehouse schema",
-        "",
-        "Logical relationships only — DuckDB has no FOREIGN KEY constraints"
-        " (deliberate).",
-        "",
-        "```mermaid",
-        "erDiagram",
-    ]
+def render_er_diagram(snapshot: dict, rels: RelGraph) -> str:
+    """Return Mermaid ``erDiagram`` source (no fences, no surrounding markdown)."""
+    lines = ["erDiagram"]
     tables: dict = snapshot["tables"]
     for name in sorted(tables):
         entity = tables[name]
@@ -196,16 +190,28 @@ def render_markdown(snapshot: dict, rels: RelGraph) -> str:
     for rel in ordered:
         caption = rel.label or ""
         lines.append(f'    {rel.target} ||--o{{ {rel.source} : "{caption}"')
-    lines.extend(
-        [
-            "```",
-            "",
-            "Indexes (including the embeddings HNSW index) are omitted; they"
-            " are snapshot data, not query-forming structure.",
-            "",
-        ]
-    )
     return "\n".join(lines)
+
+
+def splice_mermaid(markdown: str, diagram: str) -> str:
+    """Replace the body of the single `` ```mermaid `` fence in ``markdown``.
+
+    Surrounding prose is left untouched. Zero or several mermaid fences is an
+    error. Other fenced blocks (if any) are left alone.
+    """
+    parts = markdown.split("```")
+    mermaid_idxs = [
+        i
+        for i, part in enumerate(parts)
+        if i % 2 == 1 and part.lstrip().startswith("mermaid")
+    ]
+    if len(mermaid_idxs) != 1:
+        raise ValueError(
+            f"expected exactly one mermaid fence, found {len(mermaid_idxs)}"
+        )
+    inner = diagram.strip("\n") + "\n"
+    parts[mermaid_idxs[0]] = "mermaid\n" + inner
+    return "```".join(parts)
 
 
 def ssot_path(repo_root: Path) -> Path:
@@ -213,20 +219,21 @@ def ssot_path(repo_root: Path) -> Path:
     return repo_root / SSOT_REL
 
 
-def _render_repo(repo_root: Path) -> str:
+def _diagram_repo(repo_root: Path) -> str:
     snapshot = load_head_snapshot(repo_root / FIXTURES_REL)
     rels = parse_rels_dir(repo_root / MIGRATIONS_REL)
     assert_coverage(snapshot, rels)
-    return render_markdown(snapshot, rels)
+    return render_er_diagram(snapshot, rels)
 
 
 def check(repo_root: Path) -> int:
-    """Return 0 if the committed SSOT matches a fresh render; nonzero otherwise.
+    """Return 0 if the committed mermaid fence matches a fresh diagram.
 
-    Runs coverage first. Does not write. Missing or differing SSOT is failure.
+    Surrounding markdown is not generated. Does not write. Missing SSOT,
+    missing/extra mermaid fences, or a stale diagram is failure.
     """
     try:
-        rendered = _render_repo(repo_root)
+        diagram = _diagram_repo(repo_root)
     except (ValueError, FileNotFoundError, OSError) as exc:
         print(f"warehouse schema docs: {exc}", file=sys.stderr)
         return 1
@@ -234,9 +241,15 @@ def check(repo_root: Path) -> int:
     if not path.is_file():
         print(f"warehouse schema docs: missing {path}", file=sys.stderr)
         return 1
-    if path.read_text(encoding="utf-8") != rendered:
+    current = path.read_text(encoding="utf-8")
+    try:
+        expected = splice_mermaid(current, diagram)
+    except ValueError as exc:
+        print(f"warehouse schema docs: {exc}", file=sys.stderr)
+        return 1
+    if current != expected:
         print(
-            f"warehouse schema docs: {path} is out of date;"
+            f"warehouse schema docs: mermaid in {path} is out of date;"
             " run python3 scripts/gen_warehouse_schema.py",
             file=sys.stderr,
         )
@@ -245,28 +258,40 @@ def check(repo_root: Path) -> int:
 
 
 def write(repo_root: Path) -> None:
-    """Write a fresh render to the skill SSOT path (after coverage succeeds)."""
-    rendered = _render_repo(repo_root)
+    """Splice a fresh diagram into the existing skill SSOT mermaid fence.
+
+    The markdown page must already exist with exactly one mermaid fence.
+    Coverage must succeed. Does not invent surrounding prose.
+    """
+    diagram = _diagram_repo(repo_root)
     path = ssot_path(repo_root)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(rendered, encoding="utf-8")
+    if not path.is_file():
+        raise FileNotFoundError(path)
+    path.write_text(
+        splice_mermaid(path.read_text(encoding="utf-8"), diagram),
+        encoding="utf-8",
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
-    """CLI: default writes the SSOT; ``--check`` compares and returns 0/1."""
+    """CLI: default splices the diagram; ``--check`` compares and returns 0/1."""
     parser = argparse.ArgumentParser(
-        description="Generate warehouse schema ERD markdown from the head golden."
+        description="Splice the warehouse ERD into the committed schema markdown."
     )
     parser.add_argument(
         "--check",
         action="store_true",
-        help="exit 0 if the committed SSOT matches; do not write",
+        help="exit 0 if the committed mermaid fence matches; do not write",
     )
     args = parser.parse_args(argv)
     repo_root = Path(__file__).resolve().parent.parent
     if args.check:
         return check(repo_root)
-    write(repo_root)
+    try:
+        write(repo_root)
+    except (ValueError, FileNotFoundError, OSError) as exc:
+        print(f"warehouse schema docs: {exc}", file=sys.stderr)
+        return 1
     return 0
 
 

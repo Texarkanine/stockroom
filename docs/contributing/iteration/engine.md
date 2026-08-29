@@ -53,7 +53,7 @@ cd skills/sr-search && uv run --no-sync --no-config pytest -n0 tests/test_smoke.
 
 ## Warehouse schema docs
 
-The query-facing ERD is generated, not hand-maintained. Authoritative DDL stays the forward-only files under `skills/sr-search/src/stockroom/migrations/`. Golden snapshots under `skills/sr-search/tests/fixtures/schema/` lock the migrated product schema. Logical relationships are `-- @rel` / `-- @rel-none` comments in those migration files (DuckDB has no FOREIGN KEY constraints). The generator reads the highest `NNNN_snapshot.json` plus those comments and writes `skills/sr-query/references/warehouse-schema.md` (Advanced docs symlink the same file).
+The query-facing ERD is generated, not hand-maintained. Authoritative DDL stays the forward-only files under `skills/sr-search/src/stockroom/migrations/`. Golden snapshots under `skills/sr-search/tests/fixtures/schema/` lock the migrated product schema. Logical relationships are `-- @rel` / `-- @rel-none` comments in those migration files (DuckDB has no FOREIGN KEY constraints). The generator reads the highest `NNNN_snapshot.json` plus those comments and splices the Mermaid `erDiagram` into the one mermaid fence in `skills/sr-query/references/warehouse-schema.md` (Advanced docs symlink the same file). Surrounding prose on that page is authored, not generated.
 
 After a schema change:
 
