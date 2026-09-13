@@ -62,3 +62,16 @@ Regenerate the docs-only root `uv.lock` without a PyTorch wheel registry, and co
     - Contributing docs now forbid bare `uv run` at repo root as well as `uv lock` / `uv add`
 * Decisions made
     - Same class as the QA finding: every root uv invocation in contributor-facing guidance gets `--no-config`
+
+## 2026-09-13 - QA - COMPLETE (PASS)
+
+* Work completed
+    - Re-reviewed the committed change set against the Level 1 brief and all four acceptance criteria
+    - Confirmed root `uv.lock` has zero `download.pytorch.org` sources (9 packages moved cu126 → PyPI, versions unchanged)
+    - Ran `test_docs_lock_hermetic.py`: 3 passed
+    - Confirmed prior FAIL item fixed: all root uv invocations in docs, Makefile, CI, and `pyproject.toml` header carry `--no-config`
+    - Verified torch index stays scoped to `--index` / stockroom-home freeze; no user-level `[[index]]` write or guidance anywhere
+* Decisions made
+    - PASS with two non-blocking advisories (test scan-loop duplication; `make lock` re-locks engine + root)
+* Insights
+    - `torch_source.write_index` persists a plain-text sidecar under stockroom home, not user uv config — the leak path never existed in code, only in the committed lock

@@ -23,3 +23,4 @@
 - [x] Reviewed the committed implementation against the Level 1 brief and acceptance criteria.
 - [x] Confirmed the hermetic-lock test suite passes and the root lock contains no PyTorch registry sources.
 - [x] **FAIL addressed:** Non-strict preview is `uv run --no-config properdocs serve --no-strict`; root `pyproject.toml` header comments also carry `--no-config`.
+- [x] **Re-review PASS:** All four acceptance criteria verified; prior FAIL item confirmed fixed. Advisories only (test scan-loop duplication; `make lock` broader than docs-only need).
