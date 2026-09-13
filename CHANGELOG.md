@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1](https://github.com/Texarkanine/stockroom/compare/v1.2.0...v1.2.1) (2026-09-13)
+
+
+### Bug Fixes
+
+* **deps:** regenerate root lock without PyTorch registry [130] ([#131](https://github.com/Texarkanine/stockroom/issues/131)) ([62818e2](https://github.com/Texarkanine/stockroom/commit/62818e248005ae02d83bc857c3f7b17efd6dad12))
+
 ## [1.2.0](https://github.com/Texarkanine/stockroom/compare/v1.1.0...v1.2.0) (2026-08-29)
 
 
