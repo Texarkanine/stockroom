@@ -36,10 +36,14 @@ jobs:
 
       - name: Install docs dependencies
         # --frozen: fail if uv.lock is out of date vs pyproject.toml.
-        run: uv sync --group docs --frozen
+        # --no-config: ambient user uv indexes must not participate.
+        run: uv sync --group docs --frozen --no-config
+
+      - name: Lock is hermetic
+        run: uv lock --locked --refresh --no-config
 
       - name: Build site (strict)
-        run: uv run properdocs build --strict
+        run: uv run --no-config properdocs build --strict
 
       - name: Upload Pages artifact
         if: ${{ github.event_name == 'release' || github.event_name == 'workflow_dispatch' }}

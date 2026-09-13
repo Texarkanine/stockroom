@@ -12,14 +12,23 @@ The documentation site is built with [properdocs](https://properdocs.org/) (a fo
 ## Development Loop
 
 1. `make docs` to start the local preview server
-	* If you are doing heavy refactoring and causing many broken links, it may be helpful to run in non-strict mode: `uv run properdocs serve --no-strict`. CI will be strict, though.
+	* If you are doing heavy refactoring and causing many broken links, it may be helpful to run in non-strict mode: `uv run --no-config properdocs serve --no-strict`. CI will be strict, though.
 2. Edit the markdown files in `docs/`
 
 ### Changing Dependencies
 
 The root `pyproject.toml` uses the `docs` dependency group to specify the dependencies for the documentation site.
 
-There's nothing special here; just normal [uv](https://docs.astral.sh/uv/) usage. Once you modify the root `pyproject.toml`'s dependency spec, just run `uv sync --group docs && uv lock`.
+Lock hermetically — the same `--no-config` rule as the engine. A user-level uv extra index (for example a PyTorch wheel registry that is not `explicit = true`) will otherwise pin ordinary docs packages to that registry.
+
+After changing the docs group in the root `pyproject.toml`:
+
+```
+make lock
+uv sync --group docs --frozen --no-config
+```
+
+Do not run bare `uv lock`, `uv add`, or `uv run` at the repo root. The Torch wheel index stays on `uv pip install --index` / the stockroom-home freeze — never a user-level `[[index]]`.
 
 ## Relevant Make Targets
 

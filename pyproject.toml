@@ -7,9 +7,9 @@
 #
 # Local preview and CI:
 #
-#     uv sync --group docs --frozen
-#     uv run properdocs serve
-#     uv run properdocs build --strict
+#     uv sync --group docs --frozen --no-config
+#     uv run --no-config properdocs serve
+#     uv run --no-config properdocs build --strict
 #
 # See: https://github.com/ProperDocs/properdocs
 

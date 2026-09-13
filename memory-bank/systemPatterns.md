@@ -6,7 +6,7 @@ Stockroom is a dual-manifest Cursor/Claude Code plugin whose Python engine lives
 
 ## Locked uv project, torch held out of the lock
 
-Lock hermetically with `uv lock --no-config`. Exclude torch via an impossible environment-marker override in `skills/sr-search/pyproject.toml` so it never enters the lock, then provision it per-machine (`uv pip install torch --no-config --index <wheel-url>`), smoke-test, and freeze the accepted stack under stockroom home. After torch is installed, never run an exact sync — use `uv run --no-sync` or `--inexact`. Local iteration is via the root [`Makefile`](../Makefile). See [`docs/user-guide/troubleshooting/torch.md`](../docs/user-guide/troubleshooting/torch.md).
+Lock hermetically with `uv lock --no-config` — both the engine lock and the docs-only root lock. `uv lock --locked` without `--refresh` will accept a lock that already satisfies the spec even when packages were resolved from a non-PyPI extra index; check or regenerate the root lock with `--refresh`. Exclude torch via an impossible environment-marker override in `skills/sr-search/pyproject.toml` so it never enters the lock, then provision it per-machine (`uv pip install torch --no-config --index <wheel-url>`), smoke-test, and freeze the accepted stack under stockroom home. The torch wheel index is passed only to that install/freeze; never write a user-level uv `[[index]]`. After torch is installed, never run an exact sync — use `uv run --no-sync` or `--inexact`. Local iteration is via the root [`Makefile`](../Makefile). See [`docs/user-guide/troubleshooting/torch.md`](../docs/user-guide/troubleshooting/torch.md).
 
 ## No truncation at rest; truncation is a read-time feature
 

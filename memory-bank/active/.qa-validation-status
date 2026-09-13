@@ -1,0 +1,12 @@
+PASS
+QA re-review of issue-130-root-lock-hermetic (2026-09-13), after rework addressing the prior FAIL.
+
+Verified:
+- Root uv.lock contains no download.pytorch.org sources (rg scan clean; 9 packages moved cu126 -> pypi.org/simple, zero version changes).
+- test_docs_lock_hermetic.py: 3/3 pass (PyPI-only sources with hashes; hermetic re-resolve via `uv lock --locked --refresh --no-config`; no user-level uv config writes in engine src/scripts).
+- Prior FAIL item fixed: non-strict preview is `uv run --no-config properdocs serve --no-strict`; root pyproject.toml header comments carry --no-config; contributing docs forbid bare `uv lock` / `uv add` / `uv run` at repo root.
+- Acceptance criteria 1-4 all satisfied: lock hermetic; `make lock` uses --no-config --refresh; torch index stays on --index / stockroom-home freeze (torch_source.write_index writes a stockroom-home sidecar, not user uv config); no guidance instructs a user-level [[index]].
+
+Advisories (non-blocking):
+- test_engine_source_does_not_write_user_uv_config duplicates the rglob scan body for *.py and *.sh; a loop over glob patterns would be tighter.
+- `make lock` re-locks engine + root; docs-only dependency changes get a slightly broader lock than strictly needed, but it keeps one entry point.
