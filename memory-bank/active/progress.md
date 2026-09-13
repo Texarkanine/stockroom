@@ -42,3 +42,23 @@ Regenerate the docs-only root `uv.lock` without a PyTorch wheel registry, and co
 
 * Work completed
     - Ready for Level 1 QA subagent
+
+## 2026-09-13 - QA - COMPLETE (FAIL)
+
+* Work completed
+    - Reviewed the committed change set against the task brief and hermeticity requirements
+    - Confirmed no root-lock package uses the PyTorch registry
+    - Ran `test_docs_lock_hermetic.py` successfully (3 passed)
+* Decisions made
+    - Build must rerun to correct the remaining bare root `uv run` command in docs guidance
+* Insights
+    - `uv run` can resolve or sync dependencies; root contributor commands need `--no-config` just like lock and sync commands
+
+## 2026-09-13 - BUILD - COMPLETE (QA rework)
+
+* Work completed
+    - Non-strict docs preview command now includes `--no-config`
+    - Root `pyproject.toml` header comments match the hermetic invocations
+    - Contributing docs now forbid bare `uv run` at repo root as well as `uv lock` / `uv add`
+* Decisions made
+    - Same class as the QA finding: every root uv invocation in contributor-facing guidance gets `--no-config`

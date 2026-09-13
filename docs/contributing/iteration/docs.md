@@ -12,7 +12,7 @@ The documentation site is built with [properdocs](https://properdocs.org/) (a fo
 ## Development Loop
 
 1. `make docs` to start the local preview server
-	* If you are doing heavy refactoring and causing many broken links, it may be helpful to run in non-strict mode: `uv run properdocs serve --no-strict`. CI will be strict, though.
+	* If you are doing heavy refactoring and causing many broken links, it may be helpful to run in non-strict mode: `uv run --no-config properdocs serve --no-strict`. CI will be strict, though.
 2. Edit the markdown files in `docs/`
 
 ### Changing Dependencies
@@ -28,7 +28,7 @@ make lock
 uv sync --group docs --frozen --no-config
 ```
 
-Do not run bare `uv lock` or `uv add` at the repo root. The Torch wheel index stays on `uv pip install --index` / the stockroom-home freeze — never a user-level `[[index]]`.
+Do not run bare `uv lock`, `uv add`, or `uv run` at the repo root. The Torch wheel index stays on `uv pip install --index` / the stockroom-home freeze — never a user-level `[[index]]`.
 
 ## Relevant Make Targets
 
