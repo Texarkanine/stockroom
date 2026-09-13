@@ -1,0 +1,1 @@
+uv lock --locked without --refresh treats a pytorch-index lock as current; root docs lock must use --no-config --refresh.

@@ -19,7 +19,7 @@ From the **repo root**, the [`Makefile`](https://github.com/Texarkanine/stockroo
 | Project | Path | Purpose |
 | --- | --- | --- |
 | Engine | `skills/sr-search/` | Runtime + tests; torch held out of lock |
-| Docs | repo root | `properdocs` site only (`uv sync --group docs`) |
+| Docs | repo root | `properdocs` site only (`uv sync --group docs --no-config`) |
 
 ## Things You can Iterate On
 

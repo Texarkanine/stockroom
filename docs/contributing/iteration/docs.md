@@ -19,7 +19,16 @@ The documentation site is built with [properdocs](https://properdocs.org/) (a fo
 
 The root `pyproject.toml` uses the `docs` dependency group to specify the dependencies for the documentation site.
 
-There's nothing special here; just normal [uv](https://docs.astral.sh/uv/) usage. Once you modify the root `pyproject.toml`'s dependency spec, just run `uv sync --group docs && uv lock`.
+Lock hermetically — the same `--no-config` rule as the engine. A user-level uv extra index (for example a PyTorch wheel registry that is not `explicit = true`) will otherwise pin ordinary docs packages to that registry.
+
+After changing the docs group in the root `pyproject.toml`:
+
+```
+make lock
+uv sync --group docs --frozen --no-config
+```
+
+Do not run bare `uv lock` or `uv add` at the repo root. The Torch wheel index stays on `uv pip install --index` / the stockroom-home freeze — never a user-level `[[index]]`.
 
 ## Relevant Make Targets
 

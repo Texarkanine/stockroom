@@ -51,11 +51,13 @@ torch: ## Install torch out-of-band (embed/semantic; stripped by make sync)
 	$(UV_DIR) pip install torch --index $(TORCH_INDEX)
 	PYTHONPATH=$(CURDIR)/$(ENGINE)/src $(UV_RUN) python -m stockroom torch freeze --index $(TORCH_INDEX)
 
-lock: ## Regenerate uv.lock hermetically
+lock: ## Regenerate uv.lock hermetically (engine + docs)
 	$(UV_DIR) lock
+	$(UV) lock $(UV_NO_CFG) --refresh
 
-lock-check: ## Fail if uv.lock is stale vs pyproject.toml
+lock-check: ## Fail if uv.lock is stale vs pyproject.toml (engine + docs)
 	$(UV_DIR) lock --locked
+	$(UV) lock $(UV_NO_CFG) --locked --refresh
 
 test: sync test-dashboard-js ## Run pytest and JavaScript unit tests
 	$(UV_RUN) pytest
@@ -118,11 +120,11 @@ schema-docs-check: ## Fail if committed warehouse schema ERD is stale
 # Docs site (root pyproject.toml docs group — separate from the engine project).
 # Requires uv: https://docs.astral.sh/uv/
 docs: ## Local docs preview (properdocs serve)
-	uv run properdocs serve
+	uv run $(UV_NO_CFG) properdocs serve
 
 docs-build: ## Strict docs build (matches docs CI)
-	uv sync --group docs --frozen
-	uv run properdocs build --strict
+	uv sync --group docs --frozen $(UV_NO_CFG)
+	uv run $(UV_NO_CFG) properdocs build --strict
 
 require-harness:
 	@case "$(HARNESS)" in \

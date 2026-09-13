@@ -22,3 +22,23 @@ Regenerate the docs-only root `uv.lock` without a PyTorch wheel registry, and co
     - Memory-bank ephemeral files written; ready to enter Build
 * Decisions made
     - L1 skips plan/creative/preflight; next phase is Build
+
+## 2026-09-13 - BUILD - COMPLETE
+
+* Work completed
+    - Regenerated root `uv.lock` with `uv lock --no-config --refresh`
+    - Added docs-lock hermeticity tests
+    - Wired `--no-config` (and root `--refresh`) into Make + docs CI
+    - Fixed contributing docs that instructed bare `uv lock`
+* Decisions made
+    - `--refresh` not `--upgrade`: same versions, PyPI sources only
+    - `uv lock --locked` without `--refresh` is a false green on extra-index contamination
+    - No user-level `[[index]]` write existed; pin that with a source scan rather than inventing a config write
+* Insights
+    - `--locked` checks constraint satisfaction, not registry identity
+    - `docs/contributing/iteration/docs.md` was the recurrence path
+
+## 2026-09-13 - BUILD - COMPLETE (leaving for QA)
+
+* Work completed
+    - Ready for Level 1 QA subagent
