@@ -1,0 +1,1 @@
+Stockroom install must not write user-level uv extra indexes that bleed into other projects' locks.
