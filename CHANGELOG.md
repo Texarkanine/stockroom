@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/Texarkanine/stockroom/compare/v1.2.1...v1.3.0) (2026-10-02)
+
+
+### Features
+
+* **semantic:** include session and message ids in every result ([#133](https://github.com/Texarkanine/stockroom/issues/133)) ([9b1fd45](https://github.com/Texarkanine/stockroom/commit/9b1fd4543a2f4820cd71f5b8b9d1efee871e7599))
+
 ## [1.2.1](https://github.com/Texarkanine/stockroom/compare/v1.2.0...v1.2.1) (2026-09-13)
 
 
