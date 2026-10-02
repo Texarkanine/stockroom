@@ -39,7 +39,18 @@ if TYPE_CHECKING:
     from stockroom.semantic import SemanticHit
 
 #: The ranked-result columns shown by the semantic ``tsv`` / ``table`` shapes.
-_SEMANTIC_COLUMNS = ("rank", "score", "harness", "role", "preview")
+#: ``session_id`` and ``message_id`` are always present so a hit can be opened
+#: with ``stockroom query`` without a second search. Order matches the JSON
+#: fields; ``preview`` stays the wide last column.
+_SEMANTIC_COLUMNS = (
+    "rank",
+    "score",
+    "harness",
+    "session_id",
+    "message_id",
+    "role",
+    "preview",
+)
 
 #: A selectable output shape. ``tsv`` is the default.
 OutputFormat = Literal["tsv", "json", "table"]
@@ -98,9 +109,9 @@ def format_semantic(
 
     ``score`` is cosine *similarity* (``1 - distance``); the ``preview`` / ``text``
     field is passed through :func:`stockroom.truncate.truncate_cell` at ``detail``.
-    ``tsv`` and ``json`` omit the result-count trailer; ``table`` keeps it. ``json``
-    additionally carries the ``session_id`` / ``message_id`` identifiers and a
-    numeric ``score``.
+    Every shape includes ``session_id`` and ``message_id``. ``tsv`` and ``json``
+    omit the result-count trailer; ``table`` keeps it. ``json`` carries a numeric
+    ``score``.
     """
     if fmt == "tsv":
         lines = ["\t".join(_SEMANTIC_COLUMNS)]
@@ -110,6 +121,8 @@ def format_semantic(
                     str(hit.rank),
                     f"{1.0 - hit.distance:.3f}",
                     hit.harness,
+                    hit.session_id,
+                    hit.message_id,
                     hit.role,
                     truncate_cell(hit.text or "", detail),
                 ]
@@ -193,6 +206,8 @@ def _semantic_table(
             str(hit.rank),
             f"{1.0 - hit.distance:.3f}",
             hit.harness,
+            hit.session_id,
+            hit.message_id,
             hit.role,
             truncate_cell(hit.text or "", detail),
         ]

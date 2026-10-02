@@ -49,19 +49,15 @@ For schema and search mental model, see [Search](../user-guide/search.md) and [A
 
 Full flag semantics: `stockroom query --help` / `stockroom semantic --help`.
 
-!!! tip "The Default was for Agents"
+!!! tip "Lookup ids are always printed"
 
-	Semantic search just outputs data - nothing that works as a foreign key into other rows or an SQL query, *except* with `--format json`.
+	Every `stockroom semantic` shape includes `session_id` and `message_id`, so a hit can be opened with `stockroom query` from the default output. The preview is still truncated.
 
-	Additionally, its output is truncated.
-
-`stockroom semantic` was designed for agents to cast a wide net and find something promising, which they'd then do a fuller-detail JSON dump on. For you as a human (who doesn't care about the "context window" of your terminal), you probably always want to use
+To print the search itself with exact stored whitespace, use
 
 ```bash
 stockroom semantic --format json --detail raw "my query..."
 ```
-
-instead of the default.
 
 ## See also
 

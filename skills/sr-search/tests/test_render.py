@@ -198,9 +198,52 @@ def test_query_table_full_detail_keeps_whole_cell() -> None:
 def test_semantic_tsv_header_and_no_trailer() -> None:
     """tsv semantic output leads with the tab-separated header, no result trailer."""
     out = render.format_semantic([_hit("hello")], fmt="tsv")
-    assert out.splitlines()[0] == "rank\tscore\tharness\trole\tpreview"
+    assert out.splitlines()[0] == (
+        "rank\tscore\tharness\tsession_id\tmessage_id\trole\tpreview"
+    )
     assert "(1 result)" not in out
     assert " | " not in out
+
+
+def test_semantic_tsv_includes_lookup_ids() -> None:
+    """A tsv row carries session_id and message_id between harness and role."""
+    out = render.format_semantic(
+        [_hit("hello", session_id="sess-9", message_id="sess-9#4")],
+        fmt="tsv",
+    )
+    header, row = out.splitlines()
+    assert header == "rank\tscore\tharness\tsession_id\tmessage_id\trole\tpreview"
+    assert row.split("\t") == [
+        "1",
+        "1.000",
+        "claude",
+        "sess-9",
+        "sess-9#4",
+        "user",
+        "hello",
+    ]
+
+
+def test_semantic_tsv_empty_header_includes_lookup_ids() -> None:
+    """An empty tsv result is the header alone, including the lookup columns."""
+    out = render.format_semantic([], fmt="tsv")
+    assert out.splitlines() == [
+        "rank\tscore\tharness\tsession_id\tmessage_id\trole\tpreview"
+    ]
+
+
+def test_semantic_tsv_lookup_ids_survive_preview_elision() -> None:
+    """Eliding a long preview leaves session_id and message_id whole."""
+    out = render.format_semantic(
+        [_hit("z" * 600, session_id="sess-9", message_id="sess-9#4")],
+        fmt="tsv",
+    )
+    _header, row = out.splitlines()
+    fields = row.split("\t")
+    assert fields[3] == "sess-9"
+    assert fields[4] == "sess-9#4"
+    assert ELISION in fields[6]
+    assert "z" * 600 not in fields[6]
 
 
 def test_semantic_tsv_score_is_similarity() -> None:
@@ -306,6 +349,33 @@ def test_semantic_table_shows_similarity_score() -> None:
     out = render.format_semantic([_hit("hello", distance=0.0)], fmt="table")
     assert "score" in out.lower()
     assert "1.0" in out
+
+
+def test_semantic_table_includes_lookup_ids() -> None:
+    """The table header and row include session_id and message_id."""
+    out = render.format_semantic(
+        [_hit("hello", session_id="sess-9", message_id="sess-9#4")],
+        fmt="table",
+    )
+    names = [cell.strip() for cell in out.splitlines()[0].split(" | ")]
+    assert names == [
+        "rank",
+        "score",
+        "harness",
+        "session_id",
+        "message_id",
+        "role",
+        "preview",
+    ]
+    assert "sess-9" in out
+    assert "sess-9#4" in out
+    assert "(1 result)" in out
+
+    empty = render.format_semantic([], fmt="table")
+    empty_names = [cell.strip() for cell in empty.splitlines()[0].split(" | ")]
+    assert "session_id" in empty_names
+    assert "message_id" in empty_names
+    assert "(0 results)" in empty
 
 
 def test_semantic_table_previews_text_single_line() -> None:

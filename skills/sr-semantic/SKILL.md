@@ -42,8 +42,8 @@ Lower it (`-k 3`) when you expect one obvious winner; raise it when you're casti
 
 | Value | Shape | Use it when |
 |-------|-------|-------------|
-| `tsv` *(default)* | Header `rank score harness role preview` + tab-separated rows, no count trailer | Default. Stream-friendly for you and for unix pipes. |
-| `json` | A single `{"results": [...]}` object — each result **additionally carries `session_id` and `message_id`** and a numeric `score` | You need the hit's **ids** (e.g. for the full-text handoff below), a **user** asks for structured output, or you want `jq`. |
+| `tsv` *(default)* | Header `rank score harness session_id message_id role preview` + tab-separated rows, no count trailer | Default. Stream-friendly for you and for unix pipes. `session_id` and `message_id` are on every row, so you can hand a hit to `sr-query` without changing format. |
+| `json` | A single `{"results": [...]}` object — each result carries the same identifiers plus a numeric `score` and a `text` field | A **user** asks for structured output, or you want `jq`. |
 | `table` | Column-aligned ASCII with a `(N results)` trailer | A **user** asks for something human-readable / a copy-paste command to look at. |
 
 Lead with the default `tsv`. Offer `--format table` or `--format json` **when the user asks** for human-readable or structured output.
@@ -67,11 +67,11 @@ An over-budget preview is elided with a marker reporting how many characters wer
 
 These are the failure modes this skill exists to prevent:
 
-- **Don't blow out your context.** Never combine `--detail full`/`raw` with a large `-k` — ten untruncated messages can be tens of thousands of characters. Scan at the default `snippet` (or `compact`), pick the hit you want, then fetch **just that one message's whole text** via the **`sr-query` handoff**: re-run with `--format json` to get the hit's `message_id`, then
+- **Don't blow out your context.** Never combine `--detail full`/`raw` with a large `-k` — ten untruncated messages can be tens of thousands of characters. Scan at the default `snippet` (or `compact`), pick the hit you want, then fetch **just that one message's whole text** via the **`sr-query` handoff** using the `message_id` already printed:
 
 ```bash
 stockroom query --format json --detail raw \
-  "SELECT text FROM messages WHERE message_id = '<message_id-from-the-json>'"
+  "SELECT text FROM messages WHERE message_id = '<message_id-from-the-results>'"
 ```
 
 - **It is read-only — never attempt writes.** The surface only searches.
@@ -108,7 +108,7 @@ stockroom semantic "how does the warehouse locking work"
 # Expecting one obvious winner — keep it tight:
 stockroom semantic -k 3 "incremental re-embed of new content"
 
-# Need the ids (for the full-text handoff), or structured output:
+# Structured output, or a user asked for JSON:
 stockroom semantic --format json -k 2 "flock sidecar lock"
 
 # Human-readable, terse previews, for a user to eyeball:
@@ -118,8 +118,8 @@ stockroom semantic --format table --detail compact -k 3 "REUSE licensing layout"
 And the full-text handoff pair (scan semantically, then fetch one whole message with `sr-query`):
 
 ```bash
-stockroom semantic --format json -k 5 "flock sidecar lock"
-# ...pick the winning message_id from the json, then:
+stockroom semantic -k 5 "flock sidecar lock"
+# ...pick the winning message_id from the results, then:
 stockroom query --format json --detail raw \
   "SELECT text FROM messages WHERE message_id = 'fcf35cbe-…#51'"
 ```

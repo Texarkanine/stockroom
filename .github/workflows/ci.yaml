@@ -29,7 +29,13 @@ jobs:
           node-version: 22
 
       - name: Install uv
+        # Pin uv. `uv lock --refresh` rewrites the lockfile revision to the
+        # running uv's format, and `--locked` then fails. Bump this only in
+        # the same commit that regenerates the locks with that exact uv.
+        # Keep docs.yaml on this same version.
         uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.12.22"
 
       # Hermetic, torch-free sync from the committed lock. --no-config keeps
       # ambient user config from leaking into resolution.
