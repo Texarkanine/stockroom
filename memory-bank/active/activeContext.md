@@ -1,11 +1,12 @@
 # Active Context
 
 ## Current Task: semantic-lookup-ids
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Confirmed intent: every `stockroom semantic` shape must print `session_id` and `message_id` so a hit can be opened with `stockroom query` without a second search.
-- Classified as Level 2. This is a self-contained change to the semantic render contract and the skill that documents the handoff. `stockroom query` is unchanged. JSON already carries the identifiers; `tsv` and `table` drop them.
+- Classified as Level 2 and confirmed the output-contract change.
+- Planned a test-first change to `stockroom.render` so `tsv` and `table` print `session_id` and `message_id` in the same order JSON already uses (`harness`, then the two ids, then `role`, then the preview). Default stays `tsv`. JSON payload is unchanged.
+- Planned prose updates to `skills/sr-semantic/SKILL.md` and the foreign-key tip in `docs/advanced/cli.md` so neither still says a second `--format json` run is required to obtain the ids.
 
 ## Next Step
-- Load the Level 2 workflow and run the plan phase.
+- Preflight validation.
