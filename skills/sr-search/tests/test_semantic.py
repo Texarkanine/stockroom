@@ -217,7 +217,9 @@ def test_cli_prints_ranked_results(warehouse_home: Path, capsys) -> None:
     assert code == 0
     out = capsys.readouterr().out
     assert "the unique findable phrase" in out
-    assert out.splitlines()[0] == "rank\tscore\tharness\trole\tpreview"
+    assert out.splitlines()[0] == (
+        "rank\tscore\tharness\tsession_id\tmessage_id\trole\tpreview"
+    )
     assert "(1 result)" not in out  # tsv default carries no count trailer
 
 
@@ -251,9 +253,33 @@ def test_cli_default_output_is_tsv(warehouse_home: Path, capsys) -> None:
     code = semantic.main(["the unique findable phrase"], encoder_factory=FakeEncoder)
     assert code == 0
     out = capsys.readouterr().out
-    assert out.splitlines()[0] == "rank\tscore\tharness\trole\tpreview"
+    assert out.splitlines()[0] == (
+        "rank\tscore\tharness\tsession_id\tmessage_id\trole\tpreview"
+    )
     assert " | " not in out
     assert "(1 result)" not in out
+
+
+def test_cli_default_tsv_includes_lookup_ids(warehouse_home: Path, capsys) -> None:
+    """Default CLI tsv includes the inserted row's session_id and message_id."""
+    writer = warehouse.open(read_only=False)
+    try:
+        message_id = _insert_message(
+            writer, ordinal=0, text="the unique findable phrase"
+        )
+        embed.embed_pending(writer, FakeEncoder())
+    finally:
+        writer.close()
+
+    code = semantic.main(["the unique findable phrase"], encoder_factory=FakeEncoder)
+
+    assert code == 0
+    out = capsys.readouterr().out
+    header, row = out.splitlines()
+    assert header == "rank\tscore\tharness\tsession_id\tmessage_id\trole\tpreview"
+    fields = row.split("\t")
+    assert fields[3] == "s1"
+    assert fields[4] == message_id
 
 
 def test_cli_format_table_shows_trailer(warehouse_home: Path, capsys) -> None:

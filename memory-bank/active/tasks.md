@@ -38,6 +38,8 @@ Every `stockroom semantic` shape (`tsv`, `table`, `json`) prints `session_id` an
 3. Write tests and run red: Fill the new tests and update `test_semantic_tsv_header_and_no_trailer`, `test_cli_prints_ranked_results`, and `test_cli_default_output_is_tsv` to the behaviors above. Column order is `rank`, `score`, `harness`, `session_id`, `message_id`, `role`, `preview` (same order as today's JSON fields; `preview` stays the wide last column; JSON keeps the field name `text`). Run the new and updated tests. They fail because `_SEMANTIC_COLUMNS` is still `("rank", "score", "harness", "role", "preview")`.
 4. Write code and run green: Set `_SEMANTIC_COLUMNS` to that order. Include `hit.session_id` and `hit.message_id` in the tsv row and the table row, between harness and role. Update the `format_semantic` docstring so it no longer says only JSON carries the identifiers. Do not change the JSON payload, score formatting, truncation, or the default format. Re-run the semantic render and CLI tests, then `make test` from the repo root.
 
+- [x] Step 1 complete
+
 ### 2. One-search handoff docs — prose/policy
 
 - Files: `skills/sr-semantic/SKILL.md`, `docs/advanced/cli.md`
@@ -45,6 +47,8 @@ Every `stockroom semantic` shape (`tsv`, `table`, `json`) prints `session_id` an
 
 1. In `skills/sr-semantic/SKILL.md`, put `session_id` and `message_id` on the default `tsv` header description. Stop saying JSON is where the identifiers appear. The full-text handoff takes `message_id` from the results already printed, then `stockroom query`. Update the worked examples that re-run `--format json` only to obtain an id.
 2. In `docs/advanced/cli.md`, rewrite the "The Default was for Agents" tip so it no longer says only `--format json` carries a foreign key. Keep the separate advice that previews are truncated and that `--format json --detail raw` is how a human gets exact stored text.
+
+- [x] Step 2 complete
 
 ## Technology Validation
 
@@ -75,5 +79,5 @@ No new technology - validation not required
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight
-- [ ] Build
+- [x] Build
 - [ ] QA

@@ -35,3 +35,15 @@ Put `session_id` and `message_id` on every `stockroom semantic` result so a hit 
 * Insights
     - Test-first sequence properly stubs and asserts red against both renderer and CLI tests before modifying `_SEMANTIC_COLUMNS`.
     - Advisory finding noted regarding turn-context handoff patterns in `sr-semantic/SKILL.md`.
+
+## 2026-10-02 - BUILD - COMPLETE
+
+* Work completed
+    - Added `session_id` and `message_id` to semantic `tsv` and `table` output, with tests written first.
+    - Updated `skills/sr-semantic/SKILL.md` and `docs/advanced/cli.md` so the handoff uses the ids already printed.
+    - `make lint` passed. `make test`: 870 passed, 4 skipped; dashboard JS 134 passed.
+* Decisions made
+    - Did not adopt the preflight advisory (a neighboring-turn SQL recipe). The brief is lookup ids on every shape.
+* Insights
+    - Empty-table header coverage lives inside `test_semantic_table_includes_lookup_ids` rather than its own function. The behavior is still asserted.
+
