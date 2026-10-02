@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: semantic-lookup-ids
-**Phase:** BUILD - COMPLETE
+**Phase:** QA - COMPLETE (PASS)
 
 ## What Was Done
 - `tsv` and `table` now print `session_id` and `message_id` after `harness` and before `role`. JSON already did. Default stays `tsv`.
@@ -16,4 +16,4 @@
 - `/home/mobaxterm/git/stockroom/docs/advanced/cli.md`
 
 ## Next Step
-- QA review.
+- QA passed. Proceed to `/niko-reflect`.

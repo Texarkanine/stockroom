@@ -47,3 +47,14 @@ Put `session_id` and `message_id` on every `stockroom semantic` result so a hit 
 * Insights
     - Empty-table header coverage lives inside `test_semantic_table_includes_lookup_ids` rather than its own function. The behavior is still asserted.
 
+## 2026-10-02 - QA - COMPLETE
+
+* Work completed
+    - Semantic review of the build-phase diff against the plan: KISS, DRY, YAGNI, Completeness, Regression, Integrity, Documentation.
+    - Re-ran `make test` (870 passed, 4 skipped Python; 134 passed dashboard JS) and `make lint` (clean) to corroborate the review.
+    - Result recorded in `.qa-validation-status`: PASS.
+* Decisions made
+    - No rework required. The preflight advisory (turn-context SQL recipe) staying out of scope was confirmed correct, not a gap.
+* Insights
+    - The `tsv`/`table` row-list duplication predates this task and was extended identically in both places; not a new DRY violation.
+
