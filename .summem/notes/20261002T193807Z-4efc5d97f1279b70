@@ -1,0 +1,1 @@
+stockroom semantic tsv and table include session_id and message_id; do not document JSON as the only shape that can hand off to query.

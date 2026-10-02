@@ -58,3 +58,14 @@ Put `session_id` and `message_id` on every `stockroom semantic` result so a hit 
 * Insights
     - The `tsv`/`table` row-list duplication predates this task and was extended identically in both places; not a new DRY violation.
 
+## 2026-10-02 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `memory-bank/active/reflection/reflection-semantic-lookup-ids.md`.
+    - Reconciled persistent files: no updates.
+* Decisions made
+    - The ids-on-every-shape rule stays in the render docstring and `sr-semantic`, not in the system briefing.
+* Insights
+    - The defect was a column allowlist plus docs that taught the JSON workaround. Fixing only the renderer would have left the documented two-step in place.
+
+
