@@ -1,0 +1,1 @@
+CI uv is pinned to 0.12.22 in ci.yaml and docs.yaml. Bump that pin only together with a lock refresh from that same uv.
