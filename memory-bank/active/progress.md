@@ -23,3 +23,15 @@ Put `session_id` and `message_id` on every `stockroom semantic` result so a hit 
     - Treat `skills/sr-semantic/SKILL.md` and the foreign-key tip in `docs/advanced/cli.md` as required prose, not a follow-up.
 * Insights
     - `docs/advanced/cli.md` currently tells humans that only `--format json` carries a foreign key. That page would keep teaching the old UX if the renderer changed alone.
+
+## 2026-10-02 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Executed Preflight validation checks for Level 2 task.
+    - Verified TDD plan encoding, codebase conventions, dependency impact, and contract completeness.
+    - Result recorded in `.preflight-status`: PASS WITH ADVISORY.
+* Decisions made
+    - Plan validated and approved for build as-is without requiring plan modifications.
+* Insights
+    - Test-first sequence properly stubs and asserts red against both renderer and CLI tests before modifying `_SEMANTIC_COLUMNS`.
+    - Advisory finding noted regarding turn-context handoff patterns in `sr-semantic/SKILL.md`.
