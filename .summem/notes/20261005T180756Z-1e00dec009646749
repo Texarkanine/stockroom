@@ -1,0 +1,1 @@
+DuckDB 1.5.4 VSS post-filters WHERE after HNSW: embeddings harness predicate plus ORDER BY distance LIMIT can return zero rows while matches exist.
