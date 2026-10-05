@@ -633,6 +633,30 @@ def test_embed_cli_verbose_missing_warehouse_still_friendly(
     assert "run `stockroom ingest` first" in err
 
 
+def test_unauthenticated_hub_notice_is_dropped_and_other_warnings_remain(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """The Hub's unauthenticated-request notice is not a failure and is not printed.
+
+    A different warning from the same logger still comes through, so a real
+    download problem is not swallowed with the notice.
+    """
+    import logging
+
+    embed.silence_unauthenticated_hub_warning()
+    hub = logging.getLogger("huggingface_hub.utils._http")
+    notice = (
+        "You are sending unauthenticated requests to the HF Hub. "
+        "Please set a HF_TOKEN to enable higher rate limits and faster downloads."
+    )
+    other = "Error while downloading from https://example.invalid: boom"
+    with caplog.at_level(logging.WARNING, logger="huggingface_hub.utils._http"):
+        hub.warning(notice)
+        hub.warning(other)
+    assert "unauthenticated requests to the HF Hub" not in caplog.text
+    assert "Error while downloading" in caplog.text
+
+
 def test_bge_encoder_encodes_to_384_on_cpu() -> None:
     """``BgeEncoder`` loads ``bge-small-en-v1.5`` (no ``trust_remote_code``) and
     encodes to 384-dim; a default chunk stays within the 512-token window.

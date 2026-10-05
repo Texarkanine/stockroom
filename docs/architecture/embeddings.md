@@ -16,7 +16,7 @@ Torch is required to encode; it is held out of the lock for machine-specific bui
 
 ### VSS and HNSW
 
-Vectors live in the warehouse and are queried through DuckDB's VSS extension over an HNSW index (migration-owned). Semantic search embeds the query with the same local model, runs cosine KNN with over-fetch, then dedups multi-chunk hits back to one row per owner message (max-sim at owner grain).
+Vectors live in the warehouse and are queried through DuckDB's VSS extension over an HNSW index (migration-owned). Semantic search embeds the query with the same local model. With no scope it runs cosine KNN with over-fetch, then dedups multi-chunk hits back to one row per owner message (max-sim at owner grain). A `--harness` or `--role` scope ranks the joined filtered set instead: DuckDB VSS applies a `WHERE` after the HNSW pick, so that predicate cannot be added to the limit query.
 
 Long messages may produce several chunk vectors; that is expected. SQL `query` does not need embeddings; meaning-based recall does.
 

@@ -16,6 +16,7 @@ Classify the ask, then **follow the chosen sibling skill** for how to run the se
 |---------|-------|
 | Exact or structured — fields you can name: ids, filters, counts, `GROUP BY`, joins ("how many sessions per harness?") | `sr-query` alone |
 | Meaning-based — content you can describe but not name exactly ("where did we debug the warehouse deadlock?") | `sr-semantic` alone |
+| Meaning-based, and the question names who spoke or which harness ("where I talked about flock in Claude") | `sr-semantic` with `--role user` and/or `--harness claude`. "I" is `user`, "you" is `assistant`, "we" omits `--role` |
 | Known id in hand ("show me message `<id>` in full") | `sr-query` alone |
 | Per-session / conversation token rollups or spend ("which chats used the most tokens?") | `sr-query` alone — use VIEW `session_token_usage` (see `../sr-query/SKILL.md`; more rollups in its [cookbook](../sr-query/references/cookbook/index.md)) |
 | Full skill-use or tool-use tables beyond dashboard top-N | `sr-query` alone — [cookbook](../sr-query/references/cookbook/index.md) |

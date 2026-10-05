@@ -36,7 +36,7 @@ stockroom semantic "flaky dashboard tests" -k 10
 | Subcommand | Role |
 | --- | --- |
 | `query` | Read-only SQL against the warehouse |
-| `semantic` | Vector (semantic) search |
+| `semantic` | Vector (semantic) search. |
 
 For schema and search mental model, see [Search](../user-guide/search.md) and [Architecture → Warehouse](../architecture/warehouse.md) / [Embeddings](../architecture/embeddings.md). This page does not fork skill flag tables — use `--help` and the skill `SKILL.md` files for operational recovery detail.
 

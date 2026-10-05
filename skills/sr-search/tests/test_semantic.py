@@ -393,6 +393,348 @@ def test_cli_nonpositive_limit_rejected(warehouse_home: Path, capsys) -> None:
     assert capsys.readouterr().err.strip() != ""
 
 
+def _seed(writer, **kwargs) -> str:
+    """Insert and embed one message; return its ``message_id``."""
+    message_id = _insert_message(writer, **kwargs)
+    embed.embed_pending(writer, FakeEncoder())
+    return message_id
+
+
+def test_cli_role_scope_excludes_other_role(warehouse_home: Path, capsys) -> None:
+    """``--role user`` prints the user hit and not a distance-0 assistant."""
+    writer = warehouse.open(read_only=False)
+    try:
+        assistant_id = _seed(
+            writer,
+            session_id="out",
+            ordinal=0,
+            role="assistant",
+            text="the scoped topic",
+        )
+        user_id = _seed(
+            writer,
+            session_id="in",
+            ordinal=0,
+            role="user",
+            text="a different wording",
+        )
+    finally:
+        writer.close()
+
+    code = semantic.main(
+        ["--role", "user", "the scoped topic"], encoder_factory=FakeEncoder
+    )
+    assert code == 0
+    out = capsys.readouterr().out
+    assert user_id in out
+    assert assistant_id not in out
+
+
+def test_cli_harness_scope_excludes_other_harness(warehouse_home: Path, capsys) -> None:
+    """``--harness`` prints only that harness."""
+    writer = warehouse.open(read_only=False)
+    try:
+        cursor_id = _seed(
+            writer,
+            harness="cursor",
+            session_id="out",
+            ordinal=0,
+            text="the scoped topic",
+        )
+        claude_id = _seed(
+            writer,
+            harness="claude",
+            session_id="in",
+            ordinal=0,
+            text="a different wording",
+        )
+    finally:
+        writer.close()
+
+    code = semantic.main(
+        ["--harness", "claude", "the scoped topic"], encoder_factory=FakeEncoder
+    )
+    assert code == 0
+    out = capsys.readouterr().out
+    assert claude_id in out
+    assert cursor_id not in out
+
+
+def test_cli_bad_role_rejected(warehouse_home: Path) -> None:
+    """An unknown ``--role`` exits 2 before the encoder is built."""
+    with pytest.raises(SystemExit) as exc:
+        semantic.main(["--role", "speaker", "a query"], encoder_factory=_never_built)
+    assert exc.value.code == 2
+
+
+def test_cli_unknown_harness_is_empty(warehouse_home: Path, capsys) -> None:
+    """An unknown ``--harness`` exits 0 with the empty tsv shape."""
+    writer = warehouse.open(read_only=False)
+    try:
+        _seed(writer, ordinal=0, text="the scoped topic")
+    finally:
+        writer.close()
+
+    code = semantic.main(
+        ["--harness", "nosuch", "the scoped topic"], encoder_factory=FakeEncoder
+    )
+    assert code == 0
+    assert capsys.readouterr().out.strip() == (
+        "rank\tscore\tharness\tsession_id\tmessage_id\trole\tpreview"
+    )
+
+
+def test_cli_repeated_harness_is_not_a_union(warehouse_home: Path, capsys) -> None:
+    """A repeated ``--harness`` keeps the last value, not both."""
+    writer = warehouse.open(read_only=False)
+    try:
+        cursor_id = _seed(
+            writer,
+            harness="cursor",
+            session_id="c",
+            ordinal=0,
+            text="the scoped topic",
+        )
+        claude_id = _seed(
+            writer,
+            harness="claude",
+            session_id="k",
+            ordinal=0,
+            text="the scoped topic",
+        )
+    finally:
+        writer.close()
+
+    code = semantic.main(
+        ["--harness", "cursor", "--harness", "claude", "the scoped topic"],
+        encoder_factory=FakeEncoder,
+    )
+    assert code == 0
+    out = capsys.readouterr().out
+    assert claude_id in out
+    assert cursor_id not in out
+
+
+# --- Scoped ranking ---------------------------------------------------------
+
+#: Nearer out-of-scope chunks that make a post-filtered HNSW ``LIMIT`` return
+#: none of the in-scope row on DuckDB 1.5.4 (probed at 32).
+_STARVATION_OUTSIDERS = 32
+
+
+class _FixedEncoder:
+    """Encodes every string as one caller-supplied vector."""
+
+    def __init__(self, vector: list[float]) -> None:
+        self.vector = vector
+
+    def encode(self, texts: list[str]) -> list[list[float]]:
+        return [self.vector for _ in texts]
+
+
+def _insert_embedding(con, *, harness: str, owner_id: str, vector: list[float]) -> None:
+    """Insert one ``embeddings`` chunk row for an existing message."""
+    con.execute(
+        "INSERT INTO embeddings "
+        "(harness, owner_table, owner_id, chunk_index, embed_model, vector) "
+        "VALUES (?, 'messages', ?, 0, 'fake', ?)",
+        [harness, owner_id, vector],
+    )
+
+
+def test_search_harness_scope_excludes_nearer_other_harness(migrated_con) -> None:
+    """A distance-0 message in another harness does not hide the in-scope one."""
+    _insert_message(
+        migrated_con,
+        harness="cursor",
+        session_id="out",
+        ordinal=0,
+        text="the scoped topic",
+    )
+    insider = _insert_message(
+        migrated_con,
+        harness="claude",
+        session_id="in",
+        ordinal=0,
+        text="a different wording",
+    )
+    embed.embed_pending(migrated_con, FakeEncoder())
+
+    hits = semantic.run_semantic_search(
+        "the scoped topic",
+        FakeEncoder(),
+        con=migrated_con,
+        query_prefix="",
+        harness="claude",
+    )
+
+    assert [hit.message_id for hit in hits] == [insider]
+
+
+def test_search_role_scope_excludes_nearer_other_role(migrated_con) -> None:
+    """A distance-0 message of the other role does not hide the in-scope one."""
+    _insert_message(
+        migrated_con,
+        session_id="out",
+        ordinal=0,
+        role="assistant",
+        text="the scoped topic",
+    )
+    insider = _insert_message(
+        migrated_con,
+        session_id="in",
+        ordinal=0,
+        role="user",
+        text="a different wording",
+    )
+    embed.embed_pending(migrated_con, FakeEncoder())
+
+    hits = semantic.run_semantic_search(
+        "the scoped topic",
+        FakeEncoder(),
+        con=migrated_con,
+        query_prefix="",
+        role="user",
+    )
+
+    assert [hit.message_id for hit in hits] == [insider]
+    assert all(hit.role == "user" for hit in hits)
+
+
+def test_search_harness_and_role_scope_require_both(migrated_con) -> None:
+    """A row matching only one of harness or role is excluded."""
+    _insert_message(
+        migrated_con,
+        harness="cursor",
+        session_id="role-only",
+        ordinal=0,
+        role="user",
+        text="the scoped topic",
+    )
+    _insert_message(
+        migrated_con,
+        harness="claude",
+        session_id="harness-only",
+        ordinal=0,
+        role="assistant",
+        text="the scoped topic",
+    )
+    insider = _insert_message(
+        migrated_con,
+        harness="claude",
+        session_id="both",
+        ordinal=0,
+        role="user",
+        text="a different wording",
+    )
+    embed.embed_pending(migrated_con, FakeEncoder())
+
+    hits = semantic.run_semantic_search(
+        "the scoped topic",
+        FakeEncoder(),
+        con=migrated_con,
+        query_prefix="",
+        harness="claude",
+        role="user",
+    )
+
+    assert [hit.message_id for hit in hits] == [insider]
+
+
+def test_search_unknown_harness_returns_empty(migrated_con) -> None:
+    """An unknown harness scope is an empty result, not an error."""
+    _insert_message(migrated_con, ordinal=0, text="the scoped topic")
+    embed.embed_pending(migrated_con, FakeEncoder())
+
+    hits = semantic.run_semantic_search(
+        "the scoped topic",
+        FakeEncoder(),
+        con=migrated_con,
+        query_prefix="",
+        harness="nosuch",
+    )
+
+    assert hits == []
+
+
+def test_search_limit_applies_after_scope(migrated_con) -> None:
+    """``limit`` caps the in-scope hits, not the unfiltered neighborhood."""
+    for ordinal in range(3):
+        _insert_message(
+            migrated_con,
+            harness="cursor",
+            session_id="out",
+            ordinal=ordinal,
+            text="the scoped topic",
+        )
+    for ordinal in range(4):
+        _insert_message(
+            migrated_con,
+            harness="claude",
+            session_id="in",
+            ordinal=ordinal,
+            text=f"in scope wording {ordinal}",
+        )
+    embed.embed_pending(migrated_con, FakeEncoder())
+
+    hits = semantic.run_semantic_search(
+        "the scoped topic",
+        FakeEncoder(),
+        con=migrated_con,
+        query_prefix="",
+        harness="claude",
+        limit=2,
+    )
+
+    assert len(hits) == 2
+    assert {hit.harness for hit in hits} == {"claude"}
+
+
+def test_search_scope_returns_inscope_behind_nearer_outsiders(migrated_con) -> None:
+    """Enough nearer outsiders to starve a post-filtered HNSW limit still yield the in-scope message.
+
+    Thirty-two nearer out-of-scope chunks make ``WHERE harness = 'claude' ORDER BY
+    distance LIMIT 5`` on this DuckDB VSS return no row. The scoped search must
+    still return the farther in-scope message.
+    """
+    dim = embed.EMBED_DIM
+    query_vector = [1.0] + [0.0] * (dim - 1)
+    nearer = [1.0, 0.01] + [0.0] * (dim - 2)
+    farther = [1.0, 1.0] + [0.0] * (dim - 2)
+    insider = _insert_message(
+        migrated_con,
+        harness="claude",
+        session_id="in",
+        ordinal=0,
+        role="user",
+        text="insider",
+    )
+    _insert_embedding(migrated_con, harness="claude", owner_id=insider, vector=farther)
+    for ordinal in range(_STARVATION_OUTSIDERS):
+        outsider = _insert_message(
+            migrated_con,
+            harness="cursor",
+            session_id="out",
+            ordinal=ordinal,
+            role="assistant",
+            text="outsider",
+        )
+        _insert_embedding(
+            migrated_con, harness="cursor", owner_id=outsider, vector=nearer
+        )
+
+    hits = semantic.run_semantic_search(
+        "ignored by the fixed encoder",
+        _FixedEncoder(query_vector),
+        con=migrated_con,
+        query_prefix="",
+        harness="claude",
+        limit=5,
+    )
+
+    assert [hit.message_id for hit in hits] == [insider]
+
+
 # --- Step 5: real-model end-to-end (torch-gated, CI-skipped) ----------------
 
 
