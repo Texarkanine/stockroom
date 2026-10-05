@@ -1,12 +1,12 @@
 # Active Context
 
 ## Current Task: semantic-cli-filters
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Classified the approved semantic CLI filter work as Level 2
-- The design is already recorded in `memory-bank/active/creative/creative-semantic-cli-filters.md`
-- Rationale: one enhancement to an existing command, design already chosen, contained to the semantic search surface
+- Wrote the Level 2 plan for optional `--harness` and `--role` on `stockroom semantic`
+- Scoped ranking is a joined exact rank; the unfiltered path stays HNSW
+- Tests live in the existing `test_semantic.py`, including one starvation case the tiny fixture cannot catch
 
 ## Next Step
-- Load the Level 2 workflow and run the plan phase
+- Preflight validation

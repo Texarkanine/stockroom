@@ -15,3 +15,16 @@ Add optional `--harness` and `--role` scopes to `stockroom semantic` so ranking 
     - The creative document stays the design; plan does not reopen it
 * Insights
     - DuckDB 1.5.4 VSS post-filters a `WHERE` on the HNSW limit query, so the scoped path must rank the joined set
+
+## 2026-10-05 - PLAN - COMPLETE
+
+* Work completed
+    - Wrote the Level 2 plan in `memory-bank/active/tasks.md`
+    - Mapped behaviors onto the existing `test_semantic.py`
+    - Split executable ranking and CLI work from prose skill and doc updates
+* Decisions made
+    - Unfiltered search stays on HNSW; a scope ranks the joined set
+    - One starvation test is required because a tiny fixture will not catch post-filter
+    - Human docs get a short mention, not a second flag table
+* Insights
+    - Identical `FakeEncoder` text is distance 0, which is enough for the small scope tests
