@@ -70,3 +70,13 @@ Add optional `--harness` and `--role` scopes to `stockroom semantic` so ranking 
 * Insights
     - Scoped dedup landed as one SQL statement per the preflight advisory; unfiltered HNSW path is unchanged
 
+## 2026-10-05 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `memory-bank/active/reflection/reflection-semantic-cli-filters.md`
+    - Left `productContext.md` and `techContext.md` unchanged
+* Decisions made
+    - The two-path search is the design to keep, not a filter-aware index
+* Insights
+    - A small fixture cannot prove a scope survived HNSW post-filtering. Thirty-two nearer outsiders can
+
