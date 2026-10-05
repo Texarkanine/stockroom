@@ -92,3 +92,14 @@ Add optional `--harness` and `--role` scopes to `stockroom semantic` so ranking 
 * Insights
     - The Role column is the subcommand's job. Speaker `--role` does not belong in that cell
 
+## 2026-10-05 - PREFLIGHT - COMPLETE (PASS WITH ADVISORY)
+
+* Work completed
+    - Verified all three target files against the plan's exact quoted text — byte-for-byte match
+    - Grepped `docs/` and `skills/` repo-wide for `--harness`/`--role` to confirm no missed touchpoint
+    - Confirmed all four units are correctly classified as prose/policy; no TDD gap
+* Decisions made
+    - Plan accepted as-is; ready for build phase
+* Insights
+    - The four-location drift behind the review comment is structural (no single generator owns the flag fact); recorded as a non-blocking advisory for a future doc-gen chokepoint, not a change to this plan
+
