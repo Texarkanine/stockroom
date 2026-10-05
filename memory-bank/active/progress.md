@@ -124,3 +124,13 @@ Add optional `--harness` and `--role` scopes to `stockroom semantic` so ranking 
     - PASS with no blocking findings; no build or plan rework required
 * Insights
     - The untracked `.cursor/skills/stockroom-local/` directory is unrelated to this task
+
+## 2026-10-05 - REFLECT - COMPLETE
+
+* Work completed
+    - Appended the rework reflection to `memory-bank/active/reflection/reflection-semantic-cli-filters.md`
+    - Left `productContext.md`, `systemPatterns.md`, and `techContext.md` unchanged
+* Decisions made
+    - The human pages that refuse to fork skill flag tables are the design to keep
+* Insights
+    - A duplication cleanup needs an explicit leave-alone list, or it will delete the router row that is allowed to name the flags

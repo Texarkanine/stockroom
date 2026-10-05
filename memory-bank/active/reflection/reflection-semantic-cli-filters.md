@@ -36,3 +36,35 @@ The six library tests failed while the new arguments were ignored, then passed o
 ### Million-Dollar Question
 
 The two query shapes are the design. Unfiltered search keeps the index. A scope never shares that limit query. Building it as one function with that split is the version that falls out if the scope had been there from the start. A filter-aware index would be a different product decision, and this corpus does not need it.
+
+# Reflection: semantic-cli-filters rework
+
+## Summary
+
+Review 5420273503 asked the human pages to stop listing `--harness` and `--role`. Those three listings are gone. The flags stay in `skills/sr-semantic/SKILL.md`. QA passed.
+
+## Requirements vs Outcome
+
+The three rework requirements shipped. The CLI Role cell is the subcommand's job again. The search page and the skill index no longer repeat the flags. The skill flag home, the `sr-search` route row, and the architecture two-path sentence stayed. No engine or test change.
+
+## Plan Accuracy
+
+The four steps matched the files. Step 4, the explicit leave-alone list, was the part that mattered: a duplication cleanup will also delete a router row that mentions the same flags unless the plan names it.
+
+## Build & QA Observations
+
+The edits were deletions. `make docs-build` passed. QA found no extra human-page listing. `test_docs_lock_is_not_stale` still fails on this machine's uv 0.8.22 and was left alone, same as the first build.
+
+## Insights
+
+### Technical
+
+Nothing notable.
+
+### Process
+
+Name what a duplication review is allowed to keep. The route row and the two-path sentence both mention the flags, and both are supposed to.
+
+### Million-Dollar Question
+
+The pages that already refuse to fork skill flag tables are the design. The listings were drift. Putting the flags only in the skill is the version that falls out if that rule had been followed when the flags were added. A generator that emits the skill table from argparse is a later idea, not this fix.

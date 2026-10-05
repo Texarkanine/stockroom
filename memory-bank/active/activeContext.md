@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: semantic-cli-filters
-**Phase:** QA - COMPLETE (PASS)
+**Phase:** REFLECT COMPLETE
 
 ## What Was Done
 - Removed the scoped `semantic` example and restored the CLI Role cell to `Vector (semantic) search.`
@@ -22,4 +22,4 @@
 - `/home/mobaxterm/git/stockroom/docs/user-guide/skills.md`
 
 ## Next Step
-- QA passed; proceed to `/niko-reflect`
+- Run `/niko-archive` to archive this task
