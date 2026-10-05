@@ -38,6 +38,6 @@ Friendly default when you are unsure whether the ask is structured SQL or meanin
 
 ## `sr-semantic`
 
-Vector search for content you can describe but not name exactly. Needs torch / embeddings; not for id filters or counts.
+Vector search for content you can describe but not name exactly, optionally scoped to one harness or to `user` / `assistant`. Needs torch / embeddings; not for id lookups, counts, dates, or projects.
 
 → [Search — `sr-semantic`](search.md#sr-semantic)

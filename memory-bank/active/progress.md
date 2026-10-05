@@ -38,6 +38,19 @@ Add optional `--harness` and `--role` scopes to `stockroom semantic` so ranking 
 * Insights
     - `OVERFETCH` does not belong on the scoped path, because that path is an exact rank of the filtered rows
 
+## 2026-10-05 - BUILD - COMPLETE
+
+* Work completed
+    - Added `--harness` and `--role` and the joined scoped rank
+    - Covered the nearer-outsider starvation case with 32 chunks
+    - Updated the two skills, the human docs, and the system pattern
+    - `make lint` passed. `make test` was 880 passed, 4 skipped, plus 134 dashboard JS tests
+* Decisions made
+    - Scoped max-sim is a `QUALIFY` over the join, from the preflight advisory
+    - Left `uv.lock` alone. The hermetic lock test fails on uv 0.8.22 and passes on uv 0.12.22
+* Insights
+    - Thirty-two nearer 384-d outsiders are enough for a post-filtered HNSW limit to miss the in-scope row
+
 ## 2026-10-05 - PREFLIGHT - COMPLETE (PASS WITH ADVISORY)
 
 * Work completed

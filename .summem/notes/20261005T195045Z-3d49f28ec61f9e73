@@ -1,0 +1,1 @@
+stockroom semantic --harness and --role rank embeddings joined to messages. Do not add WHERE to the HNSW LIMIT query; DuckDB VSS post-filters that shape.

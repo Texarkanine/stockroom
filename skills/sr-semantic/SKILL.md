@@ -1,6 +1,6 @@
 ---
 name: sr-semantic
-description: Meaning-based (vector) search over your local warehouse of agentic-coding history. Reach for this when the question is about content or concepts you can describe but not name exactly — "conversations about flaky tests", "where did we debug the deadlock" — not exact ids, filters, or counts (that is sr-query).
+description: Meaning-based (vector) search over your local warehouse of agentic-coding history. Reach for this when the question is about content or concepts you can describe but not name exactly — "conversations about flaky tests", "where did we debug the deadlock" — including a harness or speaker scope. Not exact ids, counts, dates, or projects (that is sr-query).
 enable-model-invocation: true
 ---
 
@@ -16,7 +16,18 @@ Reach for `sr-semantic` when the question is about **meaning** — content you c
 - "Where did we work through the warehouse locking design?"
 - Paraphrased or conceptual recall — the stored text won't contain your words verbatim, but it's *about* what you're asking.
 
-**Do not** use `sr-semantic` for exact or structured lookups — a known `session_id`/`message_id`, filters, counts, `GROUP BY`, joins, date ranges. Those have a known shape and belong to the **`sr-query`** skill (raw read-only SQL). When you are not sure which is right, that judgement belongs to the **`sr-search`** skill.
+**Do not** use `sr-semantic` for exact or structured lookups — a known `session_id`/`message_id`, counts, `GROUP BY`, joins, date ranges, or a project. Those have a known shape and belong to the **`sr-query`** skill (raw read-only SQL). When you are not sure which is right, that judgement belongs to the **`sr-search`** skill.
+
+Two scopes are part of this surface, because they change which messages are nearest:
+
+| Question | Flag |
+|----------|------|
+| Where I talked about it | `--role user` |
+| Where you talked about it | `--role assistant` |
+| Where we talked about it | omit `--role` |
+| In one harness (today `cursor` or `claude`; later harnesses are the same flag) | `--harness <name>` |
+
+The flags combine. Omit a flag to leave that dimension open. `--role` accepts only `user` and `assistant`. `--harness` is an exact string; an unknown name is an empty result, not an error. An empty scoped result means nothing in that scope matched — drop the flag before concluding the topic is absent.
 
 **Phrase the query as a description of the content you want**, in natural language: a short phrase or sentence naming the topic, activity, or concept ("incremental re-embed of new content", "fixing the REUSE licensing layout"). Do not add any instruction preamble — the model's query prefix is applied automatically; hand-adding it would double it.
 
@@ -102,8 +113,11 @@ Each failure is a clean stderr message + exit code — read it and take the matc
 All verified against a real warehouse.
 
 ```bash
-# Default: top 10, bounded previews (tsv)
+# Default: top 10, bounded previews (tsv). "Where we talked."
 stockroom semantic "how does the warehouse locking work"
+
+# Where I talked about it, in one harness:
+stockroom semantic --harness claude --role user "flaky dashboard tests"
 
 # Expecting one obvious winner — keep it tight:
 stockroom semantic -k 3 "incremental re-embed of new content"
