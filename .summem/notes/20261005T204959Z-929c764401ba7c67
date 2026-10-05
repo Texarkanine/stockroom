@@ -1,0 +1,1 @@
+BgeEncoder drops the Hub unauthenticated-request notice. Other huggingface_hub.utils._http warnings, including a failed download, still log.

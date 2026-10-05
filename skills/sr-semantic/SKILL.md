@@ -39,7 +39,7 @@ stockroom semantic "how does the warehouse locking work"
 
 If `command -v stockroom` fails, the machine isn't set up yet: tell the user to run the **`sr-initialize`** skill, and don't attempt any other invocation.
 
-One runtime note: the model loader may print a Hugging Face hub notice / weight-loading progress to **stderr** — stdout stays clean for pipes; ignore the noise.
+One runtime note: the model loader may print weight-loading progress to **stderr** — stdout stays clean for pipes; ignore the noise. The Hub's unauthenticated-request notice is suppressed; stockroom does not use a token for the local model.
 
 ## Output discipline: `-k`, `--format`, and `--detail`
 

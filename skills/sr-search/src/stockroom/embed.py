@@ -23,6 +23,7 @@ detection, the VSS/HNSW index, and the model choice are documented in
 """
 
 import argparse
+import logging
 import sys
 from collections.abc import Callable
 from typing import Protocol
@@ -280,6 +281,29 @@ def embed_pending(
     return written
 
 
+class _DropUnauthenticatedHubWarning(logging.Filter):
+    """Drop the Hub's unauthenticated-request notice and nothing else."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        return "unauthenticated requests to the HF Hub" not in record.getMessage()
+
+
+def silence_unauthenticated_hub_warning() -> None:
+    """Stop the Hub's unauthenticated-request notice from reaching stderr.
+
+    The Hub sends that text as an ``X-HF-Warning`` response header, and
+    ``huggingface_hub`` logs it once per process. Stockroom does not use a
+    token for the local embedding model; the notice is not a failure. Other
+    warnings from the same logger, including a failed download, still pass.
+    Idempotent: a second call does not stack another filter.
+    """
+    hub = logging.getLogger("huggingface_hub.utils._http")
+    if not any(
+        isinstance(item, _DropUnauthenticatedHubWarning) for item in hub.filters
+    ):
+        hub.addFilter(_DropUnauthenticatedHubWarning())
+
+
 class BgeEncoder:
     """A ``sentence-transformers`` encoder for ``BAAI/bge-small-en-v1.5`` (384-dim).
 
@@ -293,6 +317,7 @@ class BgeEncoder:
     """
 
     def __init__(self, model_name: str = EMBED_MODEL) -> None:
+        silence_unauthenticated_hub_warning()
         import torch  # noqa: PLC0415 — lazy: keep torch off the module import path
         from sentence_transformers import SentenceTransformer  # noqa: PLC0415
 
