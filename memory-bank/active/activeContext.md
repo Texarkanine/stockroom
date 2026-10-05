@@ -1,12 +1,12 @@
 # Active Context
 
 ## Current Task: semantic-cli-filters
-**Phase:** REFLECT - COMPLETE
+**Phase:** REWORK PLAN - COMPLETE
 
 ## What Was Done
-- Reflected on the scoped semantic search work
-- Persistent files: `systemPatterns.md` already records the two search paths. `productContext.md` and `techContext.md` needed no change
+- Planned the doc rework from review 5420273503
+- Human pages stop listing `--harness` and `--role`. The flag home stays `skills/sr-semantic/SKILL.md`
+- Engine, tests, `sr-search` route row, and the architecture two-path sentence stay
 
 ## Next Step
-- The standalone workflow points at `/niko-archive`
-- The operator also asked for a non-draft pull request, which is opened from this branch
+- Operator picks this up. Do not start preflight until asked

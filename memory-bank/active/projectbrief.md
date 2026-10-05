@@ -46,3 +46,13 @@ A harness scope, alone or with a role. `stockroom semantic --harness claude --ro
 3. Bad `--role` exits 2. Unknown `--harness` exits 0 with an empty result.
 4. `sr-semantic` and `sr-search` describe the two scopes and the empty-result meaning.
 5. Reflect is complete and a non-draft pull request is open.
+
+## Rework
+
+Review [5420273503](https://github.com/Texarkanine/stockroom/pull/136#pullrequestreview-5420273503) on pull request 136. The engine behavior stays. The human docs listed `--harness` and `--role` in three places that are not the flag home.
+
+1. `docs/advanced/cli.md`: the table column is the subcommand's job, named Role. Do not define speaker `--role` in that cell. The page does not fork skill flag tables.
+2. `docs/user-guide/search.md`: operational flags live in each skill. This page does not duplicate them.
+3. `docs/user-guide/skills.md`: the index line is another listing. One home, not four.
+
+The flag home is `skills/sr-semantic/SKILL.md`, which already has the pronoun map. `sr-search` keeps its route row. Architecture keeps the two-path sentence. No engine or test change.

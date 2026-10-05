@@ -80,3 +80,15 @@ Add optional `--harness` and `--role` scopes to `stockroom semantic` so ranking 
 * Insights
     - A small fixture cannot prove a scope survived HNSW post-filtering. Thirty-two nearer outsiders can
 
+## 2026-10-05 - REWORK PLAN - COMPLETE
+
+* Work completed
+    - Recorded review 5420273503 as a rework on the project brief
+    - Planned removal of the flag listings from the CLI Role cell, the search page, and the skill index
+* Decisions made
+    - The flag home is `skills/sr-semantic/SKILL.md`. No new section
+    - `sr-search` keeps its route row. Architecture keeps the two-path sentence
+    - No engine or test change
+* Insights
+    - The Role column is the subcommand's job. Speaker `--role` does not belong in that cell
+
