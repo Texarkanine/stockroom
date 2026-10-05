@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.0](https://github.com/Texarkanine/stockroom/compare/v2.0.0...v2.1.0) (2026-10-05)
+
+
+### Features
+
+* **semantic:** scope search by harness and role ([#136](https://github.com/Texarkanine/stockroom/issues/136)) ([e2be10b](https://github.com/Texarkanine/stockroom/commit/e2be10b4ae376b7d39b2f647f88740d4b30bbc63))
+
 ## [2.0.0](https://github.com/Texarkanine/stockroom/compare/v1.2.1...v2.0.0) (2026-10-05)
 
 
