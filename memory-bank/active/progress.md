@@ -60,3 +60,13 @@ Add optional `--harness` and `--role` scopes to `stockroom semantic` so ranking 
 * Decisions made
     - Plan accepted with advisory; ready for build phase
 
+## 2026-10-05 - QA - COMPLETE (PASS)
+
+* Work completed
+    - Reviewed the build diff against the plan, creative decision, and brief; re-ran `tests/test_semantic.py` (33 passed, 1 skipped)
+    - Wrote `memory-bank/active/.qa-validation-status`
+* Decisions made
+    - PASS with no blocking findings; no build or plan rework required
+* Insights
+    - Scoped dedup landed as one SQL statement per the preflight advisory; unfiltered HNSW path is unchanged
+

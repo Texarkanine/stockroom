@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: semantic-cli-filters
-**Phase:** BUILD - COMPLETE
+**Phase:** QA - COMPLETE (PASS)
 
 ## What Was Done
 - `run_semantic_search` takes optional `harness` and `role`. No scope keeps the HNSW path. A scope ranks the joined set in one statement, with max-sim dedup via `QUALIFY`, then cuts to `-k`.
