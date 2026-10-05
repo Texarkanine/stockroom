@@ -1,0 +1,64 @@
+PASS WITH ADVISORY
+
+## Preflight Verification Findings
+
+### Summary
+The implementation plan in `memory-bank/active/tasks.md` thoroughly addresses all requirements and constraints from the project brief and creative design. All preflight checks passed with zero blocking issues.
+
+### Check Results
+1. **Wrong-Reference Guard**: PASS
+   - Complexity level is verified as Level 2 in `memory-bank/active/progress.md`.
+
+2. **Verify Prerequisites**: PASS
+   - Implementation plan, test plan, pre-mortem, and creative decision documents are complete and aligned.
+
+3. **TDD Plan Encoding**: PASS
+   - Unit 1 (Scoped ranking) and Unit 2 (CLI flags) strictly sequence test stubbing, interface stubbing, and red-test execution before production implementation.
+   - Units 3 and 4 are strictly user-facing prose and policy artifacts (skills and documentation), which are correctly excluded from test requirements per the project's TDD governance rules.
+
+4. **Convention Compliance**: PASS
+   - Changes stay strictly within `stockroom.semantic` and its test suite.
+   - CLI flags (`--harness`, `--role`) follow DuckDB schema naming and `argparse` standard conventions.
+   - Exit codes (exit 2 for invalid role, exit 0 for unknown harness) follow existing CLI patterns.
+   - Unit tests leverage `FakeEncoder` without introducing torch dependencies.
+
+5. **Dependency Impact**: PASS
+   - `run_semantic_search` signature changes add optional keyword arguments with defaults (`harness: str | None = None, role: str | None = None`), preserving full backward compatibility for all existing callers.
+   - Skill wrapper contracts are preserved (`stockroom semantic` shim invocation without forbidden plumbing tokens).
+
+6. **Conflict Detection**: PASS
+   - No conflicting implementations or duplicated utilities found. Unfiltered queries continue through the existing HNSW vector index path.
+
+7. **Completeness Precheck**: PASS
+   - All 9 requirements and edge cases (including index starvation mitigation, AND logic, unknown harness, and role validation) have concrete tests and implementation steps mapped.
+
+### Advisory Item (Radical Innovation)
+- **Single-Pass Window Aggregation for Scoped Search**:
+  In Unit 1 step 4, the plan suggests ranking chunks from the joined `embeddings` and `messages` tables, performing max-sim deduplication in Python, and then running a secondary query against `messages` to fetch row details.
+  Because DuckDB is already performing a relational scan on the joined tables for the scoped subset, this entire operation can be executed in a single SQL query using DuckDB's native window and qualify syntax:
+  ```sql
+  SELECT
+      e.harness,
+      e.owner_id AS message_id,
+      m.session_id,
+      m.role,
+      m.text,
+      array_cosine_distance(e.vector, ?::FLOAT[384]) AS distance
+  FROM embeddings e
+  JOIN messages m
+    ON e.harness = m.harness
+   AND e.owner_id = m.message_id
+   AND e.owner_table = 'messages'
+  WHERE ($harness_filter) AND ($role_filter)
+  QUALIFY ROW_NUMBER() OVER (
+      PARTITION BY e.harness, e.owner_id
+      ORDER BY array_cosine_distance(e.vector, ?::FLOAT[384]) ASC
+  ) = 1
+  ORDER BY distance ASC
+  LIMIT ?
+  ```
+  **Benefits**:
+  - Eliminates the secondary round-trip query to `messages` for winner metadata.
+  - Eliminates the arbitrary `OVERFETCH = 10` multiplier on the scoped path, completely removing the risk that messages with many near chunks starve other matching messages.
+  - Executes chunk deduplication and ranking entirely in DuckDB's optimized C++ engine.
+  This recommendation is advisory for the implementer and operator to evaluate during the build phase.

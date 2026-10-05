@@ -1,12 +1,13 @@
 # Active Context
 
 ## Current Task: semantic-cli-filters
-**Phase:** PLAN - COMPLETE
+**Phase:** BUILD - IN-PROGRESS
 
 ## What Was Done
-- Wrote the Level 2 plan for optional `--harness` and `--role` on `stockroom semantic`
-- Scoped ranking is a joined exact rank; the unfiltered path stays HNSW
-- Tests live in the existing `test_semantic.py`, including one starvation case the tiny fixture cannot catch
+- Validated implementation plan against codebase conventions, dependency constraints, and TDD discipline
+- Confirmed full coverage for all requirements and edge cases (including post-filter starvation)
+- Recorded advisory recommendation for single-pass DuckDB window deduplication
 
 ## Next Step
-- Preflight validation
+- Implement scoped ranking, then the CLI flags, then the skill and doc text
+
