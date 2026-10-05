@@ -1,0 +1,10 @@
+PASS
+
+Rework review 5420273503 (semantic-cli-filters). Reviewed `git diff fd088c3 HEAD -- docs skills src tests` against the rework plan in tasks.md.
+
+1. Scope: only `docs/advanced/cli.md`, `docs/user-guide/search.md`, `docs/user-guide/skills.md` changed; no engine, test, or skill file edits. Matches plan steps 1-4.
+2. Completeness: scoped example removed; CLI Role cell is `Vector (semantic) search.`; search page flag sentence removed; skill-index scope clause removed while keeping "not for id lookups, counts, dates, or projects."
+3. DRY: the flags now live in `skills/sr-semantic/SKILL.md` (flag home), with the `sr-search` route row and the architecture/systemPatterns two-path sentences intentionally retained. Repo-wide grep finds no other human-page flag listing (`docs/user-guide/load/basic.md` `--harness` is the unrelated ingest flag).
+4. KISS/YAGNI/Integrity: no new text added, no debris, no placeholders.
+5. Regression/Documentation: no dangling references (`search.md#sr-semantic` anchor intact); no further docs need updating.
+6. Advisories (non-blocking): the untracked `.cursor/skills/stockroom-local/` directory is unrelated to this task and should not be committed with it. The uv 0.8.22 `test_docs_lock_is_not_stale` failure is environmental and pre-existing (passes on uv 0.12.22).

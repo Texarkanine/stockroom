@@ -114,3 +114,13 @@ Add optional `--harness` and `--role` scopes to `stockroom semantic` so ranking 
 * Insights
     - `make ci` stops at the same root lock check before tests. Lint and the suite were run directly
 
+## 2026-10-05 - QA - COMPLETE (PASS)
+
+* Work completed
+    - Reviewed the rework diff against the plan: three doc files only, no engine or test change
+    - Grepped `docs/`, `skills/`, and `memory-bank/systemPatterns.md` for stray flag listings; found none outside the flag home and the retained route row
+    - Wrote `memory-bank/active/.qa-validation-status`
+* Decisions made
+    - PASS with no blocking findings; no build or plan rework required
+* Insights
+    - The untracked `.cursor/skills/stockroom-local/` directory is unrelated to this task
