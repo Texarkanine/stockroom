@@ -22,7 +22,7 @@ No new executable behavior.
 
 ## Implementation Plan
 
-### 1. CLI page — prose/policy
+### 1. CLI page — prose/policy [x]
 
 - Files: `docs/advanced/cli.md`
 - No tests: prose/policy artifact
@@ -31,7 +31,7 @@ No new executable behavior.
 2. Restore the Role cell to `Vector (semantic) search.` The column is the subcommand's job. Do not mention `--role` or `--harness` there.
 3. Do not add those flags to the Output shape list. That list is the shared presentation flags, `--format` and `--detail`.
 
-### 2. Search page — prose/policy
+### 2. Search page — prose/policy [x]
 
 - Files: `docs/user-guide/search.md`
 - No tests: prose/policy artifact
@@ -39,7 +39,7 @@ No new executable behavior.
 1. Remove the sentence that lists `--harness` and `--role` from the `sr-semantic` section. The page already says operational flags live in each skill's `SKILL.md` and that this page does not duplicate them.
 2. Leave the unscoped `stockroom semantic "how does the warehouse locking work"` example.
 
-### 3. Skill index — prose/policy
+### 3. Skill index — prose/policy [x]
 
 - Files: `docs/user-guide/skills.md`
 - No tests: prose/policy artifact
@@ -47,7 +47,7 @@ No new executable behavior.
 1. Remove `optionally scoped to one harness or to user / assistant` from the `sr-semantic` blurb.
 2. Keep the sharpened boundary: not for id lookups, counts, dates, or projects. That sentence does not name the flags. Reverting it to "id filters or counts" would hide the boundary this feature drew.
 
-### 4. Leave the flag home where it is — prose/policy
+### 4. Leave the flag home where it is — prose/policy [x]
 
 - Files: `skills/sr-semantic/SKILL.md`, `skills/sr-search/SKILL.md`
 - No tests: prose/policy artifact
@@ -83,5 +83,5 @@ No new technology - validation not required
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight
-- [ ] Build
+- [x] Build
 - [ ] QA

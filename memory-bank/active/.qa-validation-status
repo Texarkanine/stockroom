@@ -1,4 +1,0 @@
-PASS
-33 passed, 1 skipped (torch) on tests/test_semantic.py at QA time.
-Reviewed diff ce2d083..HEAD: scoped rank, CLI flags, skill + doc updates.
-No blocking findings.

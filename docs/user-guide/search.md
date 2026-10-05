@@ -52,7 +52,7 @@ The surface is read-only by construction — you cannot corrupt the warehouse by
 
 ### `sr-semantic`
 
-Vector (meaning-based) search. Reach for it when you can describe the content but not name an id — “conversations about flaky tests,” “where did we debug the warehouse deadlock.” Optional `--harness` and `--role` (`user` or `assistant`) limit who is ranked; the pronoun map and empty-result meaning live in the `sr-semantic` skill.
+Vector (meaning-based) search. Reach for it when you can describe the content but not name an id — “conversations about flaky tests,” “where did we debug the warehouse deadlock.”
 
 ```bash
 stockroom semantic "how does the warehouse locking work"

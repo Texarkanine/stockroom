@@ -103,3 +103,14 @@ Add optional `--harness` and `--role` scopes to `stockroom semantic` so ranking 
 * Insights
     - The four-location drift behind the review comment is structural (no single generator owns the flag fact); recorded as a non-blocking advisory for a future doc-gen chokepoint, not a change to this plan
 
+## 2026-10-05 - BUILD - COMPLETE
+
+* Work completed
+    - Removed the flag listings from `docs/advanced/cli.md`, `docs/user-guide/search.md`, and `docs/user-guide/skills.md`
+    - Left the skill flag home, the `sr-search` route row, and the architecture two-path sentence in place
+    - `make lint` passed. `make docs-build` passed. Dashboard JS tests: 134 passed. Pytest: 881 passed, 4 skipped, 1 failed
+* Decisions made
+    - The pytest failure is `test_docs_lock_is_not_stale` on uv 0.8.22. The lock stays as committed for uv 0.12.22
+* Insights
+    - `make ci` stops at the same root lock check before tests. Lint and the suite were run directly
+

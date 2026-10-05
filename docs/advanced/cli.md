@@ -31,13 +31,12 @@ The shim owns the torch-safe run contract and dispatches into the engine. Prefer
 stockroom query "SELECT DISTINCT harness FROM sessions"
 stockroom query --format table --detail full "SELECT message_id, role FROM messages LIMIT 5"
 stockroom semantic "flaky dashboard tests" -k 10
-stockroom semantic --harness claude --role user "flaky dashboard tests"
 ```
 
 | Subcommand | Role |
 | --- | --- |
 | `query` | Read-only SQL against the warehouse |
-| `semantic` | Vector (semantic) search. Optional `--harness` and `--role` (`user` or `assistant`) rank only that scope. The pronoun map is in the `sr-semantic` skill. |
+| `semantic` | Vector (semantic) search. |
 
 For schema and search mental model, see [Search](../user-guide/search.md) and [Architecture → Warehouse](../architecture/warehouse.md) / [Embeddings](../architecture/embeddings.md). This page does not fork skill flag tables — use `--help` and the skill `SKILL.md` files for operational recovery detail.
 
