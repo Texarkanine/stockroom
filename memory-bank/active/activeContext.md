@@ -1,10 +1,11 @@
 # Active Context
 
 ## Current Task: semantic-result-column-break
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** BUILD - COMPLETE
 
 ## What Was Done
-- Classified as Level 1. The unpublished release class of `9b1fd45` is wrong, and the correction is one empty commit that release-please will read. No product code and no design choice remain.
+- Empty commit `eb96053` on `chore/semantic-result-column-break`: `chore(semantic)!: record the default result-column break` with the `BREAKING CHANGE:` footer for the default `tsv` and `table` column insert.
+- No product diff. Did not add a test that locks the commit message.
 
 ## Next Step
-- Load the Level 1 workflow and enter Build.
+- Level 1 QA.
