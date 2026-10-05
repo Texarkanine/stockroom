@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.0.0](https://github.com/Texarkanine/stockroom/compare/v1.2.1...v2.0.0) (2026-10-05)
+
+
+### ⚠ BREAKING CHANGES
+
+* **semantic:** stockroom semantic default tsv and table output insert session_id and message_id before role. The header is rank, score, harness, session_id, message_id, role, preview. Positional pipes that treated field 4 as role and field 5 as preview must use the header names or the new indexes. --format json is unchanged.
+
+### Features
+
+* **semantic:** include session and message ids in every result ([#133](https://github.com/Texarkanine/stockroom/issues/133)) ([9b1fd45](https://github.com/Texarkanine/stockroom/commit/9b1fd4543a2f4820cd71f5b8b9d1efee871e7599))
+
+
+### Miscellaneous Chores
+
+* **semantic:** record the default result-column break ([#135](https://github.com/Texarkanine/stockroom/issues/135)) ([80337d2](https://github.com/Texarkanine/stockroom/commit/80337d207ebcc9b5b8dc6036db9d7675ebffe69b))
+
 ## [1.2.1](https://github.com/Texarkanine/stockroom/compare/v1.2.0...v1.2.1) (2026-09-13)
 
 
