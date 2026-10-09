@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: claude-token-overcount
-**Phase:** PREFLIGHT - COMPLETE (PASS WITH ADVISORY)
+**Phase:** BUILD - IN PROGRESS
 
 ## What Was Done
 - Confirmed the overcount in code: `_build_message` copies `message.usage` onto every kept assistant line, and `session_token_usage` sums those columns. Committed fixtures put one content array on one line, so current tests do not catch a split response.
@@ -10,5 +10,5 @@
 - Completed preflight validation of the plan (PASS WITH ADVISORY). Verified TDD ordering across executable units, DuckDB view compatibility, and fixture isolation.
 
 ## Next Step
-- Proceed to BUILD phase (`/niko-build`).
+- Step 1 is green: one token attribution per Claude API response. Step 2 drops forked parent copies on subagents.
 

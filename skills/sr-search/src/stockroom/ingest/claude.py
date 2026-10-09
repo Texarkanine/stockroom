@@ -24,6 +24,11 @@ Parsing rules (the milestone-1 schema contract, Claude side):
   is found by walking this record's ``parentUuid`` up the (uuid -> parentUuid)
   chain — past any dropped records — to the nearest *kept* ancestor. The native
   ``uuid`` is preserved only as ``source_uuid`` provenance, never joined on.
+* Token counts are once per API response, not once per content-block line.
+  Assistant lines that share a non-empty ``message.id`` and ``requestId`` are
+  one response: the field-wise max of the four counts stays on the last of
+  those lines, and the other lines in the group store ``NULL``. A line missing
+  either id keeps its own usage.
 
 This module depends only on :mod:`stockroom.ingest.model` and the stdlib.
 """
@@ -194,6 +199,79 @@ def _build_message(
     )
 
 
+_TOKEN_FIELDS = (
+    "input_tokens",
+    "output_tokens",
+    "cache_creation_tokens",
+    "cache_read_tokens",
+)
+
+
+def _response_key(record: dict) -> tuple[str, str] | None:
+    """Return ``(message.id, requestId)`` when both are non-empty strings."""
+    message = record.get("message")
+    if not isinstance(message, dict):
+        return None
+    message_id = message.get("id")
+    request_id = record.get("requestId")
+    if (
+        isinstance(message_id, str)
+        and message_id
+        and isinstance(request_id, str)
+        and request_id
+    ):
+        return (message_id, request_id)
+    return None
+
+
+def _token_int(value: object) -> int | None:
+    """Return ``value`` when it is an int token count, else ``None``.
+
+    ``bool`` is an ``int`` subclass and is not a token count.
+    """
+    if isinstance(value, bool) or not isinstance(value, int):
+        return None
+    return value
+
+
+def _attribute_response_usage(
+    messages: list[NormalizedMessage],
+    keys: list[tuple[str, str] | None],
+) -> None:
+    """Attribute each API response's token counts onto one kept line.
+
+    ``keys`` aligns with ``messages``. A non-``None`` key is
+    ``(message.id, requestId)``. Lines that share a key are one response:
+    the field-wise max of the four token counts stays on the last of those
+    lines, and the other lines in the group have their token columns cleared.
+    A ``None`` key is not grouped; that line keeps whatever usage it carried.
+    Non-int counts are ignored when computing the max.
+    """
+    groups: dict[tuple[str, str], list[int]] = {}
+    for index, key in enumerate(keys):
+        if key is None:
+            continue
+        groups.setdefault(key, []).append(index)
+    for indexes in groups.values():
+        if len(indexes) < 2:
+            continue
+        maxes: dict[str, int | None] = {}
+        for field_name in _TOKEN_FIELDS:
+            present = [
+                counted
+                for index in indexes
+                if (counted := _token_int(getattr(messages[index], field_name)))
+                is not None
+            ]
+            maxes[field_name] = max(present) if present else None
+        for index in indexes:
+            for field_name in _TOKEN_FIELDS:
+                setattr(messages[index], field_name, None)
+        winner = indexes[-1]
+        for field_name, value in maxes.items():
+            setattr(messages[winner], field_name, value)
+
+
 def _parse_messages(records: list[dict]) -> list[NormalizedMessage]:
     """Reconstruct kept messages with dense ordinals and tree-resolved parents."""
     parent_of: dict = {}
@@ -215,11 +293,17 @@ def _parse_messages(records: list[dict]) -> list[NormalizedMessage]:
         ordinal += 1
 
     messages: list[NormalizedMessage] = []
+    keys: list[tuple[str, str] | None] = []
     for record, ordn in kept:
         parent_ordinal = _resolve_parent(
             record.get("parentUuid"), parent_of, kept_ordinal
         )
         messages.append(_build_message(record, ordn, parent_ordinal))
+        if record.get("type") == "assistant":
+            keys.append(_response_key(record))
+        else:
+            keys.append(None)
+    _attribute_response_usage(messages, keys)
     return messages
 
 

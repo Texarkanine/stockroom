@@ -40,7 +40,7 @@ Build the new JSONL in `tmp_path`. Do not add it under `tests/fixtures/transcrip
 
 ## Implementation Plan
 
-### 1. Attribute each Claude API response once — executable
+### 1. Attribute each Claude API response once — executable [x]
 
 - Files: `skills/sr-search/src/stockroom/ingest/claude.py`, `skills/sr-search/tests/test_ingest_claude.py`
 
