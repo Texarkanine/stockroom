@@ -49,7 +49,7 @@ Build the new JSONL in `tmp_path`. Do not add it under `tests/fixtures/transcrip
 3. Write tests and run red: multi-block fixture shaped like `.scratch/bureport.md`; assert row count, surviving text and tool call, a single non-NULL token row, field-wise max sums, a second response counted fully, unkeyed lines not merged, and `session_token_usage` after `write_session`. Run those tests and confirm they fail.
 4. Write code and run green: from `_parse_messages`, pass each kept assistant line's `(message.id, requestId)` when both are non-empty strings, else `None`. The helper sets the four token fields to the field-wise max on the last message of each key group and `NULL` on the other messages in that group. `None` keys are left alone. Non-int counts are ignored for the max. Update the module docstring so identity stays per kept line and usage is once per response. Re-run the new tests, then the existing `test_ingest_claude.py` module.
 
-### 2. Drop forked parent copies on subagents — executable
+### 2. Drop forked parent copies on subagents — executable [x]
 
 - Files: `skills/sr-search/src/stockroom/ingest/model.py`, `skills/sr-search/src/stockroom/ingest/claude.py`, `skills/sr-search/src/stockroom/ingest/__init__.py`, `skills/sr-search/tests/test_ingest_orchestrator.py`
 
@@ -58,7 +58,7 @@ Build the new JSONL in `tmp_path`. Do not add it under `tests/fixtures/transcrip
 3. Write tests and run red: under `tmp_path`, a parent `.jsonl` with one multi-block response and a `subagents/agent-*.jsonl` whose first assistant line repeats that `(message.id, requestId)` and whose next assistant line is a different response. Point `STOCKROOM_CLAUDE_ROOT` at that tree, `ingest(full=True, harness="claude")`, and assert parent `session_token_usage` is the one response, the copied subagent message has `NULL` tokens, and the subagent session totals equal only its own response. Run again and assert the same totals. Confirm the test fails.
 4. Write code and run green: `_build_message` sets the two provenance fields. `_parse_discovered` calls `drop_copied_parent_usage` after the Claude parent and its subagents are parsed. The helper clears the four token fields on a subagent message whose `(api_message_id, request_id)` is in the parent's set. It does not change text, tool calls, or the parent. Re-run the new test, then `tests/test_ingest_orchestrator.py` and `tests/test_ingest_writer.py`.
 
-### 3. Document the count and the re-ingest limit — prose/policy
+### 3. Document the count and the re-ingest limit — prose/policy [x]
 
 - Files: `docs/architecture/warehouse.md`, `docs/user-guide/load/basic.md`
 - No tests: prose/policy artifact
@@ -104,6 +104,6 @@ No new technology - validation not required
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
-- [ ] Build
+- [x] Preflight
+- [x] Build
 - [ ] QA

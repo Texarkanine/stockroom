@@ -183,6 +183,8 @@ def _build_message(
         )
     usage = message.get("usage", {}) or {}
     content = message.get("content", [])
+    raw_id = message.get("id")
+    raw_request = record.get("requestId")
     return NormalizedMessage(
         ordinal=ordinal,
         role="assistant",
@@ -195,6 +197,10 @@ def _build_message(
         cache_creation_tokens=usage.get("cache_creation_input_tokens"),
         cache_read_tokens=usage.get("cache_read_input_tokens"),
         source_uuid=uuid,
+        api_message_id=raw_id if isinstance(raw_id, str) and raw_id else None,
+        request_id=raw_request
+        if isinstance(raw_request, str) and raw_request
+        else None,
         tool_calls=_assistant_tool_calls(content),
     )
 
@@ -270,6 +276,33 @@ def _attribute_response_usage(
         winner = indexes[-1]
         for field_name, value in maxes.items():
             setattr(messages[winner], field_name, value)
+
+
+def drop_copied_parent_usage(
+    parent: NormalizedSession,
+    subagents: list[NormalizedSession],
+) -> None:
+    """Clear token columns on subagent rows that repeat a parent API response.
+
+    A forked subagent transcript can repeat the parent's ``(message.id,
+    requestId)``. Those counts already live on the parent. Matching subagent
+    rows have their four token fields cleared. The subagent's own responses,
+    text, and tool calls stay. The parent is not modified.
+    """
+    parent_keys = {
+        (message.api_message_id, message.request_id)
+        for message in parent.messages
+        if message.api_message_id and message.request_id
+    }
+    for subagent in subagents:
+        for message in subagent.messages:
+            key = (message.api_message_id, message.request_id)
+            if key not in parent_keys:
+                continue
+            message.input_tokens = None
+            message.output_tokens = None
+            message.cache_creation_tokens = None
+            message.cache_read_tokens = None
 
 
 def _parse_messages(records: list[dict]) -> list[NormalizedMessage]:

@@ -39,3 +39,15 @@ Determine whether Claude Code ingest overcounts token usage by storing each API 
 * Insights
     - Ephemeral dataclass provenance avoids unnecessary schema migrations while enabling orchestrator-level subagent deduplication
 
+## 2026-10-09 - BUILD - COMPLETE
+
+* Work completed
+    - Attributed Claude token counts once per `(message.id, requestId)`, field-wise max on the last line of the group
+    - Cleared token columns on subagent rows that repeat a parent response id
+    - Documented the count and that `ingest --full` rewrites sessions whose transcripts remain
+    - Engine tests: 888 passed, 4 skipped, 1 failed (`test_docs_lock_is_not_stale` on this machine's uv 0.8.22). Dashboard JS: 134 passed. Lint, format check, schema-docs check, and reuse lint passed.
+* Decisions made
+    - No schema migration and no UPDATE of rows whose transcripts are gone
+* Insights
+    - The report's three-line fixture sums to `(6, 3000, 150000, 136)` before the fix and `(2, 1000, 50000, 120)` after
+
