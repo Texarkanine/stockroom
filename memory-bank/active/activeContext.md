@@ -1,11 +1,12 @@
 # Active Context
 
 ## Current Task: claude-token-overcount
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Confirmed intent: investigate the Claude token overcount in `.scratch/bureport.md`, fix ingestion if it is real, recompute sessions whose transcripts remain, and rewrite vanished-transcript rows only when the correction is fully correct and idempotent.
-- Classified as Level 2. This is a bug fix that spans Claude ingest, message identity, the session token rollup, and a possible warehouse correction. It does not change system architecture.
+- Confirmed the overcount in code: `_build_message` copies `message.usage` onto every kept assistant line, and `session_token_usage` sums those columns. Committed fixtures put one content array on one line, so current tests do not catch a split response.
+- Planned a Level 2 fix: keep one row per line; attribute the field-wise max once per `(message.id, requestId)` inside the session; clear token columns on a subagent row that repeats its parent's response id. The view and dashboard stay as they are.
+- On-disk sessions are corrected by the existing `ingest --full` delete-then-insert path. Vanished transcripts are not rewritten: the rows lack API identity, and the consecutive-triple collapse is not exact.
 
 ## Next Step
-- Load the Level 2 workflow and execute its next phase.
+- Preflight validation of this plan.
