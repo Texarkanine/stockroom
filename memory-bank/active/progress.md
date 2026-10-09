@@ -79,3 +79,14 @@ Determine whether Claude Code ingest overcounts token usage by storing each API 
 * Decisions made
     - Left `.cursor/skills/stockroom-local/` untracked
 
+## 2026-10-09 - VANISHED-ROW CHECK - COMPLETE
+
+* Work completed
+    - Compared consecutive `(input, cache_creation, cache_read)` collapse with `(message.id, requestId)` on every Claude transcript still on disk
+    - Recorded why vanished rows stay stored: the ingest page, the warehouse architecture page, the Claude parser docstring, and draft pull request 138
+* Decisions made
+    - Do not rewrite vanished-transcript rows, and do not defer that rewrite until the merged pairs can be named. The pairs cannot be named from what remains
+* Insights
+    - Surviving transcripts (2026-10-06 through 2026-10-09; 721 responses, 1,629 usage lines) match exactly, including the four token totals. No cache triple belongs to two API responses
+    - June–September usage rows are still in the warehouse. Their transcripts are gone, and `message.id` / `requestId` were never stored. A user row or a multi-minute gap between equal triples also occurs inside a single response
+

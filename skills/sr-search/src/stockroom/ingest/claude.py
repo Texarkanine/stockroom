@@ -28,7 +28,11 @@ Parsing rules (the milestone-1 schema contract, Claude side):
   Assistant lines that share a non-empty ``message.id`` and ``requestId`` are
   one response: the field-wise max of the four counts stays on the last of
   those lines, and the other lines in the group store ``NULL``. A line missing
-  either id keeps its own usage.
+  either id keeps its own usage. Those two ids are not persisted. Rows whose
+  transcripts are already gone stay as stored: without the transcript, a
+  later pass cannot tell a repeated response from two responses that share a
+  cache triple. A user row or a time gap between those lines also occurs
+  inside one response, and is not a repair.
 
 This module depends only on :mod:`stockroom.ingest.model` and the stdlib.
 """

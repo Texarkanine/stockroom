@@ -1,0 +1,1 @@
+Vanished Claude token rows stay stored: message.id and requestId were never persisted, and a user row or time gap between equal cache triples also occurs inside one response.

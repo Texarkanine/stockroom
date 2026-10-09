@@ -27,7 +27,7 @@ The three tests that encode the overcount failed on the old parser with the repo
 ### Technical
 
 - Claude Code writes one transcript line per content block and repeats `message.usage` on each. `output_tokens` on earlier lines is a partial, so the count is the field-wise max. Stockroom's committed fixtures do not split lines, so a corpus golden cannot catch this.
-- Without `message.id` and `requestId` stored on old rows, no later read can tell a repeated response from two responses that happen to share a cache triple.
+- Without `message.id` and `requestId` stored on old rows, no later read can tell a repeated response from two responses that happen to share a cache triple. A user row or a time gap between equal triples also occurs inside one response, so those shapes are not a stand-in for the missing ids. On the transcripts still on disk (2026-10-06 through 2026-10-09; 721 responses) the consecutive-triple collapse matches the API identity exactly, including token totals. The report's roughly 1% gap was in transcripts that are now gone.
 
 ### Process
 
