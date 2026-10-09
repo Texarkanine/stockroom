@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: claude-token-overcount
-**Phase:** BUILD - COMPLETE
+**Phase:** QA - COMPLETE (PASS)
 
 ## What Was Done
 - Confirmed the overcount, then attributed each Claude API response's token counts once. Lines that share `message.id` and `requestId` keep the field-wise max on the last line; the other lines in the group store NULL. Text and tool calls stay on their own rows.

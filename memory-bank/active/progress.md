@@ -51,3 +51,14 @@ Determine whether Claude Code ingest overcounts token usage by storing each API 
 * Insights
     - The report's three-line fixture sums to `(6, 3000, 150000, 136)` before the fix and `(2, 1000, 50000, 120)` after
 
+## 2026-10-09 - QA - COMPLETE (PASS)
+
+* Work completed
+    - Semantically reviewed the build against the plan across KISS, DRY, YAGNI, completeness, regression, integrity, and documentation; no blocking findings
+    - Re-ran targeted ingest tests: 76 passed across `test_ingest_claude.py`, `test_ingest_orchestrator.py`, and `test_ingest_writer.py`
+    - Wrote validation status to `memory-bank/active/.qa-validation-status` and marked QA complete in `tasks.md` / `activeContext.md`
+* Decisions made
+    - PASS with no required fixes; advisory only on the intended asymmetric per-row token placement
+* Insights
+    - Parse-time-only provenance fields kept the persistence boundary clean: writer INSERT lists and VIEW `session_token_usage` needed no changes
+
