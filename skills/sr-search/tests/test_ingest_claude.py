@@ -16,7 +16,9 @@ import json
 from datetime import datetime
 from pathlib import Path
 
-from stockroom.ingest import claude
+import duckdb
+
+from stockroom.ingest import claude, writer
 
 
 def _write_user_session(path: Path, *, timestamp: object) -> Path:
@@ -264,3 +266,285 @@ def test_subagent_identity_and_spawn_link(claude_root: Path) -> None:
         if tc.tool_name == "Task"
     }
     assert sub.spawning_tool_use_id in parent_tool_ids
+
+
+def _dump(path: Path, records: list[dict]) -> Path:
+    """Write ``records`` as JSONL."""
+    path.write_text(
+        "".join(json.dumps(record) + "\n" for record in records),
+        encoding="utf-8",
+    )
+    return path
+
+
+def _usage(
+    input_tokens: int,
+    cache_creation: int,
+    cache_read: int,
+    output: int,
+) -> dict:
+    """One Claude ``message.usage`` object."""
+    return {
+        "input_tokens": input_tokens,
+        "cache_creation_input_tokens": cache_creation,
+        "cache_read_input_tokens": cache_read,
+        "output_tokens": output,
+    }
+
+
+def _assistant_line(
+    *,
+    uuid: str,
+    parent: str | None,
+    content: list,
+    usage: dict | None,
+    message_id: str | None = "msg_FAKE1",
+    request_id: str | None = "req_FAKE1",
+) -> dict:
+    """One Claude assistant transcript line."""
+    message: dict = {
+        "role": "assistant",
+        "model": "claude-opus-5-5",
+        "content": content,
+    }
+    if message_id is not None:
+        message["id"] = message_id
+    if usage is not None:
+        message["usage"] = usage
+    record: dict = {
+        "type": "assistant",
+        "uuid": uuid,
+        "parentUuid": parent,
+        "sessionId": "00000000-0000-4000-8000-000000000001",
+        "timestamp": "2026-10-01T12:00:01.000Z",
+        "message": message,
+    }
+    if request_id is not None:
+        record["requestId"] = request_id
+    return record
+
+
+def _user_line() -> dict:
+    """The report's user line."""
+    return {
+        "type": "user",
+        "uuid": "u-1",
+        "parentUuid": None,
+        "sessionId": "00000000-0000-4000-8000-000000000001",
+        "timestamp": "2026-10-01T12:00:00.000Z",
+        "message": {"role": "user", "content": "hello"},
+    }
+
+
+def _multi_block_records() -> list[dict]:
+    """The report's thinking / text / tool_use split of one API response.
+
+    A trailing assistant line carries an empty ``usage`` object and its own
+    API identity, so it must not pick up the response's counts.
+    """
+    shared = _usage(2, 1000, 50000, 8)
+    return [
+        _user_line(),
+        _assistant_line(
+            uuid="a-1",
+            parent="u-1",
+            content=[{"type": "thinking", "thinking": "", "signature": "x"}],
+            usage=shared,
+        ),
+        _assistant_line(
+            uuid="a-2",
+            parent="a-1",
+            content=[{"type": "text", "text": "ok"}],
+            usage=shared,
+        ),
+        _assistant_line(
+            uuid="a-3",
+            parent="a-2",
+            content=[
+                {
+                    "type": "tool_use",
+                    "id": "toolu_FAKE1",
+                    "name": "Bash",
+                    "input": {"command": "true"},
+                }
+            ],
+            usage=_usage(2, 1000, 50000, 120),
+        ),
+        _assistant_line(
+            uuid="a-4",
+            parent="a-3",
+            content=[{"type": "text", "text": "no usage"}],
+            usage={},
+            message_id="msg_EMPTY",
+            request_id="req_EMPTY",
+        ),
+    ]
+
+
+def _token_tuple(message: claude.NormalizedMessage) -> tuple:
+    """The four token columns on one message."""
+    return (
+        message.input_tokens,
+        message.cache_creation_tokens,
+        message.cache_read_tokens,
+        message.output_tokens,
+    )
+
+
+def _assistant_sums(session: claude.NormalizedSession) -> tuple[int, int, int, int]:
+    """Sum non-NULL assistant token columns in report order."""
+    assistants = [m for m in session.messages if m.role == "assistant"]
+
+    def _sum(name: str) -> int:
+        return sum(
+            value
+            for message in assistants
+            if (value := getattr(message, name)) is not None
+        )
+
+    return (
+        _sum("input_tokens"),
+        _sum("cache_creation_tokens"),
+        _sum("cache_read_tokens"),
+        _sum("output_tokens"),
+    )
+
+
+def test_multi_block_response_attributes_usage_once(tmp_path: Path) -> None:
+    """A multi-block Claude response keeps one row per line and one copy of usage.
+
+    Thinking, text, and tool_use lines that share ``message.id`` and
+    ``requestId`` stay separate messages. Text and the tool call survive.
+    Exactly one row keeps tokens. The four sums are the field-wise max
+    ``(2, 1000, 50000, 120)``. User rows stay NULL. An assistant line with
+    empty usage stays NULL and does not raise.
+    """
+    session = claude.parse_session(
+        _dump(tmp_path / "multi.jsonl", _multi_block_records())
+    )
+    assert [m.role for m in session.messages] == [
+        "user",
+        "assistant",
+        "assistant",
+        "assistant",
+        "assistant",
+    ]
+    user, thinking, text, tool, empty = session.messages
+    assert _token_tuple(user) == (None, None, None, None)
+    assert thinking.text is None
+    assert text.text == "ok"
+    assert tool.tool_calls[0].tool_name == "Bash"
+    assert tool.tool_calls[0].source_tool_use_id == "toolu_FAKE1"
+    assert _token_tuple(thinking) == (None, None, None, None)
+    assert _token_tuple(text) == (None, None, None, None)
+    assert _token_tuple(tool) == (2, 1000, 50000, 120)
+    assert _token_tuple(empty) == (None, None, None, None)
+    assert _assistant_sums(session) == (2, 1000, 50000, 120)
+
+
+def test_fieldwise_max_when_last_line_output_is_lower(tmp_path: Path) -> None:
+    """Output attribution is the field-wise max, not the last line's usage.
+
+    When an earlier line in the same response has a higher ``output_tokens``
+    than the last line, the summed output is that max.
+    """
+    records = [
+        _assistant_line(
+            uuid="a-1",
+            parent=None,
+            content=[{"type": "text", "text": "earlier"}],
+            usage=_usage(1, 0, 0, 50),
+        ),
+        _assistant_line(
+            uuid="a-2",
+            parent="a-1",
+            content=[{"type": "text", "text": "later"}],
+            usage=_usage(9, 0, 0, 10),
+        ),
+    ]
+    session = claude.parse_session(_dump(tmp_path / "max.jsonl", records))
+    assert _assistant_sums(session) == (9, 0, 0, 50)
+    assert _token_tuple(session.messages[0]) == (None, None, None, None)
+    assert _token_tuple(session.messages[1]) == (9, 0, 0, 50)
+
+
+def test_distinct_api_responses_are_both_counted(tmp_path: Path) -> None:
+    """Two assistant responses with different API identities are both summed."""
+    records = [
+        _assistant_line(
+            uuid="a-1",
+            parent=None,
+            content=[{"type": "text", "text": "one"}],
+            usage=_usage(2, 0, 0, 10),
+            message_id="msg_A",
+            request_id="req_A",
+        ),
+        _assistant_line(
+            uuid="a-2",
+            parent="a-1",
+            content=[{"type": "text", "text": "two"}],
+            usage=_usage(3, 1, 4, 20),
+            message_id="msg_B",
+            request_id="req_B",
+        ),
+    ]
+    session = claude.parse_session(_dump(tmp_path / "two.jsonl", records))
+    assert _assistant_sums(session) == (5, 1, 4, 30)
+
+
+def test_lines_without_api_identity_keep_their_own_usage(tmp_path: Path) -> None:
+    """Assistant lines missing ``message.id`` or ``requestId`` are not merged.
+
+    Identical usage on unkeyed lines is kept on each line.
+    """
+    records = [
+        _assistant_line(
+            uuid="a-1",
+            parent=None,
+            content=[{"type": "text", "text": "no request"}],
+            usage=_usage(4, 0, 0, 7),
+            message_id="msg_ONLY",
+            request_id=None,
+        ),
+        _assistant_line(
+            uuid="a-2",
+            parent="a-1",
+            content=[{"type": "text", "text": "no message id"}],
+            usage=_usage(4, 0, 0, 7),
+            message_id=None,
+            request_id="req_ONLY",
+        ),
+    ]
+    session = claude.parse_session(_dump(tmp_path / "unkeyed.jsonl", records))
+    assert _token_tuple(session.messages[0]) == (4, 0, 0, 7)
+    assert _token_tuple(session.messages[1]) == (4, 0, 0, 7)
+    assert _assistant_sums(session) == (8, 0, 0, 14)
+
+
+def test_response_usage_attribution_is_idempotent(tmp_path: Path) -> None:
+    """Parsing the same multi-block file twice yields the same token columns."""
+    path = _dump(tmp_path / "multi.jsonl", _multi_block_records())
+    first = [_token_tuple(m) for m in claude.parse_session(path).messages]
+    second = [_token_tuple(m) for m in claude.parse_session(path).messages]
+    assert first == second
+
+
+def test_multi_block_response_rolls_up_once_in_session_token_usage(
+    tmp_path: Path,
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """Writing a multi-block response rolls up once in ``session_token_usage``.
+
+    Totals equal ``(2, 1000, 50000, 120)`` and ``token_grain`` is ``message``.
+    """
+    session = claude.parse_session(
+        _dump(tmp_path / "multi.jsonl", _multi_block_records())
+    )
+    writer.write_session(migrated_con, session)
+    row = migrated_con.execute(
+        "SELECT input_tokens_total, cache_creation_tokens_total, "
+        "cache_read_tokens_total, output_tokens_total, token_grain "
+        "FROM session_token_usage WHERE session_id = ?",
+        [session.session_id],
+    ).fetchone()
+    assert row == (2, 1000, 50000, 120, "message")

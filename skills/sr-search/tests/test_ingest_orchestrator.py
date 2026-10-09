@@ -789,3 +789,182 @@ def test_corpus_cursor_sessions_stamp_entrypoint_ide(
         ).fetchall()
     }
     assert values == {"ide"}
+
+
+def _fork_line(
+    *,
+    uuid: str,
+    parent: str | None,
+    content: list,
+    usage: dict,
+    message_id: str,
+    request_id: str,
+    session_id: str,
+) -> dict:
+    """One assistant JSONL line for the fork fixture."""
+    return {
+        "type": "assistant",
+        "uuid": uuid,
+        "parentUuid": parent,
+        "sessionId": session_id,
+        "timestamp": "2026-10-01T12:00:01.000Z",
+        "requestId": request_id,
+        "message": {
+            "id": message_id,
+            "role": "assistant",
+            "model": "claude-opus-5-5",
+            "content": content,
+            "usage": usage,
+        },
+    }
+
+
+def _write_fork_tree(root: Path) -> str:
+    """Write a parent multi-block response and a subagent that repeats it.
+
+    Returns the parent session id. The subagent file stem is ``agent-fork``.
+    """
+    parent_id = "00000000-0000-4000-8000-000000000001"
+    project = root / "-tmp-proj"
+    sub_dir = project / parent_id / "subagents"
+    sub_dir.mkdir(parents=True)
+    shared = {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 1000,
+        "cache_read_input_tokens": 50000,
+        "output_tokens": 8,
+    }
+    parent_records = [
+        {
+            "type": "user",
+            "uuid": "u-1",
+            "parentUuid": None,
+            "sessionId": parent_id,
+            "timestamp": "2026-10-01T12:00:00.000Z",
+            "message": {"role": "user", "content": "hello"},
+        },
+        _fork_line(
+            uuid="a-1",
+            parent="u-1",
+            content=[{"type": "thinking", "thinking": "", "signature": "x"}],
+            usage=shared,
+            message_id="msg_FAKE1",
+            request_id="req_FAKE1",
+            session_id=parent_id,
+        ),
+        _fork_line(
+            uuid="a-2",
+            parent="a-1",
+            content=[{"type": "text", "text": "ok"}],
+            usage=shared,
+            message_id="msg_FAKE1",
+            request_id="req_FAKE1",
+            session_id=parent_id,
+        ),
+        _fork_line(
+            uuid="a-3",
+            parent="a-2",
+            content=[
+                {
+                    "type": "tool_use",
+                    "id": "toolu_FAKE1",
+                    "name": "Bash",
+                    "input": {"command": "true"},
+                }
+            ],
+            usage={**shared, "output_tokens": 120},
+            message_id="msg_FAKE1",
+            request_id="req_FAKE1",
+            session_id=parent_id,
+        ),
+    ]
+    (project / f"{parent_id}.jsonl").write_text(
+        "".join(json.dumps(record) + "\n" for record in parent_records),
+        encoding="utf-8",
+    )
+    sub_records = [
+        _fork_line(
+            uuid="s-1",
+            parent=None,
+            content=[{"type": "text", "text": "copied"}],
+            usage={**shared, "output_tokens": 8},
+            message_id="msg_FAKE1",
+            request_id="req_FAKE1",
+            session_id=parent_id,
+        ),
+        _fork_line(
+            uuid="s-2",
+            parent="s-1",
+            content=[{"type": "text", "text": "own work"}],
+            usage={
+                "input_tokens": 11,
+                "cache_creation_input_tokens": 0,
+                "cache_read_input_tokens": 20,
+                "output_tokens": 15,
+            },
+            message_id="msg_SUB",
+            request_id="req_SUB",
+            session_id=parent_id,
+        ),
+    ]
+    (sub_dir / "agent-fork.jsonl").write_text(
+        "".join(json.dumps(record) + "\n" for record in sub_records),
+        encoding="utf-8",
+    )
+    (sub_dir / "agent-fork.meta.json").write_text(
+        json.dumps({"agentType": "explore", "toolUseId": "toolu_FAKE1"}),
+        encoding="utf-8",
+    )
+    return parent_id
+
+
+def _usage_totals(con: duckdb.DuckDBPyConnection, session_id: str) -> tuple:
+    """Session token totals in input, cache-creation, cache-read, output order."""
+    return con.execute(
+        "SELECT input_tokens_total, cache_creation_tokens_total, "
+        "cache_read_tokens_total, output_tokens_total "
+        "FROM session_token_usage WHERE session_id = ?",
+        [session_id],
+    ).fetchone()
+
+
+def test_forked_subagent_copy_does_not_add_parent_usage(
+    migrated_con: duckdb.DuckDBPyConnection,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    ai_tracking_db: Path,
+) -> None:
+    """A subagent line that repeats its parent's API response adds no tokens.
+
+    The parent's multi-block response still rolls up once. The copied subagent
+    row stores NULL tokens. A later subagent response with its own API identity
+    is the subagent session's only total. A second full ingest yields the same
+    totals.
+    """
+    claude_root = tmp_path / "claude"
+    parent_id = _write_fork_tree(claude_root)
+    monkeypatch.setenv("STOCKROOM_CLAUDE_ROOT", str(claude_root))
+    monkeypatch.setenv("STOCKROOM_CURSOR_ROOT", str(tmp_path / "empty-cursor"))
+    monkeypatch.setenv("STOCKROOM_CURSOR_CHATS_ROOT", str(tmp_path / "empty-chats"))
+    (tmp_path / "empty-cursor").mkdir()
+    (tmp_path / "empty-chats").mkdir()
+
+    def _ingest() -> None:
+        ingest.ingest(
+            full=True,
+            con=migrated_con,
+            harness="claude",
+            ai_tracking_db=ai_tracking_db,
+        )
+
+    _ingest()
+    assert _usage_totals(migrated_con, parent_id) == (2, 1000, 50000, 120)
+    copied = migrated_con.execute(
+        "SELECT input_tokens, cache_creation_tokens, cache_read_tokens, "
+        "output_tokens FROM messages WHERE session_id = 'agent-fork' AND ordinal = 0"
+    ).fetchone()
+    assert copied == (None, None, None, None)
+    assert _usage_totals(migrated_con, "agent-fork") == (11, 0, 20, 15)
+    _ingest()
+    assert _usage_totals(migrated_con, parent_id) == (2, 1000, 50000, 120)
+    assert _usage_totals(migrated_con, "agent-fork") == (11, 0, 20, 15)

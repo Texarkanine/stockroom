@@ -165,11 +165,14 @@ def _parse_discovered(
         main = claude.parse_session(discovered.session_path)
         main.project_id = discovered.project_id
         result = [main]
+        subagents = []
         for sub_path in discovered.subagent_paths:
             meta_path = sub_path.with_suffix(".meta.json")
             sub = claude.parse_subagent(sub_path, meta_path=meta_path)
             sub.project_id = discovered.project_id
+            subagents.append(sub)
             result.append(sub)
+        claude.drop_copied_parent_usage(main, subagents)
 
     for session in result:
         session.source_mtime = discovered.mtime

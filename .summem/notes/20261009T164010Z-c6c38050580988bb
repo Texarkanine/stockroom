@@ -1,0 +1,1 @@
+Claude message tokens are stored once per (message.id, requestId), field-wise max; a subagent copy of a parent response carries none. Transcripts that are gone are not rewritten.

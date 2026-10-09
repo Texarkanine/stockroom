@@ -28,7 +28,7 @@ It writes harness-labeled rows into shared tables: `sessions`, `messages`, and `
 **Default is incremental.** Stockroom remembers a per-`(harness, source_root)` watermark in `_sync_state` and only reads files past that point. Cursor therefore tracks projects and chats roots independently. Re-runs are cheap and safe.
 
 
-**Migrations do not Backfill.** Structural migrations do not backfill columns such as `entrypoint` — use `stockroom ingest --full` after a database schema upgrade if you want older rows repopulated from sources (this will be infrequent).
+**Migrations do not Backfill.** Structural migrations do not backfill columns such as `entrypoint` — use `stockroom ingest --full` after a database schema upgrade if you want older rows repopulated from sources (this will be infrequent). The same command is how a correction to Claude token counts reaches sessions whose transcripts are still on disk (`--harness claude` limits the run to that harness). Sessions whose transcripts are gone keep the counts already stored; stockroom does not rewrite those rows. The transcript was the only copy of the API message id, and that id was not stored, so a later pass cannot tell a repeated response from two responses that shared a cache triple.
 
 `sr-initialize` runs `stockroom ingest --full` once so you are not waiting for the first nightly job. On years of history that first pass can take many minutes (varying greatly depending on your machine's CPU and disk speed); it prints per-harness session/message/tool_call counts when done.
 

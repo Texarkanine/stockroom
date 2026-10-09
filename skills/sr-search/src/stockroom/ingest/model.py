@@ -51,6 +51,10 @@ class NormalizedMessage:
     order; ``parent_ordinal`` is the ordinal of the parent turn (``None`` at the
     root). The token/model/ts fields are populated only where the harness
     exposes them (Claude), and are honestly ``None`` otherwise (Cursor).
+    ``api_message_id`` (Claude ``message.id``) and ``request_id`` (Claude
+    ``requestId``) are parse-time provenance used to attribute usage once per
+    API response. The writer does not persist them; they are not warehouse
+    columns.
     """
 
     ordinal: int
@@ -64,6 +68,8 @@ class NormalizedMessage:
     cache_creation_tokens: int | None = None
     cache_read_tokens: int | None = None
     source_uuid: str | None = None
+    api_message_id: str | None = None
+    request_id: str | None = None
     tool_calls: list[NormalizedToolCall] = field(default_factory=list)
 
 
