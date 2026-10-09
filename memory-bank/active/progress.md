@@ -25,3 +25,17 @@ Determine whether Claude Code ingest overcounts token usage by storing each API 
     - Repro JSONL lives in `tmp_path` so the ingest golden corpus stays put
 * Insights
     - Committed Claude fixtures put a whole content array on one line, which is why the overcount has no failing test today
+
+## 2026-10-09 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated Level 2 implementation plan against codebase reality and TDD requirements
+    - Verified TDD phase ordering across executable units 1 and 2
+    - Verified architectural compliance with DuckDB schema, views, and writer isolation
+    - Recorded Radical Innovation advisory finding regarding turn-level message coalescing
+* Decisions made
+    - Approved implementation plan as PASS WITH ADVISORY (advisory finding does not block build)
+    - Proceeding to BUILD phase
+* Insights
+    - Ephemeral dataclass provenance avoids unnecessary schema migrations while enabling orchestrator-level subagent deduplication
+
