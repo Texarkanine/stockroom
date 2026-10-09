@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.1](https://github.com/Texarkanine/stockroom/compare/v2.1.0...v2.1.1) (2026-10-09)
+
+
+### Bug Fixes
+
+* **ingest:** count each Claude API response's tokens once ([#138](https://github.com/Texarkanine/stockroom/issues/138)) ([082c9ff](https://github.com/Texarkanine/stockroom/commit/082c9ff73cc4d486d52024f05b3a322b1c43f037))
+
 ## [2.1.0](https://github.com/Texarkanine/stockroom/compare/v2.0.0...v2.1.0) (2026-10-05)
 
 
