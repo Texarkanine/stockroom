@@ -72,3 +72,10 @@ Determine whether Claude Code ingest overcounts token usage by storing each API 
 * Insights
     - Corpus fixtures that put one content array on one line cannot catch a per-line usage copy. Vanished rows cannot be repaired exactly because they never stored API identity.
 
+## 2026-10-09 - PR - OPEN
+
+* Work completed
+    - Opened draft pull request 138, `fix(ingest): count each Claude API response's tokens once`, from `claude-code-doublecount`
+* Decisions made
+    - Left `.cursor/skills/stockroom-local/` untracked
+
