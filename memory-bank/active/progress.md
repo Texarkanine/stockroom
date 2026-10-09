@@ -62,3 +62,13 @@ Determine whether Claude Code ingest overcounts token usage by storing each API 
 * Insights
     - Parse-time-only provenance fields kept the persistence boundary clean: writer INSERT lists and VIEW `session_token_usage` needed no changes
 
+## 2026-10-09 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `memory-bank/active/reflection/reflection-claude-token-overcount.md`
+    - Left product context, system patterns, and tech context unchanged
+* Decisions made
+    - The once-per-response rule stays in the Claude parser and the architecture page. It is not a system-wide pattern beyond the view's existing SUM.
+* Insights
+    - Corpus fixtures that put one content array on one line cannot catch a per-line usage copy. Vanished rows cannot be repaired exactly because they never stored API identity.
+

@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: claude-token-overcount
-**Phase:** QA - COMPLETE (PASS)
+**Phase:** REFLECT - COMPLETE
 
 ## What Was Done
 - Confirmed the overcount, then attributed each Claude API response's token counts once. Lines that share `message.id` and `requestId` keep the field-wise max on the last line; the other lines in the group store NULL. Text and tool calls stay on their own rows.
@@ -25,4 +25,4 @@
 - This machine's uv 0.8.22 fails `test_docs_lock_is_not_stale` and `make lock-check` on the committed root lock. That failure is independent of this change. Engine pytest otherwise passed (888 passed, 4 skipped). Dashboard JS tests passed (134). Lint, format check, schema-docs check, and reuse lint passed.
 
 ## Next Step
-- QA review.
+- Run `/niko-archive` to archive this task.
