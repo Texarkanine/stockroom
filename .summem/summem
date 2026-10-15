@@ -183,9 +183,12 @@ class ViewNode:
 
 
 class ProjectedNode:
-    """One printed wake row: a view file or an in-memory expanded child."""
+    """One printed wake row: a view file or an in-memory expanded child.
 
-    __slots__ = ("id", "kind", "caption", "leaves", "stamp", "tree", "tree_path", "tree_attempted")
+    ``seq`` is the oldest note's ``{stamp}-{rand}``. Opened rows sort by it.
+    """
+
+    __slots__ = ("id", "kind", "caption", "leaves", "stamp", "tree", "tree_path", "tree_attempted", "seq")
     __eq__ = _eq_by_slots
 
     def __init__(
@@ -198,6 +201,7 @@ class ProjectedNode:
         tree: Tree | None = None,
         tree_path: Path | None = None,
         tree_attempted: bool = False,
+        seq: str = "",
     ) -> None:
         self.id = id
         self.kind = kind
@@ -207,6 +211,7 @@ class ProjectedNode:
         self.tree = tree
         self.tree_path = tree_path
         self.tree_attempted = tree_attempted
+        self.seq = seq
 
 
 def _tree_dict(tree: Tree) -> dict:
@@ -262,7 +267,7 @@ ENTRY_CHARS = 280
 WAKE_LINES = 32
 CLI_NAME = "summem"
 AGENT_BIN = ".summem/summem"
-__version__ = "0.12.0"  # x-release-please-version
+__version__ = "0.12.1"  # x-release-please-version
 
 
 def agent_invoke() -> str:
@@ -833,31 +838,101 @@ def _unlink_node(node: ViewNode) -> None:
         node.tree_path.unlink()
 
 
-def _adjacent_nodes(nodes: list[ViewNode], id_a: str, id_b: str) -> tuple[ViewNode, ViewNode]:
+def _is_pow2(n: int) -> bool:
+    """Return True when *n* is a positive power of two."""
+    return n > 0 and n & (n - 1) == 0
+
+
+def _nearest_twin(grains: list[int], i: int) -> int | None:
+    """Return the first index after *i* whose grain equals ``grains[i]``, or None."""
+    grain = grains[i]
+    for j in range(i + 1, len(grains)):
+        if grains[j] == grain:
+            return j
+    return None
+
+
+def _fold_pair(grains: list[int]) -> tuple[int, int] | None:
+    """Return the oldest power-of-two row that has a same-grain row below it, with that nearest row.
+
+    Rows whose grain is not a power of two are skipped. None means every
+    power-of-two grain appears once.
+    """
+    for i, grain in enumerate(grains):
+        if not _is_pow2(grain):
+            continue
+        twin = _nearest_twin(grains, i)
+        if twin is not None:
+            return i, twin
+    return None
+
+
+def _fold_grains(nodes: list[ViewNode]) -> list[int]:
+    """Return each row's grain for pairing, 0 for a nap whose children file is missing or unreadable.
+
+    ``nap`` cannot fold such a row, so it is never requested and never counts as a nearer twin.
+    """
+    grains = []
+    for node in nodes:
+        grain = node.leaves
+        if node.kind == "nap":
+            if node.tree_path is None:
+                grain = 0
+            else:
+                try:
+                    loads_tree(node.tree_path.read_bytes())
+                except _TREE_PARSE_ERRORS:
+                    grain = 0
+        grains.append(grain)
+    return grains
+
+
+def _pair_nodes(nodes: list[ViewNode], id_a: str, id_b: str) -> tuple[int, int]:
+    """Return ``(lo, hi)`` for two distinct view rows, older first.
+
+    When several rows share an id, the closest pair wins. Ties keep the older
+    pair. Naming the same row twice is refused.
+    """
     hits_a = [i for i, node in enumerate(nodes) if node.id == id_a]
     hits_b = [i for i, node in enumerate(nodes) if node.id == id_b]
     if not hits_a or not hits_b:
         raise ValueError("unknown id. Copy an id from wake.")
+    best: tuple[int, int, int] | None = None
     for ia in hits_a:
         for ib in hits_b:
             if ia == ib:
                 continue
-            if abs(ia - ib) == 1:
-                lo, hi = (ia, ib) if ia < ib else (ib, ia)
-                return nodes[lo], nodes[hi]
-    raise ValueError("not adjacent. Nap two ids that sit next to each other in wake.")
+            lo, hi = (ia, ib) if ia < ib else (ib, ia)
+            gap = hi - lo
+            if best is None or (gap, lo) < (best[0], best[1]):
+                best = (gap, lo, hi)
+    if best is None:
+        raise ValueError("not two rows")
+    return best[1], best[2]
 
 
 def write_nap(parent, id_a, id_b, caption, entry_chars: int | None = None, nodes=None):
-    """Fold two adjacent view nodes into a nap pair. Return the .summ path."""
+    """Fold two same-grain view rows into a nap pair. Return the .summ path.
+
+    The rows need not be neighbors. They must share a power-of-two grain, and
+    no row of that grain may sit between them.
+    """
     require_entry(caption, entry_chars)
     if nodes is None:
         nodes = list_view(parent)
-    left, right = _adjacent_nodes(nodes, id_a, id_b)
+    lo, hi = _pair_nodes(nodes, id_a, id_b)
+    left, right = nodes[lo], nodes[hi]
     child_l, digs_l = _as_child(left)
     child_r, digs_r = _as_child(right)
     if set(digs_l) & set(digs_r):
         raise ValueError("overlapping packs")
+    if left.leaves != right.leaves:
+        raise ValueError("not the same grain")
+    total = len(digs_l) + len(digs_r)
+    if len(digs_l) != len(digs_r) or not _is_pow2(total):
+        raise ValueError("not a power of two")
+    if hi != _nearest_twin(_fold_grains(nodes), lo):
+        raise ValueError("a nearer row of that grain sits between them")
     tree = Tree(kids=[child_l, child_r])
     digests = digs_l + digs_r
     leafset = leafset_id(digests)
@@ -1054,6 +1129,7 @@ def expand_frontier(nodes: list[ViewNode], budget: int) -> list[ProjectedNode]:
             leaves=node.leaves,
             stamp=node.stamp,
             tree_path=node.tree_path,
+            seq=_seq_prefix(node.name),
         )
         for node in nodes
     ]
@@ -1071,6 +1147,7 @@ def expand_frontier(nodes: list[ViewNode], budget: int) -> list[ProjectedNode]:
         if kids is None:
             break
         frontier = [*frontier[:idx], *kids, *frontier[idx + 1 :]]
+        frontier.sort(key=lambda row: row.seq)
     return frontier
 
 
@@ -1108,6 +1185,7 @@ def _projected_child(child: NoteChild | NapChild) -> ProjectedNode | None:
             caption=child.text,
             leaves=1,
             stamp=child.name.split("-")[0],
+            seq=child.name,
         )
     notes = list(_note_children(child.tree))
     if not notes:
@@ -1119,6 +1197,7 @@ def _projected_child(child: NoteChild | NapChild) -> ProjectedNode | None:
         leaves=len(notes),
         stamp=min(note.name.split("-")[0] for note in notes),
         tree=child.tree,
+        seq=min(note.name for note in notes),
     )
 
 
@@ -1223,7 +1302,7 @@ def _fold_path_flag(parent) -> str:
 
 
 def fold_request(parent, wake_lines: int | None = None, nodes=None, entry_chars: int | None = None) -> str:
-    """Return an OptMem-style nap prompt for the oldest equal-grain pair when over *wake_lines*."""
+    """Return a nap prompt for the oldest same-grain power-of-two pair when over *wake_lines*."""
     if wake_lines is None:
         wake_lines = WAKE_LINES
     if entry_chars is None:
@@ -1232,13 +1311,10 @@ def fold_request(parent, wake_lines: int | None = None, nodes=None, entry_chars:
         nodes = list_view(parent)
     if len(nodes) <= wake_lines:
         return ""
-    left = right = None
-    for i in range(len(nodes) - 1):
-        if nodes[i].leaves == nodes[i + 1].leaves:
-            left, right = nodes[i], nodes[i + 1]
-            break
-    if left is None:
+    pair = _fold_pair(_fold_grains(nodes))
+    if pair is None:
         return ""
+    left, right = nodes[pair[0]], nodes[pair[1]]
     ids = [node.id for node in nodes]
     remain = len(nodes) - 1 - wake_lines
     extra = ""
@@ -1250,7 +1326,7 @@ def fold_request(parent, wake_lines: int | None = None, nodes=None, entry_chars:
     left_src = left.caption
     right_src = right.caption
     return (
-        f"Compress these two into one line of at most {limit} characters.\n"
+        f"Summarize these two into one line of at most {limit} characters.\n"
         "Keep what has lasting effect, drop what does not. Invent nothing.\n"
         "\n"
         f"  {left_src}\n"
@@ -1384,7 +1460,7 @@ SumMem: shared memory for agents in a repository.
 
   {CLI_NAME} wake    [--path PATH]                    print this store's view
   {CLI_NAME} note    [--path PATH] TEXT               record one line
-  {CLI_NAME} nap     [--path PATH] ID-A ID-B CAPTION  fold two adjacent ids
+  {CLI_NAME} nap     [--path PATH] ID-A ID-B CAPTION  fold two ids of the same grain
   {CLI_NAME} zoom    [--path PATH] ID                 open a nap to its children
   {CLI_NAME} recall  [--path PATH] PATTERN            search remembered text
   {CLI_NAME} start <path>                             create a store in that directory
