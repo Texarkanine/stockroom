@@ -175,3 +175,13 @@ Reassess how each harness exposes its plugin root (`CLAUDE_PLUGIN_ROOT`, `CURSOR
 * Work completed
     - Local uv upgraded to 0.12.22 via pipx, and `make ci` is fully green locally.
     - Draft PR #142 opened: "fix(shim): sr-initialize finds marketplace installs; dead shims heal at session start".
+
+## 2026-10-16 - PR REVIEW TRIAGE - COMPLETE
+
+* Work completed
+    - Judged the 6 bot inline comments on PR #142 (4 from cursor[bot], 2 from coderabbitai[bot]) at the PR head 7f3917f. All 6 were reproduced in scratch: a checkout under a `synced/` folder or under a `cache/<a>/<b>/` shape gets labelled `claude` (2 comments raise the `synced` case); Step 7's mislabel row omits synced copies; `shim rectify` raises `PermissionError` on an uncheckable foreign engine dir (Python 3.11 to 3.13); the printed Step 2 line breaks on a path containing `'`.
+* Decisions made
+    - Every finding: fix in this PR. The operator said "fix all of those" and invoked `/niko-plan`.
+* Insights
+    - Labelling a copy `dev` by mistake fails safe, because Step 7 tells the agent to stop and ask when `APP_DIR` is not the user's checkout. Labelling a copy with a harness by mistake fails silently.
+    - `Path.is_file()` handles errors differently by version: 3.11 to 3.13 raise on EACCES, 3.14 returns `False`.
