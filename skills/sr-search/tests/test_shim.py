@@ -82,6 +82,14 @@ def _lock(app_dir: Path) -> None:
     app_dir.parent.chmod(0o000)
 
 
+def _write_nul_header_shim(dest: Path) -> None:
+    """Write a ``dev``-owned shim header whose baked dir holds a NUL byte."""
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_text(
+        "#!/bin/sh\n# STOCKROOM_OWNER=dev\n# STOCKROOM_APP_DIR=/gone\x00dir\n"
+    )
+
+
 @pytest.fixture
 def dest(tmp_path: Path) -> Path:
     """A tmp shim destination (parent dir not yet created)."""
@@ -238,6 +246,17 @@ class TestInstall:
         assert forced.action == "installed"
         assert dest.read_text() == shim.render(engine_dir, "claude")
 
+    def test_nul_in_baked_dir_counts_as_dead(
+        self, dest: Path, engine_dir: Path
+    ) -> None:
+        """A hand-corrupted header whose baked dir holds a NUL byte names a
+        path that cannot exist: dead, so --takeover replaces it, never a crash."""
+        _write_nul_header_shim(dest)
+        assert shim.install(dest, engine_dir, "claude").action == "refused"
+        taken = shim.install(dest, engine_dir, "claude", takeover=True)
+        assert taken.action == "installed"
+        assert dest.read_text() == shim.render(engine_dir, "claude")
+
     def test_corrupt_header_treated_as_foreign(
         self, dest: Path, engine_dir: Path
     ) -> None:
@@ -381,6 +400,14 @@ class TestRectify:
         report = shim.rectify(dest, engine_dir, "claude")
         assert report.action == "noop"
         assert dest.read_text() == before
+
+    def test_nul_in_baked_dir_is_replaced(self, dest: Path, engine_dir: Path) -> None:
+        """A foreign header whose baked dir holds a NUL byte (only a
+        hand-corrupted shim can) is dead: rectify replaces it and stays exit-0."""
+        _write_nul_header_shim(dest)
+        report = shim.rectify(dest, engine_dir, "claude")
+        assert report.action == "rectified"
+        assert dest.read_text() == shim.render(engine_dir, "claude")
 
     def test_absent_dest_creates_shim(self, dest: Path, engine_dir: Path) -> None:
         """rectify creates a missing shim (hook heal after wipe / localdev exit)."""

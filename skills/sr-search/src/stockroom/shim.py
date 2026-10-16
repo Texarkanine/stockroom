@@ -18,8 +18,8 @@ Three writers drive this module (all through the same code):
 Ownership is explicit (a ``# STOCKROOM_OWNER=`` header marker): only the
 owner may rewrite an existing shim; a foreign shim whose baked engine is
 **dead** is replaced only when ``--takeover`` is passed; a foreign shim whose
-baked engine is **alive** is replaced only when both ``--takeover`` and
-``--force`` are passed. ``rectify`` is the hook-safe subset: ensures the
+baked engine is **alive** (or cannot be checked) is replaced only when both
+``--takeover`` and ``--force`` are passed. ``rectify`` is the hook-safe subset: ensures the
 engine env, then creates when dest is absent, rebakes on owner-match +
 content-diff, and replaces a foreign shim only when its baked engine is dead;
 it never touches a live foreign shim or a file it cannot identify.
@@ -152,12 +152,15 @@ def _alive(app_dir: str) -> bool:
     An engine that cannot be checked counts as alive, so no caller replaces a
     shim it could not inspect. This stats directly rather than using
     ``Path.is_file``, which raises such errors before Python 3.14 and folds
-    them into ``False`` from 3.14 on.
+    them into ``False`` from 3.14 on. A NUL byte in ``app_dir`` (only a
+    hand-corrupted header holds one) names no possible path, so it is dead.
     """
     try:
         return stat.S_ISREG((Path(app_dir) / "pyproject.toml").stat().st_mode)
     except OSError as exc:
         return exc.errno not in _GONE_ERRNOS
+    except ValueError:
+        return False
 
 
 def _write_atomic(dest: Path, content: str) -> None:
@@ -212,7 +215,8 @@ def install(
 
     * dest absent → write (mode ``0o755``, atomic temp-file + ``os.replace``).
     * dest present, same owner → rewrite (idempotent).
-    * dest present, different owner, incumbent's baked dir **alive** → refuse
+    * dest present, different owner, incumbent's baked dir **alive** (or
+      uncheckable, e.g. permission denied) → refuse
       unless ``takeover`` and ``force`` are both set.
     * dest present, different owner, incumbent's baked dir **dead** → refuse
       unless ``takeover`` is set (``force`` optional).

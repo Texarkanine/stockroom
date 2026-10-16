@@ -43,7 +43,7 @@ A contributor who has a real install and a `dev` shim goes back to the release. 
 
 1. On a Claude Code marketplace install in the default plugins folder (`~/.claude/plugins/…`), following `sr-initialize` Step 2 literally gives `OWNER=claude` and the absolute plugin-cache `skills/sr-search` path. Under a custom plugins folder, AC7 applies.
 2. On a Cursor marketplace install, Step 2 gives `OWNER=cursor` by a mechanism that is documented or verified, or the remaining uncertainty is stated in the skill or the docs and does not misroute the user.
-3. Every checkout-based load (`claude --plugin-dir`, Cursor `plugins/local`, local-path marketplace in place, Cursor mirror) resolves to `OWNER=dev`. Re-running `sr-initialize` never offers to take over a shim that its owner still maintains.
+3. Every checkout-based load (`claude --plugin-dir`, Cursor `plugins/local`, local-path marketplace in place, Cursor mirror) resolves to `OWNER=dev`. The one exception is a checkout three levels below a folder named `cache` and outside the default plugins folders. It gets no owner: in Claude Code the user decides (AC7), and in Cursor the agent names `cursor` (accepted residual). Re-running `sr-initialize` never offers to take over a shim that its owner still maintains.
 4. A `dev` shim whose checkout is gone is replaced at the next session start of an installed stockroom plugin. A live foreign shim is never touched.
 5. No project doc or comment claims that plugin-root variables are visible to agent-run shell commands.
 6. `make ci` (or the equivalent format, lint, test and reuse gates) passes.

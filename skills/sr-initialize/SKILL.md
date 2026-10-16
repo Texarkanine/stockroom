@@ -144,7 +144,7 @@ The shim lives at `~/.local/bin/stockroom`. Read the one that is there now strai
 grep '^# STOCKROOM_' ~/.local/bin/stockroom 2>/dev/null
 ```
 
-`STOCKROOM_OWNER` is who maintains it, and `STOCKROOM_APP_DIR` is the engine it runs. Check that engine with `ls -d -- "<STOCKROOM_APP_DIR>/pyproject.toml"`, putting in the header's value. It is **alive** when `ls` lists the file. It is **dead** when `ls` fails with "No such file or directory", "Not a directory" or "Too many levels of symbolic links". Any other failure, such as "Permission denied", means it **cannot be checked**. Then:
+`STOCKROOM_OWNER` is who maintains it, and `STOCKROOM_APP_DIR` is the engine it runs. Check that engine with `LC_ALL=C ls -dL -- "<STOCKROOM_APP_DIR>/pyproject.toml"`, putting in the header's value. It is **alive** when `ls` lists the file. It is **dead** when `ls` fails with "No such file or directory", "Not a directory" or "Too many levels of symbolic links". Any other failure, such as "Permission denied", means it **cannot be checked**. Then:
 
 | What is there | What to do |
 | --- | --- |
@@ -167,6 +167,7 @@ PYTHONPATH="$APP_DIR/src" uv run --project "$APP_DIR" --no-sync --no-config \
 - **`OWNER` is `dev`.** Only if `APP_DIR` is in a checkout the user develops in, work from that checkout's root. Installed plugin copies also contain a `Makefile`, so never run these inside one. If this is not the user's checkout, stop and ask.
   - No shim, or a `dev` one: `make shim` (owner `dev`, bakes the checkout).
   - Another owner, engine dead: `make shim TAKEOVER=1`.
+  - Another owner, engine cannot be checked: tell the user what it points at, and run `make shim TAKEOVER=1 FORCE=1` only with their explicit consent.
   - Another owner, engine alive: this checkout is not active. If the user wants to develop against it, the contributor guide's `make localdev` flow claims the shim. Run it only at their request.
 
 The install is ownership-guarded and its report is honest — relay it:

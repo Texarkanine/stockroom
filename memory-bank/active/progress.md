@@ -261,3 +261,14 @@ Reassess how each harness exposes its plugin root (`CLAUDE_PLUGIN_ROOT`, `CURSOR
     - No blocking findings. The six advisories are in `tasks.md` under "QA results, rework round 1".
 * Insights
     - `_alive` now lets `ValueError` through: a NUL byte in a shim header raises, where `Path.is_file()` used to return `False`. Only a hand-corrupted shim can hold a NUL, so this is advisory.
+
+## 2026-10-16 - QA follow-up, rework round 1 (minor fixes after QA PASS)
+
+* Work completed
+    - QA finding 1, fixed test-first: `_alive` raised `ValueError` for a baked dir holding a NUL byte, where `Path.is_file()` had returned `False`. Two new tests (`install` needs `--takeover`; `rectify` replaces) went red with `ValueError`, then green after `except ValueError: return False`.
+    - Finding 2: Step 7's dev branch gained "another owner, engine cannot be checked" → `make shim TAKEOVER=1 FORCE=1`, only with consent.
+    - Finding 3: the `shim.py` module and `install` docstrings say that an uncheckable engine counts as alive.
+    - Finding 4: brief AC3 names its exception (cache-shaped checkout outside the default folders).
+    - Finding 5: the Step 7 check is now `LC_ALL=C ls -dL`. That gives English error texts, and a dangling symlink counts as dead, matching `_alive`; checked for all six cases.
+    - Finding 6: carried over and already accepted.
+    - `make ci` green: pytest 946 passed and 23 skipped, JS 134/134, REUSE compliant.
