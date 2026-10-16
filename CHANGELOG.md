@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.1.2](https://github.com/Texarkanine/stockroom/compare/v2.1.1...v2.1.2) (2026-10-16)
+
+
+### Bug Fixes
+
+* **dashboard:** show insets for Cursor Task calls wrapped as CallDynamicTool ([#140](https://github.com/Texarkanine/stockroom/issues/140)) ([29d8837](https://github.com/Texarkanine/stockroom/commit/29d88377125ad4cec10bef7d17afe802b6a3b8ea))
+* **docs:** clarify installation procedure: install the marketplace, then pick plugin from your harness ([#143](https://github.com/Texarkanine/stockroom/issues/143)) ([a46c251](https://github.com/Texarkanine/stockroom/commit/a46c25152b606b7ead3fb53da561606f30100cb8))
+
 ## [2.1.1](https://github.com/Texarkanine/stockroom/compare/v2.1.0...v2.1.1) (2026-10-09)
 
 
