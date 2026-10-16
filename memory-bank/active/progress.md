@@ -249,3 +249,15 @@ Reassess how each harness exposes its plugin root (`CLAUDE_PLUGIN_ROOT`, `CURSOR
     - Folded in preflight advisories 1 and 3 to 7. Advisory 2 was accepted as gaps. The version-folder idea is left for the operator.
 * Insights
     - Reading results back through the printed line makes the agent's real interface the thing under test. It caught the `'` defect, which reading the block's own variables would have missed.
+
+## 2026-10-16 - QA (rework round 1: PR #142 review) - COMPLETE
+
+* Work completed
+    - Compared the Build (a3f6a72, diffed against 4bfffbc) with plan units 1 to 5, the preflight dispositions, the six PR #142 inline comments, and brief acceptance criteria 1 to 9.
+    - Re-ran the gates. `make ci` exited 0: JS 134/134, pytest 944 passed and 23 skipped, REUSE compliant. `claude plugin validate .` passed, with only the existing CLAUDE.md warning.
+    - Probed AC8 beyond the tests: 10 unusual directory names under dash, bash and busybox sh. All 30 printed lines gave back the exact `APP_DIR` in a fresh shell.
+    - Result (`.qa-validation-status`): `PASS`.
+* Decisions made
+    - No blocking findings. The six advisories are in `tasks.md` under "QA results, rework round 1".
+* Insights
+    - `_alive` now lets `ValueError` through: a NUL byte in a shim header raises, where `Path.is_file()` used to return `False`. Only a hand-corrupted shim can hold a NUL, so this is advisory.

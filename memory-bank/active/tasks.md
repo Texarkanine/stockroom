@@ -264,7 +264,7 @@ No new technology - validation not required. The new block uses only constructs 
 - [x] Pre-Mortem complete
 - [x] Preflight (PASS WITH ADVISORY)
 - [x] Build
-- [ ] QA
+- [x] QA (PASS)
 
 ## Build progress
 
@@ -289,3 +289,29 @@ No new technology - validation not required. The new block uses only constructs 
     - The `install` refusal still says "alive" (plan decision).
     - All three are rare, and none crashes or overwrites anything without asking.
 - **Radical idea (version folder proves the install): not applied.** It would replace the Claude Code question the operator accepted, so it needs an operator call.
+
+## QA results, rework round 1 (PASS)
+
+QA compared the Build (a3f6a72, diffed against 4bfffbc) with plan units 1 to 5, the preflight advisory dispositions, the six PR #142 inline comments, and brief acceptance criteria 1 to 9. KISS, DRY, YAGNI, completeness, regression and integrity pass. Nothing must change before Reflect.
+
+**What QA checked:**
+
+- All six review comments are fixed. A checkout under a `synced/` folder is `dev` (r4299336743, r4299392123). A checkout in a cache-shaped path gets no owner (r4299336751). Step 7's mislabel row covers synced copies (r4299336757). `rectify` and `install` no longer raise on an uncheckable engine dir (r4299336767). The printed line is quoted for the shell (r4299392136).
+- `CLAUDE_PLUGIN_ROOT}` no longer appears in `skills/sr-initialize/SKILL.md`. The `CURSOR_PLUGIN_ROOT` read is kept, so Cursor's first-pass outcomes stand. `test_cursor_custom_cache_with_env` still passes unchanged.
+- AC8, beyond the tests: QA ran the shipped Step 2 block for 10 unusual directory names under dash, bash and busybox sh, and read each printed line back in a fresh shell. The names held `'`, `'''`, `"`, `$`, a backtick, `\`, `%s`, a leading `-`, a tab, and a non-ASCII letter. All 30 runs gave back the exact `APP_DIR`.
+- No stale owner-rule or liveness wording was found in `docs/`, `README.md` or the shim help text. `docs/architecture/packaging.md` says "never touch a live foreign shim", which stays true because an uncheckable engine counts as alive.
+
+**Gates re-run by QA:**
+
+- `make ci`: exit 0. Lint, format-check, lock checks, schema-docs check, JS 134/134, pytest 944 passed and 23 skipped, REUSE compliant.
+- `claude plugin validate .`: passes. The only warning is the existing CLAUDE.md one.
+- The live shim is still baked to `~/git/stockroom`, so the `make ci` exact sync of this worktree changed nothing outside it.
+
+**Advisories (non-blocking), for Reflect or a follow-up:**
+
+1. **A NUL byte in a shim header now raises.** `_alive` lets `ValueError` through. QA checked this on Python 3.11, 3.13 and 3.14: `_alive("/tmp/a\0b")` raises `ValueError`, while the old `Path.is_file()` returned `False` (dead, so the shim was replaced). A `STOCKROOM_APP_DIR` header holding a NUL would make `rectify` and `install` exit with a traceback. The hooks hide that output. Only a hand-corrupted shim can hold a NUL: `render` never writes one, and argv cannot carry one. A fix is to catch `ValueError` as well and count it as dead.
+2. **Step 7's dev branch has no bullet for "another owner, engine cannot be checked".** It lists only the dead and alive cases. A contributor's agent has to work out from the table that the answer is to ask the user, then run `make shim TAKEOVER=1 FORCE=1` only with consent. The plan said to leave the dev bullets unchanged, so Build followed the plan. The case is rare.
+3. **Two docstrings describe the policy only as alive or dead.** These are the `install` docstring and the `shim.py` module docstring. The rule that an uncheckable engine counts as alive is written only in the `_alive` docstring and the `rectify` bullets. Behavior is correct.
+4. **Brief AC3 still says every checkout-based load resolves to `dev`.** Under this round, a checkout in a cache-shaped path gets an empty owner. In Claude Code the user then decides. In Cursor, without `CURSOR_PLUGIN_ROOT`, the agent names `cursor`, which is the accepted residual. AC7 and the residual note cover this, but AC3 does not mention it. Reflect or archive can note it.
+5. **Step 7's `ls -d` check is close to `_alive`, but not identical.** It matches English error texts, so a non-English locale prints other words. A dangling `pyproject.toml` symlink is listed by `ls -d`, but `_alive` counts it as dead. Both cases are rare, and the agent's own judgment covers them.
+6. **Carried from earlier rounds, already accepted:** preflight advisory 2 (the shim template's "missing or invalid" text, `localdev-status` "alive: no", and the `install` refusal wording for an uncheckable engine). zsh is still never run, here or in CI.
