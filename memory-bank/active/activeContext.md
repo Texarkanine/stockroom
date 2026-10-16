@@ -15,16 +15,14 @@
 
 ## Decisions
 - Operator decisions from 2026-10-16 still stand; they are listed in `tasks.md`.
-- **Agent decision, flagged for the operator:** only a harness's default plugins folders are labelled automatically. An install-shaped copy anywhere else gets no owner, and the user decides. This reverses the first pass's labelling of custom roots through substitution, because `--plugin-dir` substitutes a checkout the same way. The cost: users with `CLAUDE_CONFIG_DIR`, `CLAUDE_CODE_PLUGIN_CACHE_DIR` or a Cursor install outside `~/.cursor` are asked one question. A fallback is written in `tasks.md`.
+- **Operator decision (2026-10-16, after the first plan):** "We do not want Cursor users to have to answer extra questions to account for Claude Code situations." Applied in the revised plan:
+    - The path decides inside default plugins folders.
+    - Elsewhere, `CURSOR_PLUGIN_ROOT` holding this engine gives `cursor`, as in the first pass.
+    - Otherwise `OWNER` is empty: Claude Code asks the user, and other harnesses name themselves with no question.
+    - Claude Code's substituted plugin root no longer decides the owner, because `--plugin-dir` substitutes a checkout too.
+- The cost lands on Claude Code users only: those with `CLAUDE_CONFIG_DIR` or `CLAUDE_CODE_PLUGIN_CACHE_DIR` get one question. A fallback is written in `tasks.md`.
+- Accepted Cursor residual: a cache-shaped checkout read through its real path with no `CURSOR_PLUGIN_ROOT` still gets `cursor` from the agent.
 - An uncheckable engine dir counts as alive. Only ENOENT, ENOTDIR and ELOOP mean dead, which is the same on Python 3.11 to 3.14.
 
 ## Next Step
-- Preflight (subagent), then Build.
-
-## Operator decision (2026-10-16, after the plan)
-- **"We do not want Cursor users to have to answer extra questions to account for Claude Code situations."** The plan's "ask the user" rule must not reach Cursor. Preflight was stopped before it finished, so the plan has not been preflighted.
-- Planned revision, not yet applied to `tasks.md`:
-    - Restore the first pass's Cursor path in the out-of-default-folder arm: `CURSOR_PLUGIN_ROOT` that physically holds this engine → `cursor`. Otherwise `OWNER` is empty, and outside Claude Code the agent names its own harness, with no question.
-    - Ask the user only in Claude Code, where `--plugin-dir` substitution cannot tell a checkout from an install.
-    - Keep `test_cursor_custom_cache_with_env` → `cursor`. Keep `test_leaked_cursor_root_is_ignored`, now expecting `OWNER` empty.
-    - Re-prototype, then re-run preflight.
+- Preflight (subagent) on the revised plan, then Build.

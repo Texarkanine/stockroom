@@ -206,3 +206,13 @@ Reassess how each harness exposes its plugin root (`CLAUDE_PLUGIN_ROOT`, `CURSOR
     - I stopped the retry on Opus before it finished, because the operator changed a requirement.
 * Decisions made
     - Operator: "We do not want Cursor users to have to answer extra questions to account for Claude Code situations." Recorded in `activeContext.md`.
+
+## 2026-10-16 - PLAN (rework round 1, revised for the Cursor decision) - COMPLETE
+
+* Work completed
+    - Revised `tasks.md`, `activeContext.md` and brief AC7 for the operator's decision that Cursor users get no Claude-driven questions.
+    - Re-prototyped the Step 2 block with the `CURSOR_PLUGIN_ROOT` read kept: all 15 modeled cases pass under dash and bash, and the quoted path also passes under busybox sh.
+* Decisions made
+    - Outside default plugins folders: `CURSOR_PLUGIN_ROOT` holding this engine gives `cursor`, as in the first pass. Otherwise `OWNER` is empty: Claude Code asks the user, and other harnesses name themselves. The `${CLAUDE_PLUGIN_ROOT}` read is removed.
+    - Test changes: `test_cursor_custom_cache_with_env` stays green unchanged; `test_leaked_cursor_root_is_ignored` now expects an empty owner.
+    - Accepted residual: a Cursor checkout with a cache-shaped real path, read through that path and with no `CURSOR_PLUGIN_ROOT`, still gets `cursor`.
