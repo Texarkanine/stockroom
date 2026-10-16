@@ -224,7 +224,7 @@ No new technology. Claude Code's skill-text substitution was checked with a head
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight
-- [ ] Build
+- [x] Build
 - [ ] QA
 
 ## Preflight 3 advisories: resolutions applied in Build
@@ -252,5 +252,5 @@ No new technology. Claude Code's skill-text substitution was checked with a head
 - [x] 2. Shim missing-dir remedy: `{{GONE_REMEDY}}` / `_DEV_GONE_REMEDY`. Shim render, runtime and CLI tests 44/44.
 - [x] 3. Step 2 block: `test_initialize_context.py` red (no `SKILL_DIR=` fence), then green (28 pass under sh and bash; zsh absent, skipped). A mutation check confirms that an unbraced `$CLAUDE_PLUGIN_ROOT` fails the custom-root case.
 - [x] 4. Step 7 triage table, `--app-dir` on install, the idempotency paragraph, and the intro "working foreign shim".
-- [ ] 5. Docs and shared patterns.
-- [ ] 6. Verification and memory.
+- [x] 5. Docs and shared patterns: `preparation.md` (Changing the Hooks, Done Developing), `troubleshooting/index.md` (lines 34 and 70), `packaging.md` (line 17, rectify row), `systemPatterns.md` (Dual-manifest, Baked-only), and the `scripts/localdev.sh` comment.
+- [x] 6. Verification and memory: lint, format-check, schema-docs-check, JS 134/134, pytest 931 passed and 18 skipped, REUSE compliant, and `claude plugin validate .` (only the existing CLAUDE.md warning). `lock-check` and `test_docs_lock_is_not_stale` fail only with local uv 0.8.22 and pass with CI's pinned uv 0.12.22. An e2e check on real Claude Code 2.1.301 rendered the shipped Step 2 for a custom-root cache install, giving `OWNER='claude'` through substitution. Two SumMem notes added.

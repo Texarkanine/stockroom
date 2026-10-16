@@ -117,3 +117,20 @@ Reassess how each harness exposes its plugin root (`CLAUDE_PLUGIN_ROOT`, `CURSOR
         - The "Red today" labels are inaccurate.
         - Check exactly three levels below `cache`.
     - Radical idea (advisory): a stdlib-only `stockroom shim triage` verb, so Step 7 becomes a tested lookup.
+
+## 2026-10-16 - BUILD - COMPLETE
+
+* Work completed
+    - `shim rectify` replaces a dead shim of any owner. Live foreign shims and unidentified files stay a noop. TDD: 2 red, then green.
+    - New dead-checkout remedy for `dev` shims (`{{GONE_REMEDY}}`).
+    - `sr-initialize` Step 2 rewritten. Install layout decides real versus `dev`, and Claude Code's substitution or Cursor's env attributes custom roots. `test_initialize_context.py` covers 14 cases under each installed shell. It went red first, because there was no `SKILL_DIR=` fence, then green.
+    - Step 7 triage table, docs, `systemPatterns.md`, and the `localdev.sh` comment.
+    - Gates:
+        - lint, format, schema docs, JS tests and REUSE pass.
+        - pytest: 931 passed, 18 skipped. The only failure is the docs-lock test under local uv 0.8.22; it passes under uv 0.12.22.
+        - An e2e run on real Claude Code 2.1.301 confirms the shipped Step 2 resolves `claude` through substitution.
+* Decisions made
+    - A non-stockroom file at the shim path is replaced only with consent.
+    - A dead foreign shim is replaced without asking.
+* Insights
+    - The `-c` script approach lets the shipped skill fence run as a real program under each shell, so a regression to an unbraced token fails CI (mutation-checked).

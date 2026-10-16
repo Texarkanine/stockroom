@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: plugin-root-resolution
-**Phase:** PREFLIGHT - COMPLETE (PASS WITH ADVISORY; advisories resolved in tasks.md)
+**Phase:** BUILD - COMPLETE
 
 ## What Was Done
 - Intent confirmed by the operator: reassess how `CLAUDE_PLUGIN_ROOT` reaches each plugin surface, then fix `sr-initialize` and the hook configuration where they set users up to fail.
@@ -24,5 +24,24 @@
     4. Step 7 sorts the existing shim.
     5. E dropped.
 
+## Build outcome
+- Files modified, all under `/home/mobaxterm/worktrees/Texarkanine/stockroom/stockroom-claudeboarding/`:
+    - `skills/sr-search/src/stockroom/shim.py`: `rectify` dead-shim replacement, `_DEV_GONE_REMEDY`, docstrings, `--help`.
+    - `skills/sr-search/src/stockroom/shim_template.sh`: the `{{GONE_REMEDY}}` placeholder on the missing-dir line.
+    - `skills/sr-search/tests/test_shim.py`: three new `TestRectify` cases; docstrings narrowed.
+    - `skills/sr-search/tests/test_initialize_context.py`: new; 14 cases × sh/bash/zsh.
+    - `skills/sr-initialize/SKILL.md`: Step 2 rewrite, Step 7 triage table, the idempotency paragraph, and the intro.
+    - Docs: `docs/contributing/preparation.md`, `docs/user-guide/troubleshooting/index.md`, `docs/architecture/packaging.md`.
+    - `scripts/localdev.sh` comment, `memory-bank/systemPatterns.md`, and two `.summem/notes/*`.
+- Decisions made during Build:
+    - Step 7 got an extra row: a file with no `STOCKROOM_` lines is not ours, so tell the user and replace it only with consent. That mirrors rectify's unidentified-file rule.
+    - Step 7 replaces a dead foreign shim with `--takeover` without asking, matching the new hook behavior.
+    - The intro now says "working foreign shim" goes to the user.
+- Deviations from the plan:
+    - `troubleshooting/index.md` line 74 was left unchanged; it already says a new session heals.
+    - Added an e2e check on real Claude Code that the plan did not list.
+    - `make ci` could not pass end to end locally: `lock-check` needs uv 0.12.22. The remaining gates were run individually, and the lock checks passed under uv 0.12.22.
+- Residual risks for QA: zsh is untested (absent here and on CI), and Cursor's agent-shell behavior is still undocumented.
+
 ## Next Step
-- Build (L2), test-first: rectify dead-shim takeover, then the remedy placeholder, Step 2 tests then block, Step 7, then docs.
+- QA (subagent).

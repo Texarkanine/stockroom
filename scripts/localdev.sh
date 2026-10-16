@@ -185,7 +185,7 @@ clean_claude() {
 #
 # Leaves harness-owned shims (cursor/claude) untouched. Dest absent is a no-op.
 # After removal, stockroom is off PATH until a normal install binds it again
-# (rectify never creates a missing shim).
+# (the next session of an installed stockroom plugin recreates it via rectify).
 #
 # Globals:
 #   None
