@@ -12,13 +12,23 @@ Bash tool"). What a harness gives the agent is the skill text itself:
   harness may or may not export ``CURSOR_PLUGIN_ROOT``.
 
 Each test renders the shipped Step 2 fence the way one harness would, runs it
-under every installed POSIX-family shell with a minimal environment, and
-asserts the resolved ``OWNER`` / ``APP_DIR``. The owner rule (operator
-decision): only a marketplace install — the harness's cache copy at
-``…/cache/<marketplace>/<plugin>/<version>``, or a Claude Code copy synced from
-claude.ai — is a real install labelled with its harness; anything run from a
-checkout (``--plugin-dir``, Cursor ``plugins/local``, a local-path marketplace,
-the localdev mirror) is ``dev``.
+under every installed POSIX-family shell with a minimal environment, then runs
+the one line it prints — the agent's interface to every later step — in a
+fresh shell and asserts the ``OWNER`` / ``APP_DIR`` that line sets.
+
+The owner rule (operator decisions):
+
+* Inside a harness's default plugins folder the path decides:
+  ``…/.claude/plugins/cache/<marketplace>/<plugin>/<version>`` and
+  ``…/.claude/plugins/synced/…`` (claude.ai sync) are ``claude``;
+  ``…/.cursor/plugins/cache/…`` is ``cursor``.
+* An install-shaped copy anywhere else is ``cursor`` when the exported
+  ``CURSOR_PLUGIN_ROOT`` holds it. Otherwise it gets no owner: in Claude Code
+  the agent asks the user, and other harnesses name themselves. Claude Code's
+  substituted plugin root is not proof, because ``--plugin-dir`` substitutes a
+  checkout the same way.
+* Anything else run from a checkout (``--plugin-dir``, Cursor
+  ``plugins/local``, a local-path marketplace, the localdev mirror) is ``dev``.
 """
 
 import os
@@ -67,18 +77,28 @@ def _fill_placeholder(block: str, skill_dir: Path) -> str:
 def _run_block(
     shell: str, block: str, home: Path, env: dict[str, str] | None = None
 ) -> tuple[str, str]:
-    """Run ``block`` under ``shell`` with only PATH, HOME and ``env`` set;
-    return the resulting ``(OWNER, APP_DIR)``."""
-    script = block + '\nprintf "%s\\n%s\\n" "$OWNER" "$APP_DIR"\n'
+    """Run ``block`` under ``shell`` with only PATH, HOME and ``env`` set, then
+    run the one ``APP_DIR=…; OWNER=…`` line it prints in a fresh ``shell``;
+    return the ``(OWNER, APP_DIR)`` that line sets."""
     result = subprocess.run(
-        [shell, "-c", script],
+        [shell, "-c", block],
         env={"PATH": os.environ["PATH"], "HOME": str(home), **(env or {})},
         cwd=home,
         capture_output=True,
         text=True,
     )
-    lines = result.stdout.splitlines()
-    assert len(lines) >= 2, f"stdout={result.stdout!r} stderr={result.stderr!r}"
+    printed = [
+        line for line in result.stdout.splitlines() if line.startswith("APP_DIR=")
+    ]
+    assert len(printed) == 1, f"stdout={result.stdout!r} stderr={result.stderr!r}"
+    readback = subprocess.run(
+        [shell, "-c", printed[0] + '\nprintf "%s\\n%s\\n" "$OWNER" "$APP_DIR"\n'],
+        env={"PATH": os.environ["PATH"]},
+        capture_output=True,
+        text=True,
+    )
+    lines = readback.stdout.splitlines()
+    assert len(lines) >= 2, f"printed={printed[0]!r} stderr={readback.stderr!r}"
     return lines[-2], lines[-1]
 
 
@@ -151,14 +171,18 @@ def test_claude_marketplace_without_substitution(
     )
 
 
-def test_claude_custom_plugins_root(shell: str, step2: str, tmp_path: Path) -> None:
+def test_claude_custom_plugins_root_gets_no_owner(
+    shell: str, step2: str, tmp_path: Path
+) -> None:
     """Under ``CLAUDE_CODE_PLUGIN_CACHE_DIR`` the cache lives outside
-    ``~/.claude``; Claude Code's substituted plugin root identifies it."""
+    ``~/.claude``. Claude Code's substituted plugin root is not proof of an
+    install there (``--plugin-dir`` substitutes a checkout the same way), so
+    the copy gets no owner and the agent asks the user."""
     root = tmp_path / "plugin-root" / "cache" / "txrk9" / "stockroom" / "2.1.1"
     skill_dir = _plugin_tree(root)
     block = _render_claude(step2, skill_dir=skill_dir, plugin_root=root)
     assert _run_block(shell, block, tmp_path) == (
-        "claude",
+        "",
         str(root / "skills" / "sr-search"),
     )
 
@@ -169,6 +193,50 @@ def test_claude_plugin_dir_checkout_is_dev(
     """``claude --plugin-dir <checkout>`` is a contributor load: ``dev``,
     even though Claude Code substitutes the checkout as the plugin root."""
     root = tmp_path / "git" / "stockroom"
+    skill_dir = _checkout_tree(root)
+    block = _render_claude(step2, skill_dir=skill_dir, plugin_root=root)
+    assert _run_block(shell, block, tmp_path) == (
+        "dev",
+        str(root / "skills" / "sr-search"),
+    )
+
+
+def test_claude_plugin_dir_checkout_under_synced_is_dev(
+    shell: str, step2: str, tmp_path: Path
+) -> None:
+    """A ``--plugin-dir`` checkout whose path merely contains a ``synced``
+    folder is still ``dev``: only ``…/.claude/plugins/synced/…`` is a
+    claude.ai-synced copy."""
+    root = tmp_path / "projects" / "synced" / "stockroom"
+    skill_dir = _checkout_tree(root)
+    block = _render_claude(step2, skill_dir=skill_dir, plugin_root=root)
+    assert _run_block(shell, block, tmp_path) == (
+        "dev",
+        str(root / "skills" / "sr-search"),
+    )
+
+
+def test_checkout_in_a_cache_shaped_path_gets_no_owner(
+    shell: str, step2: str, tmp_path: Path
+) -> None:
+    """A ``--plugin-dir`` checkout three levels below a folder named
+    ``cache`` looks like an install, but Claude Code's substituted root does
+    not prove it: no ``claude`` label, and the agent asks the user."""
+    root = tmp_path / "src" / "cache" / "acme" / "widgets" / "stockroom"
+    skill_dir = _checkout_tree(root)
+    block = _render_claude(step2, skill_dir=skill_dir, plugin_root=root)
+    assert _run_block(shell, block, tmp_path) == (
+        "",
+        str(root / "skills" / "sr-search"),
+    )
+
+
+def test_printed_line_survives_quotes_in_the_path(
+    shell: str, step2: str, tmp_path: Path
+) -> None:
+    """The printed line is valid shell for a path holding ``'`` and a space
+    (a Windows user name under WSL), so every later step can start with it."""
+    root = tmp_path / "O'Brien files" / "stockroom"
     skill_dir = _checkout_tree(root)
     block = _render_claude(step2, skill_dir=skill_dir, plugin_root=root)
     assert _run_block(shell, block, tmp_path) == (
@@ -195,6 +263,20 @@ def test_claude_synced_plugin(shell: str, step2: str, home: Path) -> None:
     root = home / ".claude" / "plugins" / "synced" / "bucket-1" / "stockroom"
     skill_dir = _plugin_tree(root)
     block = _render_claude(step2, skill_dir=skill_dir, plugin_root=root)
+    assert _run_block(shell, block, home) == (
+        "claude",
+        str(root / "skills" / "sr-search"),
+    )
+
+
+def test_claude_synced_plugin_without_substitution(
+    shell: str, step2: str, home: Path
+) -> None:
+    """The synced path alone says ``claude``, also when the agent fills the
+    placeholder (Cursor agents read skills from Claude Code's plugin folders)."""
+    root = home / ".claude" / "plugins" / "synced" / "bucket-1" / "stockroom"
+    skill_dir = _plugin_tree(root)
+    block = _fill_placeholder(step2, skill_dir)
     assert _run_block(shell, block, home) == (
         "claude",
         str(root / "skills" / "sr-search"),
@@ -271,8 +353,8 @@ def test_localdev_mirror_in_a_cache_named_dir_is_dev(
 
 
 def test_leaked_cursor_root_is_ignored(shell: str, step2: str, tmp_path: Path) -> None:
-    """A ``CURSOR_PLUGIN_ROOT`` inherited from some other plugin does not
-    relabel a Claude Code install it does not hold."""
+    """A ``CURSOR_PLUGIN_ROOT`` inherited from some other plugin labels
+    nothing: a Claude Code custom-root copy it does not hold gets no owner."""
     root = tmp_path / "plugin-root" / "cache" / "txrk9" / "stockroom" / "2.1.1"
     skill_dir = _plugin_tree(root)
     other = tmp_path / "elsewhere" / "cache" / "other" / "stockroom" / "1.0.0"
@@ -280,7 +362,7 @@ def test_leaked_cursor_root_is_ignored(shell: str, step2: str, tmp_path: Path) -
     block = _render_claude(step2, skill_dir=skill_dir, plugin_root=root)
     env = {"CURSOR_PLUGIN_ROOT": str(other)}
     assert _run_block(shell, block, tmp_path, env) == (
-        "claude",
+        "",
         str(root / "skills" / "sr-search"),
     )
 
@@ -289,7 +371,8 @@ def test_unattributed_install_has_no_owner(
     shell: str, step2: str, tmp_path: Path
 ) -> None:
     """A cache copy no harness vouches for gets no owner (the agent names
-    its harness), but the engine dir is still resolved."""
+    its harness, or in Claude Code asks the user), but the engine dir is
+    still resolved."""
     root = tmp_path / "elsewhere" / "cache" / "txrk9" / "stockroom" / "2.1.1"
     skill_dir = _plugin_tree(root)
     block = _fill_placeholder(step2, skill_dir)

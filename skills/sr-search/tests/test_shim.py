@@ -12,12 +12,20 @@ Everything writes to tmp destinations via explicit ``dest`` — the real
 """
 
 import os
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
 
 import stockroom
 from stockroom import shim
+
+#: Mode bits do not stop root, so a mode-000 parent cannot make a dir
+#: uncheckable when the suite runs as root.
+needs_non_root = pytest.mark.skipif(
+    hasattr(os, "geteuid") and os.geteuid() == 0,
+    reason="root ignores mode bits",
+)
 
 
 @pytest.fixture
@@ -54,6 +62,24 @@ def dead_dir(tmp_path: Path) -> Path:
     d = tmp_path / "engine-dead"
     d.mkdir()
     return d
+
+
+@pytest.fixture
+def uncheckable_dir(tmp_path: Path) -> Iterator[Path]:
+    """An alive engine dir under ``locked/``, readable until :func:`_lock`.
+
+    Teardown restores the parent's mode so tmp cleanup can remove it.
+    """
+    d = tmp_path / "locked" / "engine"
+    d.mkdir(parents=True)
+    (d / "pyproject.toml").write_text("[project]\nname = 'stockroom'\n")
+    yield d
+    d.parent.chmod(0o755)
+
+
+def _lock(app_dir: Path) -> None:
+    """Make ``app_dir`` uncheckable: its parent denies all access (EACCES)."""
+    app_dir.parent.chmod(0o000)
 
 
 @pytest.fixture
@@ -192,6 +218,26 @@ class TestInstall:
         assert taken.action == "installed"
         assert dest.read_text() == shim.render(engine_dir, "claude")
 
+    @needs_non_root
+    def test_foreign_owner_uncheckable_dir_refuses_untouched(
+        self, dest: Path, uncheckable_dir: Path, engine_dir: Path
+    ) -> None:
+        """A foreign shim whose baked engine cannot be checked (permission
+        denied) is treated as alive: refused without raising, with or without
+        --takeover, and replaced only with --takeover --force."""
+        shim.install(dest, uncheckable_dir, "dev")
+        before = dest.read_text()
+        _lock(uncheckable_dir)
+
+        assert shim.install(dest, engine_dir, "claude").action == "refused"
+        refused = shim.install(dest, engine_dir, "claude", takeover=True)
+        assert refused.action == "refused"
+        assert dest.read_text() == before
+
+        forced = shim.install(dest, engine_dir, "claude", takeover=True, force=True)
+        assert forced.action == "installed"
+        assert dest.read_text() == shim.render(engine_dir, "claude")
+
     def test_corrupt_header_treated_as_foreign(
         self, dest: Path, engine_dir: Path
     ) -> None:
@@ -317,6 +363,21 @@ class TestRectify:
         dest.parent.mkdir(parents=True)
         dest.write_text("#!/bin/sh\necho not a stockroom shim\n")
         before = dest.read_text()
+        report = shim.rectify(dest, engine_dir, "claude")
+        assert report.action == "noop"
+        assert dest.read_text() == before
+
+    @needs_non_root
+    def test_foreign_shim_with_uncheckable_engine_left_untouched(
+        self, dest: Path, uncheckable_dir: Path, engine_dir: Path
+    ) -> None:
+        """A foreign shim whose baked engine cannot be checked (permission
+        denied, a stale mount) is not known to be dead: the hook-driven rectify
+        leaves it untouched and does not raise, so the hook stays exit-0."""
+        shim.install(dest, uncheckable_dir, "dev")
+        before = dest.read_text()
+        _lock(uncheckable_dir)
+
         report = shim.rectify(dest, engine_dir, "claude")
         assert report.action == "noop"
         assert dest.read_text() == before

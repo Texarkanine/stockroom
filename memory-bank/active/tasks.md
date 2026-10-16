@@ -262,6 +262,30 @@ No new technology - validation not required. The new block uses only constructs 
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
-- [ ] Build
+- [x] Preflight (PASS WITH ADVISORY)
+- [x] Build
 - [ ] QA
+
+## Build progress
+
+- [x] 1. `_alive` counts an uncheckable engine as alive. 2 tests red (`PermissionError`), then green; shim, CLI and runtime tests: 46 passed. Preflight advisory 3 applied: the install test also asserts that `--takeover --force` installs.
+- [x] 2. Step 2 default-folder owner rule and a shell-safe printed line. 12 red (6 tests × sh/bash), then green; module: 38 passed, 19 skipped (zsh absent). `CLAUDE_PLUGIN_ROOT}` no longer appears in SKILL.md. Preflight advisory 5 applied: `test_claude_synced_plugin_without_substitution`, red then green.
+- [x] 3. Step 7. Preflight advisories 1 and 4 applied:
+    - The liveness check is named (`ls -d -- …/pyproject.toml`), and its three "dead" error texts match `_GONE_ERRNOS`.
+    - A new "cannot be checked" row.
+    - The mislabel row covers synced copies, and asks first when the path is outside the default plugins folders.
+- [x] 4. `systemPatterns.md` (Dual-manifest owner rule, Baked-only liveness) and two SumMem notes; the tool's nap request was done.
+- [x] 5. Verification:
+    - `make ci` passes: lint, format-check, lock checks, schema-docs, JS 134/134, pytest 944 passed and 23 skipped, REUSE compliant. One format-check failure on the first run was a line wrap, fixed with `make format`.
+    - `claude plugin validate .` passes with only the existing CLAUDE.md warning.
+    - The live shim is baked to `~/git/stockroom`, so no torch restore was needed.
+
+## Preflight advisories: dispositions
+
+- **Applied in Build:** 1 (Step 7 check), 3 (`--takeover --force` assertion), 4 (mislabel row asks first outside default folders), 5 (synced from Cursor now `claude`, recorded as intended, with a test), 6 (AC1 narrowed), 7 (AC8 narrowed to paths without a newline).
+- **Advisory 2: accepted as gaps, not changed.**
+    - `shim_template.sh` still calls an uncheckable engine "missing or invalid", and its `dev` remedy (a new session) does not heal that case. `sr-initialize` does, through the new Step 7 row.
+    - `localdev-status` reports "alive: no" for an unreadable engine.
+    - The `install` refusal still says "alive" (plan decision).
+    - All three are rare, and none crashes or overwrites anything without asking.
+- **Radical idea (version folder proves the install): not applied.** It would replace the Claude Code question the operator accepted, so it needs an operator call.

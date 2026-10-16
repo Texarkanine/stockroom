@@ -41,7 +41,7 @@ A contributor who has a real install and a `dev` shim goes back to the release. 
 
 ## Acceptance Criteria
 
-1. On a Claude Code marketplace install, following `sr-initialize` Step 2 literally gives `OWNER=claude` and the absolute plugin-cache `skills/sr-search` path.
+1. On a Claude Code marketplace install in the default plugins folder (`~/.claude/plugins/…`), following `sr-initialize` Step 2 literally gives `OWNER=claude` and the absolute plugin-cache `skills/sr-search` path. Under a custom plugins folder, AC7 applies.
 2. On a Cursor marketplace install, Step 2 gives `OWNER=cursor` by a mechanism that is documented or verified, or the remaining uncertainty is stated in the skill or the docs and does not misroute the user.
 3. Every checkout-based load (`claude --plugin-dir`, Cursor `plugins/local`, local-path marketplace in place, Cursor mirror) resolves to `OWNER=dev`. Re-running `sr-initialize` never offers to take over a shim that its owner still maintains.
 4. A `dev` shim whose checkout is gone is replaced at the next session start of an installed stockroom plugin. A live foreign shim is never touched.
@@ -51,5 +51,5 @@ A contributor who has a real install and a `dev` shim goes back to the release. 
 ### Added by the PR #142 review (2026-10-16)
 
 7. In Claude Code, no checkout is labelled `claude` because of where its path happens to sit. The path labels a copy only inside a harness's default plugins folder (`…/.claude/plugins/cache/…`, `…/.claude/plugins/synced/…` or `…/.cursor/plugins/cache/…`). Outside those folders, Claude Code's substituted plugin root is not proof, and the agent asks the user. Cursor users get no new question: Cursor keeps its first-pass outcomes (operator decision).
-8. The line Step 2 prints is valid shell for any path the block resolves, including paths that contain `'` or spaces.
+8. The line Step 2 prints is valid shell for any path the block resolves that contains no newline, including paths that contain `'` or spaces.
 9. `shim rectify` exits 0 and leaves the shim untouched when a foreign shim's engine directory cannot be checked. `shim install` refuses such a shim unless both `--takeover` and `--force` are passed. Neither command raises an exception.

@@ -30,9 +30,11 @@ and ``creative-shim-generation-surface.md`` (both revised 2026-07-08).
 
 import argparse
 import contextlib
+import errno
 import os
 import re
 import shlex
+import stat
 import subprocess
 import sys
 import tempfile
@@ -63,6 +65,10 @@ _DEV_GONE_REMEDY = (
     "run 'make shim' from a stockroom checkout, or start a new session of a "
     "harness with the stockroom plugin installed to go back to that install"
 )
+
+#: ``stat`` errors that mean a baked engine dir is gone. Any other ``OSError``
+#: (permission denied, a stale mount) means it could not be checked.
+_GONE_ERRNOS = frozenset({errno.ENOENT, errno.ENOTDIR, errno.ELOOP})
 
 
 @dataclass
@@ -141,8 +147,17 @@ def _read_header(dest: Path) -> dict[str, str] | None:
 
 
 def _alive(app_dir: str) -> bool:
-    """A baked engine dir is alive iff it still holds a ``pyproject.toml``."""
-    return (Path(app_dir) / "pyproject.toml").is_file()
+    """A baked engine dir is alive unless it verifiably lacks a ``pyproject.toml``.
+
+    An engine that cannot be checked counts as alive, so no caller replaces a
+    shim it could not inspect. This stats directly rather than using
+    ``Path.is_file``, which raises such errors before Python 3.14 and folds
+    them into ``False`` from 3.14 on.
+    """
+    try:
+        return stat.S_ISREG((Path(app_dir) / "pyproject.toml").stat().st_mode)
+    except OSError as exc:
+        return exc.errno not in _GONE_ERRNOS
 
 
 def _write_atomic(dest: Path, content: str) -> None:
@@ -268,7 +283,8 @@ def rectify(
     * dest present, this owner, content matches → noop.
     * dest present, foreign owner, baked engine **dead** → replace with this
       owner's bake (a dead shim runs nothing; e.g. a deleted dev checkout).
-    * dest present, foreign owner, baked engine alive → silent noop.
+    * dest present, foreign owner, baked engine alive or uncheckable → silent
+      noop.
     * dest present without stockroom header markers → silent noop (never
       overwrite a file we cannot identify).
     """

@@ -236,3 +236,16 @@ Reassess how each harness exposes its plugin root (`CLAUDE_PLUGIN_ROOT`, `CURSOR
         - AC1 and AC7 disagree.
         - Newline paths and EBADF are pathological.
     - Radical idea (advisory): the version folder proves the install. Claude names it after the manifest version, and Cursor after the clone's commit. That removes the Claude Code question and the Cursor residual.
+
+## 2026-10-16 - BUILD (rework round 1: PR #142 review) - COMPLETE
+
+* Work completed
+    - Unit 1: `_alive` stats `pyproject.toml` directly. ENOENT, ENOTDIR and ELOOP mean dead; other `OSError` counts as alive. 2 new tests went red (`PermissionError`), then green.
+    - Unit 2: new Step 2 block. It labels default plugins folders by path, keeps `CURSOR_PLUGIN_ROOT`, drops the `${CLAUDE_PLUGIN_ROOT}` read, and prints a shell-quoted line. `_run_block` now reads back through the printed line. 12 red (6 tests × sh/bash), then green.
+    - Unit 3: Step 7 names its liveness check, adds a "cannot be checked" row, and widens the mislabel row to synced copies.
+    - Unit 4: `systemPatterns.md` and two SumMem notes.
+    - Unit 5: `make ci` green (pytest 944 passed, 23 skipped; JS 134/134; REUSE compliant). `claude plugin validate .` shows only the existing warning.
+* Decisions made
+    - Folded in preflight advisories 1 and 3 to 7. Advisory 2 was accepted as gaps. The version-folder idea is left for the operator.
+* Insights
+    - Reading results back through the printed line makes the agent's real interface the thing under test. It caught the `'` defect, which reading the block's own variables would have missed.
