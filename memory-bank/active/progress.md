@@ -59,3 +59,14 @@ Show the normal dashboard subagent inset when a Cursor parent launches a subagen
     - Ran the four affected test files (101 passed) and ruff check/format
 * Decisions made
     - Verdict PASS. Three non-blocking advisories recorded in `tasks.md`
+
+## 2026-10-15 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `memory-bank/active/reflection/reflection-cursor-wrapped-task-inset.md`
+    - Left `productContext.md`, `systemPatterns.md`, and `techContext.md` unchanged
+* Decisions made
+    - The join-then-zip placement stays. The shared unwrap helper stays advice
+* Insights
+    - A CLI `toolCallId` can contain a newline, and both id columns have to keep it
+    - The `0001` comment that Cursor `spawning_tool_use_id` is NULL is now stale for CLI chats, and applied migrations are not rewritten
