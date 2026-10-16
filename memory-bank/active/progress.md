@@ -198,3 +198,11 @@ Reassess how each harness exposes its plugin root (`CLAUDE_PLUGIN_ROOT`, `CURSOR
     - The Step 2 tests read results back through the printed line, because that line is the agent's interface.
 * Insights
     - Under `--plugin-dir`, `${CLAUDE_PLUGIN_ROOT}` substitution looks exactly like a real install's. It can never be the sole proof of an install.
+
+## 2026-10-16 - PREFLIGHT - STOPPED (operator decision)
+
+* Work completed
+    - The first preflight attempt failed: Fable 5.1 was out of usage credits (HTTP 429). It changed nothing.
+    - I stopped the retry on Opus before it finished, because the operator changed a requirement.
+* Decisions made
+    - Operator: "We do not want Cursor users to have to answer extra questions to account for Claude Code situations." Recorded in `activeContext.md`.
