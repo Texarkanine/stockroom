@@ -223,6 +223,25 @@ No new technology. Claude Code's skill-text substitution was checked with a head
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
 - [ ] QA
+
+## Preflight 3 advisories: resolutions applied in Build
+
+- **A1 (synced plugins):** resolved under the operator's rule (a real install is not a checkout), so no new question. A plugin root under a `synced/` directory (`<plugins root>/synced/<bucket>/…`, claude.ai sync, Claude Code only) counts as a real `claude` install when Claude Code's substituted root holds this engine. One added test case: `synced/<bucket>/stockroom` with Claude rendering → `claude`.
+- **A2 (mislabel visibility):** the corrected Pre-Mortem note: a wrong `dev` result is *not* visibly failing, because installs contain a `Makefile`. Step 7's dev branch therefore says to run `make shim` / `make localdev` only from a checkout the user develops in. If `APP_DIR` is not that, stop and ask.
+- **A3 (empty OWNER):** stop at Step 2 only when `APP_DIR` is empty (no engine). When only `OWNER` is empty (a real install whose harness did not identify itself), the agent sets `OWNER` to the harness it is running in (`claude` or `cursor`).
+- **A4 (Step 7 shim lookup):** read the install destination `~/.local/bin/stockroom` directly (`grep '^# STOCKROOM_' ~/.local/bin/stockroom`), not `command -v`. That folder is often not on PATH on first-time machines.
+- **A5 (stale "never touches a foreign owner" text):** also update:
+    - `shim.py`: the `--help` description and the `ShimReport` docstring
+    - the `test_shim.py` module docstring
+    - `docs/architecture/packaging.md` line 17
+    - `docs/user-guide/troubleshooting/index.md` line 34
+    - the `scripts/localdev.sh` comment
+- **A6 ("Red today" labels):** every Step 2 case is red against today's file, because the fence is selected by `SKILL_DIR=`. That is a valid red run.
+- **A7 (Build details):**
+    - Use an exact three-level check under `cache`: `${PLUGIN_ROOT%/*/*/*}` + basename.
+    - Reuse the existing `dead_dir` fixture.
+    - Keep the literal `${CLAUDE_SKILL_DIR}` token out of prose.
+- **Declined: the `stockroom shim triage` command.** It adds a CLI surface beyond this bug fix. Logged as a follow-up candidate, with `doctor probe` mis-owned detection, for the reflection.

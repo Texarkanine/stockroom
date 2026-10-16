@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: plugin-root-resolution
-**Phase:** PLAN - COMPLETE (third revision, operator-approved design)
+**Phase:** PREFLIGHT - COMPLETE (PASS WITH ADVISORY; advisories resolved in tasks.md)
 
 ## What Was Done
 - Intent confirmed by the operator: reassess how `CLAUDE_PLUGIN_ROOT` reaches each plugin surface, then fix `sr-initialize` and the hook configuration where they set users up to fail.
@@ -25,4 +25,4 @@
     5. E dropped.
 
 ## Next Step
-- Preflight the revised plan (subagent), then Build.
+- Build (L2), test-first: rectify dead-shim takeover, then the remedy placeholder, Step 2 tests then block, Step 7, then docs.

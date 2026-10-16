@@ -97,3 +97,23 @@ Reassess how each harness exposes its plugin root (`CLAUDE_PLUGIN_ROOT`, `CURSOR
         - No separate dev data.
         - Argument substitution is not a concern.
     - The shim's missing-dir remedy for `dev` mentions starting a session of an installed harness plugin. A new template placeholder; the env-not-ready remedy is unchanged.
+
+## 2026-10-16 - PREFLIGHT (third run) - COMPLETE
+
+* Work completed
+    - Checked the third-revision plan (951e756) against the codebase: `sr-initialize` SKILL.md, `stockroom.shim` and its template, the shim, CLI and runtime tests, hygiene and packaging tests, `localdev.sh`, the Makefile, and the docs that state the rectify policy.
+    - Wrote the target Step 2 block in scratch and ran all 13 planned cases under dash, bash and busybox sh. Every case gave the planned `OWNER` and `APP_DIR`.
+    - Checked the Claude Code plugin-loading docs. `CLAUDE_CODE_PLUGIN_CACHE_DIR` replaces the plugins root, and copies stay at `<root>/cache/<m>/<p>/<v>`. Warehouse history shows Cursor runs `sr-initialize` from `~/.cursor/plugins/cache/…`.
+    - Result (first line of `.preflight-status`): `PASS WITH ADVISORY`.
+* Decisions made
+    - TDD encoding passes. Units 1 and 3 put tests first, Unit 2 is wording guarded by the existing runtime tests, and Units 4 and 5 are prose. No strike or swap was needed.
+* Insights
+    - Advisories:
+        - Plugins synced from claude.ai (`<plugins root>/synced/…`) are real installs, but the layout rule calls them `dev`. This needs an operator call.
+        - The Pre-Mortem's "visible failure" claim is wrong, because install dirs contain a Makefile.
+        - Settle stop-versus-name-your-harness when `OWNER` is empty.
+        - Step 7 should read `~/.local/bin/stockroom`, not `command -v`.
+        - Stale "never touches a foreign owner" text in `shim.py` help, the `ShimReport` docstring, the `test_shim.py` docstring, packaging.md line 17 and troubleshooting line 34.
+        - The "Red today" labels are inaccurate.
+        - Check exactly three levels below `cache`.
+    - Radical idea (advisory): a stdlib-only `stockroom shim triage` verb, so Step 7 becomes a tested lookup.

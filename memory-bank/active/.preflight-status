@@ -1,81 +1,70 @@
-FAIL (fixable)
+PASS WITH ADVISORY
 
-Second preflight of the Level 2 plan `plugin-root-resolution` (tasks.md as of b44920d). The revision fixed both findings from the first run. One new defect has a known fix and must go into the plan before Build. The rest of the plan stands.
+Third preflight of the Level 2 plan `plugin-root-resolution` (tasks.md as of 951e756, the third revision built on the operator's decisions). The plan can go to Build as written. Nothing blocks it. The advisories below are cheap, and most of them touch the same files Build already edits. Advisory 1 changes what the operator approved, so the operator should decide on it before Build starts.
 
-## Prior findings: resolved
+## Prior findings
 
-- Fixable 1 (localdev mirror path): resolved. The case now expects the logical mirror `APP_DIR` and checks its resolved target on its own.
-- Fixable 2 (Step 7 takeover prompts on healthy shims): resolved. Step 7 now sorts the shim by the header's owner and baked dir. It offers a takeover only for a dead foreign shim, or for a `dev` shim baked inside a harness plugins tree.
-- Advisories A1 and A3 to A7 are folded in. A2 is recorded as an operator decision.
+- Second preflight, finding 1 (argument substitution): closed by operator decision. Argument substitution is not a concern, and the Step 2 block uses no functions and no positional tokens.
+- Second preflight, advisories A1 (`--app-dir` in Step 7), A2 (a quoted re-set line), A3 (zsh never runs; now recorded as a residual risk) and A4 (path rule before root rules): all folded in.
+- A5 (fence selection): folded in. Tests select the fence by its `SKILL_DIR=` assignment. See advisory 6 for a side effect.
 
 ## Design check by prototype
 
-I wrote the target Step 2 block in the scratchpad. The helper reads a named variable, not `$1`. I ran all nine planned cases under `dash` (which is `/bin/sh` here) and `bash`. Every case gave the planned `OWNER` and `APP_DIR`. That includes the mirror case: its logical `APP_DIR` is `<repo>/.cursor/skills/stockroom-local/sr-search`, and its realpath is `<repo>/skills/sr-search`. The design works.
+I wrote the target Step 2 block to the plan's rules in a scratch directory. It has no functions and no positional parameters, uses logical `cd` for `APP_DIR` and `cd -P` for the root comparisons, and checks for exactly three levels below `cache`. I ran all 13 planned cases under dash (`/bin/sh` here), bash and busybox sh. Every case gave the planned `OWNER` and `APP_DIR`:
+
+- Cases 1, 2, 3 and 10 gave `claude`. Cases 6 and 7 gave `cursor`. Cases 4, 5, 8 and 9 gave `dev`. Cases 11, 12 and 13 gave an empty `OWNER`.
+- Case 9 (the mirror) gave the logical mirror `APP_DIR`, and its realpath is `<repo>/skills/sr-search`.
+
+I also checked the Claude Code docs ([plugin loading](https://code.claude.com/docs/en/plugins/loading)). `CLAUDE_CODE_PLUGIN_CACHE_DIR` replaces the whole plugins root, and copies still go to `<root>/cache/<marketplace>/<plugin>/<version>/`. So case 3 models the custom root correctly. The installs on this machine have that shape in both harnesses. The warehouse shows Cursor agents running `sr-initialize` from `~/.cursor/plugins/cache/…`, never from `~/.cursor/plugins/marketplaces/…`.
 
 ## Checks
 
-- **TDD plan encoding: pass.** Unit 1 is executable: agents run the Step 2 block as written, and a user sees the wrong owner or a wrong shim when it breaks. Its steps stub the tests, implement them, run them red, then rewrite the block. Units 2 and 3 are prose or policy and owe no tests. Nothing was struck or swapped.
-- **Convention compliance: pass.** `skills/sr-search/tests/test_initialize_context.py` follows the `test_<area>.py` pattern. It uses the module docstring, `repo_root`, a minimal `subprocess.run` env and the `tmp_path` style of `test_shim_runtime.py`. The base `**/*` glob in REUSE.toml covers the new file.
-- **Dependency impact: pass.** `test_skill_hygiene.py` exempts `sr-initialize` on purpose. The `test_packaging.py` hook tests stay green because the hooks do not change. `shim.py` stays unchanged, as Constraint 4 requires. A search of the docs found no other page that states the old model, beyond the lines the plan already names.
-- **Conflict detection: one defect, below.**
-- **Completeness: pass, apart from the defect below.** Each requirement and acceptance criterion maps to a unit with named files.
-
-## Finding 1 (fixable): Claude Code also substitutes positional argument placeholders, including inside code fences
-
-The plan says that in Claude Code "only the exact tokens `${CLAUDE_PLUGIN_ROOT}` and `${CLAUDE_SKILL_DIR}` are substituted". The test model follows that claim. The claim is incomplete. The skills docs ([Available string substitutions](https://code.claude.com/docs/en/skills#available-string-substitutions)) also list these placeholders:
-
-- `$ARGUMENTS`
-- `$ARGUMENTS[N]`
-- `$N` (shorthand: `$0` is the first argument, `$1` the second)
-- `$name`, for names declared in an `arguments:` frontmatter list
-
-An indexed placeholder that has no matching argument stays literal.
-
-Probe on Claude Code 2.1.301, run headless with a project skill whose fenced `bash` block holds `holds() { [ "$(cd -P -- "$1" && pwd -P)" = "$2" ]; }`:
-
-- `/argprobe alpha beta` gave `holds() { [ "$(cd -P -- "beta" && pwd -P)" = "$2" ]; }`, and `$0` became `alpha`.
-- `/argprobe` with no arguments left everything literal.
-
-Why this matters here:
-
-- The plan's `holds_engine` helper is a shell function, and the natural way to pass it the root is `$1`. Users often type free text after `/stockroom:sr-initialize`, and a model can call the skill with `args`. In either case `$1` becomes a word of that text, and the same-directory guard breaks.
-- When the guard breaks, the custom-config-dir install and the `claude --plugin-dir` checkout fall through to `dev`. Those are the cases the plan exists to fix.
-- An argument value is pasted into the shell text verbatim, so a `$(…)` in it would run.
-- The planned test renders only the two `${CLAUDE_*}` tokens, so it would stay green while this bug shipped.
-- A backslash escape (`\$1`) is no fix. Cursor does not substitute, so the backslash would reach the shell and change what the command means.
-
-Fix (small, local; no redesign):
-
-1. Correct the evidence line in tasks.md and progress.md. Claude Code also substitutes `$ARGUMENTS`, `$ARGUMENTS[N]` and `$N` whenever arguments are passed, inside code fences too.
-2. Add a constraint to Unit 1 step 4: no `$` followed by a digit, and no `$ARGUMENTS`, anywhere in the body of `skills/sr-initialize/SKILL.md`.
-   - This covers every fence, including Step 7's header parsing; for example, no `awk '{print $2}'`.
-   - `holds_engine` takes no arguments. It reads a named variable, set in its own statement (`ROOT="${CURSOR_PLUGIN_ROOT}"; holds_engine`). Do not use a prefix assignment (`ROOT=x holds_engine`): POSIX leaves it unspecified whether such an assignment persists after a function call, and dash, bash and zsh differ.
-3. Add one case to the test plan: **Claude plugin rendering with arguments**.
-   - Apply the documented `$N` rule as well as the two tokens: replace `$0`…`$9` with argument words, such as nine words for `$0` to `$8`, so that `$9` stays literal as the docs say.
-   - Use the custom-config-dir root and the `--plugin-dir` checkout.
-   - Expect the same `OWNER=claude` and `APP_DIR` as without arguments.
-   - This case fails if any positional placeholder enters the block, and it does not depend on wording.
+- **TDD plan encoding: pass.** Unit 1 (`rectify`) and Unit 3 (Step 2) are executable. Each one stubs its tests, writes them, runs them red, then writes the code. Unit 2 (remedy text) is wording. The existing runtime tests already guard its placeholder, because an unsubstituted `{{GONE_REMEDY}}` loses the "make shim" token. Units 4 and 5 are prose. Nothing was struck or swapped.
+- **Convention compliance: pass.** `test_initialize_context.py` follows the `test_<area>.py` pattern, the module-docstring contract style, `repo_root`, and the minimal-env `subprocess.run` style of `test_shim_runtime.py`. REUSE's `**/*` glob covers it.
+- **Dependency impact: pass, with small gaps (advisory 5).** `test_shim_cli.py::test_rectify_rebakes_moved_root` stays green, because its foreign rectify targets a live shim. `test_skill_hygiene.py` exempts `sr-initialize`. `test_packaging.py` hook tests are unaffected, because the hooks do not change. The remedy-token tests in `test_schedule.py`, `test_doctor.py` and `test_dashboard_recovery.py` do not read the shim template.
+- **Conflict detection: pass.** Nothing in the codebase already provides this. The `rectify` change is the one policy change Constraint 4 approves.
+- **Completeness: pass.** Every requirement and acceptance criterion maps to a unit with named files.
 
 ## Advisories (non-blocking)
 
-- **A1. Step 7 does not pass `--app-dir`.** `shim install --owner "$OWNER"` bakes `default_app_dir()`, which is `Path(__file__).resolve()`: a physical path. That contradicts the plan's "Symlinked homes" mitigation, which keeps `APP_DIR` logical "so the shim bake matches the hook bake". Add `--app-dir "$APP_DIR"` to the Step 7 install command. Without it, a symlinked `~/.claude` or `~/.cursor` gets one same-owner rebake at the next session start. That is harmless, but it is churn the plan says it avoids.
-- **A2. The re-set line is not shell-quoted.** The block prints `OWNER=… APP_DIR=…`, and the agent re-sets those values at the start of later commands. With Cursor on WSL, a Windows user name with a space gives `/mnt/c/Users/John Doe/.cursor/plugins/…`, and pasting that line splits the path. Print a form that can be pasted safely (for example `APP_DIR='…'`), or tell the agent to quote the path.
-- **A3. zsh never runs.** zsh is not installed on this machine or on CI's `ubuntu-latest`, so the zsh case always skips. The zsh mitigation, which matters because the Bash tool on macOS usually runs zsh, is reviewed but not tested. Either add zsh to CI with `apt-get install -y zsh`, or record the gap.
-- **A4. Ordering hardening.** The pre-mortem names a risk: Cursor might fill `${CLAUDE_PLUGIN_ROOT}` in skill text for Claude compatibility. If it fills only that token, rule 3 picks `claude` inside Cursor, and the `.cursor/plugins` path rule never runs. Checking the path rule (rule 4) before the root rules (2 and 3) gives the same result in every planned case. The root rules are needed only for roots outside `*/.claude/plugins/*` and `*/.cursor/plugins/*`. This order removes that misroute. Planner's call.
-- **A5. Fence selection.** `_step2_block` asserts that exactly one fence assigns both `OWNER=` and `APP_DIR=`. If Build adds a later fence that shows the re-set prefix, that assertion trips. To avoid it, select the fence that defines `SKILL_DIR`, or keep the re-set guidance in prose.
-- **A6. One optional extra case.** Claude project-skill rendering of a checkout: `${CLAUDE_SKILL_DIR}` is substituted, `${CLAUDE_PLUGIN_ROOT}` stays literal, and the result should be `dev`. The probe verified this rendering. It takes a different path from the agent-filled cases.
+1. **A real install that the layout rule calls `dev`: plugins synced from claude.ai.** The loading docs list a second real-install location: `<plugins root>/synced/`. Plugins that you or your organization turn on in claude.ai land there and load as `<name>@synced`, hooks included. On this machine the folder is `~/.claude/plugins/synced/<account>_<org>/`. That is not `cache/<m>/<p>/<v>`, so rule 2 gives `dev`. The plan reads the operator's rule as "everything else is dev". But the operator's actual words were "a marketplace install must be recognizable as a real install; anything run from a checkout … is dev", and a synced copy is not a checkout. The damage is small:
+   - Usually the synced plugin's own SessionStart hook has already made a `claude` shim before Step 7 runs. Step 7 then only gives misleading `make localdev` advice.
+   - In the worst case (synced mid-session, then `/reload-plugins`, so no hook has run), Step 7 runs `make shim` inside the synced copy. That leaves a `dev` shim no hook will heal until the copy is replaced.
 
-## Radical idea (advisory, not applied): ownership follows the baked tree, not the label
+   **Proposed fix:** treat a plugin root under a `synced/` directory as a real install. `*/.claude/plugins/synced/*` gives `claude`. Any other root goes through the substitution check. Add one test case: Claude rendering, `home/.claude/plugins/synced/a_b/<plugin dir>`, expecting `claude`. (I did not check the other in-place loads, which are `@skills-dir` and `--plugin-url` temp dirs. The operator's checkout rule covers them as dev.)
+2. **The Challenges and Pre-Mortem say a wrong `dev` result is visible. It is silent.** Both say that when the layout rule misjudges a real install, "Step 7's dev branch visibly does not apply". But the plan's own evidence says install dirs contain `.git` and `Makefile`, so `make shim` run from that root succeeds and bakes a `dev` shim into the install. That is the old bug's footprint.
+   - Correct both passages.
+   - In the dev-outcome text that Build writes, tell the agent: run `make shim` only from a checkout the user develops in. If the root lives under a harness's plugins folder and is not `~/.cursor/plugins/local/`, stop and ask.
+3. **Two instructions disagree when `OWNER` is empty.** The block rules say "If `OWNER` is empty, stop at Step 2". Rule 4 says the agent should set `OWNER` to its harness when a real install does not identify itself. Build needs one rule:
+   - stop when `APP_DIR` is empty (rules 1 and 13);
+   - name your harness when only `OWNER` is empty (rule 4, case 11).
 
-Today a shim's owner label alone decides whether a hook may heal it. So every mislabeled shim this bug produced needs an agent turn and the user's consent before it can heal. The proposal:
+   Rule 1 should also say that it clears `APP_DIR`, as case 12 expects. In the prototype, case 11 keeps `APP_DIR` and only `OWNER` is empty.
+4. **Step 7 should read the install destination, not `command -v`.** `shim install` guards `~/.local/bin/stockroom` (its `--dest`). On a first-time machine, `~/.local/bin` is often not on PATH; the PATH-warning bullet exists for exactly that case. There, `command -v stockroom` finds nothing and the triage says "no shim". The install then refuses on the foreign file, and the triage was skipped. Read the header from `~/.local/bin/stockroom`, and use `command -v` only for the PATH check.
+5. **Stale policy text the plan does not list.** Each item below states "rectify never touches a foreign owner", which becomes false:
+   - `_build_parser` in `shim.py`: the description ("never touches a foreign owner") and the `rectify` action help.
+   - The `ShimReport` docstring.
+   - The `test_shim.py` module docstring ("never foreign").
+   - `docs/architecture/packaging.md` line 17 ("Only the owner may rewrite an existing shim").
+   - `docs/user-guide/troubleshooting/index.md` line 34 (heal can now also replace a dead foreign shim).
 
-- **What changes.** `shim.rectify` adopts a foreign shim when its baked `STOCKROOM_APP_DIR` lies in the same harness plugin install as the hook's `--app-dir`. "Same install" means a path of the form `…/plugins/cache/<marketplace>/stockroom/<ver>/skills/sr-search` with an equal prefix up to and including `stockroom/`. Rectify then rebakes the shim to the hook's `--app-dir` and relabels it to the hook's owner. Rectify does not touch any other foreign shim.
-- **Tests.** New `test_shim.py` cases:
-  - A `dev` label inside the Claude cache, older version, gets adopted by the `claude` rectify.
-  - A `dev` label on a checkout is left alone.
-  - A `cursor` shim is left alone by the `claude` rectify.
+   `scripts/localdev.sh` `unclaim_dev_shim` already says "rectify never creates a missing shim", which has been wrong since rectify gained create-if-absent. Fix it while you are there.
+6. **The "Red today" labels are not accurate.** The fence selector keys on `SKILL_DIR=`, and today's SKILL.md has no such fence. So every case, including case 7, errors at selection against the current text. The red run passes the TDD gate, but it does not show which behavior each case catches. If the selector were made to pick today's block instead, cases 4, 5, 9 and 13 would also fail today: `APP_DIR` comes out as `…/sr-initialize/../sr-search` or an unfilled placeholder. Only case 7 would pass. Expect all cases red, and do not treat the labels as a gate.
+7. **Small Build details.**
+   - Check exactly three levels below `cache` with `case "${ROOT%/*/*/*}" in */cache)`. A `*/cache/*/*/*` glob also matches deeper paths, because `*` matches `/` in `case` patterns. For example, `~/cache/a/b/c/stockroom` would count as a real install.
+   - Reuse the existing `dead_dir` fixture in `test_shim.py` instead of deleting a `pyproject.toml`.
+   - Keep the literal `${CLAUDE_SKILL_DIR}` token out of prose too, not only `${CLAUDE_PLUGIN_ROOT}`. Claude Code substitutes both everywhere in the body.
+
+## Radical idea (advisory, not applied): move Step 7's triage into a tested engine verb
+
+Step 7 asks the agent to grep the shim header, judge whether the baked engine is alive, match the cache-layout shape, and pick one of four branches. That is real logic, run by hand each time and covered by no test (advisory 4 is one bug it already has).
+
+- **Sketch.** Add `stockroom shim triage --owner "$OWNER" --app-dir "$APP_DIR" [--dest …]`. It is stdlib-only and read-only, and it runs with bare `python3` the way Step 3's `ensure-env` already does. It prints one line: `verdict=<absent|current|rebake|foreign-dead|foreign-live|foreign-dev-in-install|unidentified> owner=… app_dir=… action=<exact command | leave>`. It reuses `_read_header`, `_alive` and one `_in_marketplace_install(path)` predicate.
+- **What Step 7 becomes.** Run `triage`, then run `action`. Ask for consent whenever `action` contains `--takeover`.
+- **Tests.** `TestTriage` in `test_shim.py`, with one case per verdict over the existing alive and dead fixtures.
 - **Payoff.**
-  - Existing victims heal at their next session start, with no agent turn.
-  - Step 7's takeover branch for a `dev` shim inside a harness tree goes away.
-  - The owner label stops carrying weight for marketplace installs.
-- **Cost.** It changes the shim ownership policy, which Constraint 4 protects unless the audit implicates it. It also needs a precise, tested rule for "same install" in both harness cache layouts.
+  - Step 7 shrinks to a lookup.
+  - It reads the right file (`--dest`), which fixes advisory 4.
+  - `make localdev-status` and `doctor probe` could report the same verdict.
+  - It keeps the second preflight's reason for declining `shim context`: Step 2 stays a shell block, still tested against substitution.
+- **Cost.** One new CLI surface plus about seven unit tests. The layout predicate then lives in Python and in the Step 2 shell block, so the two need one shared fixture list to stay consistent.
