@@ -20,3 +20,11 @@
 
 ## Next Step
 - Preflight (subagent), then Build.
+
+## Operator decision (2026-10-16, after the plan)
+- **"We do not want Cursor users to have to answer extra questions to account for Claude Code situations."** The plan's "ask the user" rule must not reach Cursor. Preflight was stopped before it finished, so the plan has not been preflighted.
+- Planned revision, not yet applied to `tasks.md`:
+    - Restore the first pass's Cursor path in the out-of-default-folder arm: `CURSOR_PLUGIN_ROOT` that physically holds this engine → `cursor`. Otherwise `OWNER` is empty, and outside Claude Code the agent names its own harness, with no question.
+    - Ask the user only in Claude Code, where `--plugin-dir` substitution cannot tell a checkout from an install.
+    - Keep `test_cursor_custom_cache_with_env` → `cursor`. Keep `test_leaked_cursor_root_is_ignored`, now expecting `OWNER` empty.
+    - Re-prototype, then re-run preflight.
