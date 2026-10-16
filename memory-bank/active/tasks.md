@@ -245,3 +245,12 @@ No new technology. Claude Code's skill-text substitution was checked with a head
     - Reuse the existing `dead_dir` fixture.
     - Keep the literal `${CLAUDE_SKILL_DIR}` token out of prose.
 - **Declined: the `stockroom shim triage` command.** It adds a CLI surface beyond this bug fix. Logged as a follow-up candidate, with `doctor probe` mis-owned detection, for the reflection.
+
+## Build progress
+
+- [x] 1. `shim rectify` replaces a dead shim of any owner: tests red, then green (`test_shim.py` 25/25). Docstrings and `--help` updated.
+- [x] 2. Shim missing-dir remedy: `{{GONE_REMEDY}}` / `_DEV_GONE_REMEDY`. Shim render, runtime and CLI tests 44/44.
+- [x] 3. Step 2 block: `test_initialize_context.py` red (no `SKILL_DIR=` fence), then green (28 pass under sh and bash; zsh absent, skipped). A mutation check confirms that an unbraced `$CLAUDE_PLUGIN_ROOT` fails the custom-root case.
+- [x] 4. Step 7 triage table, `--app-dir` on install, the idempotency paragraph, and the intro "working foreign shim".
+- [ ] 5. Docs and shared patterns.
+- [ ] 6. Verification and memory.
