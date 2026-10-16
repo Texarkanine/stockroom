@@ -216,3 +216,23 @@ Reassess how each harness exposes its plugin root (`CLAUDE_PLUGIN_ROOT`, `CURSOR
     - Outside default plugins folders: `CURSOR_PLUGIN_ROOT` holding this engine gives `cursor`, as in the first pass. Otherwise `OWNER` is empty: Claude Code asks the user, and other harnesses name themselves. The `${CLAUDE_PLUGIN_ROOT}` read is removed.
     - Test changes: `test_cursor_custom_cache_with_env` stays green unchanged; `test_leaked_cursor_root_is_ignored` now expects an empty owner.
     - Accepted residual: a Cursor checkout with a cache-shaped real path, read through that path and with no `CURSOR_PLUGIN_ROOT`, still gets `cursor`.
+
+## 2026-10-16 - PREFLIGHT (rework round 1) - COMPLETE
+
+* Work completed
+    - Checked the revised rework plan (943395a) against `sr-initialize` SKILL.md, `stockroom.shim` and its template, `test_initialize_context.py`, `test_shim.py`, `scripts/localdev.sh`, the docs, and the six PR #142 inline comments.
+    - Ran the target Step 2 block in scratch: 20 planned cases plus 5 extra probes, under dash, bash and busybox sh, reading results back through the printed line. All gave the planned results. Today's block fails exactly the five cases the plan names.
+    - Ran the planned `_alive` against a mode-000 engine on Python 3.11, 3.13 and 3.14. It gives the planned results on all three. Today's code raises on 3.11 and 3.13 and overwrites the shim on 3.14, so the new tests go red on every version.
+    - Result (first line of `.preflight-status`): `PASS WITH ADVISORY`.
+* Decisions made
+    - TDD encoding passes: Units 1 and 2 put their tests first, and Units 3 and 4 are prose. No strike or swap was needed.
+* Insights
+    - Advisories:
+        - Step 7 needs a check command that reports errors, or its "cannot be checked" row is never reached.
+        - The shim template, `localdev-status` and the `install` refusal wording still treat an uncheckable engine as missing or alive.
+        - Add a `--takeover --force` → installed assertion.
+        - The mislabel row misdescribes a cache-shaped checkout that the user labelled `dev`.
+        - Cursor reads Claude's plugin copies, so a synced copy changes from `dev` to `claude` there.
+        - AC1 and AC7 disagree.
+        - Newline paths and EBADF are pathological.
+    - Radical idea (advisory): the version folder proves the install. Claude names it after the manifest version, and Cursor after the clone's commit. That removes the Claude Code question and the Cursor residual.
