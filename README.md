@@ -23,13 +23,13 @@ You're not locked in to inference, though: after setup it can run **fully offlin
 
 ## Quickstart
 
-1. Add the [`txrk9-agent-plugins`](https://github.com/Texarkanine/txrk9-agent-plugins) marketplace and install `stockroom`.
+1. Add the [`txrk9-agent-plugins`](https://github.com/Texarkanine/txrk9-agent-plugins) marketplace.
 2. Browse through the list of available plugins in Cursor or Claude Code, and find the `stockroom` plugin. Install it.
-4. **Cursor only:** enable **Include third-party Plugins, Skills, and other configs** (Settings → Agents) so plugin hooks register.
-5. Run first-time setup:
+3. **Cursor only:** enable **Include third-party Plugins, Skills, and other configs** (Settings → Agents) so plugin hooks register.
+4. Run first-time setup:
    - **Cursor:** `/sr-initialize`
    - **Claude Code:** `/stockroom:sr-initialize`
-6. Ask the agent about past work, or slash-invoke `/sr-search` (Claude: `/stockroom:sr-search`).
+5. Ask the agent about past work, or slash-invoke `/sr-search` (Claude: `/stockroom:sr-search`).
 
 Full walkthrough (prerequisites, what landed on disk, what to try next): [Quickstart](https://texarkanine.github.io/stockroom/user-guide/quickstart/).
 
