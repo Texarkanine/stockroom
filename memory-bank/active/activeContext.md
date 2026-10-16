@@ -1,11 +1,14 @@
 # Active Context
 
 ## Current Task: cursor-wrapped-task-inset
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Confirmed intent: Cursor Task launches that go out as `CallDynamicTool` (namespace `cursor`, tool name `Task`) get the normal dashboard subagent inset, including CLI session `5fa10c9d-2c18-42d6-b491-41503d6dc01b` message 42 and its stored child `43b093cd-f419-4bee-b60b-56d1f5075d0c`. Claude insets stay as they are.
-- Classified Level 2. The missing inset is a bug in an existing feature, and the fix crosses CLI ingest (child `subagentInfo` is not read) and dashboard spawn placement (only a tool named `Task` is a slot).
+- Planned a Level 2 bug fix in three test-first steps.
+- CLI `parse_session` will stamp `is_subagent`, `parent_session_id`, `agent_type`, and `spawning_tool_use_id` from `meta.subagentInfo` when `parentAgentId` is a non-empty string. `toolCallId` is copied unchanged.
+- Dashboard cursor placement will treat `CallDynamicTool` (namespace `cursor`, tool name `Task`, nested `subagent_type`) as a Task slot, join children that carry `spawning_tool_use_id` to those slots, and run the existing zip only on the children and slots left over.
+- IDE `_parent_subagent_types` will collect that same wrapped shape in transcript order so positional `agent_type` stays aligned with the slots. IDE `spawning_tool_use_id` stays null.
+- The stored tool row stays `CallDynamicTool`. This build does not re-ingest the operator warehouse and does not restart the dashboard on port 58008.
 
 ## Next Step
-- Load the Level 2 workflow and run the plan phase.
+- Preflight validation, in a subagent, via `/niko-preflight`.
