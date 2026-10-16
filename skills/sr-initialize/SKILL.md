@@ -31,7 +31,7 @@ Run this block as written. Claude Code writes this skill's directory and plugin 
 SKILL_DIR="${CLAUDE_SKILL_DIR}"
 [ -n "$SKILL_DIR" ] || SKILL_DIR="<POSIX absolute path of the directory holding this SKILL.md>"
 APP_DIR="$(CDPATH='' cd -- "$SKILL_DIR/../sr-search" 2>/dev/null && pwd)"
-PLUGIN_ROOT="${APP_DIR%/*/*}"
+PLUGIN_ROOT="${APP_DIR%/skills/sr-search}"
 CACHE_DIR="${PLUGIN_ROOT%/*/*/*}"
 REAL_APP="$(CDPATH='' cd -P -- "$APP_DIR" 2>/dev/null && pwd)"
 CLAUDE_APP=""
@@ -42,7 +42,7 @@ OWNER=""
 if [ ! -f "$APP_DIR/pyproject.toml" ]; then
   printf 'sr-initialize: no stockroom engine beside %s\n' "$SKILL_DIR" >&2
   APP_DIR=""
-elif [ "${CACHE_DIR##*/}" = cache ]; then
+elif [ "$PLUGIN_ROOT" != "$APP_DIR" ] && [ "${CACHE_DIR##*/}" = cache ]; then
   case "$APP_DIR" in
     */.claude/plugins/cache/*) OWNER=claude ;;
     */.cursor/plugins/cache/*) OWNER=cursor ;;
@@ -164,7 +164,10 @@ PYTHONPATH="$APP_DIR/src" uv run --project "$APP_DIR" --no-sync --no-config \
   python -m stockroom shim install --owner "$OWNER" --app-dir "$APP_DIR"
 ```
 
-- **`OWNER` is `dev`.** Only if `APP_DIR` is in a checkout the user develops in, run `make shim` from that checkout's root (owner `dev`, bakes the checkout), or follow the contributor guide's `make localdev` flow. Installed plugin copies also contain a `Makefile`, so never run `make shim` inside one. If this is not the user's checkout, stop and ask.
+- **`OWNER` is `dev`.** Only if `APP_DIR` is in a checkout the user develops in, work from that checkout's root. Installed plugin copies also contain a `Makefile`, so never run these inside one. If this is not the user's checkout, stop and ask.
+  - No shim, or a `dev` one: `make shim` (owner `dev`, bakes the checkout).
+  - Another owner, engine dead: `make shim TAKEOVER=1`.
+  - Another owner, engine alive: this checkout is not active. If the user wants to develop against it, the contributor guide's `make localdev` flow claims the shim. Run it only at their request.
 
 The install is ownership-guarded and its report is honest — relay it:
 

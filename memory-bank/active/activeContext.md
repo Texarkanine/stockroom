@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: plugin-root-resolution
-**Phase:** BUILD - COMPLETE
+**Phase:** QA - COMPLETE (PASS)
 
 ## What Was Done
 - Intent confirmed by the operator: reassess how `CLAUDE_PLUGIN_ROOT` reaches each plugin surface, then fix `sr-initialize` and the hook configuration where they set users up to fail.

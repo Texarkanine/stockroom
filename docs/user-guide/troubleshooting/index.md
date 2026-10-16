@@ -55,7 +55,7 @@ The shim is **baked** to one engine directory (`…/skills/sr-search`). Bind the
 	OWNER=cursor   # or: claude
 
 	PYTHONPATH="$APP_DIR/src" uv run --project "$APP_DIR" --no-sync --no-config \
-	python -m stockroom shim install --owner "$OWNER"
+	python -m stockroom shim install --owner "$OWNER" --app-dir "$APP_DIR"
 	```
 
 3. Confirm:

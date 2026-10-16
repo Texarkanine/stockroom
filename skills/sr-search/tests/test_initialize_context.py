@@ -254,6 +254,22 @@ def test_cursor_localdev_mirror_is_dev(shell: str, step2: str, tmp_path: Path) -
     assert Path(app_dir).resolve() == (repo / "skills" / "sr-search").resolve()
 
 
+def test_localdev_mirror_in_a_cache_named_dir_is_dev(
+    shell: str, step2: str, tmp_path: Path
+) -> None:
+    """A checkout cloned straight into a directory named ``cache`` still
+    yields ``dev`` through its localdev mirror: a marketplace copy always has
+    the plugin layout ``<root>/skills/sr-search``, which the mirror lacks."""
+    repo = tmp_path / "cache" / "stockroom"
+    _checkout_tree(repo)
+    mirror = repo / ".cursor" / "skills" / "stockroom-local"
+    mirror.mkdir(parents=True)
+    for name in ("sr-initialize", "sr-search"):
+        (mirror / name).symlink_to(Path("..") / ".." / ".." / "skills" / name)
+    block = _fill_placeholder(step2, mirror / "sr-initialize")
+    assert _run_block(shell, block, tmp_path) == ("dev", str(mirror / "sr-search"))
+
+
 def test_leaked_cursor_root_is_ignored(shell: str, step2: str, tmp_path: Path) -> None:
     """A ``CURSOR_PLUGIN_ROOT`` inherited from some other plugin does not
     relabel a Claude Code install it does not hold."""

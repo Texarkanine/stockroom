@@ -61,7 +61,7 @@ _HARNESS_REMEDY = "run sr-initialize (or start a new session to let it heal)"
 #: with the stockroom plugin installed replaces a dead shim (``rectify``).
 _DEV_GONE_REMEDY = (
     "run 'make shim' from a stockroom checkout, or start a new session of a "
-    "harness with the stockroom plugin installed to go back to it"
+    "harness with the stockroom plugin installed to go back to that install"
 )
 
 
@@ -255,7 +255,8 @@ def rectify(
     *,
     ensure_env: bool = True,
 ) -> ShimReport:
-    """Heal ``dest`` for ``owner``: create if absent, rebake if owned and drifted.
+    """Heal ``dest`` for ``owner``: create if absent, rebake if owned and drifted,
+    replace if dead.
 
     The default hook-safe path ensures the engine env for ``app_dir`` first
     (torch-safe inexact sync when locked deps are missing). Pass
@@ -326,7 +327,7 @@ def _build_parser() -> argparse.ArgumentParser:
         choices=("install", "rectify", "ensure-env"),
         help=(
             "install: write the shim (guarded); rectify: heal (create if "
-            "missing / rebake if owned); "
+            "missing / rebake if owned / replace if dead); "
             "ensure-env: sync locked deps into the engine env"
         ),
     )

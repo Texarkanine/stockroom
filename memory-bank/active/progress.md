@@ -134,3 +134,29 @@ Reassess how each harness exposes its plugin root (`CLAUDE_PLUGIN_ROOT`, `CURSOR
     - A dead foreign shim is replaced without asking.
 * Insights
     - The `-c` script approach lets the shipped skill fence run as a real program under each shell, so a regression to an unbraced token fails CI (mutation-checked).
+
+## 2026-10-16 - QA - COMPLETE
+
+* Work completed
+    - Reviewed the Build (c482f08, diffed against 9706178) against plan units 1 to 6, preflight 3 resolutions A1 to A7, and brief acceptance criteria 1 to 6.
+    - Re-ran the gates:
+        - lint, format-check, REUSE and schema-docs-check pass.
+        - JS 134/134.
+        - pytest: 931 passed, 18 skipped. The only failure is the docs-lock test under local uv 0.8.22. It passes under CI's pinned uv 0.12.22, which QA checked.
+    - Result (`.qa-validation-status`): `PASS`.
+* Decisions made
+    - No blocking findings. KISS, DRY, YAGNI, completeness, regression and integrity pass. The eight advisories are listed in `tasks.md` under "QA results".
+* Insights
+    - The cache-layout test can label a checkout as an installed plugin. That happens when a directory named `cache` sits exactly three levels above the computed plugin root, such as the Cursor localdev mirror of a repo cloned into `<x>/cache/stockroom`. QA reproduced it under dash, bash and busybox sh. It is unlikely and the damage is limited, so it is advisory only.
+
+## 2026-10-16 - QA follow-up (minor fixes after QA PASS)
+
+* Work completed
+    - QA finding 1: a Cursor localdev mirror in a repo cloned directly into a directory named `cache` resolved as an installed plugin. Fixed test-first: the new case `test_localdev_mirror_in_a_cache_named_dir_is_dev` was red, then green. The real-install test now also requires the plugin layout `<root>/skills/sr-search`.
+    - Finding 2: Step 7 now gives contributors `make shim`, `make shim TAKEOVER=1` for a dead foreign shim, and `make localdev` at the user's request for a live foreign one.
+    - Finding 3: the `shim.py` `--help` action text and the `rectify` docstring summary mention replace-if-dead.
+    - Finding 4: `systemPatterns.md` names MCP/LSP and the claude.ai-synced copies.
+    - Finding 5: the troubleshooting last-resort install passes `--app-dir "$APP_DIR"`.
+    - Finding 6: the dev gone-remedy wording now reads "go back to that install".
+    - Findings 7 (zsh untested) and 8 (Clean Semantics untouched) were accepted as noted.
+    - Affected modules: 90 passed, 15 skipped. Full pytest: 933 passed, 19 skipped, and 1 failure that is the known local-uv docs-lock check. Lint and format are clean.

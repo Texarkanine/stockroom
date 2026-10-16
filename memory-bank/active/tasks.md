@@ -225,7 +225,7 @@ No new technology. Claude Code's skill-text substitution was checked with a head
 - [x] Pre-Mortem complete
 - [x] Preflight
 - [x] Build
-- [ ] QA
+- [x] QA (PASS)
 
 ## Preflight 3 advisories: resolutions applied in Build
 
@@ -254,3 +254,24 @@ No new technology. Claude Code's skill-text substitution was checked with a head
 - [x] 4. Step 7 triage table, `--app-dir` on install, the idempotency paragraph, and the intro "working foreign shim".
 - [x] 5. Docs and shared patterns: `preparation.md` (Changing the Hooks, Done Developing), `troubleshooting/index.md` (lines 34 and 70), `packaging.md` (line 17, rectify row), `systemPatterns.md` (Dual-manifest, Baked-only), and the `scripts/localdev.sh` comment.
 - [x] 6. Verification and memory: lint, format-check, schema-docs-check, JS 134/134, pytest 931 passed and 18 skipped, REUSE compliant, and `claude plugin validate .` (only the existing CLAUDE.md warning). `lock-check` and `test_docs_lock_is_not_stale` fail only with local uv 0.8.22 and pass with CI's pinned uv 0.12.22. An e2e check on real Claude Code 2.1.301 rendered the shipped Step 2 for a custom-root cache install, giving `OWNER='claude'` through substitution. Two SumMem notes added.
+
+## QA results (PASS)
+
+QA checked the Build (c482f08, diffed against 9706178) against plan units 1 to 6, preflight 3 resolutions A1 to A7, and brief acceptance criteria 1 to 6. KISS, DRY, YAGNI, completeness, regression and integrity all pass. Nothing must change before Reflect.
+
+**Gates re-run by QA:**
+
+- `make lint format-check`, `make reuse` and `make schema-docs-check`: pass.
+- Changed test modules: 66 passed, 14 skipped (the zsh cases).
+- `make test`: JS 134/134. pytest 931 passed, 18 skipped, 1 failed. The failure is `test_docs_lock_is_not_stale` under local uv 0.8.22. The same lock check passes under CI's pinned uv 0.12.22, and this change touches no lock file.
+
+**Advisories (non-blocking), for Reflect or a follow-up:**
+
+1. **The layout rule can label a checkout as an installed plugin.** A checkout with a directory named `cache` exactly three levels above the computed plugin root counts as a real install. Example: the Cursor localdev mirror of a repo cloned directly into `<x>/cache/stockroom`. Step 2 then gives an empty `OWNER`, and the prose has the agent fill in its harness. QA reproduced this under dash, bash and busybox sh. It is unlikely and the damage is limited. A possible fix: treat a plugin root under `*/.cursor/skills/*` as `dev` before the cache test.
+2. **Step 7's dev branch is incomplete.** There is no `make shim TAKEOVER=1` equivalent for the "another owner, engine dead" row. When `OWNER=dev` and another owner's shim is alive, the table gives no pointer to `make localdev`, although the plan's target design included one. Acceptance criterion 3 is still met.
+3. **Stale summaries in `shim.py`.** The `action` argument's `--help` text and the `rectify` docstring's summary line still describe `rectify` as only "create / rebake if owned".
+4. **`systemPatterns.md` precision.** "Hook processes only" leaves out the MCP and LSP processes that the Claude Code docs also list. The real-install definition leaves out Claude Code `synced/` copies, which Step 2 counts.
+5. **Troubleshooting drift.** The "Last resort: bind the shim yourself" recipe says it matches `sr-initialize`, but it lacks `--app-dir "$APP_DIR"`. This predates the task.
+6. **Wording.** In `_DEV_GONE_REMEDY`, "…installed to go back to it" leaves "it" unclear.
+7. **zsh never runs**, here or in CI. A manual read found only constructs that zsh handles the same way by default. This is a remaining risk.
+8. **Accepted deviation.** "Clean Semantics" in `preparation.md` did not get the dead-shim sentence. "Done Developing" has it, and "Clean Semantics" is still accurate.
