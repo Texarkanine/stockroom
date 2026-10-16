@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: plugin-root-resolution
-**Phase:** QA - COMPLETE (PASS)
+**Phase:** REFLECT COMPLETE
 
 ## What Was Done
 - Intent confirmed by the operator: reassess how `CLAUDE_PLUGIN_ROOT` reaches each plugin surface, then fix `sr-initialize` and the hook configuration where they set users up to fail.
@@ -43,5 +43,10 @@
     - `make ci` could not pass end to end locally: `lock-check` needs uv 0.12.22. The remaining gates were run individually, and the lock checks passed under uv 0.12.22.
 - Residual risks for QA: zsh is untested (absent here and on CI), and Cursor's agent-shell behavior is still undocumented.
 
+## Reflection
+- QA PASS; six minor QA findings fixed after QA, finding 1 test-first. Reflection at `memory-bank/active/reflection/reflection-plugin-root-resolution.md`.
+- Persistent files: productContext skipped, systemPatterns already updated in Build, techContext skipped.
+- Follow-up candidates: `doctor probe` mis-owned-shim fact, `stockroom shim triage`, zsh in CI, and an operator UAT in Cursor for `CURSOR_PLUGIN_ROOT` in agent shells.
+
 ## Next Step
-- QA (subagent).
+- Operator runs `/niko-archive`.

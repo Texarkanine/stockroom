@@ -160,3 +160,12 @@ Reassess how each harness exposes its plugin root (`CLAUDE_PLUGIN_ROOT`, `CURSOR
     - Finding 6: the dev gone-remedy wording now reads "go back to that install".
     - Findings 7 (zsh untested) and 8 (Clean Semantics untouched) were accepted as noted.
     - Affected modules: 90 passed, 15 skipped. Full pytest: 933 passed, 19 skipped, and 1 failure that is the known local-uv docs-lock check. Lint and format are clean.
+
+## 2026-10-16 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `reflection/reflection-plugin-root-resolution.md` and reconciled the persistent files: productContext and techContext skipped; systemPatterns was already updated.
+* Insights
+    - Plugin roots reach hooks, never agent shells, and Claude Code's skill substitution matches exact tokens only.
+    - Marketplace copies carry `.git` and a `Makefile`, so the install layout, not checkout markers, distinguishes dev.
+    - Keying the takeover on liveness removed the one stuck path out of dev.
