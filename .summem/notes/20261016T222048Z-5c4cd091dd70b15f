@@ -1,0 +1,1 @@
+Design rule (operator, 2026-10-16): fixes for Claude Code-only problems must not add questions for Cursor users. sr-initialize asks the user only in Claude Code; Cursor keeps its own evidence (CURSOR_PLUGIN_ROOT).

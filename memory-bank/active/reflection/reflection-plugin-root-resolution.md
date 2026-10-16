@@ -63,3 +63,50 @@ Follow-up candidates:
 - `stockroom shim triage`
 - zsh in CI (macOS runner)
 - operator UAT in Cursor for `CURSOR_PLUGIN_ROOT` in agent shells
+
+---
+
+# Rework round 1: PR #142 review fixes (2026-10-16)
+
+## Summary
+
+All six bot inline comments on PR #142 were valid and are fixed. Under `--plugin-dir`, no checkout is labelled `claude` because of where its path sits. Step 7 covers synced copies and engines that cannot be checked. `rectify` and `install` no longer raise on such engines. The printed Step 2 line is shell-quoted. QA PASS; `make ci` green (pytest 946 passed, 23 skipped).
+
+## Requirements vs Outcome
+
+All six findings were delivered, plus brief AC7 to AC9.
+
+- The operator added one constraint after the first rework plan: no Claude-driven questions for Cursor users.
+- So outside the default plugins folders only Claude Code asks; Cursor keeps its first-pass evidence (`CURSOR_PLUGIN_ROOT`).
+- One Cursor outcome changes without a new question: a claude.ai-synced copy read from Cursor is now `claude`, not `dev`.
+- Accepted residual: a Cursor checkout whose real path is cache-shaped still gets `cursor`.
+- Deferred to the operator: preflight's idea of letting the version folder prove an install.
+
+## Plan Accuracy
+
+- The first rework plan broke a constraint nobody had stated: its cost line put a question on Cursor users. Because that line said so in plain words, the operator caught it before Build. One revision fixed it.
+- Prototyping the Step 2 block before writing the plan held up: the red sets in Build matched the plan exactly.
+- **Surprise:** Cursor agents on this machine read skills from Claude Code's plugin folders (25 reads in the warehouse). So a path rule written for Claude also decides Cursor outcomes.
+
+## Build & QA Observations
+
+- Build was linear: two executable units went red, then green, and one format-check line wrap was fixed.
+- QA found a regression from this round: replacing `Path.is_file()` with a direct `stat` lost its `ValueError` catch, so a NUL byte in a header raised. It was fixed test-first after QA, together with four wording fixes.
+- I filtered test-run output twice (`grep`, `sed`), which the test-running rules forbid. The summaries I read were complete, but the rule is about reading the whole output.
+
+## Insights
+
+### Technical
+
+- **When replacing a stdlib convenience with the call underneath it, carry over every implicit catch.** `Path.is_file()` swallowed ENOENT-family errors and `ValueError`; listing the errnos covered only the first. Read the replaced function's `except` clauses, on every supported Python, before writing the replacement.
+- **Judge a heuristic by which way it fails.** A wrong `dev` is caught, because Step 7 stops when `APP_DIR` is not the user's checkout. A wrong harness label is silent. Point uncertain branches toward the caught side.
+- **Test the interface the agent consumes.** Reading results back through the printed line, not the block's variables, is what exposes quoting defects.
+
+### Process
+
+- **Put a plain-words cost line on every design choice in a plan.** It let the operator veto the Cursor question before any code was written.
+- **Bots found four real path-shape edge cases that the first QA passed.** For path heuristics, QA should try hostile paths (`synced`, `cache/<a>/<b>`, quotes), as this round's QA did.
+
+### Million-Dollar Question
+
+This is still the first pass's answer: one engine-side classifier of the install kind. Preflight's version-folder proof sharpens it. Claude Code names the copy's folder after the manifest version and Cursor after the clone's commit, so the copy can prove it is an install without asking anyone or trusting substitution. That would remove the Claude Code question and the Cursor residual. It needs the operator's call, because it replaces a question they accepted.

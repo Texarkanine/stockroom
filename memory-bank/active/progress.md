@@ -272,3 +272,12 @@ Reassess how each harness exposes its plugin root (`CLAUDE_PLUGIN_ROOT`, `CURSOR
     - Finding 5: the Step 7 check is now `LC_ALL=C ls -dL`. That gives English error texts, and a dangling symlink counts as dead, matching `_alive`; checked for all six cases.
     - Finding 6: carried over and already accepted.
     - `make ci` green: pytest 946 passed and 23 skipped, JS 134/134, REUSE compliant.
+
+## 2026-10-16 - REFLECT (rework round 1) - COMPLETE
+
+* Work completed
+    - Appended the rework reflection to `reflection/reflection-plugin-root-resolution.md`. Persistent files: productContext and techContext skipped; systemPatterns was already updated in Build.
+    - SumMem note: fixes for Claude Code-only problems must not add questions for Cursor users.
+* Insights
+    - When replacing a stdlib helper with the call underneath it, carry over every implicit catch (`Path.is_file` swallowed `ValueError`).
+    - Judge a heuristic by which way it fails, and point uncertain branches toward the side that gets caught.

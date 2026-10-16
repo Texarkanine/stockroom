@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: plugin-root-resolution
-**Phase:** QA - COMPLETE (PASS) (rework round 1: PR #142 review fixes)
+**Phase:** REFLECT - COMPLETE (rework round 1: PR #142 review fixes)
 
 ## What Was Done
 - First pass shipped on `claudeboarding` and is PR #142, at 7f3917f: the Step 2 install-layout owner rule, dead-shim replacement in `rectify`, and Step 7 triage. QA PASS, reflected. The reflection is at `memory-bank/active/reflection/reflection-plugin-root-resolution.md`.
@@ -33,5 +33,11 @@
 - Step 7's mislabel row now asks first when the path is outside the default plugins folders (advisory 4). That question merges into the consent question the row already asked, so it adds no new prompt.
 - Advisory 2 (three other liveness checks) was accepted as gaps, not changed.
 
+## Reflection (rework round 1)
+- QA PASS. Five minor QA findings were fixed after QA; finding 1 (a NUL byte made `_alive` raise `ValueError`) was fixed test-first. `make ci` green: pytest 946 passed, 23 skipped.
+- The reflection is appended to `memory-bank/active/reflection/reflection-plugin-root-resolution.md`.
+- Persistent files: `productContext` and `techContext` skipped; `systemPatterns` was already updated in Build.
+- Left for the operator: the version-folder proof idea, which would replace the Claude Code question.
+
 ## Next Step
-- QA (subagent).
+- Operator runs `/niko-archive`. Then push `claudeboarding`, so PR #142 picks up the rework.

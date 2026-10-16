@@ -1,0 +1,1 @@
+Cursor skill Path lines use Windows backslashes; markdown-it collapses \. so .cursor glues to the parent dir. Dashboard JSON export serializes full session_detail, so API payload additions change exported JSON unless filtered.
