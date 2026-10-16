@@ -16,7 +16,7 @@ The same skill text runs in Cursor. Whatever fix lands for Claude Code must not 
 
 ### Use-Case 3: Dev checkout / localdev mirror
 
-A contributor runs `sr-initialize` from a repository checkout or a `make localdev` mirror. That path must still resolve to owner `dev` and defer the shim to `make shim`. Nothing may label a marketplace install as a dev checkout.
+A contributor runs `sr-initialize` from a Cursor `make localdev` mirror, or from checkout skills that no harness loaded as a plugin. That resolves to owner `dev` and defers the shim to `make shim`. A checkout loaded with `claude --plugin-dir` resolves to `claude`, the same owner that session's own SessionStart hook already uses when it creates a missing shim (plan decision A2). A contributor's live `dev` shim is left alone. Nothing may label a marketplace install as a dev checkout.
 
 ## Requirements
 
@@ -38,6 +38,6 @@ A contributor runs `sr-initialize` from a repository checkout or a `make localde
 
 1. On a Claude Code marketplace install, following `sr-initialize` Step 2 literally gives `OWNER=claude` and the absolute plugin-cache `skills/sr-search` path.
 2. On a Cursor marketplace install, Step 2 gives `OWNER=cursor` by a mechanism that is documented or verified, or the remaining uncertainty is stated in the skill or the docs and does not misroute the user.
-3. A dev checkout still resolves to `OWNER=dev`.
+3. A Cursor localdev mirror, or checkout skills not loaded as a plugin, resolves to `OWNER=dev`. `claude --plugin-dir <checkout>` resolves to `OWNER=claude`. Re-running `sr-initialize` never offers to take over a shim that its owner still maintains.
 4. No project doc or comment claims that plugin-root variables are visible to agent-run shell commands.
 5. `make ci` (or the equivalent format, lint, test and reuse gates) passes.
