@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: cursor-wrapped-task-inset
-**Phase:** BUILD - COMPLETE
+**Phase:** QA - COMPLETE (PASS)
 
 ## What Was Done
 - CLI `parse_session` stamps `is_subagent`, `parent_session_id`, `agent_type`, and `spawning_tool_use_id` from `meta.subagentInfo` when `parentAgentId` is a non-empty string. `toolCallId` is copied unchanged, including a newline.

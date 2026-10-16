@@ -51,3 +51,11 @@ Show the normal dashboard subagent inset when a Cursor parent launches a subagen
 * Insights
     - The pytest failure is `test_docs_lock_is_not_stale`. This machine's `uv` is 0.8.22 and the committed root lock is revision 5, which CI checks with uv 0.12.22. The lock file was not modified
 
+
+## 2026-10-15 - QA - COMPLETE
+
+* Work completed
+    - Reviewed the build diff against the plan for KISS, DRY, YAGNI, completeness, regression, integrity, and documentation
+    - Ran the four affected test files (101 passed) and ruff check/format
+* Decisions made
+    - Verdict PASS. Three non-blocking advisories recorded in `tasks.md`

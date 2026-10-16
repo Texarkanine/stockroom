@@ -99,4 +99,13 @@ No new technology - validation not required
 - [x] Pre-Mortem complete
 - [x] Preflight
 - [x] Build
-- [ ] QA
+- [x] QA
+
+## QA Results
+
+- Verdict: PASS (with advisories)
+- Targeted tests (spawns, metrics, ingest cursor, ingest cursor_chats): 101 passed. `ruff check` and `ruff format --check` clean.
+- Advisory: the `CallDynamicTool` unwrap predicate lives in both `ingest/cursor.py` and `dashboard/spawns.py`. This is the plan's accepted sibling pair, each side tested and cross-referenced.
+- Advisory: the `0001_initial_schema.sql` column comment says `cursor: NULL (structural only)`. A CLI child now sets it. Applied migrations are not edited, so this stays.
+- Advisory: `_task_slots` re-labels a wrapped slot as `Task` via `_replace`. This is the planned slot view. The stored row is untouched.
+- Operator note: already-ingested CLI stores stay unlinked until `stockroom ingest --full`.
