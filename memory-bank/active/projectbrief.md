@@ -47,3 +47,9 @@ A contributor who has a real install and a `dev` shim goes back to the release. 
 4. A `dev` shim whose checkout is gone is replaced at the next session start of an installed stockroom plugin. A live foreign shim is never touched.
 5. No project doc or comment claims that plugin-root variables are visible to agent-run shell commands.
 6. `make ci` (or the equivalent format, lint, test and reuse gates) passes.
+
+### Added by the PR #142 review (2026-10-16)
+
+7. No checkout is labelled `claude` or `cursor` because of where its path happens to sit. Only a copy in a harness's default plugins folder is labelled automatically: `…/.claude/plugins/cache/…`, `…/.claude/plugins/synced/…` or `…/.cursor/plugins/cache/…`. An install-shaped copy anywhere else gets no owner, and the agent asks the user.
+8. The line Step 2 prints is valid shell for any path the block resolves, including paths that contain `'` or spaces.
+9. `shim rectify` exits 0 and leaves the shim untouched when a foreign shim's engine directory cannot be checked. `shim install` refuses such a shim unless both `--takeover` and `--force` are passed. Neither command raises an exception.

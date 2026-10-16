@@ -1,56 +1,22 @@
 # Active Context
 
 ## Current Task: plugin-root-resolution
-**Phase:** REFLECT COMPLETE
+**Phase:** PLAN - COMPLETE (rework round 1: PR #142 review fixes)
 
 ## What Was Done
-- Intent confirmed by the operator: reassess how `CLAUDE_PLUGIN_ROOT` reaches each plugin surface, then fix `sr-initialize` and the hook configuration where they set users up to fail.
-- Verified the model against the Claude Code docs, a headless probe on 2.1.301, Cursor forum and staff statements, and warehouse history. The details are in `tasks.md` under "Evidence that shaped the plan".
-- Plan revised for preflight: the mirror test expects the logical path, Step 7 sorts shims by header owner and baked dir, and a plugin root counts only when it holds this engine. Tests run under sh, bash and zsh.
-- ~~Decision A2 (agent-made): `claude --plugin-dir <checkout>` resolves to `claude`.~~ Overruled by the operator, below.
-- Second preflight: FAIL (fixable). Claude Code also substitutes `$ARGUMENTS` and `$N` when a skill gets arguments.
+- First pass shipped on `claudeboarding` and is PR #142, at 7f3917f: the Step 2 install-layout owner rule, dead-shim replacement in `rectify`, and Step 7 triage. QA PASS, reflected. The reflection is at `memory-bank/active/reflection/reflection-plugin-root-resolution.md`.
+- The operator asked for the PR's review feedback to be judged. Six bot inline comments were all valid and reproduced, and all were judged "fix in this PR". The operator said "fix all of those" and invoked `/niko-plan`.
+- The rework plan is in `tasks.md`. It has 5 units:
+    1. `_alive` counts an uncheckable engine as alive (executable).
+    2. The Step 2 default-folder owner rule and a shell-safe printed line (executable).
+    3. Step 7: the synced row and uncheckable engines (prose).
+    4. `systemPatterns.md` and SumMem (prose).
+    5. Verification.
 
-## Operator decisions (2026-10-16)
-- **Contributors always get `dev`.** A marketplace install must be distinguishable as a real installation. Anything installed from a checkout with intent to develop or iterate is `dev`. That includes `claude --plugin-dir`, Cursor `plugins/local`, local-path marketplaces loaded in place, and the mirror.
-- **Argument substitution is not a real concern**: none of our skills take arguments. Drop the with-arguments test and the hygiene guard. The Step 2 block stays function-free anyway.
-- **Hook behavior for dev loads:** the operator asked for a failure-mode analysis of entering and leaving dev before deciding whether `rectify` should skip dev loads. The analysis was delivered in chat.
-- **No separate dev data (option E rejected):** entering dev means all code comes from the checkout and runs against the real warehouse, which is why the docs say to back up first. That is intended.
-- **Doubts about option B (rectify no-op on dev loads):** it would stop a broken dev setup from healing through rectify. The operator's aim is that casual contributors, the "make the dashboard pink" kind, never get stuck going in or out. Hackers of the hook code are on their own.
-- Operator's mental model: to leave dev, break or remove the dev shim, and the real harness's hook rectifies back. Today only *removing* it works. A *dead* dev shim is never touched by hooks, which is the stuck path.
-- **Approved by the operator ("Yes"), 2026-10-16:**
-    1. Hooks unchanged (B dropped).
-    2. `rectify` replaces a dead shim of any owner.
-    3. Option A, the install-layout rule (`…/cache/<marketplace>/<plugin>/<version>`), applies to `sr-initialize` only.
-    4. Step 7 sorts the existing shim.
-    5. E dropped.
-
-## Build outcome
-- Files modified, all under `/home/mobaxterm/worktrees/Texarkanine/stockroom/stockroom-claudeboarding/`:
-    - `skills/sr-search/src/stockroom/shim.py`: `rectify` dead-shim replacement, `_DEV_GONE_REMEDY`, docstrings, `--help`.
-    - `skills/sr-search/src/stockroom/shim_template.sh`: the `{{GONE_REMEDY}}` placeholder on the missing-dir line.
-    - `skills/sr-search/tests/test_shim.py`: three new `TestRectify` cases; docstrings narrowed.
-    - `skills/sr-search/tests/test_initialize_context.py`: new; 14 cases × sh/bash/zsh.
-    - `skills/sr-initialize/SKILL.md`: Step 2 rewrite, Step 7 triage table, the idempotency paragraph, and the intro.
-    - Docs: `docs/contributing/preparation.md`, `docs/user-guide/troubleshooting/index.md`, `docs/architecture/packaging.md`.
-    - `scripts/localdev.sh` comment, `memory-bank/systemPatterns.md`, and two `.summem/notes/*`.
-- Decisions made during Build:
-    - Step 7 got an extra row: a file with no `STOCKROOM_` lines is not ours, so tell the user and replace it only with consent. That mirrors rectify's unidentified-file rule.
-    - Step 7 replaces a dead foreign shim with `--takeover` without asking, matching the new hook behavior.
-    - The intro now says "working foreign shim" goes to the user.
-- Deviations from the plan:
-    - `troubleshooting/index.md` line 74 was left unchanged; it already says a new session heals.
-    - Added an e2e check on real Claude Code that the plan did not list.
-    - `make ci` could not pass end to end locally: `lock-check` needs uv 0.12.22. The remaining gates were run individually, and the lock checks passed under uv 0.12.22.
-- Residual risks for QA: zsh is untested (absent here and on CI), and Cursor's agent-shell behavior is still undocumented.
-
-## Reflection
-- QA PASS; six minor QA findings fixed after QA, finding 1 test-first. Reflection at `memory-bank/active/reflection/reflection-plugin-root-resolution.md`.
-- Persistent files: productContext skipped, systemPatterns already updated in Build, techContext skipped.
-- Follow-up candidates: `doctor probe` mis-owned-shim fact, `stockroom shim triage`, zsh in CI, and an operator UAT in Cursor for `CURSOR_PLUGIN_ROOT` in agent shells.
-
-## After Reflect (operator requests)
-- Upgraded this machine's uv to 0.12.22 (the CI pin) via pipx. `make ci` now passes end to end locally: 934 passed, 19 skipped, JS 134/134, REUSE compliant.
-- Pushed `claudeboarding` and opened draft PR #142: https://github.com/Texarkanine/stockroom/pull/142
+## Decisions
+- Operator decisions from 2026-10-16 still stand; they are listed in `tasks.md`.
+- **Agent decision, flagged for the operator:** only a harness's default plugins folders are labelled automatically. An install-shaped copy anywhere else gets no owner, and the user decides. This reverses the first pass's labelling of custom roots through substitution, because `--plugin-dir` substitutes a checkout the same way. The cost: users with `CLAUDE_CONFIG_DIR`, `CLAUDE_CODE_PLUGIN_CACHE_DIR` or a Cursor install outside `~/.cursor` are asked one question. A fallback is written in `tasks.md`.
+- An uncheckable engine dir counts as alive. Only ENOENT, ENOTDIR and ELOOP mean dead, which is the same on Python 3.11 to 3.14.
 
 ## Next Step
-- Operator runs `/niko-archive` (the archive commit lands on the PR branch). Then the PR leaves draft for review.
+- Preflight (subagent), then Build.

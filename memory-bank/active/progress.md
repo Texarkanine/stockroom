@@ -185,3 +185,16 @@ Reassess how each harness exposes its plugin root (`CLAUDE_PLUGIN_ROOT`, `CURSOR
 * Insights
     - Labelling a copy `dev` by mistake fails safe, because Step 7 tells the agent to stop and ask when `APP_DIR` is not the user's checkout. Labelling a copy with a harness by mistake fails silently.
     - `Path.is_file()` handles errors differently by version: 3.11 to 3.13 raise on EACCES, 3.14 returns `False`.
+
+## 2026-10-16 - PLAN (rework round 1: PR #142 review) - COMPLETE
+
+* Work completed
+    - Rewrote `tasks.md` for this round, keeping the operator decisions and evidence. There are 5 units: `_alive` counts an uncheckable engine as alive (executable); the Step 2 default-folder owner rule and a shell-safe printed line (executable); Step 7's synced row and an uncheckable-engine row (prose); `systemPatterns.md` and SumMem (prose); verification.
+    - Prototyped the target Step 2 block in scratch: 13 modeled cases pass under dash and bash, and the quoted-path case also passes under busybox sh. Prototyped the target `_alive` on Python 3.11, 3.13 and 3.14: the same answers on all three.
+    - Added acceptance criteria 7 to 9 to `projectbrief.md`.
+* Decisions made
+    - Agent decision, flagged: only a harness's default plugins folders are labelled automatically. An install-shaped copy elsewhere gets no owner, and the user decides. Substitution and `CURSOR_PLUGIN_ROOT` no longer decide the owner. The fallback is in `tasks.md`.
+    - `_alive` stats `pyproject.toml` directly. Only ENOENT, ENOTDIR and ELOOP mean dead; any other `OSError` counts as alive.
+    - The Step 2 tests read results back through the printed line, because that line is the agent's interface.
+* Insights
+    - Under `--plugin-dir`, `${CLAUDE_PLUGIN_ROOT}` substitution looks exactly like a real install's. It can never be the sole proof of an install.
