@@ -60,3 +60,40 @@ Reassess how each harness exposes its plugin root (`CLAUDE_PLUGIN_ROOT`, `CURSOR
 * Decisions made
     - A2: `claude --plugin-dir <checkout>` resolves to `claude`, the same owner as that session's own SessionStart hook. Brief UC3 and AC3 updated; flagged for the operator.
     - Declined the radical engine `shim context` resolver: a block-execution test is still the only guard on the skill's substitution contract. `doctor probe` mis-owned detection is logged as a follow-up.
+
+## 2026-10-16 - PREFLIGHT (second run) - COMPLETE
+
+* Work completed
+    - Checked the revised plan (b44920d) against the codebase. Both findings from the first preflight are resolved.
+    - Wrote a prototype of the target Step 2 block, with a helper that reads a named variable. All nine planned cases gave the planned results under dash and bash, including the logical mirror `APP_DIR`.
+    - Probed Claude Code 2.1.301 headless with an argument-taking project skill.
+    - Result (first line of `.preflight-status`): `FAIL (fixable)`.
+* Decisions made
+    - TDD encoding passes: Unit 1 puts its tests first, and Units 2 and 3 are prose. No strike or swap was needed.
+    - Fixable 1: Claude Code also substitutes `$0`…`$N` (and `$ARGUMENTS`) in skill text when the skill gets arguments, inside code fences too. The probe confirmed it: `/argprobe alpha beta` turned `"$1"` into `"beta"` inside a shell function. A `holds_engine` helper that takes `$1` would break the root guard, and the planned test would not notice. Fix:
+        - Correct the evidence.
+        - Allow no `$<digit>` in the SKILL.md body. The helper reads a named variable, set in its own statement.
+        - Add a "Claude rendering with arguments" test case.
+* Insights
+    - Advisories:
+        - Step 7 should pass `--app-dir "$APP_DIR"`, or the bake is physical and differs from the hook's logical bake.
+        - Shell-quote the printed re-set line, because WSL Windows user names can contain spaces.
+        - zsh is absent here and in CI, so the zsh case always skips.
+        - Checking the path rule before the root rules removes the "Cursor fills the Claude token" misroute.
+        - Fence selection breaks if Build adds a fence that shows the re-set prefix.
+        - An optional case for a Claude project-skill checkout, which should resolve to `dev`.
+    - Radical idea (advisory): ownership follows the baked tree. `shim.rectify` adopts a foreign shim baked inside the same harness plugin install, so this bug's existing victims heal at their next session start.
+
+## 2026-10-16 - PLAN (third revision, operator decisions) - COMPLETE
+
+* Work completed
+    - Wrote a failure-mode analysis of entering and leaving dev for the operator. Under the documented flow, the only real stuck path is a dead `dev` shim (deleted checkout), which hooks never touch. The every-prompt Cursor hook adds no new failure class.
+    - Rewrote the plan around the operator's decisions. Brief UC3/UC4, constraints and ACs updated.
+* Decisions made
+    - Operator decisions:
+        - Contributors always get `dev`. A real install is a marketplace cache copy (`…/cache/<marketplace>/<plugin>/<version>`).
+        - Hooks are unchanged.
+        - `rectify` replaces a dead shim of any owner, but never a live foreign one or an unparseable file.
+        - No separate dev data.
+        - Argument substitution is not a concern.
+    - The shim's missing-dir remedy for `dev` mentions starting a session of an installed harness plugin. A new template placeholder; the env-not-ready remedy is unchanged.

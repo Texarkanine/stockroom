@@ -16,7 +16,11 @@ The same skill text runs in Cursor. Whatever fix lands for Claude Code must not 
 
 ### Use-Case 3: Dev checkout / localdev mirror
 
-A contributor runs `sr-initialize` from a Cursor `make localdev` mirror, or from checkout skills that no harness loaded as a plugin. That resolves to owner `dev` and defers the shim to `make shim`. A checkout loaded with `claude --plugin-dir` resolves to `claude`, the same owner that session's own SessionStart hook already uses when it creates a missing shim (plan decision A2). A contributor's live `dev` shim is left alone. Nothing may label a marketplace install as a dev checkout.
+Contributors always get `dev` (operator decision). Anything run from a checkout with intent to develop or iterate resolves to `dev` and points to `make localdev` / `make shim`. That covers `claude --plugin-dir`, Cursor `plugins/local`, local-path marketplaces loaded in place, and the Cursor localdev mirror. Only a marketplace install, a harness cache copy at `…/cache/<marketplace>/<plugin>/<version>`, is a real install. A contributor's live `dev` shim is left alone. Nothing may label a marketplace install as a dev checkout.
+
+### Use-Case 4: Leaving dev without getting stuck
+
+A contributor who has a real install and a `dev` shim goes back to the release. Either they run `make localdev-clean`, or they simply delete the checkout or worktree. The next session of the installed plugin restores a working shim in both cases, because a dead shim of any owner is replaced. A contributor who edits the hook code itself is on their own.
 
 ## Requirements
 
@@ -32,12 +36,14 @@ A contributor runs `sr-initialize` from a Cursor `make localdev` mirror, or from
 1. Shared `skills/` tree: one `SKILL.md` serves both harnesses. Committed layout is install layout, with no build step.
 2. The session-start hook stays idempotent, fire-and-forget and never-erroring.
 3. TDD per `.claude/rules/shared/always-tdd.md`: test product behavior and published contracts, not prose change-detectors.
-4. The shim ownership policy (`stockroom.shim`) is not changed by this task unless the audit shows it is part of the failure.
+4. The shim ownership policy (`stockroom.shim`) changes in one approved way: `rectify` replaces a dead shim of any owner. A live foreign shim and any unidentifiable file stay untouched. Hook files and dev-load hook behavior stay as they are (operator decision).
+5. No separate dev data: dev runs checkout code against the real warehouse after a backup (operator decision).
 
 ## Acceptance Criteria
 
 1. On a Claude Code marketplace install, following `sr-initialize` Step 2 literally gives `OWNER=claude` and the absolute plugin-cache `skills/sr-search` path.
 2. On a Cursor marketplace install, Step 2 gives `OWNER=cursor` by a mechanism that is documented or verified, or the remaining uncertainty is stated in the skill or the docs and does not misroute the user.
-3. A Cursor localdev mirror, or checkout skills not loaded as a plugin, resolves to `OWNER=dev`. `claude --plugin-dir <checkout>` resolves to `OWNER=claude`. Re-running `sr-initialize` never offers to take over a shim that its owner still maintains.
-4. No project doc or comment claims that plugin-root variables are visible to agent-run shell commands.
-5. `make ci` (or the equivalent format, lint, test and reuse gates) passes.
+3. Every checkout-based load (`claude --plugin-dir`, Cursor `plugins/local`, local-path marketplace in place, Cursor mirror) resolves to `OWNER=dev`. Re-running `sr-initialize` never offers to take over a shim that its owner still maintains.
+4. A `dev` shim whose checkout is gone is replaced at the next session start of an installed stockroom plugin. A live foreign shim is never touched.
+5. No project doc or comment claims that plugin-root variables are visible to agent-run shell commands.
+6. `make ci` (or the equivalent format, lint, test and reuse gates) passes.
