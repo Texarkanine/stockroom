@@ -17,7 +17,7 @@ command -v uv >/dev/null 2>&1 || {
 }
 
 [ -f "$APP_DIR/pyproject.toml" ] || {
-	echo "stockroom: baked engine dir $APP_DIR is missing or invalid — {{REMEDY}}" >&2
+	echo "stockroom: baked engine dir $APP_DIR is missing or invalid — {{GONE_REMEDY}}" >&2
 	exit 1
 }
 

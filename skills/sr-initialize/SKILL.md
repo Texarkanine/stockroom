@@ -6,9 +6,9 @@ enable-model-invocation: true
 
 # sr-initialize
 
-`sr-initialize` walks a machine from "plugin installed" to "warehouse ready": prerequisites checked, the per-machine torch wheel provisioned and smoke-tested, the on-path `stockroom` command bound, nightly freshness scheduled, and a first full ingest + embed completed. You (the agent) orchestrate; every mechanical check runs through the tested engine CLI (`stockroom doctor`, `stockroom shim`, `stockroom schedule`), and the judgment calls — which torch wheel, whether to take over a foreign shim, whether (and when) to schedule the nightly job — always go to the user.
+`sr-initialize` walks a machine from "plugin installed" to "warehouse ready": prerequisites checked, the per-machine torch wheel provisioned and smoke-tested, the on-path `stockroom` command bound, nightly freshness scheduled, and a first full ingest + embed completed. You (the agent) orchestrate; every mechanical check runs through the tested engine CLI (`stockroom doctor`, `stockroom shim`, `stockroom schedule`), and the judgment calls — which torch wheel, whether to take over a working foreign shim, whether (and when) to schedule the nightly job — always go to the user.
 
-**Idempotent by design: the environment is the state.** There is no progress file. Re-running this skill re-probes and skips whatever is already green — torch present → skip provisioning and go to the smoke test; shim present and owned → nothing to do; `stockroom schedule status` says installed → skip scheduling; warehouse already populated → skip the first run. "Go install torch your own way and run me again" is a supported flow, not a dead end.
+**Idempotent by design: the environment is the state.** There is no progress file. Re-running this skill re-probes and skips whatever is already green — torch present → skip provisioning and go to the smoke test; shim live and maintained by its owner → nothing to do; `stockroom schedule status` says installed → skip scheduling; warehouse already populated → skip the first run. "Go install torch your own way and run me again" is a supported flow, not a dead end.
 
 ## Step 1: Prerequisite — uv
 
@@ -18,23 +18,54 @@ command -v uv
 
 If missing, stop and tell the user to install [uv](https://docs.astral.sh/uv/getting-started/installation/) first; nothing below works without it.
 
-## Step 2: Detect context and resolve the engine dir
+## Step 2: Find the engine and the shim owner
 
-Which harness (if any) is running this skill decides the shim owner label; the plugin root decides where the engine lives.
+The engine always sits beside this skill: `sr-search` is this skill's sibling directory in every layout, because the committed layout is the install layout. The owner label goes into the on-path shim and decides who keeps it current:
+
+- **`claude` or `cursor`**: a marketplace install, meaning the harness's own copy under `…/cache/<marketplace>/<plugin>/<version>/`, or a Claude Code copy synced from claude.ai. That harness's session hooks re-bake the shim after plugin updates.
+- **`dev`**: anything run from a checkout, such as `claude --plugin-dir`, Cursor's `~/.cursor/plugins/local/`, a local-path marketplace, or the `make localdev` mirror. Contributors manage that shim with `make shim` / `make localdev`.
+
+Run this block as written. Claude Code writes this skill's directory and plugin root into it when it loads the skill. In any other harness, replace the angle-bracket placeholder with the POSIX absolute path of the directory you read this SKILL.md from (on WSL, turn backslashes into forward slashes). Do not look for plugin-root environment variables yourself: harnesses give them to hooks, not to agent shells.
 
 ```bash
-if [ -n "$CURSOR_PLUGIN_ROOT" ]; then
-  OWNER=cursor; APP_DIR="$CURSOR_PLUGIN_ROOT/skills/sr-search"
-elif [ -n "$CLAUDE_PLUGIN_ROOT" ]; then
-  OWNER=claude; APP_DIR="$CLAUDE_PLUGIN_ROOT/skills/sr-search"
+SKILL_DIR="${CLAUDE_SKILL_DIR}"
+[ -n "$SKILL_DIR" ] || SKILL_DIR="<POSIX absolute path of the directory holding this SKILL.md>"
+APP_DIR="$(CDPATH='' cd -- "$SKILL_DIR/../sr-search" 2>/dev/null && pwd)"
+PLUGIN_ROOT="${APP_DIR%/skills/sr-search}"
+CACHE_DIR="${PLUGIN_ROOT%/*/*/*}"
+REAL_APP="$(CDPATH='' cd -P -- "$APP_DIR" 2>/dev/null && pwd)"
+CLAUDE_APP=""
+[ -z "${CLAUDE_PLUGIN_ROOT}" ] || CLAUDE_APP="$(CDPATH='' cd -P -- "${CLAUDE_PLUGIN_ROOT}/skills/sr-search" 2>/dev/null && pwd)"
+CURSOR_APP=""
+[ -z "${CURSOR_PLUGIN_ROOT}" ] || CURSOR_APP="$(CDPATH='' cd -P -- "${CURSOR_PLUGIN_ROOT}/skills/sr-search" 2>/dev/null && pwd)"
+OWNER=""
+if [ ! -f "$APP_DIR/pyproject.toml" ]; then
+  printf 'sr-initialize: no stockroom engine beside %s\n' "$SKILL_DIR" >&2
+  APP_DIR=""
+elif [ "$PLUGIN_ROOT" != "$APP_DIR" ] && [ "${CACHE_DIR##*/}" = cache ]; then
+  case "$APP_DIR" in
+    */.claude/plugins/cache/*) OWNER=claude ;;
+    */.cursor/plugins/cache/*) OWNER=cursor ;;
+    *)
+      if [ -n "$CLAUDE_APP" ] && [ "$CLAUDE_APP" = "$REAL_APP" ]; then OWNER=claude
+      elif [ -n "$CURSOR_APP" ] && [ "$CURSOR_APP" = "$REAL_APP" ]; then OWNER=cursor
+      else printf 'sr-initialize: %s is an installed plugin, but the harness did not say which\n' "$APP_DIR" >&2
+      fi ;;
+  esac
 else
-  OWNER=dev; APP_DIR="<this skill's own directory>/../sr-search"
+  OWNER=dev
+  case "$PLUGIN_ROOT" in
+    */synced/*) if [ -n "$CLAUDE_APP" ] && [ "$CLAUDE_APP" = "$REAL_APP" ]; then OWNER=claude; fi ;;
+  esac
 fi
+printf "APP_DIR='%s'; OWNER='%s'\n" "$APP_DIR" "$OWNER"
 ```
 
-The sibling-relative fallback works because the committed layout is the install layout — `sr-search` (which hosts the shared engine) always sits beside this skill. Resolve `APP_DIR` to an **absolute** path before using it.
+It prints one line, such as `APP_DIR='/…/skills/sr-search'; OWNER='claude'`. Shell variables do not carry from one command to the next, so **start every later command in this skill with that printed line**.
 
-**Neither env var set means you are in a dev checkout** (or a symlinked `make localdev` mirror). Everything below works the same, except the shim step: defer it to `make shim` from the repo root (owner `dev`), unless the user explicitly insists on a harness-owned install.
+- **`APP_DIR` is empty:** no engine sits beside the directory you used. Fix the directory and run the block again. Do not go on without an engine.
+- **`OWNER` is empty but `APP_DIR` is set:** this is an installed plugin whose harness did not identify itself. In the printed line, set `OWNER` to the harness you are running in (`claude` or `cursor`).
+- **`OWNER` is `dev`:** everything below works the same, except Step 7, which leaves the shim to the contributor flow.
 
 ## Step 3: Sync the locked environment — before torch
 
@@ -108,20 +139,39 @@ The freeze lives under stockroom home (`$STOCKROOM_HOME` or `~/.local/share/stoc
 
 ## Step 7: Bind the `stockroom` command
 
-If `command -v stockroom` already succeeds and `stockroom --version` answers, the shim is live — nothing to do. Otherwise:
+The shim lives at `~/.local/bin/stockroom`. Read the one that is there now straight from that path, because `~/.local/bin` may not be on PATH yet:
 
-- **Harness context** (`OWNER` is `cursor` or `claude`):
+```bash
+grep '^# STOCKROOM_' ~/.local/bin/stockroom 2>/dev/null
+```
+
+`STOCKROOM_OWNER` is who maintains it, and `STOCKROOM_APP_DIR` is the engine it runs. That engine is **alive** when its directory still holds `pyproject.toml`, and **dead** otherwise. Then:
+
+| What is there | What to do |
+| --- | --- |
+| No file, or `STOCKROOM_OWNER` equals `OWNER` | Install, below. |
+| A file with no `STOCKROOM_` lines | Not a stockroom shim. Tell the user what is at that path. Replace it (`--takeover`) only with their explicit consent. |
+| Another owner, engine dead | It can run nothing. Install with `--takeover`, and tell the user what it pointed at. The next harness session would replace it anyway. |
+| Owner `dev`, engine alive, `STOCKROOM_APP_DIR` inside a marketplace install (`…/cache/<marketplace>/<plugin>/<version>/…`) | An earlier `sr-initialize` mislabelled a real install. No harness hook will ever refresh it, and a plugin update removes that directory. Explain this and offer `--takeover --force`. Run it only with the user's explicit consent. |
+| Another owner, engine alive, anything else | Leave it. Either another harness's hooks keep it current, or a contributor is running a checkout on purpose. Tell the user who maintains it; nothing to do here. |
+
+To install:
+
+- **`OWNER` is `claude` or `cursor`.** Add `--takeover` or `--takeover --force` only where the table says so.
 
 ```bash
 PYTHONPATH="$APP_DIR/src" uv run --project "$APP_DIR" --no-sync --no-config \
-  python -m stockroom shim install --owner "$OWNER"
+  python -m stockroom shim install --owner "$OWNER" --app-dir "$APP_DIR"
 ```
 
-- **Dev checkout**: run `make shim` from the repo root instead (owner `dev`, bakes the checkout).
+- **`OWNER` is `dev`.** Only if `APP_DIR` is in a checkout the user develops in, work from that checkout's root. Installed plugin copies also contain a `Makefile`, so never run these inside one. If this is not the user's checkout, stop and ask.
+  - No shim, or a `dev` one: `make shim` (owner `dev`, bakes the checkout).
+  - Another owner, engine dead: `make shim TAKEOVER=1`.
+  - Another owner, engine alive: this checkout is not active. If the user wants to develop against it, the contributor guide's `make localdev` flow claims the shim. Run it only at their request.
 
 The install is ownership-guarded and its report is honest — relay it:
 
-- **Refusal** (exit 1, e.g. `…is owned by 'dev' and its engine is alive — refusing to replace a working foreign shim`): relay the line verbatim. A foreign shim with a *dead* engine can be replaced by adding `--takeover` — only with the user's explicit consent, never on your own judgment.
+- **Refusal** (exit 1, e.g. `…is owned by 'dev' and its engine is alive — refusing to replace a working foreign shim`): relay the line verbatim, then follow the table above. Never add `--takeover` or `--force` on your own judgment beyond what it says.
 - **PATH warning** (`…is not on PATH`): the shim wrote fine but won't be found; tell the user to add `~/.local/bin` to their PATH.
 - **Success** prints `verified via PATH: stockroom <version>` — the command is live.
 

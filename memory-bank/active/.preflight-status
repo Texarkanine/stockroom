@@ -1,0 +1,70 @@
+PASS WITH ADVISORY
+
+Third preflight of the Level 2 plan `plugin-root-resolution` (tasks.md as of 951e756, the third revision built on the operator's decisions). The plan can go to Build as written. Nothing blocks it. The advisories below are cheap, and most of them touch the same files Build already edits. Advisory 1 changes what the operator approved, so the operator should decide on it before Build starts.
+
+## Prior findings
+
+- Second preflight, finding 1 (argument substitution): closed by operator decision. Argument substitution is not a concern, and the Step 2 block uses no functions and no positional tokens.
+- Second preflight, advisories A1 (`--app-dir` in Step 7), A2 (a quoted re-set line), A3 (zsh never runs; now recorded as a residual risk) and A4 (path rule before root rules): all folded in.
+- A5 (fence selection): folded in. Tests select the fence by its `SKILL_DIR=` assignment. See advisory 6 for a side effect.
+
+## Design check by prototype
+
+I wrote the target Step 2 block to the plan's rules in a scratch directory. It has no functions and no positional parameters, uses logical `cd` for `APP_DIR` and `cd -P` for the root comparisons, and checks for exactly three levels below `cache`. I ran all 13 planned cases under dash (`/bin/sh` here), bash and busybox sh. Every case gave the planned `OWNER` and `APP_DIR`:
+
+- Cases 1, 2, 3 and 10 gave `claude`. Cases 6 and 7 gave `cursor`. Cases 4, 5, 8 and 9 gave `dev`. Cases 11, 12 and 13 gave an empty `OWNER`.
+- Case 9 (the mirror) gave the logical mirror `APP_DIR`, and its realpath is `<repo>/skills/sr-search`.
+
+I also checked the Claude Code docs ([plugin loading](https://code.claude.com/docs/en/plugins/loading)). `CLAUDE_CODE_PLUGIN_CACHE_DIR` replaces the whole plugins root, and copies still go to `<root>/cache/<marketplace>/<plugin>/<version>/`. So case 3 models the custom root correctly. The installs on this machine have that shape in both harnesses. The warehouse shows Cursor agents running `sr-initialize` from `~/.cursor/plugins/cache/…`, never from `~/.cursor/plugins/marketplaces/…`.
+
+## Checks
+
+- **TDD plan encoding: pass.** Unit 1 (`rectify`) and Unit 3 (Step 2) are executable. Each one stubs its tests, writes them, runs them red, then writes the code. Unit 2 (remedy text) is wording. The existing runtime tests already guard its placeholder, because an unsubstituted `{{GONE_REMEDY}}` loses the "make shim" token. Units 4 and 5 are prose. Nothing was struck or swapped.
+- **Convention compliance: pass.** `test_initialize_context.py` follows the `test_<area>.py` pattern, the module-docstring contract style, `repo_root`, and the minimal-env `subprocess.run` style of `test_shim_runtime.py`. REUSE's `**/*` glob covers it.
+- **Dependency impact: pass, with small gaps (advisory 5).** `test_shim_cli.py::test_rectify_rebakes_moved_root` stays green, because its foreign rectify targets a live shim. `test_skill_hygiene.py` exempts `sr-initialize`. `test_packaging.py` hook tests are unaffected, because the hooks do not change. The remedy-token tests in `test_schedule.py`, `test_doctor.py` and `test_dashboard_recovery.py` do not read the shim template.
+- **Conflict detection: pass.** Nothing in the codebase already provides this. The `rectify` change is the one policy change Constraint 4 approves.
+- **Completeness: pass.** Every requirement and acceptance criterion maps to a unit with named files.
+
+## Advisories (non-blocking)
+
+1. **A real install that the layout rule calls `dev`: plugins synced from claude.ai.** The loading docs list a second real-install location: `<plugins root>/synced/`. Plugins that you or your organization turn on in claude.ai land there and load as `<name>@synced`, hooks included. On this machine the folder is `~/.claude/plugins/synced/<account>_<org>/`. That is not `cache/<m>/<p>/<v>`, so rule 2 gives `dev`. The plan reads the operator's rule as "everything else is dev". But the operator's actual words were "a marketplace install must be recognizable as a real install; anything run from a checkout … is dev", and a synced copy is not a checkout. The damage is small:
+   - Usually the synced plugin's own SessionStart hook has already made a `claude` shim before Step 7 runs. Step 7 then only gives misleading `make localdev` advice.
+   - In the worst case (synced mid-session, then `/reload-plugins`, so no hook has run), Step 7 runs `make shim` inside the synced copy. That leaves a `dev` shim no hook will heal until the copy is replaced.
+
+   **Proposed fix:** treat a plugin root under a `synced/` directory as a real install. `*/.claude/plugins/synced/*` gives `claude`. Any other root goes through the substitution check. Add one test case: Claude rendering, `home/.claude/plugins/synced/a_b/<plugin dir>`, expecting `claude`. (I did not check the other in-place loads, which are `@skills-dir` and `--plugin-url` temp dirs. The operator's checkout rule covers them as dev.)
+2. **The Challenges and Pre-Mortem say a wrong `dev` result is visible. It is silent.** Both say that when the layout rule misjudges a real install, "Step 7's dev branch visibly does not apply". But the plan's own evidence says install dirs contain `.git` and `Makefile`, so `make shim` run from that root succeeds and bakes a `dev` shim into the install. That is the old bug's footprint.
+   - Correct both passages.
+   - In the dev-outcome text that Build writes, tell the agent: run `make shim` only from a checkout the user develops in. If the root lives under a harness's plugins folder and is not `~/.cursor/plugins/local/`, stop and ask.
+3. **Two instructions disagree when `OWNER` is empty.** The block rules say "If `OWNER` is empty, stop at Step 2". Rule 4 says the agent should set `OWNER` to its harness when a real install does not identify itself. Build needs one rule:
+   - stop when `APP_DIR` is empty (rules 1 and 13);
+   - name your harness when only `OWNER` is empty (rule 4, case 11).
+
+   Rule 1 should also say that it clears `APP_DIR`, as case 12 expects. In the prototype, case 11 keeps `APP_DIR` and only `OWNER` is empty.
+4. **Step 7 should read the install destination, not `command -v`.** `shim install` guards `~/.local/bin/stockroom` (its `--dest`). On a first-time machine, `~/.local/bin` is often not on PATH; the PATH-warning bullet exists for exactly that case. There, `command -v stockroom` finds nothing and the triage says "no shim". The install then refuses on the foreign file, and the triage was skipped. Read the header from `~/.local/bin/stockroom`, and use `command -v` only for the PATH check.
+5. **Stale policy text the plan does not list.** Each item below states "rectify never touches a foreign owner", which becomes false:
+   - `_build_parser` in `shim.py`: the description ("never touches a foreign owner") and the `rectify` action help.
+   - The `ShimReport` docstring.
+   - The `test_shim.py` module docstring ("never foreign").
+   - `docs/architecture/packaging.md` line 17 ("Only the owner may rewrite an existing shim").
+   - `docs/user-guide/troubleshooting/index.md` line 34 (heal can now also replace a dead foreign shim).
+
+   `scripts/localdev.sh` `unclaim_dev_shim` already says "rectify never creates a missing shim", which has been wrong since rectify gained create-if-absent. Fix it while you are there.
+6. **The "Red today" labels are not accurate.** The fence selector keys on `SKILL_DIR=`, and today's SKILL.md has no such fence. So every case, including case 7, errors at selection against the current text. The red run passes the TDD gate, but it does not show which behavior each case catches. If the selector were made to pick today's block instead, cases 4, 5, 9 and 13 would also fail today: `APP_DIR` comes out as `…/sr-initialize/../sr-search` or an unfilled placeholder. Only case 7 would pass. Expect all cases red, and do not treat the labels as a gate.
+7. **Small Build details.**
+   - Check exactly three levels below `cache` with `case "${ROOT%/*/*/*}" in */cache)`. A `*/cache/*/*/*` glob also matches deeper paths, because `*` matches `/` in `case` patterns. For example, `~/cache/a/b/c/stockroom` would count as a real install.
+   - Reuse the existing `dead_dir` fixture in `test_shim.py` instead of deleting a `pyproject.toml`.
+   - Keep the literal `${CLAUDE_SKILL_DIR}` token out of prose too, not only `${CLAUDE_PLUGIN_ROOT}`. Claude Code substitutes both everywhere in the body.
+
+## Radical idea (advisory, not applied): move Step 7's triage into a tested engine verb
+
+Step 7 asks the agent to grep the shim header, judge whether the baked engine is alive, match the cache-layout shape, and pick one of four branches. That is real logic, run by hand each time and covered by no test (advisory 4 is one bug it already has).
+
+- **Sketch.** Add `stockroom shim triage --owner "$OWNER" --app-dir "$APP_DIR" [--dest …]`. It is stdlib-only and read-only, and it runs with bare `python3` the way Step 3's `ensure-env` already does. It prints one line: `verdict=<absent|current|rebake|foreign-dead|foreign-live|foreign-dev-in-install|unidentified> owner=… app_dir=… action=<exact command | leave>`. It reuses `_read_header`, `_alive` and one `_in_marketplace_install(path)` predicate.
+- **What Step 7 becomes.** Run `triage`, then run `action`. Ask for consent whenever `action` contains `--takeover`.
+- **Tests.** `TestTriage` in `test_shim.py`, with one case per verdict over the existing alive and dead fixtures.
+- **Payoff.**
+  - Step 7 shrinks to a lookup.
+  - It reads the right file (`--dest`), which fixes advisory 4.
+  - `make localdev-status` and `doctor probe` could report the same verdict.
+  - It keeps the second preflight's reason for declining `shim context`: Step 2 stays a shell block, still tested against substitution.
+- **Cost.** One new CLI surface plus about seven unit tests. The layout predicate then lives in Python and in the Step 2 shell block, so the two need one shared fixture list to stay consistent.

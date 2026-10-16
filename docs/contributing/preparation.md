@@ -90,6 +90,8 @@ HARNESS=cursor make localdev-clean    # or HARNESS=claude
 
 That removes the Cursor skills mirror / pre-commit guard (Claude: nothing to mirror) and deletes `~/.local/bin/stockroom` **only if** its header says `owner=dev`. Harness-owned shims are left alone. Warehouse untouched.
 
+Already deleted the checkout or worktree without this step? Its `dev` shim is now dead, and the next session of a harness with the stockroom plugin installed replaces it on its own.
+
 ### 2. Restore Database
 
 Wherever you backed up your database, restore it now.
@@ -163,7 +165,7 @@ If you are only going to work with the engine (the python code), you can leave t
 
 ### Changing the Hooks
 
-Committed plugin hooks under `hooks/*.json` use `CURSOR_PLUGIN_ROOT` / `CLAUDE_PLUGIN_ROOT`. After you uninstall the marketplace plugin those variables are unset, so copying those files into the project does **not** restore sessionStart. Make does not install project hooks. Only edit hooks by hand if you are changing the hook bootstrap surface itself; for day-to-day localdev, use `local-dashboard` / `stockroom dashboard` to launch the dashboard.
+Committed plugin hooks under `hooks/*.json` use `CURSOR_PLUGIN_ROOT` / `CLAUDE_PLUGIN_ROOT`. Harnesses set those only in the hook processes of a plugin they loaded (a marketplace install, `claude --plugin-dir`, or Cursor's `plugins/local`), never in project hooks or agent shells, so copying those files into the project does **not** restore sessionStart. Make does not install project hooks. Only edit hooks by hand if you are changing the hook bootstrap surface itself; for day-to-day localdev, use `local-dashboard` / `stockroom dashboard` to launch the dashboard.
 
 ### Footguns
 

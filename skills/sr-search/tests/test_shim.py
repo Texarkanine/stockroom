@@ -5,7 +5,8 @@ operator hard constraint), so *all* policy lives in this tested Python layer:
 what gets rendered, who may write the destination (ownership), when a takeover
 of a foreign shim is permitted (dead incumbent + ``takeover``, or live
 incumbent + ``takeover`` and ``force``), and when the hook-driven ``rectify``
-may act (create when absent; owner match + content drift; never foreign).
+may act (create when absent; owner match + content drift; replace a foreign
+shim only when its baked engine is dead; never an unidentifiable file).
 Everything writes to tmp destinations via explicit ``dest`` — the real
 ``~/.local/bin`` is never touched.
 """
@@ -280,10 +281,43 @@ class TestRectify:
     def test_owner_mismatch_never_touches_foreign_shim(
         self, dest: Path, engine_dir: Path, other_engine_dir: Path
     ) -> None:
-        """rectify by a non-owner is a silent no-op even when content differs."""
+        """rectify by a non-owner is a silent no-op while the foreign shim's
+        baked engine is alive, even when content differs."""
         shim.install(dest, engine_dir, "cursor")
         before = dest.read_text()
         report = shim.rectify(dest, other_engine_dir, "claude")
+        assert report.action == "noop"
+        assert dest.read_text() == before
+
+    def test_foreign_owner_dead_dir_is_replaced(
+        self, dest: Path, dead_dir: Path, engine_dir: Path
+    ) -> None:
+        """A foreign shim whose baked engine is dead (e.g. a deleted dev
+        checkout) cannot run anything, so the hook-driven rectify replaces it
+        with the caller's bake — leaving dev never strands the on-path shim."""
+        shim.install(dest, dead_dir, "dev")
+        report = shim.rectify(dest, engine_dir, "claude")
+        assert report.action == "rectified"
+        assert dest.read_text() == shim.render(engine_dir, "claude")
+
+    def test_path_only_replaces_dead_foreign(
+        self, dest: Path, dead_dir: Path, engine_dir: Path
+    ) -> None:
+        """The path-only suspenders rectify replaces a dead foreign shim too."""
+        shim.install(dest, dead_dir, "dev")
+        report = shim.rectify(dest, engine_dir, "cursor", ensure_env=False)
+        assert report.action == "rectified"
+        assert dest.read_text() == shim.render(engine_dir, "cursor")
+
+    def test_unparseable_dest_left_untouched(
+        self, dest: Path, engine_dir: Path
+    ) -> None:
+        """A file at dest without stockroom header markers is not ours to
+        judge: rectify never overwrites it, alive or not."""
+        dest.parent.mkdir(parents=True)
+        dest.write_text("#!/bin/sh\necho not a stockroom shim\n")
+        before = dest.read_text()
+        report = shim.rectify(dest, engine_dir, "claude")
         assert report.action == "noop"
         assert dest.read_text() == before
 

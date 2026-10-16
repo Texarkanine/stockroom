@@ -14,14 +14,14 @@ Wrapper skills say only `stockroom <subcommand>`. They carry **no fallback incan
 
 The shim is **baked-only and succeed-or-refuse**. A baked `APP_DIR` is written into the script at install/rectify time. At runtime the shim does not scan, rank, or guess an engine location — it either execs that bake through the torch-safe contract or refuses with a one-line remedy.
 
-Ownership is explicit (`STOCKROOM_OWNER` in the shim header). Only the owner may rewrite an existing shim; foreign takes over require explicit flags (contributor Make paths — not Architecture recipes).
+Ownership is explicit (`STOCKROOM_OWNER` in the shim header). Only the owner may rewrite a working shim; taking over a live foreign shim requires explicit flags (contributor Make paths — not Architecture recipes). A shim whose baked engine directory is gone runs nothing, so session-start rectify replaces it whoever owns it.
 
 Three writers share one tested surface:
 
 | Writer | Role |
 | --- | --- |
 | `shim install` | First bake / guarded rewrite (`sr-initialize`, `make shim`) |
-| `shim rectify` | Hook-safe heal: create if absent, rebake when owned and drifted, ensure engine env — never touch a foreign owner |
+| `shim rectify` | Hook-safe heal: create if absent, rebake when owned and drifted, replace a dead shim of any owner, ensure engine env — never touch a live foreign shim or a file it cannot identify |
 | `shim ensure-env` | Env-only subset when the shim file itself is already correct |
 
 Because the engine is run-in-place (not an installed package), making `stockroom` importable is part of this contract — not something skills invent ad hoc. Layout and lock details: [Engine inside sr-search](#engine-inside-sr-search), [Locked uv project](#locked-uv-project).
