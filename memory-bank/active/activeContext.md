@@ -48,5 +48,9 @@
 - Persistent files: productContext skipped, systemPatterns already updated in Build, techContext skipped.
 - Follow-up candidates: `doctor probe` mis-owned-shim fact, `stockroom shim triage`, zsh in CI, and an operator UAT in Cursor for `CURSOR_PLUGIN_ROOT` in agent shells.
 
+## After Reflect (operator requests)
+- Upgraded this machine's uv to 0.12.22 (the CI pin) via pipx. `make ci` now passes end to end locally: 934 passed, 19 skipped, JS 134/134, REUSE compliant.
+- Pushed `claudeboarding` and opened draft PR #142: https://github.com/Texarkanine/stockroom/pull/142
+
 ## Next Step
-- Operator runs `/niko-archive`.
+- Operator runs `/niko-archive` (the archive commit lands on the PR branch). Then the PR leaves draft for review.

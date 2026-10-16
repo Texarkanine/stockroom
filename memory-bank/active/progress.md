@@ -169,3 +169,9 @@ Reassess how each harness exposes its plugin root (`CLAUDE_PLUGIN_ROOT`, `CURSOR
     - Plugin roots reach hooks, never agent shells, and Claude Code's skill substitution matches exact tokens only.
     - Marketplace copies carry `.git` and a `Makefile`, so the install layout, not checkout markers, distinguishes dev.
     - Keying the takeover on liveness removed the one stuck path out of dev.
+
+## 2026-10-16 - POST-REFLECT - PR OPENED
+
+* Work completed
+    - Local uv upgraded to 0.12.22 via pipx, and `make ci` is fully green locally.
+    - Draft PR #142 opened: "fix(shim): sr-initialize finds marketplace installs; dead shims heal at session start".
