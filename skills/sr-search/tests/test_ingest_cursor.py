@@ -12,6 +12,11 @@ turn's content array — faithful to position relative to the text block.
 from pathlib import Path
 
 from stockroom.ingest import cursor
+from stockroom.ingest.model import (
+    NormalizedMessage,
+    NormalizedSession,
+    NormalizedToolCall,
+)
 
 _BASE = "home-user-project/agent-transcripts"
 
@@ -133,3 +138,61 @@ def test_subagent_session_identity_and_parent_linkage(cursor_root: Path) -> None
     # The subagent has its own within-session ordinals/parents.
     assert [m.ordinal for m in sub.messages] == [0, 1, 2]
     assert [m.parent_ordinal for m in sub.messages] == [None, 0, 1]
+
+
+def test_wrapped_task_then_native_task_assigns_agent_type_by_index(
+    tmp_path: Path,
+) -> None:
+    """A wrapped Task followed by a native Task assigns ``agent_type`` in that order.
+
+    ``spawning_tool_use_id`` stays null: the IDE link is still structural.
+    """
+    parent = NormalizedSession(
+        harness="cursor",
+        session_id="parent-conv",
+        source_path=str(tmp_path / "parent-conv.jsonl"),
+        messages=[
+            NormalizedMessage(
+                ordinal=0,
+                role="assistant",
+                tool_calls=[
+                    NormalizedToolCall(
+                        ordinal=0,
+                        tool_name="CallDynamicTool",
+                        tool_input={
+                            "namespace": "cursor",
+                            "toolName": "Task",
+                            "arguments": {
+                                "description": "Look",
+                                "subagent_type": "explore",
+                            },
+                        },
+                    ),
+                    NormalizedToolCall(
+                        ordinal=1,
+                        tool_name="Task",
+                        tool_input={
+                            "description": "Build",
+                            "subagent_type": "generalPurpose",
+                        },
+                    ),
+                ],
+            )
+        ],
+    )
+    sub_dir = tmp_path / "parent-conv" / "subagents"
+    sub_dir.mkdir(parents=True)
+    line = '{"role":"user","message":{"content":[{"type":"text","text":"hi"}]}}\n'
+    first = sub_dir / "00000000-0000-4000-8000-0000000000a1.jsonl"
+    second = sub_dir / "00000000-0000-4000-8000-0000000000a2.jsonl"
+    first.write_text(line, encoding="utf-8")
+    second.write_text(line, encoding="utf-8")
+
+    explore = cursor.parse_subagent(first, parent=parent, index=0)
+    general = cursor.parse_subagent(second, parent=parent, index=1)
+    assert explore.agent_type == "explore"
+    assert general.agent_type == "generalPurpose"
+    assert explore.spawning_tool_use_id is None
+    assert general.spawning_tool_use_id is None
+    assert explore.parent_session_id == "parent-conv"
+    assert general.parent_session_id == "parent-conv"

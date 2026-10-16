@@ -1,9 +1,13 @@
 """Read-time spawn-to-turn association for dashboard session reconstruction.
 
 Slot rule for Cursor is the warehouse-row sibling of ingest's
-``_parent_subagent_types``: ``Task`` calls whose ``tool_input.subagent_type``
-is not ``None``, in ``(message.ordinal, tool.ordinal)`` order. Candidates are
-children with a non-null ``agent_type``, ordered by ``source_path``.
+``_parent_subagent_types``: a native ``Task`` whose ``subagent_type`` is not
+``None``, or a ``CallDynamicTool`` whose ``namespace`` is ``cursor``,
+``toolName`` is ``Task``, and nested ``subagent_type`` is not ``None``, in
+``(message.ordinal, tool.ordinal)`` order. Children that carry
+``spawning_tool_use_id`` join those slots by id. The children left over are
+zipped against the slots left over: non-null ``agent_type``, ordered by
+``source_path``.
 
 A pill is a positive claim. Missing a placement is acceptable; a guessed turn
 is not. Unknown harnesses produce no placements.
@@ -76,13 +80,43 @@ def _tool_field(tool: ParentTool, key: str) -> Any:
     return payload.get(key)
 
 
+def _task_arguments(tool: ParentTool) -> Mapping[str, Any] | None:
+    """Return the Task input for a native or wrapped slot, or ``None``.
+
+    Sibling of ingest ``cursor._parent_subagent_types``. A native ``Task``
+    qualifies when ``subagent_type`` is not ``None``. A ``CallDynamicTool``
+    qualifies when ``namespace`` is ``cursor``, ``toolName`` is ``Task``,
+    ``arguments`` is a mapping, and nested ``subagent_type`` is not ``None``.
+    The returned mapping is the native ``tool_input`` or that ``arguments``
+    mapping. The stored tool row is left unchanged.
+    """
+    payload = tool.tool_input
+    if not isinstance(payload, Mapping):
+        return None
+    if tool.tool_name == "Task":
+        if payload.get("subagent_type") is None:
+            return None
+        return payload
+    if tool.tool_name != "CallDynamicTool":
+        return None
+    if payload.get("namespace") != "cursor" or payload.get("toolName") != "Task":
+        return None
+    arguments = payload.get("arguments")
+    if not isinstance(arguments, Mapping) or arguments.get("subagent_type") is None:
+        return None
+    return arguments
+
+
 def _task_slots(tools: Sequence[ParentTool]) -> list[ParentTool]:
     """Typed Task slots — same rule as ingest ``_parent_subagent_types``."""
-    slots = [
-        tool
-        for tool in tools
-        if tool.tool_name == "Task" and _tool_field(tool, "subagent_type") is not None
-    ]
+    slots: list[ParentTool] = []
+    for tool in tools:
+        arguments = _task_arguments(tool)
+        if arguments is None:
+            continue
+        if arguments is not tool.tool_input:
+            tool = tool._replace(tool_name="Task", tool_input=arguments)
+        slots.append(tool)
     slots.sort(key=lambda tool: (tool.message_ordinal, tool.tool_ordinal))
     return slots
 
@@ -125,10 +159,10 @@ def _index_placements(
     return placed
 
 
-def _provenance_join(
+def _provenance_pairs(
     tools: Sequence[ParentTool],
     children: Sequence[ChildSession],
-) -> list[Placement]:
+) -> list[tuple[ParentTool, ChildSession]]:
     by_id = {tool.source_tool_use_id: tool for tool in tools if tool.source_tool_use_id}
     pairs: list[tuple[ParentTool, ChildSession]] = []
     for child in children:
@@ -136,7 +170,17 @@ def _provenance_join(
         if tool is None:
             continue
         pairs.append((tool, child))
-    return _index_placements(pairs, order_key=lambda child: child.session_id)
+    return pairs
+
+
+def _provenance_join(
+    tools: Sequence[ParentTool],
+    children: Sequence[ChildSession],
+) -> list[Placement]:
+    return _index_placements(
+        _provenance_pairs(tools, children),
+        order_key=lambda child: child.session_id,
+    )
 
 
 def _unique_type_pairs(
@@ -155,11 +199,10 @@ def _unique_type_pairs(
     return pairs
 
 
-def _corroborated_zip(
-    tools: Sequence[ParentTool],
+def _zip_pairs(
+    slots: Sequence[ParentTool],
     children: Sequence[ChildSession],
-) -> list[Placement]:
-    slots = _task_slots(tools)
+) -> list[tuple[ParentTool, ChildSession]]:
     candidates = sorted(
         (child for child in children if child.agent_type is not None),
         key=lambda child: child.source_path or "",
@@ -168,12 +211,34 @@ def _corroborated_zip(
         child.agent_type == _tool_field(slot, "subagent_type")
         for child, slot in zip(candidates, slots, strict=True)
     )
-    pairs = (
-        list(zip(slots, candidates, strict=True))
-        if aligned
-        else _unique_type_pairs(slots, candidates)
+    if aligned:
+        return list(zip(slots, candidates, strict=True))
+    return _unique_type_pairs(slots, candidates)
+
+
+def _cursor_placements(
+    tools: Sequence[ParentTool],
+    children: Sequence[ChildSession],
+) -> list[Placement]:
+    """Join id-bearing children to Task slots, then zip whoever is left.
+
+    A child with ``spawning_tool_use_id`` that matches no slot is omitted.
+    It does not fall through into the source-path zip. A slot is removed
+    from the zip only when a child joined to its ``source_tool_use_id``.
+    """
+    slots = _task_slots(tools)
+    id_children = [child for child in children if child.spawning_tool_use_id]
+    other_children = [child for child in children if not child.spawning_tool_use_id]
+    joined = _provenance_pairs(slots, id_children)
+    joined_ids = {child.spawning_tool_use_id for _, child in joined}
+    remaining_slots = [
+        slot for slot in slots if slot.source_tool_use_id not in joined_ids
+    ]
+    pairs = joined + _zip_pairs(remaining_slots, other_children)
+    return _index_placements(
+        pairs,
+        order_key=lambda child: (child.source_path or "", child.session_id),
     )
-    return _index_placements(pairs, order_key=lambda child: child.source_path or "")
 
 
 def associate_children(
@@ -184,19 +249,22 @@ def associate_children(
     """Associate child sessions to parent launch turns.
 
     ``claude`` uses a provenance join on ``spawning_tool_use_id`` =
-    ``source_tool_use_id``. ``cursor`` uses a corroborated zip against typed
-    Task slots (aligned type sequence, else unique ``agent_type`` pairs).
-    Any other harness returns no placements.
+    ``source_tool_use_id``. ``cursor`` joins children that carry
+    ``spawning_tool_use_id`` to typed Task slots (native ``Task`` or a
+    ``CallDynamicTool`` wrapping ``cursor`` / ``Task``), then runs a
+    corroborated zip on the children and slots left over (aligned type
+    sequence, else unique ``agent_type`` pairs). Any other harness returns
+    no placements.
 
-    Adding a third harness is the cue to extract ``provenance_join`` /
-    ``corroborated_zip`` (order, slots, corroboration) as named techniques,
+    Adding a third harness is the cue to extract ``_provenance_join`` /
+    ``_zip_pairs`` (order, slots, corroboration) as named techniques,
     not to copy Cursor's Task / ``source_path`` knobs into another ``elif``.
     """
     # Harness → technique map. A third harness should lift the two techniques
     # out rather than copy Cursor's Task / source_path knobs into another elif.
     technique = {
         "claude": _provenance_join,
-        "cursor": _corroborated_zip,
+        "cursor": _cursor_placements,
     }.get(harness)
     if technique is None:
         return []

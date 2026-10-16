@@ -248,6 +248,13 @@ def parse_session(path: Path) -> NormalizedSession | None:
     Returns ``None`` when the file cannot be opened or read as SQLite
     (``sqlite3.OperationalError`` / ``sqlite3.DatabaseError``) so the
     orchestrator can skip that discovery without aborting the batch.
+
+    A child chat carries ``meta.subagentInfo``. When that value is a dict
+    and ``parentAgentId`` is a non-empty string, the session is a subagent:
+    ``parent_session_id`` is ``parentAgentId``, ``agent_type`` is a non-empty
+    ``typeName``, and ``spawning_tool_use_id`` is ``toolCallId`` copied
+    unchanged. ``rootParentAgentId`` is ignored. Any other ``subagentInfo``
+    leaves an ordinary CLI chat.
     """
     path = Path(path)
     session_id = path.parent.name
@@ -282,6 +289,23 @@ def parse_session(path: Path) -> NormalizedSession | None:
     if not isinstance(agent_id, str) or not agent_id:
         agent_id = session_id
 
+    is_subagent = False
+    parent_session_id = None
+    agent_type = None
+    spawning_tool_use_id = None
+    subagent_info = meta.get("subagentInfo")
+    if isinstance(subagent_info, dict):
+        parent_agent_id = subagent_info.get("parentAgentId")
+        if isinstance(parent_agent_id, str) and parent_agent_id:
+            is_subagent = True
+            parent_session_id = parent_agent_id
+            type_name = subagent_info.get("typeName")
+            if isinstance(type_name, str) and type_name:
+                agent_type = type_name
+            tool_call_id = subagent_info.get("toolCallId")
+            if isinstance(tool_call_id, str) and tool_call_id:
+                spawning_tool_use_id = tool_call_id
+
     return NormalizedSession(
         harness="cursor",
         session_id=session_id,
@@ -292,5 +316,9 @@ def parse_session(path: Path) -> NormalizedSession | None:
         started_at=started_at,
         cwd=cwd,
         entrypoint="cli",
+        is_subagent=is_subagent,
+        parent_session_id=parent_session_id,
+        agent_type=agent_type,
+        spawning_tool_use_id=spawning_tool_use_id,
         messages=messages,
     )

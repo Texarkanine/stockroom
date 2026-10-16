@@ -1,0 +1,1 @@
+Cursor CLI subagents: child meta.subagentInfo has parentAgentId, toolCallId, typeName. Parent spawn is CallDynamicTool args namespace=cursor toolName=Task, not a tool named Task. CLI ingest ignores subagentInfo, so no dashboard inset.

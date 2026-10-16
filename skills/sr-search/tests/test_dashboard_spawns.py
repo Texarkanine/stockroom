@@ -1,5 +1,7 @@
 """Unit contracts for dashboard spawn-to-turn association."""
 
+import pytest
+
 from stockroom.dashboard.spawns import (
     ChildSession,
     ParentTool,
@@ -359,3 +361,141 @@ def test_unknown_harness_places_nothing() -> None:
     ]
     assert associate_children("gemini", tools, children) == []
     assert associate_children("codex", tools, children) == []
+
+
+def _wrapped_task(
+    *,
+    message_ordinal: int,
+    description: str,
+    subagent_type: str | None,
+    source_tool_use_id: str | None = None,
+    tool_ordinal: int = 0,
+    namespace: str = "cursor",
+    inner_tool_name: str = "Task",
+) -> ParentTool:
+    arguments: dict[str, str] = {}
+    if description:
+        arguments["description"] = description
+    if subagent_type is not None:
+        arguments["subagent_type"] = subagent_type
+    return ParentTool(
+        message_ordinal=message_ordinal,
+        tool_ordinal=tool_ordinal,
+        tool_name="CallDynamicTool",
+        tool_input={
+            "namespace": namespace,
+            "toolName": inner_tool_name,
+            "arguments": arguments,
+        },
+        source_tool_use_id=source_tool_use_id,
+    )
+
+
+def test_cursor_wrapped_task_places_like_a_native_task() -> None:
+    """A cursor/Task CallDynamicTool is a slot, and the label is the nested description."""
+    tools = [
+        _wrapped_task(
+            message_ordinal=42,
+            description="Niko QA for git-wt",
+            subagent_type="generalPurpose",
+            source_tool_use_id="call-1\nfc_2",
+        )
+    ]
+    children = [
+        _child(
+            "43b093cd",
+            agent_type="generalPurpose",
+            source_path="/tmp/z-store.db",
+        )
+    ]
+    assert associate_children("cursor", tools, children) == [
+        _placement(
+            launch_ordinal=42,
+            spawn_index=1,
+            session_id="43b093cd",
+            label="Niko QA for git-wt",
+            agent_type="generalPurpose",
+        )
+    ]
+
+
+def test_cursor_spawn_id_places_the_matching_child_only() -> None:
+    """An id match wins, and the earlier same-type child is not zipped in."""
+    tool_call_id = "call-1\nfc_2"
+    tools = [
+        _wrapped_task(
+            message_ordinal=42,
+            description="Niko QA for git-wt",
+            subagent_type="generalPurpose",
+            source_tool_use_id=tool_call_id,
+        )
+    ]
+    children = [
+        _child(
+            "earlier-path",
+            agent_type="generalPurpose",
+            source_path="/tmp/a-store.db",
+            spawning_tool_use_id="unrelated",
+        ),
+        _child(
+            "matching-id",
+            agent_type="generalPurpose",
+            source_path="/tmp/z-store.db",
+            spawning_tool_use_id=tool_call_id,
+        ),
+    ]
+    assert associate_children("cursor", tools, children) == [
+        _placement(
+            launch_ordinal=42,
+            spawn_index=1,
+            session_id="matching-id",
+            label="Niko QA for git-wt",
+            agent_type="generalPurpose",
+        )
+    ]
+
+
+@pytest.mark.parametrize(
+    ("namespace", "inner_tool_name", "subagent_type"),
+    [
+        ("cursor", "browser_cdp", "generalPurpose"),
+        ("other", "Task", "generalPurpose"),
+        ("cursor", "Task", None),
+    ],
+)
+def test_cursor_call_dynamic_tool_that_is_not_a_typed_task_is_not_a_slot(
+    namespace: str, inner_tool_name: str, subagent_type: str | None
+) -> None:
+    """A non-Task name, a non-cursor namespace, or a null nested type adds no slot."""
+    tools = [
+        _wrapped_task(
+            message_ordinal=3,
+            description="Not a spawn",
+            subagent_type=subagent_type,
+            namespace=namespace,
+            inner_tool_name=inner_tool_name,
+        )
+    ]
+    children = [_child("kid", agent_type="generalPurpose", source_path="/tmp/kid")]
+    assert associate_children("cursor", tools, children) == []
+
+
+def test_cursor_child_with_unmatched_spawn_id_is_omitted() -> None:
+    """A spawn id that matches no slot stays out, even when the type is unique."""
+    tools = [
+        _tool(
+            message_ordinal=7,
+            description="Search",
+            subagent_type="explore",
+            source_tool_use_id="tool-real",
+        )
+    ]
+    children = [
+        _child(
+            "wrong-id",
+            agent_type="explore",
+            source_path="/tmp/wrong.jsonl",
+            spawning_tool_use_id="tool-other",
+        )
+    ]
+    assert associate_children("cursor", tools, children) == []
