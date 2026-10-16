@@ -34,6 +34,8 @@ No documentation update. The user guide describes the pill hash, not which tool 
 
 ### 1. CLI subagent linkage — executable
 
+- [x] Step complete
+
 - Files: `skills/sr-search/src/stockroom/ingest/cursor_chats.py`, `skills/sr-search/tests/test_ingest_cursor_chats.py`
 
 1. Stub tests: in `test_ingest_cursor_chats.py`, add empty tests for a `subagentInfo` child (including a newline in `toolCallId`) and for the three non-child shapes.
@@ -43,6 +45,8 @@ No documentation update. The user guide describes the pill hash, not which tool 
 
 ### 2. Wrapped Task slots and id join — executable
 
+- [x] Step complete
+
 - Files: `skills/sr-search/src/stockroom/dashboard/spawns.py`, `skills/sr-search/tests/test_dashboard_spawns.py`, `skills/sr-search/tests/test_dashboard_metrics.py`
 
 1. Stub tests: in `test_dashboard_spawns.py`, add empty tests for the wrapped slot, the id-join-over-zip case, the three non-slots, and the missed id. In `test_dashboard_metrics.py`, add an empty `session_detail` test for the wrapped tool plus matching child.
@@ -51,6 +55,8 @@ No documentation update. The user guide describes the pill hash, not which tool 
 4. Write code and run green: `_task_slots` keeps a native `Task` whose `subagent_type` is not null. It also accepts `CallDynamicTool` when `namespace` is `cursor`, `toolName` is `Task`, `arguments` is a mapping, and `arguments.subagent_type` is not null. The slot keeps `message_ordinal`, `tool_ordinal`, and `source_tool_use_id`, and its `tool_input` is that `arguments` mapping so the existing label chain reads `description`. The stored tool row is not rewritten. The cursor combiner joins children that have a `spawning_tool_use_id` to those slots only, drops joined children and their slots from the zip, runs the existing aligned-or-unique zip on what remains, and assigns `spawn_index` once over the combined pairs ordered by `source_path` then `session_id`. Children with a spawn id that misses a slot stay out of the zip. Claude still uses `_provenance_join` on every tool. Run the new tests and the existing spawn and session-detail tests.
 
 ### 3. IDE positional types include wrapped Task — executable
+
+- [x] Step complete
 
 - Files: `skills/sr-search/src/stockroom/ingest/cursor.py`, `skills/sr-search/tests/test_ingest_cursor.py`
 
@@ -91,6 +97,6 @@ No new technology - validation not required
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
-- [ ] Build
+- [x] Preflight
+- [x] Build
 - [ ] QA

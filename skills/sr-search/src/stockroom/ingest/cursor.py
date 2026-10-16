@@ -144,21 +144,36 @@ def parse_session(path: Path) -> NormalizedSession:
 
 
 def _parent_subagent_types(parent: NormalizedSession) -> list[str]:
-    """Collect the ``subagent_type`` of each ``Task`` tool call in the parent.
+    """Collect the ``subagent_type`` of each Task launch in the parent.
 
-    Cursor provides no id linking a ``Task`` tool_use to the child transcript,
-    so linkage is structural (the child file lives in the parent's
-    ``subagents/`` dir). The ``subagent_type`` is recovered positionally from
-    the parent's ``Task`` inputs — best-effort, sufficient for the common
-    single-subagent case.
+    A launch is a native ``Task`` whose ``subagent_type`` is not ``None``,
+    or a ``CallDynamicTool`` whose ``namespace`` is ``cursor``, ``toolName``
+    is ``Task``, and nested ``subagent_type`` is not ``None``. Order is
+    message order, then tool-call order.
+
+    Sibling of dashboard ``spawns._task_arguments``. Cursor IDE provides no
+    id linking a launch to the child transcript, so linkage is structural
+    (the child file lives in the parent's ``subagents/`` dir). The
+    ``subagent_type`` is recovered positionally from these launches.
     """
     types: list[str] = []
     for message in parent.messages:
         for call in message.tool_calls:
-            if call.tool_name == "Task" and isinstance(call.tool_input, dict):
-                subagent_type = call.tool_input.get("subagent_type")
-                if subagent_type is not None:
-                    types.append(subagent_type)
+            payload = call.tool_input
+            if not isinstance(payload, dict):
+                continue
+            subagent_type = None
+            if call.tool_name == "Task":
+                subagent_type = payload.get("subagent_type")
+            elif (
+                call.tool_name == "CallDynamicTool"
+                and payload.get("namespace") == "cursor"
+                and payload.get("toolName") == "Task"
+                and isinstance(payload.get("arguments"), dict)
+            ):
+                subagent_type = payload["arguments"].get("subagent_type")
+            if subagent_type is not None:
+                types.append(subagent_type)
     return types
 
 
@@ -176,7 +191,8 @@ def parse_subagent(
     * ``session_id`` / ``agent_id`` = the child file stem,
     * ``parent_session_id`` = the parent conversation id (the conv directory two
       levels up: ``<conv>/subagents/<child>.jsonl``),
-    * ``agent_type`` = the ``index``-th ``Task.subagent_type`` from the parent
+    * ``agent_type`` = the ``index``-th Task launch ``subagent_type`` from the
+      parent, including a ``CallDynamicTool`` wrapping ``cursor`` / ``Task``
       (positional best-effort; ``None`` if unavailable),
     * ``spawning_tool_use_id`` = ``None`` (Cursor emits no tool-use id — the
       link is purely structural).

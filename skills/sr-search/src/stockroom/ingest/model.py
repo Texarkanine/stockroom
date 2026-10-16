@@ -88,7 +88,8 @@ class NormalizedSession:
     the lossy slug), and ``workspace_key`` is an optional cross-harness rollup
     key derived at write from per-harness strategies (NULL when underivable).
     Subagent sessions set ``is_subagent`` and their parent-linkage fields
-    (``parent_session_id`` and, for Claude, ``spawning_tool_use_id``).
+    (``parent_session_id`` and, when the harness records one,
+    ``spawning_tool_use_id``).
     Grain-specific fields follow the schema's no-faking rule: ``models``
     (session-grain, Cursor via enrichment) vs each message's ``model``
     (Claude); session-grain ``*_tokens`` vs each message's ``*_tokens``

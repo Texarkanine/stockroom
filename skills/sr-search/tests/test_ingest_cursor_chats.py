@@ -345,3 +345,58 @@ def test_read_store_skips_immutable_when_live_sidecars_and_ro_fails(
         assert "mode=ro" in attempted[0]
     finally:
         holder.close()
+
+
+def _parse_cli_store(tmp_path: Path, agent: str, extra_meta: dict) -> object:
+    """Write a one-message store and parse it."""
+    store = tmp_path / agent / "store.db"
+    meta, blobs = _minimal_user_blobs("hi")
+    meta["agentId"] = agent
+    meta.update(extra_meta)
+    con = _write_store(store, meta=meta, blobs=blobs)
+    con.close()
+    return cursor_chats.parse_session(store)
+
+
+def test_parse_session_subagent_info_sets_parent_linkage(tmp_path: Path) -> None:
+    """``subagentInfo`` stamps the child link, and a newline in ``toolCallId`` stays."""
+    agent = "43434343-4343-4343-4343-434343434343"
+    tool_call_id = "call-2faba2d2-23fa-4539-8e1d-598da02ae3b4-69\nfc_2b745b2a-0b75-97f2-b6fc-c72aae388854_0"
+    session = _parse_cli_store(
+        tmp_path,
+        agent,
+        {
+            "subagentInfo": {
+                "parentAgentId": "5fa10c9d-2c18-42d6-b491-41503d6dc01b",
+                "rootParentAgentId": "5fa10c9d-2c18-42d6-b491-41503d6dc01b",
+                "toolCallId": tool_call_id,
+                "typeName": "generalPurpose",
+            }
+        },
+    )
+    assert session is not None
+    assert session.is_subagent is True
+    assert session.parent_session_id == "5fa10c9d-2c18-42d6-b491-41503d6dc01b"
+    assert session.agent_type == "generalPurpose"
+    assert session.spawning_tool_use_id == tool_call_id
+
+
+@pytest.mark.parametrize(
+    "extra_meta",
+    [
+        {},
+        {"subagentInfo": "generalPurpose"},
+        {"subagentInfo": {"parentAgentId": "", "typeName": "generalPurpose"}},
+    ],
+)
+def test_parse_session_without_child_subagent_info_stays_ordinary(
+    tmp_path: Path, extra_meta: dict
+) -> None:
+    """Missing, non-dict, or empty-parent ``subagentInfo`` leaves an ordinary chat."""
+    agent = "44444444-4444-4444-4444-444444444444"
+    session = _parse_cli_store(tmp_path, agent, extra_meta)
+    assert session is not None
+    assert session.is_subagent is False
+    assert session.parent_session_id is None
+    assert session.agent_type is None
+    assert session.spawning_tool_use_id is None

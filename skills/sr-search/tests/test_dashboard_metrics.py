@@ -1972,6 +1972,72 @@ def test_session_detail_nests_subagents_and_child_parent_spawn(
     }
 
 
+def test_session_detail_nests_wrapped_cursor_task(
+    migrated_con: duckdb.DuckDBPyConnection,
+) -> None:
+    """A stored CallDynamicTool Task nests the id-matched child and the child points back."""
+    when = datetime(2026, 10, 15, 20)
+    tool_call_id = "call-2faba2d2\nfc_2b745b2a"
+    _seed_session(
+        migrated_con,
+        harness="cursor",
+        session_id="wrapped-parent",
+        activity=when,
+        project_id="p",
+        message_count=2,
+    )
+    _seed_tool(
+        migrated_con,
+        harness="cursor",
+        session_id="wrapped-parent",
+        message_ordinal=1,
+        ordinal=0,
+        tool_name="CallDynamicTool",
+        tool_input={
+            "namespace": "cursor",
+            "toolName": "Task",
+            "arguments": {
+                "description": "Niko QA for git-wt",
+                "subagent_type": "generalPurpose",
+            },
+        },
+        source_tool_use_id=tool_call_id,
+    )
+    _seed_session(
+        migrated_con,
+        harness="cursor",
+        session_id="wrapped-kid",
+        activity=when,
+        project_id="p",
+        is_subagent=True,
+        parent_session_id="wrapped-parent",
+        spawning_tool_use_id=tool_call_id,
+        agent_type="generalPurpose",
+        title="New Agent",
+        source_path="/tmp/wrapped-kid/store.db",
+    )
+
+    parent = metrics.session_detail(migrated_con, "cursor", "wrapped-parent")
+    assert parent is not None
+    assert _message_at(parent, 1)["subagents"] == [
+        {
+            "session_id": "wrapped-kid",
+            "agent_type": "generalPurpose",
+            "agent_name": None,
+            "title": "New Agent",
+            "spawn_index": 1,
+            "label": "Niko QA for git-wt",
+        }
+    ]
+    child = metrics.session_detail(migrated_con, "cursor", "wrapped-kid")
+    assert child is not None
+    assert child["parent_spawn"] == {
+        "session_id": "wrapped-parent",
+        "message_ordinal": 1,
+        "spawn_index": 1,
+    }
+
+
 def test_session_detail_parent_spawn_null_when_parent_row_missing(
     migrated_con: duckdb.DuckDBPyConnection,
 ) -> None:
