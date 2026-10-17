@@ -369,3 +369,17 @@ Reassess how each harness exposes its plugin root (`CLAUDE_PLUGIN_ROOT`, `CURSOR
 * Insights
     - Prefer the installer's own record to path or naming heuristics. Match the exact quoted path, so any escaping misses instead of mislabelling.
     - When the tests write both sides of a premise, test it live once before planning.
+
+## 2026-10-17 - POST-REFLECT probes (operator asked: explore `${CLAUDE_PLUGIN_DATA}`, explain the older quoting problem)
+
+* Work completed
+    - Two live probes on Claude Code 2.1.302, plus one local shell demo. All scripts are scratch files outside the repo. Real settings, records and data folder were unchanged after each probe (checksums and listing).
+    - `${CLAUDE_PLUGIN_DATA}` is substituted in plugin skill text, in prose and in a bash fence, for both a typed `/plugin:skill` and a Skill-tool load. It resolves to `<plugins root in use>/data/<id>`, without a trailing slash. The id is `<plugin>-inline` for `--plugin-dir` (also from a checkout at a cache-shaped path), and `<plugin>-<marketplace>` for a copied install and for an in-place local-marketplace load. Claude Code refuses a marketplace named `inline` ("reserved for --plugin-dir session plugins") and accepts `foo-inline`.
+    - Shell-form hooks: a double-quoted `"${CLAUDE_PLUGIN_ROOT}"` is expanded by the shell from the environment, not pasted in as text. A `$probe` in the folder name survived. So `hooks/claude-hooks.json` does not have the quoting problem. Cursor's hook is unverified.
+    - Step 2 quoting demo: 9 folder names × dash, bash and BusyBox sh. With the current `SKILL_DIR="…"` line:
+        - `"…"` pairs, `$x` and `\$` silently change the path ("no engine").
+        - A lone `"` is a syntax error.
+        - A backtick, `$(…)` or a `";…;"` pair runs the command inside the name.
+        - A quoted-heredoc variant (`IFS= read -r SKILL_DIR <<'SR_SKILL_DIR'`, plus a `case` that clears the unsubstituted token) read every name correctly, and still fell back to the placeholder when nothing was substituted.
+* Decisions made
+    - None. Both changes are for the operator to decide.

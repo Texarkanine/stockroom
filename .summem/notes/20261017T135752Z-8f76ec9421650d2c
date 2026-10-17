@@ -1,0 +1,1 @@
+Claude Code 2.1.302 shell-form hooks: "${CLAUDE_PLUGIN_ROOT}" is expanded by the shell from the env, not pasted as text (a $ in the path survives), so hooks/claude-hooks.json is safe from path re-parsing. Skill text is pasted raw.
