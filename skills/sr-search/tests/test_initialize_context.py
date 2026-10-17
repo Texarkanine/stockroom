@@ -22,15 +22,18 @@ The owner rule (operator decisions):
   ``…/.claude/plugins/cache/<marketplace>/<plugin>/<version>`` and
   ``…/.claude/plugins/synced/…`` (claude.ai sync) are ``claude``;
   ``…/.cursor/plugins/cache/…`` is ``cursor``.
-* An install-shaped copy anywhere else is ``cursor`` when the exported
+* An install-shaped copy anywhere else is ``claude`` when Claude Code's
+  install record (``installed_plugins.json`` in the plugins root, beside
+  ``cache/``) lists its exact path, and ``cursor`` when the exported
   ``CURSOR_PLUGIN_ROOT`` holds it. Otherwise it gets no owner: in Claude Code
   the agent asks the user, and other harnesses name themselves. Claude Code's
-  substituted plugin root is not proof, because ``--plugin-dir`` substitutes a
-  checkout the same way.
+  substituted plugin root alone is not proof, because ``--plugin-dir``
+  substitutes a checkout the same way.
 * Anything else run from a checkout (``--plugin-dir``, Cursor
   ``plugins/local``, a local-path marketplace, the localdev mirror) is ``dev``.
 """
 
+import json
 import os
 import re
 import shutil
@@ -122,6 +125,24 @@ def _checkout_tree(root: Path) -> Path:
     return skill_dir
 
 
+def _record_install(plugins_root: Path, *install_paths: Path) -> None:
+    """Write Claude Code's install record, ``installed_plugins.json`` in the
+    plugins root beside ``cache/``, listing ``install_paths`` the way Claude
+    Code 2.1.302 writes it (2-space indent, non-ASCII left as is)."""
+    record = {
+        "version": 2,
+        "plugins": {
+            "stockroom@txrk9": [
+                {"scope": "user", "installPath": str(path), "version": path.name}
+                for path in install_paths
+            ]
+        },
+    }
+    (plugins_root / "installed_plugins.json").write_text(
+        json.dumps(record, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
+
+
 @pytest.fixture(params=["sh", "bash", "zsh"])
 def shell(request: pytest.FixtureRequest) -> str:
     """Each POSIX-family shell an agent's Bash tool may run; skip absent ones."""
@@ -175,15 +196,91 @@ def test_claude_custom_plugins_root_gets_no_owner(
     shell: str, step2: str, tmp_path: Path
 ) -> None:
     """Under ``CLAUDE_CODE_PLUGIN_CACHE_DIR`` the cache lives outside
-    ``~/.claude``. Claude Code's substituted plugin root is not proof of an
-    install there (``--plugin-dir`` substitutes a checkout the same way), so
-    the copy gets no owner and the agent asks the user."""
+    ``~/.claude``. With no install record listing the copy, Claude Code's
+    substituted plugin root is not proof of an install there
+    (``--plugin-dir`` substitutes a checkout the same way), so the copy gets
+    no owner and the agent asks the user."""
     root = tmp_path / "plugin-root" / "cache" / "txrk9" / "stockroom" / "2.1.1"
     skill_dir = _plugin_tree(root)
     block = _render_claude(step2, skill_dir=skill_dir, plugin_root=root)
     assert _run_block(shell, block, tmp_path) == (
         "",
         str(root / "skills" / "sr-search"),
+    )
+
+
+@pytest.mark.parametrize(
+    "plugins_root",
+    [Path("claude-work") / "plugins", Path("plugin-cache")],
+    ids=["config-dir", "cache-dir"],
+)
+def test_claude_recorded_custom_root_install(
+    shell: str, step2: str, tmp_path: Path, plugins_root: Path
+) -> None:
+    """A copy in a custom plugins root (``CLAUDE_CONFIG_DIR`` puts the root
+    at ``<dir>/plugins``, ``CLAUDE_CODE_PLUGIN_CACHE_DIR`` at ``<dir>``) is a
+    ``claude`` install when Claude Code's install record beside ``cache/``
+    lists its exact path."""
+    root_dir = tmp_path / plugins_root
+    root = root_dir / "cache" / "txrk9" / "stockroom" / "2.1.1"
+    skill_dir = _plugin_tree(root)
+    _record_install(root_dir, root)
+    block = _render_claude(step2, skill_dir=skill_dir, plugin_root=root)
+    assert _run_block(shell, block, tmp_path) == (
+        "claude",
+        str(root / "skills" / "sr-search"),
+    )
+
+
+def test_claude_recorded_install_without_substitution(
+    shell: str, step2: str, tmp_path: Path
+) -> None:
+    """The record alone says ``claude`` when nothing is substituted: a Cursor
+    agent reading Claude Code's copy, or an older Claude Code."""
+    root_dir = tmp_path / "claude-work" / "plugins"
+    root = root_dir / "cache" / "txrk9" / "stockroom" / "2.1.1"
+    skill_dir = _plugin_tree(root)
+    _record_install(root_dir, root)
+    block = _fill_placeholder(step2, skill_dir)
+    assert _run_block(shell, block, tmp_path) == (
+        "claude",
+        str(root / "skills" / "sr-search"),
+    )
+
+
+def test_claude_recorded_install_with_quotes_in_the_path(
+    shell: str, step2: str, tmp_path: Path
+) -> None:
+    """A recorded copy whose path holds ``'`` and a space is still found:
+    JSON stores both unescaped."""
+    root_dir = tmp_path / "O'Brien files" / "claude" / "plugins"
+    root = root_dir / "cache" / "txrk9" / "stockroom" / "2.1.1"
+    skill_dir = _plugin_tree(root)
+    _record_install(root_dir, root)
+    block = _render_claude(step2, skill_dir=skill_dir, plugin_root=root)
+    assert _run_block(shell, block, tmp_path) == (
+        "claude",
+        str(root / "skills" / "sr-search"),
+    )
+
+
+def test_claude_orphaned_custom_root_copy_gets_no_owner(
+    shell: str, step2: str, tmp_path: Path
+) -> None:
+    """An old version left behind by an update (``.orphaned_at``) is no
+    install: the record lists only the new version, and ``…/2.1.1`` must not
+    match inside ``…/2.1.10``."""
+    root_dir = tmp_path / "claude-work" / "plugins"
+    old = root_dir / "cache" / "txrk9" / "stockroom" / "2.1.1"
+    skill_dir = _plugin_tree(old)
+    (old / ".orphaned_at").write_text("1792198859985")
+    new = root_dir / "cache" / "txrk9" / "stockroom" / "2.1.10"
+    _plugin_tree(new)
+    _record_install(root_dir, new)
+    block = _render_claude(step2, skill_dir=skill_dir, plugin_root=old)
+    assert _run_block(shell, block, tmp_path) == (
+        "",
+        str(old / "skills" / "sr-search"),
     )
 
 

@@ -22,7 +22,7 @@ If missing, stop and tell the user to install [uv](https://docs.astral.sh/uv/get
 
 The engine always sits beside this skill: `sr-search` is this skill's sibling directory in every layout, because the committed layout is the install layout. The owner label goes into the on-path shim and decides who keeps it current:
 
-- **`claude` or `cursor`**: a marketplace install in that harness's default plugins folder, meaning its own copy under `~/.claude/plugins/cache/<marketplace>/<plugin>/<version>/` or `~/.cursor/plugins/cache/…`, or a Claude Code copy synced from claude.ai under `~/.claude/plugins/synced/…`. A Cursor install in a custom folder also counts when Cursor exports its plugin root. That harness's session hooks re-bake the shim after plugin updates.
+- **`claude` or `cursor`**: a marketplace install in that harness's default plugins folder, meaning its own copy under `~/.claude/plugins/cache/<marketplace>/<plugin>/<version>/` or `~/.cursor/plugins/cache/…`, or a Claude Code copy synced from claude.ai under `~/.claude/plugins/synced/…`. A Claude Code install in a custom plugins folder (set by `CLAUDE_CONFIG_DIR` or `CLAUDE_CODE_PLUGIN_CACHE_DIR`) also counts when Claude Code's install record, `installed_plugins.json` beside its `cache` folder, lists it. So does a Cursor install in a custom folder when Cursor exports its plugin root. That harness's session hooks re-bake the shim after plugin updates.
 - **`dev`**: anything run from a checkout, such as `claude --plugin-dir`, Cursor's `~/.cursor/plugins/local/`, a local-path marketplace, or the `make localdev` mirror. Contributors manage that shim with `make shim` / `make localdev`.
 
 Run this block as written. Claude Code writes this skill's directory into it when it loads the skill. In any other harness, replace the angle-bracket placeholder with the POSIX absolute path of the directory you read this SKILL.md from (on WSL, turn backslashes into forward slashes). Do not look for plugin-root environment variables yourself: harnesses give them to hooks, not to agent shells.
@@ -45,8 +45,9 @@ elif [ "$PLUGIN_ROOT" != "$APP_DIR" ] && [ "${CACHE_DIR##*/}" = cache ]; then
     */.claude/plugins/cache/*) OWNER=claude ;;
     */.cursor/plugins/cache/*) OWNER=cursor ;;
     *)
-      if [ -n "$CURSOR_APP" ] && [ "$CURSOR_APP" = "$REAL_APP" ]; then OWNER=cursor
-      else printf 'sr-initialize: %s is laid out like an installed plugin, but not in a default plugins folder\n' "$APP_DIR" >&2
+      if grep -qF -- "\"$PLUGIN_ROOT\"" "${CACHE_DIR%/*}/installed_plugins.json" 2>/dev/null; then OWNER=claude
+      elif [ -n "$CURSOR_APP" ] && [ "$CURSOR_APP" = "$REAL_APP" ]; then OWNER=cursor
+      else printf 'sr-initialize: %s is laid out like an installed plugin, but outside the default plugins folders and no install record lists it\n' "$APP_DIR" >&2
       fi ;;
   esac
 else
@@ -61,8 +62,8 @@ printf "APP_DIR='%s'; OWNER='%s'\n" "$(printf '%s' "$APP_DIR" | sed "s/'/'\\\\''
 It prints one line, such as `APP_DIR='/…/skills/sr-search'; OWNER='claude'`. Shell variables do not carry from one command to the next, so **start every later command in this skill with that printed line**. Copy it exactly: it is already quoted for the shell.
 
 - **`APP_DIR` is empty:** no engine sits beside the directory you used. Fix the directory and run the block again. Do not go on without an engine.
-- **`OWNER` is empty but `APP_DIR` is set:** the engine is laid out like an installed plugin, but outside the default plugins folders.
-  - **In Claude Code:** `claude --plugin-dir` makes a checkout look the same as an install here, so ask the user whether `APP_DIR` is a checkout they develop in (`dev`) or a plugin installed in a custom plugins folder (`claude`). Set `OWNER` in the printed line to their answer. Never pick it yourself.
+- **`OWNER` is empty but `APP_DIR` is set:** the engine is laid out like an installed plugin, but outside the default plugins folders, and no install record lists it.
+  - **In Claude Code:** `claude --plugin-dir` makes a checkout look the same as an unrecorded install here, so ask the user whether `APP_DIR` is a checkout they develop in (`dev`) or a plugin installed in a custom plugins folder (`claude`). Set `OWNER` in the printed line to their answer. Never pick it yourself.
   - **In any other harness:** in the printed line, set `OWNER` to the harness you are running in (for example `cursor`).
 - **`OWNER` is `dev`:** everything below works the same, except Step 7, which leaves the shim to the contributor flow.
 
@@ -152,7 +153,7 @@ grep '^# STOCKROOM_' ~/.local/bin/stockroom 2>/dev/null
 | A file with no `STOCKROOM_` lines | Not a stockroom shim. Tell the user what is at that path. Replace it (`--takeover`) only with their explicit consent. |
 | Another owner, engine dead | It can run nothing. Install with `--takeover`, and tell the user what it pointed at. The next harness session would replace it anyway. |
 | Another owner, engine cannot be checked | Neither this skill nor the session hooks can tell whether it still works, so they leave it. Tell the user what it points at and why it cannot be checked. Offer `--takeover --force`, and run it only with their explicit consent. |
-| Owner `dev`, engine alive, `STOCKROOM_APP_DIR` inside a marketplace install (`…/cache/<marketplace>/<plugin>/<version>/…`, or a claude.ai-synced copy under `…/.claude/plugins/synced/…`) | An earlier `sr-initialize` probably mislabelled a real install. No harness hook will ever refresh it, and a plugin update can remove that directory. If the path is outside the default plugins folders (`~/.claude/plugins/…`, `~/.cursor/plugins/…`), first ask whether it is a checkout the user develops in; if it is, leave it, as in the next row. Otherwise explain this and offer `--takeover --force`. Run it only with the user's explicit consent. |
+| Owner `dev`, engine alive, `STOCKROOM_APP_DIR` inside a marketplace install (`…/cache/<marketplace>/<plugin>/<version>/…`, or a claude.ai-synced copy under `…/.claude/plugins/synced/…`) | An earlier `sr-initialize` probably mislabelled a real install. No harness hook will ever refresh it, and a plugin update can remove that directory. If the path is outside the default plugins folders (`~/.claude/plugins/…`, `~/.cursor/plugins/…`), first ask whether it is a checkout the user develops in; if it is, leave it, as in the next row. Skip that question when the Step 2 block itself printed `OWNER='claude'` or `OWNER='cursor'` for that same path, or the user has just told you it is an install; an owner you filled in yourself does not count. Otherwise explain this and offer `--takeover --force`. Run it only with the user's explicit consent. |
 | Another owner, engine alive, anything else | Leave it. Either another harness's hooks keep it current, or a contributor is running a checkout on purpose. Tell the user who maintains it; nothing to do here. |
 
 To install:

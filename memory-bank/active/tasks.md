@@ -8,7 +8,7 @@
 
 Round 1 made every install-shaped copy outside the default plugins folders ask the Claude Code user for its owner. The reason: `claude --plugin-dir` substitutes a checkout exactly as an install is substituted, so substitution proves nothing. This round lets Claude Code's own install record answer instead. When `installed_plugins.json`, in the plugins root that holds the copy's `cache` folder, lists the copy's exact path, the copy is a Claude Code install: `OWNER=claude`, with no question.
 
-Who it helps: Claude Code users who set `CLAUDE_CONFIG_DIR` (unless that folder is named `.claude`) or `CLAUDE_CODE_PLUGIN_CACHE_DIR`. Round 1 would ship them a question during `sr-initialize`. This round removes it for every recorded install, before it is ever released.
+Who it helps: Claude Code users who set `CLAUDE_CONFIG_DIR` (unless that folder is named `.claude`) or `CLAUDE_CODE_PLUGIN_CACHE_DIR`. Round 1 would ship them a question during `sr-initialize`. This round removes it for every recorded install, before it is ever released. It does not help claude.ai-synced copies under a custom plugins root (`<root>/synced/…`): synced plugins have no install record, so they stay `dev`, and Step 7 still stops and asks, because the path is not the user's checkout (preflight advisory 4).
 
 ### Operator decisions (2026-10-16)
 
@@ -37,7 +37,7 @@ Only the second bullet's first sub-bullet is new:
 
 **Cost, stated plainly.** No new question anywhere. One outcome changes, with no question: a Cursor agent that reads a recorded Claude Code custom-folder copy now gets `claude`, where it used to name `cursor`. The default-folder rule already gives `claude` for `~/.claude/plugins/cache/…` read from Cursor, so the two now agree.
 
-**How it fails.** Any mismatch leaves `OWNER` empty, which is round 1's behavior: a path stored escaped in the JSON (`"`, `\`, control characters, native Windows `C:\\…`), a missing or unreadable record, or a future change to the record. It never gives a harness label to a copy the record does not list.
+**How it fails.** Any mismatch leaves `OWNER` empty, which is round 1's behavior: a path stored escaped in the JSON (`"`, `\`, control characters, native Windows `C:\\…`), a missing or unreadable record, or a future change to the record. It never gives a harness label to a copy whose exact path is not a string in the record. The match ignores which key holds the string: a `projectPath` equal to the copy's path also matches, but that needs a checkout inside Claude Code's own cache folder (preflight advisory 3, accepted).
 
 **Accepted residual (Cursor), unchanged from round 1.** A checkout whose real path has a `cache/<a>/<b>/` shape, read through that path with no `CURSOR_PLUGIN_ROOT`, still gets `cursor` from the agent.
 
@@ -177,6 +177,7 @@ No new technology - validation not required. The arm adds `grep -qF --`, which i
 - **An in-place local-marketplace checkout at a cache-shaped path.** The block reads the record next to the checkout's own path, which normally does not exist. Even the real record lists only the cache entry, never the checkout (Evidence). So it cannot give a false `claude`.
 - **`--plugin-dir` pointed at a recorded cache copy gives `claude`.** That is correct: the files are the install's, and that install's hooks maintain the shim.
 - **Fence selection:** the Step 2 prose must not add a second fence that assigns `SKILL_DIR=`.
+- **Seed directories ([`CLAUDE_CODE_PLUGIN_SEED_DIR`](https://code.claude.com/docs/en/plugins/org#seed-containers-and-ci), preflight advisory 2).** Claude Code loads a seed's `cache/<m>/<p>/<v>` copies in place. A seed mounted at the path it was built at has matching record paths and gets `claude`. A seed mounted elsewhere misses, and the agent asks. Both are safe.
 
 ## Pre-Mortem
 
@@ -192,6 +193,29 @@ No new technology - validation not required. The arm adds `grep -qF --`, which i
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight (PASS WITH ADVISORY)
 - [ ] Build
 - [ ] QA
+
+## Build progress
+
+- [x] 1. Step 2 install-record check:
+    - Red: 8 failed (the 2 layouts, the placeholder case and the quotes case, each under sh and bash), 40 passed.
+    - Green: 48 passed, 24 skipped (zsh is absent).
+    - Mutation check (`scratchpad/scripts/mutation_check.py`, run on a scratch copy):
+        - Unmutated: no failures.
+        - Unquoted pattern: only the orphan case fails.
+        - No record branch: exactly the 3 recorded tests fail.
+    - BusyBox check on the worktree `SKILL.md`: PASS.
+- [x] 2. Step 7 sentence, worded per preflight advisory 1: only an owner the block printed, or the user's own answer, lets the agent skip the checkout question. An owner the agent filled in does not.
+- [ ] 3. `systemPatterns.md`, brief AC7, SumMem.
+- [ ] 4. Verification.
+
+## Preflight advisories: dispositions
+
+- **1 (Step 7 sentence must exclude an owner the agent filled in):** applied in unit 2.
+- **2 (seed directories):** added to Challenges below. No code change: a seed mounted at its build path gets `claude`; one mounted elsewhere misses and the agent asks.
+- **3 (the match ignores which key holds the string):** accepted. A `projectPath` equal to the copy's path also matches, but that needs a checkout inside Claude Code's own cache folder. "How it fails" is softened to "a copy whose exact path is not a string in the record".
+- **4 (custom-root synced copies stay `dev`):** stated under "Who it helps". Synced plugins have no install record; Step 7 still stops and asks.
+- **5 (`$`, backtick, `"` or `\` in the skill folder's path breaks `SKILL_DIR="…"`):** exists before this PR and fails closed (no engine found). Logged as a follow-up for Reflect.
+- **Radical idea (`${CLAUDE_PLUGIN_DATA}` names the plugin's origin):** not applied. It reverses round 1's premise and contradicts the round-1 probe, so it needs a live probe and an operator decision.
