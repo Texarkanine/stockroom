@@ -195,7 +195,7 @@ No new technology - validation not required. The arm adds `grep -qF --`, which i
 - [x] Pre-Mortem complete
 - [x] Preflight (PASS WITH ADVISORY)
 - [x] Build
-- [ ] QA
+- [x] QA (PASS)
 
 ## Build progress
 
@@ -222,3 +222,34 @@ No new technology - validation not required. The arm adds `grep -qF --`, which i
 - **4 (custom-root synced copies stay `dev`):** stated under "Who it helps". Synced plugins have no install record; Step 7 still stops and asks.
 - **5 (`$`, backtick, `"` or `\` in the skill folder's path breaks `SKILL_DIR="…"`):** exists before this PR and fails closed (no engine found). Logged as a follow-up for Reflect.
 - **Radical idea (`${CLAUDE_PLUGIN_DATA}` names the plugin's origin):** not applied. It reverses round 1's premise and contradicts the round-1 probe, so it needs a live probe and an operator decision.
+
+## QA results, rework round 2 (PASS)
+
+QA compared the Build (cbfbbfe and b35789c, diffed against 793b004) with plan units 1 to 4, the preflight advisory dispositions, and brief AC7. KISS, DRY, YAGNI, completeness, regression, integrity and documentation pass. Nothing must change before Reflect.
+
+**What QA checked:**
+
+- The shipped `*)` arm is the plan's target arm, word for word. The record check comes before the `CURSOR_PLUGIN_ROOT` check, and the stderr text matches the plan.
+- The four planned tests exist with the planned names and the `config-dir` / `cache-dir` ids. The `_record_install` helper, the module docstring and the changed docstring of `test_claude_custom_plugins_root_gets_no_owner` all match the plan. Every existing Step 2 test is unchanged.
+- The Step 2 owner bullets, the Step 7 sentence (worded per preflight advisory 1), `systemPatterns.md`, brief AC7 and the SumMem note all say the same rule.
+- **Test model against the real record.** The real `~/.claude/plugins/installed_plugins.json` on this machine has the shape `_record_install` writes: top-level `version: 2` and `plugins`, a 2-space indent, and each `installPath` stored as a plain quoted string beside `cache/`.
+- **Probes beyond the tests** (`probe_record_arm.py`, 11 cases under sh, bash and BusyBox sh with BusyBox `grep` and `sed`, read back through the printed line):
+    - `claude` for: a recorded copy that `CURSOR_PLUGIN_ROOT` also holds (the record wins); a non-ASCII path; a path that appears only as a `projectPath` (advisory 3, accepted).
+    - No owner for: a record path with a trailing slash; a longer string that starts with the path; JSON-escaped slashes (`\/`); a copy read through a symlinked alias of the recorded path; a record that is a directory; an unreadable record (mode 000); an in-place checkout at a cache-shaped path whose neighbouring record lists only the cache copy.
+    - In each no-owner case, the only stderr line is the block's own message. `grep` prints nothing.
+    - The eleventh case, probe J (a `"` in the path), never reaches the arm. See advisory 3.
+- **Hook agreement.** The Claude SessionStart hook bakes `--owner claude --app-dir "${CLAUDE_PLUGIN_ROOT}/skills/sr-search"`. For a recorded install, Step 2 resolves the same `APP_DIR` string and owner, so the shim `sr-initialize` writes is the one the hook keeps current.
+- **Docs.** A sweep of tracked files outside `memory-bank/active/`, the archives and `.summem/` found no stale statement of the owner rule and no copy of the old stderr text. `docs/` needs no change.
+
+**Gates re-run by QA (`run_gates.sh`):**
+
+- `make ci`: exit 0. Lint, format-check, lock checks, schema-docs check, JS 134/134, pytest 956 passed and 28 skipped, REUSE compliant.
+- `claude plugin validate .`: passes. The only warning is the existing CLAUDE.md one. It also prints advice that README has no marketplace install line. That advice does not change the verdict and has nothing to do with this round.
+- The live shim is still baked to `~/git/stockroom` (owner `dev`). After the gates, `git status` showed only the deleted round-1 `.qa-validation-status`.
+
+**Advisories (non-blocking), for Reflect or a follow-up:**
+
+1. **The orphan test's docstring says more than the rule.** "An old version left behind by an update (`.orphaned_at`) is no install" is true only in a custom plugins root, where the record is the only evidence. In the default folders, an orphaned copy still gets `claude` by path. That case is harmless: the next session's hook re-bakes the shim to the live version. The test itself is correct. A more exact wording would be "is not recorded".
+2. **Newline paths are outside the "never" claim.** The plan's "How it fails" says the check never labels a copy whose exact path is not a string in the record. `grep -F` treats each line of its pattern as a separate pattern, so a path with a newline in it could match on one part. AC8 already excludes such paths, and the printed line breaks for them first. No action.
+3. **Preflight advisory 5, made more exact for Reflect.** Probe J confirmed that a `"` in the skill path stops the block with a shell syntax error under sh, bash and BusyBox sh. Nothing is printed. This is a different symptom from "no engine found". Also, a `$(` or a backtick in the path is run as command substitution inside `SKILL_DIR="…"`, so it does more than fail closed. Only the user's own folder names can contain these characters. The problem existed before this PR.
+4. **Carried, already accepted.** No test pins the order "record before `CURSOR_PLUGIN_ROOT`" (plan decision); probe A confirms the shipped order. The `projectPath` match is preflight advisory 3. zsh is still never run, here or in CI.

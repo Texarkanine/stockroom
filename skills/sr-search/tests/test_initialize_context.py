@@ -267,9 +267,9 @@ def test_claude_recorded_install_with_quotes_in_the_path(
 def test_claude_orphaned_custom_root_copy_gets_no_owner(
     shell: str, step2: str, tmp_path: Path
 ) -> None:
-    """An old version left behind by an update (``.orphaned_at``) is no
-    install: the record lists only the new version, and ``…/2.1.1`` must not
-    match inside ``…/2.1.10``."""
+    """An old version that an update left in a custom plugins root
+    (``.orphaned_at``) is not recorded, so it gets no owner: the record lists
+    only the new version, and ``…/2.1.1`` must not match inside ``…/2.1.10``."""
     root_dir = tmp_path / "claude-work" / "plugins"
     old = root_dir / "cache" / "txrk9" / "stockroom" / "2.1.1"
     skill_dir = _plugin_tree(old)

@@ -338,3 +338,24 @@ Reassess how each harness exposes its plugin root (`CLAUDE_PLUGIN_ROOT`, `CURSOR
     - Folded in preflight advisories 1 to 4. Advisory 5 is a follow-up, and the `${CLAUDE_PLUGIN_DATA}` idea is left for the operator.
 * Insights
     - A self-checking mutation script (expected failing set per mutant), run on a scratch copy, keeps mutation checks out of the worktree. It also makes the result one line to read: `ALL OK`.
+
+## 2026-10-16 - QA (rework round 2: Claude Code's install record) - COMPLETE
+
+* Work completed
+    - Compared the Build (cbfbbfe and b35789c, diffed against 793b004) with plan units 1 to 4, the preflight advisory dispositions and brief AC7.
+    - Checked the test helper's modeled record against this machine's real `installed_plugins.json`. The shape is the same.
+    - Ran 11 extra probes of the shipped Step 2 block under sh, bash and BusyBox sh, reading each result back through the printed line. Ten gave the planned result. The eleventh (a `"` in the path) is the existing preflight advisory 5.
+    - Swept the docs for stale owner-rule text and found none.
+    - Re-ran the gates. `make ci` exited 0: JS 134/134, pytest 956 passed and 28 skipped, REUSE compliant. `claude plugin validate .` passed, with only the existing CLAUDE.md warning.
+    - Result (`.qa-validation-status`): `PASS`.
+* Decisions made
+    - No blocking findings. The four advisories are in `tasks.md` under "QA results, rework round 2".
+* Insights
+    - The record check fails closed for every near-miss QA tried: a trailing slash, a longer string, escaped slashes, a symlinked alias, a record that is a directory, and an unreadable record.
+    - A `"`, `$(` or backtick in the skill path breaks or runs inside `SKILL_DIR="…"` before the owner rule is reached. That is preflight advisory 5, and the problem existed before this PR.
+
+## 2026-10-16 - QA follow-up, rework round 2 (minor fix after QA PASS)
+
+* Work completed
+    - QA note 1: the orphan test's docstring now says the old copy "is not recorded, so it gets no owner" (in a custom plugins root), instead of "is no install". The test re-ran green under sh and bash.
+    - Notes 2 to 4 need no change: newline paths are outside AC8, advisory 5 goes to Reflect as a follow-up, and the record-before-Cursor order was already accepted.
