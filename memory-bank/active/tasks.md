@@ -330,8 +330,15 @@ No new technology - validation not required. The heredoc, `read -r`, `case` and 
     - Green: 66 passed, 33 skipped (zsh absent).
     - Mutation check (`scratchpad/scripts/mutation_check_r3.py`, on scratch copies): unmutated 0; M1 8; M2 4; M3 6; M4 2; M5 2. Each is exactly its predicted set: ALL OK.
     - BusyBox check: all 5 cases PASS (`data`, `inline`, `dollar`, `backtick`, `dquote`).
-- [ ] 3. Step 2 prose
-- [ ] 4. Patterns, brief and SumMem
+- [x] 3. Step 2 prose:
+    - The run paragraph: Claude Code writes the skill directory and the data folder; replace only the placeholder.
+    - The custom-folder sentence: the data folder or the install record.
+    - The empty-`OWNER` bullet, and its Claude Code sub-bullet with when it happens and where the error line shows the data folder.
+    - Step 7 unchanged. The tokens appear only in the fence (grep).
+- [x] 4. Patterns, brief and SumMem:
+    - `systemPatterns.md`: the tokens sentence, the heredoc, and the owner rule.
+    - Brief: UC3, AC3 and AC7, plus a new AC10 (failure principles).
+    - SumMem: the round 3 owner-rule note and the heredoc note, plus the naps the tool asked for.
 - [ ] 5. Verification
 
 ## Preflight advisories: dispositions

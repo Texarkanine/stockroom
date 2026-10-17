@@ -1,1 +1,0 @@
-Migration SQL comments are a write log, not a glossary: no column docs from them; @rel vs the head snapshot is the ERD edge source, @doc rejected. From skills/sr-search (uv --directory / Make UV_RUN cwd), repo-root scripts/ is ../../scripts, not ../scripts.

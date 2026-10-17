@@ -16,7 +16,7 @@ The same skill text runs in Cursor. Whatever fix lands for Claude Code must not 
 
 ### Use-Case 3: Dev checkout / localdev mirror
 
-Contributors always get `dev` (operator decision). Anything run from a checkout with intent to develop or iterate resolves to `dev` and points to `make localdev` / `make shim`. That covers `claude --plugin-dir`, Cursor `plugins/local`, local-path marketplaces loaded in place, and the Cursor localdev mirror. Only a marketplace install, a harness cache copy at `…/cache/<marketplace>/<plugin>/<version>`, is a real install. A contributor's live `dev` shim is left alone. Nothing may label a marketplace install as a dev checkout.
+Contributors always get `dev` (operator decision). Anything run from a checkout with intent to develop or iterate resolves to `dev` and points to `make localdev` / `make shim`. That covers `claude --plugin-dir`, Cursor `plugins/local`, local-path marketplaces loaded in place, and the Cursor localdev mirror. In Claude Code it also covers a `--plugin-dir` checkout at a cache-shaped path: Claude Code's substituted data folder (`stockroom-inline`) identifies it. Only a checkout inside the active plugins root's own `cache/` folder, where Claude Code keeps installed copies, counts as an install. Only a marketplace install, a harness cache copy at `…/cache/<marketplace>/<plugin>/<version>`, is a real install. A contributor's live `dev` shim is left alone. Nothing may label a marketplace install as a dev checkout.
 
 ### Use-Case 4: Leaving dev without getting stuck
 
@@ -43,13 +43,27 @@ A contributor who has a real install and a `dev` shim goes back to the release. 
 
 1. On a Claude Code marketplace install in the default plugins folder (`~/.claude/plugins/…`), following `sr-initialize` Step 2 literally gives `OWNER=claude` and the absolute plugin-cache `skills/sr-search` path. Under a custom plugins folder, AC7 applies.
 2. On a Cursor marketplace install, Step 2 gives `OWNER=cursor` by a mechanism that is documented or verified, or the remaining uncertainty is stated in the skill or the docs and does not misroute the user.
-3. Every checkout-based load (`claude --plugin-dir`, Cursor `plugins/local`, local-path marketplace in place, Cursor mirror) resolves to `OWNER=dev`. The one exception is a checkout three levels below a folder named `cache` and outside the default plugins folders. It gets no owner: in Claude Code the user decides (AC7), and in Cursor the agent names `cursor` (accepted residual). Re-running `sr-initialize` never offers to take over a shim that its owner still maintains.
+3. Every checkout-based load (`claude --plugin-dir`, Cursor `plugins/local`, local-path marketplace in place, Cursor mirror) resolves to `OWNER=dev`. That includes a Claude Code `--plugin-dir` checkout three levels below a folder named `cache`, once Claude Code substitutes its data folder (`stockroom-inline`). The exceptions:
+    - A checkout inside the active plugins root's own `cache/` folder, where Claude Code keeps installed copies, gets `claude`.
+    - When no data folder is substituted, a cache-shaped checkout outside the default plugins folders gets no owner, and in Claude Code the user decides (AC7).
+    - In Cursor the agent names `cursor` (accepted residual).
+
+    Re-running `sr-initialize` never offers to take over a shim that its owner still maintains.
 4. A `dev` shim whose checkout is gone is replaced at the next session start of an installed stockroom plugin. A live foreign shim is never touched.
 5. No project doc or comment claims that plugin-root variables are visible to agent-run shell commands.
 6. `make ci` (or the equivalent format, lint, test and reuse gates) passes.
 
 ### Added by the PR #142 review (2026-10-16)
 
-7. In Claude Code, no checkout is labelled `claude` because of where its path happens to sit. The path labels a copy only inside a harness's default plugins folder (`…/.claude/plugins/cache/…`, `…/.claude/plugins/synced/…` or `…/.cursor/plugins/cache/…`). Outside those folders, Claude Code's substituted plugin root is not proof, but its install record is: a copy whose exact path `installed_plugins.json` (in the plugins root, beside `cache/`) lists gets `claude` with no question. Otherwise the agent asks the user. Cursor users get no new question: Cursor keeps its first-pass outcomes (operator decision).
+7. In Claude Code, no checkout is labelled `claude` because of where its path happens to sit. The path labels a copy only inside a harness's default plugins folder (`…/.claude/plugins/cache/…`, `…/.claude/plugins/synced/…` or `…/.cursor/plugins/cache/…`). Outside those folders, Claude Code's substituted plugin root is not proof, but its plugin data folder and its install record are:
+    - A copy gets `claude`, with no question, when the data folder Claude Code substitutes (`data/<plugin-id>`) sits in the plugins root that holds the copy's `cache/`, or when `installed_plugins.json` there lists its exact path.
+    - It gets `dev` when the data folder is `stockroom-inline` (a `--plugin-dir` load).
+    - Otherwise the agent asks the user.
+
+    Cursor users get no new question: Cursor keeps its first-pass outcomes (operator decision).
 8. The line Step 2 prints is valid shell for any path the block resolves that contains no newline, including paths that contain `'` or spaces.
 9. `shim rectify` exits 0 and leaves the shim untouched when a foreign shim's engine directory cannot be checked. `shim install` refuses such a shim unless both `--takeover` and `--force` are passed. Neither command raises an exception.
+
+### Added by rework round 3 (operator decision, 2026-10-17)
+
+10. When Claude Code's substituted data folder is missing, renamed or moved, Step 2 falls back to the install record and then to the question. Any such failure shows up during `sr-initialize`, as the question plus an error line that shows the data folder the block was given. It never produces a wrong owner, so nothing new reaches the session hooks, `shim rectify` or the nightly job.
