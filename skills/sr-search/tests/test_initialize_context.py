@@ -5,8 +5,11 @@ they "aren't present in the environment of commands Claude runs through the
 Bash tool"). What a harness gives the agent is the skill text itself:
 
 * Claude Code substitutes the exact tokens ``${CLAUDE_SKILL_DIR}`` (every
-  skill) and ``${CLAUDE_PLUGIN_ROOT}`` (plugin skills only) when it loads the
-  skill, inside code fences too. Bare ``$CLAUDE_PLUGIN_ROOT`` stays literal.
+  skill), ``${CLAUDE_PLUGIN_ROOT}`` and ``${CLAUDE_PLUGIN_DATA}`` (plugin
+  skills only) when it loads the skill, inside code fences too. Bare
+  ``$CLAUDE_PLUGIN_ROOT`` stays literal. The data token becomes
+  ``<plugins root>/data/<plugin-id>``: ``stockroom-<marketplace>`` for an
+  install, ``stockroom-inline`` for a ``--plugin-dir`` load.
 * Other harnesses (Cursor) substitute nothing: the agent fills the block's
   angle-bracket placeholder with the directory it read SKILL.md from, and the
   harness may or may not export ``CURSOR_PLUGIN_ROOT``.
@@ -22,9 +25,11 @@ The owner rule (operator decisions):
   ``…/.claude/plugins/cache/<marketplace>/<plugin>/<version>`` and
   ``…/.claude/plugins/synced/…`` (claude.ai sync) are ``claude``;
   ``…/.cursor/plugins/cache/…`` is ``cursor``.
-* An install-shaped copy anywhere else is ``claude`` when Claude Code's
-  install record (``installed_plugins.json`` in the plugins root, beside
-  ``cache/``) lists its exact path, and ``cursor`` when the exported
+* An install-shaped copy anywhere else is ``claude`` when Claude Code's data
+  folder for it sits in the plugins root that holds the copy's ``cache/``, or
+  when Claude Code's install record there (``installed_plugins.json``) lists
+  its exact path. It is ``dev`` when the data folder is ``stockroom-inline``
+  (a ``--plugin-dir`` load), and ``cursor`` when the exported
   ``CURSOR_PLUGIN_ROOT`` holds it. Otherwise it gets no owner: in Claude Code
   the agent asks the user, and other harnesses name themselves. Claude Code's
   substituted plugin root alone is not proof, because ``--plugin-dir``
@@ -48,26 +53,37 @@ _PLACEHOLDER_RE = re.compile(r"<[^<>\n]+>")
 
 
 def _step2_block(repo_root: Path) -> str:
-    """Return the single bash fence in sr-initialize that assigns ``SKILL_DIR=``."""
+    """Return the single bash fence in sr-initialize that holds the
+    ``${CLAUDE_SKILL_DIR}`` token."""
     text = (repo_root / SKILL_MD).read_text(encoding="utf-8")
     blocks = [
         block
         for block in _BASH_FENCE_RE.findall(text)
-        if re.search(r"^SKILL_DIR=", block, re.MULTILINE)
+        if "${CLAUDE_SKILL_DIR}" in block
     ]
     assert len(blocks) == 1, (
-        f"expected exactly one bash fence assigning SKILL_DIR= in {SKILL_MD}, "
-        f"found {len(blocks)}"
+        f"expected exactly one bash fence holding ${{CLAUDE_SKILL_DIR}} in "
+        f"{SKILL_MD}, found {len(blocks)}"
     )
     return blocks[0]
 
 
-def _render_claude(block: str, *, skill_dir: Path, plugin_root: Path | None) -> str:
+def _render_claude(
+    block: str,
+    *,
+    skill_dir: Path,
+    plugin_root: Path | None,
+    plugin_data: Path | str | None = None,
+) -> str:
     """Substitute Claude Code's skill-text tokens: the skill dir always, the
-    plugin root only for a plugin skill (``plugin_root`` given)."""
+    plugin root only for a plugin skill (``plugin_root`` given), and the
+    plugin data folder when ``plugin_data`` is given. Left out, the data token
+    stays literal, as from a Claude Code that does not substitute it."""
     rendered = block.replace("${CLAUDE_SKILL_DIR}", str(skill_dir))
     if plugin_root is not None:
         rendered = rendered.replace("${CLAUDE_PLUGIN_ROOT}", str(plugin_root))
+    if plugin_data is not None:
+        rendered = rendered.replace("${CLAUDE_PLUGIN_DATA}", str(plugin_data))
     return rendered
 
 
@@ -97,6 +113,7 @@ def _run_block(
     readback = subprocess.run(
         [shell, "-c", printed[0] + '\nprintf "%s\\n%s\\n" "$OWNER" "$APP_DIR"\n'],
         env={"PATH": os.environ["PATH"]},
+        cwd=home,
         capture_output=True,
         text=True,
     )
@@ -196,10 +213,10 @@ def test_claude_custom_plugins_root_gets_no_owner(
     shell: str, step2: str, tmp_path: Path
 ) -> None:
     """Under ``CLAUDE_CODE_PLUGIN_CACHE_DIR`` the cache lives outside
-    ``~/.claude``. With no install record listing the copy, Claude Code's
-    substituted plugin root is not proof of an install there
-    (``--plugin-dir`` substitutes a checkout the same way), so the copy gets
-    no owner and the agent asks the user."""
+    ``~/.claude``. With no install record listing the copy, and no data folder
+    substituted by Claude Code, its substituted plugin root is not proof of an
+    install there (``--plugin-dir`` substitutes a checkout the same way), so
+    the copy gets no owner and the agent asks the user."""
     root = tmp_path / "plugin-root" / "cache" / "txrk9" / "stockroom" / "2.1.1"
     skill_dir = _plugin_tree(root)
     block = _render_claude(step2, skill_dir=skill_dir, plugin_root=root)
@@ -284,6 +301,27 @@ def test_claude_orphaned_custom_root_copy_gets_no_owner(
     )
 
 
+@pytest.mark.parametrize("suffix", ["", "/"], ids=["no-slash", "trailing-slash"])
+def test_claude_custom_root_install_by_data_folder(
+    shell: str, step2: str, tmp_path: Path, suffix: str
+) -> None:
+    """An unrecorded copy in a custom plugins root is a ``claude`` install
+    when the data folder Claude Code substitutes, ``data/<plugin-id>``, sits
+    in the same plugins root as the copy's ``cache/``, with or without a
+    trailing ``/``."""
+    root_dir = tmp_path / "plugin-cache"
+    root = root_dir / "cache" / "txrk9" / "stockroom" / "2.1.1"
+    skill_dir = _plugin_tree(root)
+    data = f"{root_dir / 'data' / 'stockroom-txrk9'}{suffix}"
+    block = _render_claude(
+        step2, skill_dir=skill_dir, plugin_root=root, plugin_data=data
+    )
+    assert _run_block(shell, block, tmp_path) == (
+        "claude",
+        str(root / "skills" / "sr-search"),
+    )
+
+
 def test_claude_plugin_dir_checkout_is_dev(
     shell: str, step2: str, tmp_path: Path
 ) -> None:
@@ -318,10 +356,56 @@ def test_checkout_in_a_cache_shaped_path_gets_no_owner(
 ) -> None:
     """A ``--plugin-dir`` checkout three levels below a folder named
     ``cache`` looks like an install, but Claude Code's substituted root does
-    not prove it: no ``claude`` label, and the agent asks the user."""
+    not prove it. With no data folder substituted, it gets no ``claude``
+    label, and the agent asks the user."""
     root = tmp_path / "src" / "cache" / "acme" / "widgets" / "stockroom"
     skill_dir = _checkout_tree(root)
     block = _render_claude(step2, skill_dir=skill_dir, plugin_root=root)
+    assert _run_block(shell, block, tmp_path) == (
+        "",
+        str(root / "skills" / "sr-search"),
+    )
+
+
+def test_claude_plugin_dir_checkout_in_a_cache_shaped_path_is_dev(
+    shell: str, step2: str, tmp_path: Path, repo_root: Path
+) -> None:
+    """The same checkout loaded with ``--plugin-dir`` is ``dev`` once Claude
+    Code substitutes its data folder: a session plugin's id is
+    ``<manifest name>@inline``, so the folder is ``<manifest name>-inline``.
+    The name comes from the shipped manifest, so renaming the plugin breaks
+    this test until the block follows."""
+    root = tmp_path / "src" / "cache" / "acme" / "widgets" / "stockroom"
+    skill_dir = _checkout_tree(root)
+    manifest = json.loads(
+        (repo_root / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8")
+    )
+    data_root = tmp_path / "home" / ".claude" / "plugins" / "data"
+    data = data_root / f"{manifest['name']}-inline"
+    block = _render_claude(
+        step2, skill_dir=skill_dir, plugin_root=root, plugin_data=data
+    )
+    assert _run_block(shell, block, tmp_path) == (
+        "dev",
+        str(root / "skills" / "sr-search"),
+    )
+
+
+@pytest.mark.parametrize("marketplace", ["txrk9", "acme-inline"])
+def test_data_folder_in_another_plugins_root_proves_nothing(
+    shell: str, step2: str, tmp_path: Path, home: Path, marketplace: str
+) -> None:
+    """A copy whose data folder lives in another plugins root (a seed folder
+    mounted elsewhere, say) gets no owner. Only ``data/`` beside the copy's
+    own ``cache/`` proves an install, and only the whole name
+    ``stockroom-inline`` proves a session plugin, not a marketplace whose
+    name merely ends in ``-inline``."""
+    root = tmp_path / "seed" / "cache" / marketplace / "stockroom" / "2.1.1"
+    skill_dir = _plugin_tree(root)
+    data = home / ".claude" / "plugins" / "data" / f"stockroom-{marketplace}"
+    block = _render_claude(
+        step2, skill_dir=skill_dir, plugin_root=root, plugin_data=data
+    )
     assert _run_block(shell, block, tmp_path) == (
         "",
         str(root / "skills" / "sr-search"),
@@ -340,6 +424,27 @@ def test_printed_line_survives_quotes_in_the_path(
         "dev",
         str(root / "skills" / "sr-search"),
     )
+
+
+@pytest.mark.parametrize(
+    "folder",
+    ["cost$x", "tick`touch ran`tock", 'one"quote'],
+    ids=["dollar", "backtick", "double-quote"],
+)
+def test_skill_path_is_read_as_data(
+    shell: str, step2: str, tmp_path: Path, folder: str
+) -> None:
+    """The path Claude Code pastes into the block is read as written, never
+    parsed as shell: a ``$``, a backtick or a lone ``"`` in a folder name
+    neither changes the path nor runs a command (no ``ran`` file appears)."""
+    root = tmp_path / folder / "stockroom"
+    skill_dir = _checkout_tree(root)
+    block = _render_claude(step2, skill_dir=skill_dir, plugin_root=root)
+    assert _run_block(shell, block, tmp_path) == (
+        "dev",
+        str(root / "skills" / "sr-search"),
+    )
+    assert not (tmp_path / "ran").exists()
 
 
 def test_claude_local_marketplace_in_place_is_dev(
@@ -451,13 +556,30 @@ def test_localdev_mirror_in_a_cache_named_dir_is_dev(
 
 def test_leaked_cursor_root_is_ignored(shell: str, step2: str, tmp_path: Path) -> None:
     """A ``CURSOR_PLUGIN_ROOT`` inherited from some other plugin labels
-    nothing: a Claude Code custom-root copy it does not hold gets no owner."""
+    nothing: a Claude Code custom-root copy it does not hold, with no data
+    folder substituted, gets no owner."""
     root = tmp_path / "plugin-root" / "cache" / "txrk9" / "stockroom" / "2.1.1"
     skill_dir = _plugin_tree(root)
     other = tmp_path / "elsewhere" / "cache" / "other" / "stockroom" / "1.0.0"
     _plugin_tree(other)
     block = _render_claude(step2, skill_dir=skill_dir, plugin_root=root)
     env = {"CURSOR_PLUGIN_ROOT": str(other)}
+    assert _run_block(shell, block, tmp_path, env) == (
+        "",
+        str(root / "skills" / "sr-search"),
+    )
+
+
+def test_leaked_plugin_data_variable_is_ignored(
+    shell: str, step2: str, tmp_path: Path
+) -> None:
+    """A ``CLAUDE_PLUGIN_DATA`` inherited into the agent's shell labels
+    nothing: the block takes the data folder only from Claude Code's text
+    substitution, so a copy read by a Cursor agent keeps no owner."""
+    root = tmp_path / "elsewhere" / "cache" / "txrk9" / "stockroom" / "672cf3aa"
+    skill_dir = _plugin_tree(root)
+    block = _fill_placeholder(step2, skill_dir)
+    env = {"CLAUDE_PLUGIN_DATA": str(tmp_path / "other" / "data" / "stockroom-inline")}
     assert _run_block(shell, block, tmp_path, env) == (
         "",
         str(root / "skills" / "sr-search"),

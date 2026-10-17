@@ -28,8 +28,12 @@ The engine always sits beside this skill: `sr-search` is this skill's sibling di
 Run this block as written. Claude Code writes this skill's directory into it when it loads the skill. In any other harness, replace the angle-bracket placeholder with the POSIX absolute path of the directory you read this SKILL.md from (on WSL, turn backslashes into forward slashes). Do not look for plugin-root environment variables yourself: harnesses give them to hooks, not to agent shells.
 
 ```bash
-SKILL_DIR="${CLAUDE_SKILL_DIR}"
-[ -n "$SKILL_DIR" ] || SKILL_DIR="<POSIX absolute path of the directory holding this SKILL.md>"
+{ IFS= read -r SKILL_DIR; IFS= read -r PLUGIN_DATA; } <<'SR_PATHS'
+${CLAUDE_SKILL_DIR}
+${CLAUDE_PLUGIN_DATA}
+SR_PATHS
+case "$SKILL_DIR" in ''|'$'*) SKILL_DIR="<POSIX absolute path of the directory holding this SKILL.md>" ;; esac
+case "$PLUGIN_DATA" in '$'*) PLUGIN_DATA="" ;; *?/) PLUGIN_DATA="${PLUGIN_DATA%/}" ;; esac
 APP_DIR="$(CDPATH='' cd -- "$SKILL_DIR/../sr-search" 2>/dev/null && pwd)"
 PLUGIN_ROOT="${APP_DIR%/skills/sr-search}"
 CACHE_DIR="${PLUGIN_ROOT%/*/*/*}"
@@ -45,9 +49,10 @@ elif [ "$PLUGIN_ROOT" != "$APP_DIR" ] && [ "${CACHE_DIR##*/}" = cache ]; then
     */.claude/plugins/cache/*) OWNER=claude ;;
     */.cursor/plugins/cache/*) OWNER=cursor ;;
     *)
-      if grep -qF -- "\"$PLUGIN_ROOT\"" "${CACHE_DIR%/*}/installed_plugins.json" 2>/dev/null; then OWNER=claude
+      if [ "$PLUGIN_DATA" = "${CACHE_DIR%/*}/data/${PLUGIN_DATA##*/}" ] || grep -qF -- "\"$PLUGIN_ROOT\"" "${CACHE_DIR%/*}/installed_plugins.json" 2>/dev/null; then OWNER=claude
+      elif [ "${PLUGIN_DATA##*/}" = stockroom-inline ]; then OWNER=dev
       elif [ -n "$CURSOR_APP" ] && [ "$CURSOR_APP" = "$REAL_APP" ]; then OWNER=cursor
-      else printf 'sr-initialize: %s is laid out like an installed plugin, but outside the default plugins folders and no install record lists it\n' "$APP_DIR" >&2
+      else printf 'sr-initialize: %s is laid out like an installed plugin outside the default plugins folders, but no install record lists it and the plugin data folder (%s) is not in its plugins root\n' "$APP_DIR" "${PLUGIN_DATA:-not given}" >&2
       fi ;;
   esac
 else

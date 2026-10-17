@@ -6,7 +6,7 @@
 
 **Rework round 3: Claude Code's plugin data folder settles the owner.** Rounds 1 and 2 are complete through Reflect on this branch. Round 2's plan is in git at fc3db1b (`memory-bank/active/tasks.md`), and the history of all rounds is in `progress.md`.
 
-After round 2, Step 2 still asks the Claude Code user who owns a copy that is laid out like an install, sits outside the default plugins folders, and is not listed in the install record. The main case is a contributor's `claude --plugin-dir` checkout at a cache-shaped path. Others are a native Windows custom plugins root, where the record stores the path with escaped backslashes, and any future change to the record's format.
+After round 2, Step 2 still asks the Claude Code user who owns a copy that is laid out like an install, sits outside the default plugins folders, and is not listed in the install record. The main case is a contributor's `claude --plugin-dir` checkout at a cache-shaped path. Another is any future change to the record's format. (Native Windows is not helped: Git Bash's `pwd` prints `/c/…` while the substituted data path is `C:/…`, so rule 1 cannot match there and the block asks as before. Preflight advisory 3.)
 
 Claude Code also writes `${CLAUDE_PLUGIN_DATA}` into skill text. Its documented form, `<plugins root>/data/<plugin-id>`, says where the plugin came from:
 
@@ -165,7 +165,7 @@ All cases are in `test_initialize_context.py`. Each runs under `sh`, `bash` and 
 
 - M1: the head goes back to double-quoted assignments (`SKILL_DIR="${CLAUDE_SKILL_DIR}"`, `PLUGIN_DATA="${CLAUDE_PLUGIN_DATA}"`) → the three shell-character cases and the inherited-variable case go red.
 - M2: rule 1 deleted → both data-folder install cases go red.
-- M3: rule 1 loosened to "any data folder" (`case "$PLUGIN_DATA" in */data/?*)`) → both other-root cases go red.
+- M3: rule 1 loosened to "any data folder" (`case "$PLUGIN_DATA" in */data/?*)`) → both other-root cases and the `--plugin-dir` cache-shaped case go red (preflight advisory 1).
 - M4: rule 3 loosened to `*-inline` → the `acme-inline` other-root case goes red.
 - M5: rule 3 deleted → the `--plugin-dir` cache-shaped case goes red.
 
@@ -191,6 +191,7 @@ All cases are in `test_initialize_context.py`. Each runs under `sh`, `bash` and 
 
 1. Stub tests:
    - `_step2_block`: select the one bash fence holding the `${CLAUDE_SKILL_DIR}` token, and update its docstring and assertion message. Today's block still matches, so every existing test stays green.
+   - `_run_block`: run the readback with `cwd=home`, like the block (preflight advisory 7).
    - Add `test_skill_path_is_read_as_data`, parametrized over the three folder names with ids `dollar`, `backtick` and `double-quote`, with an empty, documented body.
 2. Stub interface: none. The interface is the Step 2 fence.
 3. Write tests and run red:
@@ -254,9 +255,11 @@ All cases are in `test_initialize_context.py`. Each runs under `sh`, `bash` and 
    - The substitution sentence names `${CLAUDE_PLUGIN_DATA}` beside `${CLAUDE_SKILL_DIR}` and `${CLAUDE_PLUGIN_ROOT}`.
    - The owner-rule sentence: outside the default folders, an install-shaped copy is `claude` when Claude Code's data folder for it (`data/<plugin-id>`) sits in the copy's plugins root, or when the install record lists its exact path. It is `dev` when the data folder is `stockroom-inline` (a `--plugin-dir` load), and `cursor` when `CURSOR_PLUGIN_ROOT` holds it.
    - Keep "The substituted `${CLAUDE_PLUGIN_ROOT}` is not proof".
-2. Brief AC7: outside the default folders, Claude Code's substituted plugin root is not proof, but its plugin data folder and its install record are. The rest follows the owner rule above. Otherwise the agent asks the user.
+2. Brief AC7: outside the default folders, Claude Code's substituted plugin root is not proof, but its plugin data folder and its install record are. The rest follows the owner rule above. Otherwise the agent asks the user. Also update AC3's cache-shaped exception and UC3 (preflight advisory 2). A Claude Code checkout there now gets `dev` from its data folder. The question remains only when Claude Code did not substitute the folder. Cursor's accepted residual is unchanged.
 3. Add a new brief AC10 for the operator's failure principles: when the substituted data folder is missing, renamed or moved, the outcome falls back to round 2's. Any such failure shows up during `sr-initialize`, as the question plus a stderr line, and never as an owner that the hooks would act on.
-4. Add one `.summem/summem note`: the round 3 owner rule. It supersedes the round 2 owner-rule note. Follow any nap request the tool prints.
+4. Add two `.summem/summem note`s, and follow any nap request the tool prints:
+   - The round 3 owner rule. It supersedes the round 2 owner-rule note.
+   - Step 2 now reads both pasted paths from a quoted heredoc. It supersedes the 2026-10-17 quoting note (preflight advisory 5).
 5. Docs under `docs/`: no change. A grep during planning found no statement of the owner rule there.
 
 ### 5. Verification
@@ -271,8 +274,8 @@ All cases are in `test_initialize_context.py`. Each runs under `sh`, `bash` and 
    - Real settings and records are checksummed before and after, and `~/.claude/plugins/data` is listed before and after.
    - Each session also loads the scratch `widget` plugin. If its SessionStart hook leaves no `hook-out.txt`, hooks really were off.
    - Load A: `--plugin-dir` from a copy of the tracked files, placed at `<scratch>/A-checkout/cache/m/stockroom/x` → `dev`.
-   - Load B: a copied install, from a `url`-source marketplace over a one-commit git repo of the same files, at `--scope local` → `claude`. Run it once with the record present, and once with `installed_plugins.json` moved aside, so that only rule 1 can prove it.
-   - Run each rendered fence under sh and bash.
+   - Load B: a copied install, from a `url`-source marketplace over a one-commit git repo of the same files, at `--scope local` → `claude`. The session runs with the record present, because Claude Code does not load the plugin without it. Run the rendered fence once as is. Then move `installed_plugins.json` aside and run it again, so that only rule 1 can prove the owner (preflight advisory 4).
+   - Run each rendered fence under sh and bash. Check `OWNER`, `APP_DIR` (the expected copy's `skills/sr-search`), and that the rendered fence holds the heredoc with both paths filled in.
 4. The live shim is baked to `~/git/stockroom`, so the pre-commit `make format` sync of this worktree changes nothing outside it. Confirm with `grep '^# STOCKROOM_' ~/.local/bin/stockroom`.
 
 ## Technology Validation
@@ -312,6 +315,35 @@ No new technology - validation not required. The heredoc, `read -r`, `case` and 
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight (PASS WITH ADVISORY)
 - [ ] Build
 - [ ] QA
+
+## Build progress
+
+- [x] 1. Step 2 reads pasted paths as data:
+    - Red: 6 failed (3 folder names × sh and bash), 48 passed.
+    - Green: 54 passed, 27 skipped (zsh absent).
+    - BusyBox check (preflight's `busybox_target_check.sh`): `dollar`, `backtick` and `dquote` PASS. `data` and `inline` FAIL, as expected before Unit 2.
+- [x] 2. Step 2 settles the owner from the data folder:
+    - Red: 6 failed (the two data-folder install cases and the `--plugin-dir` case, × sh and bash), 60 passed.
+    - Green: 66 passed, 33 skipped (zsh absent).
+    - Mutation check (`scratchpad/scripts/mutation_check_r3.py`, on scratch copies): unmutated 0; M1 8; M2 4; M3 6; M4 2; M5 2. Each is exactly its predicted set: ALL OK.
+    - BusyBox check: all 5 cases PASS (`data`, `inline`, `dollar`, `backtick`, `dquote`).
+- [ ] 3. Step 2 prose
+- [ ] 4. Patterns, brief and SumMem
+- [ ] 5. Verification
+
+## Preflight advisories: dispositions
+
+- **1 (M3 also turns the `--plugin-dir` case red):** applied in the mutation list.
+- **2 (brief AC3 and UC3 go stale):** applied in Unit 4. AC3's cache-shaped exception and UC3 are updated along with AC7.
+- **3 (native Windows cannot match rule 1):** applied. The claim is dropped from the description. Native Windows falls back to the question, as before.
+- **4 (live check details):** applied in Unit 5.
+    - The session runs with the record present. The record is moved aside only before the second run of the rendered fence.
+    - Each run also checks `APP_DIR` and that the rendered fence holds the heredoc.
+- **5 (stale SumMem quoting note):** applied in Unit 4, as a second note: Step 2 now reads both paths from a quoted heredoc.
+- **6 (`--plugin-dir` leaves an empty `data/stockroom-inline` folder):** for the PR text, noted for Reflect.
+- **7 (`_run_block` readback `cwd`):** applied in Unit 1. The readback runs with `cwd=home`, like the block.
+- **8 (reuse preflight's scripts):** applied. Build renders through preflight's `render_both.py` and runs its `busybox_target_check.sh`. `mutation_check_r3.py` follows its `run_variants.py`.
+- **Design idea (a `PROOF` field in the printed line):** not applied. It changes the printed interface and every expected result, to pin an order that no real copy exercises. The operator asked not to get lost in the weeds. It is left for the operator.
