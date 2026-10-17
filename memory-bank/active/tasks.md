@@ -194,7 +194,7 @@ No new technology - validation not required. The arm adds `grep -qF --`, which i
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight (PASS WITH ADVISORY)
-- [ ] Build
+- [x] Build
 - [ ] QA
 
 ## Build progress
@@ -208,8 +208,11 @@ No new technology - validation not required. The arm adds `grep -qF --`, which i
         - No record branch: exactly the 3 recorded tests fail.
     - BusyBox check on the worktree `SKILL.md`: PASS.
 - [x] 2. Step 7 sentence, worded per preflight advisory 1: only an owner the block printed, or the user's own answer, lets the agent skip the checkout question. An owner the agent filled in does not.
-- [ ] 3. `systemPatterns.md`, brief AC7, SumMem.
-- [ ] 4. Verification.
+- [x] 3. `systemPatterns.md` (Dual-manifest owner rule), brief AC7, and one SumMem note that supersedes the round-1 owner-rule note. The tool's nap request was done. No `docs/` change (preflight confirmed none states the rule).
+- [x] 4. Verification:
+    - `make ci` passes: lint, format-check, lock checks, schema-docs, JS 134/134, pytest 956 passed and 28 skipped (5 new cases × sh/bash/zsh; zsh is absent), REUSE compliant.
+    - `claude plugin validate .` passes, with only the existing CLAUDE.md warning.
+    - The live shim is baked to `~/git/stockroom`, so no torch restore was needed.
 
 ## Preflight advisories: dispositions
 

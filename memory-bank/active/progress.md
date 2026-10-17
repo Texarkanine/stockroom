@@ -325,3 +325,16 @@ Reassess how each harness exposes its plugin root (`CLAUDE_PLUGIN_ROOT`, `CURSOR
         - Custom-root synced copies stay `dev`, because synced plugins have no record.
         - An existing issue outside this round: a `$`, `` ` ``, `"` or `\` in the substituted skill dir breaks `SKILL_DIR="…"`, and the block fails closed.
     - Radical idea (advisory): use `${CLAUDE_PLUGIN_DATA}`, which the docs say is substituted in skill content. Its `<id>` tells an install (`stockroom-<marketplace>`) from a `--plugin-dir` load (`stockroom-inline`). The round-1 probe disagrees with the docs, so it needs a live probe and an operator decision.
+
+## 2026-10-16 - BUILD (rework round 2: Claude Code's install record) - COMPLETE
+
+* Work completed
+    - Unit 1: the Step 2 `*)` arm checks Claude Code's install record before `CURSOR_PLUGIN_ROOT`. Four new tests, one of them parametrized over the `CLAUDE_CONFIG_DIR` and `CLAUDE_CODE_PLUGIN_CACHE_DIR` layouts. 8 red (4 tests × sh/bash), then green.
+    - The mutation check passed: an unquoted pattern turns only the orphan case red, and removing the record branch turns exactly the 3 recorded tests red. The BusyBox check on the worktree `SKILL.md` passed.
+    - Unit 2: one Step 7 sentence, worded per preflight advisory 1.
+    - Unit 3: `systemPatterns.md`, brief AC7, and one SumMem note plus a nap.
+    - Unit 4: `make ci` green (pytest 956 passed, 28 skipped; JS 134/134; REUSE compliant). `claude plugin validate .` shows only the existing warning.
+* Decisions made
+    - Folded in preflight advisories 1 to 4. Advisory 5 is a follow-up, and the `${CLAUDE_PLUGIN_DATA}` idea is left for the operator.
+* Insights
+    - A self-checking mutation script (expected failing set per mutant), run on a scratch copy, keeps mutation checks out of the worktree. It also makes the result one line to read: `ALL OK`.

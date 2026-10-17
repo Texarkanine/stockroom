@@ -50,6 +50,6 @@ A contributor who has a real install and a `dev` shim goes back to the release. 
 
 ### Added by the PR #142 review (2026-10-16)
 
-7. In Claude Code, no checkout is labelled `claude` because of where its path happens to sit. The path labels a copy only inside a harness's default plugins folder (`…/.claude/plugins/cache/…`, `…/.claude/plugins/synced/…` or `…/.cursor/plugins/cache/…`). Outside those folders, Claude Code's substituted plugin root is not proof, and the agent asks the user. Cursor users get no new question: Cursor keeps its first-pass outcomes (operator decision).
+7. In Claude Code, no checkout is labelled `claude` because of where its path happens to sit. The path labels a copy only inside a harness's default plugins folder (`…/.claude/plugins/cache/…`, `…/.claude/plugins/synced/…` or `…/.cursor/plugins/cache/…`). Outside those folders, Claude Code's substituted plugin root is not proof, but its install record is: a copy whose exact path `installed_plugins.json` (in the plugins root, beside `cache/`) lists gets `claude` with no question. Otherwise the agent asks the user. Cursor users get no new question: Cursor keeps its first-pass outcomes (operator decision).
 8. The line Step 2 prints is valid shell for any path the block resolves that contains no newline, including paths that contain `'` or spaces.
 9. `shim rectify` exits 0 and leaves the shim untouched when a foreign shim's engine directory cannot be checked. `shim install` refuses such a shim unless both `--takeover` and `--force` are passed. Neither command raises an exception.
