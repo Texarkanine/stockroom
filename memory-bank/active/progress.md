@@ -281,3 +281,17 @@ Reassess how each harness exposes its plugin root (`CLAUDE_PLUGIN_ROOT`, `CURSOR
 * Insights
     - When replacing a stdlib helper with the call underneath it, carry over every implicit catch (`Path.is_file` swallowed `ValueError`).
     - Judge a heuristic by which way it fails, and point uncertain branches toward the side that gets caught.
+
+## 2026-10-16 - POST-REFLECT - VERSION-FOLDER REVIEW AND INSTALL-RECORD PROBES - COMPLETE
+
+* Work completed
+    - Plan review of preflight's version-folder idea, written to `~/.agent/diagrams/stockroom-version-folder-plan-review.html`. Verdict: revise. A folder name cannot tell a live install from an orphan (this machine's `stockroom/0.16.0` copy carries `.orphaned_at`), both manifests share one version, and closing the Cursor gap that way would add Cursor questions.
+    - Probed Claude Code 2.1.302 with throwaway plugins under a scratch `CLAUDE_CONFIG_DIR`, and with `CLAUDE_CODE_PLUGIN_CACHE_DIR` plus `--scope local` in a scratch project. Checksums showed the real `~/.claude` settings and install records unchanged.
+        - `installed_plugins.json` sits in the plugins root next to `cache/`. Both `CLAUDE_CONFIG_DIR` (`<dir>/plugins`) and `CLAUDE_CODE_PLUGIN_CACHE_DIR` (`<dir>`) move that root.
+        - Relative-path plugins in a local-path marketplace get a cache entry and a record, but `claude plugin list --json` shows `readFromFolder` = the source folder: they load in place, as the docs say. The checkout path is never an `installPath`.
+        - An update moves `installPath` to the new version and marks the old folder `.orphaned_at`.
+        - A live headless session substituted `${CLAUDE_SKILL_DIR}` as exactly `<installPath>/skills/<skill>`, keeping a symlinked plugins root as given, the same string as the record.
+* Decisions made
+    - Operator, after asking "Why not as part of this PR?": add Claude Code's install-record check to PR #142 as rework round 2 (`/niko-plan then!`).
+* Insights
+    - `CLAUDE_CONFIG_DIR` users were the larger group hit by round 1's Claude Code question: their cache path never matches `*/.claude/plugins/cache/*` unless the folder is named `.claude`.
