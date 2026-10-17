@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: plugin-root-resolution
-**Phase:** PLAN - COMPLETE (rework round 2: Claude Code's install record)
+**Phase:** PREFLIGHT - COMPLETE (PASS WITH ADVISORY) (rework round 2: Claude Code's install record)
 
 ## What Was Done
 - Round 1 (PR #142 review fixes) is complete through Reflect. QA PASS; `make ci` green with pytest 946 passed and 23 skipped. Its plan is in git at 50835fd, and its reflection is in `memory-bank/active/reflection/reflection-plugin-root-resolution.md`.

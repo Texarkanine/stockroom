@@ -304,3 +304,24 @@ Reassess how each harness exposes its plugin root (`CLAUDE_PLUGIN_ROOT`, `CURSOR
 * Decisions made
     - The record check runs before the `CURSOR_PLUGIN_ROOT` check. It fails closed to round 1's behavior.
     - Operator working rules: `--no-gpg-sign` for agent commits; probes are written as commented script files, not inline one-liners.
+
+## 2026-10-16 - PREFLIGHT (rework round 2: Claude Code's install record) - COMPLETE
+
+* Work completed
+    - Checked the round 2 plan (3d70b02) against `sr-initialize` SKILL.md, `test_initialize_context.py`, `shim.py`, the hooks, `systemPatterns.md`, the docs, and the real `installed_plugins.json` on this machine.
+    - Wrote the plan's four tests as the plan describes them and ran them on `git archive` copies of HEAD, with commented scripts under the scratchpad's `preflight-r2/scripts/`:
+        - Today's block: exactly the planned 8 failures.
+        - Target arm, copied verbatim: all green, with 10 extra probes.
+        - Mutant without the quotes: only the orphan case goes red.
+    - The BusyBox script prints `PASS` on the target and `FAIL` on today's block.
+    - Result (first line of `.preflight-status`): `PASS WITH ADVISORY`.
+* Decisions made
+    - TDD encoding passes: Unit 1 puts its tests first, and Units 2 and 3 are prose. No strike or swap was needed.
+* Insights
+    - Advisories:
+        - Unit 2's Step 7 sentence should not count an owner the agent filled in itself (the Cursor empty-`OWNER` path).
+        - Seed directories (`CLAUDE_CODE_PLUGIN_SEED_DIR`) fail closed when mounted away from their build path.
+        - The match ignores which key holds the string, so a `projectPath` equal to the copy's path also matches. Soften the "never" claim.
+        - Custom-root synced copies stay `dev`, because synced plugins have no record.
+        - An existing issue outside this round: a `$`, `` ` ``, `"` or `\` in the substituted skill dir breaks `SKILL_DIR="…"`, and the block fails closed.
+    - Radical idea (advisory): use `${CLAUDE_PLUGIN_DATA}`, which the docs say is substituted in skill content. Its `<id>` tells an install (`stockroom-<marketplace>`) from a `--plugin-dir` load (`stockroom-inline`). The round-1 probe disagrees with the docs, so it needs a live probe and an operator decision.
