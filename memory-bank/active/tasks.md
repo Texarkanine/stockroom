@@ -316,7 +316,7 @@ No new technology - validation not required. The heredoc, `read -r`, `case` and 
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight (PASS WITH ADVISORY)
-- [ ] Build
+- [x] Build
 - [ ] QA
 
 ## Build progress
@@ -339,7 +339,16 @@ No new technology - validation not required. The heredoc, `read -r`, `case` and 
     - `systemPatterns.md`: the tokens sentence, the heredoc, and the owner rule.
     - Brief: UC3, AC3 and AC7, plus a new AC10 (failure principles).
     - SumMem: the round 3 owner-rule note and the heredoc note, plus the naps the tool asked for.
-- [ ] 5. Verification
+- [x] 5. Verification:
+    - `make ci` passes: lint, format-check, the lock checks, schema-docs, JS 134/134, pytest 974 passed and 37 skipped (round 2: 956 / 28), REUSE compliant.
+    - `claude plugin validate .` passes, with only the existing CLAUDE.md warning (plus the unrelated README advice).
+    - Live end-to-end check (`scratchpad/scripts/live_step2_check.sh`, with `extract_rendered_step2.py`): LIVE CHECK PASS on Claude Code 2.1.302.
+        - Canary: hooks were off.
+        - A: Claude Code filled the heredoc with `…/A-checkout/cache/m/stockroom/x/skills/sr-initialize` and `…/A-plugins/data/stockroom-inline`, giving `dev` with the checkout's `skills/sr-search`, under sh and bash.
+        - B: Claude Code filled it with `…/B-plugins/cache/livemkt/stockroom/2.1.1/skills/sr-initialize` and `…/B-plugins/data/stockroom-livemkt`, giving `claude` with the copy's `skills/sr-search`. That held with the record present and with it moved aside, under sh and bash.
+        - The stockroom sessions end with "Reached max turns (1)" (exit 1), which is the intended stop before the model acts.
+        - The real settings, records, shim and data folder were unchanged.
+    - Live shim: still `dev` at `~/git/stockroom`.
 
 ## Preflight advisories: dispositions
 

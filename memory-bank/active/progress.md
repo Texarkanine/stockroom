@@ -423,3 +423,17 @@ Reassess how each harness exposes its plugin root (`CLAUDE_PLUGIN_ROOT`, `CURSOR
         - Optional: give the readback `cwd=home`.
         - Reuse the preflight BusyBox and mutation scripts.
     - Radical idea (advisory): Step 2 prints a `PROOF` field next to `OWNER`. Tests then pin which rule decided, rule order included, and Step 7 keys on it instead of judging who filled in the owner.
+
+## 2026-10-17 - BUILD (rework round 3: Claude Code's plugin data folder) - COMPLETE
+
+* Work completed
+    - Unit 1: Step 2 reads the pasted skill path from a quoted heredoc. Red: 6 (3 folder names × sh and bash). Green: 54 passed.
+    - Unit 2: the data folder settles the owner (rule 1 → `claude`, rule 3 → `dev`), and the stderr line names the data folder. Red: 6. Green: 66 passed.
+    - Mutation check M1 to M5: each turned red exactly its predicted set. BusyBox check: 5/5 PASS.
+    - Units 3 and 4: Step 2 prose, the system pattern, brief UC3/AC3/AC7 and the new AC10, and 2 SumMem notes.
+    - Unit 5: `make ci` green (pytest 974 passed and 37 skipped, JS 134/134, REUSE); `claude plugin validate .` passes.
+    - Live end-to-end check on 2.1.302: the real `SKILL.md`, rendered by Claude Code with hooks off, gives `dev` for `--plugin-dir` at a cache-shaped path, and `claude` for a copied install, with and without the record. Real state was unchanged.
+* Decisions made
+    - Preflight advisories applied as listed in `tasks.md`. The `PROOF`-field idea is left for the operator.
+* Insights
+    - The live check closes the round 2 gap: the tests model Claude Code's rendering, and the live check shows the real rendering matches that model, including inside the heredoc.
