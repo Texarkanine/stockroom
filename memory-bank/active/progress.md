@@ -383,3 +383,20 @@ Reassess how each harness exposes its plugin root (`CLAUDE_PLUGIN_ROOT`, `CURSOR
         - A quoted-heredoc variant (`IFS= read -r SKILL_DIR <<'SR_SKILL_DIR'`, plus a `case` that clears the unsubstituted token) read every name correctly, and still fell back to the placeholder when nothing was substituted.
 * Decisions made
     - None. Both changes are for the operator to decide.
+
+## 2026-10-17 - PLAN (rework round 3: Claude Code's plugin data folder) - COMPLETE
+
+* Work completed
+    - Operator decisions recorded: use `${CLAUDE_PLUGIN_DATA}` as a documented contract; failures must surface during `sr-initialize` and never reach hooks, `shim rectify` or the nightly job; the quoting fix only because it is cheap.
+    - Confirmed in the [loading reference](https://code.claude.com/docs/en/plugins/loading) that the design rests on documented contract:
+        - the `@inline` origin for `--plugin-dir`;
+        - the manifest name for `@inline` ids;
+        - the reserved origin names;
+        - `data/<plugin-id>/` beside `cache/` in one plugins root.
+    - Wrote the plan to `tasks.md`: 5 units, 2 of them executable, with 5 new test functions (8 cases per shell) and 5 mutants. Verification includes a live check that runs the Step 2 fence Claude Code renders from the real `SKILL.md`.
+* Decisions made
+    - Order in the `*)` arm: data folder in the copy's plugins root, or the record → `claude`; `stockroom-inline` → `dev`; Cursor root → `cursor`; otherwise empty plus a stderr line naming the data folder it was given.
+    - Paths are read from a quoted heredoc, so `PLUGIN_DATA` can come only from substitution. That also fixes the older quoting problem.
+    - Hooks unchanged. Synced copies under a custom root and seeds are out of scope.
+* Insights
+    - Rule 1 does not depend on the plugin id at all: a whole-path match of `<copy's plugins root>/data/<id>` is enough, and it fails closed for every other layout.
