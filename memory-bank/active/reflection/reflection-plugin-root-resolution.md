@@ -176,3 +176,89 @@ Follow-up candidates:
 - `SKILL_DIR="${CLAUDE_SKILL_DIR}"` lets the shell interpret `"`, `$`, backtick and `\` in the substituted path. This predates the PR, and only the user's own folder names can trigger it.
 - Probe `${CLAUDE_PLUGIN_DATA}` substitution in skill text (operator decision).
 - Carried over: `doctor probe` mis-owned-shim fact, `stockroom shim triage`, zsh in CI, Cursor UAT for `CURSOR_PLUGIN_ROOT`.
+
+# Rework round 3: Claude Code's plugin data folder (2026-10-17)
+
+## Summary
+
+Step 2 now reads Claude Code's two pasted paths from a quoted heredoc. It uses the substituted `${CLAUDE_PLUGIN_DATA}` to settle the owner of an install-shaped copy outside the default plugins folders: a data folder in the copy's own plugins root gives `claude`, and `stockroom-inline` gives `dev`. In Claude Code, the question now arises only when the token is not substituted or the copy is outside the plugins root in use. QA PASS; `make ci` is green (pytest 974 passed, 37 skipped). A live check of the real `SKILL.md` on Claude Code 2.1.302 passed.
+
+## Requirements vs Outcome
+
+- **The operator's conditions are met:**
+    - Every rule rests on the [loading reference](https://code.claude.com/docs/en/plugins/loading): the `@inline` origin, the reserved names, and `data/<plugin-id>` beside `cache/`.
+    - When the signal fails, round 2's outcome applies, and an error line names the data folder (new AC10).
+    - Hooks, `shim rectify` and the nightly job are unchanged.
+    - No rule can give a wrong owner; the mutants show each rule's guard.
+- **The quoting fix went in** because the same heredoc keeps `PLUGIN_DATA` from being read out of the environment. The `'` case still works. In Cursor, the path the agent fills in still goes through the shell (QA advisory 3), which is out of scope by operator decision.
+- **Not helped:**
+    - Native Windows: Git Bash's `pwd` prints `/c/…`, while the substituted data path is `C:/…`.
+    - Seeds mounted elsewhere.
+    - Synced copies under a custom root.
+
+    All three fall back to round 2's outcome.
+- **Added:** brief AC10, plus UC3 and AC3 updates (preflight advisory 2).
+
+## Plan Accuracy
+
+- The plan held. Both red sets (6 and 6), the green runs and all five mutants came out as predicted, once preflight corrected M3's set (it also catches the `--plugin-dir` case).
+- Preflight had run the planned tests against today's block, the target and every mutant. That is why Build had no surprises.
+- Preflight caught one wrong claim in the plan's narrative (native Windows) and one live-check detail: Claude Code does not load a copied plugin without its record, so the record can be moved aside only after the session.
+
+## Build & QA Observations
+
+- Build was linear. The BusyBox check and the mutation runner reused preflight's scripts.
+- One process slip: a test run was piped through `tail`. It was re-run unfiltered at once.
+- QA found no defects. It left three non-blocking advisories:
+    - A cosmetic HOME mismatch in two tests.
+    - The wording "(not given)" in the error line.
+    - Cursor's agent-filled path is still parsed by the shell.
+- The live check ran with no tools, `--max-turns 1`, hooks off (a canary hook proved it) and scratch plugins roots, and left real state unchanged. Its "Reached max turns (1)" exit is the intended stop.
+
+## Insights
+
+### Technical
+
+- **Claude Code states a plugin's origin in the substituted data path**, `<plugins root>/data/<name>-<origin>`.
+    - A whole-path match against the copy's own plugins root proves an install without reading the id.
+    - The reserved `inline` origin proves a session plugin.
+    - Neither rule can misfire, so a missing or changed token simply falls back.
+- **Read harness-substituted text into a shell through a quoted heredoc.**
+    - Double quotes still parse `$`, backticks and `"`.
+    - Single quotes break on `'`, the one special character real folder names carry.
+    - A quoted heredoc reads the bytes as written, and no environment variable can fill it.
+    - Detect "not substituted" by the leading `$`. Never spell the whole token in the detection pattern, because the harness replaces it there too.
+- **Claude Code's shell-form hooks expand `"${CLAUDE_PLUGIN_ROOT}"` from the environment**, not by pasting text (2.1.302 probe), so the hook files needed no change.
+
+### Process
+
+- **Ask what a failure must look like, and write the answer as an acceptance criterion.** The operator's two failure principles became AC10 and the mutant list. They also led to the shape of the design: each new rule only adds proof.
+- **A live end-to-end check of the real artifact is cheap with the right locks:**
+    - no tools, and one turn;
+    - hooks off, proved by a canary;
+    - scratch plugins roots;
+    - checksums of the real records and shim.
+
+  It closes round 2's "the tests write both sides of the premise" gap.
+- **A preflight that runs the planned tests against prototyped variants makes Build predictable.** Reuse its scripts.
+
+### Million-Dollar Question
+
+Built this way from the start, Step 2 would take the owner from Claude Code's own statement of origin first, and use path rules only where nothing is substituted:
+
+- `@inline` → `dev`.
+- A marketplace or `@synced` origin whose copy sits in that plugins root → `claude`.
+- Everything else falls through to the path rules.
+
+Round 3's order is close to that. The install record remains as the fallback for reads with no substitution: a Cursor agent reading a Claude Code copy, or an older Claude Code.
+
+The data token exists only in skill text, so the skill must at least capture it. The cleanest next form would pass both heredoc values to a tested, stdlib-only engine classifier (for example `stockroom shim classify --skill-dir … --plugin-data …`, run through `uv python find` as the hooks do). The rules would then live in Python tests instead of shell.
+
+Follow-up candidates:
+
+- Clearer error wording when no data folder was given (QA advisory 2).
+- Cursor's agent-filled `SKILL_DIR="<…>"` is still shell-parsed (QA advisory 3; operator scope says no).
+- Preflight's `PROOF` field idea (operator decision).
+- Native Windows: compare Claude Code's own strings, deriving the root from `PLUGIN_DATA` and matching `SKILL_DIR`'s prefix, instead of `pwd` output (preflight advisory 3).
+- For the PR text: a `--plugin-dir` session leaves an empty `data/stockroom-inline` folder (preflight advisory 6).
+- Carried over: the `doctor probe` mis-owned-shim fact, `stockroom shim triage`, zsh in CI, and Cursor UAT.

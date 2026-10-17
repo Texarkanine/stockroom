@@ -451,3 +451,13 @@ Reassess how each harness exposes its plugin root (`CLAUDE_PLUGIN_ROOT`, `CURSOR
 * Insights
     - Rule 1 fails closed for every near miss QA tried: no id, a nested folder, a double slash, another root, and an empty substitution. Rule 3 matches only the whole name `stockroom-inline`.
     - The heredoc reads names with `$`, `'`, `"`, spaces, a backslash or `SR_PATHS` exactly as written. The placeholder that other harnesses fill in still sits inside double quotes (advisory 3).
+
+## 2026-10-17 - REFLECT (rework round 3) - COMPLETE
+
+* Work completed
+    - Appended the round 3 reflection to `reflection/reflection-plugin-root-resolution.md`.
+    - Persistent files: `productContext` and `techContext` skipped; `systemPatterns` was already updated in Build.
+* Insights
+    - Claude Code states a plugin's origin in the substituted data path. A whole-path match against the copy's plugins root, plus the reserved `inline` name, settles the owner without a heuristic.
+    - A quoted heredoc is the safe way to take harness-substituted text into a shell.
+    - The operator's failure principles became an acceptance criterion (AC10) and the mutant list.

@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: plugin-root-resolution
-**Phase:** QA - COMPLETE (PASS) (rework round 3: Claude Code's plugin data folder)
+**Phase:** REFLECT - COMPLETE (rework round 3: Claude Code's plugin data folder)
 
 ## What Was Done
 - Rounds 1 and 2 are complete through Reflect. Round 2's plan is in git at fc3db1b. Round 3's plan is in `tasks.md`, with preflight PASS WITH ADVISORY; the dispositions are in `tasks.md`.
@@ -46,5 +46,14 @@
 - The BusyBox check used preflight's `busybox_target_check.sh`, which covers rules 1 and 3, instead of an updated round 2 script.
 - One Unit 3 test run was piped through `tail`, against the test rules. It was re-run unfiltered at once (66 passed), and the full suite ran in `make ci`.
 
+## Reflection (rework round 3)
+- QA PASS, with no defects and three non-blocking advisories: a cosmetic HOME mismatch in two tests, the "(not given)" wording, and Cursor's agent-filled path. They are follow-up candidates in the reflection.
+- The reflection is appended to `memory-bank/active/reflection/reflection-plugin-root-resolution.md`.
+- Persistent files: `productContext` and `techContext` were skipped (neither states the owner rule or a contract this round changed). `systemPatterns` was already updated in Build.
+- Left for the operator:
+    - preflight's `PROOF` field idea;
+    - the PR #142 text should mention the empty `data/stockroom-inline` folder;
+    - pushing `claudeboarding`.
+
 ## Next Step
-- QA runs in a subagent.
+- Operator runs `/niko-archive`. Then push `claudeboarding`, so PR #142 picks up rounds 1 to 3.
