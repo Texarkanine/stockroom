@@ -295,3 +295,12 @@ Reassess how each harness exposes its plugin root (`CLAUDE_PLUGIN_ROOT`, `CURSOR
     - Operator, after asking "Why not as part of this PR?": add Claude Code's install-record check to PR #142 as rework round 2 (`/niko-plan then!`).
 * Insights
     - `CLAUDE_CONFIG_DIR` users were the larger group hit by round 1's Claude Code question: their cache path never matches `*/.claude/plugins/cache/*` unless the folder is named `.claude`.
+
+## 2026-10-16 - PLAN (rework round 2: Claude Code's install record) - COMPLETE
+
+* Work completed
+    - Rewrote `tasks.md` for round 2. It has 4 units: the Step 2 record check (executable); a Step 7 sentence that skips the checkout question for a proven install (prose); `systemPatterns`, brief AC7 and SumMem (prose); verification.
+    - Prototyped the target `*)` arm in a scratch copy of the repo. All existing Step 2 cases and the 4 draft cases pass under sh and bash. Against today's block there are exactly 8 failures, as planned. A mutant without the pattern's quotes turns the orphan case red. BusyBox sh, with BusyBox `grep` and `sed`, passes on a quoted custom root.
+* Decisions made
+    - The record check runs before the `CURSOR_PLUGIN_ROOT` check. It fails closed to round 1's behavior.
+    - Operator working rules: `--no-gpg-sign` for agent commits; probes are written as commented script files, not inline one-liners.
