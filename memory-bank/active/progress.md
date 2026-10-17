@@ -400,3 +400,26 @@ Reassess how each harness exposes its plugin root (`CLAUDE_PLUGIN_ROOT`, `CURSOR
     - Hooks unchanged. Synced copies under a custom root and seeds are out of scope.
 * Insights
     - Rule 1 does not depend on the plugin id at all: a whole-path match of `<copy's plugins root>/data/<id>` is enough, and it fails closed for every other layout.
+
+## 2026-10-17 - PREFLIGHT (rework round 3: Claude Code's plugin data folder) - COMPLETE
+
+* Work completed
+    - Checked the round 3 plan (616a9ad) against `sr-initialize` SKILL.md, `test_initialize_context.py`, `conftest.py`, the docs, the hooks' consumers and the Claude Code loading and components docs.
+    - Wrote the plan's tests as the plan describes them and ran them against 8 `SKILL.md` variants (today, the Unit 1 head, the Target design verbatim, M1 to M5), using commented scripts under the scratchpad's `preflight-r3/scripts/`:
+        - Today: exactly the planned 12 failures. Unit 1 head: exactly the planned 6. Target: all green, with 26 extra probes.
+        - M1, M2, M4 and M5 match the plan. M3 also kills the `--plugin-dir` cache-shaped case (6 failures, where the plan predicts 4).
+    - BusyBox sh with BusyBox `grep` and `sed`: all 5 cases pass on the target (rule 1, rule 3 and three shell-character names) and all 5 fail on today's block.
+    - Result (first line of `.preflight-status`): `PASS WITH ADVISORY`.
+* Decisions made
+    - TDD encoding passes: Units 1 and 2 put their tests first, and Units 3 and 4 are prose. No strike or swap was needed.
+* Insights
+    - Advisories:
+        - Correct M3's expected set.
+        - Add brief AC3 (and UC3) to Unit 4.
+        - Drop the native Windows claim: under Git Bash, `pwd` gives `/c/…` while the substituted data path is `C:/…`, so rule 1 cannot match. This is an inference, not tested on Windows.
+        - Live check: move the record aside only for the fence run, assert `APP_DIR` and the heredoc too, and note that the block is not run through an agent's Bash tool.
+        - Add a SumMem note that the heredoc is in place.
+        - The `stockroom-inline` data folder is never removed.
+        - Optional: give the readback `cwd=home`.
+        - Reuse the preflight BusyBox and mutation scripts.
+    - Radical idea (advisory): Step 2 prints a `PROOF` field next to `OWNER`. Tests then pin which rule decided, rule order included, and Step 7 keys on it instead of judging who filled in the owner.
