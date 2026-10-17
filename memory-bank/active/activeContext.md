@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: plugin-root-resolution
-**Phase:** BUILD - COMPLETE (rework round 3: Claude Code's plugin data folder)
+**Phase:** QA - COMPLETE (PASS) (rework round 3: Claude Code's plugin data folder)
 
 ## What Was Done
 - Rounds 1 and 2 are complete through Reflect. Round 2's plan is in git at fc3db1b. Round 3's plan is in `tasks.md`, with preflight PASS WITH ADVISORY; the dispositions are in `tasks.md`.

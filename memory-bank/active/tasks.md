@@ -317,7 +317,7 @@ No new technology - validation not required. The heredoc, `read -r`, `case` and 
 - [x] Pre-Mortem complete
 - [x] Preflight (PASS WITH ADVISORY)
 - [x] Build
-- [ ] QA
+- [x] QA (PASS)
 
 ## Build progress
 
@@ -363,3 +363,34 @@ No new technology - validation not required. The heredoc, `read -r`, `case` and 
 - **7 (`_run_block` readback `cwd`):** applied in Unit 1. The readback runs with `cwd=home`, like the block.
 - **8 (reuse preflight's scripts):** applied. Build renders through preflight's `render_both.py` and runs its `busybox_target_check.sh`. `mutation_check_r3.py` follows its `run_variants.py`.
 - **Design idea (a `PROOF` field in the printed line):** not applied. It changes the printed interface and every expected result, to pin an order that no real copy exercises. The operator asked not to get lost in the weeds. It is left for the operator.
+
+## QA results, rework round 3 (PASS)
+
+QA compared the Build (5b2a517 and ca4099f, diffed against 53a8702) with plan units 1 to 5, the preflight advisory dispositions, and brief UC3, AC3, AC7 and AC10. KISS, DRY, YAGNI, completeness, regression, integrity and documentation pass. Nothing must change before Reflect.
+
+**What QA checked:**
+
+- The shipped head (the quoted heredoc and both `case` lines) and the `*)` arm match the plan's target design, word for word. Nothing is stubbed, and there are no TODOs and no debug output.
+- The five planned test functions exist with the planned names and ids. The helper changes (`_step2_block`, `_render_claude` with `plugin_data`, and the readback with `cwd=home`) match the plan. The three changed docstrings keep their expected results.
+- The SKILL.md prose, `systemPatterns.md`, brief UC3/AC3/AC7/AC10 and the two SumMem notes all state the same rule. The SumMem notes and naps were written by the tool.
+- **The Build's evidence matches its claims.** The mutation log (`scratchpad/build-r3-mutation.log`) shows each mutant turning red exactly its predicted set: M1 8, M2 4, M3 6, M4 2, M5 2, and none for the unmutated copy. The live log (`scratchpad/live-r3.log`) shows both heredoc lines filled by Claude Code 2.1.302, and the expected `OWNER` and `APP_DIR` for A, and for B with and without the record.
+- **Probes beyond the tests** (`scratchpad/qa-r3/scripts/edge_probes.py`, 17 cases under dash, bash and BusyBox sh, read back through the printed line): all pass.
+    - No owner, failing closed: a data path `<R>/data/` with no id; a nested `<R>/data/stockroom-m/sub`; a double slash `<R>//data/…`; a data folder in another root; a data folder named `foo-stockroom-inline`; a data token substituted as an empty string.
+    - `claude`: a data folder beside `cache/` with no record; a plugins root whose name holds a space, `$`, `'` and `"`; `--plugin-dir` pointed at a copy in the active root's own `cache/` (intended, per the plan); the default root with the data token not substituted (by path).
+    - `dev`: `stockroom-inline/` with a trailing slash; folder names with leading and trailing spaces, a backslash, or the name `SR_PATHS`; a Cursor agent that pastes its path on the heredoc line instead of the placeholder; a Cursor rendering with a `CLAUDE_SKILL_DIR` inherited in the environment (ignored).
+    - `cursor`: a Cursor custom-root copy that `CURSOR_PLUGIN_ROOT` holds (unchanged).
+- **Hook agreement.** For a copy proven by rule 1, Step 2 prints the copy's `skills/sr-search`, the same string the Claude SessionStart hook bakes from `${CLAUDE_PLUGIN_ROOT}/skills/sr-search` (live check B).
+- **Docs.** A sweep of `docs/`, README, the other SKILL.md files and the persistent memory-bank files found no stale statement of the owner rule or of the old `SKILL_DIR="…"` line. `docs/` needs no change.
+
+**Gates re-run by QA (`scratchpad/qa-r3/scripts/run_ci.sh`):**
+
+- `make ci`: exit 0. Lint, format-check, lock checks, schema-docs check, JS 134/134, pytest 974 passed and 37 skipped, REUSE compliant. `git status` was clean after the run.
+- `claude plugin validate .`: passes. The only warning is the existing CLAUDE.md one, plus the unrelated README advice.
+- The live shim is still `dev` at `~/git/stockroom`.
+
+**Advisories (non-blocking), for Reflect or a follow-up:**
+
+1. **Two tests pass a different HOME than their paths suggest.** `test_data_folder_in_another_plugins_root_proves_nothing` takes the `home` fixture, and `test_claude_plugin_dir_checkout_in_a_cache_shaped_path_is_dev` builds `tmp_path/"home"/.claude/plugins/data`. Both put the data folder under that `home`, but both pass `tmp_path` to `_run_block` as HOME. The block treats the data path only as a string, so the result does not change. Passing `home` would make the "default plugins root" framing literal.
+2. **The error line reads oddly when no data folder was given.** It prints "the plugin data folder (not given) is not in its plugins root". In other harnesses it also names a Claude Code-only idea. The SKILL.md bullets still tell the agent what to do, so nothing is misrouted. A wording such as "plugin data folder: not given" would read better.
+3. **The heredoc protects only Claude Code's substituted paths.** In other harnesses the agent still writes its path into `SKILL_DIR="<…>"`, so a `$`, a backtick or a `"` in a Cursor path is still parsed by the shell. This problem existed before this PR, the operator limited quoting to the cheap fix, and `systemPatterns.md` states the scope exactly ("the ones it uses"). It could be a follow-up.
+4. **Carried, already accepted.** The live check ran the Claude-rendered fence under sh and bash directly, not through an agent's Bash tool (preflight advisory 4). zsh is still never run, here or in CI. Native Windows falls back to the question (preflight advisory 3). The empty `data/stockroom-inline` folder and the round 3 summary belong in the PR #142 text (preflight advisory 6). The order of rules 2 and 3 is not pinned (plan decision).

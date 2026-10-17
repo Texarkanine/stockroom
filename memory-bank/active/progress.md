@@ -437,3 +437,17 @@ Reassess how each harness exposes its plugin root (`CLAUDE_PLUGIN_ROOT`, `CURSOR
     - Preflight advisories applied as listed in `tasks.md`. The `PROOF`-field idea is left for the operator.
 * Insights
     - The live check closes the round 2 gap: the tests model Claude Code's rendering, and the live check shows the real rendering matches that model, including inside the heredoc.
+
+## 2026-10-17 - QA (rework round 3: Claude Code's plugin data folder) - COMPLETE
+
+* Work completed
+    - Compared the Build (5b2a517 and ca4099f, diffed against 53a8702) with plan units 1 to 5, the preflight advisory dispositions, and brief UC3, AC3, AC7 and AC10. The shipped head and `*)` arm match the target design, word for word.
+    - Checked the Build's mutation and live-check logs against its claims. They match.
+    - Ran 17 extra probes of the shipped Step 2 block under dash, bash and BusyBox sh, reading each result back through the printed line. All gave the planned result.
+    - Re-ran the gates. `make ci` exited 0: JS 134/134, pytest 974 passed and 37 skipped, REUSE compliant. `claude plugin validate .` passed, with only the existing CLAUDE.md warning.
+    - Result (`.qa-validation-status`): `PASS`.
+* Decisions made
+    - No blocking findings. The four advisories are in `tasks.md` under "QA results, rework round 3".
+* Insights
+    - Rule 1 fails closed for every near miss QA tried: no id, a nested folder, a double slash, another root, and an empty substitution. Rule 3 matches only the whole name `stockroom-inline`.
+    - The heredoc reads names with `$`, `'`, `"`, spaces, a backslash or `SR_PATHS` exactly as written. The placeholder that other harnesses fill in still sits inside double quotes (advisory 3).
