@@ -1,1 +1,0 @@
-Session markdown-it disables CommonMark escapes (bindSessionMarkdown) so \.cursor paths render; dashboard subagent pills omit unmatched Claude spawn ids, JSON export keeps messages[].subagents and parent_spawn, and leftover is Cursor-only (needs parent message ordinals).

@@ -359,3 +359,13 @@ Reassess how each harness exposes its plugin root (`CLAUDE_PLUGIN_ROOT`, `CURSOR
 * Work completed
     - QA note 1: the orphan test's docstring now says the old copy "is not recorded, so it gets no owner" (in a custom plugins root), instead of "is no install". The test re-ran green under sh and bash.
     - Notes 2 to 4 need no change: newline paths are outside AC8, advisory 5 goes to Reflect as a follow-up, and the record-before-Cursor order was already accepted.
+
+## 2026-10-16 - REFLECT (rework round 2) - COMPLETE
+
+* Work completed
+    - Appended the round 2 reflection to `reflection/reflection-plugin-root-resolution.md`.
+    - Persistent files: productContext and techContext skipped, and systemPatterns was already updated in Build.
+    - SumMem correction note (local-marketplace plugins load in place), plus one nap.
+* Insights
+    - Prefer the installer's own record to path or naming heuristics. Match the exact quoted path, so any escaping misses instead of mislabelling.
+    - When the tests write both sides of a premise, test it live once before planning.

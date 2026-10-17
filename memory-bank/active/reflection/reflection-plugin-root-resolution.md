@@ -110,3 +110,69 @@ All six findings were delivered, plus brief AC7 to AC9.
 ### Million-Dollar Question
 
 This is still the first pass's answer: one engine-side classifier of the install kind. Preflight's version-folder proof sharpens it. Claude Code names the copy's folder after the manifest version and Cursor after the clone's commit, so the copy can prove it is an install without asking anyone or trusting substitution. That would remove the Claude Code question and the Cursor residual. It needs the operator's call, because it replaces a question they accepted.
+
+---
+
+# Rework round 2: Claude Code's install record (2026-10-16)
+
+## Summary
+
+Some copies are laid out like an install but sit outside the default plugins folders. For these, Step 2 now asks Claude Code's own install record first. If `installed_plugins.json` lists the copy's exact path, it gets `claude` with no question. Round 1's Claude Code question now reaches only copies the record does not list. QA PASS; `make ci` green (pytest 956 passed, 28 skipped).
+
+## Requirements vs Outcome
+
+- Delivered as planned. Brief AC7 was amended.
+- Added: one Step 7 sentence. The agent skips the "is this your checkout?" question when the Step 2 block itself proved the owner.
+- Out of reach by design, both falling back to the question: claude.ai-synced copies under a custom root (they have no record), and seed directories mounted away from the path they were built at.
+- The version-folder proof stays rejected.
+
+## Plan Accuracy
+
+- The plan held exactly: the red set (8), the green run, and both mutants came out as predicted. That is because the target block was prototyped in a scratch copy of the repo before the plan was written.
+- The surprise came during planning, not Build. For relative-path plugins in a local-path marketplace, Claude Code creates a cache entry and a record, but reads the plugin in place (`readFromFolder` in `claude plugin list --json`). So the record can name a folder the session never loads.
+- I had first told the operator that such plugins are copied. The docs and the CLI corrected that before the plan relied on it.
+
+## Build & QA Observations
+
+- Build was linear.
+- Preflight's advisory 1 reworded the Step 7 sentence: an owner the agent filled in itself is not proof.
+- QA found no defects. Its one docstring note was fixed after QA.
+- Both reviews pinned down an issue that predates this PR: Claude Code pastes the skill path into `SKILL_DIR="…"` unquoted, so a `"` in it stops the block, and a `$(` or backtick in it runs as a command.
+- Fable 5.1 was out of credits (HTTP 429) both times, so preflight and QA ran on Opus.
+
+## Insights
+
+### Technical
+
+- **Prefer the installer's own record to any path or naming heuristic.** Claude Code writes the record at install, moves it on update, and drops orphans from it. Match the exact quoted path string. That ignores nesting and indentation, and any escaping makes it miss rather than mislabel.
+- **`installPath` is not always the folder a plugin loads from.** Check `readFromFolder`.
+- **`CLAUDE_CONFIG_DIR` moves the plugins root too.** A rule keyed on `~/.claude/plugins/…` silently misses every user who sets it, and that group is larger than the `CLAUDE_CODE_PLUGIN_CACHE_DIR` one.
+
+### Process
+
+- **Test a premise live when the tests write both sides of it.** Here: is the path Claude Code substitutes the same string the record holds? One cheap headless session settled it before the plan was written.
+- **Isolate probes of Claude Code plugins.**
+    - For `claude plugin` CLI work, point `CLAUDE_CONFIG_DIR` at a scratch folder.
+    - When a live session needs the real login, set `CLAUDE_CODE_PLUGIN_CACHE_DIR` and use `--scope local` in a scratch project.
+    - Checksum the real records before and after.
+- **Write probes as commented, self-checking script files (operator rule).** A mutation script that knows the expected failing set for each mutant gives a one-line verdict and never touches the worktree.
+- **A "follow-up after this PR" needs a reason beyond tidy scope.** Here the PR itself introduced the question the follow-up removes, so the fix belonged in the PR.
+
+### Million-Dollar Question
+
+Still round 1's answer: one engine-side classifier, with an evidence order this round makes clear:
+
+1. The harness's install record.
+2. The default-folder path.
+3. The harness's exported root.
+4. Otherwise, ask.
+
+Built from the start, `shim install --owner auto` would parse `installed_plugins.json` as JSON. Matching only the `installPath` key would remove the `projectPath` false match, and normalizing Windows paths would catch escaped ones. The skill would then carry one line.
+
+Preflight's `${CLAUDE_PLUGIN_DATA}` idea could remove the question entirely: the data folder's id names the origin, `-inline` for `--plugin-dir` and `-<marketplace>` for an install. But a live probe must first show that Claude Code substitutes the token in skill text, and the operator has to decide.
+
+Follow-up candidates:
+
+- `SKILL_DIR="${CLAUDE_SKILL_DIR}"` lets the shell interpret `"`, `$`, backtick and `\` in the substituted path. This predates the PR, and only the user's own folder names can trigger it.
+- Probe `${CLAUDE_PLUGIN_DATA}` substitution in skill text (operator decision).
+- Carried over: `doctor probe` mis-owned-shim fact, `stockroom shim triage`, zsh in CI, Cursor UAT for `CURSOR_PLUGIN_ROOT`.

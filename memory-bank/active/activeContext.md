@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: plugin-root-resolution
-**Phase:** QA - COMPLETE (PASS) (rework round 2: Claude Code's install record)
+**Phase:** REFLECT - COMPLETE (rework round 2: Claude Code's install record)
 
 ## What Was Done
 - Round 1 (PR #142 review fixes) is complete through Reflect. Its plan is in git at 50835fd, and its reflection is in `memory-bank/active/reflection/reflection-plugin-root-resolution.md`.
@@ -36,5 +36,14 @@
 - Preflight advisories 2 to 4 were written into `tasks.md` (Challenges, "How it fails", "Who it helps"). They needed no code change.
 - Advisory 5 (special characters in the skill folder's path) is a follow-up for Reflect. The `${CLAUDE_PLUGIN_DATA}` radical idea is left for the operator.
 
+## Reflection (rework round 2)
+- QA PASS. Its one docstring note was fixed after QA, and the test re-ran green.
+- The reflection is appended to `memory-bank/active/reflection/reflection-plugin-root-resolution.md`.
+- Persistent files: `productContext` and `techContext` were skipped, because neither states the owner rule or any plugin-install contract. `systemPatterns` was already updated in Build.
+- SumMem: a correction note says relative-path local-marketplace plugins load in place (`readFromFolder`), even though they get a cache entry and a record.
+- Left for the operator:
+    - The `${CLAUDE_PLUGIN_DATA}` idea, which needs a live probe first.
+    - The existing `SKILL_DIR="…"` problem with special characters in paths, as a follow-up.
+
 ## Next Step
-- QA (subagent).
+- Operator runs `/niko-archive`. Then push `claudeboarding`, so PR #142 picks up rounds 1 and 2.
