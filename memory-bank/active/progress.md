@@ -562,3 +562,21 @@ Reassess how each harness exposes its plugin root (`CLAUDE_PLUGIN_ROOT`, `CURSOR
     - Wrote a new mutation script against the built HEAD, and predicted 5 red tests for M5 and M6, because the fresh status tests check `entry home:`.
 * Insights
     - A test that copies the shipped Makefile alone into an odd-named folder and points `UV=` at a stub tests the recipes' shell text directly, with nothing real at risk. Counting the stub's calls catches the case where a command collapses into a bare assignment.
+
+## 2026-10-18 - QA (rework round 4: paths with a space or `'`, and the nightly job's home) - COMPLETE
+
+* Work completed
+    - Compared the Build (a15fd4e to f6bb25f, diffed against 323e5d4) with plan units 1 to 6, both preflight dispositions, and brief AC10 to AC12.
+    - Re-ran both inventories, adding a wider search for commands that engine messages print (`scratchpad/qa-r4/scripts/inventory_rerun.sh`). One new hit: `doctor smoke`'s torch remedy.
+    - Probes, all as commented scripts under `scratchpad/qa-r4/scripts/`:
+        - `doctor_remedy_probe.py`: the remedy command breaks for `Jane Doe` and `O'Brien`.
+        - `schedule_cli_probe.py`: the real `schedule` CLI, end to end, for 3 folders, with a fake `crontab` and the plist read back. 48 of 48 checks pass.
+        - `step2_rechecks.sh`: the error line under dash, bash and BusyBox sh, and BusyBox 5 of 5.
+        - `rerun_mutation.sh`: M1 to M8 exactly as predicted, ALL OK.
+    - Gates: `make ci` exit 0 (pytest 1003 passed and 38 skipped, JS 134/134, REUSE). The worktree stayed clean and the live shim is unchanged. QA did not re-run `claude plugin validate .` (operator rule: no `~/.claude` changes; no manifest changed this round).
+    - Result (`.qa-validation-status`): `FAIL`, fixable. Build reruns.
+* Decisions made
+    - Finding 1 blocks, because the plan's pre-mortem puts anything new into this round, and the operator asked for every instance. The fix is small: a red-first test in `test_doctor.py`, then `shlex.quote` in the message, then one Inventory 1 row and one `systemPatterns.md` clause.
+    - Advisories 1 to 5 do not block. They are in `tasks.md`.
+* Insights
+    - Searching for code that runs a shell finds only the places where stockroom runs shell text itself. It misses the commands stockroom prints for an agent or a person to run. A complete inventory needs both searches.

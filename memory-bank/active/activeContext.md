@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: plugin-root-resolution
-**Phase:** BUILD - COMPLETE (rework round 4: paths with a space or `'`, and the nightly job's home)
+**Phase:** QA - COMPLETE (FAIL) (rework round 4: `doctor smoke`'s torch remedy prints the engine path unquoted; Build reruns, see `tasks.md` "QA results, rework round 4")
 
 ## What Was Done
 - Rounds 1 to 3 are complete through Reflect. Round 3's plan and its build and QA records are in git at 0e458e9.

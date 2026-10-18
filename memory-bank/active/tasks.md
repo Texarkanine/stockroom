@@ -496,7 +496,7 @@ No new technology - validation not required.
 - [x] Pre-Mortem complete
 - [x] Preflight (PASS WITH ADVISORY, second run)
 - [x] Build
-- [ ] QA
+- [ ] QA (run 1, 2026-10-18: FAIL (fixable). Build reruns for finding 1, then QA runs again.)
 
 ## Preflight (first run, c0fc32f): dispositions
 
@@ -569,3 +569,48 @@ Dispositions:
     - `claude plugin validate .` passes, with only the existing CLAUDE.md warning (plus the unrelated README advice).
     - Live shim: still `dev` at `~/git/stockroom`.
     - No live cron or launchd run, as planned.
+
+## QA results, rework round 4 (FAIL (fixable))
+
+QA compared the Build (a15fd4e, a304d86, 0b12821 and f6bb25f, diffed against 323e5d4) with plan units 1 to 6, both preflight dispositions, and brief AC10 to AC12. The scheduler, status, Makefile, localdev, Step 2 and prose work matches the target design and passes every check below. One place where stockroom writes a path into shell text is missing from Inventory 1, and so it is still broken. The plan says anything QA finds "goes into this round, not a follow-up", so Build must rerun.
+
+**Finding 1 (blocking, Completeness): `stockroom doctor smoke` prints a torch remedy command with the engine path unquoted.**
+
+- Where: `skills/sr-search/src/stockroom/doctor.py`, `run_smoke`, the branch where torch is missing and no hashed freeze exists:
+  `` f"`uv pip install torch --no-config --index {_TORCH_INDEX_BASE}/<build> " f"--directory {app_dir}` (or re-run sr-initialize)" ``
+- Why it is in scope: Step 6 of `sr-initialize` tells the agent "On failure, smoke exits 1 with one stderr line that names the next action — relay it and follow it." So this is a command the agent copies and runs. It is the same kind of place as `localdev.sh`'s printed hint, which the plan fixed (Unit 3). AC11 covers "everywhere stockroom writes [paths] into shell text". The people it affects are the same people as Unit 3's: a checkout path with a space or `'`, or a plugin copy under such a home.
+- Evidence (`scratchpad/qa-r4/scripts/doctor_remedy_probe.py`): for an engine dir under `Jane Doe`, `shlex.split` of the backticked command gives `--directory /…/Jane` plus a stray word `Doe/stockroom/skills/sr-search`. For `O'Brien`, it fails with "No closing quotation". `plain` is fine.
+- Why the inventory missed it: Inventory 1's search looked for code that runs a shell (`shell=True`, `subprocess`, `shlex` and so on). The `localdev.sh` hint was found only because someone read that script. Engine messages that contain a command were never searched. QA ran that wider search (`scratchpad/qa-r4/scripts/inventory_rerun.sh`, parts b1 to b3: f-strings and `echo`/`printf` lines that put a variable next to a command word, plus the shim template). This line is the only new hit. Every other engine message names a path in plain text, not inside a command.
+- Fix for Build:
+  - Write a red-first test in `test_doctor.py`. Parametrize it over `plain`, `Jane Doe` and `O'Brien` with a patched `default_app_dir` and no freeze. It asserts that `shlex.split` of the backticked command keeps `--directory <app_dir>` as two words.
+  - Then use `shlex.quote(str(app_dir))` in the message. The existing assertion `f"--directory {default_app_dir()}" in line` stays green, because `shlex.quote` leaves safe paths unchanged.
+  - Add the row to Inventory 1. Extend `systemPatterns.md` "Paths in shell text are quoted" with one clause: commands the engine prints for someone to run quote their paths too.
+
+**What QA checked, and passed:**
+
+- **Design match.** `render_payload`, `_sh_wrap`, `_cron_entry`, `_launchd_job`, the `which` seam on both status functions, `_cron_up_to_date` and `_cron_entry_home` match the target design. The `'` assert is gone and the `%` assert stays. Nothing is stubbed, and there are no TODOs and no debug output. The Makefile's four recipes and the localdev hint are quoted as planned. The Step 2 `else printf` line is the target line, word for word.
+- **Build's evidence reproduces.** QA re-ran `mutation_check_r4.py` into a new work dir (`scratchpad/qa-r4/scripts/rerun_mutation.sh`). The results were base 0, M1 4, M2 2, M3 2, M4 2, M5 5, M6 5, M7 4 and M8 4. Each red set was exactly the predicted one. The poison log stayed empty: ALL OK.
+- **The real CLI, end to end** (`scratchpad/qa-r4/scripts/schedule_cli_probe.py`; homes and shim folders `plain`, `Jane Doe` and `O'Brien`; a fake `crontab` first on PATH, and a scratch HOME). All 48 checks passed:
+  - `python -m stockroom.schedule install --time 01:15`, then `status`, reports `up-to-date: yes` and the exact `entry home:`.
+  - The installed line's command part, run as cron runs it with only `HOME` set, exits 0 under dash, bash and BusyBox sh, and logs ingest and embed with `home=<install home>`.
+  - `status` from a shell with a different `STOCKROOM_HOME` gives `up-to-date: no`, and `entry home:` still names the installed home.
+  - The 2.1.1 line gives `no` and `not set`. A line with an unbalanced quote gives `entry home: unreadable`, and `status` still exits 0.
+  - launchd: QA read the plist XML (pre-mortem item 3). `ProgramArguments` is `/bin/sh -c <payload>` with the log path quoted inside the payload. `EnvironmentVariables` holds `PATH` and `STOCKROOM_HOME` as plain values. Running it with only `HOME` added works for all three folders, and `launchd_status` says `yes` with the exact home.
+- **Step 2.** Preflight's `error_line_render.sh` on the shipped `SKILL.md`, under dash, bash and BusyBox sh, prints "… and nothing proves who installed it" with no data folder and for Cursor. With a data folder from another root it adds "; its plugin data folder <path> is not in <root>/data". The printed `APP_DIR`/`OWNER` line is unchanged. Round 3's `busybox_target_check.sh` passed 5 of 5. Both checks ran through `scratchpad/qa-r4/scripts/step2_rechecks.sh`.
+- **Inventory 2.** QA re-ran the `os.environ` search in `src/stockroom`. It found the same seven reads that the table lists, and nothing new.
+- **Docs.** QA swept `docs/`, the skills, and the other references for descriptions of the entry, `status` or the scheduler's environment (`scratchpad/qa-r4/scripts/docs_sweep.sh`). Nothing is stale. `schedule.md`, the troubleshooting entry, `SKILL.md` (the opening paragraph and Step 8), `systemPatterns.md` and the brief all state the same rule.
+- **KISS, DRY and YAGNI.** The rendering helpers are shared by install and status, so there is no second copy of the entry. The 2.1.1 fixtures are written out once, as the plan says. No unused parameters.
+
+**Gates re-run by QA (`scratchpad/qa-r4/scripts/run_ci.sh`; the log is `scratchpad/qa-r4/run/ci.log`, read whole):**
+
+- `make ci`: exit 0. Lint, format-check, both lock checks and the schema-docs check passed. JS 134/134, pytest 1003 passed and 38 skipped, REUSE compliant. `git status` was clean afterwards.
+- The live shim is still `dev` at `~/git/stockroom`.
+- QA did not re-run `claude plugin validate .`, because the operator's rules for this run forbid touching `~/.claude` records. No manifest, hook file or skill frontmatter changed in this round.
+
+**Advisories (non-blocking), for the Build rerun or Reflect:**
+
+1. **Step 8 does not say what to do with `entry home: unreadable`.** It happens only for a hand-edited cron line, which `status` also reports as `up-to-date: no`. One clause would cover it: "the line was edited by hand; show it to the user."
+2. **The suite never runs `status` for a home that holds a space or `'`.** The fresh status tests use `tmp_path` only. The de-quoting in `_cron_entry_home` is pinned only by QA's probe. A mutant that returned the quoted word would pass the suite. Parametrizing the cron "fresh" test over `_FOLDERS` would pin it.
+3. **The Make test accepts an empty `PYTHONPATH` for any uv call.** So it would not notice a recipe that lost its `PYTHONPATH=` altogether. Quoting regressions still turn it red, through the exit status or the call count.
+4. **`up-to-date` depends on where this shell finds `uv`.** If two harnesses find `uv` in different folders, each `sr-initialize` run in the other harness reports `no` and asks once more. It settles after one consented re-install, and the question is honest. This needs a note only if users report it.
+5. **Carried and accepted:** zsh is never run. There is no live cron or launchd run (the documented models were tested, and QA read the plist). The `<build>` placeholder in the doctor command is still for the agent to fill in.
