@@ -697,3 +697,13 @@ QA compared the Build rerun (07c803d and e727cc6, diffed against f6bb25f) with U
 - **Gates** (`qa-r4b/scripts/run_ci.sh`; log `qa-r4b/run/ci.log`, read whole): `make ci` exit 0. Lint, format-check, both lock checks and schema-docs passed. JS 134/134, pytest 1008 passed and 38 skipped, REUSE compliant. Afterwards, `git status` was clean and the live shim was still `dev` at `~/git/stockroom` (`qa-r4b/scripts/state_check.sh`). `claude plugin validate .` was not re-run, because the operator's rules for this run forbid touching `~/.claude`. No manifest, hook or frontmatter changed in the rerun.
 
 **Advisories (non-blocking), carried for Reflect:** QA run 1 advisories 3 (the Make test accepts an empty `PYTHONPATH`), 4 (`up-to-date` depends on where this shell finds `uv`) and 5 (zsh is never run, there is no live cron or launchd run, and `<build>` stays a placeholder) are unchanged.
+
+### Build rerun 2 (QA run 2, finding 1)
+
+- [x] `test_smoke_torch_missing_without_freeze_names_pip_remedy` compares against the quoted form, `--directory {shlex.quote(str(default_app_dir()))}`. That keeps its point (`--directory`, not `--project`) and holds from any checkout path. Committed at c8f0cb0.
+    - Worktree: `test_doctor.py` and `test_doctor_cli.py` give 26 passed and 1 skipped (torch).
+    - QA's `odd_checkout_suite.py`, running the whole engine suite from `git archive` copies of c8f0cb0 under `plain`, `Jane Doe` and `O'Brien`: no failure only in an odd folder.
+        - `O'Brien`: 1008 passed and 38 skipped.
+        - `test_licensing.py::test_reuse_lint_passes` failed in the `plain` and `Jane Doe` copies and passed in `O'Brien`. So it depends on the copy, not the folder name, as QA run 2 also saw. It passes in the worktree's `make ci`.
+        - The poison log is empty. The log is `scratchpad/odd-suite-build-fix.log`, read in full.
+    - `make lint format-check`: passes.

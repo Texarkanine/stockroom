@@ -611,3 +611,11 @@ Reassess how each harness exposes its plugin root (`CLAUDE_PLUGIN_ROOT`, `CURSOR
     - QA run 1 advisories 3 to 5 stay open for Reflect.
 * Insights
     - Once a path is quoted, an older test that checks the raw path as a substring still passes wherever paths are safe (this worktree, CI), and fails only in the setup the fix is for. Running the suite once from a copy under an odd folder name is what showed it.
+
+## 2026-10-18 - BUILD rerun 2 (rework round 4, after QA run 2 FAIL (fixable)) - COMPLETE
+
+* Work completed
+    - The older doctor test now asserts the quoted `--directory` form.
+    - The doctor tests are green. QA's whole-suite run from `plain`, `Jane Doe` and `O'Brien` copies shows no failure that only an odd folder causes. `make lint format-check` passes.
+* Insights
+    - When a round makes a tool work from paths with spaces or `'`, the test suite must also pass from such a path. Running the suite from odd-named copies of the checkout is what caught the stale assertion.

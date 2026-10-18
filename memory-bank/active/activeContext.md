@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: plugin-root-resolution
-**Phase:** QA - COMPLETE (FAIL)
+**Phase:** BUILD - COMPLETE (rework round 4, rerun 2 after QA run 2 FAIL (fixable))
 
 ## What Was Done
 - Rounds 1 to 3 are complete through Reflect. Round 3's plan and its build and QA records are in git at 0e458e9.
@@ -19,6 +19,7 @@
     - Red: 2. Green: the doctor tests pass. M9 and M10 were added, and the mutation check M1 to M10 is ALL OK.
     - It took QA advisories 1 (Step 8 says what `entry home: unreadable` means) and 2 (the fresh cron status test runs over odd homes).
     - `make ci` is green (pytest 1008 passed, 38 skipped), and `claude plugin validate .` passes.
+- QA run 2 failed, fixable: the older doctor test still asserted the unquoted `--directory <path>`, so it failed from a checkout under `Jane Doe` or `O'Brien`. Build rerun 2 made it compare against the quoted form. From odd-folder copies of the whole suite, no failure is left that only an odd folder causes.
 - Files modified, all under `/home/mobaxterm/worktrees/Texarkanine/stockroom/stockroom-claudeboarding/`:
     - `skills/sr-search/src/stockroom/schedule.py`:
         - `shlex.quote` on the log path, the `PATH=` value, `STOCKROOM_HOME=` and the payload.
@@ -69,4 +70,4 @@
 - The empty `data/stockroom-inline` folder (round 3, preflight advisory 6).
 
 ## Next Step
-- QA runs again (run 2), in a subagent.
+- QA runs again (run 3), in a subagent.
