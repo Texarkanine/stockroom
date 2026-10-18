@@ -495,7 +495,7 @@ No new technology - validation not required.
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight (PASS WITH ADVISORY, second run)
-- [ ] Build
+- [x] Build
 - [ ] QA
 
 ## Preflight (first run, c0fc32f): dispositions
@@ -561,3 +561,11 @@ Dispositions:
     - `systemPatterns.md`: one scheduler sentence (the nightly job sees only what its entry carries), plus a new short section, "Paths in shell text are quoted".
     - Brief: AC10 wording, and new AC11 and AC12.
     - SumMem: 2 notes (the quoting rule; the nightly-entry environment), plus the 2 naps the tool asked for.
+- [x] 6. Verification:
+    - Mutation check (`scratchpad/scripts/mutation_check_r4.py`, on `git archive` copies of the built HEAD, with poison stand-ins for `uv`, `crontab` and `launchctl`): base 0; M1 4; M2 2; M3 2; M4 2; M5 5; M6 5; M7 4; M8 4. Each is exactly its predicted set. The poison log stayed empty: ALL OK.
+        - M5 and M6 turn 5 red, not the table's 4. The fresh status tests also assert `entry home:` (preflight 2, advisory 2), so dropping the home turns them red too. This was predicted in the script before the run.
+    - BusyBox (round 3's `busybox_target_check.sh` on the shipped `SKILL.md`): 5 of 5 PASS.
+    - `make ci` passes: lint, format-check, lock checks, schema docs, JS 134/134, pytest 1003 passed and 38 skipped (round 3: 974 / 37; +29 new cases, +1 zsh skip), REUSE compliant.
+    - `claude plugin validate .` passes, with only the existing CLAUDE.md warning (plus the unrelated README advice).
+    - Live shim: still `dev` at `~/git/stockroom`.
+    - No live cron or launchd run, as planned.

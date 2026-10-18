@@ -1,27 +1,42 @@
 # Active Context
 
 ## Current Task: plugin-root-resolution
-**Phase:** PREFLIGHT - COMPLETE (PASS WITH ADVISORY) (rework round 4, revised plan)
+**Phase:** BUILD - COMPLETE (rework round 4: paths with a space or `'`, and the nightly job's home)
 
 ## What Was Done
 - Rounds 1 to 3 are complete through Reflect. Round 3's plan and its build and QA records are in git at 0e458e9.
-- The first round 4 plan (c0fc32f) failed preflight, fixable. The nightly entries carry only `PATH`, so the job always uses the default warehouse, and a custom-home user's job would fill a second one.
-- The revised plan is in `tasks.md`. It holds two inventories, five units and a verification list.
-    - The two inventories:
-        - every place stockroom writes a path into shell text;
-        - every variable the nightly job needs from the user's environment.
-    - Unit 1: the nightly entries quote every path and carry the resolved `STOCKROOM_HOME`.
-    - Unit 2: `schedule status` reports `up-to-date: yes|no|unknown`, and Step 8 offers to re-install an out-of-date entry.
-    - Unit 3: the Makefile's `shim`, `torch`, `local-engine` and `local-dashboard` recipes, plus `localdev.sh`'s Claude hint.
-    - Unit 4: a guard test for Cursor's typed Step 2 path, and the clearer error line (QA follow-up 1 and preflight advisory 2).
-    - Unit 5: prose. Step 2 and Step 8, the scheduling doc, `systemPatterns.md`, the brief (AC11, AC12) and SumMem.
-    - Verification: 8 mutants, BusyBox, `make ci`, and `claude plugin validate`.
-- Probe scripts are scratch files outside the repo, under `/tmp/claude-1000/-home-mobaxterm-worktrees-Texarkanine-stockroom-stockroom-claudeboarding/3b628427-7950-4f51-90b9-cfcc5ad0911b/scratchpad/scripts/`:
-    - `schedule_fix_probe.py`
-    - `schedule_home_probe.py`
-    - `make_quoting_probe.sh`
-    - `error_line_probe.sh`
-    - Preflight's scripts are in `scratchpad/preflight-r4/scripts/`.
+- Round 4's plan failed its first preflight, fixable (c0fc32f), and passed the second with advisory (db85232). The dispositions are in `tasks.md`.
+- Build completed all 6 units. The results are in `tasks.md` under "Build progress".
+    - Unit 1: 6 red, then green.
+    - Unit 2: 6 red, then green.
+    - Unit 3: 10 red, then green.
+    - Unit 4: the guard test was green by design.
+    - Mutation check M1 to M8: ALL OK.
+    - BusyBox: 5/5.
+    - `make ci`: green.
+    - `claude plugin validate .`: passes.
+- Files modified, all under `/home/mobaxterm/worktrees/Texarkanine/stockroom/stockroom-claudeboarding/`:
+    - `skills/sr-search/src/stockroom/schedule.py`:
+        - `shlex.quote` on the log path, the `PATH=` value, `STOCKROOM_HOME=` and the payload.
+        - `_cron_entry` and `_launchd_job` now render both entries.
+        - Both entries carry `STOCKROOM_HOME`.
+        - `cron_status` and `launchd_status` take `which` and report `up-to-date:` and `entry home:`, through the new `_cron_up_to_date` and `_cron_entry_home`.
+        - Docstrings and parser help updated.
+    - `skills/sr-search/tests/test_schedule.py`: 2 run-the-entry tests (× 3 folders) and 6 status tests, plus the 2.1.1-rendering helpers. The existing status tests pass `fake_which`.
+    - `skills/sr-search/tests/test_contributor_paths.py` (new): Make targets (4 × 3 folders) and the localdev hint (× 3).
+    - `Makefile`: the `torch`, `shim`, `local-engine` and `local-dashboard` recipes double-quote `$(CURDIR)` paths, and the comment above `shim` explains why.
+    - `scripts/localdev.sh`: the Claude hint double-quotes the checkout path.
+    - `skills/sr-search/tests/test_initialize_context.py`: `test_cursor_placeholder_path_survives_a_quote_and_a_space`.
+    - `skills/sr-initialize/SKILL.md`: the Step 2 error line and its sub-bullet, the opening idempotency paragraph, and Step 8's `status` facts and actions.
+    - `docs/user-guide/load/schedule.md` and `docs/user-guide/troubleshooting/index.md`.
+    - `memory-bank/systemPatterns.md`: the scheduler sentence, and the new section "Paths in shell text are quoted".
+    - `memory-bank/active/projectbrief.md`: AC10 wording, plus new AC11 and AC12.
+    - `.summem/notes/*` and `.summem/naps/*`: 2 notes and 2 naps, all through the tool.
+- Scratch scripts are outside the repo, under `/tmp/claude-1000/-home-mobaxterm-worktrees-Texarkanine-stockroom-stockroom-claudeboarding/3b628427-7950-4f51-90b9-cfcc5ad0911b/scratchpad/scripts/`:
+    - `mutation_check_r4.py`
+    - the plan's probes
+    - preflight's `error_line_render.sh` (in `preflight-r4b/scripts/`)
+    - round 3's `busybox_target_check.sh` (in `preflight-r3/scripts/`)
 
 ## Decisions
 - **Operator decisions (2026-10-18):**
@@ -31,14 +46,21 @@
 - **Operator working rules (2026-10-16):**
     - Agent commits use `--no-gpg-sign`.
     - Probes and checks are written as commented script files in a scratch scripts folder and then run.
-- **Plan decisions (revised):**
-    - Preflight finding 1, option (a): carry the resolved home in both entries, always. `XDG_CONFIG_HOME` and the source overrides are not carried; Inventory 2 gives the reasons.
-    - Preflight advisory 1: existing entries are reported as out of date, and are re-installed only with the user's consent. Every entry installed before this change shows as out of date once.
-    - The `stockroom schedule run` idea is not applied.
+- **Plan decisions:**
+    - Carry the resolved home in both entries, always.
+    - Report stale entries through `status`. A re-install needs the user's consent.
+    - `XDG_CONFIG_HOME` and the source overrides are not carried (Inventory 2).
+    - The `stockroom schedule run` idea and a hook-driven re-render were not applied.
+
+## Deviations from the plan (Build)
+- M5 and M6 turn 5 tests red, not the 4 in the plan table. The fresh status tests also assert `entry home:`, which preflight 2's advisory 2 added after that count was made. Predicted in the script before the run.
+- The mutation check is a new script, `mutation_check_r4.py`, which mutates the built HEAD. Preflight's runner rebuilt the target from its own edits, so it could not test the code Build wrote. It follows that runner's design: `git archive` copies, exact single-match edits, and poison stand-ins.
+- `systemPatterns.md` leaves out the `status` fact names, which are detail for one subsystem (that file's own rule). It states the cross-cutting part: the nightly job sees only what its entry carries.
+- One editing slip in Unit 4: adding the guard stub removed the next test's `def` line. It was restored before any run or commit.
 
 ## For the PR #142 text (collected)
 - Custom-home users' nightly jobs have used the default warehouse. They should re-run `sr-initialize`, or `stockroom schedule install --time HH:MM` with their own time (without `--time` it resets to 03:30).
 - The empty `data/stockroom-inline` folder (round 3, preflight advisory 6).
 
 ## Next Step
-- Preflight runs again, in a subagent.
+- QA runs in a subagent.

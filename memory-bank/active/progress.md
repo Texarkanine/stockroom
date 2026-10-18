@@ -543,3 +543,22 @@ Reassess how each harness exposes its plugin root (`CLAUDE_PLUGIN_ROOT`, `CURSOR
         - Put `stub_uv` first on PATH in the Make tests, so no recipe can reach the real uv.
         - Inventory 2 covers only the engine's own reads; library variables such as `HF_HOME` are also dropped (not breaking).
     - Radical idea (advisory): parse the entry's facts (time, home, PATH), print `entry home:` and the reason for `no`, and let session-start `shim rectify` re-render an entry whose home and time still match.
+
+## 2026-10-18 - BUILD (rework round 4: paths with a space or `'`, and the nightly job's home) - COMPLETE
+
+* Work completed
+    - Unit 1: the nightly entries quote every path and carry `STOCKROOM_HOME`. Red: 6. Green: 36 passed.
+    - Unit 2: `schedule status` reports `up-to-date:` and `entry home:`. The rendering moved into `_cron_entry` and `_launchd_job`. Red: 6. Green: 45 passed.
+    - Unit 3: the Makefile recipes and the localdev hint quote the checkout path. Red: 10. Green: 15 passed.
+    - Unit 4: a guard test for Cursor's typed path (green by design), and the new Step 2 error line, checked under dash, bash and BusyBox sh.
+    - Unit 5: `SKILL.md` Step 2 and Step 8 and the opening paragraph, two user-guide docs, `systemPatterns.md`, brief AC10 to AC12, and 2 SumMem notes plus 2 naps.
+    - Unit 6:
+        - Mutation check M1 to M8: ALL OK, poison log empty.
+        - BusyBox: 5/5.
+        - `make ci`: green (pytest 1003 passed and 38 skipped, JS 134/134, REUSE).
+        - `claude plugin validate .`: passes.
+        - Live shim: unchanged.
+* Decisions made
+    - Wrote a new mutation script against the built HEAD, and predicted 5 red tests for M5 and M6, because the fresh status tests check `entry home:`.
+* Insights
+    - A test that copies the shipped Makefile alone into an odd-named folder and points `UV=` at a stub tests the recipes' shell text directly, with nothing real at risk. Counting the stub's calls catches the case where a command collapses into a bare assignment.
