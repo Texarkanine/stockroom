@@ -1,1 +1,0 @@
-Session view: subagent pills (#msg-N-sa-M) and parent: line only when corroborated. ERD: edges from -- @rel/@rel-none in migrations, views labeled name["name (view)"]; sr-query SKILL.md keeps what ERD cannot show. No user-level uv indexes. sr-search sees scripts/ at ../../scripts

@@ -497,8 +497,9 @@ No new technology - validation not required.
 - [x] Pre-Mortem complete
 - [x] Preflight (PASS WITH ADVISORY, second run)
 - [x] Build
-- [ ] QA (run 1, 2026-10-18: FAIL (fixable). Build reruns for finding 1, then QA runs again.)
+- [x] QA (run 1, 2026-10-18: FAIL (fixable). Build reruns for finding 1, then QA runs again.)
     - Run 2, 2026-10-18: FAIL (fixable). Build reruns for run 2's finding 1 (one test assertion), then QA runs again.
+    - Run 3, 2026-10-18: PASS. Advisories only, for Reflect.
 
 ## Preflight (first run, c0fc32f): dispositions
 
@@ -707,3 +708,32 @@ QA compared the Build rerun (07c803d and e727cc6, diffed against f6bb25f) with U
         - `test_licensing.py::test_reuse_lint_passes` failed in the `plain` and `Jane Doe` copies and passed in `O'Brien`. So it depends on the copy, not the folder name, as QA run 2 also saw. It passes in the worktree's `make ci`.
         - The poison log is empty. The log is `scratchpad/odd-suite-build-fix.log`, read in full.
     - `make lint format-check`: passes.
+
+## QA results, rework round 4, run 3 (PASS)
+
+QA compared Build rerun 2 (c8f0cb0, with 6e92ea8 holding only memory-bank files) with QA run 2's finding 1. Since QA run 2 (e727cc6), the only change outside `memory-bank/` and `.summem/` is that one assertion in `test_doctor.py`. So QA run 2's checks of the product code still hold for the same bytes: the printed-command sweeps, the doctor command run in 3 shells, Step 2 and BusyBox, the docs sweep and Inventory 2. QA also read round 4's whole diff against 323e5d4 once more, and found nothing new to flag.
+
+**Run 2's finding 1 is fixed.** `test_smoke_torch_missing_without_freeze_names_pip_remedy` now asserts `--directory {shlex.quote(str(default_app_dir()))}`. `shlex` is already imported for the parametrized test. The assertion before it, `str(default_app_dir()) in line`, still holds from any folder, because the diagnosis text names the raw path ("… engine environment at <path>").
+
+**What QA checked (scripts under `scratchpad/qa-r4c/scripts/`, logs under `scratchpad/qa-r4c/run/`):**
+
+- **The whole suite from odd-path checkouts** (`odd_checkout_suite.py`, log `odd-suite.log`). It ran on `git archive` copies of HEAD under `plain`, `Jane Doe` and `O'Brien`, with a scratch `HOME` and poison `crontab`/`launchctl`:
+    - `Jane Doe`: 1008 passed and 38 skipped.
+    - `plain` and `O'Brien`: 1007 passed, 38 skipped, and 1 failed (`test_licensing.py::test_reuse_lint_passes`).
+    - No failure happens only in an odd folder. The poison log is empty.
+- **Why the reuse test fails in some copies** (new in this run). The pristine copy passes `reuse lint` in all three folders (414/414 files). After the suite, `reuse lint` fails in all three. The failure message lists only files under the copy's `skills/sr-search/.venv/`: third-party packages with Apache-2.0, BSD and GPL headers. The pre-existing `test_coverage_collection.py` runs `make coverage-engine`, which depends on `sync`, and that creates the `.venv`. The copy has only an empty `.git` marker, so reuse cannot skip the untracked `.venv` as it does in a real checkout. Under xdist, the reuse test fails whenever the coverage test happens to run first. So it depends on test order, not on the folder name and not on round 4.
+- **The fixed assertion is a real check, not a change-detector** (`odd_checkout_doctor_m10.py`, all predictions met, ALL OK):
+    - With mutant M10 (the doctor path unquoted), `test_doctor.py` from the `plain` copy turns red only the parametrized test's `space` and `apostrophe` cases.
+    - From the `Jane Doe` and `O'Brien` copies, the fixed older test turns red as well.
+    - So the older test now checks the quoted command from any checkout path, and does not depend on the exact message text.
+- **Mutation check** (`rerun_mutation.sh`, log `mutation.log`, read in full): base 0, M1 4, M2 2, M3 4, M4 4, M5 7, M6 5, M7 4, M8 4, M9 2, M10 2. Each red set was exactly the predicted one. The poison log stayed empty: ALL OK.
+- **Gates** (`run_ci.sh`, log `ci.log`, read in full): `make ci` exit 0. Lint, format-check, both lock checks and schema-docs passed. JS 134/134, pytest 1008 passed and 38 skipped, and REUSE compliant (414/414).
+- **State** (`state_check.sh`): `git status` was clean afterwards, and the live shim is still `dev` at `~/git/stockroom` (generator 2.1.1). `claude plugin validate .` was not re-run, because the operator's rules for this run forbid touching `~/.claude`. No manifest, hook or frontmatter changed since it last passed.
+
+**Advisories (non-blocking), for Reflect:**
+
+1. **Carried from QA run 1, unchanged:**
+    - Advisory 3: the Make test accepts an empty `PYTHONPATH`.
+    - Advisory 4: `up-to-date` depends on where this shell finds `uv`.
+    - Advisory 5: zsh is never run, there is no live cron or launchd run, and `<build>` stays a placeholder.
+2. **Harness note (new):** a suite run from a `git archive` copy with only an empty `.git` marker gives a `test_reuse_lint_passes` failure that depends on test order (cause above). A future odd-folder check should either make the copy a real repository (`git init`, then `git add -A`), so reuse skips the untracked `.venv`, or keep comparing against the `plain` copy as this run did. A real checkout is not affected.

@@ -619,3 +619,19 @@ Reassess how each harness exposes its plugin root (`CLAUDE_PLUGIN_ROOT`, `CURSOR
     - The doctor tests are green. QA's whole-suite run from `plain`, `Jane Doe` and `O'Brien` copies shows no failure that only an odd folder causes. `make lint format-check` passes.
 * Insights
     - When a round makes a tool work from paths with spaces or `'`, the test suite must also pass from such a path. Running the suite from odd-named copies of the checkout is what caught the stale assertion.
+
+## 2026-10-18 - QA run 3 (rework round 4, after Build rerun 2) - COMPLETE
+
+* Work completed
+    - Compared Build rerun 2 (c8f0cb0) with QA run 2's finding 1. Outside `memory-bank/`, only that one `test_doctor.py` assertion changed since QA run 2. QA also read round 4's whole diff against 323e5d4 once more.
+    - Probes, all as commented scripts under `scratchpad/qa-r4c/scripts/`:
+        - `odd_checkout_suite.py`: the whole engine suite from `git archive` copies under `plain`, `Jane Doe` and `O'Brien`. No failure happens only in an odd folder. It also ran `reuse lint` in each pristine copy (clean) and again after the suite (fails), to find the cause of the reuse test failure.
+        - `odd_checkout_doctor_m10.py`: with M10, the fixed older doctor test goes red from the odd copies and stays green from `plain`, as predicted. ALL OK.
+        - `rerun_mutation.sh`: M1 to M10 exactly as predicted, ALL OK, and the poison log is empty.
+    - Gates: `make ci` exit 0 (pytest 1008 passed and 38 skipped, JS 134/134, REUSE 414/414). The worktree stayed clean, and the live shim is unchanged.
+    - Result (`.qa-validation-status`): `PASS`. Reflect is next.
+* Decisions made
+    - PASS: run 2's finding is fixed, and the fixed assertion checks the quoted command from any checkout path.
+    - QA run 1 advisories 3 to 5 stay open for Reflect, plus one harness note.
+* Insights
+    - In a `git archive` copy with only an empty `.git` marker, `reuse lint` walks untracked files. The coverage test's `make sync` creates `skills/sr-search/.venv` in the copy, so the reuse test fails whenever that test runs first under xdist. That is why the failure seemed to depend on the copy. To get stable odd-folder runs, make the copy a real git repository.
