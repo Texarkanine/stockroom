@@ -52,7 +52,7 @@ elif [ "$PLUGIN_ROOT" != "$APP_DIR" ] && [ "${CACHE_DIR##*/}" = cache ]; then
       if [ "$PLUGIN_DATA" = "${CACHE_DIR%/*}/data/${PLUGIN_DATA##*/}" ] || grep -qF -- "\"$PLUGIN_ROOT\"" "${CACHE_DIR%/*}/installed_plugins.json" 2>/dev/null; then OWNER=claude
       elif [ "${PLUGIN_DATA##*/}" = stockroom-inline ]; then OWNER=dev
       elif [ -n "$CURSOR_APP" ] && [ "$CURSOR_APP" = "$REAL_APP" ]; then OWNER=cursor
-      else printf 'sr-initialize: %s is laid out like an installed plugin outside the default plugins folders, but no install record lists it and the plugin data folder (%s) is not in its plugins root\n' "$APP_DIR" "${PLUGIN_DATA:-not given}" >&2
+      else printf 'sr-initialize: %s is laid out like an installed plugin outside the default plugins folders, and nothing proves who installed it%s\n' "$APP_DIR" "${PLUGIN_DATA:+; its plugin data folder $PLUGIN_DATA is not in ${CACHE_DIR%/*}/data}" >&2
       fi ;;
   esac
 else

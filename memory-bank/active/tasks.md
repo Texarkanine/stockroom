@@ -544,3 +544,14 @@ Dispositions:
     - Red: 6 failed (the six new status tests), 36 passed.
     - Green: 45 passed (`test_schedule.py` and `test_schedule_cli.py`).
     - The existing status tests now pass `which=fake_which`.
+- [x] 3. Contributor commands take the checkout path as one word:
+    - Red: 10 failed, 5 passed. These are 8 make cases (exit 127 or a syntax error, and `shim`-`apostrophe` with 0 uv calls at exit 0) and 2 hint cases (`space` gives four words; `apostrophe` gives `ValueError: No closing quotation`).
+    - Green: 15 passed.
+- [x] 4. Step 2: Cursor's typed path is pinned, and the error line is clearer:
+    - Guard `test_cursor_placeholder_path_survives_a_quote_and_a_space`: green today, as planned (a regression guard). Module: 68 passed, 34 skipped (zsh).
+    - Error line replaced. The module re-ran green (68 passed, 34 skipped).
+    - Preflight's `error_line_render.sh` on the shipped `SKILL.md`, under dash, bash and BusyBox sh, printed the planned text:
+        - no data folder: "… and nothing proves who installed it";
+        - data folder in another root: adds "; its plugin data folder <path> is not in <root>/data";
+        - Cursor: the first form.
+    - The printed `APP_DIR`/`OWNER` line is unchanged.

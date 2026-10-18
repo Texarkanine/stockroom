@@ -497,6 +497,23 @@ def test_cursor_marketplace_install(shell: str, step2: str, home: Path) -> None:
     )
 
 
+def test_cursor_placeholder_path_survives_a_quote_and_a_space(
+    shell: str, step2: str, tmp_path: Path
+) -> None:
+    """The path a Cursor agent types into the placeholder is read whole when
+    it holds ``'`` and a space (a Windows profile name under WSL): the
+    placeholder sits inside double quotes, so a Cursor marketplace copy there
+    still resolves to ``cursor`` and its own engine."""
+    home = tmp_path / "O'Brien files" / "home"
+    root = home / ".cursor" / "plugins" / "cache" / "txrk9" / "stockroom" / "672cf3aa"
+    skill_dir = _plugin_tree(root)
+    block = _fill_placeholder(step2, skill_dir)
+    assert _run_block(shell, block, home) == (
+        "cursor",
+        str(root / "skills" / "sr-search"),
+    )
+
+
 def test_cursor_custom_cache_with_env(shell: str, step2: str, tmp_path: Path) -> None:
     """A cache copy outside ``~/.cursor`` is ``cursor`` when the exported
     ``CURSOR_PLUGIN_ROOT`` holds this very engine."""
