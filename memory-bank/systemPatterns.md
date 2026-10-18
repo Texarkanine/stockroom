@@ -46,7 +46,11 @@ Python modules are raw surfaces; each `sr-*` skill holds LLM-safe usage. [`sr-se
 
 ## Rendered-out artifacts: one tested owner each
 
-Shim, harness hooks (`hooks/*.json`), and nightly scheduler entries each have one owner module and structural idempotency. No rendered artifact carries a raw engine path — scheduler entries invoke the shim by name.
+Shim, harness hooks (`hooks/*.json`), and nightly scheduler entries each have one owner module and structural idempotency. No rendered artifact carries a raw engine path — scheduler entries invoke the shim by name. Neither cron nor launchd loads a shell profile, so the nightly job sees only what its entry carries: `PATH` and the resolved `STOCKROOM_HOME`. A new environment setting the engine reads does not reach the nightly job unless the entry carries it. An installed entry is re-rendered only on re-install, which `schedule status` prompts when the entry differs from the current rendering.
+
+## Paths in shell text are quoted
+
+Wherever stockroom writes a path into shell text, it is quoted, so a space or `'` in it works. `sr-initialize` Step 2 reads pasted paths from a quoted heredoc and prints a `'`-escaped line. The shim and the scheduler entries use `shlex.quote`. The Makefile recipes double-quote their `$(CURDIR)` paths. Rarer shell characters in folder names (`$`, backtick, `"`, `\`, `%`) are out of scope (operator decision, 2026-10-18).
 
 ## Read output through one chokepoint
 

@@ -555,3 +555,9 @@ Dispositions:
         - data folder in another root: adds "; its plugin data folder <path> is not in <root>/data";
         - Cursor: the first form.
     - The printed `APP_DIR`/`OWNER` line is unchanged.
+- [x] 5. Prose:
+    - `SKILL.md`: the opening "Idempotent by design" paragraph ("installed and up to date"), the Step 2 Claude Code sub-bullet (the error line names the data folder and where it was expected), and Step 8's `status` facts, with `yes` / `no` / `unknown` actions.
+    - The docs: `docs/user-guide/load/schedule.md` (the entry carries the home; `up-to-date: no` means re-install with `--time HH:MM`), and `docs/user-guide/troubleshooting/index.md` (check `up-to-date:` and `entry home:`).
+    - `systemPatterns.md`: one scheduler sentence (the nightly job sees only what its entry carries), plus a new short section, "Paths in shell text are quoted".
+    - Brief: AC10 wording, and new AC11 and AC12.
+    - SumMem: 2 notes (the quoting rule; the nightly-entry environment), plus the 2 naps the tool asked for.

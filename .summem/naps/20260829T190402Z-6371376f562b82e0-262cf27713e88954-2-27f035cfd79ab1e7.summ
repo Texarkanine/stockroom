@@ -1,1 +1,0 @@
-Warehouse ERD views are labeled with Mermaid entity aliases name["name (view)"]: %% comments do not render in erDiagram boxes, so views (session_token_usage) need a visible label, pinned by a rendered-output contract.

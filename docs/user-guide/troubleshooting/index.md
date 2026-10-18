@@ -89,7 +89,7 @@ Silent staleness is possible: ingest may have new messages that are not embedded
 
 ### Nightly schedule installed but nothing updates
 
-Check `stockroom schedule status`. If the cron daemon is not running, the entry is written but will not fire (WSL: `sudo service cron start`, or enable systemd). See [Scheduling](../load/schedule.md).
+Check `stockroom schedule status`. If the cron daemon is not running, the entry is written but will not fire (WSL: `sudo service cron start`, or enable systemd). If it says `up-to-date: no`, the entry is from an older Stockroom or for another stockroom home, and the job may be filling a different warehouse: compare `entry home:` with the home in `log:`, then re-install with `stockroom schedule install --time HH:MM`. See [Scheduling](../load/schedule.md).
 
 ## Search
 

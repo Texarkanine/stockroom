@@ -66,4 +66,15 @@ A contributor who has a real install and a `dev` shim goes back to the release. 
 
 ### Added by rework round 3 (operator decision, 2026-10-17)
 
-10. When Claude Code's substituted data folder is missing, renamed or moved, Step 2 falls back to the install record and then to the question. Any such failure shows up during `sr-initialize`, as the question plus an error line that shows the data folder the block was given. It never produces a wrong owner, so nothing new reaches the session hooks, `shim rectify` or the nightly job.
+10. When Claude Code's substituted data folder is missing, renamed or moved, Step 2 falls back to the install record and then to the question. Any such failure shows up during `sr-initialize`, as the question plus an error line that names the data folder, when one was given. It never produces a wrong owner, so nothing new reaches the session hooks, `shim rectify` or the nightly job.
+
+### Added by rework round 4 (operator decision, 2026-10-18)
+
+11. Paths that contain a space or `'` work everywhere stockroom writes them into shell text:
+    - the Step 2 block, Steps 3 to 7, the shim and both hooks (already true);
+    - the nightly cron and launchd entries;
+    - the Makefile's `shim`, `torch`, `local-engine` and `local-dashboard` targets;
+    - `localdev.sh`'s printed hint.
+
+    Other shell characters (`$`, a backtick, `"`, `\`, `%`) are out of scope.
+12. The nightly job runs against the stockroom home it was installed for. `schedule status` reports an installed entry that differs from the current rendering, and which home it carries. `sr-initialize` then offers to re-install it, with the user's consent.

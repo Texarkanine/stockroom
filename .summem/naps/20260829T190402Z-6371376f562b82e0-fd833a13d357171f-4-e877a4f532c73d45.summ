@@ -1,0 +1,1 @@
+ERD views get Mermaid alias labels name["name (view)"] (%% comments do not render), pinned by a rendered-output contract; sr-query SKILL.md keeps what the ERD cannot show (thinking not captured, tool inputs only, project_id/cwd/workspace_key/entrypoint); no user-level uv indexes.

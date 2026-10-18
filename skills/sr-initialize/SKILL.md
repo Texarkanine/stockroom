@@ -8,7 +8,7 @@ enable-model-invocation: true
 
 `sr-initialize` walks a machine from "plugin installed" to "warehouse ready": prerequisites checked, the per-machine torch wheel provisioned and smoke-tested, the on-path `stockroom` command bound, nightly freshness scheduled, and a first full ingest + embed completed. You (the agent) orchestrate; every mechanical check runs through the tested engine CLI (`stockroom doctor`, `stockroom shim`, `stockroom schedule`), and the judgment calls — which torch wheel, whether to take over a working foreign shim, whether (and when) to schedule the nightly job — always go to the user.
 
-**Idempotent by design: the environment is the state.** There is no progress file. Re-running this skill re-probes and skips whatever is already green — torch present → skip provisioning and go to the smoke test; shim live and maintained by its owner → nothing to do; `stockroom schedule status` says installed → skip scheduling; warehouse already populated → skip the first run. "Go install torch your own way and run me again" is a supported flow, not a dead end.
+**Idempotent by design: the environment is the state.** There is no progress file. Re-running this skill re-probes and skips whatever is already green — torch present → skip provisioning and go to the smoke test; shim live and maintained by its owner → nothing to do; `stockroom schedule status` says installed and up to date → skip scheduling; warehouse already populated → skip the first run. "Go install torch your own way and run me again" is a supported flow, not a dead end.
 
 ## Step 1: Prerequisite — uv
 
@@ -68,7 +68,7 @@ It prints one line, such as `APP_DIR='/…/skills/sr-search'; OWNER='claude'`. S
 
 - **`APP_DIR` is empty:** no engine sits beside the directory you used. Fix the directory and run the block again. Do not go on without an engine.
 - **`OWNER` is empty but `APP_DIR` is set:** the engine is laid out like an installed plugin, outside the default plugins folders, and nothing proves who installed it.
-  - **In Claude Code:** this happens when Claude Code did not write its paths into the block (for example, you read this file yourself), or when the copy is not in the plugins root Claude Code is using (for example, a seed folder mounted elsewhere, or a checkout loaded in place from a local marketplace). The block's error line shows the plugin data folder it was given. Ask the user whether `APP_DIR` is a checkout they develop in (`dev`) or a plugin installed in a custom plugins folder (`claude`). Set `OWNER` in the printed line to their answer. Never pick it yourself.
+  - **In Claude Code:** this happens when Claude Code did not write its paths into the block (for example, you read this file yourself), or when the copy is not in the plugins root Claude Code is using (for example, a seed folder mounted elsewhere, or a checkout loaded in place from a local marketplace). When Claude Code wrote a plugin data folder into the block, the error line names it and the folder it was expected in. Ask the user whether `APP_DIR` is a checkout they develop in (`dev`) or a plugin installed in a custom plugins folder (`claude`). Set `OWNER` in the printed line to their answer. Never pick it yourself.
   - **In any other harness:** in the printed line, set `OWNER` to the harness you are running in (for example `cursor`).
 - **`OWNER` is `dev`:** everything below works the same, except Step 7, which leaves the shim to the contributor flow.
 
@@ -192,7 +192,11 @@ The warehouse stays current by running `stockroom ingest && stockroom embed` eve
 stockroom schedule status
 ```
 
-`status` reports facts and always exits 0: `installed: <the entry>` or `not installed`, a `daemon: running|not running` liveness fact (cron platforms), and `log: <path>` — where the nightly output goes. **If it says installed, this step is done; skip ahead.**
+`status` reports facts and always exits 0: `installed: <the entry>` or `not installed`, a `daemon: running|not running` liveness fact (cron platforms), and `log: <path>` — where the nightly output goes, under the stockroom home this shell uses. When an entry is installed, it also reports `up-to-date:`, which says whether the entry matches what `install` would write now, and `entry home:`, the stockroom home the installed job uses.
+
+- **`up-to-date: yes`:** this step is done; skip ahead.
+- **`up-to-date: no`:** the entry was written by an older stockroom, or for another stockroom home or `PATH`. Tell the user what differs. Compare `entry home:` (the home the job uses now; `not set` means `~/.local/share/stockroom`) with the home in `log:` (the one a re-install would use). Offer to re-install it at the time it already has, with `stockroom schedule install --time HH:MM`. Re-install only with their consent.
+- **`up-to-date: unknown`:** the `stockroom` command is not on PATH, so nothing can be compared. Go back to step 7.
 
 If not installed, **ask the user** before touching their scheduler: propose installing the nightly job at the default **03:30**, and let them pick a different time if they want one (a machine that is reliably off at 03:30 wants a time it is actually awake for). Then:
 
