@@ -503,3 +503,19 @@ Reassess how each harness exposes its plugin root (`CLAUDE_PLUGIN_ROOT`, `CURSOR
         - Reuse `run_r4_variants.py` for the mutation check.
         - `make shim TAKEOVER=1` with `'` fails with 127; it is not silent.
     - Radical idea (advisory): a `stockroom schedule run` verb. launchd then runs an argument vector with no shell, cron runs one simple command with two quoted assignments, and `status` can detect drift.
+
+## 2026-10-18 - PLAN (rework round 4, revised after preflight FAIL (fixable)) - COMPLETE
+
+* Work completed
+    - Confirmed preflight finding 1 against the code: the entries carry only `PATH`, and the engine reads `STOCKROOM_HOME` and `XDG_DATA_HOME` from its own environment. Stockroom 2.1.1 is released, so real custom-home users have this today.
+    - Listed every variable the engine reads (`os.environ` in `src/stockroom`), and what the nightly job does without it (Inventory 2 in `tasks.md`).
+    - Prototyped the home carry (`schedule_home_probe.py`): cron under sh, bash and BusyBox sh, plus launchd, for `plain`, `Jane Doe` and `O'Brien`. 12 of 12 pass, and the fake shim sees the install home.
+    - Rewrote the plan in `tasks.md`: 5 units (4 with tests) and 8 mutants, plus dispositions for every preflight finding and advisory.
+* Decisions made
+    - Carry the resolved home as `STOCKROOM_HOME` in both entries, always.
+    - `schedule status` gains `up-to-date: yes|no|unknown`. Step 8 offers to re-install an out-of-date entry, with the user's consent.
+    - `XDG_CONFIG_HOME` and the documented one-shot source overrides are not carried, for the reasons in Inventory 2.
+    - Error line: "nothing proves who installed it", plus the data folder and where it was expected, when one was given.
+    - Reuse `stub_uv` and preflight's mutation runner.
+* Insights
+    - A fix to a generated artifact reaches existing users only if something re-renders it. Here that is `status` reporting drift on the next `sr-initialize` run.
