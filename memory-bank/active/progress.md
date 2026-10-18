@@ -580,3 +580,16 @@ Reassess how each harness exposes its plugin root (`CLAUDE_PLUGIN_ROOT`, `CURSOR
     - Advisories 1 to 5 do not block. They are in `tasks.md`.
 * Insights
     - Searching for code that runs a shell finds only the places where stockroom runs shell text itself. It misses the commands stockroom prints for an agent or a person to run. A complete inventory needs both searches.
+
+## 2026-10-18 - BUILD rerun (rework round 4, after QA run 1 FAIL (fixable)) - COMPLETE
+
+* Work completed
+    - Re-ran the search over printed commands, as QA did: `doctor.py`'s torch remedy is the only engine message with a path inside a command.
+    - Unit 7: `doctor smoke` quotes the engine path in its torch command. Red: 2 (`space`, `apostrophe`). Green.
+    - Unit 8: QA advisories 1 (Step 8, `entry home: unreadable`) and 2 (the fresh cron status test runs over odd homes, as a guard).
+    - Unit 9: `systemPatterns.md` (printed commands quote paths too), brief AC11, and 1 SumMem note plus its nap.
+    - Mutation check M1 to M10: ALL OK. `make ci`: green (pytest 1008 passed, 38 skipped). `claude plugin validate .`: passes. Live shim: unchanged.
+* Decisions made
+    - Took QA advisories 1 and 2 now, because each is one line and pins round 4's own behavior. Advisories 3 to 5 are left for Reflect.
+* Insights
+    - An audit of "paths in shell text" has to cover text that is printed for someone else to run, not only code that runs a shell. Inventory 1's search missed `doctor smoke`'s command for exactly that reason.

@@ -656,3 +656,10 @@ Inventory 1 missed commands that stockroom prints for someone else to run, becau
     - `systemPatterns.md`: printed commands quote their paths too.
     - Brief AC11: the doctor's printed command.
     - SumMem: 1 note (search printed messages too when auditing shell text), plus the nap the tool asked for.
+- [x] Rerun verification:
+    - The mutation check (`mutation_check_r4.py`, now with `test_doctor.py` in the run) adds M9 (entry home split on spaces) and M10 (doctor path unquoted): base 0; M1 4; M2 2; M3 4; M4 4; M5 7; M6 5; M7 4; M8 4; M9 2; M10 2. ALL OK, and the poison log is empty.
+        - The first rerun predicted M3 and M4 at 2. They turned 4 red, because the fresh status test now also installs for odd homes: an unquoted home splits there, and the restored assert fires. Both mutants really break the entry, so the predictions were corrected and the run repeated.
+        - M5 is 7, because the fresh test now runs 3 cases.
+    - `make ci` passes: pytest 1008 passed and 38 skipped (+5), JS 134/134, REUSE compliant. The log was read in full (`scratchpad/build-r4-rerun-ci.log`).
+    - `claude plugin validate .` passes, with only the existing CLAUDE.md warning.
+    - Live shim: unchanged.

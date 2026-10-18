@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: plugin-root-resolution
-**Phase:** QA - COMPLETE (FAIL) (rework round 4: `doctor smoke`'s torch remedy prints the engine path unquoted; Build reruns, see `tasks.md` "QA results, rework round 4")
+**Phase:** BUILD - COMPLETE (rework round 4, rerun after QA run 1 FAIL (fixable))
 
 ## What Was Done
 - Rounds 1 to 3 are complete through Reflect. Round 3's plan and its build and QA records are in git at 0e458e9.
@@ -15,6 +15,10 @@
     - BusyBox: 5/5.
     - `make ci`: green.
     - `claude plugin validate .`: passes.
+- QA run 1 failed, fixable: `stockroom doctor smoke` prints its torch command with the engine path unquoted. The Build rerun (`tasks.md`, "Build rerun") fixed it:
+    - Red: 2. Green: the doctor tests pass. M9 and M10 were added, and the mutation check M1 to M10 is ALL OK.
+    - It took QA advisories 1 (Step 8 says what `entry home: unreadable` means) and 2 (the fresh cron status test runs over odd homes).
+    - `make ci` is green (pytest 1008 passed, 38 skipped), and `claude plugin validate .` passes.
 - Files modified, all under `/home/mobaxterm/worktrees/Texarkanine/stockroom/stockroom-claudeboarding/`:
     - `skills/sr-search/src/stockroom/schedule.py`:
         - `shlex.quote` on the log path, the `PATH=` value, `STOCKROOM_HOME=` and the payload.
@@ -31,7 +35,8 @@
     - `docs/user-guide/load/schedule.md` and `docs/user-guide/troubleshooting/index.md`.
     - `memory-bank/systemPatterns.md`: the scheduler sentence, and the new section "Paths in shell text are quoted".
     - `memory-bank/active/projectbrief.md`: AC10 wording, plus new AC11 and AC12.
-    - `.summem/notes/*` and `.summem/naps/*`: 2 notes and 2 naps, all through the tool.
+    - Build rerun: `skills/sr-search/src/stockroom/doctor.py` (`shlex.quote` on the engine path in the torch command), `skills/sr-search/tests/test_doctor.py` (a new test over 3 folders), `test_schedule.py` (the fresh cron status test runs over `_FOLDERS`), `SKILL.md` Step 8 (`unreadable`), `systemPatterns.md` (printed commands), and brief AC11.
+    - `.summem/notes/*` and `.summem/naps/*`: 3 notes and 3 naps, all through the tool.
 - Scratch scripts are outside the repo, under `/tmp/claude-1000/-home-mobaxterm-worktrees-Texarkanine-stockroom-stockroom-claudeboarding/3b628427-7950-4f51-90b9-cfcc5ad0911b/scratchpad/scripts/`:
     - `mutation_check_r4.py`
     - the plan's probes
@@ -56,6 +61,7 @@
 - M5 and M6 turn 5 tests red, not the 4 in the plan table. The fresh status tests also assert `entry home:`, which preflight 2's advisory 2 added after that count was made. Predicted in the script before the run.
 - The mutation check is a new script, `mutation_check_r4.py`, which mutates the built HEAD. Preflight's runner rebuilt the target from its own edits, so it could not test the code Build wrote. It follows that runner's design: `git archive` copies, exact single-match edits, and poison stand-ins.
 - `systemPatterns.md` leaves out the `status` fact names, which are detail for one subsystem (that file's own rule). It states the cross-cutting part: the nightly job sees only what its entry carries.
+- Build rerun: M3 and M4 were first predicted at 2 red, and turned 4. The fresh status test, now run over odd homes, also catches them, and both mutants really break the entry. The predictions were corrected and the check repeated.
 - One editing slip in Unit 4: adding the guard stub removed the next test's `def` line. It was restored before any run or commit.
 
 ## For the PR #142 text (collected)
@@ -63,4 +69,4 @@
 - The empty `data/stockroom-inline` folder (round 3, preflight advisory 6).
 
 ## Next Step
-- QA runs in a subagent.
+- QA runs again (run 2), in a subagent.
