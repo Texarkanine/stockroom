@@ -461,3 +461,20 @@ Reassess how each harness exposes its plugin root (`CLAUDE_PLUGIN_ROOT`, `CURSOR
     - Claude Code states a plugin's origin in the substituted data path. A whole-path match against the copy's plugins root, plus the reserved `inline` name, settles the owner without a heuristic.
     - A quoted heredoc is the safe way to take harness-substituted text into a shell.
     - The operator's failure principles became an acceptance criterion (AC10) and the mutant list.
+
+## 2026-10-18 - PLAN (rework round 4: paths with a space or `'` in shell text) - COMPLETE
+
+* Work completed
+    - Inventoried every place stockroom writes a path into shell text: all skill fences, the shim template, both hook files, the scheduler, the Makefile, `scripts/localdev.sh`, and every engine subprocess call. The inventory, with the search used, is in `tasks.md`.
+    - Probed the breaking places with scratch scripts (outside the repo), today vs the planned fix:
+        - Scheduler (`schedule_fix_probe.py`, dash, bash and BusyBox sh, cron and launchd): today 18 of 18 non-plain cases fail; planned 24 of 24 pass.
+        - Makefile (`make_quoting_probe.sh`, fake uv): today 8 of 8 space and `'` cases fail; planned 12 of 12 pass.
+        - The new Step 2 error line (`error_line_probe.sh`): dash, bash and BusyBox sh agree.
+    - Wrote the L2 plan to `tasks.md`: 4 units, 3 of them with tests (2 new test functions in `test_schedule.py`, a new `test_contributor_paths.py`, and 1 guard test in `test_initialize_context.py`), plus 4 mutants.
+* Decisions made
+    - Operator: fix what is both common and breaking (a space or `'`); list the rare characters instead of fixing them; cover every instance.
+    - Scheduler: `shlex.quote`. Makefile: double quotes. localdev hint: double quotes. Error line: one `printf` with `${PLUGIN_DATA:+…}`.
+    - The Step 2 placeholder, the Step 7 typed path, the shim and both hooks already work with a space and `'`. Only a guard test is added, for Cursor's path.
+* Insights
+    - With a `'` in the checkout path, `make shim` exits 0 and runs nothing: the two `'` on its recipe line pair up and the whole command becomes one variable assignment. An exit-status check misses this; counting the tool's calls catches it.
+    - The nightly failure is silent: cron exits 127 with no log, and nothing in `sr-initialize` or the hooks would notice.

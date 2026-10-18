@@ -4,309 +4,294 @@
 * Complexity: Level 2
 * Type: bug fix
 
-**Rework round 3: Claude Code's plugin data folder settles the owner.** Rounds 1 and 2 are complete through Reflect on this branch. Round 2's plan is in git at fc3db1b (`memory-bank/active/tasks.md`), and the history of all rounds is in `progress.md`.
+**Rework round 4: paths with a space or `'` work wherever stockroom writes them into shell text.** Rounds 1 to 3 are complete through Reflect on this branch. Round 3's plan, with its build and QA records, is in git at 0e458e9 (`memory-bank/active/tasks.md`). The history of all rounds is in `progress.md`.
 
-After round 2, Step 2 still asks the Claude Code user who owns a copy that is laid out like an install, sits outside the default plugins folders, and is not listed in the install record. The main case is a contributor's `claude --plugin-dir` checkout at a cache-shaped path. Another is any future change to the record's format. (Native Windows is not helped: Git Bash's `pwd` prints `/c/…` while the substituted data path is `C:/…`, so rule 1 cannot match there and the block asks as before. Preflight advisory 3.)
+Round 3 read Claude Code's pasted paths from a quoted heredoc, which fixed one place a path meets a shell. The operator then asked for every such place. This round inventories them all and fixes each one where a common character, a space or `'`, breaks it. Four places break:
 
-Claude Code also writes `${CLAUDE_PLUGIN_DATA}` into skill text. Its documented form, `<plugins root>/data/<plugin-id>`, says where the plugin came from:
+- **The nightly job.** Under cron, a stockroom home or shim folder with a space fails every night with exit 127 and writes no log. A `'` makes `stockroom schedule install` raise `AssertionError`. Under launchd, both characters give a shell syntax error every night. Nobody is watching when this happens.
+- **The Makefile's `shim`, `torch`, `local-engine` and `local-dashboard` recipes.** A checkout path with a space fails. With a `'`, `make shim` exits 0 and runs nothing, because the two `'` on that recipe line pair up and the whole command becomes one variable assignment. Step 7 of `sr-initialize` sends contributors to `make shim`.
+- **`localdev.sh`'s Claude hint.** It prints `claude --plugin-dir <checkout>` unquoted, so the command a contributor copies splits at the space.
+- **QA follow-up 1 from round 3.** This one is wording, not quoting. Step 2's error line says "the plugin data folder (not given)" when nothing was substituted. In Cursor, that names a Claude Code idea.
 
-- For a marketplace install, the folder sits in the same plugins root as the copy's `cache` folder.
-- For `--plugin-dir`, the id is `<manifest name>@inline`, so the folder is named `stockroom-inline`.
+Who it helps:
 
-This round reads that path and settles the owner from it, ahead of the record check. It also reads both pasted paths from a quoted heredoc, so the shell treats them as data and never as code.
+- Users whose stockroom home, `XDG_DATA_HOME`, `HOME` or `~/.local/bin` path holds a space or `'`. Examples are `~/Library/Application Support` on macOS, or a Windows profile such as `/mnt/c/Users/Jane Doe` under WSL. Their nightly job starts working.
+- Contributors whose checkout path holds a space or `'`.
 
-Who it helps: Claude Code users in the layouts above. They get no question whenever Claude Code substitutes the token. Cursor users: nothing changes. Cursor substitutes nothing, so both new rules stay silent there.
+Cursor users get no new questions. Their Step 2 path already works with both characters, and this round adds a test that keeps it that way.
 
-### Operator decisions (2026-10-17)
+### Operator decisions (2026-10-18)
 
-- **Use `${CLAUDE_PLUGIN_DATA}`, because it is a documented contract.** The operator: "If the clod plug in data environment variable is documented and it is an actual contract we can adhere to then yes let's go ahead and use it." The docs quoted under Evidence document every part the block relies on.
-- **Failure principles.** The operator: "we want to be sure that any way in which it does fail is going to be obvious during initialization so that an intelligent agent can work around it and that any way that it does fail is not going to manifest in any of the deterministic processes without inference."
-  1. Every way the new signal can fail must show up during `sr-initialize`, where the agent can work around it.
-  2. No failure may reach the processes that run without an agent: the session hooks, `shim rectify`, and the nightly job.
-- **Quoting is in scope only because it is cheap.** Folders built by an attacker are not ours to defend against. `'` is the only special character likely to appear in a real folder name, and it already works. The heredoc is still worth it, because it is also what keeps `PLUGIN_DATA` coming only from Claude Code's substitution, never from an inherited environment variable.
-- Earlier decisions stand; round 2's plan (fc3db1b) lists them in full:
-  - Contributors always get `dev`.
-  - Hooks stay as they are.
-  - `rectify` replaces a dead shim of any owner.
-  - No separate dev data.
-  - The install-layout rule is for `sr-initialize` only.
-  - No Claude-driven questions for Cursor users.
-  - The install record is checked (round 2).
+- **Fix what is both common and breaking.** The operator: "Let's fix things that are both common and breaking. so, "space in path," yeah. "if someone puts cryllic diacritics in-between 4 special shell characters in their homedir," no."
+  - In scope: a space or `'` in any path stockroom writes into shell text.
+  - Out of scope: `$`, a backtick, `"`, `\` and `%` in folder names. Where those still break, the inventory lists them instead of fixing them.
+- **Fix every instance, not one.** The operator objected that round 3 "just fixed 1 frickin place". So the inventory below covers every place stockroom writes a path into shell text, and gives a result for each.
+- Earlier decisions stand (round 3's plan, at 0e458e9): the failure principles (brief AC10), contributors always get `dev`, hooks stay as they are, and no Claude-driven questions for Cursor users.
 
-### How the plan meets the failure principles
+### Inventory: every place stockroom writes a path into shell text
 
-- **Every new rule only adds a proof.** When the proof is missing or unrecognized, the block falls through to round 2's rules unchanged: the record, then the Cursor root, then an empty owner and the question. The new rule stays silent in each of these failures:
-  - The token is not substituted (an older Claude Code, an agent that read the file itself, or another harness). The heredoc line keeps the literal token, and the block clears it.
-  - The data path has another shape or lives in another folder.
-  - The `--plugin-dir` id is renamed.
-- **The failure is visible.** When the `*)` arm falls through, its stderr line now also prints the data folder it was given, or `not given`. The agent and the user can see why the question is asked.
-- **No new owner can be wrong:**
-  - `claude` needs the data folder to be `data/<id>` in the very plugins root whose `cache/` holds this copy. Only Claude Code's own install layout produces that. A checkout would have to sit inside Claude Code's own cache folder, exactly where Claude Code would put the copy.
-  - `dev` needs the folder name `stockroom-inline`. `inline` is a reserved origin name, so no marketplace install can carry it.
-- **Processes without an agent are untouched.** The hooks and `shim rectify` neither read `PLUGIN_DATA` nor change. They see only the owner that Step 7 bakes into the shim. Since no new owner can be wrong, nothing new reaches them.
-- **Side effect.** The docs say Claude Code creates the data folder when a plugin component first uses it, and deletes it on uninstall from the last scope. Referencing the token may create an empty `data/stockroom-…` folder. Nothing in stockroom reads or writes it.
+How it was built:
 
-### Owner rule for this round
+- A search of all tracked code, scripts, hooks and skill files outside `docs/` and the tests, for shell runs (`shell=True`, `os.system`, `sh -c`, `subprocess`, `shlex`).
+- A read of every bash fence in every `SKILL.md` and skill reference.
+- A read of the Makefile, `scripts/localdev.sh`, both hook files and the shim template.
+- Probes with spaces and `'`, listed under Evidence.
 
-- Inside a harness's default plugins folder, the path decides (unchanged).
-- A copy laid out like an install (`<x>/cache/<m>/<p>/<v>/skills/sr-search`) anywhere else, in this order:
-  1. **New:** `PLUGIN_DATA` is exactly `<x>/data/<some id>` → `claude`.
-  2. `<x>/installed_plugins.json` contains the JSON string `"<plugin root>"` → `claude` (round 2).
-  3. **New:** the data folder is named `stockroom-inline` → `dev`.
-  4. `CURSOR_PLUGIN_ROOT` physically holds this engine → `cursor`.
-  5. Otherwise `OWNER` is empty, plus a stderr line. In Claude Code the agent asks the user; in any other harness the agent names its harness.
-- Everything else is `dev` (unchanged).
+| Where | Who writes the path | Space | `'` | This round |
+| --- | --- | --- | --- | --- |
+| Step 2, Claude Code's pasted paths (quoted heredoc) | Claude Code | works | works | none (round 3) |
+| Step 2, Cursor's placeholder `SKILL_DIR="<…>"` | the agent | works (inside `"…"`) | works | guard test (Unit 3) |
+| Step 2's printed line `APP_DIR='…'` | the block | works | works (AC8) | none |
+| Steps 3 to 7: `"$APP_DIR"`, `--app-dir "$APP_DIR"` | the printed line | works | works | none |
+| Step 7, `ls -dL -- "<STOCKROOM_APP_DIR>/pyproject.toml"` | the agent, from the shim header | works (inside `"…"`) | works | none |
+| Step 7, `grep … ~/.local/bin/stockroom` | the shell (`~`) | works (tilde results are not split) | works | none |
+| The shim (`APP_DIR=` via `shlex.quote`, then `"$APP_DIR"`) | the engine | works | works | none |
+| The Claude Code hook (`"${CLAUDE_PLUGIN_ROOT}"`, expanded from the environment) | Claude Code | works | works | none |
+| The Cursor hooks (`"${CURSOR_PLUGIN_ROOT}"`, double-quoted either way) | Cursor | works | works | none |
+| The cron entry: the log path and the `PATH=` value | the engine | **breaks**: exit 127 every night, no log | **breaks**: `schedule install` raises `AssertionError` | Unit 1 |
+| The launchd payload: the log path | the engine | **breaks**: syntax error every night | **breaks**: syntax error every night | Unit 1 |
+| Makefile `shim`, `torch`, `local-engine`, `local-dashboard` | `$(CURDIR)` | **breaks**: exit 2 or 127 | **breaks**: syntax error, or `make shim` exits 0 having run nothing | Unit 2 |
+| `localdev.sh`'s printed `claude --plugin-dir …` hint | the script | **breaks** when copied | **breaks** when copied | Unit 2 |
+| `localdev.sh`, every other path | the script | works (all quoted) | works | none |
+| Other skills' fences (`sr-query`, `sr-semantic`, `sr-dashboard`, cookbook) | none | no paths | no paths | none |
+| Engine subprocess calls (`doctor`, `engine_env`, `torch_source`, `dashboard`, `shim`) | the engine | argv lists, no shell | same | none |
+| `launchd`'s `EnvironmentVariables`, `StandardOutPath` and `StandardErrorPath` | the engine | plist values, no shell | same | none |
 
-**Why this order.**
+Out of scope, and still breaking for the rare characters (operator decision):
 
-- Rules 1 and 2 come before 3, which keeps round 2's outcome for `--plugin-dir` pointed at an install's own copy: `claude`, because that install's hooks keep the shim current. When that copy is in the active plugins root, rule 1 says so. When it is in another root, the record does.
-- Rule 3 comes before 4: `stockroom-inline` proves a Claude Code session plugin, while `CURSOR_PLUGIN_ROOT` in an agent shell is undocumented and can leak.
-- No test pins the order of rules 2 and 3. Both hold only for `--plugin-dir` pointed at a recorded copy in a plugins root other than the active one. Round 2 left its own order unpinned on the same grounds.
+- The Step 2 placeholder and the Step 7 typed path, for `$`, a backtick, `"` or `\`.
+- The Cursor hooks for the same characters, if Cursor pastes its root in as text. Whether it does is unverified.
+- `%` anywhere in a cron entry (cron reads `%` as a newline).
+- The docs' example commands, which are placeholders for a person to fill in.
+
+The scheduler fix also handles `$`, a backtick and `"`, because `shlex.quote` covers every character. The probe shows that for `$x`.
 
 ### Evidence that shaped the plan
 
-- **Claude Code docs:**
-  - [Plugin loading, "Find where a plugin came from"](https://code.claude.com/docs/en/plugins/loading):
-    - "Every plugin has an id of the form `<name>@<origin>`."
-    - `@inline` covers `--plugin-dir`, `--plugin-url`, `CLAUDE_CODE_PLUGIN_DIRS` and the Agent SDK `plugins` option.
-    - "for `@inline` and `@skills-dir` it's the `name` in the plugin's manifest."
-    - "The origin names in this table are reserved, so no marketplace can be named `inline`, `skills-dir`, or `synced`."
-  - [Plugin loading, "Find plugins on disk"](https://code.claude.com/docs/en/plugins/loading):
-    - One plugins root, `~/.claude/plugins` unless `CLAUDE_CODE_PLUGIN_CACHE_DIR` is set.
-    - `cache/<marketplace>/<plugin>/<version>/` holds the copy.
-    - `data/<plugin-id>/` is "The plugin's persistent directory, exposed as `${CLAUDE_PLUGIN_DATA}`".
-  - [Plugin components, "Reference plugin paths and store data"](https://code.claude.com/docs/en/plugins/components#path-variables-and-persistent-data):
-    - The variables are "substituted in skill, command, and agent content".
-    - "`<id>` is the plugin identifier with every character other than letters, digits, `_`, and `-` replaced by `-`".
-    - "On Windows, the substituted paths use forward slashes."
-  - [Manifest reference, "Where each variable resolves"](https://code.claude.com/docs/en/plugins/manifest-reference#where-each-variable-resolves):
-    - Skill content: "Anywhere in the Markdown body".
-    - "The variables aren't present in the environment of commands Claude runs through the Bash tool".
-- **Probes on Claude Code 2.1.302 (2026-10-17).** Real settings, records and data folder were checksummed or listed, and were unchanged after each probe.
-  - `${CLAUDE_PLUGIN_DATA}` is substituted in prose and inside a bash fence, for a typed `/plugin:skill` and for a Skill-tool load.
-  - `--plugin-dir` from a checkout at `<x>/cache/m/widget/1.0.0` gives `<active plugins root>/data/widget-inline`. The active root followed `CLAUDE_CODE_PLUGIN_CACHE_DIR`.
-  - A copied install has its copy at `<R>/cache/livemkt/widget/1.0.0` and its data at `<R>/data/widget-livemkt`: the same root.
-  - An in-place local-marketplace load has its root at the source folder, and its data at `<R>/data/widget-localmkt`.
-  - The substituted value has no trailing slash.
-  - `claude plugin marketplace add` refuses the name `inline` with "Marketplace name "inline" is reserved for --plugin-dir session plugins". It accepts `foo-inline`.
-  - In shell-form hooks, the shell expands `"${CLAUDE_PLUGIN_ROOT}"` from the environment: a `$probe` in the folder name survived. So `hooks/claude-hooks.json` has no quoting problem, and no hook changes.
-  - Scripts:
-    - `/tmp/claude-1000/-home-mobaxterm-worktrees-Texarkanine-stockroom-stockroom-claudeboarding/3b628427-7950-4f51-90b9-cfcc5ad0911b/scratchpad/scripts/plugin_data_probe.sh`
-    - `/tmp/claude-1000/-home-mobaxterm-worktrees-Texarkanine-stockroom-stockroom-claudeboarding/3b628427-7950-4f51-90b9-cfcc5ad0911b/scratchpad/scripts/hook_quote_probe.sh`
-- **Quoting prototype.** 9 folder names, each run under dash, bash and BusyBox sh.
-  - Today's block:
-    - `$x`, `\$` and pairs of `"` silently change the path.
-    - A lone `"` is a syntax error.
-    - A backtick, `$(…)` or `";…;"` runs a command.
-  - The heredoc variant reads all 9 correctly, and still falls back to the placeholder when nothing is substituted.
-  - Script: `/tmp/claude-1000/-home-mobaxterm-worktrees-Texarkanine-stockroom-stockroom-claudeboarding/3b628427-7950-4f51-90b9-cfcc5ad0911b/scratchpad/scripts/quoting_demo.sh`, with its helpers `render_block.py` and `make_variant.py` in the same folder.
+- **Scheduler, today vs planned** (`/tmp/claude-1000/-home-mobaxterm-worktrees-Texarkanine-stockroom-stockroom-claudeboarding/3b628427-7950-4f51-90b9-cfcc5ad0911b/scratchpad/scripts/schedule_fix_probe.py`).
+  - Setup: the stockroom home and a fake `stockroom` shim both sit under a folder named `plain`, `Jane Doe`, `O'Brien` or `cost$x`.
+  - It runs the cron command part as cron does (`<shell> -c <command>`) and the launchd `ProgramArguments` as launchd does, under dash, bash and BusyBox sh.
+  - Today: 18 of the 18 non-plain cases fail.
+    - Space: cron exits 127 ("Doe/bin:/usr/bin:/bin: not found"), and launchd exits 2 (syntax error).
+    - `'`: cron rendering raises `AssertionError`, and launchd exits 2 ("Unterminated quoted string").
+    - `$x`: the log cannot be created.
+  - Planned (`shlex.quote` on the log path, the `PATH=` value and the whole payload): all 24 cases pass.
+- **Makefile, today vs planned** (`/tmp/claude-1000/-home-mobaxterm-worktrees-Texarkanine-stockroom-stockroom-claudeboarding/3b628427-7950-4f51-90b9-cfcc5ad0911b/scratchpad/scripts/make_quoting_probe.sh`).
+  - Setup: the Makefile alone is copied into `<tmp>/<name>/stockroom/`. Each target runs with `UV=<fake uv>`, which records `PYTHONPATH` and its arguments and runs nothing.
+  - Today: plain passes, and 8 of 8 space and `'` cases fail.
+    - The `'` `shim` case is the silent one: exit 0 with no `uv` call.
+  - Planned (`"$(CURDIR)/$(ENGINE)/src"` and `--app-dir "$(CURDIR)/$(ENGINE)"`): 12 of 12 pass. That counts the expected `uv` calls and checks every `--app-dir` and `PYTHONPATH` value.
+- **The planned Step 2 error line** (`/tmp/claude-1000/-home-mobaxterm-worktrees-Texarkanine-stockroom-stockroom-claudeboarding/3b628427-7950-4f51-90b9-cfcc5ad0911b/scratchpad/scripts/error_line_probe.sh`).
+  - dash, bash and BusyBox sh print the same two messages, for paths holding a space and `'`.
+  - zsh is not installed here (carried).
+- **Documented behavior the tests model:**
+  - cron runs "the entire command portion of the line, up to a newline or % character" with `/bin/sh` ([crontab(5)](https://man7.org/linux/man-pages/man5/crontab.5.html)).
+  - launchd runs `ProgramArguments` as an argument vector, without a shell ([launchd.plist(5)](https://keith.github.io/xcode-man-pages/launchd.plist.5.html)).
+  - `shlex.quote` returns "a shell-escaped version of the string", safe as one token for a POSIX shell, and leaves strings of safe characters unchanged ([Python docs](https://docs.python.org/3/library/shlex.html#shlex.quote)).
 
 ### Target design
 
-The head of the Step 2 block (replaces today's lines 31 and 32):
+**`stockroom.schedule`** (`import shlex`):
 
-```bash
-{ IFS= read -r SKILL_DIR; IFS= read -r PLUGIN_DATA; } <<'SR_PATHS'
-${CLAUDE_SKILL_DIR}
-${CLAUDE_PLUGIN_DATA}
-SR_PATHS
-case "$SKILL_DIR" in ''|'$'*) SKILL_DIR="<POSIX absolute path of the directory holding this SKILL.md>" ;; esac
-case "$PLUGIN_DATA" in '$'*) PLUGIN_DATA="" ;; *?/) PLUGIN_DATA="${PLUGIN_DATA%/}" ;; esac
+```python
+payload = f"(date; stockroom ingest && stockroom embed) >> {shlex.quote(str(_log_path(home)))} 2>&1"
+...
+def _sh_wrap(payload: str) -> str:
+    return f"/bin/sh -c {shlex.quote(payload)}"
+...
+entry = f"{minute} {hour} * * * PATH={shlex.quote(path_prefix)} {_sh_wrap(render_payload(home))}"
 ```
 
-The `*)` arm:
+- launchd keeps `["/bin/sh", "-c", payload]`. The payload's quoted log path is parsed once, by that shell. `EnvironmentVariables` and the two log keys stay raw, because launchd reads them as plist values, not as shell text.
+- `shlex.quote` leaves a path of safe characters unchanged. So for the common case the rendered entry is byte for byte what it is today, and every existing test stays as it is.
+- The `'` assert in `_sh_wrap` goes, because `shlex.quote` handles `'`. The `%` assert in `render_payload` stays (`%` is out of scope).
+
+**Makefile:** in the `torch`, `shim`, `local-engine` and `local-dashboard` recipes, `PYTHONPATH="$(CURDIR)/$(ENGINE)/src"` and `--app-dir "$(CURDIR)/$(ENGINE)"`.
+
+**`localdev.sh`:** ``use `claude --plugin-dir \"${sc_root}\"` for a session-scoped plugin load``.
+
+**Step 2's error line** (replaces the `else printf` line of the `*)` arm):
 
 ```bash
-    *)
-      if [ "$PLUGIN_DATA" = "${CACHE_DIR%/*}/data/${PLUGIN_DATA##*/}" ] || grep -qF -- "\"$PLUGIN_ROOT\"" "${CACHE_DIR%/*}/installed_plugins.json" 2>/dev/null; then OWNER=claude
-      elif [ "${PLUGIN_DATA##*/}" = stockroom-inline ]; then OWNER=dev
-      elif [ -n "$CURSOR_APP" ] && [ "$CURSOR_APP" = "$REAL_APP" ]; then OWNER=cursor
-      else printf 'sr-initialize: %s is laid out like an installed plugin outside the default plugins folders, but no install record lists it and the plugin data folder (%s) is not in its plugins root\n' "$APP_DIR" "${PLUGIN_DATA:-not given}" >&2
-      fi ;;
+      else printf 'sr-initialize: %s is laid out like an installed plugin outside the default plugins folders, and no install record lists it%s\n' "$APP_DIR" "${PLUGIN_DATA:+; its plugin data folder $PLUGIN_DATA is not in ${CACHE_DIR%/*}/data}" >&2
 ```
 
-- **The heredoc.** With a quoted delimiter, the shell expands nothing in the two body lines, so it reads Claude Code's pasted paths byte for byte. A newline in the path would break the read; AC8 already excludes such paths. The values can only come from substitution, never from an environment variable. `IFS=` keeps leading and trailing spaces, and `-r` keeps backslashes.
-- **When nothing is substituted.** The body still holds the literal tokens, which start with `$`; a real path never does. The `case` lines turn the skill line into the placeholder, as today, and clear the data line. The patterns never spell out a whole token, so Claude Code's text replacement leaves them alone.
-- **A trailing `/` is dropped.** The docs write the folder as `data/<plugin-id>/`, while 2.1.302 substitutes it without one.
-- **Rule 1 compares the whole path.** An empty value never matches (the right side ends in `/data/`). Neither does a data folder in another plugins root, a seed folder or a nested folder.
-- **Rule 3 compares the whole folder name** with `stockroom-inline`, the docs' sanitized form of `stockroom@inline`. A marketplace named `foo-inline` gives `stockroom-foo-inline`, which does not match.
-- **No sanitizing is re-applied.** Rule 1 does not depend on the id at all.
+- With no data folder, it names only the copy, with no Claude Code idea in it.
+- With a data folder, it names the folder and where it was expected.
 
 ## Test Plan (TDD)
 
 ### Behaviors to Verify
 
-All cases are in `test_initialize_context.py`. Each runs under `sh`, `bash` and `zsh` where installed, and reads its result back through the printed line, as in rounds 1 and 2.
+**Unit 1: the nightly entries run for homes with a space or `'`** (`test_schedule.py`).
 
-**Unit 1: Claude Code's paths are read as data.**
+Each case builds `<tmp>/<folder>/stockroom-home` and `<tmp>/<folder>/bin/stockroom`. The shim is a fake that appends `fake stockroom <args>` to stdout. So both the log path and the `PATH=` value hold the folder name. Folders, parametrized: `plain`, `Jane Doe`, `O'Brien` (ids `plain`, `space`, `apostrophe`).
 
-- **A pasted path with shell characters is read as written.** A `--plugin-dir` checkout at `<tmp>/<name>/stockroom`, Claude rendering, gives `("dev", <checkout>/skills/sr-search)`. No file named `ran` appears in the run's working folder. Folder names, parametrized:
-  - `cost$x` (id `dollar`). Red today: the path loses `$x`, so the block finds no engine.
-  - `` tick`touch ran`tock `` (id `backtick`). Red today: `touch` runs, then no engine is found.
-  - `one"quote` (id `double-quote`). Red today: a syntax error, and nothing is printed.
-- **Unchanged and still green:**
-  - Every existing test, including the `'` cases (`test_printed_line_survives_quotes_in_the_path`, `test_claude_recorded_install_with_quotes_in_the_path`).
-  - The placeholder-filled cases.
-  - `test_unfilled_placeholder_resolves_nothing`: the block run as written still finds nothing.
+- **Cron.** Install through `cron_install` with `FakeCrontab` and a `which` that finds the fake shim, and no `uv`. Take the entry's command part (after the five time fields) and run it as cron does: `/bin/sh -c <command part>`, with only `HOME` set. Expected: exit 0, and `nightly.log` holds `fake stockroom ingest` and `fake stockroom embed`.
+  - Red today: `space` (exit 127) and `apostrophe` (`AssertionError` from `cron_install`). `plain` is green.
+- **launchd.** Install through `launchd_install` with `FakeLaunchctl`. Load the plist, and run `ProgramArguments` with only `HOME` plus its `EnvironmentVariables`. Expected: exit 0, and the log holds both calls.
+  - Red today: `space` and `apostrophe` (syntax errors). `plain` is green.
+- **Unchanged and still green:** every existing schedule test. That includes the exact-payload test, because `tmp_path` holds only safe characters.
 
-**Unit 2: the data folder settles the owner.**
+**Unit 2: contributor commands work from a checkout with a space or `'`** (new `test_contributor_paths.py`).
 
-- **Unrecorded custom-root install, found by its data folder.** The copy is at `<tmp>/plugin-cache/cache/txrk9/stockroom/2.1.1` with no record, and the data folder is `<tmp>/plugin-cache/data/stockroom-txrk9`, parametrized with and without a trailing `/` (ids `no-slash`, `trailing-slash`) → `claude`. Red today: `""`.
-- **`--plugin-dir` checkout at a cache-shaped path.** The checkout is at `<tmp>/src/cache/acme/widgets/stockroom`. The data folder is `<home>/.claude/plugins/data/<name>-inline`, where `<name>` is read from `.claude-plugin/plugin.json` → `dev`. Red today: `""`. Reading the manifest name makes a plugin rename turn this test red, because rule 3 spells the name out.
-- **A data folder in another plugins root proves nothing.** The copy is at `<tmp>/seed/cache/<mkt>/stockroom/2.1.1` with no record. The data folder is `<home>/.claude/plugins/data/stockroom-<mkt>`, parametrized over `<mkt>` = `txrk9` and `acme-inline` → `""`. Green today. It guards rule 1's whole-path match and rule 3's whole-name match: `acme-inline` must not count as a session plugin.
-- **An inherited `CLAUDE_PLUGIN_DATA` variable labels nothing.** A placeholder-filled (Cursor) rendering of a copy at `<tmp>/elsewhere/cache/txrk9/stockroom/672cf3aa`, with `CLAUDE_PLUGIN_DATA=<tmp>/other/data/stockroom-inline` in the shell's environment → `""`. Green today. It guards "values come only from substitution".
-- **Without the data token** (`plugin_data` not given), the existing Claude renderings model a Claude Code that did not substitute it, and keep round 2's outcomes:
-  - `test_claude_custom_plugins_root_gets_no_owner` → `""`.
-  - `test_checkout_in_a_cache_shaped_path_gets_no_owner` → `""`.
-  - `test_leaked_cursor_root_is_ignored` → `""`.
-  - Their docstrings say they cover that case.
+Checkout folders, parametrized: `plain`, `Jane Doe`, `O'Brien` (ids as above).
 
-**Mutation check** (run as a script on a scratch copy of the repo, never in the worktree):
+- **Make targets.** Copy the shipped `Makefile` alone into `<tmp>/<folder>/stockroom/`. Run `make --no-print-directory <target> UV=<fake uv>` there, with only `PATH` and `HOME` set. The fake uv lives in `<tmp>/fakebin`. It records `PYTHONPATH` and its arguments, and runs nothing. Parametrize over the targets and the number of uv calls each makes: `shim` 1, `torch` 2, `local-engine` 2 (the recursive `shim` call, then `ensure-env`), `local-dashboard` 1.
+  - Expected: make exits 0, uv ran the expected number of times, every `--app-dir` value is `<checkout>/skills/sr-search`, and every `PYTHONPATH` that is set is `<checkout>/skills/sr-search/src`.
+  - Red today: 8 cases (4 targets × `space` and `apostrophe`), as in the probe. That includes the silent `apostrophe`-`shim` case, which only the call count catches.
+  - Skipped when `make` is not installed.
+- **The localdev Claude hint.** Run the shipped `scripts/localdev.sh skills --harness claude --repo-root <checkout>`. Take the command between the backticks in its one line of output. Expected: `shlex.split` of it gives `["claude", "--plugin-dir", "<checkout>"]`.
+  - Red today: `space` (four words) and `apostrophe` (`ValueError: No closing quotation`).
 
-- M1: the head goes back to double-quoted assignments (`SKILL_DIR="${CLAUDE_SKILL_DIR}"`, `PLUGIN_DATA="${CLAUDE_PLUGIN_DATA}"`) → the three shell-character cases and the inherited-variable case go red.
-- M2: rule 1 deleted → both data-folder install cases go red.
-- M3: rule 1 loosened to "any data folder" (`case "$PLUGIN_DATA" in */data/?*)`) → both other-root cases and the `--plugin-dir` cache-shaped case go red (preflight advisory 1).
-- M4: rule 3 loosened to `*-inline` → the `acme-inline` other-root case goes red.
-- M5: rule 3 deleted → the `--plugin-dir` cache-shaped case goes red.
+**Unit 3: Cursor's typed path survives a space and `'`** (`test_initialize_context.py`, a guard).
+
+- A Cursor marketplace copy under a home whose path holds `O'Brien files`, rendered by `_fill_placeholder`, gives `("cursor", <copy>/skills/sr-search)`. It runs under every installed shell.
+- Green today. It turns red if the placeholder line ever stops quoting the agent's path. That is the Cursor half of what round 3 covered for Claude Code, for the common characters.
+
+**Mutation check** (a scratch script on a scratch copy, never in the worktree):
+
+- M1: the log path is not quoted → all four non-plain cron and launchd cases go red.
+- M2: the `PATH=` value is not quoted → the two non-plain cron cases go red.
+- M3: `_sh_wrap` goes back to `'{payload}'` with its assert → the two non-plain cron cases go red. (The quoted log path now holds `'`.)
+- M4: the Makefile's `shim` recipe has `--app-dir $(CURDIR)/$(ENGINE)` unquoted → the `shim` and `local-engine` cases go red for `space` and `apostrophe` (4).
 
 ### Test Infrastructure
 
 - Framework: pytest + pytest-xdist, configured in `skills/sr-search/pyproject.toml`; run through `make test`.
-- Test location: `skills/sr-search/tests/`
-- Conventions in `test_initialize_context.py`:
-  - A module docstring that states the owner rule, and a docstring on every test.
-  - The `shell`, `step2` and `home` fixtures, plus `repo_root` from `conftest.py`.
-  - The helpers `_render_claude`, `_fill_placeholder`, `_run_block`, `_plugin_tree`, `_checkout_tree` and `_record_install`.
+- Test location: `skills/sr-search/tests/`.
+- Conventions:
+  - `test_schedule.py`: injected seams (`FakeCrontab`, `FakeLaunchctl`, a `which` function), a module docstring, and a docstring on every test.
+  - `test_coverage_collection.py` is the precedent for subprocessing the root Make targets.
+  - `test_initialize_context.py`: the `shell`, `step2` and `home` fixtures, `_fill_placeholder`, `_plugin_tree` and `_run_block`.
   - Subprocesses run with an explicit minimal environment.
-- Helper changes:
-  - `_step2_block` selects the one bash fence that holds `${CLAUDE_SKILL_DIR}`. It no longer looks for a line starting `SKILL_DIR=`, because the block now reads that value with `read`.
-  - `_render_claude` gains `plugin_data: Path | str | None = None`. When given, it replaces `${CLAUDE_PLUGIN_DATA}`.
-- New test files: none.
+- New test files: `skills/sr-search/tests/test_contributor_paths.py`. It gets a module docstring stating that the contributor commands must take the checkout path as one word.
 
 ## Implementation Plan
 
-### 1. Step 2 reads Claude Code's pasted paths as data — executable
+### 1. Nightly entries quote every path — executable
+
+- Files: `skills/sr-search/tests/test_schedule.py`, `skills/sr-search/src/stockroom/schedule.py`
+
+1. Stub tests: in `test_schedule.py`:
+   - A helper, `_fake_shim_home(base: Path) -> tuple[Path, Which]`. It builds `base/stockroom-home/logs` and an executable fake `base/bin/stockroom`, and returns the home and a `which` that finds only the fake shim.
+   - A helper, `_nightly_log_has_both_runs(home: Path) -> bool`.
+   - Empty, documented tests, each parametrized over `plain`, `Jane Doe` and `O'Brien` with ids `plain`, `space`, `apostrophe`:
+     - `test_cron_entry_runs_for_home_paths_with_spaces_and_quotes`
+     - `test_launchd_entry_runs_for_home_paths_with_spaces_and_quotes`
+   - Extend the module docstring: two tests run the rendered entries in a real `/bin/sh`, with a fake shim, never a real crontab or launchd.
+2. Stub interface: none. The rendered entry is the interface, and no signature changes.
+3. Write tests and run red:
+   - Implement the helpers and both tests per the behaviors above.
+   - Cron: `command = entry.split(" ", 5)[5]`, then `subprocess.run(["/bin/sh", "-c", command], env={"HOME": …}, cwd=base, capture_output=True, text=True)`.
+   - launchd: `subprocess.run(data["ProgramArguments"], env={"HOME": …, **data["EnvironmentVariables"]}, …)`.
+   - Run `uv run --no-sync --no-config pytest tests/test_schedule.py -n0` from `skills/sr-search` and read the whole output. Expected red set: 4 (space and apostrophe × cron and launchd). Every existing test and both `plain` cases stay green.
+4. Write code and run green:
+   - Add `import shlex`.
+   - `render_payload` quotes the log path.
+   - `_sh_wrap` returns `f"/bin/sh -c {shlex.quote(payload)}"` and drops the `'` assert.
+   - `cron_install` writes `PATH={shlex.quote(path_prefix)}`.
+   - Update the docstrings:
+     - The module docstring: the entry quotes every path it carries.
+     - `render_payload`: the log path is shell-quoted.
+     - `_sh_wrap`: the payload is quoted as one word, and the `PATH=` reason stays.
+   - Re-run until green. Then run the mutation check M1 to M3 (Unit 4 of Verification).
+
+### 2. Contributor commands take the checkout path as one word — executable
+
+- Files: `skills/sr-search/tests/test_contributor_paths.py` (new), `Makefile`, `scripts/localdev.sh`
+
+1. Stub tests: create `test_contributor_paths.py` with:
+   - A module docstring.
+   - A fixture, `fake_uv(tmp_path) -> Path`, that writes `<tmp>/fakebin/uv`. The fake appends `PYTHONPATH=<value or <unset>>`, each argument on its own line, and `--end--` to `$FAKE_UV_LOG`.
+   - A helper, `_uv_calls(log: Path) -> list[tuple[str, list[str]]]`.
+   - Empty, documented tests:
+     - `test_make_targets_take_the_checkout_path_as_one_word`, parametrized over the folder and over `(target, calls)` = `("shim", 1)`, `("torch", 2)`, `("local-engine", 2)`, `("local-dashboard", 1)`.
+     - `test_localdev_claude_hint_is_a_runnable_command`, parametrized over the folder.
+2. Stub interface: none.
+3. Write tests and run red:
+   - Make: copy `repo_root / "Makefile"` into `<tmp>/<folder>/stockroom/`. Run make with `cwd` there and `env={"PATH": os.environ["PATH"], "HOME": str(tmp_path), "FAKE_UV_LOG": …}`. Assert per the behaviors.
+   - Hint: make `<tmp>/<folder>/stockroom`. Run `["sh", str(repo_root / "scripts" / "localdev.sh"), "skills", "--harness", "claude", "--repo-root", str(checkout)]`. Take the text between the backticks, and assert on its `shlex.split`.
+   - Run red and read the whole output. Expected red set: 8 make cases and 2 hint cases. The 4 `plain` make cases and the `plain` hint stay green.
+4. Write code and run green:
+   - Makefile, four recipes: quote `"$(CURDIR)/$(ENGINE)/src"` and `--app-dir "$(CURDIR)/$(ENGINE)"`. Update the comment above `shim`: the paths are absolute and quoted, because a checkout path may hold spaces.
+   - `localdev.sh` `skills_claude`: put `"${sc_root}"` in double quotes inside the hint.
+   - Re-run until green, then run mutant M4.
+
+### 3. Step 2: Cursor's typed path is pinned, and the error line is clearer — executable (guard test), then prose/policy (wording)
 
 - Files: `skills/sr-search/tests/test_initialize_context.py`, `skills/sr-initialize/SKILL.md`
 
-1. Stub tests:
-   - `_step2_block`: select the one bash fence holding the `${CLAUDE_SKILL_DIR}` token, and update its docstring and assertion message. Today's block still matches, so every existing test stays green.
-   - `_run_block`: run the readback with `cwd=home`, like the block (preflight advisory 7).
-   - Add `test_skill_path_is_read_as_data`, parametrized over the three folder names with ids `dollar`, `backtick` and `double-quote`, with an empty, documented body.
-2. Stub interface: none. The interface is the Step 2 fence.
-3. Write tests and run red:
-   - Implement the test: `_checkout_tree(tmp_path / name / "stockroom")`, render with `_render_claude`, and assert `("dev", <checkout>/skills/sr-search)` and that `tmp_path / "ran"` does not exist.
-   - Run `uv run --no-sync --no-config pytest tests/test_initialize_context.py -n0` from `skills/sr-search` and read the whole output. Expected red set: the 3 cases under sh and bash (6 failures). Every existing case stays green.
-4. Write code and run green:
-   - Replace lines 31 and 32 of the Step 2 fence with the single-value form of the target head:
-     - `IFS= read -r SKILL_DIR <<'SR_PATHS'`
-     - `${CLAUDE_SKILL_DIR}`
-     - `SR_PATHS`
-     - the `SKILL_DIR` `case` line from the target design.
-   - Re-run until green under every installed shell.
-   - Update the scratch BusyBox check, `busybox-step2-check.sh`, to render through `render_block.py`, which selects the fence by its token. Run it against the worktree's `SKILL.md` and expect `PASS`.
+1. Stub tests: add an empty, documented `test_cursor_placeholder_path_survives_a_quote_and_a_space(shell, step2, tmp_path)`.
+2. Stub interface: none.
+3. Write tests and run:
+   - Implement the test. The home is `tmp_path / "O'Brien files" / "home"`, the copy is at `home/.cursor/plugins/cache/txrk9/stockroom/672cf3aa`, and the expected result is `("cursor", <copy>/skills/sr-search)`.
+   - Run it. It passes today. It is a regression guard, not a red-first test: the behavior already holds, and the plan pins it. Record that in the build log as the expected result.
+4. The error line is wording only. No tests: prose/policy artifact. A test of the message text could only go red when someone edits the text.
+   - Replace the `else printf` line of the `*)` arm with the target line.
+   - The existing tests already run both branches: `test_claude_custom_plugins_root_gets_no_owner` has no data folder, and `test_data_folder_in_another_plugins_root_proves_nothing` has one. So a broken line turns them red.
+   - Re-run `test_initialize_context.py` in full and read the output.
+   - Then render the shipped fence for those two cases under sh, bash and BusyBox sh with a scratch script, and read the stderr line each prints.
 
-### 2. Step 2 settles the owner from Claude Code's data folder — executable
+### 4. Step 2 prose, shared patterns, brief and repository memory — prose/policy
 
-- Files: `skills/sr-search/tests/test_initialize_context.py`, `skills/sr-initialize/SKILL.md`
-
-1. Stub tests:
-   - Add empty, documented tests:
-     - `test_claude_custom_root_install_by_data_folder`, parametrized over the suffix `""` / `"/"`, with ids `no-slash` and `trailing-slash`.
-     - `test_claude_plugin_dir_checkout_in_a_cache_shaped_path_is_dev`
-     - `test_data_folder_in_another_plugins_root_proves_nothing`, parametrized over `txrk9` and `acme-inline`.
-     - `test_leaked_plugin_data_variable_is_ignored`
-   - Modify the existing docstrings:
-     - The module docstring:
-       - Claude Code also substitutes `${CLAUDE_PLUGIN_DATA}` (plugin skills only) as `<plugins root>/data/<plugin-id>`.
-       - The second owner-rule bullet now starts with the data folder: in the copy's plugins root → `claude`; named `stockroom-inline` → `dev`. Then come the record and the Cursor root.
-     - `test_claude_custom_plugins_root_gets_no_owner`, `test_checkout_in_a_cache_shaped_path_gets_no_owner` and `test_leaked_cursor_root_is_ignored`: add that Claude Code did not substitute its data folder. Their expectations are unchanged.
-2. Stub interface: none (the fence).
-3. Write tests and run red:
-   - `_render_claude` gains the keyword `plugin_data`, replacing `${CLAUDE_PLUGIN_DATA}` with `str(plugin_data)` when given. Update its docstring.
-   - Implement the four tests per the behaviors above. The `--plugin-dir` test takes the `repo_root` fixture and reads `name` from `.claude-plugin/plugin.json`.
-   - Run red and read the whole output. Expected red set: the two data-folder install cases and the `--plugin-dir` case, under sh and bash (6 failures). The other-root cases, the inherited-variable case and every existing case stay green.
-4. Write code and run green:
-   - In the head, replace the single `read` with the two-value form from the target design, and add the `PLUGIN_DATA` `case` line.
-   - Replace the `*)` arm with the target arm, verbatim.
-   - Re-run until green under every installed shell.
-   - Mutation check M1 to M5. Write a new scratch script, `mutation_check_r3.py`, modeled on round 2's `mutation_check.py`, and run it on a scratch copy. Each mutant must turn red exactly the tests listed for it, and the unmutated copy must pass.
-   - Re-run the BusyBox check and expect `PASS`.
-
-### 3. Step 2 prose in `SKILL.md` — prose/policy
-
-- Files: `skills/sr-initialize/SKILL.md`
+- Files: `skills/sr-initialize/SKILL.md`, `memory-bank/systemPatterns.md`, `memory-bank/active/projectbrief.md`, `.summem/notes/*` (written only through `.summem/summem note`)
 - No tests: prose/policy artifact
 
-1. The "Run this block as written" paragraph: Claude Code writes this skill's directory and the plugin's data folder into the block when it loads the skill. In any other harness, replace only the angle-bracket placeholder, and leave the rest of the block as written.
-2. The `claude` or `cursor` owner bullet, custom-folder sentence: a Claude Code install in a custom plugins folder also counts. Either the plugin data folder that Claude Code writes into the block sits in the same plugins root as the copy (`data/` beside `cache/`), or Claude Code's install record lists the copy. Keep the Cursor sentence.
-3. The `dev` bullet: keep it. `--plugin-dir` is already listed.
-4. The empty-`OWNER` bullet: "laid out like an installed plugin, outside the default plugins folders, and nothing proves who installed it."
-   - The Claude Code sub-bullet: this happens only when Claude Code did not write its paths into the block (for example, the file was read by hand), or the copy is not in the plugins root Claude Code uses (for example, a seed folder mounted elsewhere). The block's stderr line shows the data folder it was given. Keep the question and "Never pick it yourself."
-   - The other-harness sub-bullet: unchanged.
-5. Step 7: no change. Its mislabel row already defers to the owner the block printed for the same path.
+1. `SKILL.md`, the Claude Code sub-bullet under the empty-`OWNER` bullet: replace "The block's error line shows the plugin data folder it was given." with "When Claude Code wrote a plugin data folder into the block, the error line names it and the folder it was expected in."
+2. `systemPatterns.md`:
+   - Under "Rendered-out artifacts: one tested owner each", add one sentence: every path a rendered artifact writes into shell text is quoted. The shim and the scheduler entries use `shlex.quote`, and the Makefile recipes put `$(CURDIR)` paths in double quotes.
+   - The scheduler sentence in that section stays.
+3. The brief:
+   - Add "Added by rework round 4 (operator decision, 2026-10-18)" after AC10, with AC11. Paths that contain a space or `'` work everywhere stockroom writes them into shell text:
+     - the Step 2 block, Steps 3 to 7, the shim and both hooks (already true);
+     - the nightly cron and launchd entries;
+     - the Makefile's `shim`, `torch`, `local-engine` and `local-dashboard` targets;
+     - `localdev.sh`'s printed hint.
 
-### 4. Shared patterns, brief and repository memory — prose/policy
-
-- Files: `memory-bank/systemPatterns.md`, `memory-bank/active/projectbrief.md`, `.summem/notes/*` (written only through `.summem/summem note`)
-- No tests: prose/policy artifact
-
-1. `systemPatterns.md`, the plugin-root paragraph under Dual-manifest:
-   - The substitution sentence names `${CLAUDE_PLUGIN_DATA}` beside `${CLAUDE_SKILL_DIR}` and `${CLAUDE_PLUGIN_ROOT}`.
-   - The owner-rule sentence: outside the default folders, an install-shaped copy is `claude` when Claude Code's data folder for it (`data/<plugin-id>`) sits in the copy's plugins root, or when the install record lists its exact path. It is `dev` when the data folder is `stockroom-inline` (a `--plugin-dir` load), and `cursor` when `CURSOR_PLUGIN_ROOT` holds it.
-   - Keep "The substituted `${CLAUDE_PLUGIN_ROOT}` is not proof".
-2. Brief AC7: outside the default folders, Claude Code's substituted plugin root is not proof, but its plugin data folder and its install record are. The rest follows the owner rule above. Otherwise the agent asks the user. Also update AC3's cache-shaped exception and UC3 (preflight advisory 2). A Claude Code checkout there now gets `dev` from its data folder. The question remains only when Claude Code did not substitute the folder. Cursor's accepted residual is unchanged.
-3. Add a new brief AC10 for the operator's failure principles: when the substituted data folder is missing, renamed or moved, the outcome falls back to round 2's. Any such failure shows up during `sr-initialize`, as the question plus a stderr line, and never as an owner that the hooks would act on.
-4. Add two `.summem/summem note`s, and follow any nap request the tool prints:
-   - The round 3 owner rule. It supersedes the round 2 owner-rule note.
-   - Step 2 now reads both pasted paths from a quoted heredoc. It supersedes the 2026-10-17 quoting note (preflight advisory 5).
-5. Docs under `docs/`: no change. A grep during planning found no statement of the owner rule there.
+     Other shell characters (`$`, a backtick, `"`, `\`, `%`) are out of scope.
+   - AC10: "an error line that shows the data folder the block was given" becomes "an error line that names the data folder, when one was given".
+4. One `.summem/summem note`, and follow any nap request the tool prints. Every path stockroom writes into shell text is quoted (heredoc, `shlex.quote`, double quotes), so a space or `'` works. Rare characters are out of scope.
+5. Docs under `docs/`: no change. `docs/user-guide/load/schedule.md` names only the log location.
 
 ### 5. Verification
 
-1. Run `make ci` from the repo root and read the whole output.
-2. Run `claude plugin validate .` and confirm no new warnings.
-3. **Live end-to-end check** on Claude Code, as a scratch script, `live_step2_check.sh`. It loads the worktree's real `sr-initialize` and runs the Step 2 fence that Claude Code rendered, taken from the session transcript.
-   - Session settings:
-     - Haiku with `--tools ""` (no tools) and `--max-turns 1`.
-     - `--settings '{"disableAllHooks": true}'`.
-     - A scratch plugins root (`CLAUDE_CODE_PLUGIN_CACHE_DIR`) and a scratch project.
-   - Real settings and records are checksummed before and after, and `~/.claude/plugins/data` is listed before and after.
-   - Each session also loads the scratch `widget` plugin. If its SessionStart hook leaves no `hook-out.txt`, hooks really were off.
-   - Load A: `--plugin-dir` from a copy of the tracked files, placed at `<scratch>/A-checkout/cache/m/stockroom/x` → `dev`.
-   - Load B: a copied install, from a `url`-source marketplace over a one-commit git repo of the same files, at `--scope local` → `claude`. The session runs with the record present, because Claude Code does not load the plugin without it. Run the rendered fence once as is. Then move `installed_plugins.json` aside and run it again, so that only rule 1 can prove the owner (preflight advisory 4).
-   - Run each rendered fence under sh and bash. Check `OWNER`, `APP_DIR` (the expected copy's `skills/sr-search`), and that the rendered fence holds the heredoc with both paths filled in.
-4. The live shim is baked to `~/git/stockroom`, so the pre-commit `make format` sync of this worktree changes nothing outside it. Confirm with `grep '^# STOCKROOM_' ~/.local/bin/stockroom`.
+1. **Mutation check M1 to M4.** Write a scratch script, `mutation_check_r4.py`, modeled on `mutation_check_r3.py`. It runs each mutant on a scratch copy of the repo and runs `test_schedule.py` and `test_contributor_paths.py` there. Each mutant must turn red exactly its listed set, and the unmutated copy must pass.
+2. **BusyBox.** Re-run preflight's `busybox_target_check.sh` from round 3 against the worktree's `SKILL.md`, and expect `PASS`: Step 2's head and rules are unchanged.
+3. Run `make ci` from the repo root and read the whole output.
+4. Run `claude plugin validate .` and confirm no new warnings.
+5. The live shim is baked to `~/git/stockroom`, so the pre-commit `make format` sync of this worktree changes nothing outside it. Confirm with `grep '^# STOCKROOM_' ~/.local/bin/stockroom`.
+6. **No live run of cron or launchd.**
+   - Cron: this machine's real crontab is not touched. The test runs the entry the way cron(5) documents.
+   - launchd: no macOS host is available. The test runs the plist's argument vector the way launchd.plist(5) documents.
+   - The Step 2 live check from round 3 is not re-run. The heredoc and the substitution are unchanged, and only the stderr text changes.
 
 ## Technology Validation
 
-No new technology - validation not required. The heredoc, `read -r`, `case` and `${…%…}` / `${…##…}` are POSIX. The heredoc variant was prototyped under dash, bash and BusyBox sh (Evidence).
+No new technology - validation not required. `shlex` is in Python's standard library, and `stockroom.shim` already uses it. Double-quoting Make variables in recipes is plain shell. All three fixes were prototyped by the probes under Evidence.
 
 ## Dependencies
 
-- Claude Code substitutes `${CLAUDE_SKILL_DIR}` and `${CLAUDE_PLUGIN_DATA}` anywhere in a plugin skill's Markdown body. This is documented, and verified on 2.1.302 inside a fence.
-- The documented plugins-root layout: `cache/<marketplace>/<plugin>/<version>/` and `data/<plugin-id>/` under one root.
-- The documented plugin id `<manifest name>@inline` for `--plugin-dir` loads, and its reserved origin names.
-- `grep -qF --` for the round 2 record check (unchanged).
+- cron passes an entry's command part to `/bin/sh -c` (crontab(5)); launchd runs `ProgramArguments` without a shell (launchd.plist(5)).
+- `/bin/sh` and `make` exist on the test hosts. `make` is already required by `test_coverage_collection.py`, and the Make cases skip without it.
+- Round 3's Step 2 head and owner rules, unchanged.
 
 ## Challenges & Mitigations
 
-- **Substitution inside the heredoc.** Claude Code replaces text anywhere in the Markdown body, and the probes saw it inside a fence. The live check confirms it on the real file. If it does not substitute there, stop: that is the circuit breaker, so report rather than rework.
-- **An agent copies the block badly.** If the closing `SR_PATHS` gets indented, the heredoc never ends and swallows the block, so nothing is printed. That failure is obvious, and Step 2 already says what to do when no line is printed. "Run this block as written" stays the instruction.
-- **A Cursor agent fills the heredoc lines itself.** The prose says to replace only the placeholder. A skill path pasted into the first line still works. A made-up data path matches rule 1 only if it is exactly Claude Code's own layout for this copy.
-- **`_fill_placeholder` replaces every `<…>` on one line.** The new lines hold no `<` and `>` on one line except the placeholder. `<<'SR_PATHS'` has no `>`.
-- **Fence selection.** The `${CLAUDE_SKILL_DIR}` token must appear in exactly one fence. `_step2_block` asserts that.
-- **A plugin rename.** Rule 3 spells out `stockroom-inline`. The `--plugin-dir` test reads the manifest name, so a rename turns it red.
-- **Older Claude Code without the data substitution.** The literal token is cleared, and round 2's outcomes apply. The existing Claude-rendered tests pin that.
-- **Seeds, and synced copies under a custom root.** Seeds load their copies in place from the seed folder, and their data folder is elsewhere, so they fall through as in round 2. Synced copies under a custom root stay `dev` (round 2 advisory 4, accepted). Both are out of scope for this round.
+- **Users whose space-holding home already has a broken entry keep it.** Step 8 skips scheduling when `status` says installed, and `status` cannot tell a broken entry from a good one. Mitigation: the PR #142 text tells them to re-run `stockroom schedule install`, which replaces the entry. A self-healing check is out of scope.
+- **The quoted entry is hard to read for odd homes.** For a home with a space, `stockroom schedule status` shows `'"'"'`-style quoting. Plain homes look exactly as before. Accepted: the entry is correct, and Step 8 only checks its fire time.
+- **The exact-payload test depends on `tmp_path`.** It holds only characters `shlex.quote` leaves alone (pytest names folders from test names). If that ever changes, the test fails loudly, not silently.
+- **The fake uv must not sit under the odd folder.** `$(UV)` stays unquoted (out of scope). The tests keep the fake under `<tmp>/fakebin`.
+- **Recursive make.** `local-engine` calls `$(MAKE) shim`. A command-line `UV=` passes down through `MAKEFLAGS`, which the probe confirms with 2 calls.
+- **The `'` `shim` case passes on exit status alone.** Only the uv call count catches it, so the call count is part of every Make assertion.
 - **zsh is still never run**, here or in CI (carried).
 
 ## Pre-Mortem
 
-- **The premise is wrong: an install's data folder is not always in its copy's plugins root.** The docs table and probe B say it is for copied installs. In-place and seed loads keep their data elsewhere and fall through, so the worst outcome is round 2's question. The live check with the record moved aside tests the premise on the real file.
-- **The tests model Claude Code's rendering, and Claude Code renders differently.** That was round 2's lesson: the tests write both sides of the premise. Verification step 3 renders the real `SKILL.md` through Claude Code and runs that output. It is part of the plan, not optional.
-- **A reviewer finds the heredoc odd.** Answer in the PR: it reads pasted paths as data, and it is the reason `PLUGIN_DATA` can come only from Claude Code. Explain in the PR, not in comments inside the block, because the block has none today.
-- **The live check touches the user's real setup.** It runs with no tools, hooks off (proved by the widget plugin), and scratch plugins roots. Real records and the data folder are checked before and after. Each session writes only a transcript under `~/.claude/projects/`, as round 2's probes did.
+- **The inventory missed a place.** The table names the search used, and preflight and QA re-run it. Anything new found there goes into this round, not a follow-up.
+- **The tests model cron and launchd, and the real ones behave differently.** Both models follow the documented contract: cron passes the command part to `/bin/sh -c`, and launchd runs an argument vector. Cron's own `%` and environment rules are unchanged by this round. A real launchd run is not possible here, so QA should read the plist the test writes.
+- **Scope creep into contributor tooling.** The Makefile and the hint are contributor-facing. They are in scope because Step 7 of `sr-initialize` sends contributors to `make shim`, which is the same command class, and because the operator's rule is common and breaking. Each fix is a one-word quoting change. If the operator strikes them, Unit 2 drops out whole.
+- **The error line adds an expansion that one shell parses differently.** The probe ran it under dash, bash and BusyBox sh. Verification step 2 re-runs the BusyBox check on the shipped block.
 
 ## Status
 
@@ -315,82 +300,6 @@ No new technology - validation not required. The heredoc, `read -r`, `case` and 
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [x] Preflight (PASS WITH ADVISORY)
-- [x] Build
-- [x] QA (PASS)
-
-## Build progress
-
-- [x] 1. Step 2 reads pasted paths as data:
-    - Red: 6 failed (3 folder names × sh and bash), 48 passed.
-    - Green: 54 passed, 27 skipped (zsh absent).
-    - BusyBox check (preflight's `busybox_target_check.sh`): `dollar`, `backtick` and `dquote` PASS. `data` and `inline` FAIL, as expected before Unit 2.
-- [x] 2. Step 2 settles the owner from the data folder:
-    - Red: 6 failed (the two data-folder install cases and the `--plugin-dir` case, × sh and bash), 60 passed.
-    - Green: 66 passed, 33 skipped (zsh absent).
-    - Mutation check (`scratchpad/scripts/mutation_check_r3.py`, on scratch copies): unmutated 0; M1 8; M2 4; M3 6; M4 2; M5 2. Each is exactly its predicted set: ALL OK.
-    - BusyBox check: all 5 cases PASS (`data`, `inline`, `dollar`, `backtick`, `dquote`).
-- [x] 3. Step 2 prose:
-    - The run paragraph: Claude Code writes the skill directory and the data folder; replace only the placeholder.
-    - The custom-folder sentence: the data folder or the install record.
-    - The empty-`OWNER` bullet, and its Claude Code sub-bullet with when it happens and where the error line shows the data folder.
-    - Step 7 unchanged. The tokens appear only in the fence (grep).
-- [x] 4. Patterns, brief and SumMem:
-    - `systemPatterns.md`: the tokens sentence, the heredoc, and the owner rule.
-    - Brief: UC3, AC3 and AC7, plus a new AC10 (failure principles).
-    - SumMem: the round 3 owner-rule note and the heredoc note, plus the naps the tool asked for.
-- [x] 5. Verification:
-    - `make ci` passes: lint, format-check, the lock checks, schema-docs, JS 134/134, pytest 974 passed and 37 skipped (round 2: 956 / 28), REUSE compliant.
-    - `claude plugin validate .` passes, with only the existing CLAUDE.md warning (plus the unrelated README advice).
-    - Live end-to-end check (`scratchpad/scripts/live_step2_check.sh`, with `extract_rendered_step2.py`): LIVE CHECK PASS on Claude Code 2.1.302.
-        - Canary: hooks were off.
-        - A: Claude Code filled the heredoc with `…/A-checkout/cache/m/stockroom/x/skills/sr-initialize` and `…/A-plugins/data/stockroom-inline`, giving `dev` with the checkout's `skills/sr-search`, under sh and bash.
-        - B: Claude Code filled it with `…/B-plugins/cache/livemkt/stockroom/2.1.1/skills/sr-initialize` and `…/B-plugins/data/stockroom-livemkt`, giving `claude` with the copy's `skills/sr-search`. That held with the record present and with it moved aside, under sh and bash.
-        - The stockroom sessions end with "Reached max turns (1)" (exit 1), which is the intended stop before the model acts.
-        - The real settings, records, shim and data folder were unchanged.
-    - Live shim: still `dev` at `~/git/stockroom`.
-
-## Preflight advisories: dispositions
-
-- **1 (M3 also turns the `--plugin-dir` case red):** applied in the mutation list.
-- **2 (brief AC3 and UC3 go stale):** applied in Unit 4. AC3's cache-shaped exception and UC3 are updated along with AC7.
-- **3 (native Windows cannot match rule 1):** applied. The claim is dropped from the description. Native Windows falls back to the question, as before.
-- **4 (live check details):** applied in Unit 5.
-    - The session runs with the record present. The record is moved aside only before the second run of the rendered fence.
-    - Each run also checks `APP_DIR` and that the rendered fence holds the heredoc.
-- **5 (stale SumMem quoting note):** applied in Unit 4, as a second note: Step 2 now reads both paths from a quoted heredoc.
-- **6 (`--plugin-dir` leaves an empty `data/stockroom-inline` folder):** for the PR text, noted for Reflect.
-- **7 (`_run_block` readback `cwd`):** applied in Unit 1. The readback runs with `cwd=home`, like the block.
-- **8 (reuse preflight's scripts):** applied. Build renders through preflight's `render_both.py` and runs its `busybox_target_check.sh`. `mutation_check_r3.py` follows its `run_variants.py`.
-- **Design idea (a `PROOF` field in the printed line):** not applied. It changes the printed interface and every expected result, to pin an order that no real copy exercises. The operator asked not to get lost in the weeds. It is left for the operator.
-
-## QA results, rework round 3 (PASS)
-
-QA compared the Build (5b2a517 and ca4099f, diffed against 53a8702) with plan units 1 to 5, the preflight advisory dispositions, and brief UC3, AC3, AC7 and AC10. KISS, DRY, YAGNI, completeness, regression, integrity and documentation pass. Nothing must change before Reflect.
-
-**What QA checked:**
-
-- The shipped head (the quoted heredoc and both `case` lines) and the `*)` arm match the plan's target design, word for word. Nothing is stubbed, and there are no TODOs and no debug output.
-- The five planned test functions exist with the planned names and ids. The helper changes (`_step2_block`, `_render_claude` with `plugin_data`, and the readback with `cwd=home`) match the plan. The three changed docstrings keep their expected results.
-- The SKILL.md prose, `systemPatterns.md`, brief UC3/AC3/AC7/AC10 and the two SumMem notes all state the same rule. The SumMem notes and naps were written by the tool.
-- **The Build's evidence matches its claims.** The mutation log (`scratchpad/build-r3-mutation.log`) shows each mutant turning red exactly its predicted set: M1 8, M2 4, M3 6, M4 2, M5 2, and none for the unmutated copy. The live log (`scratchpad/live-r3.log`) shows both heredoc lines filled by Claude Code 2.1.302, and the expected `OWNER` and `APP_DIR` for A, and for B with and without the record.
-- **Probes beyond the tests** (`scratchpad/qa-r3/scripts/edge_probes.py`, 17 cases under dash, bash and BusyBox sh, read back through the printed line): all pass.
-    - No owner, failing closed: a data path `<R>/data/` with no id; a nested `<R>/data/stockroom-m/sub`; a double slash `<R>//data/…`; a data folder in another root; a data folder named `foo-stockroom-inline`; a data token substituted as an empty string.
-    - `claude`: a data folder beside `cache/` with no record; a plugins root whose name holds a space, `$`, `'` and `"`; `--plugin-dir` pointed at a copy in the active root's own `cache/` (intended, per the plan); the default root with the data token not substituted (by path).
-    - `dev`: `stockroom-inline/` with a trailing slash; folder names with leading and trailing spaces, a backslash, or the name `SR_PATHS`; a Cursor agent that pastes its path on the heredoc line instead of the placeholder; a Cursor rendering with a `CLAUDE_SKILL_DIR` inherited in the environment (ignored).
-    - `cursor`: a Cursor custom-root copy that `CURSOR_PLUGIN_ROOT` holds (unchanged).
-- **Hook agreement.** For a copy proven by rule 1, Step 2 prints the copy's `skills/sr-search`, the same string the Claude SessionStart hook bakes from `${CLAUDE_PLUGIN_ROOT}/skills/sr-search` (live check B).
-- **Docs.** A sweep of `docs/`, README, the other SKILL.md files and the persistent memory-bank files found no stale statement of the owner rule or of the old `SKILL_DIR="…"` line. `docs/` needs no change.
-
-**Gates re-run by QA (`scratchpad/qa-r3/scripts/run_ci.sh`):**
-
-- `make ci`: exit 0. Lint, format-check, lock checks, schema-docs check, JS 134/134, pytest 974 passed and 37 skipped, REUSE compliant. `git status` was clean after the run.
-- `claude plugin validate .`: passes. The only warning is the existing CLAUDE.md one, plus the unrelated README advice.
-- The live shim is still `dev` at `~/git/stockroom`.
-
-**Advisories (non-blocking), for Reflect or a follow-up:**
-
-1. **Two tests pass a different HOME than their paths suggest.** `test_data_folder_in_another_plugins_root_proves_nothing` takes the `home` fixture, and `test_claude_plugin_dir_checkout_in_a_cache_shaped_path_is_dev` builds `tmp_path/"home"/.claude/plugins/data`. Both put the data folder under that `home`, but both pass `tmp_path` to `_run_block` as HOME. The block treats the data path only as a string, so the result does not change. Passing `home` would make the "default plugins root" framing literal.
-2. **The error line reads oddly when no data folder was given.** It prints "the plugin data folder (not given) is not in its plugins root". In other harnesses it also names a Claude Code-only idea. The SKILL.md bullets still tell the agent what to do, so nothing is misrouted. A wording such as "plugin data folder: not given" would read better.
-3. **The heredoc protects only Claude Code's substituted paths.** In other harnesses the agent still writes its path into `SKILL_DIR="<…>"`, so a `$`, a backtick or a `"` in a Cursor path is still parsed by the shell. This problem existed before this PR, the operator limited quoting to the cheap fix, and `systemPatterns.md` states the scope exactly ("the ones it uses"). It could be a follow-up.
-4. **Carried, already accepted.** The live check ran the Claude-rendered fence under sh and bash directly, not through an agent's Bash tool (preflight advisory 4). zsh is still never run, here or in CI. Native Windows falls back to the question (preflight advisory 3). The empty `data/stockroom-inline` folder and the round 3 summary belong in the PR #142 text (preflight advisory 6). The order of rules 2 and 3 is not pinned (plan decision).
+- [ ] Preflight
+- [ ] Build
+- [ ] QA
