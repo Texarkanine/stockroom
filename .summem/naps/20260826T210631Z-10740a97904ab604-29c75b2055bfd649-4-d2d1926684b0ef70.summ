@@ -1,1 +1,0 @@
-Session view: corroborated subagent pills (#msg-N-sa-M) + parent: line, never guessed. ERD edges: -- @rel / -- @rel-none in migrations/*.sql vs the head schema golden; no column docs from migration comments, @doc rejected. From skills/sr-search, root scripts/ is ../../scripts.

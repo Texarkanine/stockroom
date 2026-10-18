@@ -711,26 +711,31 @@ def _launchd_2_1_1_job(home: Path) -> dict:
     }
 
 
-def test_cron_status_says_a_fresh_entry_is_up_to_date(tmp_path: Path) -> None:
+@_FOLDERS
+def test_cron_status_says_a_fresh_entry_is_up_to_date(
+    tmp_path: Path, folder: str
+) -> None:
     """Right after install, status says the entry matches what install
-    writes now (``up-to-date: yes``) and names the home the job carries."""
+    writes now (``up-to-date: yes``) and names the home the job carries,
+    unquoted, even when that home holds a space or ``'``."""
+    home = tmp_path / folder
     runner = FakeCrontab(initial=None)
     cron_install(
         3,
         30,
-        home=tmp_path,
+        home=home,
         crontab_runner=runner,
         which=fake_which,
         daemon_check=lambda: True,
     )
     lines = cron_status(
-        home=tmp_path,
+        home=home,
         crontab_runner=runner,
         daemon_check=lambda: True,
         which=fake_which,
     )
     assert "up-to-date: yes" in lines
-    assert f"entry home: {tmp_path}" in lines
+    assert f"entry home: {home}" in lines
 
 
 def test_cron_status_says_an_older_entry_is_not_up_to_date(tmp_path: Path) -> None:

@@ -74,6 +74,7 @@ How it was built:
 | Makefile, every other recipe | `$(CURDIR)` quoted, or relative paths | works | works | none |
 | Other skills' fences (`sr-query`, `sr-semantic`, `sr-dashboard`, cookbook) | none | no paths | no paths | none |
 | Engine subprocess calls (`doctor`, `engine_env`, `torch_source`, `dashboard`, `shim`) | the engine | argv lists, no shell | same | none |
+| `stockroom doctor smoke`'s printed torch command (`uv pip install torch … --directory <engine>`) | the engine, for the agent to run (Step 6: "relay it and follow it") | **breaks** when run (found by QA) | **breaks** when run | Unit 7 (Build rerun) |
 | launchd's `EnvironmentVariables`, `StandardOutPath` and `StandardErrorPath` | the engine | plist values, no shell | same | none |
 
 Out of scope, and still breaking for the rare characters (operator decision):
@@ -614,3 +615,44 @@ QA compared the Build (a15fd4e, a304d86, 0b12821 and f6bb25f, diffed against 323
 3. **The Make test accepts an empty `PYTHONPATH` for any uv call.** So it would not notice a recipe that lost its `PYTHONPATH=` altogether. Quoting regressions still turn it red, through the exit status or the call count.
 4. **`up-to-date` depends on where this shell finds `uv`.** If two harnesses find `uv` in different folders, each `sr-initialize` run in the other harness reports `no` and asks once more. It settles after one consented re-install, and the question is honest. This needs a note only if users report it.
 5. **Carried and accepted:** zsh is never run. There is no live cron or launchd run (the documented models were tested, and QA read the plist). The `<build>` placeholder in the doctor command is still for the agent to fill in.
+
+## Build rerun (QA run 1, finding 1)
+
+Inventory 1 missed commands that stockroom prints for someone else to run, because its search looked only for code that runs a shell. QA's wider search found one: `stockroom doctor smoke`'s torch remedy. Build re-ran that search over every engine message that puts a value into a command (backtick-wrapped commands, and `--directory`, `--app-dir`, `-r`, `cd` and `install` next to an interpolated path). `doctor.py` is the only hit. The `torch_source` and `shim` messages name paths in prose, and the shim remedies hold no paths.
+
+### 7. Doctor's printed torch command takes the engine path as one word — executable
+
+- Files: `skills/sr-search/tests/test_doctor.py`, `skills/sr-search/src/stockroom/doctor.py`
+1. Stub test: `test_smoke_remedy_command_takes_the_engine_path_as_one_word`, parametrized over `plain`, `Jane Doe` and `O'Brien` (ids `plain`, `space`, `apostrophe`).
+2. Stub interface: none.
+3. Write test and run red:
+   - Patch `doctor.default_app_dir` to `<tmp>/<folder>/stockroom/skills/sr-search`, with no freeze.
+   - Run `run_smoke` with torch absent, and take the command between the backticks.
+   - `shlex.split` must end with `["--directory", "<engine>"]`.
+   - Expected red: `space` and `apostrophe`.
+4. Write code and run green: `shlex.quote(str(app_dir))` in the message, and the docstring says the path is shell-quoted. The existing `--directory {default_app_dir()}` assertion stays green.
+
+### 8. QA advisories 1 and 2 — prose, plus a test guard
+
+- Files: `skills/sr-initialize/SKILL.md`, `skills/sr-search/tests/test_schedule.py`
+1. Step 8: `entry home: unreadable` means the line was edited by hand. Show it to the user, and offer the re-install as for `no`. Prose: no test.
+2. `test_cron_status_says_a_fresh_entry_is_up_to_date` runs over `_FOLDERS`, so the de-quoting of `entry home:` for a home with a space or `'` is pinned. It is a guard, green today.
+
+### 9. Prose and verification
+
+- `systemPatterns.md`, "Paths in shell text are quoted": commands the engine prints for someone to run quote their paths too.
+- Brief AC11: add the doctor's printed command.
+- Run the full `make ci`, and read the whole output.
+
+### Build rerun progress
+
+- [x] 7. Doctor's printed torch command:
+    - Red: 2 failed (`space` splits the path at `--directory`; `apostrophe` gives `ValueError: No closing quotation`), 20 passed, 1 skipped (torch).
+    - Green: `test_doctor.py` and `test_doctor_cli.py` give 26 passed, 1 skipped.
+- [x] 8. QA advisories 1 and 2:
+    - Step 8 now says what `entry home: unreadable` means.
+    - The fresh cron status test runs over `_FOLDERS`, green as a guard: `test_schedule.py` 44 passed.
+- [x] 9. Prose:
+    - `systemPatterns.md`: printed commands quote their paths too.
+    - Brief AC11: the doctor's printed command.
+    - SumMem: 1 note (search printed messages too when auditing shell text), plus the nap the tool asked for.

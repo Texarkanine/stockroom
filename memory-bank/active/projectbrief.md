@@ -74,7 +74,8 @@ A contributor who has a real install and a `dev` shim goes back to the release. 
     - the Step 2 block, Steps 3 to 7, the shim and both hooks (already true);
     - the nightly cron and launchd entries;
     - the Makefile's `shim`, `torch`, `local-engine` and `local-dashboard` targets;
-    - `localdev.sh`'s printed hint.
+    - `localdev.sh`'s printed hint;
+    - `stockroom doctor smoke`'s printed torch command, which `sr-initialize` has the agent run.
 
     Other shell characters (`$`, a backtick, `"`, `\`, `%`) are out of scope.
 12. The nightly job runs against the stockroom home it was installed for. `schedule status` reports an installed entry that differs from the current rendering, and which home it carries. `sr-initialize` then offers to re-install it, with the user's consent.

@@ -50,7 +50,7 @@ Shim, harness hooks (`hooks/*.json`), and nightly scheduler entries each have on
 
 ## Paths in shell text are quoted
 
-Wherever stockroom writes a path into shell text, it is quoted, so a space or `'` in it works. `sr-initialize` Step 2 reads pasted paths from a quoted heredoc and prints a `'`-escaped line. The shim and the scheduler entries use `shlex.quote`. The Makefile recipes double-quote their `$(CURDIR)` paths. Rarer shell characters in folder names (`$`, backtick, `"`, `\`, `%`) are out of scope (operator decision, 2026-10-18).
+Wherever stockroom writes a path into shell text, it is quoted, so a space or `'` in it works. `sr-initialize` Step 2 reads pasted paths from a quoted heredoc and prints a `'`-escaped line. The shim and the scheduler entries use `shlex.quote`. The Makefile recipes double-quote their `$(CURDIR)` paths. Commands printed for someone else to run quote their paths too, such as `doctor smoke`'s torch remedy and `localdev.sh`'s `--plugin-dir` hint. Rarer shell characters in folder names (`$`, backtick, `"`, `\`, `%`) are out of scope (operator decision, 2026-10-18).
 
 ## Read output through one chokepoint
 
