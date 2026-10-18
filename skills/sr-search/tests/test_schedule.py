@@ -8,6 +8,12 @@ platform dispatch refusal. All external effects run through injected
 seams (``crontab``/``launchctl`` runners, ``which``, the daemon check),
 mirroring ``test_doctor.py``'s ``smi_runner`` precedent — no test here
 touches a real crontab, launchd, or PATH.
+
+The run-the-entry tests go one step further: they run the rendered cron
+line and plist in a real ``/bin/sh``, the way each scheduler does, against
+a fake shim in a temporary folder whose name holds a space or ``'``. The
+status tests cover the ``up-to-date`` and ``entry home`` facts, including
+for entries written in the 2.1.1 rendering.
 """
 
 import plistlib
@@ -354,7 +360,12 @@ def test_status_reports_installed_daemon_and_log_facts(tmp_path: Path) -> None:
         which=fake_which,
         daemon_check=lambda: True,
     )
-    lines = cron_status(home=tmp_path, crontab_runner=runner, daemon_check=lambda: True)
+    lines = cron_status(
+        home=tmp_path,
+        crontab_runner=runner,
+        daemon_check=lambda: True,
+        which=fake_which,
+    )
     text = "\n".join(lines)
     assert "installed" in text
     assert "30 3 * * * " in text
@@ -367,7 +378,10 @@ def test_status_reports_not_installed_and_dead_daemon(tmp_path: Path) -> None:
     is reported as a fact (not an error); the log fact is always present."""
     runner = FakeCrontab(initial=None)
     lines = cron_status(
-        home=tmp_path, crontab_runner=runner, daemon_check=lambda: False
+        home=tmp_path,
+        crontab_runner=runner,
+        daemon_check=lambda: False,
+        which=fake_which,
     )
     text = "\n".join(lines)
     assert "not installed" in text
@@ -518,7 +532,7 @@ def test_launchd_status_reads_the_plist(tmp_path: Path) -> None:
     home = tmp_path / "home"
     log_fact = f"log: {home / 'logs' / 'nightly.log'}"
 
-    lines = launchd_status(home=home, agents_dir=agents)
+    lines = launchd_status(home=home, agents_dir=agents, which=fake_which)
     text = "\n".join(lines)
     assert "not installed" in text
     assert log_fact in text
@@ -531,7 +545,7 @@ def test_launchd_status_reads_the_plist(tmp_path: Path) -> None:
         launchctl_runner=FakeLaunchctl(),
         which=fake_which,
     )
-    lines = launchd_status(home=home, agents_dir=agents)
+    lines = launchd_status(home=home, agents_dir=agents, which=fake_which)
     text = "\n".join(lines)
     assert "installed" in text
     assert "03:30" in text
@@ -555,6 +569,255 @@ def test_launchd_install_refuses_when_shim_not_on_path(tmp_path: Path) -> None:
     assert "sr-initialize" in report.detail
     assert not (agents / f"{PLIST_LABEL}.plist").exists()
     assert launchctl.calls == []
+
+
+# ---------------------------------------------------------------------------
+# the rendered entries, run the way each scheduler runs them
+# ---------------------------------------------------------------------------
+
+#: Folder names for the home and shim: a plain one, and the two characters
+#: a real path commonly holds that the entry's shell text must survive.
+_FOLDERS = pytest.mark.parametrize(
+    "folder", ["plain", "Jane Doe", "O'Brien"], ids=["plain", "space", "apostrophe"]
+)
+
+
+def _fake_shim_home(base: Path) -> tuple[Path, schedule.Which]:
+    """Build ``base/stockroom-home`` and a fake shim at ``base/bin/stockroom``.
+
+    The fake prints ``fake stockroom <args> home=<STOCKROOM_HOME or <unset>>``,
+    so a run of the entry shows both what it called and which stockroom home
+    the engine would resolve. Returns the home and a ``which`` that finds
+    only the fake shim (no ``uv``).
+    """
+    home = base / "stockroom-home"
+    home.mkdir(parents=True)
+    shim = base / "bin" / "stockroom"
+    shim.parent.mkdir()
+    shim.write_text(
+        '#!/bin/sh\necho "fake stockroom $* home=${STOCKROOM_HOME-<unset>}"\n',
+        encoding="utf-8",
+    )
+    shim.chmod(0o755)
+    return home, lambda name: str(shim) if name == "stockroom" else None
+
+
+def _nightly_runs(home: Path) -> list[str]:
+    """Return the ``fake stockroom …`` lines in ``home``'s nightly log."""
+    log = home / "logs" / "nightly.log"
+    if not log.exists():
+        return []
+    lines = log.read_text(encoding="utf-8").splitlines()
+    return [line for line in lines if line.startswith("fake stockroom ")]
+
+
+@_FOLDERS
+def test_cron_entry_runs_for_the_install_home(tmp_path: Path, folder: str) -> None:
+    """The installed crontab line, run the way cron runs it (its command
+    part handed to ``/bin/sh -c``, with no environment beyond ``HOME``),
+    calls ingest then embed through the shim, logs both to the install
+    home's nightly log, and hands the engine that same home, even when the
+    home and shim paths hold a space or ``'``."""
+    base = tmp_path / folder
+    home, which = _fake_shim_home(base)
+    runner = FakeCrontab(initial=None)
+    cron_install(
+        3, 30, home=home, crontab_runner=runner, which=which, daemon_check=lambda: True
+    )
+    entry = runner.content.splitlines()[1]
+    command = entry.split(" ", 5)[5]  # everything after the five time fields
+    result = subprocess.run(
+        ["/bin/sh", "-c", command],
+        env={"HOME": str(base)},
+        cwd=base,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, f"entry={entry!r} stderr={result.stderr!r}"
+    assert _nightly_runs(home) == [
+        f"fake stockroom ingest home={home}",
+        f"fake stockroom embed home={home}",
+    ]
+
+
+@_FOLDERS
+def test_launchd_job_runs_for_the_install_home(tmp_path: Path, folder: str) -> None:
+    """The installed plist, run the way launchd runs it (``ProgramArguments``
+    as an argument vector, with only ``HOME`` plus its
+    ``EnvironmentVariables``), calls ingest then embed, logs both to the
+    install home, and hands the engine that same home, even when the paths
+    hold a space or ``'``."""
+    base = tmp_path / folder
+    home, which = _fake_shim_home(base)
+    agents = _agents(tmp_path)
+    launchd_install(
+        3,
+        30,
+        home=home,
+        agents_dir=agents,
+        launchctl_runner=FakeLaunchctl(),
+        which=which,
+    )
+    with (agents / f"{PLIST_LABEL}.plist").open("rb") as fh:
+        data = plistlib.load(fh)
+    result = subprocess.run(
+        data["ProgramArguments"],
+        env={"HOME": str(base), **data["EnvironmentVariables"]},
+        cwd=base,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, f"plist={data!r} stderr={result.stderr!r}"
+    assert _nightly_runs(home) == [
+        f"fake stockroom ingest home={home}",
+        f"fake stockroom embed home={home}",
+    ]
+
+
+# ---------------------------------------------------------------------------
+# status: is the installed entry up to date?
+# ---------------------------------------------------------------------------
+
+
+#: The PATH prefix ``fake_which`` resolves to (shim dir, uv dir, system).
+_FAKE_PATH = "/fake/bin:/fake/uv-bin:/usr/bin:/bin"
+
+
+def _cron_2_1_1_line(home: Path) -> str:
+    """The managed crontab line stockroom 2.1.1 wrote for ``home`` at 03:30
+    under ``fake_which``: no ``STOCKROOM_HOME``, the payload in hand-built
+    single quotes, the log path unquoted."""
+    payload = (
+        f"(date; stockroom ingest && stockroom embed) >> {home}/logs/nightly.log 2>&1"
+    )
+    return f"30 3 * * * PATH={_FAKE_PATH} /bin/sh -c '{payload}'"
+
+
+def _launchd_2_1_1_job(home: Path) -> dict:
+    """The plist stockroom 2.1.1 wrote for ``home`` at 03:30 under
+    ``fake_which``: ``EnvironmentVariables`` holds only ``PATH``."""
+    log = str(home / "logs" / "nightly.log")
+    return {
+        "Label": PLIST_LABEL,
+        "ProgramArguments": [
+            "/bin/sh",
+            "-c",
+            f"(date; stockroom ingest && stockroom embed) >> {log} 2>&1",
+        ],
+        "EnvironmentVariables": {"PATH": _FAKE_PATH},
+        "StartCalendarInterval": {"Hour": 3, "Minute": 30},
+        "StandardOutPath": log,
+        "StandardErrorPath": log,
+    }
+
+
+def test_cron_status_says_a_fresh_entry_is_up_to_date(tmp_path: Path) -> None:
+    """Right after install, status says the entry matches what install
+    writes now (``up-to-date: yes``) and names the home the job carries."""
+    runner = FakeCrontab(initial=None)
+    cron_install(
+        3,
+        30,
+        home=tmp_path,
+        crontab_runner=runner,
+        which=fake_which,
+        daemon_check=lambda: True,
+    )
+    lines = cron_status(
+        home=tmp_path,
+        crontab_runner=runner,
+        daemon_check=lambda: True,
+        which=fake_which,
+    )
+    assert "up-to-date: yes" in lines
+    assert f"entry home: {tmp_path}" in lines
+
+
+def test_cron_status_says_an_older_entry_is_not_up_to_date(tmp_path: Path) -> None:
+    """An entry in the 2.1.1 rendering (no ``STOCKROOM_HOME``, the payload
+    in hand-built single quotes) is reported ``up-to-date: no``, with
+    ``entry home: not set``: such a job ingests into the default home, so
+    ``sr-initialize`` must offer to re-install it."""
+    runner = FakeCrontab(
+        initial=f"{MARKER_BEGIN}\n{_cron_2_1_1_line(tmp_path)}\n{MARKER_END}\n"
+    )
+    lines = cron_status(
+        home=tmp_path,
+        crontab_runner=runner,
+        daemon_check=lambda: True,
+        which=fake_which,
+    )
+    assert "up-to-date: no" in lines
+    assert "entry home: not set" in lines
+
+
+def test_launchd_status_says_a_fresh_job_is_up_to_date(tmp_path: Path) -> None:
+    """Right after install, the launchd status says ``up-to-date: yes`` and
+    names the home the job carries."""
+    agents = _agents(tmp_path)
+    home = tmp_path / "home"
+    launchd_install(
+        3,
+        30,
+        home=home,
+        agents_dir=agents,
+        launchctl_runner=FakeLaunchctl(),
+        which=fake_which,
+    )
+    lines = launchd_status(home=home, agents_dir=agents, which=fake_which)
+    assert "up-to-date: yes" in lines
+    assert f"entry home: {home}" in lines
+
+
+def test_launchd_status_says_an_older_job_is_not_up_to_date(tmp_path: Path) -> None:
+    """A plist in the 2.1.1 shape (``EnvironmentVariables`` holds only
+    ``PATH``) is reported ``up-to-date: no``, with ``entry home: not set``."""
+    agents = _agents(tmp_path)
+    home = tmp_path / "home"
+    with (agents / f"{PLIST_LABEL}.plist").open("wb") as fh:
+        plistlib.dump(_launchd_2_1_1_job(home), fh)
+    lines = launchd_status(home=home, agents_dir=agents, which=fake_which)
+    assert "up-to-date: no" in lines
+    assert "entry home: not set" in lines
+
+
+@pytest.mark.parametrize("scheduler", ["cron", "launchd"])
+def test_status_cannot_judge_an_entry_without_the_shim(
+    tmp_path: Path, scheduler: str
+) -> None:
+    """With an entry installed but no ``stockroom`` on PATH, status cannot
+    render what install would write, so it says ``up-to-date: unknown``
+    rather than guessing."""
+    if scheduler == "cron":
+        runner = FakeCrontab(initial=None)
+        cron_install(
+            3,
+            30,
+            home=tmp_path,
+            crontab_runner=runner,
+            which=fake_which,
+            daemon_check=lambda: True,
+        )
+        lines = cron_status(
+            home=tmp_path,
+            crontab_runner=runner,
+            daemon_check=lambda: True,
+            which=which_without_shim,
+        )
+    else:
+        agents = _agents(tmp_path)
+        launchd_install(
+            3,
+            30,
+            home=tmp_path,
+            agents_dir=agents,
+            launchctl_runner=FakeLaunchctl(),
+            which=fake_which,
+        )
+        lines = launchd_status(
+            home=tmp_path, agents_dir=agents, which=which_without_shim
+        )
+    assert "up-to-date: unknown" in lines
 
 
 # ---------------------------------------------------------------------------

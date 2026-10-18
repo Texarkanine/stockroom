@@ -533,3 +533,14 @@ Dispositions:
 9. **Design idea (session-start `rectify` re-writes a stale entry in place):** not applied.
    - It would write the user's scheduler from a session hook, without consent. The operator decided hooks stay as they are, and Step 8 asks before touching the scheduler.
    - The PR text covers users who never re-run `sr-initialize`. It would add a verb and move the log redirection into Python, and shim refusals on cron would then miss the log. Quoting, plus carrying the home, fixes the defects at lower cost, and Unit 2 gives the stale-entry check without it.
+
+## Build progress
+
+- [x] 1. Nightly entries quote every path and carry the stockroom home:
+    - Red: 6 failed (3 folders × cron and launchd), 30 passed. The failure for `plain` was `home=<unset>`; for `space`, exit 127 and a syntax error; for `apostrophe`, `AssertionError` and an unterminated quote.
+    - Green: 36 passed.
+- [x] 2. `schedule status` says whether the installed entry is up to date:
+    - The refactor (`_cron_entry`, `_launchd_job`, plus an unused `which` on both status functions) kept every test green: 45 passed, counting the empty stubs.
+    - Red: 6 failed (the six new status tests), 36 passed.
+    - Green: 45 passed (`test_schedule.py` and `test_schedule_cli.py`).
+    - The existing status tests now pass `which=fake_which`.
