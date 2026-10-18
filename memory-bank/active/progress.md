@@ -478,3 +478,28 @@ Reassess how each harness exposes its plugin root (`CLAUDE_PLUGIN_ROOT`, `CURSOR
 * Insights
     - With a `'` in the checkout path, `make shim` exits 0 and runs nothing: the two `'` on its recipe line pair up and the whole command becomes one variable assignment. An exit-status check misses this; counting the tool's calls catches it.
     - The nightly failure is silent: cron exits 127 with no log, and nothing in `sr-initialize` or the hooks would notice.
+
+## 2026-10-18 - PREFLIGHT (rework round 4: paths with a space or `'` in shell text) - COMPLETE
+
+* Work completed
+    - Checked the round 4 plan (c0fc32f) against `schedule.py`, `test_schedule.py`, `test_schedule_cli.py`, the Makefile, `scripts/localdev.sh`, `sr-initialize` SKILL.md, `test_initialize_context.py`, `conftest.py`, `home.py`, `ingest/sources.py`, the hooks, the shim template and the docs.
+    - Re-ran the plan's inventory search. It found no new place that breaks for a space or `'`.
+    - Wrote the plan's tests as the plan describes them and ran them on `git archive` copies, with commented scripts under the scratchpad's `preflight-r4/scripts/`:
+        - Today: exactly the planned 14 failures.
+        - Target: 0 failures, and every existing test green.
+        - M1 to M4: exactly their predicted sets.
+        - Poison stand-ins for `uv`, `crontab` and `launchctl` were never reached.
+    - The error line printed the planned text under dash, bash and BusyBox sh, and round 3's BusyBox check passed 5/5.
+    - Result (first line of `.preflight-status`): `FAIL (fixable)`.
+* Decisions made
+    - TDD encoding passes. Units 1 and 2 put their tests first, Unit 3's guard is green by design and comes before the wording change, and Unit 4 is prose. No strike or swap was needed.
+    - Fixable 1: the entries carry only `PATH`, so under cron or launchd the engine resolves `~/.local/share/stockroom`, while the log goes to the custom home. A space in the path almost always comes from `STOCKROOM_HOME` or `XDG_DATA_HOME`, so for most of the users the plan names, the fixed job silently fills a second warehouse. A probe on the planned code confirmed it. The fix is either to carry `STOCKROOM_HOME` in both entries (with a test and a mutant), or to re-scope the claim with the operator.
+* Insights
+    - Advisories:
+        - Existing broken entries are never re-rendered: `status` could report an outdated entry, and Step 8 could re-install it.
+        - The error line still says "install record" in Cursor.
+        - Reuse conftest's `stub_uv`, or say why a log file is used instead.
+        - The Makefile is not a rendered-out artifact, so state the quoting rule as a cross-cutting one.
+        - Reuse `run_r4_variants.py` for the mutation check.
+        - `make shim TAKEOVER=1` with `'` fails with 127; it is not silent.
+    - Radical idea (advisory): a `stockroom schedule run` verb. launchd then runs an argument vector with no shell, cron runs one simple command with two quoted assignments, and `status` can detect drift.

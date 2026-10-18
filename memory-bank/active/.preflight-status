@@ -1,73 +1,94 @@
-PASS WITH ADVISORY
+FAIL (fixable)
 
-Preflight of the Level 2 plan `plugin-root-resolution`, rework round 3: Claude Code's plugin data folder settles the owner, and Step 2 reads pasted paths from a quoted heredoc (tasks.md at 616a9ad). The plan can go to Build as written. Nothing blocks it. The advisories below correct one mutation prediction, one stale acceptance criterion, one unsupported claim, and some details of the live check. One design idea is left for the operator.
+Preflight of the Level 2 plan `plugin-root-resolution`, rework round 4: paths with a space or `'` in shell text (tasks.md at c0fc32f). The quoting design is right: every planned test, red set and mutant behaves exactly as the plan predicts. But Unit 1 does not deliver its stated benefit to most of the users it names. For a custom stockroom home, the fixed nightly job runs against the wrong warehouse. The plan must change before Build: either carry the home into the entry, or re-scope that claim with the operator. Six advisories and one design idea follow.
 
-## Design check by prototype
+## Finding 1 (FAIL, fixable): the fixed nightly job uses the default warehouse, not the user's custom home
 
-All probes are commented scripts under `/tmp/claude-1000/-home-mobaxterm-worktrees-Texarkanine-stockroom-stockroom-claudeboarding/3b628427-7950-4f51-90b9-cfcc5ad0911b/scratchpad/preflight-r3/scripts/`. They read the worktree and write only under `preflight-r3/`. `git status` was clean afterwards.
+What the plan says: "Users whose stockroom home, `XDG_DATA_HOME`, `HOME` or `~/.local/bin` path holds a space or `'` … Their nightly job starts working." Its main example is `~/Library/Application Support` on macOS.
 
-- **The plan's tests, written as the plan describes them.** `build_variants.py` applies the planned `_step2_block` and `_render_claude` changes and adds the five planned test functions. It also builds eight `SKILL.md` variants: today's block, the Unit 1 head, the Target design copied verbatim, and mutants M1 to M5. `run_variants.py` runs the module against each variant with the worktree's engine venv (`-n0`, sh and bash; zsh is not installed, so it skips).
-  - Today's block: exactly 12 planned failures. These are the 3 shell-character cases plus the 2 data-folder install cases and the `--plugin-dir` cache-shaped case, each under sh and bash. The other-root cases, the inherited-variable case and every existing test pass. This matches the plan's Unit 1 red set (6) and its "green today" labels.
-  - The Unit 1 head: exactly the 6 failures that the plan predicts for Unit 2's red run.
-  - Target: 104 passed, 52 skipped, with the extra probes below included.
-  - M1: 8 failures, as planned (shell-character cases plus the inherited variable). M2: 4, as planned. M4: 2, as planned. M5: 2, as planned.
-  - **M3: 6 failures, where the plan predicts 4.** See advisory 1.
-- **BusyBox** (`busybox_target_check.sh`, with `render_both.py`, which substitutes both tokens). The script uses BusyBox sh with BusyBox `grep` and `sed`, and reads the result back through the printed line. It runs 5 cases:
-  - an unrecorded copy whose path holds `'` and a space, with its data folder in the same root: `claude`;
-  - a `--plugin-dir` checkout at a cache-shaped path, with data folder `stockroom-inline`: `dev`;
-  - folder names with `$x`, a backtick and `"`: `dev`, and no `ran` file.
+What happens with the planned code:
 
-  Target: all 5 PASS. Today's block: all 5 FAIL. The `$x` and backtick paths lose characters and no engine is found; `"` is a syntax error.
-- **Extra probes on the target** (`test_x_*`, under sh and bash). Every one gave the expected result:
-  - These data values fail closed (no owner): the bare `<root>/data`, a nested folder, a doubled trailing `//`, an empty value and `/`.
-  - The stderr line shows the data folder it was given, or `(not given)`.
-  - An inherited `CLAUDE_PLUGIN_DATA` labels nothing. This holds under Claude rendering when the data token is not substituted, as well as under Cursor rendering.
-  - A Cursor agent that pastes the path over the token line as well as the placeholder still gets `cursor`.
-  - These folder names are read as data, with no command run: backslash, a leading space, a trailing space, `$(touch ran)`, `";touch ran;"`, `\$x`, and a folder named `SR_PATHS`.
-  - A data folder in the copy's own plugins root, with `'` and a space in the path: `claude`.
-  - Two behaviors that follow from rule 1 and match the plan's stated intent: `--plugin-dir` pointed at an orphaned copy, or at a checkout placed inside the active root's `cache/`, gives `claude`. The installed plugin's hooks re-bake the shim at the next session, or replace it once the folder is gone, so neither case gets stuck.
-- **Claude Code docs re-read.** The [loading reference](https://code.claude.com/docs/en/plugins/loading) and the [components page](https://code.claude.com/docs/en/plugins/components#path-variables-and-persistent-data) confirm every quote in the plan's Evidence: the `@inline` origin and its manifest name, the reserved origin names, `data/<plugin-id>/` under the same plugins root as `cache/`, the id sanitizing rule, and forward slashes on Windows. The components page also says the data folder "is created when first referenced".
-- **This machine.** The live shim header is `dev` at `/home/mobaxterm/git/stockroom/skills/sr-search`, as verification step 4 expects. User settings enable only `visual-explainer@visual-explainer-marketplace`.
+- `cron_install` and `launchd_install` bake the log path from the install-time `home_dir()`. That path honors `STOCKROOM_HOME` and `XDG_DATA_HOME`.
+- The entry carries only `PATH`. cron and launchd pass neither variable. So at 03:30, `stockroom ingest` and `stockroom embed` resolve `~/.local/share/stockroom`.
+- Probe (`/tmp/claude-1000/-home-mobaxterm-worktrees-Texarkanine-stockroom-stockroom-claudeboarding/3b628427-7950-4f51-90b9-cfcc5ad0911b/scratchpad/preflight-r4/scripts/custom_home_probe.py`, run on the planned `schedule.py` in a scratch copy):
+    - Setup: `STOCKROOM_HOME`, and separately `XDG_DATA_HOME`, set to `<home>/Library/Application Support`.
+    - Result: both entries exit 0, and the log lands in the custom home.
+    - But the fake shim asks the engine's own `resolve_home()` which home it would use, and under the scheduler's environment the answer is `<home>/.local/share/stockroom` (source `default`).
 
-## Checks
+Why this matters for this round:
 
-- **TDD plan encoding: pass.** Units 1 and 2 are executable: a user sees a wrong owner, or a block that fails or runs a command. In each, the steps stub the tests and run them red before any change to the fence. The new tests run the shipped fence and read the result back through the printed line. They go red when behavior breaks, not when wording changes.
-  - The `--plugin-dir` test reads the manifest name. It goes red on a plugin rename, which really would break rule 3, so it is a contract test, not a change-detector.
-  - Units 3 and 4 are prose and owe no tests. Unit 5 is verification.
-  - No strike or swap was needed.
-- **Convention compliance: pass.** The tests stay in `test_initialize_context.py`. They keep the `shell`, `step2`, `home` and `repo_root` fixtures, the helper style, the docstrings and the minimal subprocess environment. No new files, so REUSE is unaffected.
-  - `_fill_placeholder` leaves the new lines alone. No new line has both `<` and `>` except the placeholder; `<<'SR_PATHS'` has no `>`.
-  - The target holds no `$<digit>`, `$ARGUMENTS` or ``!` ``, so argument substitution and skill command injection cannot touch it.
-- **Dependency impact: pass.** No code or test outside `test_initialize_context.py` parses the Step 2 fence. `test_skill_hygiene.py` excludes `sr-initialize`. Nothing under `docs/` or `skills/*/references/` states the owner rule; the troubleshooting page's manual install lets the user choose the owner. The hooks and `shim rectify` do not read `PLUGIN_DATA`, so the operator's second failure principle holds by construction. The scratch `render_step2.py`, which keys on `SKILL_DIR=`, is replaced as the plan says.
-- **Conflict detection: pass.** Nothing in stockroom uses the plugin data folder; stockroom home stays XDG. No public interface changes: the printed line keeps its shape, and only the stderr text changes, which no test asserted before.
-- **Completeness: pass, with advisory 2.** Each operator decision maps to a step:
-  - using `${CLAUDE_PLUGIN_DATA}`: Unit 2;
-  - failures visible and fall-back only: the stderr line, the unsubstituted-token tests and AC10;
-  - the cheap quoting fix: Unit 1;
-  - hooks unchanged: no hook step;
-  - no Cursor questions: the Cursor-rendered tests are unchanged and pass.
+- A space in the path almost always comes from `STOCKROOM_HOME` or `XDG_DATA_HOME`. Linux and macOS user names cannot hold a space, so `HOME` and `~/.local/bin` rarely do.
+- So for most of the named group, the plan turns a job that fails into one that silently ingests and embeds into a second warehouse. On the first night that is a full ingest, plus an embed of all history.
+- Meanwhile the real warehouse goes stale, and the log in the real home reports success. That signal misleads more than today's missing log does.
+- The bug is not new. Every custom-home user has it today, with plain paths too. This round extends it to more users, and its claim is false for them.
 
-## Advisories (non-blocking)
+Known fixes. The planner picks one with the operator:
 
-1. **Correct M3's expected red set.** Loosening rule 1 to `*/data/?*` also turns `test_claude_plugin_dir_checkout_in_a_cache_shaped_path_is_dev` red under sh and bash. That test's data folder, `<home>/.claude/plugins/data/stockroom-inline`, also matches, so the loosened rule 1 says `claude`. M3's set is therefore both other-root cases plus that case: 6 node ids, not 4. Without this correction, `mutation_check_r3.py`'s "exactly the tests listed" check reports a mismatch that is not a defect.
-2. **Brief AC3 goes stale, and Unit 4 does not touch it.** AC3 says that a checkout three levels below a folder named `cache`, outside the default folders, "gets no owner: in Claude Code the user decides". After this round, with substitution, that checkout is `dev` (rule 3). It is `claude` (rule 1) only when it sits inside the active plugins root's own `cache/`. Add AC3 to Unit 4 next to AC7, and mention the inside-the-cache exception there and in UC3.
-3. **The native Windows claim is not supported. Drop it from the narrative.** The tasks.md intro lists "a native Windows custom plugins root" among the cases this round helps. On native Windows, Claude Code's Bash tool is Git Bash. There, `cd C:/… && pwd` prints the MSYS form `/c/…`. So `APP_DIR`, and with it `${CACHE_DIR%/*}`, never equals the substituted `C:/…/data/<id>`, and rule 1 cannot match. The block falls through to the question, which fails closed, and Step 5 already puts native Windows out of scope. This is an inference from known MSYS behavior; nobody tested it on Windows here. If Windows ever matters, compare Claude Code's own strings instead: derive the root from `${PLUGIN_DATA%/data/*}` and check that `$SKILL_DIR` starts with `<root>/cache/`. That form also does not depend on how `pwd` writes paths.
-4. **Live check (Verification 3), three details.**
-   - Move `installed_plugins.json` aside only for the second run of the rendered fence, after Load B's session. A session started without the record does not load the plugin at all, because plugins load at session start from that record.
-   - For each load, assert `APP_DIR` as well as `OWNER`, and check that the transcript's fence holds `<<'SR_PATHS'`. That proves the worktree's text rendered from the expected copy, and not from some other copy named `stockroom`, such as a claude.ai-synced one in the scratch root.
-   - The check runs the fence under sh and bash, not through an agent's Bash tool. Claude Code's Bash tool routinely runs heredocs, so this is low risk. Say so in the PR.
-5. **SumMem.** The existing note that `SKILL_DIR="${CLAUDE_SKILL_DIR}"` "lets the shell re-parse the pasted path" stops being true after Build. Unit 4's note, or a second note, should say that Step 2 now reads both pasted paths from a quoted heredoc.
-6. **Side effect, for the PR text.** The data folder "is created when first referenced", so a `--plugin-dir` session leaves an empty `<plugins root>/data/stockroom-inline`. No uninstall ever removes it, because `@inline` is never uninstalled. It is harmless, but the plan's note mentions only removal on uninstall.
-7. **Small test hardening (optional).** `_run_block`'s readback subprocess has no `cwd`. If a future change broke the printed line's quoting, the backtick case would create `ran` in pytest's working folder (`skills/sr-search`) instead of `tmp_path`, leaving a stray file in the checkout. The `APP_DIR` assertion would still fail. Passing `cwd=home` to the readback keeps the side effect inside `tmp_path`.
-8. **Reuse the preflight scripts.** The plan's BusyBox step renders through `render_block.py`, which substitutes only `${CLAUDE_SKILL_DIR}`. So under BusyBox it would test only the record path, never rules 1 or 3. `preflight-r3/scripts/busybox_target_check.sh`, with `render_both.py`, covers rules 1 and 3 and the shell-character names. `run_variants.py` is a working template for `mutation_check_r3.py`, with M3 corrected as in advisory 1.
+- **(a) Carry the resolved home in the entry.**
+    - cron: `PATH=<q> STOCKROOM_HOME=<q home> /bin/sh -c <q payload>`.
+    - launchd: `EnvironmentVariables: {PATH, STOCKROOM_HOME}`.
+    - Test: extend the Unit 1 fake shim to print `${STOCKROOM_HOME-<unset>}`, and assert that it equals the install home for all three folders. It is red today for all three, plain included. Add a mutant that drops the variable.
+    - Plain entries then change bytes. Re-state the "byte for byte" claim and the status output. The existing entry tests use substring checks; confirm `test_install_on_empty_crontab_writes_exactly_the_managed_block` stays green.
+    - Decide whether `XDG_CONFIG_HOME` and the ingest-root overrides (`STOCKROOM_CURSOR_ROOT`, `STOCKROOM_CURSOR_CHATS_ROOT`, `STOCKROOM_CLAUDE_ROOT`) ride along. The scheduler drops them the same way.
+- **(b) Re-scope, with operator sign-off.**
+    - Keep Unit 1 as planned, and remove the "nightly job starts working" claim for custom homes.
+    - List the custom-home bug among the out-of-scope items and in the PR #142 text.
 
-## Radical idea (advisory, not applied): print the proof, not just the owner
+Either way, existing entries are never re-rendered (advisory 1). That matters more under (a).
 
-Today, why a label was chosen exists only as stderr prose and in the reader's head. Step 7 has to ask whether the block printed the owner or someone filled it in. The plan leaves the order of rules 2 and 3 unpinned, because no outcome tells them apart.
+## What preflight verified (all as the plan predicts)
 
-- **Sketch.** Each owner assignment in the fence also sets `PROOF`: `path`, `synced`, `data-root`, `record`, `data-inline`, `cursor-root` or `layout`, and stays empty when nothing proves the owner. The printed line becomes `APP_DIR='…'; OWNER='…'; PROOF='…'`.
-  - `_run_block` returns the triple, and each test asserts which rule decided. A recorded copy in the active root asserts `data-root`, which pins rule 1 before 2. A recorded copy in another root, loaded with `stockroom-inline` data, asserts `record`, which pins 2 before 3.
-  - Step 2's empty-owner bullets and Step 7's mislabel row key on `PROOF`. When `OWNER` is set and `PROOF` is empty, the agent or the user filled it in, and that never counts as proof.
-  - The stderr line becomes a courtesy, not the only signal.
-- **Payoff.** Every outcome explains itself to the agent and the user, which is the operator's first failure principle made mechanical. Rule order becomes testable, and Step 7's "an owner you filled in yourself does not count" stops being a judgment call.
-- **Cost.** Every existing expected tuple gets a third field (mechanical), plus prose edits in Steps 2 and 7. The printed line's shape changes, which is the agent's interface. No consumer outside this skill reads it.
+Scripts are under `/tmp/claude-1000/-home-mobaxterm-worktrees-Texarkanine-stockroom-stockroom-claudeboarding/3b628427-7950-4f51-90b9-cfcc5ad0911b/scratchpad/preflight-r4/scripts/`. Each one is commented.
+
+- **Inventory re-run** (`inventory_search.sh`): the plan's search, over all tracked product files and every bash fence in skills and references. It found the same places. Every engine subprocess call is an argv list. Both hooks double-quote the root. The other Makefile recipes quote `$(CURDIR)` or use relative paths. No new place breaks for a space or `'`.
+- **The plan's tests, written as tasks.md describes them** (`planned_tests/`), run on `git archive HEAD` copies by `run_r4_variants.py`:
+    - **Today: exactly the planned 14 failures.** Those are cron 2, launchd 2, make 8 and hint 2. The causes match the plan:
+        - exit 127, "Doe/bin:/usr/bin:/bin: not found";
+        - `AssertionError` from `_sh_wrap`;
+        - dash syntax errors;
+        - `shim`-`apostrophe` exits 0 with 0 uv calls;
+        - `ValueError: No closing quotation`.
+    - The Unit 3 guard is green today, as planned.
+    - **Target: 119 passed, 34 skipped (zsh), 0 failed.** Every existing test in the three modules stays green.
+    - **M1 4, M2 2, M3 2, M4 4.** Each mutant turns red exactly its predicted set.
+    - **Safety:** a poison log for `uv`, `crontab` and `launchctl` stayed empty. No real one was reached.
+- **Neighbouring modules on the planned code** (`run_neighbours.sh`): 121 passed, 1 skipped. These are the modules that read the Makefile, `localdev.sh`, `SKILL.md` or the schedule: backfill, dispatcher CLI, doctor, skill hygiene, schedule CLI, shim, shim runtime, licensing and torch source.
+- **Error line** (`error_line_render.sh`, on the whole target fence): dash, bash and BusyBox sh print the planned text in both branches and in a Cursor rendering. zsh is not installed.
+- **BusyBox:** round 3's `busybox_target_check.sh` passes 5/5 on the target `SKILL.md`.
+
+## TDD Plan Encoding: pass
+
+- Units 1 and 2 put stub tests and red runs before code.
+- Unit 3's guard test is green by design. The plan says so and explains it. It comes before the wording change.
+- Unit 4 is prose.
+- No change-detector is scheduled, so no strike or swap was made.
+
+## Advisories
+
+1. **Existing broken entries stay broken.** Step 8 skips scheduling when `status` says installed. Space-home cron and launchd entries exist today, so only a manual `stockroom schedule install` heals them. A cheap, testable option:
+    - `cron_status` and `launchd_status` compare the installed entry with what install would render now, for the same time.
+    - They report, for example, `installed (outdated: re-run stockroom schedule install)`.
+    - Step 8 treats that report as not installed.
+
+    This is an operator call, because the plan put it out of scope.
+2. **The new error line still names a Claude Code idea in Cursor:** "and no install record lists it". Cursor has no install record. `SKILL.md` already says "nothing proves who installed it" (the empty-`OWNER` bullet), and reusing those words would meet round 3's QA advisory 2 fully. This is wording only.
+3. **DRY:** `conftest.py` already has `stub_uv`. It prints labelled `UV_PYTHONPATH:` and `UV_ARG:` lines, and its bin dir is under `tmp_path/stub-bin`, outside the odd folder. Two options, and both work:
+    - Reuse it, and count its lines in make's stdout.
+    - Keep the planned log-file fake, and say in the module why: it is independent of make's echoed recipe lines.
+4. **systemPatterns placement:** "Rendered-out artifacts" covers the shim, the hooks and the scheduler entries. The Makefile is not one of them. State the quoting rule as a short cross-cutting sentence, and include Step 2's heredoc and printed line among the quoted places.
+5. **Reuse the preflight runner for verification step 1:** `run_r4_variants.py` already builds the today, target and M1 to M4 copies, uses poison stand-ins, and checks each red set. Its result here was `ALL OK`. If finding 1 goes the (a) way, add the new mutant to it.
+6. **Evidence note, no change needed:** with `'` in the path, `make shim TAKEOVER=1` (and `local-engine`) does not exit 0 silently. The trailing `--takeover` becomes the command and fails with 127. Only plain `make shim` is silent. The call-count assertion catches both.
+
+## Radical idea (advisory): let the engine own the nightly run, and pass the environment as data
+
+Sketch:
+
+- Add an engine verb, for example `stockroom schedule run`. It appends the date line to `<home>/logs/nightly.log` itself, then runs ingest and embed. That is today's `(date; ingest && embed) >> log 2>&1`, moved into tested Python.
+- **launchd** becomes `ProgramArguments: [<absolute shim path>, "schedule", "run"]`, with `EnvironmentVariables: {PATH, STOCKROOM_HOME}`. No shell runs at all, so nothing needs quoting.
+- **cron** becomes the simple command `PATH=<q> STOCKROOM_HOME=<q> stockroom schedule run`. A prefix assignment is valid on a simple command, so the `/bin/sh -c` wrapper and the nested quoting go away. Two `shlex.quote` values remain.
+- `schedule status` can then compare the installed entry with the current rendering. That heals advisory 1's broken entries at the next `sr-initialize`.
+
+Cost:
+
+- A shim refusal (engine gone, uv missing) happens before Python runs, so on cron it no longer reaches the log. On launchd, `StandardErrorPath` still catches it. On cron, keep a single-level `>> <q log> 2>&1` on the simple command, or have the shim template append its refusals to the log.
+- It is a new verb, plus a change to the systemPatterns line "scheduler entries invoke the shim by name". The shim is still invoked by name on cron.
