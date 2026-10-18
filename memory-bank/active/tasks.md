@@ -498,6 +498,7 @@ No new technology - validation not required.
 - [x] Preflight (PASS WITH ADVISORY, second run)
 - [x] Build
 - [ ] QA (run 1, 2026-10-18: FAIL (fixable). Build reruns for finding 1, then QA runs again.)
+    - Run 2, 2026-10-18: FAIL (fixable). Build reruns for run 2's finding 1 (one test assertion), then QA runs again.
 
 ## Preflight (first run, c0fc32f): dispositions
 
@@ -663,3 +664,36 @@ Inventory 1 missed commands that stockroom prints for someone else to run, becau
     - `make ci` passes: pytest 1008 passed and 38 skipped (+5), JS 134/134, REUSE compliant. The log was read in full (`scratchpad/build-r4-rerun-ci.log`).
     - `claude plugin validate .` passes, with only the existing CLAUDE.md warning.
     - Live shim: unchanged.
+
+## QA results, rework round 4, run 2 (FAIL (fixable))
+
+QA compared the Build rerun (07c803d and e727cc6, diffed against f6bb25f) with Units 7 to 9 and QA run 1's finding and advisories. QA also re-checked round 4 as a whole against brief AC11 and AC12. The fix for run 1's finding is correct. But it makes one older test wrong, and that test now fails for the contributors this round is for. The pre-mortem puts anything QA finds into this round, so Build must rerun.
+
+**Finding 1 (blocking, Regression and test integrity): an older doctor test still asserts the unquoted command, so it fails from a checkout whose path holds a space or `'`.**
+
+- Where: `skills/sr-search/tests/test_doctor.py`, `test_smoke_torch_missing_without_freeze_names_pip_remedy`, the line `assert f"--directory {default_app_dir()}" in line`.
+- What happens: `default_app_dir()` is the engine folder of the checkout running the tests. Since Unit 7, the remedy prints that path through `shlex.quote`. For a safe path nothing changes, so the test passes here and in CI. For `/…/Jane Doe/…` the line now holds `--directory '/…/Jane Doe/…'`, and the unquoted substring is not in it.
+- Evidence (`scratchpad/qa-r4b/scripts/odd_checkout_suite.py`: `git archive` copies under `plain`, `Jane Doe` and `O'Brien`, a scratch `HOME`, and poison `crontab` and `launchctl`):
+    - At HEAD, the whole engine suite, compared with the `plain` copy: this test is the only failure the folder name causes, in both odd folders. The other 1007 tests pass from both. `test_licensing.py::test_reuse_lint_passes` also failed, in the `plain` and `O'Brien` copies. It fails in `plain` too, so the folder name does not cause it. `make ci` in the worktree passes `reuse lint`.
+    - At f6bb25f, before the Build rerun, `test_doctor.py` and `test_doctor_cli.py` pass from all three folders. So the rerun turned this test red.
+- Why it blocks:
+    - Round 4 exists so that contributors with such a checkout path can work (Unit 3, AC11). After the rerun, `make test` and `make ci` fail for exactly those contributors, and they passed before.
+    - The assertion now checks the old, unquoted shape. It passes only where the path needs no quotes.
+    - Unit 7's note that this assertion "stays green" is true only for such paths.
+- Fix for Build:
+    - In that test, compare against the quoted form, `f"--directory {shlex.quote(str(default_app_dir()))}"`. It is red-first only from an odd-path checkout, so run `odd_checkout_suite.py` against the fixed HEAD as the check: 0 failures that only the odd folders have.
+    - Alternatively, drop the line. The new parametrized test already pins `--directory <engine>` as two shell words.
+
+**What QA checked, and passed:**
+
+- **Unit 7, the doctor fix.** `doctor.py` puts `shlex.quote(str(app_dir))` in the remedy, and its docstring says so. The new parametrized test matches the plan, and it uses the existing `stockroom_home`, `_import_absent` and `_GoodEncoder` helpers.
+    - Beyond `shlex.split`, QA ran the printed command itself in dash, bash and BusyBox sh, with `<build>` filled in and a fake `uv` first on `PATH` (`scratchpad/qa-r4b/scripts/doctor_remedy_run_probe.py`). For `plain`, `Jane Doe` and `O'Brien`, `uv` got `--directory <engine>` as one word, with exit 0: 9 of 9.
+- **Inventory 1, re-run wider.** QA ran a new `ast` sweep over every non-docstring string and f-string in `src/stockroom` (`printed_commands_ast.py`, 35 hits, each read). It also swept every `echo` and `printf` line in `scripts/`, `hooks/`, the Makefile and the skill fences (`printed_commands_shell.sh`). The doctor remedy is the only command with an interpolated path in it. Every other message names a path in prose, or prints a command with no path. This confirms the Build rerun's claim.
+- **Unit 8.** The Step 8 `unreadable` clause matches `_cron_entry_home`. The fresh cron status test runs over `_FOLDERS`, and M9 shows it pins the de-quoting.
+- **Unit 9.** The `systemPatterns.md` clause, the AC11 bullet and the Inventory 1 row are in place and agree with the code.
+- **Mutation check reproduces** (`qa-r4b/scripts/rerun_mutation.sh`, into a new work dir; log `qa-r4b/run/mutation.log`, read whole): base 0, M1 4, M2 2, M3 4, M4 4, M5 7, M6 5, M7 4, M8 4, M9 2, M10 2. Each red set was exactly the predicted one. The poison log stayed empty: ALL OK.
+- **Step 2 unchanged** (`qa-r4b/scripts/step2_rechecks.sh`): the error line prints the planned text under dash, bash and BusyBox sh, and BusyBox passed 5 of 5.
+- **Docs** (`qa-r4b/scripts/docs_sweep.sh`): no doc shows the remedy command or contradicts the `status` facts.
+- **Gates** (`qa-r4b/scripts/run_ci.sh`; log `qa-r4b/run/ci.log`, read whole): `make ci` exit 0. Lint, format-check, both lock checks and schema-docs passed. JS 134/134, pytest 1008 passed and 38 skipped, REUSE compliant. Afterwards, `git status` was clean and the live shim was still `dev` at `~/git/stockroom` (`qa-r4b/scripts/state_check.sh`). `claude plugin validate .` was not re-run, because the operator's rules for this run forbid touching `~/.claude`. No manifest, hook or frontmatter changed in the rerun.
+
+**Advisories (non-blocking), carried for Reflect:** QA run 1 advisories 3 (the Make test accepts an empty `PYTHONPATH`), 4 (`up-to-date` depends on where this shell finds `uv`) and 5 (zsh is never run, there is no live cron or launchd run, and `<build>` stays a placeholder) are unchanged.

@@ -593,3 +593,21 @@ Reassess how each harness exposes its plugin root (`CLAUDE_PLUGIN_ROOT`, `CURSOR
     - Took QA advisories 1 and 2 now, because each is one line and pins round 4's own behavior. Advisories 3 to 5 are left for Reflect.
 * Insights
     - An audit of "paths in shell text" has to cover text that is printed for someone else to run, not only code that runs a shell. Inventory 1's search missed `doctor smoke`'s command for exactly that reason.
+
+## 2026-10-18 - QA run 2 (rework round 4, after the Build rerun) - COMPLETE
+
+* Work completed
+    - Compared the Build rerun (07c803d and e727cc6, against f6bb25f) with Units 7 to 9 and QA run 1's finding and advisories.
+    - Probes, all as commented scripts under `scratchpad/qa-r4b/scripts/`:
+        - `printed_commands_ast.py` and `printed_commands_shell.sh`: the doctor remedy is the only printed command with an interpolated path.
+        - `doctor_remedy_run_probe.py`: the printed command, run in dash, bash and BusyBox sh with a fake `uv`, passes the engine path as one word for 3 folders (9 of 9).
+        - `rerun_mutation.sh`: M1 to M10 exactly as predicted, ALL OK.
+        - `step2_rechecks.sh`: the error line is unchanged under 3 shells, and BusyBox 5 of 5.
+        - `odd_checkout_suite.py`: the engine suite from `git archive` copies under `plain`, `Jane Doe` and `O'Brien`, at HEAD and at f6bb25f.
+    - Gates: `make ci` exit 0 (pytest 1008 passed and 38 skipped, JS 134/134, REUSE). The worktree stayed clean, and the live shim is unchanged.
+    - Result (`.qa-validation-status`): `FAIL`, fixable. Build reruns.
+* Decisions made
+    - Finding 1 blocks. `test_smoke_torch_missing_without_freeze_names_pip_remedy` still asserts the unquoted `--directory {default_app_dir()}`. Since Unit 7 it fails from a checkout whose path holds a space or `'`, and it passed there at f6bb25f. In the whole suite, it is the only failure such a path causes. The fix is one assertion: compare with the `shlex.quote`-d form, or drop the line.
+    - QA run 1 advisories 3 to 5 stay open for Reflect.
+* Insights
+    - Once a path is quoted, an older test that checks the raw path as a substring still passes wherever paths are safe (this worktree, CI), and fails only in the setup the fix is for. Running the suite once from a copy under an odd folder name is what showed it.
