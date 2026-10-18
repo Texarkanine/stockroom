@@ -252,8 +252,10 @@ def test_smoke_torch_missing_without_freeze_names_pip_remedy(
     assert str(default_app_dir()) in line
     assert "uv pip install torch --no-config --index" in line
     # --directory, not --project: uv pip only finds the engine venv via the
-    # working directory, so a --project remedy would be a dead command.
-    assert f"--directory {default_app_dir()}" in line
+    # working directory, so a --project remedy would be a dead command. The
+    # path is shell-quoted, so this also holds from a checkout whose path
+    # holds a space or '.
+    assert f"--directory {shlex.quote(str(default_app_dir()))}" in line
     assert "ensure-env" not in line
 
 
