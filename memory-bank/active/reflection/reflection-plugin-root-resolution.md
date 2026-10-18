@@ -262,3 +262,85 @@ Follow-up candidates:
 - Native Windows: compare Claude Code's own strings, deriving the root from `PLUGIN_DATA` and matching `SKILL_DIR`'s prefix, instead of `pwd` output (preflight advisory 3).
 - For the PR text: a `--plugin-dir` session leaves an empty `data/stockroom-inline` folder (preflight advisory 6).
 - Carried over: the `doctor probe` mis-owned-shim fact, `stockroom shim triage`, zsh in CI, and Cursor UAT.
+
+# Rework round 4: paths with a space or `'`, and the nightly job's home (2026-10-18)
+
+## Summary
+
+A path that holds a space or `'` now works everywhere stockroom writes it into shell text. That covers the nightly cron and launchd entries, four Makefile recipes, `localdev.sh`'s hint and `doctor smoke`'s printed torch command; Step 2, the shim and both hooks already worked. The nightly entries also carry the stockroom home they were installed for, and `schedule status` reports entries that are out of date. QA passed on run 3, after two fixable failures. `make ci` is green (pytest 1008 passed, 38 skipped).
+
+## Requirements vs Outcome
+
+- **The operator's rule: fix what is common and breaking, everywhere.**
+    - Inventory 1 lists every place a path meets shell text, with a result for a space and for `'`. The places that broke are fixed.
+    - The rare characters (`$`, a backtick, `"`, `\`, `%`) are listed per place, not fixed.
+    - The Cursor half of round 3's concern turned out to be safe already for the common characters, because the path sits in double quotes. A guard test now pins it.
+- **QA follow-up 1 from round 3 is done.** The error line says "nothing proves who installed it", which holds in every harness. When a data folder was given, the line names it and where it was expected.
+- **Added, from preflight:**
+    - The nightly job never received `STOCKROOM_HOME` or `XDG_DATA_HOME`. Every custom-home user's job has filled the default warehouse since scheduling shipped.
+    - Both entries now carry the resolved home (AC12). Inventory 2 records every variable the engine reads, and why `XDG_CONFIG_HOME` and the one-shot source overrides are not carried.
+- **Added so the fix reaches existing users:**
+    - `status` reports `up-to-date:` and `entry home:`.
+    - Step 8 offers a consented re-install of an out-of-date entry.
+    - Users who never re-run `sr-initialize` keep their old entry; that goes in the PR text.
+- **Added from QA:** `doctor smoke`'s printed command, the Step 8 `unreadable` clause, and the odd-home status guard.
+
+## Plan Accuracy
+
+- **The first plan's premise was wrong.** It fixed the shell parsing, and preflight then asked what the engine sees when the job runs. For the users the plan named, the quoting-only fix would have turned a job that fails visibly into one that silently writes to the wrong warehouse.
+- **Inventory 1 defined "instance" by code shape** (code that runs a shell). It missed a command stockroom prints for the agent to run. QA run 1 found it with a search over printed messages.
+- **Rerun 1 left an older assertion behind** that expected the unquoted path. It passes here and in CI, and fails only from a checkout whose path is odd. QA run 2 found it by running the whole suite from `Jane Doe` and `O'Brien` copies.
+- **Mutant counts shifted twice as tests grew stronger:** M5 and M6 at 5, M3 and M4 at 4. Both times there were more red tests, never fewer. The predictions were corrected, and the runs repeated.
+
+## Build & QA Observations
+
+- Each executable unit went red, then green, as predicted.
+- The Make test, a stub `uv` with a call count, caught the case where `make shim` exits 0 having run nothing.
+- **Three QA runs.** The two failures were small, and both were completeness gaps in this round's own bug class, not defects in what was built.
+- **Process slips, each fixed before it mattered:**
+    - a dropped `def` line while adding a stub;
+    - a probe script with dead lines, rewritten before it ran;
+    - a mutation run with stale predictions.
+
+## Insights
+
+### Technical
+
+- **Neither cron nor launchd loads a shell profile.** An unattended job sees only what its entry carries. Any setting the engine reads from the environment silently falls back to its default there. That is a wrong warehouse, not an error.
+- **A fix to a generated artifact reaches existing users only when something re-renders it.** Status that compares the installed artifact with the current rendering, plus a consented re-install, is the cheap way to reach them.
+- **`shlex.quote` leaves a string of safe characters unchanged.** So a quoting fix renders byte for byte as before in the common case, and existing exact-match tests stay green.
+- **Two `'` on one shell line pair up.** In a Makefile recipe, a path with one `'` used in two places can turn the whole command into a variable assignment that exits 0 and runs nothing. Count the calls; do not trust the exit status.
+
+### Process
+
+- **Define an "instance" by what a user or agent meets, not by code shape.** "Paths in shell text" includes text printed for someone else to run. Search messages as well as code that runs a shell.
+- **When a fix targets odd paths, run the test suite itself from such a path.** A copy of the repo under `Jane Doe` and `O'Brien` is cheap. It needs `git init` plus `git add -A`, or the comparison against a `plain` copy, because of the `reuse` test (SumMem note).
+- **For an unattended process, ask what it sees when it runs:** its environment, its working folder, its PATH. Do not stop at how its text is parsed. That question produced this round's most important fix.
+
+### Million-Dollar Question
+
+If "every `stockroom` run resolves the same home and engine, however it was started" had been a foundational assumption:
+
+- **The shim would bake the home** the same way it bakes `APP_DIR`, as `STOCKROOM_HOME="${STOCKROOM_HOME:-<baked>}"`. The cron entry, a launchd job, a Cursor opened from the Dock and an interactive shell would then all agree, and no entry would need to carry the home.
+- **The scheduler entry would be one simple command with no inner shell,** such as preflight's `stockroom schedule run`, with the log written by Python. launchd would get a plain argument vector, and cron one quoted word.
+- **Every printed or generated command would go through one helper** (`shlex.join`). Quoting would then be structural rather than remembered per call site.
+
+Round 4's fixes are compatible with that shape. They carry the home in the entry rather than in the shim, which keeps this round's change within the scheduler and leaves the shim contract unchanged.
+
+Follow-up candidates:
+
+- Bake the home into the shim, and add `stockroom schedule run` (the shape above).
+- QA run 1 advisories 3 to 5:
+    - the Make test accepts an empty `PYTHONPATH`;
+    - `up-to-date` depends on where the shell finds `uv`;
+    - zsh never runs, there is no live cron or launchd run, and `<build>` stays a placeholder.
+- A CI job, or a `make` target, that runs the suite from a checkout path holding a space and `'`.
+- For the PR text:
+    - custom-home users' nightly jobs have used the default warehouse; re-run `sr-initialize`, or `stockroom schedule install --time HH:MM` (without `--time` it resets to 03:30);
+    - the empty `data/stockroom-inline` folder.
+- Carried over:
+    - preflight's `PROOF` idea;
+    - native Windows;
+    - the `doctor probe` mis-owned-shim fact;
+    - `stockroom shim triage`;
+    - Cursor UAT, including whether Cursor pastes `${CURSOR_PLUGIN_ROOT}` into its hooks as text.

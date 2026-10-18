@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: plugin-root-resolution
-**Phase:** QA - COMPLETE (PASS)
+**Phase:** REFLECT - COMPLETE (rework round 4: paths with a space or `'`, and the nightly job's home)
 
 ## What Was Done
 - Rounds 1 to 3 are complete through Reflect. Round 3's plan and its build and QA records are in git at 0e458e9.
@@ -65,9 +65,18 @@
 - Build rerun: M3 and M4 were first predicted at 2 red, and turned 4. The fresh status test, now run over odd homes, also catches them, and both mutants really break the entry. The predictions were corrected and the check repeated.
 - One editing slip in Unit 4: adding the guard stub removed the next test's `def` line. It was restored before any run or commit.
 
+## Reflection (rework round 4)
+- QA PASS on run 3. Runs 1 and 2 failed, fixable: `doctor smoke`'s printed torch command, then an older test asserting the unquoted path. Both were fixed in Build reruns.
+- The reflection is appended to `memory-bank/active/reflection/reflection-plugin-root-resolution.md`.
+- Persistent files: `productContext`, `systemPatterns` and `techContext` skipped. `systemPatterns` already carries the quoting and nightly-environment contracts from Build.
+- Left for the operator:
+    - the follow-up candidates in the reflection (bake the home into the shim; `stockroom schedule run`; QA run 1 advisories 3 to 5; a suite run from an odd checkout path in CI);
+    - the PR #142 text items below;
+    - pushing `claudeboarding`.
+
 ## For the PR #142 text (collected)
 - Custom-home users' nightly jobs have used the default warehouse. They should re-run `sr-initialize`, or `stockroom schedule install --time HH:MM` with their own time (without `--time` it resets to 03:30).
 - The empty `data/stockroom-inline` folder (round 3, preflight advisory 6).
 
 ## Next Step
-- QA runs again (run 3), in a subagent.
+- Operator runs `/niko-archive`. Then push `claudeboarding` (with the operator's go-ahead), so PR #142 picks up rounds 1 to 4.

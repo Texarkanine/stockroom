@@ -635,3 +635,14 @@ Reassess how each harness exposes its plugin root (`CLAUDE_PLUGIN_ROOT`, `CURSOR
     - QA run 1 advisories 3 to 5 stay open for Reflect, plus one harness note.
 * Insights
     - In a `git archive` copy with only an empty `.git` marker, `reuse lint` walks untracked files. The coverage test's `make sync` creates `skills/sr-search/.venv` in the copy, so the reuse test fails whenever that test runs first under xdist. That is why the failure seemed to depend on the copy. To get stable odd-folder runs, make the copy a real git repository.
+
+## 2026-10-18 - REFLECT (rework round 4) - COMPLETE
+
+* Work completed
+    - Appended the round 4 reflection to `reflection/reflection-plugin-root-resolution.md`.
+    - Persistent files: `productContext`, `systemPatterns` and `techContext` skipped. Build already put the quoting and nightly-environment contracts into `systemPatterns`.
+    - SumMem: QA run 3's note on running the suite from `git archive` copies, plus its nap.
+* Insights
+    - Define a bug class by what the user or agent meets (text a shell will parse, printed or run), not by code shape.
+    - For unattended processes, ask what the process sees when it runs, not only how its text is parsed. That question turned up the wrong-warehouse bug.
+    - When a fix targets odd paths, run the test suite from such a path.
