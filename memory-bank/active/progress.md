@@ -519,3 +519,27 @@ Reassess how each harness exposes its plugin root (`CLAUDE_PLUGIN_ROOT`, `CURSOR
     - Reuse `stub_uv` and preflight's mutation runner.
 * Insights
     - A fix to a generated artifact reaches existing users only if something re-renders it. Here that is `status` reporting drift on the next `sr-initialize` run.
+
+## 2026-10-18 - PREFLIGHT (rework round 4, revised plan) - COMPLETE
+
+* Work completed
+    - Checked the revised round 4 plan (db85232) against `schedule.py`, `test_schedule.py`, `test_schedule_cli.py`, `home.py`, `warehouse.py`, `config.py`, the shim template, the Makefile, `scripts/localdev.sh`, `conftest.py`, `test_initialize_context.py`, `sr-initialize` SKILL.md and the scheduling and troubleshooting docs.
+    - Wrote the plan's tests as tasks.md describes them and ran them on `git archive` copies, with commented scripts under the scratchpad's `preflight-r4b/scripts/`:
+        - Today: exactly the planned 22 failures.
+        - Target: 125 passed, 34 skipped (zsh), 0 failed; neighbouring modules 121 passed, 1 skipped.
+        - M1 to M4, M7 and M8: exactly their predicted sets. M5 and M6: 4 each, not the predicted 3.
+        - The poison stand-ins for `uv`, `crontab` and `launchctl` were never called.
+    - The revised error line printed the planned text under dash, bash and BusyBox sh. Round 3's BusyBox check passed 5 of 5.
+    - Result (first line of `.preflight-status`): `PASS WITH ADVISORY`.
+* Decisions made
+    - TDD encoding passes. No strike or swap was needed. Unit 2's extraction of `_cron_entry` and `_launchd_job` in its stub step is a behavior-preserving refactor under green tests.
+* Insights
+    - Advisories:
+        - M5 and M6 each also turn the "older" status test red, because without `STOCKROOM_HOME` the plain-home rendering equals 2.1.1's. Expect 4 each.
+        - On launchd, `status` never names the home the installed job serves, so Step 8 cannot tell the user what differs before a re-install that may move the job to another warehouse. Cron shows it in the entry.
+        - The idempotency paragraph in `SKILL.md` still says "installed → skip scheduling".
+        - "Run `stockroom schedule install` again" resets a custom time; say `--time HH:MM`.
+        - Add the up-to-date check to the troubleshooting entry for a nightly job that updates nothing.
+        - Put `stub_uv` first on PATH in the Make tests, so no recipe can reach the real uv.
+        - Inventory 2 covers only the engine's own reads; library variables such as `HF_HOME` are also dropped (not breaking).
+    - Radical idea (advisory): parse the entry's facts (time, home, PATH), print `entry home:` and the reason for `no`, and let session-start `shim rectify` re-render an entry whose home and time still match.

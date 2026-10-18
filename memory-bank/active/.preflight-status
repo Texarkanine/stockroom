@@ -1,94 +1,74 @@
-FAIL (fixable)
+PASS WITH ADVISORY
 
-Preflight of the Level 2 plan `plugin-root-resolution`, rework round 4: paths with a space or `'` in shell text (tasks.md at c0fc32f). The quoting design is right: every planned test, red set and mutant behaves exactly as the plan predicts. But Unit 1 does not deliver its stated benefit to most of the users it names. For a custom stockroom home, the fixed nightly job runs against the wrong warehouse. The plan must change before Build: either carry the home into the entry, or re-scope that claim with the operator. Six advisories and one design idea follow.
+Preflight of the Level 2 plan `plugin-root-resolution`, rework round 4, revised plan (tasks.md at db85232). The plan can go to Build as written. Preflight wrote the planned tests as tasks.md describes them, then ran them against today's code, the planned code and all eight mutants. Every result matched the plan except one prediction: the M5 and M6 red sets are each one test larger than predicted, which is the safe direction. Seven advisories and one design idea follow.
 
-## Finding 1 (FAIL, fixable): the fixed nightly job uses the default warehouse, not the user's custom home
+## What preflight verified
 
-What the plan says: "Users whose stockroom home, `XDG_DATA_HOME`, `HOME` or `~/.local/bin` path holds a space or `'` … Their nightly job starts working." Its main example is `~/Library/Application Support` on macOS.
+The scripts are commented, in `/tmp/claude-1000/-home-mobaxterm-worktrees-Texarkanine-stockroom-stockroom-claudeboarding/3b628427-7950-4f51-90b9-cfcc5ad0911b/scratchpad/preflight-r4b/scripts/`. They ran only on `git archive HEAD` copies under `/tmp/claude-1000/-home-mobaxterm-worktrees-Texarkanine-stockroom-stockroom-claudeboarding/3b628427-7950-4f51-90b9-cfcc5ad0911b/scratchpad/preflight-r4b/work/`, never in the worktree. Poison stand-ins for `uv`, `crontab` and `launchctl` sat first on PATH, and their log stayed empty.
 
-What happens with the planned code:
-
-- `cron_install` and `launchd_install` bake the log path from the install-time `home_dir()`. That path honors `STOCKROOM_HOME` and `XDG_DATA_HOME`.
-- The entry carries only `PATH`. cron and launchd pass neither variable. So at 03:30, `stockroom ingest` and `stockroom embed` resolve `~/.local/share/stockroom`.
-- Probe (`/tmp/claude-1000/-home-mobaxterm-worktrees-Texarkanine-stockroom-stockroom-claudeboarding/3b628427-7950-4f51-90b9-cfcc5ad0911b/scratchpad/preflight-r4/scripts/custom_home_probe.py`, run on the planned `schedule.py` in a scratch copy):
-    - Setup: `STOCKROOM_HOME`, and separately `XDG_DATA_HOME`, set to `<home>/Library/Application Support`.
-    - Result: both entries exit 0, and the log lands in the custom home.
-    - But the fake shim asks the engine's own `resolve_home()` which home it would use, and under the scheduler's environment the answer is `<home>/.local/share/stockroom` (source `default`).
-
-Why this matters for this round:
-
-- A space in the path almost always comes from `STOCKROOM_HOME` or `XDG_DATA_HOME`. Linux and macOS user names cannot hold a space, so `HOME` and `~/.local/bin` rarely do.
-- So for most of the named group, the plan turns a job that fails into one that silently ingests and embeds into a second warehouse. On the first night that is a full ingest, plus an embed of all history.
-- Meanwhile the real warehouse goes stale, and the log in the real home reports success. That signal misleads more than today's missing log does.
-- The bug is not new. Every custom-home user has it today, with plain paths too. This round extends it to more users, and its claim is false for them.
-
-Known fixes. The planner picks one with the operator:
-
-- **(a) Carry the resolved home in the entry.**
-    - cron: `PATH=<q> STOCKROOM_HOME=<q home> /bin/sh -c <q payload>`.
-    - launchd: `EnvironmentVariables: {PATH, STOCKROOM_HOME}`.
-    - Test: extend the Unit 1 fake shim to print `${STOCKROOM_HOME-<unset>}`, and assert that it equals the install home for all three folders. It is red today for all three, plain included. Add a mutant that drops the variable.
-    - Plain entries then change bytes. Re-state the "byte for byte" claim and the status output. The existing entry tests use substring checks; confirm `test_install_on_empty_crontab_writes_exactly_the_managed_block` stays green.
-    - Decide whether `XDG_CONFIG_HOME` and the ingest-root overrides (`STOCKROOM_CURSOR_ROOT`, `STOCKROOM_CURSOR_CHATS_ROOT`, `STOCKROOM_CLAUDE_ROOT`) ride along. The scheduler drops them the same way.
-- **(b) Re-scope, with operator sign-off.**
-    - Keep Unit 1 as planned, and remove the "nightly job starts working" claim for custom homes.
-    - List the custom-home bug among the out-of-scope items and in the PR #142 text.
-
-Either way, existing entries are never re-rendered (advisory 1). That matters more under (a).
-
-## What preflight verified (all as the plan predicts)
-
-Scripts are under `/tmp/claude-1000/-home-mobaxterm-worktrees-Texarkanine-stockroom-stockroom-claudeboarding/3b628427-7950-4f51-90b9-cfcc5ad0911b/scratchpad/preflight-r4/scripts/`. Each one is commented.
-
-- **Inventory re-run** (`inventory_search.sh`): the plan's search, over all tracked product files and every bash fence in skills and references. It found the same places. Every engine subprocess call is an argv list. Both hooks double-quote the root. The other Makefile recipes quote `$(CURDIR)` or use relative paths. No new place breaks for a space or `'`.
-- **The plan's tests, written as tasks.md describes them** (`planned_tests/`), run on `git archive HEAD` copies by `run_r4_variants.py`:
-    - **Today: exactly the planned 14 failures.** Those are cron 2, launchd 2, make 8 and hint 2. The causes match the plan:
-        - exit 127, "Doe/bin:/usr/bin:/bin: not found";
-        - `AssertionError` from `_sh_wrap`;
-        - dash syntax errors;
-        - `shim`-`apostrophe` exits 0 with 0 uv calls;
-        - `ValueError: No closing quotation`.
-    - The Unit 3 guard is green today, as planned.
-    - **Target: 119 passed, 34 skipped (zsh), 0 failed.** Every existing test in the three modules stays green.
-    - **M1 4, M2 2, M3 2, M4 4.** Each mutant turns red exactly its predicted set.
-    - **Safety:** a poison log for `uv`, `crontab` and `launchctl` stayed empty. No real one was reached.
-- **Neighbouring modules on the planned code** (`run_neighbours.sh`): 121 passed, 1 skipped. These are the modules that read the Makefile, `localdev.sh`, `SKILL.md` or the schedule: backfill, dispatcher CLI, doctor, skill hygiene, schedule CLI, shim, shim runtime, licensing and torch source.
-- **Error line** (`error_line_render.sh`, on the whole target fence): dash, bash and BusyBox sh print the planned text in both branches and in a Cursor rendering. zsh is not installed.
-- **BusyBox:** round 3's `busybox_target_check.sh` passes 5/5 on the target `SKILL.md`.
+- **The planned tests** (`planned_tests/`, run by `run_r4b_variants.py`). The full output is in `/tmp/claude-1000/-home-mobaxterm-worktrees-Texarkanine-stockroom-stockroom-claudeboarding/3b628427-7950-4f51-90b9-cfcc5ad0911b/scratchpad/preflight-r4b/variants.log`.
+    - **Today: exactly the planned 22 failures.**
+        - Unit 1, 6: `plain` sees `home=<unset>`; cron `space` exits 127; cron `apostrophe` raises `AssertionError`; launchd `space` and `apostrophe` are dash syntax errors.
+        - Unit 2, 6: `cron_status` and `launchd_status` take no `which` yet.
+        - Make, 8: `shim`-`apostrophe` exits 0 with no uv call.
+        - Hint, 2: `ValueError: No closing quotation` and a four-word split.
+        - The Unit 4 guard is green, as planned.
+    - **Target: 125 passed, 34 skipped (zsh is not installed), 0 failed.** The target is the plan's Target design, plus the two up-to-date helpers written from Unit 2 step 4. Every existing test in the three modules stays green, including the exact-payload test and the plist-shape test.
+    - **Neighbours on the planned code: 121 passed, 1 skipped (torch is not installed).** These are the schedule CLI, backfill, dispatcher CLI, doctor, skill hygiene, shim, shim runtime, licensing and torch source modules.
+    - **Mutants:** M1 4, M2 2, M3 2, M4 2, M7 4 and M8 4, each exactly its predicted set. M5 and M6 turn 4 tests red each, not 3 (advisory 1).
+- **`stub_uv` reuse works.** Its labelled lines parse cleanly out of make's stdout, and `UV=` reaches the recursive `shim` call of `local-engine` (2 calls).
+- **Error line** (`error_line_render.sh`, on the target `SKILL.md`). dash, bash and BusyBox sh print the same text.
+    - Without a data folder, and in Cursor: "… is laid out like an installed plugin outside the default plugins folders, and nothing proves who installed it".
+    - With a data folder: the same, then "; its plugin data folder <folder> is not in <plugins root>/data".
+    - The printed `APP_DIR=…; OWNER=…` line stays valid for a path that holds `'` and a space.
+- **BusyBox** (round 3's `busybox_target_check.sh`, on the target `SKILL.md`): 5 of 5 pass.
+- **Inventory 1.** No product file has changed since the first round 4 preflight re-ran the search (`git diff c0fc32f..HEAD` touches only `memory-bank/active/`), so that result stands.
+- **Inventory 2.** Checked against `src/stockroom` (`os.environ`, `Path.home`, `config.py`). It is accurate for the engine's own reads. Advisory 7 covers the rest.
+- **Assumptions in the design hold.** `warehouse` re-exports `HOME_ENV_VAR` from `stockroom.home`. `stockroom.shim` already uses `shlex`. The live shim header says owner `dev`, baked to `~/git/stockroom` (read with `grep`, not changed).
 
 ## TDD Plan Encoding: pass
 
-- Units 1 and 2 put stub tests and red runs before code.
-- Unit 3's guard test is green by design. The plan says so and explains it. It comes before the wording change.
-- Unit 4 is prose.
-- No change-detector is scheduled, so no strike or swap was made.
+- Units 1, 2 and 3 put stub tests and a red run before production code.
+- Unit 2's stub step extracts `_cron_entry` and `_launchd_job` with real code. That is a behavior-preserving refactor under Unit 1's green tests. The new up-to-date behavior is still written after its tests go red.
+- Unit 4's guard is green by design, says so, and comes before the wording change. The wording is prose.
+- Unit 3 is contributor tooling. Its tests run the shipped Makefile and `localdev.sh`, and go red only when a path breaks them, so they are not change-detectors.
+- No change-detector, and no contract test outside this product's published contract, is scheduled. No strike or swap was made.
 
 ## Advisories
 
-1. **Existing broken entries stay broken.** Step 8 skips scheduling when `status` says installed. Space-home cron and launchd entries exist today, so only a manual `stockroom schedule install` heals them. A cheap, testable option:
-    - `cron_status` and `launchd_status` compare the installed entry with what install would render now, for the same time.
-    - They report, for example, `installed (outdated: re-run stockroom schedule install)`.
-    - Step 8 treats that report as not installed.
+1. **The mutation table under-predicts M5 and M6 by one test each.** Without `STOCKROOM_HOME`, the current rendering for a plain home is byte for byte the 2.1.1 rendering. So that scheduler's "older" status test also gets `up-to-date: yes`, and goes red. The correct red sets:
+    - M5, 4 tests: the 3 cron entry cases and `test_cron_status_says_an_older_entry_is_not_up_to_date`.
+    - M6, 4 tests: the 3 launchd entry cases and `test_launchd_status_says_an_older_job_is_not_up_to_date`.
 
-    This is an operator call, because the plan put it out of scope.
-2. **The new error line still names a Claude Code idea in Cursor:** "and no install record lists it". Cursor has no install record. `SKILL.md` already says "nothing proves who installed it" (the empty-`OWNER` bullet), and reusing those words would meet round 3's QA advisory 2 fully. This is wording only.
-3. **DRY:** `conftest.py` already has `stub_uv`. It prints labelled `UV_PYTHONPATH:` and `UV_ARG:` lines, and its bin dir is under `tmp_path/stub-bin`, outside the odd folder. Two options, and both work:
-    - Reuse it, and count its lines in make's stdout.
-    - Keep the planned log-file fake, and say in the module why: it is independent of make's echoed recipe lines.
-4. **systemPatterns placement:** "Rendered-out artifacts" covers the shim, the hooks and the scheduler entries. The Makefile is not one of them. State the quoting rule as a short cross-cutting sentence, and include Step 2's heredoc and printed line among the quoted places.
-5. **Reuse the preflight runner for verification step 1:** `run_r4_variants.py` already builds the today, target and M1 to M4 copies, uses poison stand-ins, and checks each red set. Its result here was `ALL OK`. If finding 1 goes the (a) way, add the new mutant to it.
-6. **Evidence note, no change needed:** with `'` in the path, `make shim TAKEOVER=1` (and `local-engine`) does not exit 0 silently. The trailing `--takeover` becomes the command and fails with 127. Only plain `make shim` is silent. The call-count assertion catches both.
+    The extra red test is correct. It shows that the "older" fixtures copy the 2.1.1 rendering exactly. Verification step 1 should expect these sets, not the table's 3.
+2. **On launchd, `status` does not show which home the installed job serves. So Step 8's consent is uninformed in the case the plan itself worries about.** Probe: `/tmp/claude-1000/-home-mobaxterm-worktrees-Texarkanine-stockroom-stockroom-claudeboarding/3b628427-7950-4f51-90b9-cfcc5ad0911b/scratchpad/preflight-r4b/scripts/status_home_visibility_probe.py`. It installs for home A (`…/Library/Application Support/stockroom`), then runs status as a shell that resolves home B (the default).
+    - cron: the `installed:` line shows `STOCKROOM_HOME='<A>'`, and `log:` shows B. The agent can name both to the user.
+    - launchd: `installed: nightly at 03:30 (jp.ne.cani.stockroom.nightly)`, `up-to-date: no`, `log: <B>`. Nothing names A.
+    - Example: a macOS user whose Cursor was opened from the Dock has no `STOCKROOM_HOME` in its shell. Step 8 there would offer a re-install that moves the job from the real warehouse to the default one. The plan's Challenges bullet "Re-installing can move the nightly job to another warehouse" relies on "Step 8 tells the user what differs". That holds on cron only.
+    - Cheap fix: when an entry is installed, status adds a fact such as `entry home: <home>`. It reads the home from `STOCKROOM_HOME` in the entry or plist, or, for a 2.1.1 entry, from its log path. Step 8 then names both homes when they differ. This needs one more test per scheduler.
+3. **The idempotency paragraph near the top of `SKILL.md` still says "`stockroom schedule status` says installed → skip scheduling".** Unit 5 changes only Step 8's paragraph. Update both, or the skill contradicts itself.
+4. **"Run `stockroom schedule install` again" resets a custom time to 03:30.** Unit 5's sentence for the scheduling doc says this, and so does the collected PR text. Say `stockroom schedule install --time HH:MM`, with the entry's current time, as Step 8 does.
+5. **The troubleshooting entry "Nightly schedule installed but nothing updates"** (`docs/user-guide/troubleshooting/index.md`) is where a custom-home user with a stale warehouse will look. One line there that points to `up-to-date: no` and the re-install would reach them.
+6. **Make-test hardening.** The Unit 3 tests rely on `UV=` alone to keep the real `uv` out of the recipes. If a recipe ever bypassed `$(UV)`, `make local-dashboard` would run the real `stockroom dashboard --replace` and replace the operator's live dashboard. Also put the `stub_uv` bin dir first on the subprocess `PATH`. Today no recipe bypasses `$(UV)`: the poison `uv` was never called.
+7. **Inventory 2 should state where its search stopped.** It lists the engine's own `os.environ` reads. cron and launchd also drop variables that libraries read. Examples are `HF_HOME`, where `sentence-transformers` caches the embedding model, and uv's `UV_*` settings. With a custom `HF_HOME`, the first nightly embed downloads the model again into `~/.cache/huggingface`. That does not break the job, so it is out of scope by the operator's rule. But the inventory claims every variable the nightly job needs, so it should name this boundary.
 
-## Radical idea (advisory): let the engine own the nightly run, and pass the environment as data
+Minor: the existing status tests call `cron_status` and `launchd_status` without `which`. After Unit 2 they read the real PATH through `shutil.which` (read-only). Nothing asserts on the result, but injecting `fake_which` would keep them hermetic.
+
+## Radical idea (advisory): read the entry's facts, and let the session hook heal the entry
 
 Sketch:
 
-- Add an engine verb, for example `stockroom schedule run`. It appends the date line to `<home>/logs/nightly.log` itself, then runs ingest and embed. That is today's `(date; ingest && embed) >> log 2>&1`, moved into tested Python.
-- **launchd** becomes `ProgramArguments: [<absolute shim path>, "schedule", "run"]`, with `EnvironmentVariables: {PATH, STOCKROOM_HOME}`. No shell runs at all, so nothing needs quoting.
-- **cron** becomes the simple command `PATH=<q> STOCKROOM_HOME=<q> stockroom schedule run`. A prefix assignment is valid on a simple command, so the `/bin/sh -c` wrapper and the nested quoting go away. Two `shlex.quote` values remain.
-- `schedule status` can then compare the installed entry with the current rendering. That heals advisory 1's broken entries at the next `sr-initialize`.
+- `stockroom.schedule` parses the installed entry into facts: its time, home and PATH.
+    - cron: `shlex.split` the command part, and read the `PATH=` and `STOCKROOM_HOME=` assignments. For a 2.1.1 entry, the home is the log path without `/logs/nightly.log`.
+    - launchd: read `EnvironmentVariables` and `StandardOutPath`.
+- `status` prints `entry home: …`, and gives a reason with the verdict: `up-to-date: no (home)`, `(path)` or `(rendering)`. Step 8 names both homes when they differ (advisory 2), and asks only in that case.
+- `shim rectify`, which already re-bakes the shim at every session start, also calls a never-raising `schedule heal`. When the entry's home and time equal the session's own resolution, and only the rendering differs, it re-renders the entry in place.
+    - Example: a 2.1.1 entry for a custom home logs to A. A session with `STOCKROOM_HOME=A` heals it, and the entry then carries A.
+    - A session that resolves another home leaves the entry alone. Healing never moves an entry to another home.
+- This reaches, at their next session and with no question, the users the plan accepts it cannot reach: "users who never re-run `sr-initialize` keep today's entry".
 
 Cost:
 
-- A shim refusal (engine gone, uv missing) happens before Python runs, so on cron it no longer reaches the log. On launchd, `StandardErrorPath` still catches it. On cron, keep a single-level `>> <q log> 2>&1` on the simple command, or have the shim template append its refusals to the log.
-- It is a new verb, plus a change to the systemPatterns line "scheduler entries invoke the shim by name". The shim is still invoked by name on cron.
+- A crontab write, or a launchd bootout and bootstrap, from a session hook. The hook must stay bounded in time and must never raise an error.
+- A consent decision for the operator: re-rendering an entry the user already approved, at the same time and for the same home.
+- Parsing tests for both entry shapes on both schedulers.

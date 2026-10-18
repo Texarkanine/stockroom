@@ -100,6 +100,8 @@ cron and launchd load no shell profile. cron gives a job `HOME`, `LOGNAME`, `SHE
 | `STOCKROOM_AI_TRACKING_DB` | forces one enrichment DB | dropped | none: documented "for tests or one-shots" |
 | `STOCKROOM_CURSOR_STATE_VSCDB` | the backfill source | not used | none: backfill is never scheduled |
 
+Where this search stops: it covers only the variables stockroom's own code reads. cron and launchd also drop the variables libraries read. For example, with a custom `HF_HOME`, the nightly embed downloads the embedding model again, once, into the default cache. That does not break the job, so it is out of scope (preflight 2, advisory 7).
+
 The home is carried always, not only when it is custom. The entry then states which warehouse it serves, and it agrees with its own log path by construction. A user who later moves their home re-installs, which is the same as today for the log path, and Unit 2's `status` reports that case as out of date.
 
 ### Evidence that shaped the plan
@@ -176,6 +178,11 @@ Notes on the scheduler design:
 - `launchd_status` compares the plist with `_launchd_job(…)` for its own interval.
 - The result is `unknown` when the shim is not on `PATH`, because then nothing can be rendered. It is `no` when the managed line's time fields do not parse.
 - Both functions take an injectable `which` (default `shutil.which`), like the install functions.
+- When an entry is installed, `status` also prints `entry home: <path>`: the `STOCKROOM_HOME` the installed job carries (preflight 2, advisory 2).
+  - It prints `entry home: not set` for an entry that carries none, such as every 2.1.1 entry. Such a job uses `~/.local/share/stockroom`.
+  - It prints `entry home: unreadable` for a cron line that `shlex.split` cannot parse.
+  - Cron reads the value from the line's `STOCKROOM_HOME=` word, and launchd from `EnvironmentVariables`.
+  - With this line beside `log:`, which shows the home `status` itself used, the agent can tell the user whether a re-install would move the job to another warehouse. On launchd nothing else shows it.
 
 **Step 8 of `sr-initialize`:**
 
@@ -219,10 +226,11 @@ The cases:
 
 **Unit 2: `schedule status` says whether the installed entry is up to date** (`test_schedule.py`).
 
-- **Cron, fresh.** `cron_install`, then `cron_status` with the same runner, `which` and home → the lines include `up-to-date: yes`.
-- **Cron, older.** A crontab whose managed block holds the 2.1.1 rendering for the same home and fake `which` (no `STOCKROOM_HOME`, single-quoted payload, written out in the test) → `up-to-date: no`.
-- **launchd, fresh.** `launchd_install`, then `launchd_status` with the same `which` → `up-to-date: yes`.
-- **launchd, older.** A plist in the 2.1.1 shape (`EnvironmentVariables` holds only `PATH`) → `up-to-date: no`.
+- **Cron, fresh.** `cron_install`, then `cron_status` with the same runner, `which` and home → the lines include `up-to-date: yes` and `entry home: <home>`.
+- **Cron, older.** A crontab whose managed block holds the 2.1.1 rendering for the same home and fake `which` (no `STOCKROOM_HOME`, single-quoted payload, written out in the test) → `up-to-date: no` and `entry home: not set`.
+- **launchd, fresh.** `launchd_install`, then `launchd_status` with the same `which` → `up-to-date: yes` and `entry home: <home>`.
+- **launchd, older.** A plist in the 2.1.1 shape (`EnvironmentVariables` holds only `PATH`) → `up-to-date: no` and `entry home: not set`.
+- **Existing status tests** pass `which=fake_which`, so they no longer read the real `PATH` (preflight 2, minor note). Their assertions are unchanged.
 - **No shim on PATH.** For both schedulers (parametrized `cron` and `launchd`), an installed entry with `which_without_shim` → `up-to-date: unknown`.
 - Red today: all 6, because there is no such fact.
 - **Unchanged:** not installed → no `up-to-date:` line. The existing status tests keep passing.
@@ -259,8 +267,8 @@ Checkout folders, parametrized: `plain`, `Jane Doe`, `O'Brien`, with ids as abov
 | M2 | the cron `PATH=` value is not quoted | 2: cron space and apostrophe |
 | M3 | the cron `STOCKROOM_HOME=` value is not quoted | 2: cron space and apostrophe |
 | M4 | `_sh_wrap` goes back to `'{payload}'` with its assert | 2: cron space and apostrophe (the quoted log path now holds `'`) |
-| M5 | no `STOCKROOM_HOME` in the cron entry | 3: all cron entry cases. The cron "fresh" status test stays green, because status renders the same way. |
-| M6 | no `STOCKROOM_HOME` in the plist | 3: all launchd entry cases |
+| M5 | no `STOCKROOM_HOME` in the cron entry | 4: all 3 cron entry cases, plus the cron "older" status test. The mutant then renders the 2.1.1 entry byte for byte (preflight 2, advisory 1). The cron "fresh" test stays green, because status renders the same way. |
+| M6 | no `STOCKROOM_HOME` in the plist | 4: all 3 launchd entry cases, plus the launchd "older" status test (same reason) |
 | M7 | status says `up-to-date: yes` for any installed entry | 4: both "older" cases and both "no shim" cases |
 | M8 | the Makefile's `shim` recipe has `--app-dir $(CURDIR)/$(ENGINE)` unquoted | 4: `shim` and `local-engine`, for space and apostrophe |
 
@@ -331,6 +339,7 @@ Checkout folders, parametrized: `plain`, `Jane Doe`, `O'Brien`, with ids as abov
      - compare the line with `_cron_entry(…)` for `_path_prefix(which)`;
      - append `up-to-date: yes|no|unknown`.
    - `launchd_status` does the same against `_launchd_job(…)` for the plist's interval.
+   - Both append `entry home: <path>|not set|unreadable`, as in the target design.
    - Update both docstrings and the `status` help text in `_build_parser`.
    - Re-run until green.
 
@@ -348,7 +357,7 @@ Checkout folders, parametrized: `plain`, `Jane Doe`, `O'Brien`, with ids as abov
 3. Write tests and run red:
    - Make:
      - Copy `repo_root / "Makefile"` into `<tmp>/<folder>/stockroom/`.
-     - Run make with `cwd` there, `UV=str(stub_uv / "uv")`, and `env={"PATH": os.environ["PATH"], "HOME": str(tmp_path)}`.
+     - Run make with `cwd` there, `UV=str(stub_uv / "uv")`, and `env={"PATH": f"{stub_uv}{os.pathsep}{os.environ['PATH']}", "HOME": str(tmp_path)}`. With `stub_uv` first on `PATH`, a recipe that ever skipped `$(UV)` still could not reach the real `uv` and replace the live dashboard (preflight 2, advisory 6).
      - Assert per the behaviors.
    - Hint:
      - Make `<tmp>/<folder>/stockroom`.
@@ -382,7 +391,7 @@ Checkout folders, parametrized: `plain`, `Jane Doe`, `O'Brien`, with ids as abov
 
 - Files:
   - `skills/sr-initialize/SKILL.md`
-  - `docs/user-guide/load/schedule.md`
+  - `docs/user-guide/load/schedule.md`, `docs/user-guide/troubleshooting/index.md`
   - `memory-bank/systemPatterns.md`
   - `memory-bank/active/projectbrief.md`
   - `.summem/notes/*` (written only through `.summem/summem note`)
@@ -390,13 +399,17 @@ Checkout folders, parametrized: `plain`, `Jane Doe`, `O'Brien`, with ids as abov
 
 1. `SKILL.md`:
    - Step 2, the Claude Code sub-bullet under the empty-`OWNER` bullet: replace "The block's error line shows the plugin data folder it was given." with "When Claude Code wrote a plugin data folder into the block, the error line names it and the folder it was expected in."
-   - Step 8, the `status` paragraph: add the `up-to-date:` fact.
+   - The opening "Idempotent by design" paragraph: "`stockroom schedule status` says installed → skip scheduling" becomes "says installed and up to date → skip scheduling" (preflight 2, advisory 3).
+   - Step 8, the `status` paragraph: add the `up-to-date:` and `entry home:` facts.
      - `yes`: the step is done.
-     - `no`: the entry was written by an older stockroom, or for another stockroom home or `PATH`. Tell the user what it is, and offer to re-install it at the time it already has, with `stockroom schedule install --time HH:MM`. Re-install only with their consent.
+     - `no`: the entry was written by an older stockroom, or for another stockroom home or `PATH`.
+       - Tell the user what differs. Compare `entry home:` (the home the job uses now; `not set` means `~/.local/share/stockroom`) with `log:` (the home a re-install would use).
+       - Offer to re-install it at the time it already has, with `stockroom schedule install --time HH:MM`. Re-install only with their consent.
      - `unknown`: the `stockroom` command is not on PATH; go back to Step 7.
 2. `docs/user-guide/load/schedule.md`, after the `install` paragraph:
    - The entry carries the stockroom home it was installed for, because cron and launchd do not load your shell profile.
-   - If you change `STOCKROOM_HOME` or `XDG_DATA_HOME`, or `status` says `up-to-date: no`, run `stockroom schedule install` again.
+   - If you change `STOCKROOM_HOME` or `XDG_DATA_HOME`, or `status` says `up-to-date: no`, run `stockroom schedule install --time HH:MM` again with your time. Without `--time`, install uses 03:30 (preflight 2, advisory 4).
+   - `docs/user-guide/troubleshooting/index.md`, "Nightly schedule installed but nothing updates": also check `up-to-date:` and `entry home:` in `status`, and re-install when it says `no` (preflight 2, advisory 5).
 3. `systemPatterns.md` (preflight advisory 4):
    - A short cross-cutting paragraph, "Paths in shell text": wherever stockroom writes a path into shell text, it is quoted.
      - Step 2 reads pasted paths from a quoted heredoc and prints a `'`-escaped line.
@@ -481,7 +494,7 @@ No new technology - validation not required.
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight (PASS WITH ADVISORY, second run)
 - [ ] Build
 - [ ] QA
 
@@ -496,4 +509,27 @@ No new technology - validation not required.
 - **Advisory 4 (systemPatterns placement):** applied in Unit 5. The cross-cutting paragraph names Step 2 too.
 - **Advisory 5 (reuse the mutation runner):** applied in Verification step 1.
 - **Advisory 6 (`make shim TAKEOVER=1` with `'` exits 127, not 0):** recorded under Evidence. The call count already catches both.
-- **Design idea (`stockroom schedule run`):** not applied. It would add a verb and move the log redirection into Python, and shim refusals on cron would then miss the log. Quoting, plus carrying the home, fixes the defects at lower cost, and Unit 2 gives the stale-entry check without it.
+- **Design idea (`stockroom schedule run`):** not applied.
+
+## Preflight (second run, db85232): PASS WITH ADVISORY, dispositions
+
+Preflight wrote the plan's tests and ran them on `git archive` copies:
+
+- Today's code: the planned 22 failures.
+- The planned code: 125 passed, 34 skipped (zsh), 0 failed.
+- M1 to M4, M7 and M8 turned red exactly their predicted sets.
+- The error line printed the same text in dash, bash and BusyBox sh.
+
+Dispositions:
+
+1. **M5 and M6 turn 4 red each, not 3.** Applied in the mutant table.
+2. **On launchd, `status` never shows which home the installed job serves.** Applied: the `entry home:` fact, in the target design, Unit 2's tests and code, and the Step 8 prose.
+3. **The `SKILL.md` opening paragraph contradicts Step 8.** Applied in Unit 5.
+4. **`schedule install` without `--time` resets the time to 03:30.** Applied in Unit 5's doc text and the PR text.
+5. **The troubleshooting doc entry.** Applied in Unit 5.
+6. **Put `stub_uv` first on `PATH` in the Make tests.** Applied in Unit 3.
+7. **Inventory 2 covers only the engine's own variables.** Applied as a note under Inventory 2 (the `HF_HOME` example).
+8. **Minor: the existing status tests read the real `PATH`.** Applied: they pass `fake_which`.
+9. **Design idea (session-start `rectify` re-writes a stale entry in place):** not applied.
+   - It would write the user's scheduler from a session hook, without consent. The operator decided hooks stay as they are, and Step 8 asks before touching the scheduler.
+   - The PR text covers users who never re-run `sr-initialize`. It would add a verb and move the log redirection into Python, and shim refusals on cron would then miss the log. Quoting, plus carrying the home, fixes the defects at lower cost, and Unit 2 gives the stale-entry check without it.

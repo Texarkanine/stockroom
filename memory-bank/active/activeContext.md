@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: plugin-root-resolution
-**Phase:** PLAN - COMPLETE (rework round 4, revised after preflight FAIL (fixable))
+**Phase:** PREFLIGHT - COMPLETE (PASS WITH ADVISORY) (rework round 4, revised plan)
 
 ## What Was Done
 - Rounds 1 to 3 are complete through Reflect. Round 3's plan and its build and QA records are in git at 0e458e9.
@@ -37,7 +37,7 @@
     - The `stockroom schedule run` idea is not applied.
 
 ## For the PR #142 text (collected)
-- Custom-home users' nightly jobs have used the default warehouse. They should re-run `sr-initialize` or `stockroom schedule install`.
+- Custom-home users' nightly jobs have used the default warehouse. They should re-run `sr-initialize`, or `stockroom schedule install --time HH:MM` with their own time (without `--time` it resets to 03:30).
 - The empty `data/stockroom-inline` folder (round 3, preflight advisory 6).
 
 ## Next Step
