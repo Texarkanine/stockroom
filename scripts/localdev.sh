@@ -134,7 +134,7 @@ skills_cursor() {
 #   0 always
 skills_claude() {
 	sc_root="${1}"
-	echo "local-skills (claude): no skills mirror; use \`claude --plugin-dir ${sc_root}\` for a session-scoped plugin load"
+	echo "local-skills (claude): no skills mirror; use \`claude --plugin-dir \"${sc_root}\"\` for a session-scoped plugin load"
 }
 
 # Remove Cursor localdev-managed artifacts (skills mirror + pre-commit).
@@ -185,7 +185,7 @@ clean_claude() {
 #
 # Leaves harness-owned shims (cursor/claude) untouched. Dest absent is a no-op.
 # After removal, stockroom is off PATH until a normal install binds it again
-# (rectify never creates a missing shim).
+# (the next session of an installed stockroom plugin recreates it via rectify).
 #
 # Globals:
 #   None

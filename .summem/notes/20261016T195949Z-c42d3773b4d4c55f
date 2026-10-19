@@ -1,0 +1,1 @@
+sr-initialize owner: engine under .../cache/<mkt>/<plugin>/<ver> (or Claude synced/) is claude/cursor; any checkout load (--plugin-dir, Cursor plugins/local, mirror) is dev. Agent shells never get plugin-root env; Claude substitutes exact ${CLAUDE_PLUGIN_ROOT} in skill text.

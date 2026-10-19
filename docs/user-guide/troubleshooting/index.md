@@ -31,7 +31,7 @@ Contributor localdev wires a Cursor skills mirror after you uninstall the market
 Prefer, in order:
 
 1. **`sr-initialize`** when you can spend an agent turn — it re-probes and only does what is still missing ([Quickstart](../quickstart.md)).
-2. **New harness session** — session-start hooks run `shim rectify`, which can create a missing on-path shim or rebake an owned one after a plugin path move.
+2. **New harness session** — session-start hooks run `shim rectify`, which can create a missing on-path shim, rebake an owned one after a plugin path move, or replace one whose engine directory is gone (such as a deleted dev checkout).
 3. **Last resort: bind the shim yourself** — when the marketplace plugin is already installed and you cannot spend an agent turn.
 
 What lands on disk: [Installed layout](../installed-layout.md).
@@ -55,7 +55,7 @@ The shim is **baked** to one engine directory (`…/skills/sr-search`). Bind the
 	OWNER=cursor   # or: claude
 
 	PYTHONPATH="$APP_DIR/src" uv run --project "$APP_DIR" --no-sync --no-config \
-	python -m stockroom shim install --owner "$OWNER"
+	python -m stockroom shim install --owner "$OWNER" --app-dir "$APP_DIR"
 	```
 
 3. Confirm:
@@ -67,7 +67,7 @@ The shim is **baked** to one engine directory (`…/skills/sr-search`). Bind the
 
 If the installer warns that `~/.local/bin` is not on `PATH`, add it and retry the check.
 
-**Ownership:** if install refuses because another owner's shim is alive, read the refusal line. Replacing a live foreign shim needs explicit `--takeover` — prefer `sr-initialize` or consent carefully.
+**Ownership:** if install refuses because another owner's shim is alive, read the refusal line. Replacing a live foreign shim needs explicit `--takeover --force`; a dead one needs only `--takeover`, and the next harness session replaces a dead shim on its own. Prefer `sr-initialize`, which asks before replacing a working shim.
 
 ### Shim refuses with a one-line remedy
 
@@ -89,7 +89,7 @@ Silent staleness is possible: ingest may have new messages that are not embedded
 
 ### Nightly schedule installed but nothing updates
 
-Check `stockroom schedule status`. If the cron daemon is not running, the entry is written but will not fire (WSL: `sudo service cron start`, or enable systemd). See [Scheduling](../load/schedule.md).
+Check `stockroom schedule status`. If the cron daemon is not running, the entry is written but will not fire (WSL: `sudo service cron start`, or enable systemd). If it says `up-to-date: no`, the entry is from an older Stockroom or for another stockroom home, and the job may be filling a different warehouse: compare `entry home:` with the home in `log:`, then re-install with `stockroom schedule install --time HH:MM`. See [Scheduling](../load/schedule.md).
 
 ## Search
 

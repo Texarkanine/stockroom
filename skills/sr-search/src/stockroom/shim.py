@@ -18,10 +18,11 @@ Three writers drive this module (all through the same code):
 Ownership is explicit (a ``# STOCKROOM_OWNER=`` header marker): only the
 owner may rewrite an existing shim; a foreign shim whose baked engine is
 **dead** is replaced only when ``--takeover`` is passed; a foreign shim whose
-baked engine is **alive** is replaced only when both ``--takeover`` and
-``--force`` are passed. ``rectify`` is the hook-safe subset: ensures the
-engine env, then creates when dest is absent, or owner-match + content-diff
-rebake; never touches a foreign owner.
+baked engine is **alive** (or cannot be checked) is replaced only when both
+``--takeover`` and ``--force`` are passed. ``rectify`` is the hook-safe subset: ensures the
+engine env, then creates when dest is absent, rebakes on owner-match +
+content-diff, and replaces a foreign shim only when its baked engine is dead;
+it never touches a live foreign shim or a file it cannot identify.
 
 Design records: ``memory-bank/active/creative/creative-shim-staleness-resolution.md``
 and ``creative-shim-generation-surface.md`` (both revised 2026-07-08).
@@ -29,9 +30,11 @@ and ``creative-shim-generation-surface.md`` (both revised 2026-07-08).
 
 import argparse
 import contextlib
+import errno
 import os
 import re
 import shlex
+import stat
 import subprocess
 import sys
 import tempfile
@@ -56,6 +59,16 @@ _HEADER_RE = re.compile(r"^# STOCKROOM_(OWNER|APP_DIR)=(.*)$", re.MULTILINE)
 #: echo in the rendered script.
 _DEV_REMEDY = "run 'make shim' from your stockroom checkout"
 _HARNESS_REMEDY = "run sr-initialize (or start a new session to let it heal)"
+#: Dev remedy when the baked checkout itself is gone: a session of any harness
+#: with the stockroom plugin installed replaces a dead shim (``rectify``).
+_DEV_GONE_REMEDY = (
+    "run 'make shim' from a stockroom checkout, or start a new session of a "
+    "harness with the stockroom plugin installed to go back to that install"
+)
+
+#: ``stat`` errors that mean a baked engine dir is gone. Any other ``OSError``
+#: (permission denied, a stale mount) means it could not be checked.
+_GONE_ERRNOS = frozenset({errno.ENOENT, errno.ENOTDIR, errno.ELOOP})
 
 
 @dataclass
@@ -64,7 +77,8 @@ class ShimReport:
 
     ``action`` is one of ``installed`` / ``refused`` (install) or
     ``installed`` / ``rectified`` / ``noop`` (rectify: create when absent,
-    rebake when owned and drifted). ``reason`` carries the human-readable
+    rebake when owned and drifted, replace a dead foreign shim). ``reason``
+    carries the human-readable
     explanation for refusals and no-ops. The ``path_ok`` / ``verify_*`` fields
     are install-only: PATH membership of the dest dir, and the outcome of the
     conditional install-time ``stockroom --version`` verify (attempted only
@@ -104,12 +118,14 @@ def render(app_dir: Path | str, owner: str) -> str:
     """
     app_dir = _absolute(app_dir)
     remedy = _DEV_REMEDY if owner == "dev" else _HARNESS_REMEDY
+    gone_remedy = _DEV_GONE_REMEDY if owner == "dev" else _HARNESS_REMEDY
     text = TEMPLATE_PATH.read_text(encoding="utf-8")
     return (
         text.replace("{{OWNER}}", owner)
         .replace("{{APP_DIR_SH}}", shlex.quote(str(app_dir)))
         .replace("{{APP_DIR}}", str(app_dir))
         .replace("{{VERSION}}", __version__)
+        .replace("{{GONE_REMEDY}}", gone_remedy)
         .replace("{{REMEDY}}", remedy)
     )
 
@@ -131,8 +147,20 @@ def _read_header(dest: Path) -> dict[str, str] | None:
 
 
 def _alive(app_dir: str) -> bool:
-    """A baked engine dir is alive iff it still holds a ``pyproject.toml``."""
-    return (Path(app_dir) / "pyproject.toml").is_file()
+    """A baked engine dir is alive unless it verifiably lacks a ``pyproject.toml``.
+
+    An engine that cannot be checked counts as alive, so no caller replaces a
+    shim it could not inspect. This stats directly rather than using
+    ``Path.is_file``, which raises such errors before Python 3.14 and folds
+    them into ``False`` from 3.14 on. A NUL byte in ``app_dir`` (only a
+    hand-corrupted header holds one) names no possible path, so it is dead.
+    """
+    try:
+        return stat.S_ISREG((Path(app_dir) / "pyproject.toml").stat().st_mode)
+    except OSError as exc:
+        return exc.errno not in _GONE_ERRNOS
+    except ValueError:
+        return False
 
 
 def _write_atomic(dest: Path, content: str) -> None:
@@ -187,7 +215,8 @@ def install(
 
     * dest absent → write (mode ``0o755``, atomic temp-file + ``os.replace``).
     * dest present, same owner → rewrite (idempotent).
-    * dest present, different owner, incumbent's baked dir **alive** → refuse
+    * dest present, different owner, incumbent's baked dir **alive** (or
+      uncheckable, e.g. permission denied) → refuse
       unless ``takeover`` and ``force`` are both set.
     * dest present, different owner, incumbent's baked dir **dead** → refuse
       unless ``takeover`` is set (``force`` optional).
@@ -245,7 +274,8 @@ def rectify(
     *,
     ensure_env: bool = True,
 ) -> ShimReport:
-    """Heal ``dest`` for ``owner``: create if absent, rebake if owned and drifted.
+    """Heal ``dest`` for ``owner``: create if absent, rebake if owned and drifted,
+    replace if dead.
 
     The default hook-safe path ensures the engine env for ``app_dir`` first
     (torch-safe inexact sync when locked deps are missing). Pass
@@ -255,7 +285,12 @@ def rectify(
     * dest absent → write (same as a first ``install`` for this owner/app-dir).
     * dest present, this owner, content differs → rebake.
     * dest present, this owner, content matches → noop.
-    * dest present, foreign owner → silent noop (never takeover/force).
+    * dest present, foreign owner, baked engine **dead** → replace with this
+      owner's bake (a dead shim runs nothing; e.g. a deleted dev checkout).
+    * dest present, foreign owner, baked engine alive or uncheckable → silent
+      noop.
+    * dest present without stockroom header markers → silent noop (never
+      overwrite a file we cannot identify).
     """
     if ensure_env:
         ensure_report = ensure_engine_env(app_dir)
@@ -271,8 +306,17 @@ def rectify(
         return ShimReport(action="installed", dest=dest, reason="created missing shim")
 
     header = _read_header(dest)
-    if header is None or header["owner"] != owner:
-        return ShimReport(action="noop", dest=dest, reason="not the owner")
+    if header is None:
+        return ShimReport(action="noop", dest=dest, reason="unidentified file")
+    if header["owner"] != owner:
+        if _alive(header["app_dir"]):
+            return ShimReport(action="noop", dest=dest, reason="not the owner")
+        _write_atomic(dest, render(app_dir, owner))
+        return ShimReport(
+            action="rectified",
+            dest=dest,
+            reason=f"replaced dead '{header['owner']}' shim",
+        )
 
     content = render(app_dir, owner)
     if dest.read_text(encoding="utf-8") == content:
@@ -293,8 +337,8 @@ def _build_parser() -> argparse.ArgumentParser:
         description=(
             "Install, rectify, or ensure-env for the on-path stockroom shim. "
             "install writes (ownership-guarded); rectify heals — creates when "
-            "absent, rebakes an owned drifted shim, never touches a foreign "
-            "owner; ensure-env heals the engine "
+            "absent, rebakes an owned drifted shim, replaces a dead foreign "
+            "shim, never touches a live foreign one; ensure-env heals the engine "
             "uv environment (torch-safe inexact sync)."
         ),
     )
@@ -303,7 +347,7 @@ def _build_parser() -> argparse.ArgumentParser:
         choices=("install", "rectify", "ensure-env"),
         help=(
             "install: write the shim (guarded); rectify: heal (create if "
-            "missing / rebake if owned); "
+            "missing / rebake if owned / replace if dead); "
             "ensure-env: sync locked deps into the engine env"
         ),
     )

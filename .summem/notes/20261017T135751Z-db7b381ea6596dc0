@@ -1,0 +1,1 @@
+sr-initialize Step 2: SKILL_DIR="${CLAUDE_SKILL_DIR}" lets the shell re-parse the pasted path ($x, backtick, $(), quote pairs change it or run commands; a lone " is a syntax error). A quoted-heredoc IFS= read -r passed all cases in dash/bash/busybox.

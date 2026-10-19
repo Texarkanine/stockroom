@@ -1,0 +1,1 @@
+sr-initialize Step 2 owner (round 3): default plugins dirs by path; elsewhere a cache-shaped copy is claude if Claude's data dir is <copy root>/data/<id> or installed_plugins.json lists it, dev if data dir is stockroom-inline, cursor via CURSOR_PLUGIN_ROOT, else ask.

@@ -1,0 +1,1 @@
+Correction: relative-path plugins in a local-path Claude Code marketplace get a cache entry and an install record, but load in place from the source folder (claude plugin list --json readFromFolder). installPath is not always the folder a plugin loads from.

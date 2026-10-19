@@ -1,0 +1,1 @@
+Path quoting also covers commands stockroom prints for someone to run (doctor smoke's torch remedy, localdev.sh's --plugin-dir hint). When auditing shell text, search printed messages too, not only code that runs a shell.

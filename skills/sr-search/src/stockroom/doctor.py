@@ -32,6 +32,7 @@ Design record: ``memory-bank/active/creative/creative-onboarding-logic-surface.m
 import argparse
 import importlib
 import platform
+import shlex
 import subprocess
 import sys
 from collections.abc import Callable
@@ -168,7 +169,8 @@ def run_smoke(
       and either ``stockroom shim ensure-env`` when a usable hashed freeze
       exists under stockroom home, or the literal
       ``uv pip install torch --no-config --index …`` command when it does
-      not.
+      not, with the engine path shell-quoted so the agent can run it as
+      printed.
     * encoder construction/encode raises → names the exception and the
       re-pick remedy (re-run ``sr-initialize``, choose a different index).
     * wrong-width vector → broken setup, same re-pick remedy.
@@ -201,7 +203,7 @@ def run_smoke(
             diagnosis,
             "provision it there with "
             f"`uv pip install torch --no-config --index {_TORCH_INDEX_BASE}/<build> "
-            f"--directory {app_dir}` (or re-run sr-initialize)",
+            f"--directory {shlex.quote(str(app_dir))}` (or re-run sr-initialize)",
         )
 
     print(f"torch: {torch.__version__}")

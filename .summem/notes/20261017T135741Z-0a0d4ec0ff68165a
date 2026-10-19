@@ -1,0 +1,1 @@
+Claude Code 2.1.302 substitutes ${CLAUDE_PLUGIN_DATA} in plugin skill text (typed or model-invoked, prose or fence): <plugins root>/data/<id>, id stockroom-inline for --plugin-dir, stockroom-<marketplace> for installs. Marketplace name 'inline' is reserved.

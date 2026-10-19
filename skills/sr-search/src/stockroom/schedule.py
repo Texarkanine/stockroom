@@ -12,10 +12,15 @@ The scheduler's execution environment is hostile (cron runs with
 ``PATH=/usr/bin:/bin``; launchd inherits no login shell), so every entry
 invokes the on-path ``stockroom`` shim **by name** under an install-time
 resolved absolute ``PATH=`` prefix inside a ``/bin/sh -c`` wrapper — a
-raw engine path never appears in a rendered entry. Output appends to
+raw engine path never appears in a rendered entry. Neither scheduler loads
+a shell profile, so the entry also carries the install-time stockroom home
+as ``STOCKROOM_HOME``: without it the job would ingest into the default
+home, not the one installed for. Output appends to
 ``<home>/logs/nightly.log`` (follows ``warehouse.home_dir()`` —
 ``STOCKROOM_HOME`` or XDG data home): unredirected cron output is mailed
 and discarded on MTA-less boxes, and launchd defaults to ``/dev/null``.
+Every path an entry carries as shell text is ``shlex.quote``-d, so a home
+or shim path holding a space or ``'`` survives.
 
 Judgment (consent to install, time-of-night) lives in the
 ``sr-initialize`` skill prose; this module is mechanism only. All
@@ -31,6 +36,7 @@ import os
 import platform
 import plistlib
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -129,8 +135,11 @@ def render_payload(home: Path) -> str:
     only to the last ``&&`` operand and everything else is mailed and
     discarded (caught during live validation). Invokes the shim by name
     (never an engine path) and contains no ``%`` (cron newline syntax).
+    The log path is shell-quoted, so a home holding a space or ``'`` is
+    one word.
     """
-    payload = f"(date; stockroom ingest && stockroom embed) >> {_log_path(home)} 2>&1"
+    log = shlex.quote(str(_log_path(home)))
+    payload = f"(date; stockroom ingest && stockroom embed) >> {log} 2>&1"
     assert "%" not in payload, "cron treats % as newline — payload must be %-free"
     return payload
 
@@ -171,14 +180,54 @@ def _path_prefix(which: Which) -> str | None:
 
 
 def _sh_wrap(payload: str) -> str:
-    """Wrap the payload for a scheduler entry: ``/bin/sh -c '<payload>'``.
+    """Wrap the payload for a scheduler entry: ``/bin/sh -c <payload>``.
 
     The wrapper is load-bearing on cron: a POSIX ``PATH=`` assignment may
     only prefix a *simple* command, so it cannot sit directly before the
-    payload's ``&&`` list. The payload never contains a single quote.
+    payload's ``&&`` list. The payload is passed as one ``shlex.quote``-d
+    word, whatever quotes its own quoted log path holds.
     """
-    assert "'" not in payload
-    return f"/bin/sh -c '{payload}'"
+    return f"/bin/sh -c {shlex.quote(payload)}"
+
+
+def _cron_entry(hour: int, minute: int, home: Path, path_prefix: str) -> str:
+    """Render the one managed crontab line for ``home`` at ``hour:minute``.
+
+    The five time fields, then the resolved ``PATH`` and the install-time
+    ``STOCKROOM_HOME`` as quoted prefix assignments, then the wrapped
+    payload. The one place the cron entry is decided: install writes it and
+    status compares the installed line against it.
+    """
+    return (
+        f"{minute} {hour} * * * PATH={shlex.quote(path_prefix)} "
+        f"{warehouse.HOME_ENV_VAR}={shlex.quote(str(home))} "
+        f"{_sh_wrap(render_payload(home))}"
+    )
+
+
+def _launchd_job(hour: int, minute: int, home: Path, path_prefix: str) -> dict:
+    """Render the owned plist's content for ``home`` at ``hour:minute``.
+
+    The one place the launchd job is decided: install writes it and status
+    compares the installed plist against it. ``EnvironmentVariables`` carry
+    the resolved ``PATH`` and the install-time ``STOCKROOM_HOME``; launchd
+    reads them as plist values, not shell text.
+    """
+    log = str(_log_path(home))
+    # The shared payload carries its own log redirection; the plist's
+    # StandardOutPath/StandardErrorPath route the same file as a backstop
+    # for anything the shell itself emits (launchd defaults to /dev/null).
+    return {
+        "Label": PLIST_LABEL,
+        "ProgramArguments": ["/bin/sh", "-c", render_payload(home)],
+        "EnvironmentVariables": {
+            "PATH": path_prefix,
+            warehouse.HOME_ENV_VAR: str(home),
+        },
+        "StartCalendarInterval": {"Hour": hour, "Minute": minute},
+        "StandardOutPath": log,
+        "StandardErrorPath": log,
+    }
 
 
 def _run_crontab(args: list[str], input: str | None = None) -> str:
@@ -264,7 +313,7 @@ def cron_install(
 
     _log_path(home).parent.mkdir(parents=True, exist_ok=True)
 
-    entry = f"{minute} {hour} * * * PATH={path_prefix} {_sh_wrap(render_payload(home))}"
+    entry = _cron_entry(hour, minute, home, path_prefix)
     block = f"{MARKER_BEGIN}\n{entry}\n{MARKER_END}\n"
 
     current = _read_crontab(runner)
@@ -296,21 +345,70 @@ def cron_status(
     home: Path | None = None,
     crontab_runner: CrontabRunner | None = None,
     daemon_check: Callable[[], bool] | None = None,
+    which: Which = shutil.which,
 ) -> list[str]:
     """Report cron scheduling facts as printable lines (never an error).
 
     ``installed: <schedule line>`` or ``not installed``, plus a
     ``daemon: running|not running`` liveness fact and the
-    ``log: <home>/logs/nightly.log`` location fact.
+    ``log: <home>/logs/nightly.log`` location fact. When an entry is
+    installed, also ``up-to-date: yes|no|unknown`` (does the line match what
+    install writes now, for its own time? ``unknown`` when the shim does
+    not resolve) and ``entry home: <path>|not set|unreadable`` (the
+    ``STOCKROOM_HOME`` the job carries). ``which`` resolves the shim and uv
+    the way install does.
     """
     home = home if home is not None else warehouse.home_dir()
     runner = crontab_runner if crontab_runner is not None else _run_crontab
     check = daemon_check if daemon_check is not None else default_daemon_check
 
     entry = _managed_block_line(_read_crontab(runner))
-    installed = f"installed: {entry}" if entry is not None else "not installed"
+    if entry is None:
+        lines = ["not installed"]
+    else:
+        lines = [
+            f"installed: {entry}",
+            f"up-to-date: {_cron_up_to_date(entry, home, which)}",
+            f"entry home: {_cron_entry_home(entry)}",
+        ]
     daemon = "running" if check() else "not running"
-    return [installed, f"daemon: {daemon}", f"log: {_log_path(home)}"]
+    return [*lines, f"daemon: {daemon}", f"log: {_log_path(home)}"]
+
+
+def _cron_up_to_date(entry: str, home: Path, which: Which) -> str:
+    """Return ``yes``/``no``/``unknown``: is ``entry`` what install writes now?
+
+    Re-renders the line for the installed entry's own minute and hour.
+    ``unknown`` when the shim does not resolve (nothing can be rendered);
+    ``no`` when the time fields do not parse (a hand-edited line).
+    """
+    path_prefix = _path_prefix(which)
+    if path_prefix is None:
+        return "unknown"
+    fields = entry.split(" ", 2)
+    try:
+        minute, hour = int(fields[0]), int(fields[1])
+    except (ValueError, IndexError):
+        return "no"
+    return "yes" if entry == _cron_entry(hour, minute, home, path_prefix) else "no"
+
+
+def _cron_entry_home(entry: str) -> str:
+    """Return the ``STOCKROOM_HOME`` an installed cron line carries.
+
+    ``not set`` for a line without one (every 2.1.1 entry: such a job uses
+    the default home); ``unreadable`` when the line does not split as shell
+    words.
+    """
+    try:
+        words = shlex.split(entry)
+    except ValueError:
+        return "unreadable"
+    prefix = f"{warehouse.HOME_ENV_VAR}="
+    for word in words:
+        if word.startswith(prefix):
+            return word[len(prefix) :]
+    return "not set"
 
 
 def _plist_path(agents_dir: Path) -> Path:
@@ -363,21 +461,8 @@ def launchd_install(
     if path_prefix is None:
         return ScheduleReport(action="refused", detail=_SHIM_MISSING)
 
-    log = _log_path(home)
-    log.parent.mkdir(parents=True, exist_ok=True)
-
-    # The shared payload carries its own log redirection; the plist's
-    # StandardOutPath/StandardErrorPath route the same file as a backstop
-    # for anything the shell itself emits (launchd defaults to /dev/null).
-    payload = render_payload(home)
-    data = {
-        "Label": PLIST_LABEL,
-        "ProgramArguments": ["/bin/sh", "-c", payload],
-        "EnvironmentVariables": {"PATH": path_prefix},
-        "StartCalendarInterval": {"Hour": hour, "Minute": minute},
-        "StandardOutPath": str(log),
-        "StandardErrorPath": str(log),
-    }
+    _log_path(home).parent.mkdir(parents=True, exist_ok=True)
+    data = _launchd_job(hour, minute, home, path_prefix)
 
     agents_dir.mkdir(parents=True, exist_ok=True)
     plist_path = _plist_path(agents_dir)
@@ -414,12 +499,16 @@ def launchd_status(
     *,
     home: Path | None = None,
     agents_dir: Path | None = None,
+    which: Which = shutil.which,
 ) -> list[str]:
     """Report launchd scheduling facts as printable lines (never an error).
 
     ``installed: nightly at HH:MM (<label>)`` read back from the plist's
     ``StartCalendarInterval``, or ``not installed``; always the same
-    ``log:`` location fact as the cron half.
+    ``log:`` location fact as the cron half. When installed, also the same
+    ``up-to-date:`` and ``entry home:`` facts as the cron half, compared
+    against what install writes now for the plist's own interval.
+    ``which`` resolves the shim and uv the way install does.
     """
     home = home if home is not None else warehouse.home_dir()
     agents_dir = (
@@ -427,15 +516,28 @@ def launchd_status(
     )
 
     plist_path = _plist_path(agents_dir)
-    if plist_path.exists():
-        with plist_path.open("rb") as fh:
-            data = plistlib.load(fh)
-        interval = data.get("StartCalendarInterval", {})
-        hour, minute = interval.get("Hour", 0), interval.get("Minute", 0)
-        installed = f"installed: nightly at {hour:02d}:{minute:02d} ({PLIST_LABEL})"
+    if not plist_path.exists():
+        return ["not installed", f"log: {_log_path(home)}"]
+    with plist_path.open("rb") as fh:
+        data = plistlib.load(fh)
+    interval = data.get("StartCalendarInterval", {})
+    hour, minute = interval.get("Hour", 0), interval.get("Minute", 0)
+    path_prefix = _path_prefix(which)
+    if path_prefix is None:
+        up_to_date = "unknown"
+    elif data == _launchd_job(hour, minute, home, path_prefix):
+        up_to_date = "yes"
     else:
-        installed = "not installed"
-    return [installed, f"log: {_log_path(home)}"]
+        up_to_date = "no"
+    entry_home = data.get("EnvironmentVariables", {}).get(
+        warehouse.HOME_ENV_VAR, "not set"
+    )
+    return [
+        f"installed: nightly at {hour:02d}:{minute:02d} ({PLIST_LABEL})",
+        f"up-to-date: {up_to_date}",
+        f"entry home: {entry_home}",
+        f"log: {_log_path(home)}",
+    ]
 
 
 def _parse_time_arg(value: str) -> tuple[int, int]:
@@ -454,8 +556,9 @@ def _build_parser() -> argparse.ArgumentParser:
             "Manage the nightly 'stockroom ingest && stockroom embed' job on "
             "the platform scheduler (cron on Linux/WSL, launchd on macOS). "
             "install: write/replace the managed entry (idempotent); status: "
-            "report installed state, daemon liveness, and the log location; "
-            "remove: delete the managed entry."
+            "report installed state, whether the entry is up to date and "
+            "which stockroom home it carries, daemon liveness, and the log "
+            "location; remove: delete the managed entry."
         ),
     )
     parser.add_argument(

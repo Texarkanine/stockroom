@@ -1,0 +1,1 @@
+Every path stockroom writes into shell text is quoted: Step 2 heredoc, shim and scheduler entries via shlex.quote, Makefile recipes via double quotes. A space or ' must work; rarer chars ($, backtick, ", \, %) are out of scope (2026-10-18).

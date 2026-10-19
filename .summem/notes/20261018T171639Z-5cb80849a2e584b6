@@ -1,0 +1,1 @@
+Nightly cron/launchd entries carry PATH and the resolved STOCKROOM_HOME (no shell profile is loaded); 'schedule status' prints up-to-date: and entry home:, and sr-initialize Step 8 offers a consented re-install of a stale entry.

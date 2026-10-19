@@ -5,18 +5,27 @@ operator hard constraint), so *all* policy lives in this tested Python layer:
 what gets rendered, who may write the destination (ownership), when a takeover
 of a foreign shim is permitted (dead incumbent + ``takeover``, or live
 incumbent + ``takeover`` and ``force``), and when the hook-driven ``rectify``
-may act (create when absent; owner match + content drift; never foreign).
+may act (create when absent; owner match + content drift; replace a foreign
+shim only when its baked engine is dead; never an unidentifiable file).
 Everything writes to tmp destinations via explicit ``dest`` — the real
 ``~/.local/bin`` is never touched.
 """
 
 import os
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
 
 import stockroom
 from stockroom import shim
+
+#: Mode bits do not stop root, so a mode-000 parent cannot make a dir
+#: uncheckable when the suite runs as root.
+needs_non_root = pytest.mark.skipif(
+    hasattr(os, "geteuid") and os.geteuid() == 0,
+    reason="root ignores mode bits",
+)
 
 
 @pytest.fixture
@@ -53,6 +62,32 @@ def dead_dir(tmp_path: Path) -> Path:
     d = tmp_path / "engine-dead"
     d.mkdir()
     return d
+
+
+@pytest.fixture
+def uncheckable_dir(tmp_path: Path) -> Iterator[Path]:
+    """An alive engine dir under ``locked/``, readable until :func:`_lock`.
+
+    Teardown restores the parent's mode so tmp cleanup can remove it.
+    """
+    d = tmp_path / "locked" / "engine"
+    d.mkdir(parents=True)
+    (d / "pyproject.toml").write_text("[project]\nname = 'stockroom'\n")
+    yield d
+    d.parent.chmod(0o755)
+
+
+def _lock(app_dir: Path) -> None:
+    """Make ``app_dir`` uncheckable: its parent denies all access (EACCES)."""
+    app_dir.parent.chmod(0o000)
+
+
+def _write_nul_header_shim(dest: Path) -> None:
+    """Write a ``dev``-owned shim header whose baked dir holds a NUL byte."""
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_text(
+        "#!/bin/sh\n# STOCKROOM_OWNER=dev\n# STOCKROOM_APP_DIR=/gone\x00dir\n"
+    )
 
 
 @pytest.fixture
@@ -191,6 +226,37 @@ class TestInstall:
         assert taken.action == "installed"
         assert dest.read_text() == shim.render(engine_dir, "claude")
 
+    @needs_non_root
+    def test_foreign_owner_uncheckable_dir_refuses_untouched(
+        self, dest: Path, uncheckable_dir: Path, engine_dir: Path
+    ) -> None:
+        """A foreign shim whose baked engine cannot be checked (permission
+        denied) is treated as alive: refused without raising, with or without
+        --takeover, and replaced only with --takeover --force."""
+        shim.install(dest, uncheckable_dir, "dev")
+        before = dest.read_text()
+        _lock(uncheckable_dir)
+
+        assert shim.install(dest, engine_dir, "claude").action == "refused"
+        refused = shim.install(dest, engine_dir, "claude", takeover=True)
+        assert refused.action == "refused"
+        assert dest.read_text() == before
+
+        forced = shim.install(dest, engine_dir, "claude", takeover=True, force=True)
+        assert forced.action == "installed"
+        assert dest.read_text() == shim.render(engine_dir, "claude")
+
+    def test_nul_in_baked_dir_counts_as_dead(
+        self, dest: Path, engine_dir: Path
+    ) -> None:
+        """A hand-corrupted header whose baked dir holds a NUL byte names a
+        path that cannot exist: dead, so --takeover replaces it, never a crash."""
+        _write_nul_header_shim(dest)
+        assert shim.install(dest, engine_dir, "claude").action == "refused"
+        taken = shim.install(dest, engine_dir, "claude", takeover=True)
+        assert taken.action == "installed"
+        assert dest.read_text() == shim.render(engine_dir, "claude")
+
     def test_corrupt_header_treated_as_foreign(
         self, dest: Path, engine_dir: Path
     ) -> None:
@@ -280,12 +346,68 @@ class TestRectify:
     def test_owner_mismatch_never_touches_foreign_shim(
         self, dest: Path, engine_dir: Path, other_engine_dir: Path
     ) -> None:
-        """rectify by a non-owner is a silent no-op even when content differs."""
+        """rectify by a non-owner is a silent no-op while the foreign shim's
+        baked engine is alive, even when content differs."""
         shim.install(dest, engine_dir, "cursor")
         before = dest.read_text()
         report = shim.rectify(dest, other_engine_dir, "claude")
         assert report.action == "noop"
         assert dest.read_text() == before
+
+    def test_foreign_owner_dead_dir_is_replaced(
+        self, dest: Path, dead_dir: Path, engine_dir: Path
+    ) -> None:
+        """A foreign shim whose baked engine is dead (e.g. a deleted dev
+        checkout) cannot run anything, so the hook-driven rectify replaces it
+        with the caller's bake — leaving dev never strands the on-path shim."""
+        shim.install(dest, dead_dir, "dev")
+        report = shim.rectify(dest, engine_dir, "claude")
+        assert report.action == "rectified"
+        assert dest.read_text() == shim.render(engine_dir, "claude")
+
+    def test_path_only_replaces_dead_foreign(
+        self, dest: Path, dead_dir: Path, engine_dir: Path
+    ) -> None:
+        """The path-only suspenders rectify replaces a dead foreign shim too."""
+        shim.install(dest, dead_dir, "dev")
+        report = shim.rectify(dest, engine_dir, "cursor", ensure_env=False)
+        assert report.action == "rectified"
+        assert dest.read_text() == shim.render(engine_dir, "cursor")
+
+    def test_unparseable_dest_left_untouched(
+        self, dest: Path, engine_dir: Path
+    ) -> None:
+        """A file at dest without stockroom header markers is not ours to
+        judge: rectify never overwrites it, alive or not."""
+        dest.parent.mkdir(parents=True)
+        dest.write_text("#!/bin/sh\necho not a stockroom shim\n")
+        before = dest.read_text()
+        report = shim.rectify(dest, engine_dir, "claude")
+        assert report.action == "noop"
+        assert dest.read_text() == before
+
+    @needs_non_root
+    def test_foreign_shim_with_uncheckable_engine_left_untouched(
+        self, dest: Path, uncheckable_dir: Path, engine_dir: Path
+    ) -> None:
+        """A foreign shim whose baked engine cannot be checked (permission
+        denied, a stale mount) is not known to be dead: the hook-driven rectify
+        leaves it untouched and does not raise, so the hook stays exit-0."""
+        shim.install(dest, uncheckable_dir, "dev")
+        before = dest.read_text()
+        _lock(uncheckable_dir)
+
+        report = shim.rectify(dest, engine_dir, "claude")
+        assert report.action == "noop"
+        assert dest.read_text() == before
+
+    def test_nul_in_baked_dir_is_replaced(self, dest: Path, engine_dir: Path) -> None:
+        """A foreign header whose baked dir holds a NUL byte (only a
+        hand-corrupted shim can) is dead: rectify replaces it and stays exit-0."""
+        _write_nul_header_shim(dest)
+        report = shim.rectify(dest, engine_dir, "claude")
+        assert report.action == "rectified"
+        assert dest.read_text() == shim.render(engine_dir, "claude")
 
     def test_absent_dest_creates_shim(self, dest: Path, engine_dir: Path) -> None:
         """rectify creates a missing shim (hook heal after wipe / localdev exit)."""

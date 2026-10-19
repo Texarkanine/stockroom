@@ -49,7 +49,7 @@ sync: ## Install deps from the committed lock (torch-free; re-run make torch aft
 
 torch: ## Install torch out-of-band (embed/semantic; stripped by make sync)
 	$(UV_DIR) pip install torch --index $(TORCH_INDEX)
-	PYTHONPATH=$(CURDIR)/$(ENGINE)/src $(UV_RUN) python -m stockroom torch freeze --index $(TORCH_INDEX)
+	PYTHONPATH="$(CURDIR)/$(ENGINE)/src" $(UV_RUN) python -m stockroom torch freeze --index $(TORCH_INDEX)
 
 lock: ## Regenerate uv.lock hermetically (engine + docs)
 	$(UV_DIR) lock
@@ -101,10 +101,11 @@ format-check: sync ## Check ruff format (no writes)
 	$(UV_RUN) ruff format --check
 	$(UV_RUN) ruff format --check ../../scripts
 
-# Absolute paths are load-bearing: `uv --directory` moves the cwd into the
-# engine dir, so relative PYTHONPATH/--app-dir values would resolve wrong.
+# Absolute, quoted paths are load-bearing: `uv --directory` moves the cwd into
+# the engine dir, so relative PYTHONPATH/--app-dir values would resolve wrong,
+# and the quotes keep a checkout path that holds a space or ' as one word.
 shim: ## Install on-path shim for this checkout (owner: dev; TAKEOVER=1 / FORCE=1 as needed)
-	PYTHONPATH=$(CURDIR)/$(ENGINE)/src $(UV_RUN) python -m stockroom shim install --owner dev --app-dir $(CURDIR)/$(ENGINE) $(if $(filter 1,$(TAKEOVER)),--takeover) $(if $(filter 1,$(FORCE)),--force)
+	PYTHONPATH="$(CURDIR)/$(ENGINE)/src" $(UV_RUN) python -m stockroom shim install --owner dev --app-dir "$(CURDIR)/$(ENGINE)" $(if $(filter 1,$(TAKEOVER)),--takeover) $(if $(filter 1,$(FORCE)),--force)
 
 reuse: sync ## Run reuse lint on the whole repo (REUSE.toml at root)
 	$(UV) run --project $(ENGINE) --no-sync $(UV_NO_CFG) reuse lint
@@ -137,11 +138,11 @@ local-skills: require-harness ## Wire checkout skills for HARNESS=cursor|claude
 
 local-engine: ## Claim shim (TAKEOVER+FORCE) + ensure-env for this checkout
 	@$(MAKE) --no-print-directory shim TAKEOVER=1 FORCE=1
-	@PYTHONPATH=$(CURDIR)/$(ENGINE)/src $(UV_RUN) python -m stockroom shim ensure-env --app-dir $(CURDIR)/$(ENGINE)
+	@PYTHONPATH="$(CURDIR)/$(ENGINE)/src" $(UV_RUN) python -m stockroom shim ensure-env --app-dir "$(CURDIR)/$(ENGINE)"
 	@echo "local-engine: shim claimed (dev+takeover+force) and ensure-env run"
 
 local-dashboard: ## Force-replace stockroom dashboard for this checkout
-	@PYTHONPATH=$(CURDIR)/$(ENGINE)/src $(UV_RUN) python -m stockroom dashboard --replace
+	@PYTHONPATH="$(CURDIR)/$(ENGINE)/src" $(UV_RUN) python -m stockroom dashboard --replace
 
 localdev: require-harness ## Compose local-skills + local-engine + local-dashboard
 	@$(MAKE) --no-print-directory local-skills HARNESS=$(HARNESS)
