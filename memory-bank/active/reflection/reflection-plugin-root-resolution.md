@@ -331,7 +331,7 @@ Follow-up candidates:
 
 - Bake the home into the shim, and add `stockroom schedule run` (the shape above).
 - QA run 1 advisories 3 to 5:
-    - the Make test accepts an empty `PYTHONPATH`;
+    - the Make test accepts an empty `PYTHONPATH` (fixed after Reflect, from CodeRabbit review 5565466269: each uv call's `PYTHONPATH` and `--app-dir` are now pinned);
     - `up-to-date` depends on where the shell finds `uv`;
     - zsh never runs, there is no live cron or launchd run, and `<build>` stays a placeholder.
 - A CI job, or a `make` target, that runs the suite from a checkout path holding a space and `'`.

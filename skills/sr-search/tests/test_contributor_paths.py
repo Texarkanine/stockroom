@@ -50,7 +50,13 @@ def _uv_calls(stdout: str) -> list[tuple[str, list[str]]]:
 @_FOLDERS
 @pytest.mark.parametrize(
     ("target", "calls"),
-    [("shim", 1), ("torch", 2), ("local-engine", 2), ("local-dashboard", 1)],
+    [
+        ("shim", [(True, True)]),
+        ("torch", [(False, False), (True, False)]),
+        ("local-engine", [(True, True), (True, True)]),
+        ("local-dashboard", [(True, False)]),
+    ],
+    ids=["shim", "torch", "local-engine", "local-dashboard"],
 )
 def test_make_targets_take_the_checkout_path_as_one_word(
     tmp_path: Path,
@@ -58,13 +64,15 @@ def test_make_targets_take_the_checkout_path_as_one_word(
     stub_uv: Path,
     folder: str,
     target: str,
-    calls: int,
+    calls: list[tuple[bool, bool]],
 ) -> None:
     """Each Make target that passes the checkout's absolute engine path to
-    the engine (``PYTHONPATH`` and ``--app-dir``) exits 0, calls uv the
-    expected number of times (``local-engine`` runs ``shim`` first, then
-    ``ensure-env``; ``torch`` installs, then freezes), and hands uv the whole
-    path, even when the checkout path holds a space or ``'``."""
+    the engine exits 0 and makes exactly the expected uv calls, in order:
+    ``calls`` holds one ``(PYTHONPATH, --app-dir)`` pair per call, saying
+    whether that call carries each one (``local-engine`` runs ``shim`` first,
+    then ``ensure-env``; ``torch`` installs, then freezes). A call that should
+    carry one gets the whole path, even when the checkout path holds a space
+    or ``'``; a call that should not carry it gets none."""
     if shutil.which("make") is None:
         pytest.skip("make is not installed")
     checkout = tmp_path / folder / "stockroom"
@@ -82,12 +90,15 @@ def test_make_targets_take_the_checkout_path_as_one_word(
     )
     assert result.returncode == 0, f"stdout={result.stdout!r} stderr={result.stderr!r}"
     uv_calls = _uv_calls(result.stdout)
-    assert len(uv_calls) == calls, f"stdout={result.stdout!r}"
+    assert len(uv_calls) == len(calls), f"stdout={result.stdout!r}"
     engine = checkout / "skills" / "sr-search"
-    for pythonpath, args in uv_calls:
-        assert pythonpath in ("", str(engine / "src")), args
-        if "--app-dir" in args:
+    for (pythonpath, args), (wants_pythonpath, wants_app_dir) in zip(uv_calls, calls):
+        assert pythonpath == (str(engine / "src") if wants_pythonpath else ""), args
+        if wants_app_dir:
+            assert args.count("--app-dir") == 1, args
             assert args[args.index("--app-dir") + 1] == str(engine), args
+        else:
+            assert "--app-dir" not in args, args
 
 
 @_FOLDERS

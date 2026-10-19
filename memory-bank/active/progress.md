@@ -646,3 +646,10 @@ Reassess how each harness exposes its plugin root (`CLAUDE_PLUGIN_ROOT`, `CURSOR
     - Define a bug class by what the user or agent meets (text a shell will parse, printed or run), not by code shape.
     - For unattended processes, ask what the process sees when it runs, not only how its text is parsed. That question turned up the wrong-warehouse bug.
     - When a fix targets odd paths, run the test suite from such a path.
+
+## 2026-10-19 - PR review fix (CodeRabbit review 5565466269) - COMPLETE
+
+* Work completed
+    - `test_make_targets_take_the_checkout_path_as_one_word` now lists, for each uv call, whether it carries `PYTHONPATH` and `--app-dir`. Present ones must be the exact checkout path; absent ones must be absent. This closes QA run 1 advisory 3's first point.
+    - A mutation check on `git archive` copies dropped one argument from each recipe in turn (shim `--app-dir`, shim `PYTHONPATH`, local-dashboard `PYTHONPATH`, ensure-env `--app-dir`). All four turned red exactly as predicted; the old assertions passed all four.
+    - `make ci` green: pytest 1008 passed, 38 skipped; JS 134/134; REUSE compliant.
