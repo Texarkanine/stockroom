@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: nightly-ensure-env
-**Phase:** BUILD - COMPLETE
+**Phase:** QA - COMPLETE (PASS)
 
 ## What Was Done
 - Operator confirmed intent: implement [issue #146](https://github.com/Texarkanine/stockroom/issues/146) as written. Companion issue #147 stays out of this task.
@@ -11,4 +11,4 @@
 - `make ci` passed: ruff, format, schema check, 134 dashboard JS tests, 1024 pytest passed (38 skipped), REUSE.
 
 ## Next Step
-- Level 1 QA, in a subagent running `/niko-qa`.
+- Level 1 task is complete. The operator cleans up `memory-bank/active/` when satisfied.

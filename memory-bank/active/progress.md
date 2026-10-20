@@ -25,3 +25,13 @@ Teach the nightly job to run `stockroom shim ensure-env` before ingest, so a mis
     - The in-scope quote in the log-path test is `'`, the same character the existing scheduler tests already require
 * Insights
     - Status did not need a new comparison. It already re-renders the current payload and diffs the installed entry against that.
+
+## 2026-10-20 - QA - COMPLETE
+
+* Work completed
+    - Semantically reviewed the build against `projectbrief.md` (issue #146): judged only, no implementation edits
+    - Re-ran `tests/test_schedule.py` (50 passed) plus backfill-guard surface (97 backfill tests passed)
+* Decisions made
+    - PASS: implementation is acceptable as-is; no build or plan rework required
+* Insights
+    - Untracked `.cursor/skills/stockroom-local/` is a stray local artifact outside this diff; recorded as advisory only
