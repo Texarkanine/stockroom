@@ -25,3 +25,14 @@ Make torch import and load failures on `stockroom semantic` and `stockroom embed
     - Update the skill, the torch-contract sentence, and the disagreeing torch-page headings. Do not add a `doctor` command or an `sr-search` error row.
 * Insights
     - Catching inside `BgeEncoder.__init__` would change `doctor smoke` and the live constructor tests. The CLI call is the layer that today prints the traceback.
+
+## 2026-10-20 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated implementation plan against codebase conventions and existing tests in `test_semantic.py`, `test_embed.py`, and `test_doctor.py`.
+    - Verified TDD plan ordering, stubbing, and separation between executable units and prose documentation.
+    - Wrote `PASS WITH ADVISORY` to `memory-bank/active/.preflight-status`.
+* Decisions made
+    - Validated that sharing remedies from `stockroom.embed` avoids import cycles and cleanly centralizes `doctor` and CLI diagnostics.
+* Insights
+    - Supplying an optional `app_dir` parameter to `encoder_construction_error` allows decoupling environment resolution for cleaner test isolation.
