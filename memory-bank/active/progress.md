@@ -14,3 +14,19 @@ Stop the warehouse file growing far past the history it holds, as specified in [
     - Issue 147 supersedes the earlier creative note that dropped HNSW and added a `compact` command
 * Insights
     - The approach is already decided in the issue. Planning only has to split it into milestones that can ship on their own
+
+## 2026-10-20 - PLAN - COMPLETE
+
+* Work completed
+    - Split the issue into seven milestones in dependency order
+    - Recorded the cross-milestone invariants, including verify-only as the default writer path
+* Decisions made
+    - New-file format and ZSTD: Level 2. One creation path, two column clauses, and one doc page
+    - NumPy inserts: Level 2. One insert path in the embed writer
+    - HNSW drop and recreate: Level 3. The growth bound, the skip-when-idle rule, and semantic search still answering
+    - Doctor storage report: Level 2. Read-only facts on the existing probe
+    - Verified copy: Level 3. Equality, catalog, HNSW, and every schema fixture, with the original untouched
+    - Verify-only writer path: Level 3. Flock, skip rules, cleanup, and faults before any swap
+    - Hard-link swap kept off: Level 3. The proof from the issue, without turning the default path into a replace
+* Insights
+    - Format, NumPy inserts, and the doctor report can start together. The HNSW wrap waits on the insert path. The copy waits on the new-file format. The swap waits on verify-only and on the doctor backup name
