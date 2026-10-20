@@ -114,3 +114,16 @@ When torch cannot be imported and a usable hashed freeze exists, `stockroom sema
 * Insights
     - Decoupling error handling and retry mechanics from CLI argument parsing keeps CLI entrypoints concise and guarantees consistent stderr reporting.
 
+## 2026-10-20 - BUILD - COMPLETE
+
+* Work completed
+    - `start_encoder` restores torch once from a usable hashed freeze and retries the encoder once. `semantic` and `embed` use it. `doctor smoke` stays report-only.
+    - No-freeze and other encoder failures name `sr-initialize`. The pip template and the quoting tests that locked it are gone.
+    - `make ci`: ruff clean, 134 dashboard tests passed, pytest 1018 passed / 38 skipped, reuse compliant.
+* Decisions made
+    - A restore retries when `EnsureReport.action` is not `failed`, so `noop` retries too.
+    - `importlib.invalidate_caches()` runs before that retry.
+    - No generic resilient-env wrapper.
+* Insights
+    - The first pytest run of the new tests was already green. The red step was not captured as its own run.
+
