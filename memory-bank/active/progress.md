@@ -101,3 +101,16 @@ When torch cannot be imported and a usable hashed freeze exists, `stockroom sema
     - The no-freeze pip template and the quoting tests that lock it are removed. Encoder failures name `sr-initialize` without calling the wheel wrong.
 * Insights
     - The progress line makes the restore path two stderr lines. Every path that does not attempt a restore stays one line.
+
+## 2026-10-20 - PREFLIGHT - COMPLETE (PASS WITH ADVISORY)
+
+* Work completed
+    - Validated rework implementation plan in `memory-bank/active/tasks.md` against codebase reality, dependency graphs, and test suites.
+    - Confirmed strict TDD ordering (stub tests -> stub interface -> write tests red -> write code green) for Unit 1; confirmed Unit 2 prose/policy scope.
+    - Wrote `PASS WITH ADVISORY` to `memory-bank/active/.preflight-status`.
+* Decisions made
+    - Verified that `start_encoder` centralizes restore-and-retry logic across `semantic` and `embed` without altering `doctor smoke`'s report-only behavior.
+    - Identified advisory on invalidating import caches via `importlib.invalidate_caches()` after subprocess package installation.
+* Insights
+    - Decoupling error handling and retry mechanics from CLI argument parsing keeps CLI entrypoints concise and guarantees consistent stderr reporting.
+
