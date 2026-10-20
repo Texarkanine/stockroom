@@ -13,14 +13,14 @@ Operator how-to lives in [User Guide → Backfill Legacy History](../user-guide/
 
 ## Not On Any Automatic Path
 
-`stockroom backfill` is manually run, always. No session-start hook invokes it, the scheduler entry stays exactly `stockroom ingest && stockroom embed`, and nothing reachable from the nightly path imports the `backfill` package.
+`stockroom backfill` is manually run, always. No session-start hook invokes it. The scheduler entry runs `stockroom shim ensure-env`, then `stockroom ingest && stockroom embed`, and it does not run backfill. Nothing reachable from the nightly path imports the `backfill` package.
 
 That last one is the load-bearing guarantee, and it is an *absence*, so it is asserted rather than assumed: guard tests fail if the rendered schedule payload gains a `backfill` token, or if the `stockroom.ingest` package acquires an import edge onto `stockroom.backfill`. Legacy-store reads stay one deliberate command away from the thing that runs unattended every night.
 
 ```mermaid
 flowchart LR
     subgraph nightly["Nightly (automatic)"]
-        Sched[schedule] --> Ing[ingest] --> Emb[embed]
+        Sched[schedule] --> Heal[ensure-env] --> Ing[ingest] --> Emb[embed]
     end
     subgraph oneshot["Backfill (manual)"]
         Operator([Operator]) --> BF[backfill]

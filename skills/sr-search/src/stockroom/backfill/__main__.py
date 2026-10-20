@@ -1,7 +1,7 @@
 """CLI entrypoint: ``stockroom backfill [--source NAME] [--dry-run] [--force]``.
 
 A deliberate, human-run excavation of a harness's legacy store into the
-warehouse. Nothing schedules this: the nightly entry stays ``ingest && embed``.
+warehouse. Nothing schedules this: the nightly entry heals, ingests, and embeds, and never runs backfill.
 The corpus is finite and does not grow, so this is a run-once (or rarely)
 command — and because it can roughly double the message corpus, the next
 ``stockroom embed`` will run far longer than usual.
