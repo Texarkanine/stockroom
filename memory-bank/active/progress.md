@@ -90,3 +90,14 @@ When torch cannot be imported and a usable hashed freeze exists, `stockroom sema
     - Level 2. The change stays in the encoder-construction failure path. `ensure_engine_env` already exists. The other two cases are copy changes, not a new repair.
 * Insights
     - Auto-running the heal is viable only where the freeze already names the wheel.
+
+## 2026-10-20 - PLAN - COMPLETE
+
+* Work completed
+    - Wrote the rework plan in `memory-bank/active/tasks.md`.
+* Decisions made
+    - `start_encoder` owns the one retry. Tests inject the healer so the suite never pip-installs torch.
+    - `doctor smoke` does not heal. Its usable-freeze line still names `stockroom shim ensure-env`.
+    - The no-freeze pip template and the quoting tests that lock it are removed. Encoder failures name `sr-initialize` without calling the wheel wrong.
+* Insights
+    - The progress line makes the restore path two stderr lines. Every path that does not attempt a restore stays one line.
