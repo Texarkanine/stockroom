@@ -93,4 +93,8 @@ No new technology - validation not required
 - [x] Pre-Mortem complete
 - [x] Preflight
 - [x] Build
-- [ ] QA
+- [x] QA
+
+## QA Results
+
+PASS WITH ADVISORY (see `memory-bank/active/.qa-validation-status`). All planned behaviors are implemented and test-pinned; the four touched test files pass (100 passed, 4 torch-gated skips), neighboring suites pass, ruff check and format are clean. Three non-blocking advisories: a "stays read-only" clause in `system-model.md` that does not fit embed's read-write connection, duplicated test helpers across `test_semantic.py`/`test_embed.py` (matches suite convention), and the plan's stub list naming `test_cli_torch_restore_retry_still_fails` for both CLI files while the behaviors checklist requires it only for semantic. No build or plan rerun required.

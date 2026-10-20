@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: torch-failures-help
-**Phase:** BUILD - COMPLETE
+**Phase:** QA - COMPLETE (PASS WITH ADVISORY)
 
 ## What Was Done
 - `start_encoder` in `skills/sr-search/src/stockroom/embed.py` builds the encoder. A missing `torch` import with a usable hashed freeze prints `restoring torch from the hashed freeze`, calls the healer once (`ensure_engine_env` unless a test injects one), and retries once when the report action is not `failed`.
@@ -19,4 +19,4 @@
 - The new tests were in the tree before the restore behavior, and the first pytest run of them was already green. There is no captured red run.
 
 ## Next Step
-- QA review (`/niko-qa`).
+- QA PASSED (WITH ADVISORY) - proceed to `/niko-reflect`.

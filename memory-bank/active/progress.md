@@ -127,3 +127,15 @@ When torch cannot be imported and a usable hashed freeze exists, `stockroom sema
 * Insights
     - The first pytest run of the new tests was already green. The red step was not captured as its own run.
 
+## 2026-10-20 - QA - COMPLETE (PASS WITH ADVISORY)
+
+* Work completed
+    - Judged the rework build diff against the plan on KISS/DRY/YAGNI/completeness/regression/integrity/documentation; no implementation edits made.
+    - Re-ran the four touched test files: 100 passed, 4 skipped (torch-gated). Neighboring suites (`test_skill_hygiene.py`, `test_engine_env.py`, `test_torch_source.py`): 23 passed. Ruff check and format clean on all seven touched Python files.
+    - Wrote `memory-bank/active/.qa-validation-status` and recorded the result in `tasks.md`.
+* Decisions made
+    - PASS WITH ADVISORY: no build changes required. Every behavior in the plan's checklist is implemented and test-pinned, including the adopted preflight advisories (`importlib.invalidate_caches()`, retry on any non-`failed` report).
+    - Three advisories, none blocking: the `system-model.md` "stays read-only" clause does not fit embed's read-write connection; new test helpers duplicate across `test_semantic.py`/`test_embed.py` (matches suite convention); the retry-still-fails test exists only for semantic (shared `start_encoder` path, checklist-sufficient).
+* Insights
+    - The production healer contract (`ensure_engine_env` soft-fails into `EnsureReport`, never raises) is what makes the un-wrapped healer call in `start_encoder` safe.
+
