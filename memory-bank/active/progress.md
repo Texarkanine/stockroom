@@ -36,3 +36,16 @@ Make torch import and load failures on `stockroom semantic` and `stockroom embed
     - Validated that sharing remedies from `stockroom.embed` avoids import cycles and cleanly centralizes `doctor` and CLI diagnostics.
 * Insights
     - Supplying an optional `app_dir` parameter to `encoder_construction_error` allows decoupling environment resolution for cleaner test isolation.
+
+## 2026-10-20 - BUILD - COMPLETE
+
+* Work completed
+    - Added the shared torch remedy in `embed.py` and wired `semantic.main`, `embed.main`, and `doctor.run_smoke` to it.
+    - Tests cover missing torch with and without a usable freeze, an unusable freeze, an encoder load failure, a non-torch import error, and a space in the engine path.
+    - Aligned the semantic skill, the torch contract, the torch troubleshooting page, and the load-page sentence.
+    - `make ci` passed (1018 pytest passed, 38 skipped).
+* Decisions made
+    - Left `encoder_construction_error` calling `default_app_dir()` itself. The preflight advisory for an injected path is not needed; the quoting test monkeypatches the function.
+    - `docs/user-guide/load/basic.md` was not in the plan file list. It quoted the old heading, so the sentence now matches the page.
+* Insights
+    - The two propagate tests were already green before the catch existed. They stay as the lock that a missing locked dependency is not relabeled as torch.

@@ -37,7 +37,7 @@ Decision: one pair of remedy strings, owned next to the encoder, used by `doctor
 
 ## Implementation Plan
 
-### 1. Encoder-construction remedy on semantic and embed — executable
+### 1. [x] Encoder-construction remedy on semantic and embed — executable
 
 - Files: `skills/sr-search/tests/test_semantic.py`, `skills/sr-search/tests/test_embed.py`, `skills/sr-search/src/stockroom/embed.py`, `skills/sr-search/src/stockroom/semantic.py`, `skills/sr-search/src/stockroom/doctor.py`
 
@@ -46,7 +46,7 @@ Decision: one pair of remedy strings, owned next to the encoder, used by `doctor
 3. Write tests and run red: fill the stubs. Each CLI test creates a warehouse with `warehouse.open(read_only=False)` so construction is reached, passes the raising factory, and asserts the exit code and the single stderr line. The propagate tests use `pytest.raises`. Run the new tests and confirm they fail.
 4. Write code and run green: implement the three functions in `embed.py`. `missing_torch_remedy` uses `read_freeze_path()` and `shlex.quote` on the engine path, with the same words `run_smoke` prints today. `encoder_load_remedy` is the re-pick sentence `run_smoke` prints today. `encoder_construction_error` returns `None` for a `ModuleNotFoundError` whose `name` is not `torch` and does not start with `torch.`; for torch it returns `error: torch is not installed in the engine environment at {app_dir} — {missing_torch_remedy(app_dir)}` using `default_app_dir()`; for any other `Exception` it returns `error: encoder check failed ({type}: {exc}) — {encoder_load_remedy()}`. `semantic.main` and `embed.main` wrap only the `encoder_factory()` call: on `Exception`, print the line and return `1`, or re-raise when the line is `None`. `doctor.run_smoke` calls the same two remedy functions inside its existing `fail` so the words cannot drift. Run the new tests, then the existing `test_doctor.py` smoke tests.
 
-### 2. Agent text and the torch page — prose/policy
+### 2. [x] Agent text and the torch page — prose/policy
 
 - Files: `skills/sr-semantic/SKILL.md`, `skills/sr-search/references/system-model.md`, `docs/user-guide/troubleshooting/torch.md`
 - No tests: prose/policy artifact
@@ -88,5 +88,5 @@ No new technology - validation not required
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight
-- [ ] Build
+- [x] Build
 - [ ] QA
