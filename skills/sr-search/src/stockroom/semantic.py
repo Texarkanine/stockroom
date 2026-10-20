@@ -40,7 +40,7 @@ from dataclasses import dataclass
 import duckdb
 
 from stockroom import render, warehouse
-from stockroom.embed import EMBED_DIM, BgeEncoder, Encoder
+from stockroom.embed import EMBED_DIM, BgeEncoder, Encoder, encoder_construction_error
 from stockroom.render import DEFAULT_FORMAT, OUTPUT_FORMATS
 from stockroom.truncate import DEFAULT_DETAIL, DETAIL_LEVELS
 
@@ -309,8 +309,12 @@ def main(
     """Parse args, search read-only, print a ranked table, return an exit code.
 
     Returns ``0`` on success, ``1`` when no warehouse exists yet (with a clean
-    "run ingest first" hint), and ``2`` on a bad request (empty query or a
-    non-positive ``--limit``). Both the request validation and the friendly
+    "run ingest first" hint) or when the encoder cannot be constructed (one
+    stderr line: ``stockroom shim ensure-env`` when torch is missing and a
+    usable freeze exists, the quoted ``uv pip install`` command when it does
+    not, or re-run ``sr-initialize`` when the encoder fails for another
+    reason), and ``2`` on a bad request (empty query or a non-positive
+    ``--limit``). Both the request validation and the friendly
     missing-warehouse check happen **before** the encoder is constructed, so
     neither error path needs torch. The encoder is built via ``encoder_factory``
     (default :class:`BgeEncoder`, which loads torch out of band; tests inject a
@@ -337,7 +341,14 @@ def main(
         )
         return 1
 
-    encoder = encoder_factory()
+    try:
+        encoder = encoder_factory()
+    except Exception as exc:
+        line = encoder_construction_error(exc)
+        if line is None:
+            raise
+        print(line, file=sys.stderr)
+        return 1
     hits = run_semantic_search(
         args.query,
         encoder,

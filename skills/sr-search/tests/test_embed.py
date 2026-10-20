@@ -543,6 +543,92 @@ def test_embed_cli_missing_warehouse_is_friendly(warehouse_home: Path, capsys) -
     assert "run `stockroom ingest` first" in err
 
 
+def _one_stderr_line(capsys) -> str:
+    """Assert stderr is exactly one line (no traceback) and return it."""
+    err = capsys.readouterr().err
+    lines = [line for line in err.splitlines() if line]
+    assert len(lines) == 1, f"expected one stderr line, got: {err!r}"
+    assert "Traceback" not in err
+    return lines[0]
+
+
+def _open_warehouse() -> None:
+    """Create the env-pointed warehouse so the CLI reaches encoder construction."""
+    con = warehouse.open(read_only=False)
+    con.close()
+
+
+def _raise_missing(name: str) -> None:
+    """Raise ``ModuleNotFoundError`` the way a failed ``import`` does."""
+    raise ModuleNotFoundError(f"No module named {name!r}", name=name)
+
+
+def _write_hashed_freeze(home: Path) -> None:
+    """Write a usable hashed torch freeze under ``home``."""
+    home.mkdir(parents=True, exist_ok=True)
+    (home / "torch-requirements.txt").write_text(
+        "--index-url https://download.pytorch.org/whl/cpu\n"
+        "torch==2.7.1+cpu \\\n"
+        "    --hash=sha256:deadbeef\n",
+        encoding="utf-8",
+    )
+
+
+def test_cli_torch_missing_without_freeze_names_pip_remedy(
+    warehouse_home: Path, capsys
+) -> None:
+    """Missing torch and no usable freeze → exit 1, one stderr line, the pip command."""
+    assert not (warehouse_home / "torch-requirements.txt").exists()
+    _open_warehouse()
+
+    code = embed.main([], encoder_factory=lambda: _raise_missing("torch"))
+
+    assert code == 1
+    line = _one_stderr_line(capsys)
+    assert "error: torch is not installed in the engine environment at" in line
+    assert "uv pip install torch --no-config --index" in line
+    assert "ensure-env" not in line
+
+
+def test_cli_torch_missing_with_freeze_names_ensure_env(
+    warehouse_home: Path, capsys
+) -> None:
+    """Missing torch and a usable freeze → ``stockroom shim ensure-env``, not pip."""
+    _open_warehouse()
+    _write_hashed_freeze(warehouse_home)
+
+    code = embed.main([], encoder_factory=lambda: _raise_missing("torch"))
+
+    assert code == 1
+    line = _one_stderr_line(capsys)
+    assert "stockroom shim ensure-env" in line
+    assert "uv pip install torch" not in line
+
+
+def test_cli_encoder_load_failure_names_repick(warehouse_home: Path, capsys) -> None:
+    """An encoder that raises after import is a wheel problem, not a missing install."""
+
+    def _explode() -> None:
+        raise OSError("model download failed")
+
+    _open_warehouse()
+    code = embed.main([], encoder_factory=_explode)
+    assert code == 1
+    line = _one_stderr_line(capsys)
+    assert "encoder check failed" in line
+    assert "OSError" in line
+    assert "model download failed" in line
+    assert "sr-initialize" in line
+    assert "ensure-env" not in line
+
+
+def test_cli_other_import_error_propagates(warehouse_home: Path) -> None:
+    """A missing locked dep is not a torch failure and still raises."""
+    _open_warehouse()
+    with pytest.raises(ModuleNotFoundError, match="sentence_transformers"):
+        embed.main([], encoder_factory=lambda: _raise_missing("sentence_transformers"))
+
+
 def test_embed_cli_embeds_pending_and_reports_count(
     warehouse_home: Path, capsys
 ) -> None:

@@ -32,20 +32,19 @@ Design record: ``memory-bank/active/creative/creative-onboarding-logic-surface.m
 import argparse
 import importlib
 import platform
-import shlex
 import subprocess
 import sys
 from collections.abc import Callable
 
-from stockroom.embed import EMBED_DIM, BgeEncoder, Encoder
+from stockroom.embed import (
+    EMBED_DIM,
+    BgeEncoder,
+    Encoder,
+    encoder_load_remedy,
+    missing_torch_remedy,
+)
 from stockroom.shim import default_app_dir
-from stockroom.torch_source import read_freeze_path
 from stockroom.warehouse import resolve_home
-
-#: The wheel-index base every torch remedy points at. The concrete build
-#: (``cu126``, ``cpu``, …) is a per-machine human choice made in
-#: ``sr-initialize`` — the remedy names the command shape, not the wheel.
-_TORCH_INDEX_BASE = "https://download.pytorch.org/whl"
 
 #: An injectable runner for ``nvidia-smi``: takes the argument list (after
 #: the executable) and returns stdout text, raising on any failure
@@ -181,30 +180,11 @@ def run_smoke(
         print(f"stockroom doctor: {diagnosis} — {remedy}", file=sys.stderr)
         return 1
 
-    repick = (
-        "re-run sr-initialize and pick a different torch wheel index "
-        f"({_TORCH_INDEX_BASE}/<build>)"
-    )
-
     try:
         torch = torch_importer("torch")
     except Exception:
         diagnosis = f"torch is not installed in the engine environment at {app_dir}"
-        if read_freeze_path() is not None:
-            return fail(
-                diagnosis,
-                "restore it with `stockroom shim ensure-env` "
-                "(or re-run sr-initialize to re-pick a wheel)",
-            )
-        # --directory (not --project): uv pip discovers the venv from the
-        # working directory, so --project alone fails with "No virtual
-        # environment found" (verified live).
-        return fail(
-            diagnosis,
-            "provision it there with "
-            f"`uv pip install torch --no-config --index {_TORCH_INDEX_BASE}/<build> "
-            f"--directory {shlex.quote(str(app_dir))}` (or re-run sr-initialize)",
-        )
+        return fail(diagnosis, missing_torch_remedy(app_dir))
 
     print(f"torch: {torch.__version__}")
     print(f"cuda.is_available(): {torch.cuda.is_available()}")
@@ -213,12 +193,16 @@ def run_smoke(
         encoder = encoder_factory()
         vectors = encoder.encode(["stockroom doctor smoke test"])
     except Exception as exc:
-        return fail(f"encoder check failed ({exc.__class__.__name__}: {exc})", repick)
+        return fail(
+            f"encoder check failed ({exc.__class__.__name__}: {exc})",
+            encoder_load_remedy(),
+        )
 
     if len(vectors) != 1 or len(vectors[0]) != EMBED_DIM:
         got = len(vectors[0]) if vectors else 0
         return fail(
-            f"encoder produced a {got}-dim vector (expected {EMBED_DIM})", repick
+            f"encoder produced a {got}-dim vector (expected {EMBED_DIM})",
+            encoder_load_remedy(),
         )
 
     print(f"ok: encoded one string to a {EMBED_DIM}-dim vector")

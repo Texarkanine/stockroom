@@ -106,7 +106,8 @@ Each failure is a clean stderr message + exit code — read it and take the matc
 | `error: empty query (…)` | 2 | No search text was passed. Provide a query. |
 | `error: --limit must be a positive integer` | 2 | Bad `-k`. Fix the number. |
 | `error: no warehouse found at … — run \`stockroom ingest\` first` | 1 | The warehouse hasn't been built. Tell the user to run `stockroom ingest` (or `sr-initialize` if the machine was never set up); don't retry. |
-| `ModuleNotFoundError: No module named 'torch'` | — | Environment problem, not a query problem (this surface needs torch at query time). Don't retry; tell the user to re-run `sr-initialize` to re-provision torch. |
+| `error: torch is not installed in the engine environment at …` | 1 | Torch is missing. Run the command in the line. `stockroom shim ensure-env` reinstalls a usable freeze. The `uv pip install` line means there is no usable freeze: run that command, or re-run `sr-initialize`. Do not retry the query. |
+| `error: encoder check failed (…)` | 1 | Torch imported, and the encoder did not load. Re-run `sr-initialize` and pick a different torch wheel. Do not retry the query. Do not run `stockroom shim ensure-env` for this line: it reinstalls the wheel that failed. |
 
 ## Worked examples
 

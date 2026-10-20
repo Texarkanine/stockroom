@@ -9,6 +9,7 @@ a subprocess.
 """
 
 import json
+import shlex
 from pathlib import Path
 
 import pytest
@@ -391,6 +392,131 @@ def test_cli_nonpositive_limit_rejected(warehouse_home: Path, capsys) -> None:
     code = semantic.main(["-k", "0", "a query"], encoder_factory=_never_built)
     assert code == 2
     assert capsys.readouterr().err.strip() != ""
+
+
+def _one_stderr_line(capsys) -> str:
+    """Assert stderr is exactly one line (no traceback) and return it."""
+    err = capsys.readouterr().err
+    lines = [line for line in err.splitlines() if line]
+    assert len(lines) == 1, f"expected one stderr line, got: {err!r}"
+    assert "Traceback" not in err
+    return lines[0]
+
+
+def _open_warehouse() -> None:
+    """Create the env-pointed warehouse so the CLI reaches encoder construction."""
+    con = warehouse.open(read_only=False)
+    con.close()
+
+
+def _raise_missing(name: str) -> None:
+    """Raise ``ModuleNotFoundError`` the way a failed ``import`` does."""
+    raise ModuleNotFoundError(f"No module named {name!r}", name=name)
+
+
+def _write_freeze(home: Path, *, hashed: bool) -> None:
+    """Write a torch freeze under ``home``. Hashed freezes are the usable kind."""
+    home.mkdir(parents=True, exist_ok=True)
+    if hashed:
+        text = (
+            "--index-url https://download.pytorch.org/whl/cpu\n"
+            "torch==2.7.1+cpu \\\n"
+            "    --hash=sha256:deadbeef\n"
+        )
+    else:
+        text = "torch==2.7.1+cpu\n"
+    (home / "torch-requirements.txt").write_text(text, encoding="utf-8")
+
+
+def test_cli_torch_missing_without_freeze_names_pip_remedy(
+    warehouse_home: Path, capsys
+) -> None:
+    """Missing torch and no usable freeze → exit 1, one stderr line, the pip command."""
+    assert not (warehouse_home / "torch-requirements.txt").exists()
+    _open_warehouse()
+
+    code = semantic.main(["a query"], encoder_factory=lambda: _raise_missing("torch"))
+
+    assert code == 1
+    line = _one_stderr_line(capsys)
+    assert "error: torch is not installed in the engine environment at" in line
+    assert "uv pip install torch --no-config --index" in line
+    assert "ensure-env" not in line
+
+
+def test_cli_torch_missing_with_freeze_names_ensure_env(
+    warehouse_home: Path, capsys
+) -> None:
+    """Missing torch and a usable freeze → ``stockroom shim ensure-env``, not pip."""
+    _open_warehouse()
+    _write_freeze(warehouse_home, hashed=True)
+
+    code = semantic.main(["a query"], encoder_factory=lambda: _raise_missing("torch"))
+
+    assert code == 1
+    line = _one_stderr_line(capsys)
+    assert "stockroom shim ensure-env" in line
+    assert "uv pip install torch" not in line
+
+
+def test_cli_torch_missing_with_unusable_freeze_names_pip_remedy(
+    warehouse_home: Path, capsys
+) -> None:
+    """A freeze with no hashes is not usable, so the remedy is the pip command."""
+    _open_warehouse()
+    _write_freeze(warehouse_home, hashed=False)
+
+    code = semantic.main(["a query"], encoder_factory=lambda: _raise_missing("torch"))
+
+    assert code == 1
+    line = _one_stderr_line(capsys)
+    assert "uv pip install torch --no-config --index" in line
+    assert "ensure-env" not in line
+
+
+def test_cli_encoder_load_failure_names_repick(warehouse_home: Path, capsys) -> None:
+    """An encoder that raises after import is a wheel problem, not a missing install."""
+
+    def _explode() -> None:
+        raise OSError("model download failed")
+
+    _open_warehouse()
+    code = semantic.main(["a query"], encoder_factory=_explode)
+    assert code == 1
+    line = _one_stderr_line(capsys)
+    assert "encoder check failed" in line
+    assert "OSError" in line
+    assert "model download failed" in line
+    assert "sr-initialize" in line
+    assert "ensure-env" not in line
+
+
+def test_cli_other_import_error_propagates(warehouse_home: Path) -> None:
+    """A missing locked dep is not a torch failure and still raises."""
+    _open_warehouse()
+    with pytest.raises(ModuleNotFoundError, match="sentence_transformers"):
+        semantic.main(
+            ["a query"], encoder_factory=lambda: _raise_missing("sentence_transformers")
+        )
+
+
+def test_cli_torch_remedy_quotes_engine_path(
+    warehouse_home: Path,
+    capsys,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The printed pip command takes the engine path as one shell word."""
+    app_dir = tmp_path / "Jane Doe" / "stockroom" / "skills" / "sr-search"
+    monkeypatch.setattr(embed, "default_app_dir", lambda: app_dir)
+    _open_warehouse()
+
+    code = semantic.main(["a query"], encoder_factory=lambda: _raise_missing("torch"))
+
+    assert code == 1
+    command = _one_stderr_line(capsys).split("`")[1]
+    words = shlex.split(command)
+    assert words[-2:] == ["--directory", str(app_dir)]
 
 
 def _seed(writer, **kwargs) -> str:

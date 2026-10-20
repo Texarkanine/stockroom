@@ -28,9 +28,13 @@ Indexes embedded in the freeze (from `--emit-index-url` at compile time) resolve
 
 ## Failure remedies
 
-### Semantic search or embed fails citing torch / environment
+### Semantic search or embed fails on torch
 
-Re-run `sr-initialize` (do not retry the query hoping torch appears).
+`stockroom semantic` and `stockroom embed` print one line on stderr and exit 1. Run the command in that line. Do not retry the query.
+
+- The line names `stockroom shim ensure-env` when torch cannot be imported and a usable hashed freeze already exists. That command reinstalls the frozen wheel.
+- The line names `uv pip install torch` when there is no usable freeze. Run that command, or re-run `sr-initialize` (install, smoke, then freeze).
+- The line tells you to re-run `sr-initialize` and pick a different wheel when torch imports but the encoder fails. The wheel is wrong. `stockroom shim ensure-env` reinstalls that same wheel, so do not use it for this line.
 
 ### Heal soft-fails: no freeze / corrupt freeze
 
@@ -47,10 +51,6 @@ Install torch into the engine venv first, then freeze.
 ### Freeze soft-fails: compile error / timeout
 
 Check network / index URL; retry; see `uv pip compile` stderr.
-
-### `stockroom semantic` fails with missing torch
-
-Run `stockroom shim ensure-env` to re-install the frozen Torch into the `stockroom` engine.
 
 ### `stockroom doctor smoke` fails with missing torch
 

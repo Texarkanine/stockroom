@@ -24,13 +24,17 @@ detection, the VSS/HNSW index, and the model choice are documented in
 
 import argparse
 import logging
+import shlex
 import sys
 from collections.abc import Callable
+from pathlib import Path
 from typing import Protocol
 
 import duckdb
 
 from stockroom import warehouse
+from stockroom.shim import default_app_dir
+from stockroom.torch_source import read_freeze_path
 
 #: Optional progress reporter: one human-readable line per call (CLI wires print).
 ProgressCallback = Callable[[str], None]
@@ -332,6 +336,68 @@ class BgeEncoder:
         return [vector.tolist() for vector in vectors]
 
 
+#: Wheel-index base named by torch remedies. The concrete build (``cu126``,
+#: ``cpu``, …) is a per-machine choice made in ``sr-initialize``.
+_TORCH_INDEX_BASE = "https://download.pytorch.org/whl"
+
+
+def missing_torch_remedy(app_dir: Path) -> str:
+    """Return the remedy clause when ``import torch`` fails.
+
+    A usable hashed freeze names ``stockroom shim ensure-env``. Otherwise
+    the clause is the literal ``uv pip install`` command, with ``app_dir``
+    shell-quoted, plus ``sr-initialize``.
+    """
+    if read_freeze_path() is not None:
+        return (
+            "restore it with `stockroom shim ensure-env` "
+            "(or re-run sr-initialize to re-pick a wheel)"
+        )
+    # --directory (not --project): uv pip discovers the venv from the
+    # working directory, so --project alone fails with "No virtual
+    # environment found" (verified live).
+    return (
+        "provision it there with "
+        f"`uv pip install torch --no-config --index {_TORCH_INDEX_BASE}/<build> "
+        f"--directory {shlex.quote(str(app_dir))}` (or re-run sr-initialize)"
+    )
+
+
+def encoder_load_remedy() -> str:
+    """Return the remedy clause when the encoder fails after torch imports.
+
+    This is the re-pick sentence: re-run ``sr-initialize`` and choose a
+    different wheel index. It is not ``stockroom shim ensure-env``, which
+    would reinstall the same wheel from the freeze.
+    """
+    return (
+        "re-run sr-initialize and pick a different torch wheel index "
+        f"({_TORCH_INDEX_BASE}/<build>)"
+    )
+
+
+def encoder_construction_error(exc: BaseException) -> str | None:
+    """Return one ``error:`` stderr line, or ``None`` if ``exc`` should propagate.
+
+    A ``ModuleNotFoundError`` whose module name is ``torch`` or starts with
+    ``torch.`` is a missing torch: the line names the engine directory and
+    :func:`missing_torch_remedy`. Any other ``ModuleNotFoundError`` returns
+    ``None``. Every other exception is an encoder load failure: the line
+    names the exception and :func:`encoder_load_remedy`.
+    """
+    if isinstance(exc, ModuleNotFoundError):
+        name = exc.name or ""
+        if name != "torch" and not name.startswith("torch."):
+            return None
+        app_dir = default_app_dir()
+        diagnosis = f"torch is not installed in the engine environment at {app_dir}"
+        return f"error: {diagnosis} — {missing_torch_remedy(app_dir)}"
+    return (
+        f"error: encoder check failed ({exc.__class__.__name__}: {exc}) — "
+        f"{encoder_load_remedy()}"
+    )
+
+
 def _build_parser() -> argparse.ArgumentParser:
     """Build the argument parser for ``python -m stockroom.embed``."""
     parser = argparse.ArgumentParser(
@@ -363,10 +429,12 @@ def main(
 
     Returns ``0`` on success, ``1`` when no warehouse exists yet (with a clean
     "run ingest first" hint and no traceback — checked *before* the encoder is
-    built, so the friendly path needs no torch). Opens the warehouse read-write
-    through ``warehouse.open()`` (so ``vss`` is loaded and the schema is current)
-    and constructs the encoder via ``encoder_factory`` (default
-    :class:`BgeEncoder`, which loads torch out of band; tests inject a fake).
+    built, so the friendly path needs no torch) or when the encoder cannot be
+    constructed (one stderr line, same remedies as ``stockroom semantic``).
+    Opens the warehouse read-write through ``warehouse.open()`` (so ``vss`` is
+    loaded and the schema is current) and constructs the encoder via
+    ``encoder_factory`` (default :class:`BgeEncoder`, which loads torch out of
+    band; tests inject a fake).
     """
     args = _build_parser().parse_args(argv)
 
@@ -379,7 +447,14 @@ def main(
         )
         return 1
 
-    encoder = encoder_factory()
+    try:
+        encoder = encoder_factory()
+    except Exception as exc:
+        line = encoder_construction_error(exc)
+        if line is None:
+            raise
+        print(line, file=sys.stderr)
+        return 1
     on_progress = (lambda line: print(line, flush=True)) if args.verbose else None
     con = warehouse.open(read_only=False)
     try:
