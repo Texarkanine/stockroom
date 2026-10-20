@@ -1,0 +1,1 @@
+{"c":[{"name":"20261002T194958Z-1341312456d701ec","text":"Root uv.lock revision is 5 for uv 0.12 lock --refresh --locked. uv 0.8.22 rewrites that revision back to 3.","type":"note"},{"name":"20261002T195915Z-9e5f10b38f9fb742","text":"CI uv is pinned to 0.12.22 in ci.yaml and docs.yaml. Bump that pin only together with a lock refresh from that same uv.","type":"note"}]}

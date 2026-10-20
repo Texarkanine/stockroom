@@ -19,6 +19,8 @@ import pytest
 
 from conftest import FakeEncoder
 from stockroom import embed, warehouse
+from stockroom.engine_env import EnsureReport
+from stockroom.shim import default_app_dir
 
 
 def _insert_message(
@@ -541,6 +543,159 @@ def test_embed_cli_missing_warehouse_is_friendly(warehouse_home: Path, capsys) -
     assert code == 1
     err = capsys.readouterr().err
     assert "run `stockroom ingest` first" in err
+
+
+def _one_stderr_line(capsys) -> str:
+    """Assert stderr is exactly one line (no traceback) and return it."""
+    err = capsys.readouterr().err
+    lines = [line for line in err.splitlines() if line]
+    assert len(lines) == 1, f"expected one stderr line, got: {err!r}"
+    assert "Traceback" not in err
+    return lines[0]
+
+
+def _open_warehouse() -> None:
+    """Create the env-pointed warehouse so the CLI reaches encoder construction."""
+    con = warehouse.open(read_only=False)
+    con.close()
+
+
+def _raise_missing(name: str) -> None:
+    """Raise ``ModuleNotFoundError`` the way a failed ``import`` does."""
+    raise ModuleNotFoundError(f"No module named {name!r}", name=name)
+
+
+def _write_hashed_freeze(home: Path) -> None:
+    """Write a usable hashed torch freeze under ``home``."""
+    home.mkdir(parents=True, exist_ok=True)
+    (home / "torch-requirements.txt").write_text(
+        "--index-url https://download.pytorch.org/whl/cpu\n"
+        "torch==2.7.1+cpu \\\n"
+        "    --hash=sha256:deadbeef\n",
+        encoding="utf-8",
+    )
+
+
+def _healer(action: str, reason: str = ""):
+    """Return a healer that records the engine dir and returns ``action``."""
+    seen: list[Path] = []
+
+    def heal(app_dir: Path) -> EnsureReport:
+        seen.append(app_dir)
+        return EnsureReport(action=action, app_dir=app_dir, reason=reason)
+
+    heal.seen = seen  # type: ignore[attr-defined]
+    return heal
+
+
+def _forbid_heal(app_dir: Path) -> EnsureReport:
+    """A healer that fails the test if the command tries to restore torch."""
+    raise AssertionError(f"healer must not run for {app_dir}")
+
+
+def _flaky_torch(failures: int):
+    """Factory that raises missing torch ``failures`` times, then a fake encoder."""
+    calls = {"n": 0}
+
+    def factory() -> FakeEncoder:
+        calls["n"] += 1
+        if calls["n"] <= failures:
+            _raise_missing("torch")
+        return FakeEncoder()
+
+    factory.calls = calls  # type: ignore[attr-defined]
+    return factory
+
+
+def test_cli_torch_missing_without_freeze_names_initialize(
+    warehouse_home: Path, capsys
+) -> None:
+    """No usable freeze → exit 1, one line, ``sr-initialize``. No pip template."""
+    assert not (warehouse_home / "torch-requirements.txt").exists()
+    _open_warehouse()
+
+    code = embed.main(
+        [],
+        encoder_factory=lambda: _raise_missing("torch"),
+        healer=_forbid_heal,
+    )
+
+    assert code == 1
+    line = _one_stderr_line(capsys)
+    assert "sr-initialize" in line
+    assert "uv pip install" not in line
+    assert "<build>" not in line
+    assert "ensure-env" not in line
+
+
+def test_cli_torch_missing_with_freeze_restores_and_retries(
+    warehouse_home: Path, capsys
+) -> None:
+    """A usable freeze restores torch once and the second encoder build embeds."""
+    _open_warehouse()
+    _write_hashed_freeze(warehouse_home)
+    factory = _flaky_torch(1)
+    heal = _healer("synced")
+
+    code = embed.main([], encoder_factory=factory, healer=heal)
+
+    assert code == 0
+    assert factory.calls["n"] == 2
+    assert heal.seen == [default_app_dir()]
+    err = capsys.readouterr().err
+    assert "restoring torch from the hashed freeze" in err
+    assert "Traceback" not in err
+    assert "ensure-env" not in err
+
+
+def test_cli_torch_restore_failure_names_reason(warehouse_home: Path, capsys) -> None:
+    """A failed restore prints its reason and ``sr-initialize``, and does not retry."""
+    _open_warehouse()
+    _write_hashed_freeze(warehouse_home)
+    factory = _flaky_torch(5)
+    heal = _healer("failed", "hash mismatch")
+
+    code = embed.main([], encoder_factory=factory, healer=heal)
+
+    assert code == 1
+    assert factory.calls["n"] == 1
+    assert len(heal.seen) == 1
+    err = capsys.readouterr().err
+    assert "Traceback" not in err
+    assert "hash mismatch" in err
+    assert "sr-initialize" in err
+    assert "ensure-env" not in err
+
+
+def test_cli_encoder_load_failure_names_initialize(
+    warehouse_home: Path, capsys
+) -> None:
+    """An encoder exception names itself and ``sr-initialize``. It does not name a wheel."""
+
+    def _explode() -> None:
+        raise OSError("model download failed")
+
+    _open_warehouse()
+    code = embed.main([], encoder_factory=_explode, healer=_forbid_heal)
+    assert code == 1
+    line = _one_stderr_line(capsys)
+    assert "encoder check failed" in line
+    assert "OSError" in line
+    assert "model download failed" in line
+    assert "sr-initialize" in line
+    assert "wheel index" not in line
+    assert "ensure-env" not in line
+
+
+def test_cli_other_import_error_propagates(warehouse_home: Path) -> None:
+    """A missing locked dep is not a torch failure and still raises."""
+    _open_warehouse()
+    with pytest.raises(ModuleNotFoundError, match="sentence_transformers"):
+        embed.main(
+            [],
+            encoder_factory=lambda: _raise_missing("sentence_transformers"),
+            healer=_forbid_heal,
+        )
 
 
 def test_embed_cli_embeds_pending_and_reports_count(

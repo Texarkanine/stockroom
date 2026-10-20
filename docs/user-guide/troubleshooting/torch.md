@@ -28,9 +28,11 @@ Indexes embedded in the freeze (from `--emit-index-url` at compile time) resolve
 
 ## Failure remedies
 
-### Semantic search or embed fails citing torch / environment
+### Semantic search or embed fails on torch
 
-Re-run `sr-initialize` (do not retry the query hoping torch appears).
+When torch cannot be imported and a usable hashed freeze already exists, `stockroom semantic` and `stockroom embed` restore it themselves. They print `restoring torch from the hashed freeze`, install from that freeze, and retry once. Wait for that to finish. A large wheel can take minutes.
+
+If the restore fails, if there is no usable freeze, or if the encoder fails for another reason, the command prints the failure and tells you to re-run `sr-initialize` (install, smoke, then freeze). Do not retry the query.
 
 ### Heal soft-fails: no freeze / corrupt freeze
 
@@ -48,10 +50,6 @@ Install torch into the engine venv first, then freeze.
 
 Check network / index URL; retry; see `uv pip compile` stderr.
 
-### `stockroom semantic` fails with missing torch
-
-Run `stockroom shim ensure-env` to re-install the frozen Torch into the `stockroom` engine.
-
 ### `stockroom doctor smoke` fails with missing torch
 
-If a hashed freeze already exists under stockroom home, the diagnosis recommends `stockroom shim ensure-env` (same heal as above). If there is no freeze yet, follow `sr-initialize` (install → smoke → freeze).
+If a hashed freeze already exists under stockroom home, the diagnosis names `stockroom shim ensure-env` and does not install it. If there is no freeze yet, follow `sr-initialize` (install → smoke → freeze).

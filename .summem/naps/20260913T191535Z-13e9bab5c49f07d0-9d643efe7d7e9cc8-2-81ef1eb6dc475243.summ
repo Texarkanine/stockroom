@@ -1,0 +1,1 @@
+uv lock --locked without --refresh accepts a pytorch-index lock as current, so the root docs lock uses --no-config --refresh. Semantic tsv and table include session_id and message_id; do not document JSON as the only handoff to query.

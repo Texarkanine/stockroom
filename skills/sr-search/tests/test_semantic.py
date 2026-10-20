@@ -15,6 +15,8 @@ import pytest
 
 from conftest import FakeEncoder
 from stockroom import embed, semantic, truncate, warehouse
+from stockroom.engine_env import EnsureReport
+from stockroom.shim import default_app_dir
 
 
 class SpyEncoder:
@@ -391,6 +393,217 @@ def test_cli_nonpositive_limit_rejected(warehouse_home: Path, capsys) -> None:
     code = semantic.main(["-k", "0", "a query"], encoder_factory=_never_built)
     assert code == 2
     assert capsys.readouterr().err.strip() != ""
+
+
+def _one_stderr_line(capsys) -> str:
+    """Assert stderr is exactly one line (no traceback) and return it."""
+    err = capsys.readouterr().err
+    lines = [line for line in err.splitlines() if line]
+    assert len(lines) == 1, f"expected one stderr line, got: {err!r}"
+    assert "Traceback" not in err
+    return lines[0]
+
+
+def _open_warehouse() -> None:
+    """Create the env-pointed warehouse so the CLI reaches encoder construction."""
+    con = warehouse.open(read_only=False)
+    con.close()
+
+
+def _raise_missing(name: str) -> None:
+    """Raise ``ModuleNotFoundError`` the way a failed ``import`` does."""
+    raise ModuleNotFoundError(f"No module named {name!r}", name=name)
+
+
+def _write_freeze(home: Path, *, hashed: bool) -> None:
+    """Write a torch freeze under ``home``. Hashed freezes are the usable kind."""
+    home.mkdir(parents=True, exist_ok=True)
+    if hashed:
+        text = (
+            "--index-url https://download.pytorch.org/whl/cpu\n"
+            "torch==2.7.1+cpu \\\n"
+            "    --hash=sha256:deadbeef\n"
+        )
+    else:
+        text = "torch==2.7.1+cpu\n"
+    (home / "torch-requirements.txt").write_text(text, encoding="utf-8")
+
+
+def _healer(action: str, reason: str = ""):
+    """Return a healer that records the engine dir and returns ``action``."""
+    seen: list[Path] = []
+
+    def heal(app_dir: Path) -> EnsureReport:
+        seen.append(app_dir)
+        return EnsureReport(action=action, app_dir=app_dir, reason=reason)
+
+    heal.seen = seen  # type: ignore[attr-defined]
+    return heal
+
+
+def _forbid_heal(app_dir: Path) -> EnsureReport:
+    """A healer that fails the test if the command tries to restore torch."""
+    raise AssertionError(f"healer must not run for {app_dir}")
+
+
+def _flaky_torch(failures: int):
+    """Factory that raises missing torch ``failures`` times, then a fake encoder."""
+    calls = {"n": 0}
+
+    def factory() -> FakeEncoder:
+        calls["n"] += 1
+        if calls["n"] <= failures:
+            _raise_missing("torch")
+        return FakeEncoder()
+
+    factory.calls = calls  # type: ignore[attr-defined]
+    return factory
+
+
+def test_cli_torch_missing_without_freeze_names_initialize(
+    warehouse_home: Path, capsys
+) -> None:
+    """No usable freeze → exit 1, one line, ``sr-initialize``. No pip template."""
+    assert not (warehouse_home / "torch-requirements.txt").exists()
+    _open_warehouse()
+
+    code = semantic.main(
+        ["a query"],
+        encoder_factory=lambda: _raise_missing("torch"),
+        healer=_forbid_heal,
+    )
+
+    assert code == 1
+    line = _one_stderr_line(capsys)
+    assert "sr-initialize" in line
+    assert "uv pip install" not in line
+    assert "<build>" not in line
+    assert "ensure-env" not in line
+
+
+def test_cli_torch_missing_with_freeze_restores_and_retries(
+    warehouse_home: Path, capsys
+) -> None:
+    """A usable freeze restores torch once and the second encoder build runs the search."""
+    _open_warehouse()
+    _write_freeze(warehouse_home, hashed=True)
+    factory = _flaky_torch(1)
+    heal = _healer("synced")
+
+    code = semantic.main(["a query"], encoder_factory=factory, healer=heal)
+
+    assert code == 0
+    assert factory.calls["n"] == 2
+    assert heal.seen == [default_app_dir()]
+    err = capsys.readouterr().err
+    assert "restoring torch from the hashed freeze" in err
+    assert "Traceback" not in err
+    assert "ensure-env" not in err
+
+
+def test_cli_torch_restore_noop_retries(warehouse_home: Path, capsys) -> None:
+    """A restore that reports ``noop`` still retries. Only ``failed`` stops."""
+    _open_warehouse()
+    _write_freeze(warehouse_home, hashed=True)
+    factory = _flaky_torch(1)
+    heal = _healer("noop")
+
+    code = semantic.main(["a query"], encoder_factory=factory, healer=heal)
+
+    assert code == 0
+    assert factory.calls["n"] == 2
+    assert "restoring torch from the hashed freeze" in capsys.readouterr().err
+
+
+def test_cli_torch_restore_failure_names_reason(warehouse_home: Path, capsys) -> None:
+    """A failed restore prints its reason and ``sr-initialize``, and does not retry."""
+    _open_warehouse()
+    _write_freeze(warehouse_home, hashed=True)
+    factory = _flaky_torch(5)
+    heal = _healer("failed", "hash mismatch")
+
+    code = semantic.main(["a query"], encoder_factory=factory, healer=heal)
+
+    assert code == 1
+    assert factory.calls["n"] == 1
+    assert len(heal.seen) == 1
+    err = capsys.readouterr().err
+    assert "Traceback" not in err
+    assert "hash mismatch" in err
+    assert "sr-initialize" in err
+    assert "ensure-env" not in err
+
+
+def test_cli_torch_restore_retry_still_fails(warehouse_home: Path, capsys) -> None:
+    """One retry after a successful restore. A second miss does not heal again."""
+    _open_warehouse()
+    _write_freeze(warehouse_home, hashed=True)
+    factory = _flaky_torch(5)
+    heal = _healer("synced")
+
+    code = semantic.main(["a query"], encoder_factory=factory, healer=heal)
+
+    assert code == 1
+    assert factory.calls["n"] == 2
+    assert len(heal.seen) == 1
+    err = capsys.readouterr().err
+    assert "restoring torch from the hashed freeze" in err
+    assert "ModuleNotFoundError" in err
+    assert "No module named 'torch'" in err
+    assert "sr-initialize" in err
+    assert "ensure-env" not in err
+    assert "Traceback" not in err
+
+
+def test_cli_torch_missing_with_unusable_freeze_names_initialize(
+    warehouse_home: Path, capsys
+) -> None:
+    """A freeze with no hashes is not usable, so nothing is restored."""
+    _open_warehouse()
+    _write_freeze(warehouse_home, hashed=False)
+
+    code = semantic.main(
+        ["a query"],
+        encoder_factory=lambda: _raise_missing("torch"),
+        healer=_forbid_heal,
+    )
+
+    assert code == 1
+    line = _one_stderr_line(capsys)
+    assert "sr-initialize" in line
+    assert "uv pip install" not in line
+    assert "ensure-env" not in line
+
+
+def test_cli_encoder_load_failure_names_initialize(
+    warehouse_home: Path, capsys
+) -> None:
+    """An encoder exception names itself and ``sr-initialize``. It does not name a wheel."""
+
+    def _explode() -> None:
+        raise OSError("model download failed")
+
+    _open_warehouse()
+    code = semantic.main(["a query"], encoder_factory=_explode, healer=_forbid_heal)
+    assert code == 1
+    line = _one_stderr_line(capsys)
+    assert "encoder check failed" in line
+    assert "OSError" in line
+    assert "model download failed" in line
+    assert "sr-initialize" in line
+    assert "wheel index" not in line
+    assert "ensure-env" not in line
+
+
+def test_cli_other_import_error_propagates(warehouse_home: Path) -> None:
+    """A missing locked dep is not a torch failure and still raises."""
+    _open_warehouse()
+    with pytest.raises(ModuleNotFoundError, match="sentence_transformers"):
+        semantic.main(
+            ["a query"],
+            encoder_factory=lambda: _raise_missing("sentence_transformers"),
+            healer=_forbid_heal,
+        )
 
 
 def _seed(writer, **kwargs) -> str:

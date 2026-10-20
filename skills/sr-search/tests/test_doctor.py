@@ -10,7 +10,6 @@ torch/encoder path is ``importorskip("torch")``-gated per the
 engine-wide convention.
 """
 
-import shlex
 import subprocess
 import sys
 import types
@@ -240,47 +239,19 @@ def _one_stderr_line(capsys) -> str:
     return lines[0]
 
 
-def test_smoke_torch_missing_without_freeze_names_pip_remedy(
+def test_smoke_torch_missing_without_freeze_names_initialize(
     capsys, stockroom_home: Path
 ) -> None:
-    """Missing torch + no freeze → exit 1, one stderr line naming the
-    engine environment and the literal provisioning command."""
+    """Missing torch + no freeze → exit 1, one stderr line naming sr-initialize."""
     assert not (stockroom_home / "torch-requirements.txt").exists()
     code = doctor.run_smoke(torch_importer=_import_absent, encoder_factory=_GoodEncoder)
     assert code == 1
     line = _one_stderr_line(capsys)
     assert str(default_app_dir()) in line
-    assert "uv pip install torch --no-config --index" in line
-    # --directory, not --project: uv pip only finds the engine venv via the
-    # working directory, so a --project remedy would be a dead command. The
-    # path is shell-quoted, so this also holds from a checkout whose path
-    # holds a space or '.
-    assert f"--directory {shlex.quote(str(default_app_dir()))}" in line
+    assert "sr-initialize" in line
+    assert "uv pip install" not in line
+    assert "<build>" not in line
     assert "ensure-env" not in line
-
-
-@pytest.mark.parametrize(
-    "folder", ["plain", "Jane Doe", "O'Brien"], ids=["plain", "space", "apostrophe"]
-)
-def test_smoke_remedy_command_takes_the_engine_path_as_one_word(
-    capsys,
-    stockroom_home: Path,
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-    folder: str,
-) -> None:
-    """The torch command the remedy prints between backticks is one the
-    agent runs as given (sr-initialize Step 6: "relay it and follow it"), so
-    it splits as shell words with the engine path as the one word after
-    ``--directory``, even when that path holds a space or ``'``."""
-    app_dir = tmp_path / folder / "stockroom" / "skills" / "sr-search"
-    monkeypatch.setattr(doctor, "default_app_dir", lambda: app_dir)
-    code = doctor.run_smoke(torch_importer=_import_absent, encoder_factory=_GoodEncoder)
-    assert code == 1
-    command = _one_stderr_line(capsys).split("`")[1]
-    words = shlex.split(command)
-    assert words[:3] == ["uv", "pip", "install"]
-    assert words[-2:] == ["--directory", str(app_dir)]
 
 
 def test_smoke_torch_missing_with_freeze_names_ensure_env(
@@ -301,7 +272,7 @@ def test_smoke_torch_missing_with_freeze_names_ensure_env(
     assert "uv pip install torch" not in line
 
 
-def test_smoke_torch_missing_with_unusable_freeze_falls_through_to_pip(
+def test_smoke_torch_missing_with_unusable_freeze_names_initialize(
     capsys, stockroom_home: Path
 ) -> None:
     """Corrupt freeze (no hashes) is treated as no freeze for the remedy."""
@@ -311,7 +282,8 @@ def test_smoke_torch_missing_with_unusable_freeze_falls_through_to_pip(
     code = doctor.run_smoke(torch_importer=_import_absent, encoder_factory=_GoodEncoder)
     assert code == 1
     line = _one_stderr_line(capsys)
-    assert "uv pip install torch --no-config --index" in line
+    assert "sr-initialize" in line
+    assert "uv pip install" not in line
     assert "ensure-env" not in line
 
 
@@ -326,7 +298,7 @@ def test_smoke_encoder_failure_names_error_and_next_action(capsys) -> None:
     line = _one_stderr_line(capsys)
     assert "no kernel image" in line
     assert "sr-initialize" in line
-    assert "index" in line
+    assert "wheel index" not in line
 
 
 def test_smoke_encoder_construction_failure_is_caught(capsys) -> None:

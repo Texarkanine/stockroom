@@ -16,7 +16,7 @@ The engine is not an installed Python package: `[tool.uv] package = false`, no b
 
 Torch is required for embedding (writing vectors, and encoding queries at semantic-search time) but is **held out of the dependency lock**: the correct torch build is a per-machine choice (CUDA generation, CPU, MPS) that no single lockfile can make. It is provisioned out-of-band by `sr-initialize`, and every run avoids an exact dependency sync, because an exact sync removes anything not in the lock — including the provisioned torch.
 
-A missing torch is therefore an *environment* problem, never a query problem: no amount of retrying, rephrasing, or reformatting a call can bring torch back. The fix is re-provisioning (re-run `sr-initialize`), and the skills' error tables route there.
+A missing torch is therefore an *environment* problem, never a query problem: no amount of retrying, rephrasing, or reformatting a call can bring torch back. When `import torch` fails and a usable hashed freeze exists, `stockroom semantic` and `stockroom embed` print `restoring torch from the hashed freeze`, run that restore once, and retry the encoder once. The search or embed connection stays read-only; the restore writes the engine environment, not the warehouse. If the restore fails, or the retry still fails, stderr names that failure and `sr-initialize`, and the command exits 1. No usable freeze, and any other encoder failure, is one stderr line naming `sr-initialize` and exit 1. `stockroom doctor smoke` does not install: with a usable freeze it names `stockroom shim ensure-env`. The skills' error tables route there.
 
 ## ETL, and Read-Only by Construction
 

@@ -36,11 +36,13 @@ import argparse
 import sys
 from collections.abc import Callable
 from dataclasses import dataclass
+from pathlib import Path
 
 import duckdb
 
 from stockroom import render, warehouse
-from stockroom.embed import EMBED_DIM, BgeEncoder, Encoder
+from stockroom.embed import EMBED_DIM, BgeEncoder, Encoder, start_encoder
+from stockroom.engine_env import EnsureReport
 from stockroom.render import DEFAULT_FORMAT, OUTPUT_FORMATS
 from stockroom.truncate import DEFAULT_DETAIL, DETAIL_LEVELS
 
@@ -305,12 +307,16 @@ def main(
     argv: list[str] | None = None,
     *,
     encoder_factory: Callable[[], Encoder] = BgeEncoder,
+    healer: Callable[[Path], EnsureReport] | None = None,
 ) -> int:
     """Parse args, search read-only, print a ranked table, return an exit code.
 
     Returns ``0`` on success, ``1`` when no warehouse exists yet (with a clean
-    "run ingest first" hint), and ``2`` on a bad request (empty query or a
-    non-positive ``--limit``). Both the request validation and the friendly
+    "run ingest first" hint) or when the encoder cannot be constructed, and
+    ``2`` on a bad request (empty query or a non-positive ``--limit``). A
+    missing torch with a usable freeze is restored once and the search
+    retried. Any other construction failure prints one stderr line naming
+    ``sr-initialize``. Both the request validation and the friendly
     missing-warehouse check happen **before** the encoder is constructed, so
     neither error path needs torch. The encoder is built via ``encoder_factory``
     (default :class:`BgeEncoder`, which loads torch out of band; tests inject a
@@ -337,7 +343,9 @@ def main(
         )
         return 1
 
-    encoder = encoder_factory()
+    encoder = start_encoder(encoder_factory, healer=healer)
+    if encoder is None:
+        return 1
     hits = run_semantic_search(
         args.query,
         encoder,
