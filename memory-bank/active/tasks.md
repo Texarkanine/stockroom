@@ -89,4 +89,17 @@ No new technology - validation not required
 - [x] Pre-Mortem complete
 - [x] Preflight
 - [x] Build
-- [ ] QA
+- [x] QA (PASS WITH ADVISORY, 2026-10-20 — see QA Result below)
+
+## QA Result (2026-10-20)
+
+**Verdict:** PASS WITH ADVISORY. No build changes required.
+
+- **KISS:** PASS. One small trio of functions in `embed.py` (`missing_torch_remedy`, `encoder_load_remedy`, `encoder_construction_error`); `semantic.main`, `embed.main`, and `doctor.run_smoke` share them. No new abstraction or command.
+- **DRY:** PASS. The remedy strings that `doctor.run_smoke` printed inline now live in one place; smoke calls the same functions, so the words cannot drift. Existing `test_doctor.py` smoke tests stay as the lock.
+- **YAGNI:** PASS. The `torch.`-prefix branch and the `None`-propagates branch are plan-required (bad wheel vs missing locked dep), each pinned by a test except the prefix spelling (see advisory).
+- **Completeness:** PASS. All ten plan behaviors have tests (six semantic incl. unusable-freeze and quoted-path, four embed); the `try` wraps only the `encoder_factory()` call on both CLIs, per plan. Skill rows match the new `error:` prefixes with exit code 1; the disagreeing torch-page heading is folded, not duplicated.
+- **Regression:** PASS. `test_semantic.py` + `test_embed.py` + `test_doctor.py`: 96 passed, 4 skipped. Ruff check and format clean on all five touched Python files.
+- **Integrity:** PASS. Single stderr line, exit 1, no traceback; engine path via `shlex.quote`; no debug artifacts or placeholder strings. No import cycle (`doctor` → `embed` → `shim`/`torch_source`).
+- **Documentation:** PASS. `sr-semantic/SKILL.md`, `system-model.md`, `torch.md`, and the quoting `load/basic.md` sentence all state the same three-way split.
+- **Advisory (non-blocking):** no test raises `ModuleNotFoundError` named `torch.<submodule>`; the prefix branch is correct by inspection but locked only by review. A follow-up test pinning it would close the gap. Acceptance criterion 4 (non-draft PR open) is not verified by this review.

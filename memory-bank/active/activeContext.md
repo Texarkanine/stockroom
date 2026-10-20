@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: torch-failures-help
-**Phase:** BUILD - COMPLETE
+**Phase:** QA - COMPLETE (PASS WITH ADVISORY)
 
 ## What Was Done
 - `encoder_construction_error` in `skills/sr-search/src/stockroom/embed.py` turns an encoder-construction failure into one stderr line. `semantic.main` and `embed.main` print it and return 1. Other `ModuleNotFoundError` values still propagate.
@@ -14,4 +14,4 @@
 - Also edited `docs/user-guide/load/basic.md`. It quoted the old torch-page heading.
 
 ## Next Step
-- QA review.
+- Reflect.

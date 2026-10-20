@@ -49,3 +49,14 @@ Make torch import and load failures on `stockroom semantic` and `stockroom embed
     - `docs/user-guide/load/basic.md` was not in the plan file list. It quoted the old heading, so the sentence now matches the page.
 * Insights
     - The two propagate tests were already green before the catch existed. They stay as the lock that a missing locked dependency is not relabeled as torch.
+
+## 2026-10-20 - QA - COMPLETE (PASS WITH ADVISORY)
+
+* Work completed
+    - Reviewed the build diff against the plan on KISS/DRY/YAGNI/completeness/regression/integrity/documentation; no implementation edits made.
+    - Re-ran `test_semantic.py`, `test_embed.py`, `test_doctor.py`: 96 passed, 4 skipped. Ruff check and format clean on all five touched Python files.
+    - Wrote `memory-bank/active/.qa-validation-status` and recorded the result in `tasks.md`.
+* Decisions made
+    - PASS WITH ADVISORY: no build changes required. The single advisory is a test-coverage nit (no test pins the `torch.<submodule>` prefix branch), not an acceptance blocker.
+* Insights
+    - The `try` wrapping only `encoder_factory()` on both CLIs is what keeps a search-time bug from being mislabeled a wheel remedy; worth keeping that narrow in future edits.
