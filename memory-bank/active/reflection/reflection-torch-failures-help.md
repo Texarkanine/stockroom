@@ -35,3 +35,35 @@ The new CLI tests failed on the uncaught exception, then passed once the catch p
 ## Million-Dollar Question
 
 The shape we built is the one this would have had from the start: the remedy clauses live next to the encoder, and every caller that prints a torch failure uses them. Putting the catch inside `BgeEncoder` would have mixed a library exception with CLI policy.
+
+# Reflection: torch-failures-help (rework)
+
+## Summary
+
+When torch cannot be imported and a usable hashed freeze exists, `stockroom semantic` and `stockroom embed` restore it once and retry. The other two failures name `sr-initialize` and do not claim a command that cannot be run. The build succeeded. QA passed with advisories and no code change.
+
+## Requirements vs Outcome
+
+The rework in the project brief is what shipped. A usable freeze runs `ensure_engine_env` once, prints `restoring torch from the hashed freeze`, and retries. A failed restore names its reason and `sr-initialize`. No freeze, and any other encoder exception, name `sr-initialize` without a pip template or a wrong-wheel claim. `doctor smoke` still only reports, and its usable-freeze line still names `stockroom shim ensure-env`. The first reflection's three-way "print a command" outcome is withdrawn.
+
+## Plan Accuracy
+
+The file list held. Two preflight advisories were adopted: retry unless the report is `failed` (so `noop` retries), and `importlib.invalidate_caches()` before that retry. The generic wrapper advisory was left rejected. The plan's red-then-green sequence was not captured as two pytest runs.
+
+## Build & QA Observations
+
+`make ci` passed: 1018 tests, 38 skipped, ruff clean, reuse compliant. QA found no defect. It left three advisories: one clause in `system-model.md` says the embed connection stays read-only, which is the wrong description of embed's later open; the new test helpers are duplicated the way this suite already duplicates helpers; the retry-still-fails test exists only on semantic, which is the shared function. None of those asked for another build.
+
+## Insights
+
+### Technical
+
+- Naming `stockroom shim ensure-env` was the right diagnosis and the wrong delivery. The freeze already chooses the wheel, so the command can run that restore itself. The no-freeze line and the encoder-exception line were guesses, and printing them as if they were repairs taught the agent a command it could not run.
+
+### Process
+
+- The first pytest run of the new tests was already green, so the red step is a note in `activeContext.md` rather than a captured failure. QA still treated the assertions as real pins.
+
+## Million-Dollar Question
+
+This is the shape the first design was reaching for. Session start already heals from the freeze. Semantic and embed are the backup when that heal did not leave torch importable, and doctor smoke stays the check that can still show a missing torch. The pip template and the "pick a different wheel" sentence would not have been printed.

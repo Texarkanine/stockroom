@@ -139,3 +139,13 @@ When torch cannot be imported and a usable hashed freeze exists, `stockroom sema
 * Insights
     - The production healer contract (`ensure_engine_env` soft-fails into `EnsureReport`, never raises) is what makes the un-wrapped healer call in `start_encoder` safe.
 
+## 2026-10-20 - REFLECT - COMPLETE
+
+* Work completed
+    - Appended the rework reflection to `memory-bank/active/reflection/reflection-torch-failures-help.md`.
+    - Left `productContext.md`, `systemPatterns.md`, and `techContext.md` unchanged.
+* Decisions made
+    - The first reflection stays in the file. The rework section withdraws the "print a command" outcome.
+* Insights
+    - The freeze case was a determined restore. The other two lines were guesses, and the command can run only the determined one.
+
