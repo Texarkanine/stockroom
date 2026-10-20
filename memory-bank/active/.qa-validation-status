@@ -1,5 +1,0 @@
-PASS WITH ADVISORY
-- semantic/embed/doctor tests: 96 passed, 4 skipped (test_semantic.py, test_embed.py, test_doctor.py)
-- ruff check + format: clean on all five touched Python files
-- Advisory (non-blocking): no test raises ModuleNotFoundError named `torch.<submodule>`; the `torch.`-prefix branch of `encoder_construction_error` is locked only by code review. Consider one test pinning it.
-- Not verified here: acceptance criterion 4 (non-draft PR open).

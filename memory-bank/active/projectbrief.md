@@ -32,3 +32,9 @@ The text an agent actually follows (`skills/sr-semantic/SKILL.md`, and the torch
 2. The skill text an agent follows names that remedy, and the torch troubleshooting page agrees with itself.
 3. The chosen design is the one justified as optimal for this failure, including a better design than the ticket's options when that design is justified.
 4. A non-draft pull request is open for the change.
+
+## Rework
+
+Operator feedback, 2026-10-20, after the open pull request: when a usable hashed freeze exists, `stockroom semantic` and `stockroom embed` should run `ensure_engine_env` once and retry, instead of telling someone to run `stockroom shim ensure-env`. Print one line that the restore is in progress. If the restore fails, print that failure's reason and `sr-initialize`. Do not ask them to run `ensure-env` again.
+
+Do not auto-repair the other two failures. No usable freeze still needs a person to choose the wheel, so the next step is `sr-initialize`, not a `uv pip install` line that contains a literal `<build>`. An encoder exception after torch imports is not automatically a wrong wheel, and it is not a reason to install a different one.

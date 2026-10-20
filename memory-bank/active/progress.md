@@ -70,3 +70,14 @@ Make torch import and load failures on `stockroom semantic` and `stockroom embed
     - The ticket's two-way split stays rejected. ensure-env is only the missing-import remedy.
 * Insights
     - The agent followed the skill row, not the troubleshooting page. Both the stderr line and that row had to name the command.
+
+## 2026-10-20 - REWORK - INITIATED
+
+* Work completed
+    - Operator chose rework over archive.
+* Decisions made
+    - When torch cannot be imported and a usable hashed freeze exists, `semantic` and `embed` run `ensure_engine_env` once, print that the restore is in progress, and retry the encoder once.
+    - If that restore fails, print its reason and `sr-initialize`. Do not print `stockroom shim ensure-env` again.
+    - Do not auto-repair a missing freeze or an encoder exception. No freeze names `sr-initialize`, not a pip command with a literal `<build>`. An encoder exception is not treated as a known wheel change.
+* Insights
+    - `ensure-env` is a determined restore only for the freeze case. The other two lines were next-step guesses.
