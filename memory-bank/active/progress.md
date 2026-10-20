@@ -30,3 +30,16 @@ Stop the warehouse file growing far past the history it holds, as specified in [
     - Hard-link swap kept off: Level 3. The proof from the issue, without turning the default path into a replace
 * Insights
     - Format, NumPy inserts, and the doctor report can start together. The HNSW wrap waits on the insert path. The copy waits on the new-file format. The swap waits on verify-only and on the doctor backup name
+
+## 2026-10-20 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated Level 4 milestone decomposition in `memory-bank/active/milestones.md` against `projectbrief.md`
+    - Confirmed serial-safety, DAG alignment, coverage, invariant constraints, and definitions of done across all 7 milestones
+    - Recorded preflight status: PASS WITH ADVISORY
+* Decisions made
+    - Preflight result is PASS WITH ADVISORY. The milestone list was not changed
+    - Advisory, not adopted: a verification receipt so verify-only mode does not rebuild on every later writer open, and so doctor can show that a copy already verified
+* Insights
+    - The 7-milestone decomposition cleanly separates read-only diagnostic visibility, incremental vector insert performance, index rebuild bounds, and non-destructive shadow verification from the final inactive swap operation
+

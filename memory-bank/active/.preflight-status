@@ -1,0 +1,22 @@
+PASS WITH ADVISORY
+
+## Preflight Validation Findings
+
+- **Prerequisites**: Passed. Active complexity is explicitly recorded as Level 4 in `memory-bank/active/progress.md` and `memory-bank/active/tasks.md`. The milestone file `memory-bank/active/milestones.md` exists and its header `# Milestones: warehouse-file-growth` matches the task ID.
+- **Checklist Shape**: Passed. The execution order section contains a contiguous, clean GFM checkbox list of exactly seven milestones without nested bullets or stray checkboxes.
+- **Coverage**: Passed. All requirements from `memory-bank/active/projectbrief.md` (HNSW lifecycle, single-statement NumPy binding, v1.5.0+ storage format with ZSTD text compression, one-time writer rewrite, schema version isolation, verify-only default writer path, swap isolation, and read-only doctor storage reporting) map directly to one or more milestones with no overlapping responsibilities.
+- **Scope and Concreteness**: Passed. All seven milestones represent concrete, independently deliverable deliverables scoped within Level 2 or Level 3 complexity.
+- **Order and Dependency Agreement**: Passed. The serial checklist order is a valid topological traversal of the Mermaid execution DAG. Format, NumPy, and Doctor can proceed in parallel or serially, while copy, verify-only writer, and swap follow strict prerequisite gates.
+- **Cross-Milestone Invariants**: Passed. Invariants explicitly forbid altering populated files in place, modifying migration chains, permitting Doctor or readers to trigger rewrites, dropping HNSW indexes permanently, or deleting original or backup warehouse files. Shared artifact ownership and handoff rules are fully defined across the format, NumPy, doctor, copy, and swap milestones.
+- **Done and Risks Definitions**: Passed. Every milestone has a dedicated section exactly matching its checkbox label, specifying unambiguous definitions of done and explicit risk / invariant constraints.
+
+## Advisory Finding: Radical Innovation
+
+### Verification Receipt Sidecar and Upgrade Certification Protocol
+
+- **Context**: In Milestone 6, the writer path executes a complete shadow copy and strict multiset verification (`EXCEPT ALL` on all tables, schema catalog equality, and HNSW query execution) against an old warehouse file in verify-only mode. Because the swap milestone is intentionally deferred and left disabled, discarding the verified temp file on every run without recording a persistent verification receipt risks repetitive verification cycles on every subsequent writer open until swap activation.
+- **Structural Sketch**:
+  1. Have the verify-only writer write an atomic JSON verification receipt sidecar (e.g. `warehouse.duckdb.verification-receipt.json`) alongside the database upon successful verification. The receipt records the source warehouse's SHA-256, mtime, byte size, verified schema version, verification duration, row counts, and projected reclaimable space.
+  2. The verify-only writer checks this receipt on startup: if the current warehouse matches the recorded SHA-256 / mtime, it skips re-running the full verification build, preventing CPU and I/O thrashing during repeated ingest or embed runs.
+  3. `stockroom doctor` reads the receipt on its read-only probe path to display a certified upgrade readiness status (e.g. `Storage upgrade: Verified (100% multiset parity on 2026-10-20; 240 MB reclaimable)`).
+- **Impact**: Provides operators with verifiable, transparent proof of storage safety and reclaimed space on their production data before the swap is ever turned on, while keeping the writer path strictly verify-only and preserving the read-only invariant of `stockroom doctor`.
