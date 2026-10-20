@@ -43,3 +43,18 @@ Stop the warehouse file growing far past the history it holds, as specified in [
 * Insights
     - The 7-milestone decomposition cleanly separates read-only diagnostic visibility, incremental vector insert performance, index rebuild bounds, and non-destructive shadow verification from the final inactive swap operation
 
+## 2026-10-20 - REVIEW - PLAN AMENDED
+
+* Work completed
+    - Measured `~/.local/share/stockroom/warehouse.duckdb`: 39.058 GiB, 159613 of 159982 blocks used, 369 free. Payload is 73 MiB of `messages.text`, 94 MiB of `tool_input`, and 192 MiB of vector floats. Counts match issue 147. This machine has about 806 GiB free. The work machine's 88 GB file was not opened
+    - Amended the check-only milestone after the operator rejected a run on every writer open
+* Decisions made
+    - The check runs once, in the background. It records the result, deletes the temp file, and does not swap. Ingest and embed do not start it
+    - The check-only release is how the work machine, which only receives stockroom through a release, proves its real warehouse before any swap
+    - A later swap copies the warehouse again that day. Rows written after the check are only in the old file, and the old file stays in the old storage format
+    - No periodic compaction. The HNSW drop-and-recreate stops the accumulation. The primary-key leak stays out of scope
+    - Automatic deletion of a backup after a successful query was not adopted
+* Insights
+    - Preflight passed the writer-path wording and is stale for the amended check milestone. Re-preflight before building
+    - The 88 GB collapse is an expectation from this machine's leak, not a measurement of that file
+

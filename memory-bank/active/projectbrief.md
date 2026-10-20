@@ -26,7 +26,7 @@ A brand-new warehouse is created in DuckDB's newer storage format (`STORAGE_VERS
 
 ### Existing warehouse
 
-A writer rewrites an old warehouse once, automatically. There is no new CLI command. The first release builds the new file, verifies it, records the result, deletes the temp file, and never swaps. Enabling the swap is a separate, explicit change and stays off until that later change.
+One background pass checks an old warehouse once. There is no new CLI command, and ingest and embed do not start it. The first release builds the new file, verifies it, records the result, deletes the temp file, and never swaps. Enabling the swap is a separate, explicit change and stays off until that later change. The swap copies the warehouse again that day, because rows written after the check exist only in the old file.
 
 ### Doctor
 
@@ -37,10 +37,10 @@ A writer rewrites an old warehouse once, automatically. There is no new CLI comm
 1. The HNSW index stays. Writers that change `embeddings` drop it before writing and recreate it after. Skip both when the run writes nothing.
 2. Embed inserts go through a NumPy scan in one statement.
 3. New warehouses use the newer storage format and ZSTD on `messages.text` and `tool_calls.tool_input`. ZSTD is asserted through `pragma_storage_info` after a write, on a new-format file. `duckdb_tables().sql` does not show the compression clause.
-4. Existing warehouses are rewritten once from the writer path. `open_current()` and `stockroom doctor` never start a rewrite.
+4. The check-only pass runs once in the background, not from ingest, embed, or any other writer open. It records the result and deletes the temp file. `open_current()` and `stockroom doctor` never start it.
 5. The rewrite is a storage upgrade outside the schema-version chain. A skipped rewrite must not make `open_current()` readers treat the warehouse as behind head.
 6. Populated files are never altered in place. ZSTD and the newer format are applied when creating a brand-new warehouse and when copying rows into the new file. They are not a migration that rebuilds `messages` or `tool_calls` inside an existing file.
-7. The first release is verify-only. The swap (hard-link the original to a backup name, then `os.replace` the verified temp file onto `warehouse.duckdb`) is implemented as its own change and is not what the writer path does until a later explicit enable.
+7. The first release is that one background check. The swap (hard-link the original to a backup name, then `os.replace` the verified temp file onto `warehouse.duckdb`) is a later explicit change. It copies the warehouse again at that time. It does not replay the deleted temp file.
 8. `stockroom doctor` gains the storage report on its existing read-only fact path. No `compact` subcommand.
 
 ## Constraints

@@ -12,7 +12,7 @@ The HNSW index stays. No milestone drops approximate search, adds a `compact` su
 
 `stockroom doctor` never writes. Readers and doctor never start a rewrite.
 
-Until a later explicit enable, the writer path is verify-only: build, verify, record, delete the temp file, and do not swap.
+Until a later explicit enable, one background pass is verify-only: build, verify, record, delete the temp file, and do not swap. It runs once, not on later writer opens. Ingest and embed do not start it. The swap, when enabled, copies the warehouse again that day.
 
 Shared artifacts:
 
@@ -30,7 +30,7 @@ flowchart TD
   doctor[Doctor report]
   hnsw[HNSW rebuild]
   builder[Verified copy]
-  verifyonly[Verify-only writer]
+  verifyonly[Verify once in background]
   swap[Swap kept off]
   format --> builder
   numpy --> hnsw
@@ -44,8 +44,8 @@ flowchart TD
 - [ ] Drop and recreate the HNSW index around embedding writes, and skip both when the run writes nothing
 - [ ] Report warehouse file size, block use, reclaimable space, storage format, free disk, and an existing backup from read-only stockroom doctor
 - [ ] Build a verified newer-format copy of a warehouse without modifying the original
-- [ ] Run that copy from the writer path in verify-only mode, and skip when the file is not ready
-- [ ] Add the hard-link swap and its proof, and leave the writer path verify-only
+- [ ] Run that copy once in the background in verify-only mode, and skip when the file is not ready
+- [ ] Add the hard-link swap and its proof, and leave that swap off
 
 ## Per-milestone done and risks
 
@@ -69,10 +69,10 @@ flowchart TD
 - Done: A builder attaches the original read-only, writes a sibling temp file on the same filesystem in the newer format with ZSTD applied on the copy, closes it with no temp wal, and a fresh read-only connection proves multiset equality both directions, catalog equality, and an HNSW query. Fixtures at every schema version from `0001` through head are migrated, then copied, then pass those checks. The original bytes are unchanged. The builder does not replace the live file and does not delete a backup.
 - Risks: Any mismatch aborts. The builder never opens the original for writing. This milestone does not wire the builder into the writer path.
 
-### Run that copy from the writer path in verify-only mode, and skip when the file is not ready
-- Done: A read-write open holds the writer flock and, when the file is old, checkpointed, and has no wal, builds and verifies a temp file, records the result, fsyncs, and deletes the temp file. It does not swap. Low disk, a wal, a busy flock, and a read-only filesystem skip and leave the original untouched. A crash leftover temp is deleted on the next run, and cleanup never touches the original or a backup. An already-new file is a no-op. A skipped rewrite does not make `open_current()` readers see the schema as behind head. Doctor reports a skip. Fault injection during create, build, and verification leaves `warehouse.duckdb` openable with its original content.
-- Risks: Verify-only must not hard-link or replace. Readers and doctor never start this.
+### Run that copy once in the background in verify-only mode, and skip when the file is not ready
+- Done: One background pass, not ingest or embed, holds the writer flock and, when the file is old, checkpointed, and has no wal, builds and verifies a temp file, records the result where doctor can show it, fsyncs, and deletes the temp file. It does not run again while that result stands. It does not swap. Low disk, a wal, a busy flock, and a read-only filesystem skip and leave the original untouched. A crash leftover temp is deleted on the next run, and cleanup never touches the original or a backup. An already-new file is a no-op. A skipped check does not make `open_current()` readers see the schema as behind head. Doctor reports a skip. Fault injection during create, build, and verification leaves `warehouse.duckdb` openable with its original content.
+- Risks: Verify-only must not hard-link or replace. Readers and doctor never start this. A later writer open must not build the compact file again.
 
-### Add the hard-link swap and its proof, and leave the writer path verify-only
-- Done: An explicit swap, not the default writer path, hard-links the original to the backup name doctor already reports, fsyncs the new file and its directory, and replaces the live path with the verified temp file. The original SHA-256 equals the backup SHA-256. Hard-link refusal skips, with no copy-then-delete fallback. Faults after the link and after the replace leave `warehouse.duckdb` openable as either the original or the verified new file, and no data file is lost. No code path deletes the original or the backup. The default writer path still deletes the temp and does not swap. Docs say how to roll back by renaming the backup, and that stockroom will not delete it.
-- Risks: Shipping this milestone must not enable the swap on the writer path.
+### Add the hard-link swap and its proof, and leave that swap off
+- Done: An explicit swap, not the background check, hard-links the original to the backup name doctor already reports, fsyncs the new file and its directory, and replaces the live path with a temp file verified that day. The original SHA-256 equals the backup SHA-256. Hard-link refusal skips, with no copy-then-delete fallback. Faults after the link and after the replace leave `warehouse.duckdb` openable as either the original or the verified new file, and no data file is lost. No code path deletes the original or the backup. The background pass still deletes its temp and does not swap. Docs say how to roll back by renaming the backup, and that stockroom will not delete it.
+- Risks: Shipping this milestone must not enable the swap. The swap must copy the warehouse as it is that day, not replay an earlier deleted temp file.
