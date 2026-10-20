@@ -186,7 +186,7 @@ From here on, every engine call is `stockroom <subcommand>` (`stockroom --help` 
 
 ## Step 8: Schedule nightly freshness
 
-The warehouse stays current by running `stockroom ingest && stockroom embed` every night on the platform's own scheduler — cron on Linux/WSL, launchd on macOS. The engine owns the mechanism; you own the consent. First, re-probe:
+The warehouse stays current by running `stockroom shim ensure-env`, then `stockroom ingest && stockroom embed`, every night on the platform's own scheduler — cron on Linux/WSL, launchd on macOS. The heal runs first so a night still embeds when torch is missing; a failed heal still lets ingest run. The engine owns the mechanism; you own the consent. First, re-probe:
 
 ```bash
 stockroom schedule status

@@ -1,8 +1,9 @@
 """Nightly scheduler-entry management (``python -m stockroom.schedule``).
 
 The Phase-3 m4 scheduling surface: installs, reports, and removes the
-nightly ``stockroom ingest && stockroom embed`` job on the platform's
-native scheduler — cron on Linux (a marker-delimited managed crontab
+nightly job (``stockroom shim ensure-env``, then ``stockroom ingest &&
+stockroom embed``) on the platform's native scheduler — cron on Linux
+(a marker-delimited managed crontab
 block; foreign lines pass through byte-for-byte), launchd on macOS (an
 owned ``jp.ne.cani.stockroom.nightly.plist``). Idempotent by
 construction: install replaces any previous managed entry, remove is a
@@ -129,17 +130,22 @@ def render_payload(home: Path) -> str:
     """Render the shared nightly shell payload for ``home``.
 
     The one place the entry content is decided, used verbatim by both
-    platforms: ``(date; stockroom ingest && stockroom embed)`` with
-    stdout+stderr appended to ``<home>/logs/nightly.log``. The subshell
-    parentheses are load-bearing — without them the redirection binds
-    only to the last ``&&`` operand and everything else is mailed and
-    discarded (caught during live validation). Invokes the shim by name
-    (never an engine path) and contains no ``%`` (cron newline syntax).
-    The log path is shell-quoted, so a home holding a space or ``'`` is
-    one word.
+    platforms: ``(date; stockroom shim ensure-env; stockroom ingest &&
+    stockroom embed)`` with stdout+stderr appended to
+    ``<home>/logs/nightly.log``. ``ensure-env`` is its own ``;`` step, so a
+    failed heal still lets ingest run; ingest stays ``&&`` embed, so a
+    failed ingest still skips embed. The subshell parentheses are
+    load-bearing — without them the redirection binds only to the last
+    ``&&`` operand and everything else is mailed and discarded (caught
+    during live validation). Invokes the shim by name (never an engine
+    path) and contains no ``%`` (cron newline syntax). The log path is
+    shell-quoted, so a home holding a space or ``'`` is one word.
     """
     log = shlex.quote(str(_log_path(home)))
-    payload = f"(date; stockroom ingest && stockroom embed) >> {log} 2>&1"
+    payload = (
+        "(date; stockroom shim ensure-env; stockroom ingest && stockroom embed)"
+        f" >> {log} 2>&1"
+    )
     assert "%" not in payload, "cron treats % as newline — payload must be %-free"
     return payload
 
@@ -553,7 +559,8 @@ def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="python -m stockroom.schedule",
         description=(
-            "Manage the nightly 'stockroom ingest && stockroom embed' job on "
+            "Manage the nightly job (stockroom shim ensure-env, then "
+            "stockroom ingest && stockroom embed) on "
             "the platform scheduler (cron on Linux/WSL, launchd on macOS). "
             "install: write/replace the managed entry (idempotent); status: "
             "report installed state, whether the entry is up to date and "

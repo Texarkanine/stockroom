@@ -1,7 +1,7 @@
 
 # Scheduling
 
-Freshness is a nightly `stockroom ingest && stockroom embed` (incremental, not `--full`) on the platform scheduler — cron on Linux/WSL, launchd on macOS. Native Windows is not supported; use WSL. Output goes to `$STOCKROOM_HOME/logs/nightly.log`.
+Freshness is a nightly `stockroom shim ensure-env`, then `stockroom ingest && stockroom embed` (incremental, not `--full`) on the platform scheduler — cron on Linux/WSL, launchd on macOS. The heal runs first so a night still embeds when the engine environment is missing torch. A failed heal still lets ingest run. Native Windows is not supported; use WSL. Output goes to `$STOCKROOM_HOME/logs/nightly.log`.
 
 `sr-initialize` asks before installing the job. You can change the time, skip scheduling entirely, or manage it later:
 

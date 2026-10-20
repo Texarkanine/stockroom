@@ -55,7 +55,7 @@ Everything that runs Stockroom on a machine goes through the on-path `stockroom`
 - **Warehouse** — single-file DuckDB under stockroom home. Rebuildable ETL from harness session records.
 - **Embeddings** — local `sentence-transformers` vectors; torch is provisioned per-machine and held out of the dependency lock.
 - **Hooks** — session-start commands that rectify the shim and launch the dashboard. Fire-and-forget; never the ingest path.
-- **Schedule** — nightly `stockroom ingest && stockroom embed` on the platform scheduler.
+- **Schedule** — nightly `stockroom shim ensure-env`, then `stockroom ingest && stockroom embed` on the platform scheduler.
 - **Dashboard** — local offline metrics UI on port 58008; opens the warehouse without migrating.
 
 ## Change surfaces

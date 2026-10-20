@@ -13,10 +13,12 @@ The run-the-entry tests go one step further: they run the rendered cron
 line and plist in a real ``/bin/sh``, the way each scheduler does, against
 a fake shim in a temporary folder whose name holds a space or ``'``. The
 status tests cover the ``up-to-date`` and ``entry home`` facts, including
-for entries written in the 2.1.1 rendering.
+for entries written in the 2.1.1 rendering and for the rendering from just
+before ``ensure-env`` joined the payload.
 """
 
 import plistlib
+import shlex
 import subprocess
 from pathlib import Path
 
@@ -102,12 +104,15 @@ def which_without_shim(name: str) -> str | None:
 
 
 def test_payload_invokes_shim_with_log_redirection(tmp_path: Path) -> None:
-    """The payload runs date + ingest + embed through the shim by name,
-    appending stdout+stderr of the *whole* command list (not just the last
-    ``&&`` operand) to ``<home>/logs/nightly.log``."""
+    """The payload runs date, then ``shim ensure-env``, then ingest, then
+    embed, through the shim by name. ``ensure-env`` is its own ``;`` step,
+    so a failed heal still reaches ingest; ingest stays ``&&`` embed, so a
+    failed ingest still skips embed. Stdout+stderr of the *whole* list (not
+    just the last ``&&`` operand) append to ``<home>/logs/nightly.log``."""
     payload = render_payload(tmp_path)
     assert (
-        payload == "(date; stockroom ingest && stockroom embed)"
+        payload == "(date; stockroom shim ensure-env; "
+        "stockroom ingest && stockroom embed)"
         f" >> {tmp_path}/logs/nightly.log 2>&1"
     )
 
@@ -129,6 +134,27 @@ def test_payload_contains_no_engine_path_and_no_percent(tmp_path: Path) -> None:
     assert "%" not in payload
     assert "sr-search" not in payload
     assert "python -m" not in payload
+
+
+@pytest.mark.parametrize(
+    "folder",
+    ["Jane Doe", "O'Brien"],
+    ids=["space", "quote"],
+)
+def test_payload_quotes_a_log_path_with_a_space_or_a_quote(
+    tmp_path: Path, folder: str
+) -> None:
+    """The log path is one shell word when the home holds a space or a
+    ``'``. The heal step stays in front of ingest either way."""
+    home = tmp_path / folder
+    payload = render_payload(home)
+    log = shlex.quote(str(home / "logs" / "nightly.log"))
+    assert payload == (
+        "(date; stockroom shim ensure-env; stockroom ingest && stockroom embed)"
+        f" >> {log} 2>&1"
+    )
+    assert "%" not in payload
+    assert str(home / "logs" / "nightly.log") in shlex.split(payload)
 
 
 def test_parse_time_accepts_strict_hh_mm() -> None:
@@ -582,20 +608,32 @@ _FOLDERS = pytest.mark.parametrize(
 )
 
 
-def _fake_shim_home(base: Path) -> tuple[Path, schedule.Which]:
+def _fake_shim_home(
+    base: Path, *, fail: str | None = None
+) -> tuple[Path, schedule.Which]:
     """Build ``base/stockroom-home`` and a fake shim at ``base/bin/stockroom``.
 
     The fake prints ``fake stockroom <args> home=<STOCKROOM_HOME or <unset>>``,
     so a run of the entry shows both what it called and which stockroom home
-    the engine would resolve. Returns the home and a ``which`` that finds
-    only the fake shim (no ``uv``).
+    the engine would resolve. ``fail="ensure-env"`` or ``fail="ingest"`` makes
+    that call exit 1. Returns the home and a ``which`` that finds only the
+    fake shim (no ``uv``).
     """
     home = base / "stockroom-home"
     home.mkdir(parents=True)
     shim = base / "bin" / "stockroom"
     shim.parent.mkdir()
+    fail_ensure = "exit 1" if fail == "ensure-env" else ":"
+    fail_ingest = "exit 1" if fail == "ingest" else ":"
     shim.write_text(
-        '#!/bin/sh\necho "fake stockroom $* home=${STOCKROOM_HOME-<unset>}"\n',
+        "#!/bin/sh\n"
+        'echo "fake stockroom $* home=${STOCKROOM_HOME-<unset>}"\n'
+        'if [ "$1" = shim ] && [ "$2" = ensure-env ]; then\n'
+        f"  {fail_ensure}\n"
+        "fi\n"
+        'if [ "$1" = ingest ]; then\n'
+        f"  {fail_ingest}\n"
+        "fi\n",
         encoding="utf-8",
     )
     shim.chmod(0o755)
@@ -615,9 +653,9 @@ def _nightly_runs(home: Path) -> list[str]:
 def test_cron_entry_runs_for_the_install_home(tmp_path: Path, folder: str) -> None:
     """The installed crontab line, run the way cron runs it (its command
     part handed to ``/bin/sh -c``, with no environment beyond ``HOME``),
-    calls ingest then embed through the shim, logs both to the install
-    home's nightly log, and hands the engine that same home, even when the
-    home and shim paths hold a space or ``'``."""
+    calls ensure-env, then ingest, then embed through the shim, logs all
+    three to the install home's nightly log, and hands the engine that same
+    home, even when the home and shim paths hold a space or ``'``."""
     base = tmp_path / folder
     home, which = _fake_shim_home(base)
     runner = FakeCrontab(initial=None)
@@ -635,6 +673,7 @@ def test_cron_entry_runs_for_the_install_home(tmp_path: Path, folder: str) -> No
     )
     assert result.returncode == 0, f"entry={entry!r} stderr={result.stderr!r}"
     assert _nightly_runs(home) == [
+        f"fake stockroom shim ensure-env home={home}",
         f"fake stockroom ingest home={home}",
         f"fake stockroom embed home={home}",
     ]
@@ -644,9 +683,9 @@ def test_cron_entry_runs_for_the_install_home(tmp_path: Path, folder: str) -> No
 def test_launchd_job_runs_for_the_install_home(tmp_path: Path, folder: str) -> None:
     """The installed plist, run the way launchd runs it (``ProgramArguments``
     as an argument vector, with only ``HOME`` plus its
-    ``EnvironmentVariables``), calls ingest then embed, logs both to the
-    install home, and hands the engine that same home, even when the paths
-    hold a space or ``'``."""
+    ``EnvironmentVariables``), calls ensure-env, then ingest, then embed,
+    logs all three to the install home, and hands the engine that same home,
+    even when the paths hold a space or ``'``."""
     base = tmp_path / folder
     home, which = _fake_shim_home(base)
     agents = _agents(tmp_path)
@@ -669,8 +708,45 @@ def test_launchd_job_runs_for_the_install_home(tmp_path: Path, folder: str) -> N
     )
     assert result.returncode == 0, f"plist={data!r} stderr={result.stderr!r}"
     assert _nightly_runs(home) == [
+        f"fake stockroom shim ensure-env home={home}",
         f"fake stockroom ingest home={home}",
         f"fake stockroom embed home={home}",
+    ]
+
+
+@pytest.mark.parametrize(
+    ("fail", "commands", "code"),
+    [
+        ("ensure-env", ["shim ensure-env", "ingest", "embed"], 0),
+        ("ingest", ["shim ensure-env", "ingest"], 1),
+    ],
+    ids=["failed-heal-still-ingests", "failed-ingest-skips-embed"],
+)
+def test_payload_runs_ingest_after_a_failed_heal_and_skips_embed_after_a_failed_ingest(
+    tmp_path: Path, fail: str, commands: list[str], code: int
+) -> None:
+    """``;`` before ingest means a failing ``ensure-env`` still reaches
+    ingest and embed. ``&&`` before embed means a failing ingest does not
+    reach embed. Both schedulers run this one payload."""
+    base = tmp_path / "plain"
+    home, which = _fake_shim_home(base, fail=fail)
+    shim = which("stockroom")
+    assert shim is not None
+    (home / "logs").mkdir()
+    result = subprocess.run(
+        ["/bin/sh", "-c", render_payload(home)],
+        env={
+            "HOME": str(base),
+            "PATH": f"{Path(shim).parent}:/usr/bin:/bin",
+            "STOCKROOM_HOME": str(home),
+        },
+        cwd=base,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == code, result.stderr
+    assert _nightly_runs(home) == [
+        f"fake stockroom {command} home={home}" for command in commands
     ]
 
 
@@ -738,6 +814,42 @@ def test_cron_status_says_a_fresh_entry_is_up_to_date(
     assert f"entry home: {home}" in lines
 
 
+def _payload_before_ensure_env(home: Path) -> str:
+    """The nightly payload from before ``ensure-env`` joined it.
+
+    Same log redirection as today; the shell runs ingest and embed only.
+    """
+    log = shlex.quote(str(home / "logs" / "nightly.log"))
+    return f"(date; stockroom ingest && stockroom embed) >> {log} 2>&1"
+
+
+def _cron_before_ensure_env_line(home: Path) -> str:
+    """The managed crontab line install wrote just before this change, for
+    ``home`` at 03:30 under ``fake_which``: ``STOCKROOM_HOME`` is set, and
+    the payload is :func:`_payload_before_ensure_env`."""
+    payload = _payload_before_ensure_env(home)
+    return (
+        f"30 3 * * * PATH={shlex.quote(_FAKE_PATH)} "
+        f"STOCKROOM_HOME={shlex.quote(str(home))} "
+        f"/bin/sh -c {shlex.quote(payload)}"
+    )
+
+
+def _launchd_before_ensure_env_job(home: Path) -> dict:
+    """The plist install wrote just before this change, for ``home`` at
+    03:30 under ``fake_which``. ``STOCKROOM_HOME`` is set; the shell payload
+    is :func:`_payload_before_ensure_env`."""
+    log = str(home / "logs" / "nightly.log")
+    return {
+        "Label": PLIST_LABEL,
+        "ProgramArguments": ["/bin/sh", "-c", _payload_before_ensure_env(home)],
+        "EnvironmentVariables": {"PATH": _FAKE_PATH, "STOCKROOM_HOME": str(home)},
+        "StartCalendarInterval": {"Hour": 3, "Minute": 30},
+        "StandardOutPath": log,
+        "StandardErrorPath": log,
+    }
+
+
 def test_cron_status_says_an_older_entry_is_not_up_to_date(tmp_path: Path) -> None:
     """An entry in the 2.1.1 rendering (no ``STOCKROOM_HOME``, the payload
     in hand-built single quotes) is reported ``up-to-date: no``, with
@@ -784,6 +896,42 @@ def test_launchd_status_says_an_older_job_is_not_up_to_date(tmp_path: Path) -> N
     lines = launchd_status(home=home, agents_dir=agents, which=fake_which)
     assert "up-to-date: no" in lines
     assert "entry home: not set" in lines
+
+
+def test_cron_status_says_a_pre_ensure_env_entry_is_not_up_to_date(
+    tmp_path: Path,
+) -> None:
+    """An entry that still runs ingest and embed only, but already carries
+    ``STOCKROOM_HOME``, is ``up-to-date: no``. The home fact stays, so the
+    difference is the payload, not a missing home."""
+    home = tmp_path / "home"
+    runner = FakeCrontab(
+        initial=(
+            f"{MARKER_BEGIN}\n{_cron_before_ensure_env_line(home)}\n{MARKER_END}\n"
+        )
+    )
+    lines = cron_status(
+        home=home,
+        crontab_runner=runner,
+        daemon_check=lambda: True,
+        which=fake_which,
+    )
+    assert "up-to-date: no" in lines
+    assert f"entry home: {home}" in lines
+
+
+def test_launchd_status_says_a_pre_ensure_env_job_is_not_up_to_date(
+    tmp_path: Path,
+) -> None:
+    """A plist that still runs ingest and embed only, but already carries
+    ``STOCKROOM_HOME``, is ``up-to-date: no`` and still names that home."""
+    agents = _agents(tmp_path)
+    home = tmp_path / "home"
+    with (agents / f"{PLIST_LABEL}.plist").open("wb") as fh:
+        plistlib.dump(_launchd_before_ensure_env_job(home), fh)
+    lines = launchd_status(home=home, agents_dir=agents, which=fake_which)
+    assert "up-to-date: no" in lines
+    assert f"entry home: {home}" in lines
 
 
 @pytest.mark.parametrize("scheduler", ["cron", "launchd"])

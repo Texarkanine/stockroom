@@ -37,7 +37,7 @@ SUBCOMMANDS: dict[str, tuple[str, str]] = {
     "doctor": ("stockroom.doctor", "Report environment facts / smoke-test torch."),
     "schedule": (
         "stockroom.schedule",
-        "Manage the nightly ingest+embed scheduler entry.",
+        "Manage the nightly ensure-env, ingest, and embed scheduler entry.",
     ),
     "dashboard": (
         "stockroom.dashboard.__main__",

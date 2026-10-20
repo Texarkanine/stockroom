@@ -32,7 +32,7 @@ On Cursor, `sessionStart` has been observed to miss on some macOS setups. Cursor
 
 ## Scheduled ingest and embed
 
-Freshness is a nightly `stockroom ingest && stockroom embed` (incremental) on the platform scheduler — cron on Linux/WSL, launchd on macOS. The job invokes the shim by name; it does not embed a raw engine path. Output lands under stockroom home logs.
+Freshness is a nightly `stockroom shim ensure-env`, then `stockroom ingest && stockroom embed` (incremental) on the platform scheduler — cron on Linux/WSL, launchd on macOS. The heal runs first; a failed heal still lets ingest run. The job invokes the shim by name; it does not embed a raw engine path. Output lands under stockroom home logs.
 
 `sr-initialize` offers to install the job once. Manual catch-up remains available via CLI when results feel stale — see [User Guide → Load the Warehouse](../user-guide/load/index.md).
 
