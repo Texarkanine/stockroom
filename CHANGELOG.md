@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.1.3](https://github.com/Texarkanine/stockroom/compare/v2.1.2...v2.1.3) (2026-10-20)
+
+
+### Bug Fixes
+
+* restore missing torch from the hashed freeze in semantic and embed ([#145](https://github.com/Texarkanine/stockroom/issues/145)) ([76d406d](https://github.com/Texarkanine/stockroom/commit/76d406d4be50315814b4dd05f1cf6d8786d33bd6))
+* run ensure-env before the nightly ingest and embed ([#149](https://github.com/Texarkanine/stockroom/issues/149)) ([5f31292](https://github.com/Texarkanine/stockroom/commit/5f31292cdc970d1d7d47e9340b7bbae46d172b6e))
+
 ## [2.1.2](https://github.com/Texarkanine/stockroom/compare/v2.1.1...v2.1.2) (2026-10-19)
 
 
