@@ -9,4 +9,4 @@
 
 ## Next Step
 - Run `/niko-archive` to archive this task.
-- The open pull request still describes the withdrawn "print a command" design until it is updated.
+- Pull request #145 title and body describe the restore.
