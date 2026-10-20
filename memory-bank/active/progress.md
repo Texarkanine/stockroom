@@ -1,6 +1,6 @@
 # Progress
 
-Make torch import and load failures on `stockroom semantic` and `stockroom embed` print the command that fixes them, and make the agent-facing text name that same command. Judge the ticket's options first and implement the justified design. Open a non-draft pull request when the work is finished.
+When torch cannot be imported and a usable hashed freeze exists, `stockroom semantic` and `stockroom embed` run `ensure_engine_env` once, say so, and retry. A failed restore prints its reason and `sr-initialize`. No freeze names `sr-initialize`, not a pip command with a literal `<build>`. An encoder exception is not treated as a known wheel change.
 
 **Complexity:** Level 2
 
@@ -81,3 +81,12 @@ Make torch import and load failures on `stockroom semantic` and `stockroom embed
     - Do not auto-repair a missing freeze or an encoder exception. No freeze names `sr-initialize`, not a pip command with a literal `<build>`. An encoder exception is not treated as a known wheel change.
 * Insights
     - `ensure-env` is a determined restore only for the freeze case. The other two lines were next-step guesses.
+
+## 2026-10-20 - COMPLEXITY-ANALYSIS - COMPLETE
+
+* Work completed
+    - Classified the rework as Level 2.
+* Decisions made
+    - Level 2. The change stays in the encoder-construction failure path. `ensure_engine_env` already exists. The other two cases are copy changes, not a new repair.
+* Insights
+    - Auto-running the heal is viable only where the freeze already names the wheel.
