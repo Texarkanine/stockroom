@@ -60,3 +60,13 @@ Make torch import and load failures on `stockroom semantic` and `stockroom embed
     - PASS WITH ADVISORY: no build changes required. The single advisory is a test-coverage nit (no test pins the `torch.<submodule>` prefix branch), not an acceptance blocker.
 * Insights
     - The `try` wrapping only `encoder_factory()` on both CLIs is what keeps a search-time bug from being mislabeled a wheel remedy; worth keeping that narrow in future edits.
+
+## 2026-10-20 - REFLECT - COMPLETE
+
+* Work completed
+    - Compared the build to the plan and wrote `memory-bank/active/reflection/reflection-torch-failures-help.md`.
+    - Left `productContext.md`, `systemPatterns.md`, and `techContext.md` unchanged. The new error line is a torch-subsystem contract already stated in `system-model.md` and `embed.py`. Nothing in the three persistent files is now false.
+* Decisions made
+    - The ticket's two-way split stays rejected. ensure-env is only the missing-import remedy.
+* Insights
+    - The agent followed the skill row, not the troubleshooting page. Both the stderr line and that row had to name the command.
