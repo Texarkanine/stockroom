@@ -30,11 +30,9 @@ Indexes embedded in the freeze (from `--emit-index-url` at compile time) resolve
 
 ### Semantic search or embed fails on torch
 
-`stockroom semantic` and `stockroom embed` print one line on stderr and exit 1. Run the command in that line. Do not retry the query.
+When torch cannot be imported and a usable hashed freeze already exists, `stockroom semantic` and `stockroom embed` restore it themselves. They print `restoring torch from the hashed freeze`, install from that freeze, and retry once. Wait for that to finish. A large wheel can take minutes.
 
-- The line names `stockroom shim ensure-env` when torch cannot be imported and a usable hashed freeze already exists. That command reinstalls the frozen wheel.
-- The line names `uv pip install torch` when there is no usable freeze. Run that command, or re-run `sr-initialize` (install, smoke, then freeze).
-- The line tells you to re-run `sr-initialize` and pick a different wheel when torch imports but the encoder fails. The wheel is wrong. `stockroom shim ensure-env` reinstalls that same wheel, so do not use it for this line.
+If the restore fails, if there is no usable freeze, or if the encoder fails for another reason, the command prints the failure and tells you to re-run `sr-initialize` (install, smoke, then freeze). Do not retry the query.
 
 ### Heal soft-fails: no freeze / corrupt freeze
 
@@ -54,4 +52,4 @@ Check network / index URL; retry; see `uv pip compile` stderr.
 
 ### `stockroom doctor smoke` fails with missing torch
 
-If a hashed freeze already exists under stockroom home, the diagnosis recommends `stockroom shim ensure-env` (same heal as above). If there is no freeze yet, follow `sr-initialize` (install → smoke → freeze).
+If a hashed freeze already exists under stockroom home, the diagnosis names `stockroom shim ensure-env` and does not install it. If there is no freeze yet, follow `sr-initialize` (install → smoke → freeze).

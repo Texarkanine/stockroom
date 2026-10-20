@@ -23,8 +23,8 @@ detection, the VSS/HNSW index, and the model choice are documented in
 """
 
 import argparse
+import importlib
 import logging
-import shlex
 import sys
 from collections.abc import Callable
 from pathlib import Path
@@ -33,6 +33,7 @@ from typing import Protocol
 import duckdb
 
 from stockroom import warehouse
+from stockroom.engine_env import EnsureReport, ensure_engine_env
 from stockroom.shim import default_app_dir
 from stockroom.torch_source import read_freeze_path
 
@@ -336,66 +337,98 @@ class BgeEncoder:
         return [vector.tolist() for vector in vectors]
 
 
-#: Wheel-index base named by torch remedies. The concrete build (``cu126``,
-#: ``cpu``, …) is a per-machine choice made in ``sr-initialize``.
-_TORCH_INDEX_BASE = "https://download.pytorch.org/whl"
+def _missing_torch(exc: BaseException) -> bool:
+    """True when ``exc`` is a failed import of ``torch`` or ``torch.*``."""
+    if not isinstance(exc, ModuleNotFoundError):
+        return False
+    name = exc.name or ""
+    return name == "torch" or name.startswith("torch.")
 
 
-def missing_torch_remedy(app_dir: Path) -> str:
-    """Return the remedy clause when ``import torch`` fails.
+def missing_torch_remedy() -> str:
+    """Return the report-only remedy when ``import torch`` fails.
 
     A usable hashed freeze names ``stockroom shim ensure-env``. Otherwise
-    the clause is the literal ``uv pip install`` command, with ``app_dir``
-    shell-quoted, plus ``sr-initialize``.
+    the clause is ``sr-initialize``. This is what ``doctor smoke`` prints.
+    ``semantic`` and ``embed`` restore from the freeze themselves.
     """
     if read_freeze_path() is not None:
         return (
             "restore it with `stockroom shim ensure-env` "
             "(or re-run sr-initialize to re-pick a wheel)"
         )
-    # --directory (not --project): uv pip discovers the venv from the
-    # working directory, so --project alone fails with "No virtual
-    # environment found" (verified live).
-    return (
-        "provision it there with "
-        f"`uv pip install torch --no-config --index {_TORCH_INDEX_BASE}/<build> "
-        f"--directory {shlex.quote(str(app_dir))}` (or re-run sr-initialize)"
-    )
+    return "re-run sr-initialize (install → smoke → freeze)"
 
 
 def encoder_load_remedy() -> str:
     """Return the remedy clause when the encoder fails after torch imports.
 
-    This is the re-pick sentence: re-run ``sr-initialize`` and choose a
-    different wheel index. It is not ``stockroom shim ensure-env``, which
-    would reinstall the same wheel from the freeze.
+    The clause names ``sr-initialize``. It does not claim the wheel is wrong:
+    the exception may be a download failure or a bug, not a bad build.
     """
-    return (
-        "re-run sr-initialize and pick a different torch wheel index "
-        f"({_TORCH_INDEX_BASE}/<build>)"
-    )
+    return "re-run sr-initialize"
 
 
-def encoder_construction_error(exc: BaseException) -> str | None:
-    """Return one ``error:`` stderr line, or ``None`` if ``exc`` should propagate.
-
-    A ``ModuleNotFoundError`` whose module name is ``torch`` or starts with
-    ``torch.`` is a missing torch: the line names the engine directory and
-    :func:`missing_torch_remedy`. Any other ``ModuleNotFoundError`` returns
-    ``None``. Every other exception is an encoder load failure: the line
-    names the exception and :func:`encoder_load_remedy`.
-    """
-    if isinstance(exc, ModuleNotFoundError):
-        name = exc.name or ""
-        if name != "torch" and not name.startswith("torch."):
-            return None
-        app_dir = default_app_dir()
-        diagnosis = f"torch is not installed in the engine environment at {app_dir}"
-        return f"error: {diagnosis} — {missing_torch_remedy(app_dir)}"
+def _encoder_failed_line(exc: BaseException) -> str:
+    """One stderr line for a construction failure that is not a torch restore."""
     return (
         f"error: encoder check failed ({exc.__class__.__name__}: {exc}) — "
         f"{encoder_load_remedy()}"
     )
+
+
+def _torch_missing_line(app_dir: Path) -> str:
+    """One stderr line when torch is missing and there is nothing to restore."""
+    diagnosis = f"torch is not installed in the engine environment at {app_dir}"
+    return f"error: {diagnosis} — {missing_torch_remedy()}"
+
+
+def start_encoder(
+    factory: Callable[[], Encoder],
+    *,
+    healer: Callable[[Path], EnsureReport] | None = None,
+) -> Encoder | None:
+    """Build ``factory``, restoring torch once when a usable freeze can.
+
+    A missing ``torch`` import with a usable hashed freeze prints
+    ``restoring torch from the hashed freeze``, calls ``healer`` (default
+    :func:`stockroom.engine_env.ensure_engine_env`) once, and retries
+    ``factory`` once when the report is not ``failed``. Any other failure
+    prints one stderr line and returns ``None``. A non-torch
+    ``ModuleNotFoundError`` propagates.
+    """
+    try:
+        return factory()
+    except ModuleNotFoundError as exc:
+        if not _missing_torch(exc):
+            raise
+        app_dir = default_app_dir()
+        if read_freeze_path() is None:
+            print(_torch_missing_line(app_dir), file=sys.stderr)
+            return None
+        print("restoring torch from the hashed freeze", file=sys.stderr)
+        restore = (healer or ensure_engine_env)(app_dir)
+        if restore.action == "failed":
+            print(
+                f"error: torch restore failed ({restore.reason}) — "
+                "re-run sr-initialize",
+                file=sys.stderr,
+            )
+            return None
+        importlib.invalidate_caches()
+        try:
+            return factory()
+        except ModuleNotFoundError as retry_exc:
+            if not _missing_torch(retry_exc):
+                raise
+            print(_encoder_failed_line(retry_exc), file=sys.stderr)
+            return None
+        except Exception as retry_exc:
+            print(_encoder_failed_line(retry_exc), file=sys.stderr)
+            return None
+    except Exception as exc:
+        print(_encoder_failed_line(exc), file=sys.stderr)
+        return None
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -424,17 +457,19 @@ def main(
     argv: list[str] | None = None,
     *,
     encoder_factory: Callable[[], Encoder] = BgeEncoder,
+    healer: Callable[[Path], EnsureReport] | None = None,
 ) -> int:
     """Parse args, embed pending message text read-write, print the count.
 
     Returns ``0`` on success, ``1`` when no warehouse exists yet (with a clean
     "run ingest first" hint and no traceback — checked *before* the encoder is
     built, so the friendly path needs no torch) or when the encoder cannot be
-    constructed (one stderr line, same remedies as ``stockroom semantic``).
-    Opens the warehouse read-write through ``warehouse.open()`` (so ``vss`` is
-    loaded and the schema is current) and constructs the encoder via
-    ``encoder_factory`` (default :class:`BgeEncoder`, which loads torch out of
-    band; tests inject a fake).
+    constructed. A missing torch with a usable freeze is restored once and the
+    embed retried. Any other construction failure prints one stderr line
+    naming ``sr-initialize``. Opens the warehouse read-write through
+    ``warehouse.open()`` (so ``vss`` is loaded and the schema is current) and
+    constructs the encoder via ``encoder_factory`` (default :class:`BgeEncoder`,
+    which loads torch out of band; tests inject a fake).
     """
     args = _build_parser().parse_args(argv)
 
@@ -447,13 +482,8 @@ def main(
         )
         return 1
 
-    try:
-        encoder = encoder_factory()
-    except Exception as exc:
-        line = encoder_construction_error(exc)
-        if line is None:
-            raise
-        print(line, file=sys.stderr)
+    encoder = start_encoder(encoder_factory, healer=healer)
+    if encoder is None:
         return 1
     on_progress = (lambda line: print(line, flush=True)) if args.verbose else None
     con = warehouse.open(read_only=False)

@@ -79,15 +79,17 @@ def test_probe_exits_zero_and_prints_fact_keys() -> None:
 
 
 def test_smoke_torch_free_env_fails_loudly_with_remedy(tmp_path: Path) -> None:
-    """``doctor smoke`` without torch exits 1 with the one-line
-    ratcheted no-freeze provisioning remedy (home isolated from ambient)."""
+    """``doctor smoke`` without torch exits 1 with one line naming
+    ``sr-initialize`` (home isolated from ambient)."""
     _skip_if_torch_provisioned()
     home = tmp_path / "stockroom-home"
     home.mkdir()
     result = _run("smoke", env={"STOCKROOM_HOME": str(home)})
     assert result.returncode == 1
     line = _one_stderr_line(result)
-    assert "uv pip install torch --no-config --index" in line
+    assert "sr-initialize" in line
+    assert "uv pip install" not in line
+    assert "<build>" not in line
     assert "ensure-env" not in line
 
 

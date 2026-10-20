@@ -99,15 +99,18 @@ stockroom query "SELECT
 
 ### Handle errors without thrashing
 
-Each failure is a clean stderr message + exit code — read it and take the matching action, don't loop:
+Each failure is a clean stderr message + exit code — read it and take the matching action, don't loop.
+
+If stderr says `restoring torch from the hashed freeze`, torch was missing and a usable freeze exists. The command restores it and retries. Wait for it to finish.
 
 | Message | Exit | What it means / next action |
 |---------|------|------------------------------|
 | `error: empty query (…)` | 2 | No search text was passed. Provide a query. |
 | `error: --limit must be a positive integer` | 2 | Bad `-k`. Fix the number. |
 | `error: no warehouse found at … — run \`stockroom ingest\` first` | 1 | The warehouse hasn't been built. Tell the user to run `stockroom ingest` (or `sr-initialize` if the machine was never set up); don't retry. |
-| `error: torch is not installed in the engine environment at …` | 1 | Torch is missing. Run the command in the line. `stockroom shim ensure-env` reinstalls a usable freeze. The `uv pip install` line means there is no usable freeze: run that command, or re-run `sr-initialize`. Do not retry the query. |
-| `error: encoder check failed (…)` | 1 | Torch imported, and the encoder did not load. Re-run `sr-initialize` and pick a different torch wheel. Do not retry the query. Do not run `stockroom shim ensure-env` for this line: it reinstalls the wheel that failed. |
+| `error: torch is not installed in the engine environment at …` | 1 | Torch is missing and there is no usable freeze to restore. Re-run `sr-initialize`. Do not retry the query. |
+| `error: torch restore failed (…)` | 1 | The command tried to restore torch from the freeze and that restore failed. Re-run `sr-initialize`. Do not retry the query. |
+| `error: encoder check failed (…)` | 1 | The encoder did not load. Re-run `sr-initialize`. Do not retry the query. |
 
 ## Worked examples
 

@@ -36,7 +36,7 @@ It writes harness-labeled rows into shared tables: `sessions`, `messages`, and `
 
 Embed turns non-empty message text into local vectors ([BAAI/bge-small-en-v1.5](https://huggingface.co/BAAI/bge-small-en-v1.5), 384-dim, one row per chunk in `embeddings`). SQL query works without embeddings; **meaning-based recall does not.**
 
-Embedding needs a working PyTorch install in the engine venv. Ingest does not. If embed or semantic search fails on torch, run the command in the error line — [Troubleshooting > Torch](../troubleshooting/torch.md).
+Embedding needs a working PyTorch install in the engine venv. Ingest does not. If torch is missing and a usable freeze exists, `stockroom embed` and `stockroom semantic` restore it and continue. When that restore does not happen, re-run `sr-initialize` — [Troubleshooting > Torch](../troubleshooting/torch.md).
 
 **Default is incremental.** Only messages that still lack an embedding for the current model are processed. Re-runs resume cleanly after interruption.
 

@@ -16,9 +16,9 @@ both constitutionally read-only (they never install, sync, or write):
   and checks the vector width. Exit 0 with an ``ok`` summary, or exit 1
   with exactly one stderr line that always carries the *next action*
   (the errmsg ratchet: torch-missing names the engine environment and
-  either ``stockroom shim ensure-env`` when a usable freeze exists or the
-  literal provisioning command otherwise; encode failures name the
-  re-pick remedy).
+  either ``stockroom shim ensure-env`` when a usable freeze exists or
+  ``sr-initialize`` when it does not; encode failures name
+  ``sr-initialize``). ``smoke`` never installs.
 
 Testability follows the engine-wide injection precedent: ``probe_facts``
 takes an injectable ``nvidia-smi`` runner and torch importer (so it is
@@ -166,13 +166,11 @@ def run_smoke(
 
     * torch not importable → names the engine environment (``APP_DIR``)
       and either ``stockroom shim ensure-env`` when a usable hashed freeze
-      exists under stockroom home, or the literal
-      ``uv pip install torch --no-config --index …`` command when it does
-      not, with the engine path shell-quoted so the agent can run it as
-      printed.
-    * encoder construction/encode raises → names the exception and the
-      re-pick remedy (re-run ``sr-initialize``, choose a different index).
-    * wrong-width vector → broken setup, same re-pick remedy.
+      exists under stockroom home, or ``sr-initialize`` when it does not.
+      ``smoke`` reports; it does not install.
+    * encoder construction/encode raises → names the exception and
+      ``sr-initialize``.
+    * wrong-width vector → broken setup, same ``sr-initialize`` remedy.
     """
     app_dir = default_app_dir()
 
@@ -184,7 +182,7 @@ def run_smoke(
         torch = torch_importer("torch")
     except Exception:
         diagnosis = f"torch is not installed in the engine environment at {app_dir}"
-        return fail(diagnosis, missing_torch_remedy(app_dir))
+        return fail(diagnosis, missing_torch_remedy())
 
     print(f"torch: {torch.__version__}")
     print(f"cuda.is_available(): {torch.cuda.is_available()}")
