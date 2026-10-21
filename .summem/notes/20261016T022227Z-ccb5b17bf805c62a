@@ -1,1 +1,0 @@
-CLI ingest stamps subagent children from meta.subagentInfo (parentAgentId, toolCallId, typeName). Dashboard Task slots include CallDynamicTool cursor/Task; children with a spawn id join before the zip.
