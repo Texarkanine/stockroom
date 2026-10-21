@@ -1,11 +1,11 @@
 # Active Context
 
 ## Current Task: warehouse-file-growth
-**Phase:** PLAN - COMPLETE
+**Phase:** PREFLIGHT - FAIL (fixable)
 
 ## What Was Done
 - Classified the first milestone as Level 3
-- Re-planned the shadow classification. Repair runs only after the copy is loud or folded. The kill is SIGKILL after a committed insert that stays under `checkpoint_threshold`
+- Fourth preflight failed on three fixable points: the row count is taken after a delete, a lock error can look like the loud state, and a dev upload can sort ahead of DuckDB 2.0.0
 
 ## Next Step
-- Preflight the revised plan
+- Re-plan those three points, then preflight again

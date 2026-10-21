@@ -93,6 +93,18 @@ Move the engine to DuckDB 2.0 and prove it on a copy of a real warehouse. This i
 * Insights
     - A repair that finishes on a healthy index is not evidence the replay bug was present
 
+## 2026-10-21 - PREFLIGHT (FOURTH RUN) - FAIL (fixable)
+
+* Work completed
+    - Preflight of the classification re-plan. The plan was not edited. Status is in `memory-bank/active/.preflight-status`
+* Decisions made
+    - Fixable: compare the embeddings count, taken before SIGKILL, immediately after the repair checkpoint. The later probes only have to finish
+    - Fixable: a failure to open the file is not the loud state. Loud is a remaining wal plus a probe that opened the database and then hung or raised
+    - Fixable: the patch repeat accepts only final `2.0.N` versions. `2.0.0.dev*` uploads sort after `2.0.0` and are ignored
+* Insights
+    - PyPI's newest stable duckdb today is 2.0.0, so the repeat prints that and skips
+
+
 
 
 
@@ -126,4 +138,18 @@ Move the engine to DuckDB 2.0 and prove it on a copy of a real warehouse. This i
     - An observation hang and an `InternalException` both count as the loud state. A normal return does not
 * Insights
     - Killing the writer when `warehouse.duckdb.wal` appears can land before the embeddings insert commits. Replay then rolls that insert back and the index stays whole
+
+## 2026-10-21 - PREFLIGHT - COMPLETE (FAIL (fixable))
+
+* Work completed
+    - Preflight of the third re-plan. The plan was not edited. First line of `memory-bank/active/.preflight-status` is `FAIL (fixable)`
+* Decisions made
+    - The repair's embeddings count is the count after the killed commit, compared after the repair checkpoint and before the post-repair delete and insert
+    - A probe that cannot open the file fails the phase. Loud requires that the probe opened the database and then hung or raised
+    - The patch repeat accepts only final `2.0.N` versions. The child is `uv run --no-sync --with duckdb==<version>`
+* Insights
+    - Measured: a second open of a DuckDB file this process still holds raises `IOException` `Could not set lock`. After close, the open succeeds
+    - Measured: `EXPLAIN` of a `?` statement without the bound value raises `InvalidInputException`
+    - Measured: PyPI's latest duckdb is `2.0.0`. `2.0.0.dev*` uploads are published and sort after `2.0.0` as strings
+    - `uv` 0.12.22 `uv run` syncs inexactly unless `--exact`. Torch is absent from the project `.venv`
 
