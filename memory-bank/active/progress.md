@@ -397,3 +397,14 @@ Stop the warehouse file growing far past the history it holds, as specified in [
     - Not adopted: checkpoint while the index is down. That pass only removes free blocks the next cycle reclaims. The plan checkpoints once, after the recreate
 * Insights
     - The leak is used blocks that stay up. The breath is file size. The test has to be able to tell them apart
+
+## 2026-10-21 - REVIEW (ADVISORY 2) - COMPLETE
+
+* Work completed
+    - Wrote the write order into the HNSW milestone, the happy path, and acceptance 1. The milestone list is unchanged
+* Decisions made
+    - The index stays down until every embedding delete in the process has run. The process recreates once, after the last one. The growth test includes two deletes and one recreate, with the recreate after both
+    - A message rewrite that does not change embeddings does not keep the index down
+    - Not adopted: a single helper as the only code allowed to change `embeddings`. The order is the requirement
+* Insights
+    - This is the same leak as an index-up delete. DuckDB 2.0 and the new file format do not remove it. Asking the operator to choose the order was a mislabel: the preflight called a misreadable sentence an advisory

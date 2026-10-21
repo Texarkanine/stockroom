@@ -1,0 +1,1 @@
+HNSW stays down until every embedding delete in the process has run, then one recreate. A recreate between two deletes leaks a used copy on DuckDB 1.5.4 and 2.0.0. Operator 2026-10-21.

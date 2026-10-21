@@ -20,6 +20,7 @@
 - Amended the "deletes leave the index in place" rule. A process that adds or removes rows drops the index, recreates it, and checkpoints before it exits. A delete that matches nothing is not a change. `stockroom doctor fix hnsw-rebuild` creates the index when it is already missing
 - Eleventh preflight (2026-10-21): PASS WITH ADVISORY. The planned drop, delete, recreate, checkpoint cycle keeps used blocks flat on DuckDB 1.5.4 and 2.0.0. The milestone list was not changed
 - Operator decision (2026-10-21): the growth test asserts used blocks, or a high-water file size of one index over the start, on every cycle. The one-index free-list alternation stays. No checkpoint while the index is down
+- The index stays down until every embedding delete in the process has run, then the process recreates once. A recreate between two deletes is the leak, on DuckDB 2.0 as well as 1.5.4. That order is part of the plan
 
 ## Next Step
-- Advisory 2 is still open: ingest keeps the index down across every embedding delete in the process. `/niko` starts the first milestone
+- `/niko` starts the first milestone
