@@ -1,11 +1,11 @@
 # Active Context
 
 ## Current Task: warehouse-file-growth
-**Phase:** PREFLIGHT - FAIL (fixable)
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
 - Classified the first milestone as Level 3
-- Fourth preflight failed on three fixable points: the row count is taken after a delete, a lock error can look like the loud state, and a dev upload can sort ahead of DuckDB 2.0.0
+- Re-planned after the fourth preflight. The row count is compared right after the repair checkpoint. A lock error is `blocked`, not loud. The patch repeat accepts only final `2.0.N` versions
 
 ## Next Step
-- Re-plan those three points, then preflight again
+- Preflight the revised plan

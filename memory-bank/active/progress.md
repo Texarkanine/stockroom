@@ -104,6 +104,20 @@ Move the engine to DuckDB 2.0 and prove it on a copy of a real warehouse. This i
 * Insights
     - PyPI's newest stable duckdb today is 2.0.0, so the repeat prints that and skips
 
+## 2026-10-21 - PLAN (FOURTH RE-PLAN) - COMPLETE
+
+* Work completed
+    - The embeddings count is taken from the child before SIGKILL and compared immediately after the repair checkpoint. The later probes only have to finish
+    - `classify` returns `blocked` when a probe does not open or reports a lock error. Loud requires a probe that opened and then hung or raised
+    - The patch repeat keeps final `2.0.N` versions only
+* Decisions made
+    - Adopted `--no-sync` on the shadow `uv run`
+    - Adopted binding the vector on `EXPLAIN`
+    - Adopted four direct tests of the pure `classify` function
+* Insights
+    - A second open of a file this process still holds raises `IOException` on DuckDB 1.5.4. That is not the replay bug
+
+
 
 
 
