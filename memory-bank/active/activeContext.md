@@ -1,11 +1,11 @@
 # Active Context
 
 ## Current Task: warehouse-file-growth
-**Phase:** PREFLIGHT - FAIL (fixable)
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
 - Classified the first milestone as Level 3
-- Second preflight failed on two fixable points: the 2.0 stockroom commands must use the overlay interpreter with `PYTHONPATH` set, and a failed `make ci` must restore DuckDB 1.5.4 before the nightly job
+- Re-planned after the second preflight. Ingest, embed, and semantic use the overlay interpreter with `PYTHONPATH` set. `make ci` is the sync that moves this checkout, and a failed gate restores DuckDB 1.5.4 before the nightly job
 
 ## Next Step
-- Re-plan those two points, then preflight again
+- Preflight the revised plan

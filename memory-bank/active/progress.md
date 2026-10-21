@@ -57,6 +57,21 @@ Move the engine to DuckDB 2.0 and prove it on a copy of a real warehouse. This i
 * Insights
     - `package = false` means the overlay does not import `stockroom` until `PYTHONPATH` includes `skills/sr-search/src`
 
+## 2026-10-21 - PLAN (SECOND RE-PLAN) - COMPLETE
+
+* Work completed
+    - Pointed ingest, embed, and semantic at the overlay interpreter with `PYTHONPATH=skills/sr-search/src`, and required those imports before the live copy
+    - Stated that `make ci` is the sync that moves `.venv`, and that a failed gate restores the 1.5.4 lock and runs `make sync` before 03:30
+* Decisions made
+    - Adopted the schema-1 setup from `test_open_current_refuses_stale_schema_without_migrating`, including the `filename` column
+    - Adopted a fixed free-space margin of 1 GiB above two copies
+    - Adopted the home-guard check on directory entry names
+    - Adopted the overlay pytest of the two durable tests before `uv lock`
+    - The 1.5.4 writer stays a nested `uv run`, which is what puts it on the project interpreter
+* Insights
+    - A nested `uv run` from inside the overlay ignores `VIRTUAL_ENV` and uses `skills/sr-search/.venv`
+
+
 
 
 ## 2026-10-21 - PREFLIGHT - COMPLETE (FAIL (fixable))
