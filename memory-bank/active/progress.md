@@ -71,6 +71,16 @@ Move the engine to DuckDB 2.0 and prove it on a copy of a real warehouse. This i
 * Insights
     - A nested `uv run` from inside the overlay ignores `VIRTUAL_ENV` and uses `skills/sr-search/.venv`
 
+## 2026-10-21 - PREFLIGHT (THIRD RUN) - FAIL (fixable)
+
+* Work completed
+    - Preflight of the second re-plan. The plan was not edited. Status is in `memory-bank/active/.preflight-status`
+* Decisions made
+    - Fixable: repair runs only after the copy is classified. Loud means the wal remains and a probe hung or raised. Folded means the wal is gone and the index count is lower than the row count. A healthy index must not walk into a passing repair
+* Insights
+    - Killing when the wal file appears can be before the insert commits. The kill is SIGKILL after a commit that stays under `checkpoint_threshold`
+
+
 
 
 
@@ -92,4 +102,14 @@ Move the engine to DuckDB 2.0 and prove it on a copy of a real warehouse. This i
     - `make ci` is the sync that moves `.venv`. A failed gate restores the 1.5.4 lock and runs `make sync` before the next nightly job
 * Insights
     - Measured: parent `uv run --with duckdb==2.0.0` is ephemeral 2.0.0; nested `uv run --no-sync --with duckdb==1.5.4` warns that the overlay `VIRTUAL_ENV` does not match `skills/sr-search/.venv` and runs 1.5.4 there. The project interpreter stayed 1.5.4. `import stockroom` is missing until `PYTHONPATH` includes `skills/sr-search/src`
+
+## 2026-10-21 - PREFLIGHT - COMPLETE (FAIL (fixable))
+
+* Work completed
+    - Preflight of the second re-plan. The plan was left unchanged. First line of `memory-bank/active/.preflight-status` is `FAIL (fixable)`
+* Decisions made
+    - The repair phases have to see the loud state and the folded state before they repair. A healthy index that survives the kill is a failed phase
+    - An observation hang and an `InternalException` both count as the loud state. A normal return does not
+* Insights
+    - Killing the writer when `warehouse.duckdb.wal` appears can land before the embeddings insert commits. Replay then rolls that insert back and the index stays whole
 

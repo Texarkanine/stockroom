@@ -1,11 +1,11 @@
 # Active Context
 
 ## Current Task: warehouse-file-growth
-**Phase:** PLAN - COMPLETE
+**Phase:** PREFLIGHT - FAIL (fixable)
 
 ## What Was Done
 - Classified the first milestone as Level 3
-- Re-planned after the second preflight. Ingest, embed, and semantic use the overlay interpreter with `PYTHONPATH` set. `make ci` is the sync that moves this checkout, and a failed gate restores DuckDB 1.5.4 before the nightly job
+- Third preflight failed because a healthy index could pass the repair phases. The kill could also land before the insert committed
 
 ## Next Step
-- Preflight the revised plan
+- Re-plan the loud and folded classification, then preflight again
