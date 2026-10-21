@@ -47,6 +47,17 @@ Move the engine to DuckDB 2.0 and prove it on a copy of a real warehouse. This i
 * Insights
     - Folding the log before `DROP INDEX` removes the leftover-`.wal` state, so one copy cannot prove both repairs
 
+## 2026-10-21 - PREFLIGHT (SECOND RUN) - FAIL (fixable)
+
+* Work completed
+    - Preflight of the revised plan. The plan was not edited. Status is in `memory-bank/active/.preflight-status`
+* Decisions made
+    - Fixable: ingest, embed, and semantic under the 2.0 overlay must be `sys.executable` with `PYTHONPATH=skills/sr-search/src`. A nested `uv run` stays on the project interpreter, DuckDB 1.5.4
+    - Fixable: `make ci` syncs the new lock into `.venv` before the commit. A failed gate restores the 1.5.4 lock and runs `make sync` before the next nightly job
+* Insights
+    - `package = false` means the overlay does not import `stockroom` until `PYTHONPATH` includes `skills/sr-search/src`
+
+
 
 ## 2026-10-21 - PREFLIGHT - COMPLETE (FAIL (fixable))
 
@@ -56,3 +67,14 @@ Move the engine to DuckDB 2.0 and prove it on a copy of a real warehouse. This i
     - The plan changes before build. The shadow repair has to run on a leftover-`.wal` copy and on a folded copy. Folding first leaves the loud state unproven
 * Insights
     - On 1.5.4, one row is enough for `EXPLAIN` of the unscoped cosine statement to contain `HNSW_INDEX_SCAN`. `uv run --with duckdb==2.0.0` layered 2.0.0 over `.venv` and left the project interpreter on 1.5.4. This `.venv` has no torch; the hashed freeze is present
+
+## 2026-10-21 - PREFLIGHT - COMPLETE (FAIL (fixable))
+
+* Work completed
+    - Preflight of the revised DuckDB 2.0 plan. The plan was not edited. First line of `memory-bank/active/.preflight-status` is `FAIL (fixable)`
+* Decisions made
+    - The 2.0 ingest, embed, and semantic commands have to run as the overlay interpreter with `PYTHONPATH=skills/sr-search/src`. A nested `uv run` uses the project `.venv` and DuckDB 1.5.4
+    - `make ci` is the sync that moves `.venv`. A failed gate restores the 1.5.4 lock and runs `make sync` before the next nightly job
+* Insights
+    - Measured: parent `uv run --with duckdb==2.0.0` is ephemeral 2.0.0; nested `uv run --no-sync --with duckdb==1.5.4` warns that the overlay `VIRTUAL_ENV` does not match `skills/sr-search/.venv` and runs 1.5.4 there. The project interpreter stayed 1.5.4. `import stockroom` is missing until `PYTHONPATH` includes `skills/sr-search/src`
+
