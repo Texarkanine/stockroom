@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: warehouse-file-growth
-**Phase:** PREFLIGHT - COMPLETE (PASS WITH ADVISORY)
+**Phase:** REVIEW - plan amended after third preflight
 
 ## What Was Done
 - Confirmed intent: implement [issue 147](https://github.com/Texarkanine/stockroom/issues/147) as written
@@ -12,6 +12,8 @@
 - Re-preflight: FAIL (fixable). The check had no trigger, "once" was undefined, the doctor line had two owners, and the brief still named the issue's writer path
 - Operator decision (2026-10-20): the session-start hook starts the check as a hidden internal job, so it reaches other machines with the plugin update. No nightly-job step, no hand-run command
 - Re-plan done: `milestones.md` and `projectbrief.md` amended for the four findings (still 7 milestones)
+- Third preflight: PASS WITH ADVISORY
+- Operator decision (2026-10-21): adopt the lock time limit, the table-by-table ZSTD copy, the no-warehouse and below-head retrying skips, and the measured rehearsal (sizes, times, lowest free disk, index top-10 match share, printed by doctor). Do not hide the internal entry point from `--help`
 
 ## Next Step
-- Preflight validates the amended milestone list
+- Preflight validates the amended milestone list, then `/niko` starts the first milestone

@@ -104,3 +104,18 @@ Stop the warehouse file growing far past the history it holds, as specified in [
     - Measured: plain `COPY FROM DATABASE` gives `v1.5.0+` storage and copies the HNSW index, but text comes out `DICT_FSST`, not ZSTD. Milestone 5 has to create the tables from milestone 1's definition and copy `schema_version` rows verbatim
     - Measured: on an old-format file, `USING COMPRESSION zstd` gives no error and stores the column uncompressed. Connecting an existing file with the `latest` setting leaves it at `v1.0.0+`
 
+## 2026-10-21 - REVIEW - PLAN AMENDED
+
+* Work completed
+    - Folded four third-run preflight advisories into `milestones.md` and `projectbrief.md`. Still seven milestones, same order and graph
+* Decisions made
+    - Operator adopted: a time limit on the pass's lock hold. An overrun deletes the temp file, releases the lock, and is a retrying skip
+    - Operator adopted: milestone 5 attaches the copy in the new format, creates tables from milestone 1's definition, inserts rows, copies `schema_version` rows unchanged, and builds the index from milestone 3's definition
+    - Operator adopted: no warehouse yet and a warehouse below the schema head are retrying skips
+    - Operator adopted: the check is a measured rehearsal. Milestone 5's builder returns sizes, build and verification times, lowest free disk, and the index top-10 match share against an exact scan. Milestone 6 adds the lock-hold time to the record, and doctor's line prints them. The later swap release sets its margin and expected writer wait from these numbers
+    - Operator declined: hiding the internal entry point from `stockroom --help`
+    - Planner additions: the index match share is recorded, not a pass condition, and its exact scan must not use the index. A warehouse whose copy always overruns the time limit must not rebuild at every session start, and milestone 6's plan decides how
+    - Doctor opening the warehouse without migrating is already required by "doctor never writes", so it was not added as a separate line
+* Insights
+    - The rehearsal turns the check-only release into the data source for the swap decision on the 88 GB work machine
+
