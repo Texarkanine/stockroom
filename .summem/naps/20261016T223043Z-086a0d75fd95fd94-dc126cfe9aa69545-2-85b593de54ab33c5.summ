@@ -1,0 +1,1 @@
+installed_plugins.json beside cache/ lists only the cache copy, never the checkout (dir-marketplace too). --plugin-dir and synced copies: none; orphans keep version-dir plus .orphaned_at. Cursor: no record. CLAUDE_CONFIG_DIR and CLAUDE_CODE_PLUGIN_CACHE_DIR move the plugins root.
