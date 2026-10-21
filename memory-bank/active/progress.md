@@ -151,3 +151,20 @@ Stop the warehouse file growing far past the history it holds, as specified in [
 * Insights
     - Advisories that only live in `progress.md` and `.preflight-status` are deleted when the first milestone finishes. Anything later milestones must see belongs in `milestones.md` or the brief
 
+## 2026-10-21 - PREFLIGHT (FIFTH RUN) - COMPLETE
+
+* Work completed
+    - Validated the 8-milestone list against `projectbrief.md`, the diff from the fourth run's plan, the engine code, and short DuckDB 1.5.4 experiments
+    - Recorded preflight status: PASS WITH ADVISORY. The milestone list was not changed
+* Decisions made
+    - All seven Level 4 checks pass. The fourth run's five advisories are resolved in the plan. Milestone 6 owns the pass and milestone 7 owns the hook launch, with no overlap. The checklist is a valid serial walk of the new graph, and milestones 7 and 8 can run in parallel
+    - Advisory, not adopted: only the flock holder writes the check record, written by temp file and `os.replace`. A busy skip from a concurrent session start must not replace a final result or an "attempt started" entry (milestone 6)
+    - Advisory, not adopted: the check entry point detaches itself like `stockroom dashboard`, because Cursor's `sessionStart` does not redirect stderr (milestone 7)
+    - Advisory, not adopted: milestone 7's plan says how "a session start after a final result does not build" is tested, because the hook tests check strings only
+    - Advisory, not adopted: doctor checks the file through `resolve_home()` before `open_current()`, which creates the home folder, and still prints the facts that need no connection when the warehouse is missing, below head, or busy (milestone 4)
+    - Radical advisory, not adopted: build the HNSW index on the temp file after the flock is released, and have the later swap check a fingerprint of the original under the flock. This replaces brief constraint 2
+* Insights
+    - Measured: `USING COMPRESSION zstd` survives a later `ALTER TABLE ... ADD COLUMN` (migration `0004` on `messages`) on a `v1.5.0+` file, so the clauses can live in `0001`
+    - Measured: the original's inode, size, `mtime_ns`, and first 12 KiB stay the same through read-only and no-write opens, and change after an insert, an update, or a delete. A delete can keep the size the same
+    - No migration seeds rows or rebuilds `messages` or `tool_calls`
+
