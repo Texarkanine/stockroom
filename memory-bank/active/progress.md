@@ -119,3 +119,19 @@ Stop the warehouse file growing far past the history it holds, as specified in [
 * Insights
     - The rehearsal turns the check-only release into the data source for the swap decision on the 88 GB work machine
 
+## 2026-10-21 - PREFLIGHT (FOURTH RUN) - COMPLETE
+
+* Work completed
+    - Validated the 2026-10-21 amended milestone list against `projectbrief.md`, issue 147, the engine code, and short DuckDB 1.5.4 experiments
+    - Recorded preflight status: PASS WITH ADVISORY. The milestone list was not changed
+* Decisions made
+    - All seven Level 4 checks pass. Each new brief item (the measured rehearsal, the named skips, the cleanup after an overrun, and the doctor measurements) maps to milestone 5 or 6, and the builder's measurements have a handoff rule
+    - Advisory, not adopted: requirement 4 says an overrun retries at the next session start, and milestone 6's risk says an always-overrunning copy must not rebuild at every session start. The two hold together only if "retry" means the pass runs again and decides whether to build. A crash that repeats has the same gap and leaves no record
+    - Advisory, not adopted: milestone 4 owns a live-size estimate, which doctor's reclaimable figure and milestone 6's pre-build free-disk check both use
+    - Advisory, not adopted: milestone 5's plan says where the head table definitions come from. Milestone 6 may split at the trigger
+    - Radical advisory, not adopted: writers mark that they are waiting, and the pass yields to them, so the time limit only guards against hangs
+* Insights
+    - Measured: `con.interrupt()` does not stop `CREATE INDEX ... USING HNSW` during the build. An interrupt sent 10% into a 7.9 s build took effect 9.1 s later. The time limit needs a builder in a child process that can be killed
+    - Measured: the HNSW leak sits in used blocks. A small file at 218.5 MiB had only 26.5 MiB free, so free blocks alone understate reclaimable space. Counting distinct `pragma_storage_info` blocks and adding `pragma_hnsw_index_info` works read-only
+    - Measured: `ORDER BY array_cosine_distance(...) + 0 LIMIT 10` and a `row_number()` filter plan an exact scan, not `HNSW_INDEX_SCAN`
+
