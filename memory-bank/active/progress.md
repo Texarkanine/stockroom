@@ -168,3 +168,16 @@ Stop the warehouse file growing far past the history it holds, as specified in [
     - Measured: the original's inode, size, `mtime_ns`, and first 12 KiB stay the same through read-only and no-write opens, and change after an insert, an update, or a delete. A delete can keep the size the same
     - No migration seeds rows or rebuilds `messages` or `tool_calls`
 
+## 2026-10-21 - REVIEW - PLAN AMENDED (FIFTH-RUN ADVISORIES)
+
+* Work completed
+    - Folded fifth-run advisories 1 to 4 into the milestone 4, 6, and 7 Done and Risks lines, and into the hook milestone's shared-artifact rule. Still eight milestones, same order and graph
+* Decisions made
+    - Operator adopted advisories 1 to 4 and asked for one more preflight. Operator declined the index-after-unlock idea, so brief constraint 2 stands
+    - Milestone 6: only the lock holder writes the check record, through a temp file and a rename. A busy-lock skip writes nothing
+    - Milestone 7: the launch detaches the way `stockroom dashboard` does, and milestone 7 owns that detached launch. A test runs the entry point against a final record to prove no build
+    - Milestone 4: doctor checks that the file exists before opening anything, never creates the stockroom home, and still prints connection-free facts when the warehouse is missing, below head, or busy
+* Insights
+    - Confirmed in code: `open_current()` reaches `home_dir()`, which runs `mkdir`. Doctor's probe already uses the pure `resolve_home()`
+    - Confirmed in code: Cursor's session-start hook redirects stdout only. Claude Code's redirects both streams
+

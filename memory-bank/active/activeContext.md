@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: warehouse-file-growth
-**Phase:** PREFLIGHT - COMPLETE (PASS WITH ADVISORY)
+**Phase:** REVIEW - plan amended after fifth preflight
 
 ## What Was Done
 - Confirmed intent: implement [issue 147](https://github.com/Texarkanine/stockroom/issues/147) as written
@@ -16,6 +16,8 @@
 - Operator decision (2026-10-21): adopt the lock time limit, the table-by-table ZSTD copy, the no-warehouse and below-head retrying skips, and the measured rehearsal (sizes, times, lowest free disk, index top-10 match share, printed by doctor). Do not hide the internal entry point from `--help`
 - Fourth preflight: PASS WITH ADVISORY
 - Operator decision (2026-10-21): fold advisories 1 to 4 (retry meaning, child-process builder, live-size estimate, copy order) into milestones 4 to 6, and split milestone 6 into the check and the session-start hook launch. Declined: writer step-aside
+- Fifth preflight: PASS WITH ADVISORY
+- Operator decision (2026-10-21): fold fifth-run advisories 1 to 4 (lock holder writes the record, detached launch, a real no-rebuild test, doctor never creates the home folder) and run preflight once more. Declined: index build after releasing the lock
 
 ## Next Step
-- Preflight validates the 8-milestone list, then `/niko` starts the first milestone
+- Preflight validates the amended 8-milestone list, then `/niko` starts the first milestone
