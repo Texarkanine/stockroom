@@ -387,3 +387,13 @@ Stop the warehouse file growing far past the history it holds, as specified in [
     - Radical advisory, not adopted: one helper is the only embeddings mutator, and it checkpoints the dropped index before it builds the new one
 * Insights
     - On a 1,500-row fixture the control delete climbs every cycle. The planned cycle stays at 20 used blocks. `DROP INDEX` then `CHECKPOINT` before the delete stays within one block of the start on every cycle, on 1.5.4 and 2.0.0, with the same numbers on both
+
+## 2026-10-21 - REVIEW (ADVISORY 1) - COMPLETE
+
+* Work completed
+    - Wrote the operator's decision into the HNSW milestone and acceptance 1. The milestone list is unchanged
+* Decisions made
+    - The growth test asserts, on every cycle, used blocks or a high-water file size of one index over the start. A cycle's file may be larger than the previous cycle by that one free index
+    - Not adopted: checkpoint while the index is down. That pass only removes free blocks the next cycle reclaims. The plan checkpoints once, after the recreate
+* Insights
+    - The leak is used blocks that stay up. The breath is file size. The test has to be able to tell them apart

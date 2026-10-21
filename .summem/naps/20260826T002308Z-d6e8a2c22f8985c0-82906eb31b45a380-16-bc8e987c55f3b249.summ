@@ -1,1 +1,0 @@
-Stockroom: DuckDB warehouse, dual-manifest plugin, engine in skills/sr-search (scripts/ = ../../scripts). WSL walker survives stale /mnt. Session view keeps \.cursor paths; pills only if corroborated. ERD from @rel tags; sr-query SKILL.md keeps the rest. No user uv indexes.

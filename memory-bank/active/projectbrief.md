@@ -16,7 +16,7 @@ Skipped releases (operator, 2026-10-21): this project ships in one release, then
 
 ### Nightly embed
 
-A run that changes `embeddings` and checkpoints must not leave another full copy of the HNSW index allocated in the file.
+A run that changes `embeddings` and checkpoints must not leave another full copy of the HNSW index counted in used blocks. The file may hold one free copy of that index until the next such run reclaims it. The run checkpoints once, after the index is rebuilt.
 
 ### Nothing to embed
 
@@ -88,7 +88,7 @@ Out of scope:
 
 ## Acceptance Criteria
 
-1. Changing `embeddings` and checkpointing, including a process that deletes rows and exits without inserting, no longer grows the file by an index copy. A test runs several change-and-exit cycles and bounds the file size. The skip is a process that did not change `embeddings`.
+1. Changing `embeddings` and checkpointing, including a process that deletes rows and exits without inserting, does not add another index copy to used blocks. The file may sit one index above the start for a cycle; the next cycle reclaims that free copy. A test runs several change-and-exit cycles and, on every cycle, asserts used blocks or a high-water file size of one index over the start. It does not require a cycle's file to be no larger than the previous cycle. The skip is a process that did not change `embeddings`.
 2. A process that does not change `embeddings` does not rebuild the index. A process that deletes embedding rows and inserts none still rebuilds before it exits.
 3. An embed of a few thousand chunks is faster than today's insert path on the same data. The test asserts the NumPy insert path against a fixture rather than timing it.
 4. A new warehouse is created in the `v2.0.0+` format with ZSTD on `messages.text` and `tool_calls.tool_input`.
