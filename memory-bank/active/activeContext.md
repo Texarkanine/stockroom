@@ -13,6 +13,7 @@
 - Operator decision (2026-10-21): I drafted the upstream duckdb-vss issue; the operator files it
 - Folded the eighth preflight's findings and advisories into `milestones.md` and `projectbrief.md`
 - Ninth preflight (2026-10-21): FAIL (fixable). A DuckDB 2.0 replay can fold the `.wal` away and leave an HNSW index that silently lacks rows. The milestone list was not changed
+- Operator decision (2026-10-21): the silent fold stays doctor-only. Doctor gains an index-coverage check. No repair on reconnect. The fix command is `stockroom doctor fix hnsw-rebuild`
 
 ## Next Step
-- Re-plan the milestone list. Waiting on the operator for the doctor fix name, and for whether embed drops the HNSW index before the orphan sweep
+- Re-plan after the operator decides two leftovers: drop the HNSW index only around inserts, or before every statement that touches embeddings; and whether doctor opens `.warehouse.lock` without creating it

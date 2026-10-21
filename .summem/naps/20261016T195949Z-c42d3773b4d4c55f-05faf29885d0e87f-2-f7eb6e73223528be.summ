@@ -1,0 +1,1 @@
+sr-initialize owner: default plugin dirs by path (cache/synced = claude/cursor); a checkout load is dev. Elsewhere CURSOR_PLUGIN_ROOT means cursor, else Claude asks. A substituted CLAUDE_PLUGIN_ROOT is not proof. Agent shells never get that env; skill text gets the exact token.
