@@ -1,0 +1,1 @@
+Stamps subagent children from meta.subagentInfo. Task slots: CallDynamicTool cursor/Task. .git and Makefile are not dev markers; rectify replaces a dead shim only. Owner: default plugin dirs by path; a checkout is dev; elsewhere CURSOR_PLUGIN_ROOT means cursor, else Claude asks.

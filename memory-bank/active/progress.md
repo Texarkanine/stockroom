@@ -330,3 +330,20 @@ Stop the warehouse file growing far past the history it holds, as specified in [
     - Measured: an explicit `CHECKPOINT` fails fatally on the broken state, but the automatic checkpoint at commit succeeds and folds the log into a partial index. The loud state can turn silent on its own
     - Measured: on 2.0.0, `pragma_hnsw_index_info()` `count` equals the row count on a healthy index, including after deletes, so comparing the two is a cheap read-only coverage check
     - Measured: while the broken `.wal` is present, even a `DELETE` from `embeddings` that matches no rows raises the `InternalException`, so the order of embed's orphan sweep and the index drop decides whether the next writing embed repairs the warehouse
+
+## 2026-10-21 - PLAN (RE-PLAN AFTER NINTH PREFLIGHT) - COMPLETE
+
+* Work completed
+    - Folded the ninth preflight's fixable finding into `milestones.md` and `projectbrief.md`. Still nine milestones, same order and graph
+    - Corrected the replay-bug description: a writer that does not touch `embeddings` can auto-checkpoint the `.wal` away and leave an index that silently lacks rows. Explicit `CHECKPOINT` fails only while the `.wal` remains
+    - Renamed the fix to `stockroom doctor fix hnsw-rebuild`. Doctor compares `pragma_hnsw_index_info` count with `count(*)` when no `.wal` is present, and treats a missing index the same way. The troubleshooting page lists both states
+    - Milestone 1's killed-writer step now crosses `checkpoint_threshold` and compares the index count with the row count. The exposure window ends at the HNSW milestone; the fix arrives at the doctor milestone
+    - The HNSW milestone drops the index only around inserts. Embed's orphan delete, which runs after the insert transaction on every embed, and ingest's delete for a removed or text-changed message, leave the index in place
+* Decisions made
+    - Operator: no automatic repair. About five installs, embed nightly, rollout of a couple of days. Build for a finished embed. A power loss may require the troubleshooting page. It must not empty the warehouse or delete its rows
+    - Operator, from the prior session: doctor-only plus a coverage check. Confirmed here, with the command name `hnsw-rebuild`
+    - Not adopted: the ninth preflight's advisories, including doctor opening `.warehouse.lock` without creating it, a reproduction test that skips if a patch fixes the bug, a timed child around the shadow-test probes, and naming the work machine's rollback in milestone 1. Acceptance 11 now points at acceptance 12 for a warehouse left mid-embed, because that is the operator's power-loss rule
+    - Not adopted: the radical idea of moving `embeddings` and its HNSW index into a separate file
+* Insights
+    - A later embed that inserts recreates the index from every row, so that recreate includes rows a partial index had lacked. An idle night does not rebuild
+    - Today's embed runs the orphan delete after the insert transaction, not before it

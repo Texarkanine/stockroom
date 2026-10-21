@@ -20,7 +20,7 @@ A run that changes `embeddings` and checkpoints must not leave another full copy
 
 ### Nothing to embed
 
-A run that does not modify `embeddings` does not drop or rebuild the index.
+A run that inserts no vectors does not drop or rebuild the index. Embed's orphan delete, and ingest's delete of embeddings for a removed or text-changed message, leave the index in place.
 
 ### Backlog embed
 
@@ -36,26 +36,28 @@ The session-start hook starts one background pass, detached, through an internal
 
 ### Doctor
 
-`stockroom doctor` reports file size, used and free blocks, a reclaimable estimate based on live data size (free blocks alone miss the leaked index copies, which count as used), the storage format, free disk, the background check's last outcome and measurements, and, when a backup exists, that backup's path and size. It also names a leftover `.wal`. The report never writes.
+`stockroom doctor` reports file size, used and free blocks, a reclaimable estimate based on live data size (free blocks alone miss the leaked index copies, which count as used), the storage format, free disk, the background check's last outcome and measurements, and, when a backup exists, that backup's path and size. It also names a leftover `.wal` and, when no `.wal` is present, an HNSW index that is missing or short of rows. The report never writes.
 
-Doctor fixes (operator, 2026-10-21): a user can run any discoverable doctor command with full confidence that nothing is written. Every doctor action that writes sits behind `stockroom doctor fix <name>` and runs only when the user names it. The first fix is `stockroom doctor fix hnsw-wal`. It repairs the HNSW index after a DuckDB 2.0.0 bug: replaying a `.wal` that holds inserts into `embeddings` while the index exists leaves the index broken. Semantic search then hangs or errors, every writer's checkpoint fails, and the `.wal` stays. The fix drops the index, recreates it, and checkpoints. No code repairs the index automatically. A troubleshooting page documents the symptoms and the fix.
+Doctor fixes (operator, 2026-10-21): a user can run any discoverable doctor command with full confidence that nothing is written. Every doctor action that writes sits behind `stockroom doctor fix <name>` and runs only when the user names it. The first fix is `stockroom doctor fix hnsw-rebuild`. It repairs the HNSW index after a DuckDB 2.0.0 bug. Replaying a `.wal` that holds inserts into `embeddings` while the index exists leaves the index broken while the `.wal` remains: semantic search hangs or errors, a statement that touches `embeddings` fails, and an explicit checkpoint fails. A writer that does not touch `embeddings` can then pass DuckDB's automatic checkpoint threshold, delete the `.wal`, and leave the index silently short of rows. The rows stay in the table. The fix drops the index, recreates it, and checkpoints. No code repairs the index automatically. A troubleshooting page documents both states and the fix.
+
+Happy path (operator, 2026-10-21): about five installs, embed runs nightly to completion, and this rollout is a couple of days. Build for a finished embed. A power loss during that embed may leave the index missing or short of rows, and the user looks up the troubleshooting page. That same power loss must not empty the warehouse or delete its rows. The HNSW index is dropped only around inserts. Deletes of embeddings leave the index in place.
 
 ## Requirements
 
-1. The HNSW index stays. Writers that change `embeddings` drop it before writing and recreate it after. Skip both when the run writes nothing.
+1. The HNSW index stays. Writers that insert into `embeddings` drop it before those inserts and recreate it after. Deletes of `embeddings` leave the index in place. Skip the drop and recreate when the run inserts nothing.
 2. Embed inserts go through a NumPy scan in one statement.
 3. New warehouses use the newer storage format and ZSTD on `messages.text` and `tool_calls.tool_input`. ZSTD is asserted through `pragma_storage_info` after a write, on a new-format file. `duckdb_tables().sql` does not show the compression clause.
 4. The check-only pass runs once in the background. The session-start hook starts it. Ingest, embed, the nightly job, and other writer opens do not. Verified, mismatch, already new, a crash, and a time-limit overrun are final. A crash or an overrun leaves a started entry that doctor shows, and deleting the record file runs the check again. Skips (low disk, a wal, a busy flock, a read-only filesystem, no warehouse yet, a warehouse below the schema head) build nothing and retry at the next session start. At the time limit the process ends itself, so the OS releases the flock. It records the result in a sidecar file under the stockroom home and deletes the temp file. `open_current()`, the dashboard, and `stockroom doctor` never start it.
 5. The rewrite is a storage upgrade outside the schema-version chain. A skipped rewrite must not make `open_current()` readers treat the warehouse as behind head.
 6. Populated files are never altered in place. ZSTD and the newer format are applied when creating a brand-new warehouse and when copying rows into the new file. They are not a migration that rebuilds `messages` or `tool_calls` inside an existing file.
 7. The first release of this project runs that one background check and never swaps. The swap (hard-link the original to a backup name, then `os.replace` the verified temp file onto `warehouse.duckdb`) is a later explicit change. It copies the warehouse again at that time. It does not replay the deleted temp file.
-8. `stockroom doctor` gains the storage report on its existing read-only fact path. No `compact` subcommand. Doctor writes only through `stockroom doctor fix <name>`. Its first fix, `hnsw-wal`, rebuilds the HNSW index under the writer flock.
+8. `stockroom doctor` gains the storage report on its existing read-only fact path. No `compact` subcommand. Doctor writes only through `stockroom doctor fix <name>`. Its first fix, `hnsw-rebuild`, rebuilds the HNSW index under the writer flock. Doctor names that fix for a leftover `.wal` and for an index that is missing or short of rows.
 9. The engine moves to DuckDB 2.0 first, proven by a shadow test on a copy of a real warehouse. No release carries the 2.0 move without the new-file format and the HNSW rebuild.
 10. Every release of this project works for a user who skipped any number of earlier releases. The check treats a warehouse as already new only when it has the newest storage tag and zstd on both columns.
 
 ## Constraints
 
-The rewrite must never break a warehouse. A bug can cost time. It cannot cost data.
+The rewrite must never break a warehouse. A bug can cost time. It cannot cost data. A crash during embed, including a power loss, may leave the HNSW index missing or short of rows. It must leave every row in the warehouse. The user recovers search from the troubleshooting page.
 
 1. The original is attached `READ_ONLY` and the rewrite never opens it for writing.
 2. The rewrite holds the writer flock for the whole operation. It starts only when the original is fully checkpointed and has no `.wal` file. Otherwise it skips.
@@ -94,7 +96,7 @@ Out of scope:
 6. The original file's bytes are unchanged after a rewrite, and stockroom has no path that deletes the backup.
 7. Every fault and skip in the proof list has a test.
 8. The first release is verify-only. The swap is a separate, explicit change.
-9. `stockroom doctor` reports file size, used and free blocks, reclaimable space, storage format, free disk, the background check's last outcome and measurements, the backup when one exists, and a leftover `.wal`, and the report never writes.
+9. `stockroom doctor` reports file size, used and free blocks, reclaimable space, storage format, free disk, the background check's last outcome and measurements, the backup when one exists, a leftover `.wal`, and an HNSW index that is missing or short of rows, and the report never writes.
 10. The engine runs on DuckDB 2.0. A copy of a real warehouse survives a 2.0 open and checkpoint unchanged, then ingest and embed under 2.0. DuckDB 1.5.4 can still write to it afterwards, and 2.0 still opens it after that.
-11. A `v1.0.0+` warehouse at any schema version from 0 to 8, as any earlier release left it, works with each release of this project, with no earlier release of this project installed first.
-12. On a warehouse whose HNSW index the DuckDB 2.0.0 replay bug broke, `stockroom doctor` names the leftover `.wal` and `stockroom doctor fix hnsw-wal`. After the fix, semantic search, ingest, and embed work again, and no row changed.
+11. A `v1.0.0+` warehouse at any schema version from 0 to 8, as any earlier release left it, works with each release of this project, with no earlier release of this project installed first. A warehouse left mid-embed by a power loss still opens with its rows. Search may miss rows until the fix in acceptance 12.
+12. On a warehouse whose HNSW index the DuckDB 2.0.0 replay bug broke, either with the `.wal` still present or after the log has been folded and the index is short of rows, `stockroom doctor` names `stockroom doctor fix hnsw-rebuild`. After the fix, semantic search, ingest, and embed work again, the index count equals the row count, and no row changed. The rows were present before the fix.

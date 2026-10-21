@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: warehouse-file-growth
-**Phase:** PREFLIGHT - COMPLETE (FAIL (fixable))
+**Phase:** PLAN - COMPLETE (re-plan after the ninth preflight, FAIL fixable)
 
 ## What Was Done
 - Operator decision (2026-10-21): DuckDB 2.0 is the first milestone; there is no 2.0-only release. Milestones 1 to 8 ship in one release after the operator shadow-tests a branch clone on his Macs (not the work machine)
@@ -14,6 +14,8 @@
 - Folded the eighth preflight's findings and advisories into `milestones.md` and `projectbrief.md`
 - Ninth preflight (2026-10-21): FAIL (fixable). A DuckDB 2.0 replay can fold the `.wal` away and leave an HNSW index that silently lacks rows. The milestone list was not changed
 - Operator decision (2026-10-21): the silent fold stays doctor-only. Doctor gains an index-coverage check. No repair on reconnect. The fix command is `stockroom doctor fix hnsw-rebuild`
+- Operator decision (2026-10-21): about five installs, nightly embed, rollout is a couple of days. Build for a finished embed. A power loss may send the user to the troubleshooting page, and must not empty the warehouse. The HNSW index drops only around inserts. Ninth-preflight advisories, including opening `.warehouse.lock` without creating it, stay unadopted
+- Folded the ninth preflight's finding into `milestones.md` and `projectbrief.md`. Still nine milestones, same order and graph
 
 ## Next Step
-- Re-plan after the operator decides two leftovers: drop the HNSW index only around inserts, or before every statement that touches embeddings; and whether doctor opens `.warehouse.lock` without creating it
+- Preflight validates the re-planned milestone list
