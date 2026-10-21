@@ -1,3 +1,3 @@
 # Current Task: warehouse-file-growth
 
-**Complexity:** Level 4
+**Complexity:** Level 3
