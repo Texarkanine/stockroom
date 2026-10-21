@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: warehouse-file-growth
-**Phase:** PREFLIGHT - COMPLETE (FAIL (fixable))
+**Phase:** PLAN - COMPLETE (re-plan after preflight FAIL (fixable))
 
 ## What Was Done
 - Confirmed intent: implement [issue 147](https://github.com/Texarkanine/stockroom/issues/147) as written
@@ -9,6 +9,9 @@
 - Generated the milestone list (7 milestones) in `memory-bank/active/milestones.md`
 - Preflight validated the original list (PASS WITH ADVISORY)
 - Operator review: the check runs once in the background, records the result, deletes the temp file, and does not swap. Ingest and embed do not start it. The first release exists so other machines can prove a real warehouse before any swap. The swap stays off and, when enabled, copies again that day
+- Re-preflight: FAIL (fixable). The check had no trigger, "once" was undefined, the doctor line had two owners, and the brief still named the issue's writer path
+- Operator decision (2026-10-20): the session-start hook starts the check as a hidden internal job, so it reaches other machines with the plugin update. No nightly-job step, no hand-run command
+- Re-plan done: `milestones.md` and `projectbrief.md` amended for the four findings (still 7 milestones)
 
 ## Next Step
-- Re-preflight the amended plan, then `/niko` starts the first milestone. Do not build against the pre-amendment writer-path wording
+- Preflight validates the amended milestone list

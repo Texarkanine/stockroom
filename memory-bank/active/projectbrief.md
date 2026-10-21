@@ -4,7 +4,7 @@
 
 As a stockroom user, I want the warehouse file to stay near the size of the history it holds, so that months of sessions do not fill the disk.
 
-Spec: [issue 147](https://github.com/Texarkanine/stockroom/issues/147). That issue is the authority for decisions, proof, and acceptance. This brief records them for the milestone plan.
+Spec: [issue 147](https://github.com/Texarkanine/stockroom/issues/147). That issue is the authority for decisions, proof, and acceptance, except where the operator's 2026-10-20 amendments in this brief replace it. The issue says the rewrite runs from the writer path. Instead, the session-start hook starts one background check, no writer open starts it, and the first release does not swap. This brief records the decisions for the milestone plan.
 
 ## Use-Case(s)
 
@@ -26,18 +26,18 @@ A brand-new warehouse is created in DuckDB's newer storage format (`STORAGE_VERS
 
 ### Existing warehouse
 
-One background pass checks an old warehouse once. There is no new CLI command, and ingest and embed do not start it. The first release builds the new file, verifies it, records the result, deletes the temp file, and never swaps. Enabling the swap is a separate, explicit change and stays off until that later change. The swap copies the warehouse again that day, because rows written after the check exist only in the old file.
+The session-start hook starts one background pass, detached, through an internal engine entry point. It checks an old warehouse once. There is no new user-facing CLI command, and ingest, embed, and the nightly job do not start it. The hook arrives with a plugin update, so a machine that only receives releases runs the check without re-installing anything. The first release builds the new file, verifies it, records the result, deletes the temp file, and never swaps. Enabling the swap is a separate, explicit change and stays off until that later change. The swap copies the warehouse again that day, because rows written after the check exist only in the old file.
 
 ### Doctor
 
-`stockroom doctor` reports file size, used and free blocks, a reclaimable estimate, the storage format, free disk, and, when a backup exists, that backup's path and size. It never writes.
+`stockroom doctor` reports file size, used and free blocks, a reclaimable estimate, the storage format, free disk, the background check's last outcome, and, when a backup exists, that backup's path and size. It never writes.
 
 ## Requirements
 
 1. The HNSW index stays. Writers that change `embeddings` drop it before writing and recreate it after. Skip both when the run writes nothing.
 2. Embed inserts go through a NumPy scan in one statement.
 3. New warehouses use the newer storage format and ZSTD on `messages.text` and `tool_calls.tool_input`. ZSTD is asserted through `pragma_storage_info` after a write, on a new-format file. `duckdb_tables().sql` does not show the compression clause.
-4. The check-only pass runs once in the background, not from ingest, embed, or any other writer open. It records the result and deletes the temp file. `open_current()` and `stockroom doctor` never start it.
+4. The check-only pass runs once in the background. The session-start hook starts it. Ingest, embed, the nightly job, and other writer opens do not. Verified, mismatch, and already new are final. A skip or a crash retries at the next session start. It records the result in a sidecar file under the stockroom home and deletes the temp file. `open_current()`, the dashboard, and `stockroom doctor` never start it.
 5. The rewrite is a storage upgrade outside the schema-version chain. A skipped rewrite must not make `open_current()` readers treat the warehouse as behind head.
 6. Populated files are never altered in place. ZSTD and the newer format are applied when creating a brand-new warehouse and when copying rows into the new file. They are not a migration that rebuilds `messages` or `tool_calls` inside an existing file.
 7. The first release is that one background check. The swap (hard-link the original to a backup name, then `os.replace` the verified temp file onto `warehouse.duckdb`) is a later explicit change. It copies the warehouse again at that time. It does not replay the deleted temp file.
@@ -80,8 +80,8 @@ Out of scope:
 2. Nights that embed nothing do not rebuild the index.
 3. An embed of a few thousand chunks is faster than today's insert path on the same data. The test asserts the NumPy insert path against a fixture rather than timing it.
 4. A new warehouse is created in the `v1.5.0+` format with ZSTD on `messages.text` and `tool_calls.tool_input`.
-5. An existing warehouse is rewritten once, automatically, and passes the equality, catalog, and HNSW checks above.
+5. An existing warehouse is copied once, automatically, and the copy passes the equality, catalog, and HNSW checks above. In this project the copy is verified and deleted, not swapped in.
 6. The original file's bytes are unchanged after a rewrite, and stockroom has no path that deletes the backup.
 7. Every fault and skip in the proof list has a test.
 8. The first release is verify-only. The swap is a separate, explicit change.
-9. `stockroom doctor` reports file size, used and free blocks, reclaimable space, storage format, free disk, and the backup when one exists, and it never writes.
+9. `stockroom doctor` reports file size, used and free blocks, reclaimable space, storage format, free disk, the background check's last outcome, and the backup when one exists, and it never writes.

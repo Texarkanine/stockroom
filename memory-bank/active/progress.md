@@ -73,3 +73,20 @@ Stop the warehouse file growing far past the history it holds, as specified in [
     - Ingest's `write_session` also deletes embeddings, so it is a second writer that modifies the HNSW index. Milestone 3 has to cover it explicitly (advisory)
     - Radical advisory: a ledger of once-only maintenance jobs, launched from session start and read by doctor, would answer the trigger, once, and doctor-ownership findings together, and would make enabling the swap a single job registration
 
+## 2026-10-20 - PLAN (RE-PLAN) - COMPLETE
+
+* Work completed
+    - Amended `milestones.md` and `projectbrief.md` for the four preflight findings. Still seven milestones
+    - Milestone 6 is now "Run that copy once from the session-start hook in verify-only mode, and skip when the file is not ready"
+    - Added the edges `doctor --> verifyonly` and `hnsw --> builder`. Dropped `doctor --> swap`, which the new edges imply
+* Decisions made
+    - Operator: the session-start hook starts the check as a hidden internal job. Not the nightly job, not a hand-run command. "No new CLI command" means no new user-facing command
+    - Verified, mismatch, and already new are final. Each skip and a crash retry at the next session start. The record names a check version, so a later enabled swap runs under a new version
+    - Milestone 6 owns the check record (a sidecar under the stockroom home) and one doctor line in the storage section milestone 4 built
+    - Adopted advisories: milestone 3 picks how ingest's embedding deletes are handled, milestone 3 owns the index definition and milestone 5 reuses it, milestones 5 and 6 test with old-format files, the swap is a mode of the milestone 6 pass, and acceptance 5 now says the copy is verified and deleted, not swapped
+    - Not adopted: a general job ledger. One check record with a version covers this project and the later swap
+    - Issue 147 itself was not edited. The brief says where the amendments replace it
+    - Advisory estimates: format L2, NumPy inserts L2, HNSW rebuild L3, doctor report L2, verified copy L3, session-start check L3, swap kept off L3
+* Insights
+    - Session-start hooks reach every machine with the plugin update, while nightly entries change only on re-install. That is why the hook is the only trigger that serves the check-only release
+
