@@ -126,6 +126,18 @@ Move the engine to DuckDB 2.0 and prove it on a copy of a real warehouse. This i
 * Insights
     - PyPI's newest final duckdb is still 2.0.0, so the skip branch is what runs today. The command has to select a later patch when one exists
 
+## 2026-10-21 - PLAN (FIFTH RE-PLAN) - COMPLETE
+
+* Work completed
+    - The 1.5.4 writer and the patch child start with `VIRTUAL_ENV` unset. Each prints `duckdb.__version__`, and the phase fails on a mismatch
+    - The synthetic `checkpoint_threshold` is set after the index is checkpointed, above the insert's wal
+    - The folded check reads the `count` column of `pragma_hnsw_index_info()`
+* Decisions made
+    - Not adopted: a launcher that spawns every DuckDB version as a sibling. Unsetting `VIRTUAL_ENV` on the two version-pinned children is the smaller fix
+* Insights
+    - While `VIRTUAL_ENV` points at the overlay, `uv run --with` ignores the requested package and runs the project interpreter
+
+
 
 
 

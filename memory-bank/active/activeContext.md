@@ -1,11 +1,11 @@
 # Active Context
 
 ## Current Task: warehouse-file-growth
-**Phase:** PREFLIGHT - FAIL (fixable)
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
 - Classified the first milestone as Level 3
-- Fifth preflight failed because a patch-repeat child started inside the 2.0 overlay ignores `--with` and runs this checkout's DuckDB 1.5.4
+- Re-planned the version-pinned children. They start with `VIRTUAL_ENV` unset, print their DuckDB version, and fail the phase on a mismatch. The synthetic threshold is set after the index checkpoint
 
 ## Next Step
-- Re-plan that child so `VIRTUAL_ENV` is unset, then preflight again
+- Preflight the revised plan
