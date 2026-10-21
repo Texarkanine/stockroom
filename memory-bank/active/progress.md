@@ -58,3 +58,18 @@ Stop the warehouse file growing far past the history it holds, as specified in [
     - Preflight passed the writer-path wording and is stale for the amended check milestone. Re-preflight before building
     - The 88 GB collapse is an expectation from this machine's leak, not a measurement of that file
 
+## 2026-10-20 - PREFLIGHT (RE-RUN) - COMPLETE
+
+* Work completed
+    - Re-validated the amended milestone list against `projectbrief.md`, issue 147, the operator's amendment, and the engine code
+    - Recorded preflight status: FAIL (fixable)
+* Decisions made
+    - Prerequisites, checklist shape, coverage, scope, serial order, and done/risks blocks pass
+    - Fixable: the background pass names no trigger, and every existing entry point is excluded. Scheduler entries reach a machine only on re-install. Session-start hooks need Cursor's third-party plugin setting and an engine entry point, which conflicts with "no new CLI command"
+    - Fixable: "once" does not say which outcomes stand (terminal results versus skips and crashes that should retry)
+    - Fixable: the verify-only milestone adds a doctor fact and the record doctor reads, but the invariants give milestone 4 sole ownership of reported facts. The DAG lacks the edge `doctor --> verifyonly`
+    - Fixable: the brief calls issue 147 the authority, but the issue's writer-path trigger was overridden by the amendment
+* Insights
+    - Ingest's `write_session` also deletes embeddings, so it is a second writer that modifies the HNSW index. Milestone 3 has to cover it explicitly (advisory)
+    - Radical advisory: a ledger of once-only maintenance jobs, launched from session start and read by doctor, would answer the trigger, once, and doctor-ownership findings together, and would make enabling the swap a single job registration
+
