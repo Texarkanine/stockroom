@@ -20,7 +20,7 @@ A run that changes `embeddings` and checkpoints must not leave another full copy
 
 ### Nothing to embed
 
-A run that inserts no vectors does not drop or rebuild the index. Embed's orphan delete, and ingest's delete of embeddings for a removed or text-changed message, leave the index in place.
+A process that does not change `embeddings` does not drop or rebuild the index. A delete that matches nothing is not a change. A process that deletes embedding rows and inserts none still rebuilds before it exits.
 
 ### Backlog embed
 
@@ -38,13 +38,13 @@ The session-start hook starts one background pass, detached, through an internal
 
 `stockroom doctor` reports file size, used and free blocks, a reclaimable estimate based on live data size (free blocks alone miss the leaked index copies, which count as used), the storage format, free disk, the background check's last outcome and measurements, and, when a backup exists, that backup's path and size. It also names a leftover `.wal` and, when no `.wal` is present, an HNSW index that is missing or short of rows. The report never writes.
 
-Doctor fixes (operator, 2026-10-21): a user can run any discoverable doctor command with full confidence that nothing is written. Every doctor action that writes sits behind `stockroom doctor fix <name>` and runs only when the user names it. The first fix is `stockroom doctor fix hnsw-rebuild`. It repairs the HNSW index after a DuckDB 2.0.0 bug. Replaying a `.wal` that holds inserts into `embeddings` while the index exists leaves the index broken while the `.wal` remains: semantic search hangs or errors, a statement that touches `embeddings` fails, and an explicit checkpoint fails. A writer that does not touch `embeddings` can then pass DuckDB's automatic checkpoint threshold, delete the `.wal`, and leave the index silently short of rows. The rows stay in the table. The fix drops the index, recreates it, and checkpoints. No code repairs the index automatically. A troubleshooting page documents both states and the fix.
+Doctor fixes (operator, 2026-10-21): a user can run any discoverable doctor command with full confidence that nothing is written. Every doctor action that writes sits behind `stockroom doctor fix <name>` and runs only when the user names it. The first fix is `stockroom doctor fix hnsw-rebuild`. It repairs the HNSW index after a DuckDB 2.0.0 bug. Replaying a `.wal` that holds inserts into `embeddings` while the index exists leaves the index broken while the `.wal` remains: semantic search hangs or errors, a statement that touches `embeddings` fails, and an explicit checkpoint fails. A writer that does not touch `embeddings` can then pass DuckDB's automatic checkpoint threshold, delete the `.wal`, and leave the index silently short of rows. The rows stay in the table. The fix drops the index when one exists, creates it when it is missing, and checkpoints. No code repairs the index automatically. A troubleshooting page documents both states and the fix.
 
-Happy path (operator, 2026-10-21): about five installs, embed runs nightly to completion, and this rollout is a couple of days. Build for a finished embed. A power loss during that embed may leave the index missing or short of rows, and the user looks up the troubleshooting page. That same power loss must not empty the warehouse or delete its rows. The HNSW index is dropped only around inserts. Deletes of embeddings leave the index in place.
+Happy path (operator, 2026-10-21): about five installs, embed runs nightly to completion, and this rollout is a couple of days. Build for a finished embed. A power loss during that embed may leave the index missing or short of rows, and the user looks up the troubleshooting page. That same power loss must not empty the warehouse or delete its rows. The HNSW index is dropped before a process adds or removes embedding rows, and recreated before that process exits. A process that changes nothing does not rebuild.
 
 ## Requirements
 
-1. The HNSW index stays. Writers that insert into `embeddings` drop it before those inserts and recreate it after. Deletes of `embeddings` leave the index in place. Skip the drop and recreate when the run inserts nothing.
+1. The HNSW index stays. A process that adds or removes `embeddings` rows drops the index before those statements and recreates it before it exits. A delete that matches nothing is not a change. Skip the drop and recreate when the process changes nothing.
 2. Embed inserts go through a NumPy scan in one statement.
 3. New warehouses use the newer storage format and ZSTD on `messages.text` and `tool_calls.tool_input`. ZSTD is asserted through `pragma_storage_info` after a write, on a new-format file. `duckdb_tables().sql` does not show the compression clause.
 4. The check-only pass runs once in the background. The session-start hook starts it. Ingest, embed, the nightly job, and other writer opens do not. Verified, mismatch, already new, a crash, and a time-limit overrun are final. A crash or an overrun leaves a started entry that doctor shows, and deleting the record file runs the check again. Skips (low disk, a wal, a busy flock, a read-only filesystem, no warehouse yet, a warehouse below the schema head) build nothing and retry at the next session start. At the time limit the process ends itself, so the OS releases the flock. It records the result in a sidecar file under the stockroom home and deletes the temp file. `open_current()`, the dashboard, and `stockroom doctor` never start it.
@@ -88,8 +88,8 @@ Out of scope:
 
 ## Acceptance Criteria
 
-1. Changing `embeddings` and checkpointing no longer grows the file by an index copy. A test runs several write-and-checkpoint cycles and bounds the file size.
-2. Nights that embed nothing do not rebuild the index.
+1. Changing `embeddings` and checkpointing, including a process that deletes rows and exits without inserting, no longer grows the file by an index copy. A test runs several change-and-exit cycles and bounds the file size. The skip is a process that did not change `embeddings`.
+2. A process that does not change `embeddings` does not rebuild the index. A process that deletes embedding rows and inserts none still rebuilds before it exits.
 3. An embed of a few thousand chunks is faster than today's insert path on the same data. The test asserts the NumPy insert path against a fixture rather than timing it.
 4. A new warehouse is created in the `v2.0.0+` format with ZSTD on `messages.text` and `tool_calls.tool_input`.
 5. An existing warehouse is copied once, automatically, and the copy passes the equality, catalog, and HNSW checks above. In this project the copy is verified and deleted, not swapped in.

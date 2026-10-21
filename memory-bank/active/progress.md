@@ -347,3 +347,30 @@ Stop the warehouse file growing far past the history it holds, as specified in [
 * Insights
     - A later embed that inserts recreates the index from every row, so that recreate includes rows a partial index had lacked. An idle night does not rebuild
     - Today's embed runs the orphan delete after the insert transaction, not before it
+
+## 2026-10-21 - PREFLIGHT (TENTH RUN) - COMPLETE
+
+* Work completed
+    - Validated the re-planned 9-milestone list against `projectbrief.md`, the engine code, and new DuckDB 1.5.4 and 2.0.0 experiments on delete-and-checkpoint growth
+    - Recorded preflight status: FAIL (fixable). The milestone list was not changed
+* Decisions made
+    - All seven Level 4 checks pass as structure. The ninth run's fold, coverage check, and `hnsw-rebuild` fix are in the plan
+    - Fixable: a delete of `embeddings` rows with the HNSW index left in place leaks a full index copy. On 1.5.4, one single-row delete plus checkpoint grew a 1,500-row file by exactly the index (10 blocks of 262144). Two further deletes kept adding copies. Process close does it with no explicit checkpoint, on 1.5.4 (wal of 125 bytes) and on 2.0.0 (wal of 159 bytes). A delete that matches nothing does not. Ingest closes its connection after `write_session` deletes embeddings, and embed skips the drop when it inserts nothing, so removal nights keep the copy
+* Insights
+    - The 2.0 move does not remove this leak. A later drop returns the copies to the free list on a small file; issue 147 already measured that the real warehouse does not shrink
+    - Advisory, not adopted: `hnsw-rebuild` has to create the index when it is already missing. Radical advisory, not adopted: ingest records dirty owner ids and embed is the only process that changes `embeddings`, so a night pays one rebuild
+
+## 2026-10-21 - PLAN (RE-PLAN AFTER TENTH PREFLIGHT) - COMPLETE
+
+* Work completed
+    - Folded the tenth preflight's fixable finding into `milestones.md` and `projectbrief.md`. Still nine milestones, same order and graph
+    - A process that adds or removes `embeddings` rows drops the index before those statements, recreates it, and checkpoints before it exits. A delete that matches nothing is not a change, and a process that changes nothing does not rebuild
+    - Ingest does this around its delete for a removed or text-changed message, before it closes the connection. Embed drops once around its inserts and an orphan delete that removes rows
+    - The growth test includes a process that deletes rows and exits without inserting
+    - `stockroom doctor fix hnsw-rebuild` creates the index when it is already missing, and drops it only when one exists
+* Decisions made
+    - The operator's "deletes leave the index in place" line is amended by the measurement. Keeping it would let removal nights grow the file by an index copy, which fails acceptance 1. The power-loss rule is unchanged: a crash must not empty the warehouse
+    - Adopted the advisory that the fix command has to succeed when the index is already gone, because the probe already names that command for a missing index
+    - Not adopted: making embed the only process that changes `embeddings`. A night that both invalidates and inserts pays two index builds. That is the smaller fix the preflight named
+* Insights
+    - The leak is at checkpoint and at process close, on 1.5.4 and 2.0.0. Ingest's close after `write_session` is the certain one, because ingest and embed are separate processes

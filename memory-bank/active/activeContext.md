@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: warehouse-file-growth
-**Phase:** PLAN - COMPLETE (re-plan after the ninth preflight, FAIL fixable)
+**Phase:** PLAN - COMPLETE (re-plan after the tenth preflight, FAIL fixable)
 
 ## What Was Done
 - Operator decision (2026-10-21): DuckDB 2.0 is the first milestone; there is no 2.0-only release. Milestones 1 to 8 ship in one release after the operator shadow-tests a branch clone on his Macs (not the work machine)
@@ -16,6 +16,8 @@
 - Operator decision (2026-10-21): the silent fold stays doctor-only. Doctor gains an index-coverage check. No repair on reconnect. The fix command is `stockroom doctor fix hnsw-rebuild`
 - Operator decision (2026-10-21): about five installs, nightly embed, rollout is a couple of days. Build for a finished embed. A power loss may send the user to the troubleshooting page, and must not empty the warehouse. The HNSW index drops only around inserts. Ninth-preflight advisories, including opening `.warehouse.lock` without creating it, stay unadopted
 - Folded the ninth preflight's finding into `milestones.md` and `projectbrief.md`. Still nine milestones, same order and graph
+- Tenth preflight (2026-10-21): FAIL (fixable). A delete that removes `embeddings` rows, with the HNSW index left in place, leaks one index copy at checkpoint and at process close, on DuckDB 1.5.4 and 2.0.0
+- Amended the "deletes leave the index in place" rule. A process that adds or removes rows drops the index, recreates it, and checkpoints before it exits. A delete that matches nothing is not a change. `stockroom doctor fix hnsw-rebuild` creates the index when it is already missing
 
 ## Next Step
 - Preflight validates the re-planned milestone list
