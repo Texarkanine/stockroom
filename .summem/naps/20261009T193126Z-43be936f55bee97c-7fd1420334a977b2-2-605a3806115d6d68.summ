@@ -1,0 +1,1 @@
+Vanished Claude token rows stay stored (message.id/requestId never persisted; gaps between equal cache triples occur in one response). Cursor CLI subagent children: meta.subagentInfo parentAgentId, toolCallId, typeName; spawn is CallDynamicTool namespace=cursor toolName=Task.

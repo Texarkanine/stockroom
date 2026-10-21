@@ -283,3 +283,17 @@ Stop the warehouse file growing far past the history it holds, as specified in [
 * Insights
     - Grouping 2.0 with the format and HNSW work removed an arrival state instead of adding code to handle it
     - A dev checkout that is also the live engine turns every lock change into a production change on that machine; the commit hook's exact sync makes it immediate
+
+## 2026-10-21 - PREFLIGHT (EIGHTH RUN) - COMPLETE
+
+* Work completed
+    - Validated the re-planned 9-milestone list against `projectbrief.md`, the diff `f3a7c31..37cf1c0`, the engine code, and new DuckDB 1.5.4 and 2.0.0 experiments
+    - Recorded preflight status: FAIL (fixable). The milestone list was not changed
+* Decisions made
+    - All seven Level 4 checks pass, and the seventh run's three fixable findings are resolved
+    - Fixable: on DuckDB 2.0.0 (vss `3685131eac`), a writer killed after inserting into the indexed `embeddings` table leaves a wal that breaks the index after replay. Semantic search fails, ingest's embedding deletes fail, and the next insert hangs while it holds the writer flock. It does not matter whether 1.5.4 or 2.0 wrote the wal. The plan needs this arrival in the list, a milestone 1 re-measure step, an owner for the heal (milestone 4 is the natural one), and protection for this machine between milestones 1 and 4
+    - Advisory, not adopted: name every Make target that syncs this checkout; hold Dependabot on `main` off duckdb 2.0 until the branch merges; say which machines run the shadow test; small wording fixes
+    - Radical advisory, not adopted: the writer chokepoint rebuilds the index whenever a wal existed at open or the index is missing
+* Insights
+    - Measured: on 2.0.0, `DROP INDEX`, then `CREATE INDEX`, then `CHECKPOINT` heals the broken state. A wal that holds only deletes or drop-then-insert replays cleanly. 1.5.4 replays every such wal with no problem
+    - Measured: a 2.0.0 writer with `storage_compatibility_version` set to `'latest'` or `'v2.0.0'` keeps an existing `v1.0.0+` file at `v1.0.0+` with FSST text, and 1.5.4 still reads and writes it, including after a killed 2.0 writer

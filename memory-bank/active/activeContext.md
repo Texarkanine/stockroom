@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: warehouse-file-growth
-**Phase:** PLAN - COMPLETE (re-plan after the seventh preflight, FAIL fixable)
+**Phase:** PREFLIGHT - COMPLETE (FAIL (fixable))
 
 ## What Was Done
 - Operator decision (2026-10-21): DuckDB 2.0 is the first milestone; there is no 2.0-only release. Milestones 1 to 8 ship in one release after the operator shadow-tests a branch clone on his Macs

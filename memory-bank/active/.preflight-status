@@ -2,87 +2,93 @@ FAIL (fixable)
 
 ## Preflight Findings
 
-This is the seventh preflight of the Level 4 milestone list for `warehouse-file-growth`. It checks the list after the 2026-10-21 amendment. DuckDB 2.0 is now the first milestone, so there are nine milestones. Every release must also work for a user who skipped earlier releases. The checks ran against `projectbrief.md`, the diff from the plan the sixth run checked (commit `9392fce`), the engine code, and four short experiments on DuckDB 1.5.4 and 2.0.0. The milestone list was not changed.
+This is the eighth preflight of the Level 4 milestone list for `warehouse-file-growth`. It checks the plan after the re-plan that followed the seventh run: there is no 2.0-only release, new files use storage `v2.0.0`, and the operator gave milestone 1 permission to rewrite DuckDB-behaviour sentences. The checks ran against `projectbrief.md`, the diff from the plan the seventh run checked (commit `f3a7c31` to `37cf1c0`), the engine code, and new experiments on DuckDB 1.5.4 and 2.0.0 (vss build `3685131eac`). The milestone list was not changed.
 
 ### Checks That Passed
 
-- **Prerequisites**: Pass. `progress.md` and `tasks.md` record Level 4. `milestones.md` exists, and its header `# Milestones: warehouse-file-growth` matches the task ID.
-- **Checklist shape**: Pass. There are nine contiguous GFM checkboxes under Execution Order, with no sub-bullets. No checkbox appears anywhere else.
-- **Coverage**: Pass, apart from fixable findings 1 and 2. Requirement 9 and acceptance 10 map to milestone 1. Requirement 10 and acceptance 11 map to the skipped-releases invariant, milestone 1's schema-1 test, and milestone 7's "already new" rule. No two milestones have the same purpose. The doc statement moved from the format milestone to milestone 1, and nothing else claims it.
-- **Scope and concreteness**: Pass. Milestone 1 is Level 2 or Level 3: the pin, the shadow test, the re-measurement, and one doc page. No milestone is Level 4.
-- **Order**: Pass. The three new edges from `duckdb` point backward, and the checklist is a valid serial walk of the graph. After milestone 1, milestones 2, 3, and 5 can run in parallel. Milestones 8 and 9 can also run in parallel.
-- **Cross-milestone invariants**: Pass. A new shared-artifact rule gives milestone 1 the pin and the user-facing version statement. The lifetime paragraph is renumbered: milestones 6 to 9 are short-lived, and 1 to 5 are durable.
-- **Done and risks**: Pass, apart from fixable finding 3. All nine headings match their checkbox text exactly, and each has a Done line and a Risks line.
+- **Prerequisites**: Pass. `progress.md` and `tasks.md` record Level 4. The header `# Milestones: warehouse-file-growth` matches the task ID.
+- **Checklist shape**: Pass. Nine contiguous checkboxes under Execution Order, with no sub-bullets. The new arrivals list in the invariants uses plain bullets, not checkboxes.
+- **Coverage**: Pass, apart from fixable finding 1. Every requirement maps to a milestone. Requirement 9 maps to milestone 1 and the release-grouping invariant. Requirement 10 maps to the skipped-releases invariant, milestone 2's schema-0 rule, and milestone 7's "already new" rule. No two milestones have the same purpose.
+- **Scope and concreteness**: Pass. No milestone is Level 4.
+- **Order**: Pass. The graph did not change, and the checklist is still a valid serial walk of it.
+- **Cross-milestone invariants**: Pass. The new paragraphs (release grouping, operator permission, the arrivals list) and the extended rule for the pin, the range, and the shadow-test script all state who may touch what.
+- **Done and risks**: Pass. All nine headings match their checkbox text, and each has a Done line and a Risks line.
+- **The seventh run's findings are resolved.** Acceptance 4 now says `v2.0.0+`. The schema-0 file is in the arrivals list and milestone 2 has a rule for it. The operator-permission paragraph lets milestone 1 rewrite later lines. The adopted advisories are in the plan: the frozen baseline, fixtures from the v2.1.2 SQL, the 1.5.4 writer step, the `<2.1` range, the lasting HNSW-plan test, and the brief wording. The operator declined the `v1.5.0` idea, and the invariants record that.
 
 ### Fixable Findings
 
-1. **Acceptance 4 in the brief still says `v1.5.0+`.** It says a new warehouse is created in the `v1.5.0+` format. The amended "New warehouse" use case says `v2.0.0+` on DuckDB 2.0. Milestone 2's Done line says "the newest storage tag the pinned DuckDB writes". Under DuckDB 2.0, a file is `v1.5.0+` only if that version is set on purpose. As written, the milestone 2 sub-run gets a different target from each of the two documents it follows. Fix: make acceptance 4 match milestone 2's Done line, or the operator's choice in the radical item below.
-
-2. **The skipped-release arrivals leave out an empty `v1.0.0+` file at schema version 0, and milestone 2's planned `0001` change breaks that file on DuckDB 2.0.**
-   - Measured on 2.0.0: `USING COMPRESSION zstd` on a table in a `v1.0.0+` file raises `BinderException: Can't compress using user-provided compression type 'ZSTD', that type is not available yet`. This happens with or without `storage_compatibility_version = 'latest'`, because that setting does not change the tag of an existing file. On 1.5.4 the same clause stores the column `Uncompressed` with no error. On 2.0, a `v1.5.0+` or `v2.0.0+` file accepts the clause.
-   - Measured on 1.5.4: `duckdb.connect` alone creates a 12 KiB `v1.0.0+` file. `warehouse.open()` connects, then runs `ensure_vss`, which can `INSTALL vss` over the network, and only then runs the migrations. If the install fails, or `0001` fails and the runner rolls back, an empty file is left. `current_version` reports it as schema 0.
-   - Consequence: suppose a user's first open failed under any earlier release. That user arrives at milestone 2's release, or any later release, with the empty file. DuckDB 2.0 runs the new `0001`, which now has the zstd clauses, on a `v1.0.0+` file. The binder error rolls the migration back. Every later writer open (ingest, embed, the nightly job) then fails the same way until the user deletes the file. This breaks acceptance 11, which says "at any schema version". The invariant only lists versions 1 to 8.
-   - Fix: add "an empty `v1.0.0+` file at schema 0" to the arrivals in the skipped-releases invariant, and give milestone 2 a rule for it. For example, treat a file at schema 0 with no user tables as "no warehouse" and create it again in the new format. Or apply the clause only when the file's tag supports it. The same error also hits every test fixture that builds an old-format file by running the current `0001` after milestone 2 lands (advisory 2).
-
-3. **Milestone 1 must edit `milestones.md`, which the milestones rule forbids.** Milestone 1's Done line requires its sub-run to rewrite the Done and Risks lines of later milestones in `milestones.md`. The milestones rule (`.claude/rules/shared/niko/memory-bank/active/milestones.md`) says not to modify that file outside its lifecycle events: the L4 plan creates it, `/niko` checks off milestones, and the capstone archive deletes it. The milestone 1 sub-run will meet two instructions that conflict. Fix: add one sentence to the invariants. Either the operator lets milestone 1's sub-run edit the Done and Risks text of later milestones, but never checkboxes, headings, order, or scope. Or milestone 1 records the re-measured facts in a named place, and the operator folds them in through `/niko-plan` before milestone 2 is classified.
+1. **On DuckDB 2.0.0, a writer killed after it inserted into the indexed `embeddings` table leaves the warehouse unusable for semantic search and for writes to `embeddings`. The plan does not account for this.**
+   - Measured on stockroom's real shape (`FLOAT[384]` with the composite primary key and the `0003` index; rows inserted by `executemany` with the index present, as `embed.py` does today; writer killed before checkpoint). When 2.0.0 opens the file afterwards:
+     - it replays the wal and counts every row;
+     - the HNSW top-k query fails (`InternalException: Operation requires a flat or constant vector ...`);
+     - a one-row insert into `embeddings` hung at 100% CPU and was stopped after 120 s;
+     - a delete from `embeddings`, the shape of ingest's `write_session`, fails with the same `InternalException`.
+   - It does not matter which version wrote the wal: 1.5.4 and 2.0.0 give the same result. On small synthetic tables the insert fails instead of hanging, and an explicit `CHECKPOINT` fails with `FatalException`. Writes to other tables succeed, but the checkpoint at close fails without an error. So the wal stays, grows, and is replayed at every open.
+   - A wal that holds only deletes, or inserts made after `DROP INDEX`, or drop, insert, and recreate, replays and checkpoints cleanly.
+   - Heal: on 2.0.0, `DROP INDEX`, then `CREATE INDEX`, then `CHECKPOINT` clears it (0.9 s at 3,500 rows), and the table then works normally. A 1.5.4 writer also replays and checkpoints the wal with no problem.
+   - 1.5.4 replays its own wal of this kind with no problem. The seventh run's HNSW crash test read files back only with 1.5.4, so this direction was never measured.
+   - What this breaks in the plan:
+     - **The arrivals list leaves this file out.** A `v1.0.0+` warehouse whose last 1.5.4 embed was killed arrives at the release with this wal. Acceptance 11 says it must work. Under the release, the nightly ingest's embedding deletes fail, semantic search fails, and milestone 7's "a wal" skip repeats at every session start. Only a writer that drops the index first heals the file. Milestone 4's plan may or may not drop it before ingest's deletes, and acceptance 2 forbids a rebuild on nights that embed nothing.
+     - **This machine is exposed from milestone 1 until milestone 4.** From the night the 2.0 lock lands here, the live nightly embed inserts with the index present (milestone 3 does too). If one is killed (for example by a WSL shutdown or a reboot), the next embed hangs while it holds the writer flock. Each later nightly run then waits behind it on the blocking flock. The Claude Code stockroom 0.16.0 (DuckDB 1.5.4) on this machine could heal the file, but the plan does not say so.
+     - **Milestone 1 would not catch it.** Its re-measure list and its shadow test have no step where a 2.0 writer is killed and 2.0 reopens the file. Its Risks line records only the safe direction (1.5.4 reading a wal from 2.0).
+   - Fix: these are known options, for the planner and the operator to choose from.
+     1. Add "a `v1.0.0+` file with a wal from a killed 1.5.4 writer that inserted into `embeddings`" to the skipped-release arrivals.
+     2. Milestone 1:
+        - add "2.0 replaying an HNSW wal, from 1.5.4 and from 2.0" to the re-measure list;
+        - add a killed-embed step to the shadow test;
+        - record today's measurement in the Risks line;
+        - re-check it on any 2.0 patch or newer vss build before the release (DuckDB expects a first patch in November).
+     3. Give one milestone ownership of the heal. Milestone 4 is the natural owner, because it owns the index definition and the drop and recreate. The rule has to run before ingest's embedding deletes. For example: any writer that opens a file with a wal drops and recreates the index, even on a night that embeds nothing. That rule needs an exception in acceptance 2. Also say how milestone 7 treats a file that stays in this state.
+     4. Protect this machine's live warehouse between milestones 1 and 4. For example, keep this checkout on 1.5.4 until milestone 4 lands, or name the 1.5.4 heal as the recovery.
 
 ### Codebase Checks and Measurements
 
-- **Mixed versions on one `v1.0.0+` file** (synthetic: 20,000 rows with an HNSW index on `FLOAT[16]`, scratch extension folder). 1.5.4 created the file. 2.0.0 inserted, deleted, and checkpointed. 1.5.4 then read it through the HNSW plan and wrote to it. 2.0.0 read and wrote again. The tag stayed `v1.0.0+` at every step, and the two versions gave the same top-5 results.
-- **Killed 2.0 writer.** A 2.0.0 writer killed with uncheckpointed inserts left a `.wal`. 1.5.4 opened the file read-only and saw those rows, and a 1.5.4 writer replayed the wal. On synthetic data, this answers the milestone 1 risk "not yet measured whether 1.5.4 opens a `v1.0.0+` file that a killed 2.0 writer left with a wal". The shadow test still has to confirm it on real data.
-- **Old-format fixtures under 2.0.** DuckDB 2.0.0 can create `v1.0.0+` files on purpose, through `config={"storage_compatibility_version": "v1.0.0"}` or `ATTACH ... (STORAGE_VERSION 'v1.0.0')`.
-- **What 1.5.4 can open.** 1.5.4 cannot open a `v2.0.0+` file: `IO Error: Trying to read a database file with version number 999, but we can only read versions between 64 and 68`. It does open a `v1.5.0+` file that 2.0.0 created, with zstd columns and an HNSW index, and it plans top-k through the index.
-- **Torch freeze.** `torch-requirements.txt` has no duckdb line. The session-start heal therefore cannot put 1.5.4 back into a 2.0 engine env.
-- **Tests and SQL.**
-  - No test asserts that semantic search plans through the HNSW index.
-  - Nothing depends on the `HNSW_INDEX_SCAN` spelling.
-  - No shipped SQL, cookbook recipe, or doc uses arrow lambdas.
-- **Migration `0001`.** Since v0 it has only had comment edits: commit `b1da55f` added `@rel` lines. The runner keeps no checksum of migration files.
-- **Dependencies.** `pyproject.toml` declares `duckdb>=1.2`, and the lock holds 1.5.4. Dependabot updates the engine monthly. It groups minor and patch updates of production dependencies under the commit prefix `fix(deps)`.
-- **Shim takeover.** `shim.rectify` replaces a dead shim that another harness owns. So a machine can switch from one harness's engine to the other's, which may be an older version.
-- **DuckDB doc page.** `docs/advanced/duckdb.md` does not name any DuckDB version today.
+- **The new storage setting on an existing file** (synthetic: a text table and an HNSW table, 1.5.4-made `v1.0.0+` file). A 2.0.0 writer that connects with `storage_compatibility_version` set to `'latest'` or `'v2.0.0'` inserts, deletes, and checkpoints. Afterwards:
+  - the tag stays `v1.0.0+`, and the text column stays `FSST`;
+  - 1.5.4 reads and writes the file through the HNSW plan;
+  - 2.0.0 opens it again.
+
+  The same holds after a 2.0.0 writer with that setting is killed and leaves a wal. Milestone 1's shadow test on this machine runs before milestone 2 adds the setting, so this measurement covers that gap.
+- **Mixed writers and HNSW recall** (synthetic: `FLOAT[16]`, 5,000 to 6,000 rows, recall@10 against an exact scan). When 2.0.0 made the insert and delete rounds, recall stayed at 1.000. When 1.5.4 made them, recall was 0.88 to 0.94. A mixed sequence gave 0.94. Mixed versions did not damage the index.
+- **The commit hook and Make targets.** The pre-commit hook runs `make format`. `format`, `lint`, `test`, `format-check`, and `ci` all depend on `sync`, which is `uv sync --frozen`, an exact sync against the lock file in the working tree. This checkout's live shim is owner `dev`. The nightly cron entry here still has the old payload, `(date; stockroom ingest && stockroom embed)`.
+- **Migration `0001`** is byte-identical to its v2.1.2 version. The tags v2.1.0 to v2.1.2 exist. The branch is 18 commits ahead of `main` and 0 behind.
+- **Dependabot** runs a monthly `uv` job for the engine, with a 7-day cooldown. Minor and patch updates are grouped under `fix(deps)`. A major update gets its own PR. `main` still says `duckdb>=1.2`.
 
 ### Advisory Items
 
 This file and the preflight notes in `progress.md` are deleted when the first milestone is archived. Anything the operator adopts belongs in `milestones.md` or the brief.
 
-1. **Freeze the shadow test's baseline (milestone 1).** The nightly job writes the live warehouse, and so does any ingest. A copy taken during a write is torn. The original can also change between the copy and the both-direction comparison. Either way, the test would fail for a reason unrelated to 2.0. Take the copy while holding the writer flock, with no `.wal` present. Then compare against that frozen state: either a second copy, or the original opened read-only under the same flock.
-2. **Build old-format fixtures from the pre-zstd migration SQL (milestones 1, 6, 7).** After milestone 2, the current `0001` raises on a `v1.0.0+` file under 2.0 (finding 2). These tests all build such files:
-   - milestone 1's schema-1 test
-   - milestone 6's fixture with rows written at `0001`
-   - milestone 7's old-format tests
-   - the brief's proof item
-
-   Build them from the migration chain as shipped at the last 1.5.4 tag (v2.1.2), kept as a test fixture, not from the live chain. Milestone 6's risk line says the zstd clause "stores text uncompressed without an error", which is false on 2.0. Milestone 1 would rewrite that line anyway, and this measurement can go in now.
-3. **Add one 1.5.4 writer step to the shadow test (milestone 1).** The Done line proves that 1.5.4 can read the file after 2.0 writes it. 1.5.4 can also end up writing after 2.0 has written. During an update window, the other harness's older engine can take over a dead shim. A user can also roll back by pinning an earlier plugin version. The synthetic run above passed. One ingest and one embed on the copy under 1.5.4 would confirm it on real data.
-4. **Hold the 2.0 line in configuration (milestone 1).** The shared-artifact rule binds milestones, not dependabot. A monthly `fix(deps)` group can move duckdb to 2.1 and cut a release. If milestone 2 picks `'latest'`, that bump also changes the new-file format. A cap such as `duckdb>=2.0,<2.1` in `pyproject.toml` would hold the LTS line until someone moves it on purpose. A dependabot ignore rule for duckdb minor updates would do the same.
-5. **Keep the HNSW path under test (milestone 1 or 4).** Milestone 1 proves once, on the shadow copy, that semantic search plans through the index under 2.0. A durable test could match the index scan in `EXPLAIN` without depending on case, since 2.0 prints `Hnsw Index Scan`. It would catch a later patch that falls back to a full scan.
-6. **Small wording fixes in the brief and plan.**
-   - The brief's last constraint paragraph says the conversion is `COPY FROM DATABASE` into a file attached with `STORAGE_VERSION 'latest'`. But milestone 6 now builds the tables from the migration chain and inserts the rows. Milestone 2 also leaves open whether to use `'latest'` or an explicit version.
-   - Requirement 7 and acceptance 8 say "the first release", which now reads as the DuckDB 2.0 release. "The first release of the copy chain" would be clearer.
-   - The invariants say milestone 1 ships "in its own release". Its Done line only rules out copy, check, and swap code. Say which one is meant.
+1. **Name every Make target that syncs this checkout (milestone 1).** The release-grouping paragraph names only the commit hook. `make test`, `make lint`, `make format`, and `make ci` also run an exact sync against the working-tree lock. As soon as the 2.0 lock sits in this working tree, any of them makes 2.0 the live engine here. The sub-run can author the lock change in a clone or run 2.0 through a `uv run --with` overlay. It then lands the lock here as the last step, after the shadow test passes.
+2. **Watch Dependabot on `main` until this branch merges.** `main` allows `duckdb>=1.2`. DuckDB 2.0.0 becomes eligible after the cooldown, on 2026-10-28. The next monthly run can then open its own `fix(deps)` duckdb 2.0 PR, and the earlier run measured that the engine suite passes on 2.0. Merging that PR would cut the 2.0-only release that the release-grouping invariant forbids. Separately, it is unverified whether the `<2.1` cap stops Dependabot from proposing a wider range. A Dependabot `ignore` entry for duckdb version updates is the sure way to hold the line.
+3. **Say which machines run the shadow test.** A 2026-10-20 note says the work machine "only receives stockroom through a release". The plan now has the operator run the shadow test from branch clones "on his Macs". If the work machine is not one of them, its 88 GB warehouse first meets 2.0 in production. In that case, record it as a risk and name the rollback: 1.5.4 can still write after 2.0, which the shadow test proves on this machine's copy.
+4. **Small wording fixes.**
+   - The skipped-releases paragraph (invariants and brief) says the milestones ship in "several releases". Under release grouping there are one or two.
+   - Milestone 1's Done line says the shadow test "never touches the live home", but it takes the writer flock, whose lock file is in the live home. "Never writes to the live warehouse" says what is meant.
 
 ### Advisory: Radical Innovation
 
-#### Target `v1.5.0` storage, not `v2.0.0`, for new files and the rewrite
+#### Make the HNSW index a derived artifact that the writer chokepoint keeps whole
 
-The idea: run the engine on DuckDB 2.0 but keep files in a format that every stockroom release can open. Sketch:
+Sketch:
 
-1. Milestone 2 creates new warehouses with an explicit `storage_compatibility_version = 'v1.5.0'` (or `STORAGE_VERSION 'v1.5.0'` on attach), not `'latest'`. DuckDB 2.0 accepts the zstd clauses at `v1.5.0` (measured).
-2. Milestone 6 builds the copy at `v1.5.0`. For milestone 7, "already new" means `v1.5.0+` or newer, with zstd columns and no leaked index copies.
-3. Milestone 1's doc line says the engine is DuckDB 2.0, the warehouse is `v1.0.0+` or `v1.5.0+`, and DuckDB 1.5 or newer opens it.
+1. `warehouse.open(read_only=False)` records whether `warehouse.duckdb.wal` existed before it connected.
+2. Milestone 4's index module provides two functions:
+   - `rebuild_index(con)`: `DROP INDEX IF EXISTS`, `CHECKPOINT`, `CREATE INDEX` from the definition milestone 4 owns, `CHECKPOINT`;
+   - `index_present(con)`.
+3. Every writer calls `rebuild_index` right after the migration gate, when a wal existed at open or the index is missing. Embed also keeps its drop-before-write and recreate-after-write for the leak.
+4. Doctor's storage section prints "HNSW index: present or missing" and "wal: present or absent".
 
 Gain:
-
-- 1.5.4 opens a `v1.5.0+` file that 2.0 wrote, with zstd and the HNSW index (measured). It cannot open a `v2.0.0+` file.
-- This removes milestone 1's main risk: another harness's older engine, or a dev checkout, cannot open a warehouse that 2.0 created.
-- After the swap, rolling back to any earlier release still opens the warehouse.
-- The new-file format no longer moves with a DuckDB bump.
-- In a synthetic test (200,000 text rows, plus 30,000 vectors with an HNSW index), both formats gave the same file size (24.5 MiB) and the same codecs.
+- One rule heals four cases on the next writer of any kind, the nightly ingest included:
+  - the 2.0.0 crash wal (measured: drop and recreate clears it);
+  - a failed recreate (a milestone 4 risk);
+  - an arrival with a 1.5.4 wal;
+  - a missing index.
+- Milestone 7's "a wal" skip no longer repeats forever.
+- Ingest's embedding deletes run after the heal, so milestone 4 no longer has to decide that case separately.
 
 Cost:
-
-- It reverses the operator's decision that the rewrite targets the format stockroom keeps (`v2.0.0+`).
-- If a later 2.x feature needs `v2.0.0` storage, that needs another rewrite, after the chain has been removed.
-- The benefit for 1.5 readers ends when the 1.5 line ends (March 2027). That is, however, the bake-in and rollback window.
-- Milestone 1's shadow test should measure both formats on the real copy before anyone adopts this. Real data might show a storage gain for 2.0 that the synthetic sample did not.
+- Ingest becomes an index writer on nights after a crash, and each such night pays for one index build.
+- Acceptance 2 needs an exception: "unless a wal was present at open".
+- The durable chokepoint `warehouse.open()` changes, which is outside milestone 4's current scope.
+- Readers cannot heal, so semantic search stays broken until the next writer runs.

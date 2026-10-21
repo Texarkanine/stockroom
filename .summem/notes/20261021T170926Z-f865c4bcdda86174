@@ -1,0 +1,1 @@
+DuckDB 2.0.0 bug: replaying a wal holding inserts into an HNSW-indexed table (killed 1.5.4 or 2.0 writer) breaks the index: query, delete, insert raise InternalException (flat or constant vector) or hang. 1.5.4 replays fine. DROP INDEX, CREATE INDEX, CHECKPOINT repairs.
