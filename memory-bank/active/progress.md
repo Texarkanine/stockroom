@@ -315,3 +315,18 @@ Stop the warehouse file growing far past the history it holds, as specified in [
     - Advisory estimates: DuckDB 2.0 L2, format L2, NumPy inserts L2, HNSW rebuild L3, doctor report and fix L3 (was L2: a writing subcommand group and hang-safe detection), verified copy L3, verify-only check L3, session-start hooks L2, swap kept off L3
 * Insights
     - The replay bug turns a crash during embedding inserts into a stuck nightly, but the HNSW milestone's drop-before-insert design already avoids writing the log that triggers it. What remains is an arrival edge case, which the operator chose to handle with a named fix instead of automatic code
+
+## 2026-10-21 - PREFLIGHT (NINTH RUN) - COMPLETE
+
+* Work completed
+    - Validated the re-planned 9-milestone list against `projectbrief.md`, the diff `37cf1c0..1d8ff00`, the engine code, and new DuckDB 1.5.4 and 2.0.0 experiments on stockroom's real `embeddings` shape
+    - Recorded preflight status: FAIL (fixable). The milestone list was not changed
+* Decisions made
+    - All seven Level 4 checks pass. The eighth run's finding and advisories are resolved as the operator chose. The new edge `hnsw --> doctor` agrees with the unchanged checklist
+    - Fixable: the plan's replay-bug description is wrong. On 2.0.0, a writer that does not touch `embeddings` exits 0 and the `.wal` grows. Once the `.wal` passes `checkpoint_threshold` (16 MiB by default), an automatic checkpoint deletes it and keeps an HNSW index that lacks every replayed row (3,000 of 3,500), with no error. Doctor's `.wal`-only detection, acceptance 12, the page's symptoms, milestone 1's recovery note, and the premise of "no automatic repair" all need revisiting. Options: correct the paragraph, add an index-coverage fact to doctor (`pragma_hnsw_index_info()` `count` against `count(*)`), cover the fold in milestone 1, and decide milestone 4's drop-before-sweep order
+    - Advisory, not adopted: doctor's flock test must not create `.warehouse.lock`; the reproduction test must not go red when a 2.0 patch fixes the bug; acceptance 11 needs a qualifier for the `.wal` arrival; bound the shadow test's killed-writer probes with a time limit; record the work machine's exposure and rollback in milestone 1
+    - Radical advisory, not adopted: move `embeddings` and its HNSW index into a separate small vectors file that is rebuilt and swapped as a whole
+* Insights
+    - Measured: an explicit `CHECKPOINT` fails fatally on the broken state, but the automatic checkpoint at commit succeeds and folds the log into a partial index. The loud state can turn silent on its own
+    - Measured: on 2.0.0, `pragma_hnsw_index_info()` `count` equals the row count on a healthy index, including after deletes, so comparing the two is a cheap read-only coverage check
+    - Measured: while the broken `.wal` is present, even a `DELETE` from `embeddings` that matches no rows raises the `InternalException`, so the order of embed's orphan sweep and the index drop decides whether the next writing embed repairs the warehouse

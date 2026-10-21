@@ -2,93 +2,96 @@ FAIL (fixable)
 
 ## Preflight Findings
 
-This is the eighth preflight of the Level 4 milestone list for `warehouse-file-growth`. It checks the plan after the re-plan that followed the seventh run: there is no 2.0-only release, new files use storage `v2.0.0`, and the operator gave milestone 1 permission to rewrite DuckDB-behaviour sentences. The checks ran against `projectbrief.md`, the diff from the plan the seventh run checked (commit `f3a7c31` to `37cf1c0`), the engine code, and new experiments on DuckDB 1.5.4 and 2.0.0 (vss build `3685131eac`). The milestone list was not changed.
+This is the ninth preflight of the Level 4 milestone list for `warehouse-file-growth`. It checks the plan after the re-plan that followed the eighth run. That re-plan added the replay-bug arrival and invariant, gave the doctor milestone `stockroom doctor fix hnsw-wal` and the edge `hnsw --> doctor`, and added a killed-writer step to milestone 1. The checks ran against `projectbrief.md`, the diff `37cf1c0..1d8ff00`, the engine code, and new experiments on DuckDB 1.5.4 and 2.0.0. The milestone list was not changed.
 
 ### Checks That Passed
 
 - **Prerequisites**: Pass. `progress.md` and `tasks.md` record Level 4. The header `# Milestones: warehouse-file-growth` matches the task ID.
-- **Checklist shape**: Pass. Nine contiguous checkboxes under Execution Order, with no sub-bullets. The new arrivals list in the invariants uses plain bullets, not checkboxes.
-- **Coverage**: Pass, apart from fixable finding 1. Every requirement maps to a milestone. Requirement 9 maps to milestone 1 and the release-grouping invariant. Requirement 10 maps to the skipped-releases invariant, milestone 2's schema-0 rule, and milestone 7's "already new" rule. No two milestones have the same purpose.
-- **Scope and concreteness**: Pass. No milestone is Level 4.
-- **Order**: Pass. The graph did not change, and the checklist is still a valid serial walk of it.
-- **Cross-milestone invariants**: Pass. The new paragraphs (release grouping, operator permission, the arrivals list) and the extended rule for the pin, the range, and the shadow-test script all state who may touch what.
+- **Checklist shape**: Pass. Nine contiguous checkboxes under Execution Order, with no sub-bullets. The new lists in the invariants (arrivals, replay-bug symptoms, shared artifacts) use plain bullets.
+- **Coverage**: Pass, apart from fixable finding 1. Requirement 1 maps to milestone 4, 2 to milestone 3, 3 to milestone 2, 4 to milestones 7 and 8, 5 to the invariants and milestone 7, 6 to milestones 2 and 6, 7 to milestones 7 and 9, 8 to milestone 5, 9 to milestone 1 and the release-grouping invariant, and 10 to the skipped-releases invariant and milestones 2 and 7. Acceptance 12 maps to milestone 5. The doctor report and the doctor fix share one milestone, but no two milestones share a purpose.
+- **Scope and concreteness**: Pass. No milestone is Level 4. The doctor milestone is now the largest: report, fix group, hang-safe detection, a reproduction test, and a page. The planner's L3 estimate fits it.
+- **Order**: Pass. The checklist order did not change. The new edge `hnsw --> doctor` agrees with it (HNSW is 4th, doctor is 5th), and the checklist is a valid serial walk of all 11 edges.
+- **Cross-milestone invariants**: Pass. The shared-artifact rules say that the doctor fix rebuilds with the HNSW milestone's definition, and that the doctor milestone owns the fix group, the `.wal` line, and the page.
 - **Done and risks**: Pass. All nine headings match their checkbox text, and each has a Done line and a Risks line.
-- **The seventh run's findings are resolved.** Acceptance 4 now says `v2.0.0+`. The schema-0 file is in the arrivals list and milestone 2 has a rule for it. The operator-permission paragraph lets milestone 1 rewrite later lines. The adopted advisories are in the plan: the frozen baseline, fixtures from the v2.1.2 SQL, the 1.5.4 writer step, the `<2.1` range, the lasting HNSW-plan test, and the brief wording. The operator declined the `v1.5.0` idea, and the invariants record that.
+- **The eighth run's findings are resolved as the operator chose.** The arrival is listed. Milestone 1 kills a 2.0 writer and repeats that step on the newest 2.0 patch. The doctor milestone owns detection and a user-run fix. This machine's exposure is accepted with a named recovery. Advisories 1 to 4 are folded in: the Make targets, Dependabot, which machines run the shadow test, and the wording.
 
-### Fixable Findings
+### Fixable Finding
 
-1. **On DuckDB 2.0.0, a writer killed after it inserted into the indexed `embeddings` table leaves the warehouse unusable for semantic search and for writes to `embeddings`. The plan does not account for this.**
-   - Measured on stockroom's real shape (`FLOAT[384]` with the composite primary key and the `0003` index; rows inserted by `executemany` with the index present, as `embed.py` does today; writer killed before checkpoint). When 2.0.0 opens the file afterwards:
-     - it replays the wal and counts every row;
-     - the HNSW top-k query fails (`InternalException: Operation requires a flat or constant vector ...`);
-     - a one-row insert into `embeddings` hung at 100% CPU and was stopped after 120 s;
-     - a delete from `embeddings`, the shape of ingest's `write_session`, fails with the same `InternalException`.
-   - It does not matter which version wrote the wal: 1.5.4 and 2.0.0 give the same result. On small synthetic tables the insert fails instead of hanging, and an explicit `CHECKPOINT` fails with `FatalException`. Writes to other tables succeed, but the checkpoint at close fails without an error. So the wal stays, grows, and is replayed at every open.
-   - A wal that holds only deletes, or inserts made after `DROP INDEX`, or drop, insert, and recreate, replays and checkpoints cleanly.
-   - Heal: on 2.0.0, `DROP INDEX`, then `CREATE INDEX`, then `CHECKPOINT` clears it (0.9 s at 3,500 rows), and the table then works normally. A 1.5.4 writer also replays and checkpoints the wal with no problem.
-   - 1.5.4 replays its own wal of this kind with no problem. The seventh run's HNSW crash test read files back only with 1.5.4, so this direction was never measured.
+1. **The plan's description of the DuckDB 2.0.0 replay bug is wrong in a way that changes the design. The `.wal` does not always stay. It can disappear on its own, and the warehouse is then left with an index that silently lacks rows.**
+   - Measured on stockroom's real shape: `FLOAT[384]`, the composite primary key, and the `0003` cosine index. 1.5.4 wrote 3,000 rows and checkpointed. A 1.5.4 writer then inserted 500 rows by `executemany` in one transaction, committed, and was killed. Each case ran on a fresh copy of that file, opened read-write by 2.0.0:
+     - A writer that touches only another table, like an ingest that deletes no embeddings, exits 0. Its row is kept in the `.wal`, and the `.wal` grows (783,720 to 783,824 bytes) and stays.
+     - Once the `.wal` is past `checkpoint_threshold`, the automatic checkpoint at that writer's commit succeeds and deletes the `.wal`. (The threshold was set to 1 byte for the test. DuckDB's default is 16 MiB, and stockroom does not change it.) Afterwards `embeddings` has 3,500 rows, but `pragma_hnsw_index_info()` reports `count` 3,000. The index lacks every row from the replayed log.
+     - After that fold, queries, deletes, and inserts all work, and 1.5.4 reads the file. Nothing reports an error. A small-table control showed the visible effect: a top-k query through the index aimed at the replayed rows returned only older rows, on both 2.0.0 and 1.5.4.
+     - An explicit `CHECKPOINT` still fails with `FatalException`, as the eighth run measured.
+     - While the `.wal` is present, `pragma_hnsw_index_info()` raises the `InternalException`. On a small table, a `DELETE` from `embeddings` that matches no rows raises it too.
+     - `DROP INDEX`, then `CREATE INDEX`, then `CHECKPOINT` restores full coverage from the folded state.
+     - On a healthy 2.0.0 index, `count` follows deletes. After the rebuild, deleting 50 more rows left 3,350 rows and a count of 3,350.
    - What this breaks in the plan:
-     - **The arrivals list leaves this file out.** A `v1.0.0+` warehouse whose last 1.5.4 embed was killed arrives at the release with this wal. Acceptance 11 says it must work. Under the release, the nightly ingest's embedding deletes fail, semantic search fails, and milestone 7's "a wal" skip repeats at every session start. Only a writer that drops the index first heals the file. Milestone 4's plan may or may not drop it before ingest's deletes, and acceptance 2 forbids a rebuild on nights that embed nothing.
-     - **This machine is exposed from milestone 1 until milestone 4.** From the night the 2.0 lock lands here, the live nightly embed inserts with the index present (milestone 3 does too). If one is killed (for example by a WSL shutdown or a reboot), the next embed hangs while it holds the writer flock. Each later nightly run then waits behind it on the blocking flock. The Claude Code stockroom 0.16.0 (DuckDB 1.5.4) on this machine could heal the file, but the plan does not say so.
-     - **Milestone 1 would not catch it.** Its re-measure list and its shadow test have no step where a 2.0 writer is killed and 2.0 reopens the file. Its Risks line records only the safe direction (1.5.4 reading a wal from 2.0).
+     - **The facts the operator's decision rests on.** The invariants say "every checkpoint fails fatally, so every 2.0 writer session fails, including ingest, and the `.wal` stays until someone repairs the index". The brief's Doctor fixes paragraph says the same. Both are false for writers that do not touch `embeddings`, and false once the `.wal` passes the threshold. The decision (no automatic repair; doctor finds the `.wal`) assumed the broken state is loud and lasting.
+     - **Doctor cannot see the end state.** Its only signal is a leftover `.wal`. After the fold there is none, so doctor reports a healthy warehouse while unscoped `stockroom semantic` silently misses those rows. (Scoped queries rank by exact scan and still find them.) Acceptance 12 and the doctor Done line cover only the `.wal` state. The troubleshooting page's planned symptoms ("nightly ingest and embed fail", "a `.wal` stays") would mislead.
+     - **The fold is a likely end state, not a corner case.** Every nightly ingest adds to the `.wal` until it passes 16 MiB. A large killed embed may already be past 16 MiB and fold at the first 2.0 writer commit. That last point is inferred, not measured, because the test used a 1-byte threshold.
+     - **This machine between milestones 1 and 4.** Milestone 1's Risks line names two recoveries. The 1.5.4 open works only while the `.wal` exists. After a fold, nothing visible prompts any recovery, and today's embed never rebuilds the index. The rows stay out of the index until milestone 4's first embed that writes. The line also says this machine runs today's embed "between this milestone and the doctor milestone", but today's embed ends at milestone 4. Only the fix command waits for milestone 5.
+     - **Milestone 1 would not catch it.** Its killed-writer step never crosses the checkpoint threshold. And the operator permission does not let milestone 1 add a doctor fact, because that changes scope.
    - Fix: these are known options, for the planner and the operator to choose from.
-     1. Add "a `v1.0.0+` file with a wal from a killed 1.5.4 writer that inserted into `embeddings`" to the skipped-release arrivals.
-     2. Milestone 1:
-        - add "2.0 replaying an HNSW wal, from 1.5.4 and from 2.0" to the re-measure list;
-        - add a killed-embed step to the shadow test;
-        - record today's measurement in the Risks line;
-        - re-check it on any 2.0 patch or newer vss build before the release (DuckDB expects a first patch in November).
-     3. Give one milestone ownership of the heal. Milestone 4 is the natural owner, because it owns the index definition and the drop and recreate. The rule has to run before ingest's embedding deletes. For example: any writer that opens a file with a wal drops and recreates the index, even on a night that embeds nothing. That rule needs an exception in acceptance 2. Also say how milestone 7 treats a file that stays in this state.
-     4. Protect this machine's live warehouse between milestones 1 and 4. For example, keep this checkout on 1.5.4 until milestone 4 lands, or name the 1.5.4 heal as the recovery.
+     1. Correct the replay-bug paragraph in the invariants and the Doctor fixes paragraph in the brief, using the measurements above.
+     2. Doctor milestone: when no `.wal` is present, add an index-coverage fact. Compare `pragma_hnsw_index_info()` `count` with `count(*)` from `embeddings`, and report a missing index. A mismatch or a missing index names the fix. Extend acceptance 12 and the Done line to cover both states. Have the test reproduce the fold too; a low `checkpoint_threshold` makes that quick. The name `hnsw-wal` does not fit the folded state. A name such as `hnsw-rebuild` covers both. That choice is the operator's.
+     3. The troubleshooting page lists both states, and says that ingest can exit 0 while the `.wal` grows.
+     4. Milestone 1:
+        - add the fold to the re-measure list and to the killed-writer step (cross the threshold, then compare `count` with the row count);
+        - correct the window wording: the exposure ends at milestone 4, and the fix command arrives at milestone 5;
+        - say that the 1.5.4 recovery works only before a fold.
+     5. Milestone 4: say whether `DROP INDEX` comes before every statement that touches `embeddings`. Today's embed runs the orphan sweep (a `DELETE`) before it writes, and that delete fails in the `.wal` state even when it matches nothing.
+        - With the drop first, the next embed that writes repairs both states as part of its normal work. That is not separate repair code.
+        - With the sweep first, every embed fails in the `.wal` state until the user runs the fix.
+        - Because the operator ruled out automatic repair, the choice is his.
 
 ### Codebase Checks and Measurements
 
-- **The new storage setting on an existing file** (synthetic: a text table and an HNSW table, 1.5.4-made `v1.0.0+` file). A 2.0.0 writer that connects with `storage_compatibility_version` set to `'latest'` or `'v2.0.0'` inserts, deletes, and checkpoints. Afterwards:
-  - the tag stays `v1.0.0+`, and the text column stays `FSST`;
-  - 1.5.4 reads and writes the file through the HNSW plan;
-  - 2.0.0 opens it again.
+- **Today's embed transaction.** `embed.py` runs the owner delete and every batch insert inside one `BEGIN` ... `COMMIT`. A kill before `COMMIT` leaves nothing in the `.wal`, so the replay bug needs a kill between `COMMIT` and the checkpoint at close. `_delete_orphan_message_embeddings` runs on every embed, before the write. Ingest's `write_session` deletes embeddings only when a message was removed or its text changed.
+- **Checkpoint settings.** No engine code runs `CHECKPOINT` or sets `checkpoint_threshold`, so DuckDB's defaults apply.
+- **Lock code.** `warehouse.open()` and `_flock` open `.warehouse.lock` with `O_CREAT`, and the writer path blocks on `LOCK_EX`. Doctor's no-wait flock test and the fix's bounded wait need their own lock code.
+- **Doctor docstring.** `doctor.py` calls probe and smoke "constitutionally read-only". The fix group changes that docstring and the onboarding line in `systemPatterns.md`.
+- **Migrations.** Migrations 0004 to 0008 do not touch `embeddings`. So the lazy migration of a skipped-release warehouse inserts nothing into `embeddings`.
+- **Paths.** `docs/user-guide/troubleshooting/` and `docs/advanced/duckdb.md` exist.
+- **Scripts** (session scratchpad, which may not outlive this session):
+  - `/tmp/claude-1000/-home-mobaxterm-git-stockroom/4f3c1a52-0728-4802-9608-a85ecc1027dc/scratchpad/p9/real_shape.py`
+  - `/tmp/claude-1000/-home-mobaxterm-git-stockroom/4f3c1a52-0728-4802-9608-a85ecc1027dc/scratchpad/p9/run4.sh`
+  - `/tmp/claude-1000/-home-mobaxterm-git-stockroom/4f3c1a52-0728-4802-9608-a85ecc1027dc/scratchpad/p9/count_probe.py`
+  - the small-table probes in the same folder
 
-  The same holds after a 2.0.0 writer with that setting is killed and leaves a wal. Milestone 1's shadow test on this machine runs before milestone 2 adds the setting, so this measurement covers that gap.
-- **Mixed writers and HNSW recall** (synthetic: `FLOAT[16]`, 5,000 to 6,000 rows, recall@10 against an exact scan). When 2.0.0 made the insert and delete rounds, recall stayed at 1.000. When 1.5.4 made them, recall was 0.88 to 0.94. A mixed sequence gave 0.94. Mixed versions did not damage the index.
-- **The commit hook and Make targets.** The pre-commit hook runs `make format`. `format`, `lint`, `test`, `format-check`, and `ci` all depend on `sync`, which is `uv sync --frozen`, an exact sync against the lock file in the working tree. This checkout's live shim is owner `dev`. The nightly cron entry here still has the old payload, `(date; stockroom ingest && stockroom embed)`.
-- **Migration `0001`** is byte-identical to its v2.1.2 version. The tags v2.1.0 to v2.1.2 exist. The branch is 18 commits ahead of `main` and 0 behind.
-- **Dependabot** runs a monthly `uv` job for the engine, with a 7-day cooldown. Minor and patch updates are grouped under `fix(deps)`. A major update gets its own PR. `main` still says `duckdb>=1.2`.
+  To reproduce without them, use the shape of `.scratch/scripts/crashed_wal_hnsw_probe.py`: crash with 1.5.4, then open read-write with 2.0.0, run `SET checkpoint_threshold = '1B'`, insert one row into another table, close, and compare `count(*)` with `pragma_hnsw_index_info()`.
 
 ### Advisory Items
 
 This file and the preflight notes in `progress.md` are deleted when the first milestone is archived. Anything the operator adopts belongs in `milestones.md` or the brief.
 
-1. **Name every Make target that syncs this checkout (milestone 1).** The release-grouping paragraph names only the commit hook. `make test`, `make lint`, `make format`, and `make ci` also run an exact sync against the working-tree lock. As soon as the 2.0 lock sits in this working tree, any of them makes 2.0 the live engine here. The sub-run can author the lock change in a clone or run 2.0 through a `uv run --with` overlay. It then lands the lock here as the last step, after the shadow test passes.
-2. **Watch Dependabot on `main` until this branch merges.** `main` allows `duckdb>=1.2`. DuckDB 2.0.0 becomes eligible after the cooldown, on 2026-10-28. The next monthly run can then open its own `fix(deps)` duckdb 2.0 PR, and the earlier run measured that the engine suite passes on 2.0. Merging that PR would cut the 2.0-only release that the release-grouping invariant forbids. Separately, it is unverified whether the `<2.1` cap stops Dependabot from proposing a wider range. A Dependabot `ignore` entry for duckdb version updates is the sure way to hold the line.
-3. **Say which machines run the shadow test.** A 2026-10-20 note says the work machine "only receives stockroom through a release". The plan now has the operator run the shadow test from branch clones "on his Macs". If the work machine is not one of them, its 88 GB warehouse first meets 2.0 in production. In that case, record it as a risk and name the rollback: 1.5.4 can still write after 2.0, which the shadow test proves on this machine's copy.
-4. **Small wording fixes.**
-   - The skipped-releases paragraph (invariants and brief) says the milestones ship in "several releases". Under release grouping there are one or two.
-   - Milestone 1's Done line says the shadow test "never touches the live home", but it takes the writer flock, whose lock file is in the live home. "Never writes to the live warehouse" says what is meant.
+1. **Doctor must not create the lock file (milestone 5).** The probe's no-wait flock test should open `.warehouse.lock` without `O_CREAT`, and treat a missing lock file as "no writer". Otherwise "nothing is written" fails on a home that has a warehouse but no lock file, such as a restored copy.
+2. **The reproduction test must survive an upstream fix (milestone 5).** The `<2.1` range accepts 2.0 patches, and DuckDB expects a first patch in November. The operator is filing the bug. If a patch fixes it, a test that requires the bug to reproduce turns the Dependabot pull request red. Assert what holds after the fix, and skip with a message when the bug no longer reproduces.
+3. **Brief wording.** Acceptance 11 says any warehouse "as any earlier release left it" works. For the replay-bug arrival, it works only after a writing embed or the fix. Add that qualifier, or point to acceptance 12. The brief's skipped-releases paragraph lists schema versions 0 to 8, but not the `.wal` arrival that `milestones.md` lists.
+4. **Bound the killed-writer step (milestone 1).** On real-size vectors the top-k query hung (eighth run and re-plan, over 150 s). Run each probe of the broken copy in a child process with a time limit, so the shadow test records a hang instead of becoming one.
+5. **Record the work machine's exposure (milestone 1 Risks).** The decision that the work machine does not run the shadow test lives only in `progress.md`, which is deleted at the first archive. Its 88 GB warehouse first meets 2.0 in production. Name the rollback in that line: install the previous release. The file stays `v1.0.0+`, and the shadow test proves that 1.5.4 can write after 2.0.
 
 ### Advisory: Radical Innovation
 
-#### Make the HNSW index a derived artifact that the writer chokepoint keeps whole
+#### Move the vectors and their HNSW index into a separate, small file
 
 Sketch:
 
-1. `warehouse.open(read_only=False)` records whether `warehouse.duckdb.wal` existed before it connected.
-2. Milestone 4's index module provides two functions:
-   - `rebuild_index(con)`: `DROP INDEX IF EXISTS`, `CHECKPOINT`, `CREATE INDEX` from the definition milestone 4 owns, `CHECKPOINT`;
-   - `index_present(con)`.
-3. Every writer calls `rebuild_index` right after the migration gate, when a wal existed at open or the index is missing. Embed also keeps its drop-before-write and recreate-after-write for the leak.
-4. Doctor's storage section prints "HNSW index: present or missing" and "wal: present or absent".
+1. `embeddings` and its HNSW index move to a second DuckDB file beside the warehouse, for example `vectors.duckdb`. Writers and `stockroom semantic` attach it under the same writer flock. The main warehouse holds no HNSW index.
+2. The one-time copy writes the main copy without `embeddings`, and writes a fresh vectors file. On this machine that is about 192 MiB of vectors, and the index builds in about a minute.
+3. Milestone 4's drop and recreate becomes a rebuild of that file: copy the rows into a fresh sibling file, build the index, checkpoint, then `os.replace`.
+4. Doctor's coverage fact and the fix act only on the vectors file. The fix is "rebuild the vectors file".
 
 Gain:
-- One rule heals four cases on the next writer of any kind, the nightly ingest included:
-  - the 2.0.0 crash wal (measured: drop and recreate clears it);
-  - a failed recreate (a milestone 4 risk);
-  - an arrival with a 1.5.4 wal;
-  - a missing index.
-- Milestone 7's "a wal" skip no longer repeats forever.
-- Ingest's embedding deletes run after the heal, so milestone 4 no longer has to decide that case separately.
+
+- The HNSW leak, the replay bug, and index rebuild costs are confined to a small file that can be rebuilt from itself in about a minute.
+- The 39 to 88 GB main file never again grows by index copies, and never needs another rewrite for an index problem.
+- A rebuild by `os.replace` leaves either the old index or the complete new one. There is no window without an index, and no folded, partial index.
+- Readers of plain SQL and the dashboard never open a file with an HNSW index.
 
 Cost:
-- Ingest becomes an index writer on nights after a crash, and each such night pays for one index build.
-- Acceptance 2 needs an exception: "unless a wal was present at open".
-- The durable chokepoint `warehouse.open()` changes, which is outside milestone 4's current scope.
-- Readers cannot heal, so semantic search stays broken until the next writer runs.
+
+- A schema change across the migrations, the ERD, `semantic.py`'s join (it becomes a cross-database join), `embed.py`, ingest's embedding delete, the tests, and the copy builder. Milestones 4 to 6 need a re-plan.
+- Two DuckDB files need one consistency rule. The orphan sweep already covers vectors whose message is gone.
+- Moving populated `embeddings` out of an existing file is a data move. Requirement 6 would have to allow it, or only the copy would do it.
+- Not measured: vss HNSW persistence on an attached database under 2.0.
