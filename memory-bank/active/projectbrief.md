@@ -10,7 +10,7 @@ Lifetime (operator, 2026-10-21): the migration chain (verified copy, check, sess
 
 DuckDB 2.0 first (operator, 2026-10-21): before the format work, the engine moves from DuckDB 1.5.4 to DuckDB 2.0, a long-term support line supported until at least October 2027 (the 1.5 line ends in March 2027). The one-time rewrite then targets the format stockroom keeps. There is no 2.0-only release: the 2.0 move ships in one release together with the size work, after the operator runs a shadow test from a clone of the branch on his machines. New files and the copy use storage `v2.0.0`. The operator chose it over `v1.5.0`, which DuckDB 1.5.4 could still open. DuckDB before 2.0 cannot open a file 2.0 creates. [Announcement](https://duckdb.org/2026/10/21/announcing-duckdb-200).
 
-Skipped releases (operator, 2026-10-21): this project ships in several releases, and users skip releases. Every release must stand alone. A user who arrives from any earlier stockroom release, with no release in between, gets a warehouse that opens, migrates forward, and works. No release may assume that the user ran an earlier release of this project. Every stockroom release so far pinned DuckDB 1.5.4, so existing warehouses are `v1.0.0+` files at schema versions 0 to 8. Schema 0 is an empty file that a failed first open left behind.
+Skipped releases (operator, 2026-10-21): this project ships in one release, then a later release turns the swap on, and users skip releases. Every release must stand alone. A user who arrives from any earlier stockroom release, with no release in between, gets a warehouse that opens, migrates forward, and works. No release may assume that the user ran an earlier release of this project. Every stockroom release so far pinned DuckDB 1.5.4, so existing warehouses are `v1.0.0+` files at schema versions 0 to 8. Schema 0 is an empty file that a failed first open left behind.
 
 ## Use-Case(s)
 
@@ -36,7 +36,9 @@ The session-start hook starts one background pass, detached, through an internal
 
 ### Doctor
 
-`stockroom doctor` reports file size, used and free blocks, a reclaimable estimate based on live data size (free blocks alone miss the leaked index copies, which count as used), the storage format, free disk, the background check's last outcome and measurements, and, when a backup exists, that backup's path and size. It never writes.
+`stockroom doctor` reports file size, used and free blocks, a reclaimable estimate based on live data size (free blocks alone miss the leaked index copies, which count as used), the storage format, free disk, the background check's last outcome and measurements, and, when a backup exists, that backup's path and size. It also names a leftover `.wal`. The report never writes.
+
+Doctor fixes (operator, 2026-10-21): a user can run any discoverable doctor command with full confidence that nothing is written. Every doctor action that writes sits behind `stockroom doctor fix <name>` and runs only when the user names it. The first fix is `stockroom doctor fix hnsw-wal`. It repairs the HNSW index after a DuckDB 2.0.0 bug: replaying a `.wal` that holds inserts into `embeddings` while the index exists leaves the index broken. Semantic search then hangs or errors, every writer's checkpoint fails, and the `.wal` stays. The fix drops the index, recreates it, and checkpoints. No code repairs the index automatically. A troubleshooting page documents the symptoms and the fix.
 
 ## Requirements
 
@@ -47,7 +49,7 @@ The session-start hook starts one background pass, detached, through an internal
 5. The rewrite is a storage upgrade outside the schema-version chain. A skipped rewrite must not make `open_current()` readers treat the warehouse as behind head.
 6. Populated files are never altered in place. ZSTD and the newer format are applied when creating a brand-new warehouse and when copying rows into the new file. They are not a migration that rebuilds `messages` or `tool_calls` inside an existing file.
 7. The first release of this project runs that one background check and never swaps. The swap (hard-link the original to a backup name, then `os.replace` the verified temp file onto `warehouse.duckdb`) is a later explicit change. It copies the warehouse again at that time. It does not replay the deleted temp file.
-8. `stockroom doctor` gains the storage report on its existing read-only fact path. No `compact` subcommand.
+8. `stockroom doctor` gains the storage report on its existing read-only fact path. No `compact` subcommand. Doctor writes only through `stockroom doctor fix <name>`. Its first fix, `hnsw-wal`, rebuilds the HNSW index under the writer flock.
 9. The engine moves to DuckDB 2.0 first, proven by a shadow test on a copy of a real warehouse. No release carries the 2.0 move without the new-file format and the HNSW rebuild.
 10. Every release of this project works for a user who skipped any number of earlier releases. The check treats a warehouse as already new only when it has the newest storage tag and zstd on both columns.
 
@@ -92,6 +94,7 @@ Out of scope:
 6. The original file's bytes are unchanged after a rewrite, and stockroom has no path that deletes the backup.
 7. Every fault and skip in the proof list has a test.
 8. The first release is verify-only. The swap is a separate, explicit change.
-9. `stockroom doctor` reports file size, used and free blocks, reclaimable space, storage format, free disk, the background check's last outcome and measurements, and the backup when one exists, and it never writes.
+9. `stockroom doctor` reports file size, used and free blocks, reclaimable space, storage format, free disk, the background check's last outcome and measurements, the backup when one exists, and a leftover `.wal`, and the report never writes.
 10. The engine runs on DuckDB 2.0. A copy of a real warehouse survives a 2.0 open and checkpoint unchanged, then ingest and embed under 2.0. DuckDB 1.5.4 can still write to it afterwards, and 2.0 still opens it after that.
 11. A `v1.0.0+` warehouse at any schema version from 0 to 8, as any earlier release left it, works with each release of this project, with no earlier release of this project installed first.
+12. On a warehouse whose HNSW index the DuckDB 2.0.0 replay bug broke, `stockroom doctor` names the leftover `.wal` and `stockroom doctor fix hnsw-wal`. After the fix, semantic search, ingest, and embed work again, and no row changed.

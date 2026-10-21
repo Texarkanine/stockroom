@@ -297,3 +297,21 @@ Stop the warehouse file growing far past the history it holds, as specified in [
 * Insights
     - Measured: on 2.0.0, `DROP INDEX`, then `CREATE INDEX`, then `CHECKPOINT` heals the broken state. A wal that holds only deletes or drop-then-insert replays cleanly. 1.5.4 replays every such wal with no problem
     - Measured: a 2.0.0 writer with `storage_compatibility_version` set to `'latest'` or `'v2.0.0'` keeps an existing `v1.0.0+` file at `v1.0.0+` with FSST text, and 1.5.4 still reads and writes it, including after a killed 2.0 writer
+
+## 2026-10-21 - PLAN (RE-PLAN AFTER EIGHTH PREFLIGHT) - COMPLETE
+
+* Work completed
+    - Reproduced the eighth preflight's finding with a standalone script (`.scratch/scripts/wal_replay_hnsw_*`, scratchpad `upstream/`): on DuckDB 2.0.0, replaying a `.wal` that holds inserts into an HNSW-indexed table, written by a killed 1.5.4 or 2.0.0 writer, leaves the index broken. Query, delete, and insert raise `InternalException` on small tables; on a 384-wide, 4,000-row table the first top-k query hung (stopped at 150 s). Every checkpoint then fails fatally, so the `.wal` stays. 1.5.4 replays the same log fine. `DROP INDEX`, `CREATE INDEX`, `CHECKPOINT` repairs it. Logs holding only deletes, or inserts after `DROP INDEX`, replay fine. Loading vss before `ATTACH` (duckdb-vss #65's workaround) does not help
+    - Drafted an upstream duckdb-vss issue for the operator to file (scratchpad `upstream/issue-draft.md`); no existing issue matches
+    - Amended `milestones.md` and `projectbrief.md`. Still nine milestones; the doctor milestone gained the fix group and the edge `hnsw --> doctor`
+* Decisions made
+    - Operator: no automatic repair code. Doctor detects a leftover `.wal` (with the writer flock free) and names the fix; a troubleshooting page documents symptoms and fix
+    - Operator: discoverable doctor commands never write. Every doctor write sits behind `stockroom doctor fix <name>`; the first fix is `stockroom doctor fix hnsw-wal` (drop, recreate from the HNSW milestone's definition, checkpoint, under the writer flock). The doctor milestone owns the fix group and the page
+    - Operator: the work machine does not run the shadow test; the Macs and this machine do
+    - Operator: draft the upstream issue; the operator files it
+    - Arrivals now include a `v1.0.0+` file with a `.wal` from a killed 1.5.4 embed. The HNSW milestone states the rule that no stockroom path inserts into `embeddings` while the index exists
+    - Milestone 1: shadow test adds a killed-2.0-writer step (repeated on the newest 2.0 patch at build time); the 2.0 lock is the last change into this checkout (commit hook and every `make` target sync the environment); `.github/dependabot.yaml` ignores duckdb beyond 2.0; this machine's exposure between milestones 1 and 5 is accepted with a known lossless recovery
+    - Not adopted: the preflight's radical idea of a repair rule inside `warehouse.open`. Acceptance 2 needs no exception, because no automatic rebuild exists
+    - Advisory estimates: DuckDB 2.0 L2, format L2, NumPy inserts L2, HNSW rebuild L3, doctor report and fix L3 (was L2: a writing subcommand group and hang-safe detection), verified copy L3, verify-only check L3, session-start hooks L2, swap kept off L3
+* Insights
+    - The replay bug turns a crash during embedding inserts into a stuck nightly, but the HNSW milestone's drop-before-insert design already avoids writing the log that triggers it. What remains is an arrival edge case, which the operator chose to handle with a named fix instead of automatic code

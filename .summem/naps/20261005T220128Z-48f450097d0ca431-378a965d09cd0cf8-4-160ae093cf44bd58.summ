@@ -1,0 +1,1 @@
+Human pages omit semantic --harness/--role (home: sr-semantic SKILL.md). Claude tokens: once per (message.id, requestId), field max; subagent copies carry none; vanished rows stay. Cursor CLI subagents: subagentInfo parentAgentId/toolCallId/typeName; spawn CallDynamicTool Task.
