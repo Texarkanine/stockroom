@@ -8,6 +8,10 @@ Spec: [issue 147](https://github.com/Texarkanine/stockroom/issues/147). That iss
 
 Lifetime (operator, 2026-10-21): the migration chain (verified copy, check, session-start launch, swap) is a short-lived utility for about five installs, optimistically six: the operator's four machines and a few people he knows. It stays in the plugin for a month or two, until every install has updated through Cursor, and is then removed. It must be reliable for those installs over that time, not long-term durable or bulletproof. The data-safety constraints below still hold in full. The new file format, NumPy inserts, HNSW rebuild, and doctor report are durable.
 
+DuckDB 2.0 first (operator, 2026-10-21): before the format work, the engine moves from DuckDB 1.5.4 to DuckDB 2.0, a long-term support line supported until at least October 2027 (the 1.5 line ends in March 2027). That move ships in its own release, so the one-time rewrite targets the format stockroom keeps. DuckDB before 2.0 cannot open a file 2.0 creates. [Announcement](https://duckdb.org/2026/10/21/announcing-duckdb-200).
+
+Skipped releases (operator, 2026-10-21): this project ships in several releases, and users skip releases. Every release must stand alone. A user who arrives from any earlier stockroom release, with no release in between, gets a warehouse that opens, migrates forward, and works. No release may assume that the user ran an earlier release of this project. Every stockroom release so far pinned DuckDB 1.5.4, so existing warehouses are `v1.0.0+` files at schema versions 1 to 8.
+
 ## Use-Case(s)
 
 ### Nightly embed
@@ -24,7 +28,7 @@ Vectors are inserted by scanning a NumPy array in one statement. `BgeEncoder.enc
 
 ### New warehouse
 
-A brand-new warehouse is created in DuckDB's newer storage format (`STORAGE_VERSION 'latest'`, tag `v1.5.0+`). `messages.text` and `tool_calls.tool_input` are created with `USING COMPRESSION zstd`.
+A brand-new warehouse is created in DuckDB's newest storage format (`STORAGE_VERSION 'latest'`, tag `v2.0.0+` on DuckDB 2.0). `messages.text` and `tool_calls.tool_input` are created with `USING COMPRESSION zstd`.
 
 ### Existing warehouse
 
@@ -44,6 +48,8 @@ The session-start hook starts one background pass, detached, through an internal
 6. Populated files are never altered in place. ZSTD and the newer format are applied when creating a brand-new warehouse and when copying rows into the new file. They are not a migration that rebuilds `messages` or `tool_calls` inside an existing file.
 7. The first release is that one background check. The swap (hard-link the original to a backup name, then `os.replace` the verified temp file onto `warehouse.duckdb`) is a later explicit change. It copies the warehouse again at that time. It does not replay the deleted temp file.
 8. `stockroom doctor` gains the storage report on its existing read-only fact path. No `compact` subcommand.
+9. The engine moves to DuckDB 2.0 first, in its own release, proven by a shadow test on a copy of a real warehouse.
+10. Every release of this project works for a user who skipped any number of earlier releases. The check treats a `v2.0.0+` warehouse without zstd columns, or with leaked index copies, as not yet new. The check milestone's plan sets the test for leaked copies.
 
 ## Constraints
 
@@ -65,7 +71,7 @@ Proof that must have tests:
 - The original's SHA-256 before a swap equals the backup's SHA-256 after it.
 - Fault injection after the temp file is created, during the build, during verification, after the hard link, and after the replace. In every case `warehouse.duckdb` opens and holds either the original content or the verified new content, and no data file is lost.
 - Low disk, a `.wal` present, hard links refused, the flock busy, and a read-only filesystem each skip and leave the original untouched.
-- An old-format fixture warehouse with rows written at `0001` and again after migrating to head is rewritten and passes the equality checks. One fixture is enough: every real install is at head, and the check skips one that is not.
+- An old-format (`v1.0.0+`) fixture warehouse with rows written at `0001` and again after migrating to head is rewritten and passes the equality checks. One fixture is enough: the check copies only a warehouse at the schema head and skips one below it, and lazy migration brings a skipped-release warehouse to head.
 
 Out of scope:
 
@@ -74,7 +80,7 @@ Out of scope:
 - Dropping HNSW, quantizing vectors, tiering old history, or deleting old history.
 - [Issue 146](https://github.com/Texarkanine/stockroom/issues/146) (nightly `stockroom shim ensure-env`). It should ship first and this work does not depend on it.
 
-`duckdb.connect(path, config={"storage_compatibility_version": "latest"})` does not upgrade an existing file. The conversion is `COPY FROM DATABASE` into a file attached with `STORAGE_VERSION 'latest'`. Every tagged stockroom release pins DuckDB 1.5.4, which can read the new format. DuckDB 1.4.5 cannot.
+`duckdb.connect(path, config={"storage_compatibility_version": "latest"})` does not upgrade an existing file. The conversion is `COPY FROM DATABASE` into a file attached with `STORAGE_VERSION 'latest'`. Every tagged stockroom release so far pins DuckDB 1.5.4. This project moves the engine to DuckDB 2.0, which reads `v1.0.0+` files and creates `v2.0.0+` files that DuckDB before 2.0 cannot open. These DuckDB facts were measured on 1.5.4; the DuckDB 2.0 milestone re-measures them.
 
 ## Acceptance Criteria
 
@@ -87,3 +93,5 @@ Out of scope:
 7. Every fault and skip in the proof list has a test.
 8. The first release is verify-only. The swap is a separate, explicit change.
 9. `stockroom doctor` reports file size, used and free blocks, reclaimable space, storage format, free disk, the background check's last outcome and measurements, and the backup when one exists, and it never writes.
+10. The engine runs on DuckDB 2.0. A copy of a real warehouse survives a 2.0 open and checkpoint unchanged, then ingest and embed under 2.0, and DuckDB 1.5.4 still opens it afterwards.
+11. A `v1.0.0+` warehouse at any schema version, as any earlier release left it, works with each release of this project, with no earlier release of this project installed first.

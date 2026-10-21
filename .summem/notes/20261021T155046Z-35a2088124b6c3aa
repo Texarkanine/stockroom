@@ -1,0 +1,1 @@
+DuckDB 2.0.0 (2026-10-21, LTS to Oct 2027; 1.5 to Mar 2027): engine suite passes unchanged (uv --with overlay), vss loads, HNSW still used (EXPLAIN prints 'Hnsw Index Scan', not HNSW_INDEX_SCAN). New files are v2.0.0+ by default; DuckDB before 2.0 cannot read them.

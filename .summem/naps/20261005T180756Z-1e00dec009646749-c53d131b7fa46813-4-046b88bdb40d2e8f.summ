@@ -1,0 +1,1 @@
+DuckDB 1.5.4 VSS post-filters WHERE after HNSW, so semantic --harness/--role rank the joined set; never add WHERE to the HNSW LIMIT query. chore(semantic)! (ids before role) cut 2.0.0. BgeEncoder drops only the Hub unauthenticated notice; other _http warnings log.
