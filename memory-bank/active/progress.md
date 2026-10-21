@@ -135,3 +135,19 @@ Stop the warehouse file growing far past the history it holds, as specified in [
     - Measured: the HNSW leak sits in used blocks. A small file at 218.5 MiB had only 26.5 MiB free, so free blocks alone understate reclaimable space. Counting distinct `pragma_storage_info` blocks and adding `pragma_hnsw_index_info` works read-only
     - Measured: `ORDER BY array_cosine_distance(...) + 0 LIMIT 10` and a `row_number()` filter plan an exact scan, not `HNSW_INDEX_SCAN`
 
+## 2026-10-21 - REVIEW - PLAN AMENDED (8 MILESTONES)
+
+* Work completed
+    - Folded fourth-run advisories 1 to 4 into the invariants and the milestone 4, 5, and 6 Done and Risks lines
+    - Split milestone 6 at the trigger. Milestone 6 is the check itself (lock, child builder, time limit, skips, record, doctor line), and no shipped code starts it. Milestone 7 makes both session-start hooks launch it. The swap is now milestone 8
+    - Graph: `builder --> check`, `doctor --> check`, `check --> hook`, `check --> swap`. The hook and the swap can run in parallel
+* Decisions made
+    - Operator adopted advisories 1 to 4 and the milestone 6 split. Operator declined the writer step-aside idea
+    - Retry means the pass runs again and decides whether to build. After an overrun or a crash it rebuilds only under a condition milestone 6's plan chooses. A crash leaves a record that doctor shows
+    - The builder runs in a child process. The parent holds the flock and kills the child at the time limit
+    - Milestone 4 owns a live-size estimate. Doctor's reclaimable figure and milestone 6's low-disk test both use it
+    - Milestone 5 runs the migrations on the empty copy, replaces `schema_version` rows with the original's, drops the index, inserts rows, and rebuilds the index from milestone 3's definition
+    - Advisory estimates: format L2, NumPy inserts L2, HNSW rebuild L3, doctor report L2, verified copy L3, verify-only check L3, session-start hooks L2, swap kept off L3
+* Insights
+    - Advisories that only live in `progress.md` and `.preflight-status` are deleted when the first milestone finishes. Anything later milestones must see belongs in `milestones.md` or the brief
+
