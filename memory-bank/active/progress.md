@@ -181,3 +181,19 @@ Stop the warehouse file growing far past the history it holds, as specified in [
     - Confirmed in code: `open_current()` reaches `home_dir()`, which runs `mkdir`. Doctor's probe already uses the pure `resolve_home()`
     - Confirmed in code: Cursor's session-start hook redirects stdout only. Claude Code's redirects both streams
 
+## 2026-10-21 - REVIEW - SHORT-LIVED LENS APPLIED
+
+* Work completed
+    - The sixth preflight run was aborted before it wrote anything
+    - Pinned the operator's lifetime statement first in the `milestones.md` invariants and in the brief: milestones 5 to 8 are a short-lived migration utility for about five or six installs, kept a month or two, then removed
+    - Simplified the chain under that lens. Still eight milestones, same order and graph
+* Decisions made
+    - A crash or a time-limit overrun is now final. Its started entry stays for doctor, and deleting the record file retries. This replaces "rebuild only under a condition the plan chooses"
+    - The time limit ends the pass's own process (for example `signal.alarm` with its default action), and the OS releases the flock. No child builder process
+    - The rehearsal keeps the original's size, the copy's size, free disk at the start, and the build, verification, and lock-hold times. Dropped: lowest free disk during the run, and the index top-10 match share against an exact scan
+    - One old-format fixture with rows at `0001` and at head replaces fixtures at every schema version
+    - The chain lives in its own module, touching shared code only at its entry point, the hook command, and doctor's check and backup lines, so removing it is a deletion
+    - Unchanged on purpose: every data-safety rule, fault-injection and SHA-256 proofs, the lock-holder-only record write, the detached launch, and milestones 1 to 4
+* Insights
+    - Data-safety rules are the only part of the chain that must not shrink with its lifetime
+

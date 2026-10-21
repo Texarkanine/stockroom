@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: warehouse-file-growth
-**Phase:** REVIEW - plan amended after fifth preflight
+**Phase:** REVIEW - short-lived lens applied to the plan
 
 ## What Was Done
 - Confirmed intent: implement [issue 147](https://github.com/Texarkanine/stockroom/issues/147) as written
@@ -18,6 +18,7 @@
 - Operator decision (2026-10-21): fold advisories 1 to 4 (retry meaning, child-process builder, live-size estimate, copy order) into milestones 4 to 6, and split milestone 6 into the check and the session-start hook launch. Declined: writer step-aside
 - Fifth preflight: PASS WITH ADVISORY
 - Operator decision (2026-10-21): fold fifth-run advisories 1 to 4 (lock holder writes the record, detached launch, a real no-rebuild test, doctor never creates the home folder) and run preflight once more. Declined: index build after releasing the lock
+- Operator decision (2026-10-21): milestones 5 to 8 are a short-lived migration utility for about five or six installs, kept a month or two, then removed. Reliable, not bulletproof; data safety unchanged. Applied: crash and overrun are final, the time limit ends the process, the rehearsal is trimmed, one fixture, and the chain stays in its own module
 
 ## Next Step
 - Preflight validates the amended 8-milestone list, then `/niko` starts the first milestone

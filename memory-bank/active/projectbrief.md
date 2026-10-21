@@ -6,6 +6,8 @@ As a stockroom user, I want the warehouse file to stay near the size of the hist
 
 Spec: [issue 147](https://github.com/Texarkanine/stockroom/issues/147). That issue is the authority for decisions, proof, and acceptance, except where the operator's 2026-10-20 amendments in this brief replace it. The issue says the rewrite runs from the writer path. Instead, the session-start hook starts one background check, no writer open starts it, and the first release does not swap. This brief records the decisions for the milestone plan.
 
+Lifetime (operator, 2026-10-21): the migration chain (verified copy, check, session-start launch, swap) is a short-lived utility for about five installs, optimistically six: the operator's four machines and a few people he knows. It stays in the plugin for a month or two, until every install has updated through Cursor, and is then removed. It must be reliable for those installs over that time, not long-term durable or bulletproof. The data-safety constraints below still hold in full. The new file format, NumPy inserts, HNSW rebuild, and doctor report are durable.
+
 ## Use-Case(s)
 
 ### Nightly embed
@@ -26,7 +28,7 @@ A brand-new warehouse is created in DuckDB's newer storage format (`STORAGE_VERS
 
 ### Existing warehouse
 
-The session-start hook starts one background pass, detached, through an internal engine entry point. It checks an old warehouse once. There is no new user-facing CLI command, and ingest, embed, and the nightly job do not start it. The hook arrives with a plugin update, so a machine that only receives releases runs the check without re-installing anything. The check is a measured rehearsal of the swap. It records the original's size and the copy's size, the build, verification, and lock-hold times, the lowest free disk during the run, and how often the index's top 10 matches an exact scan on sampled vectors. The later swap release sets its free-disk margin and expected writer wait from those numbers as measured on real machines. The first release builds the new file, verifies it, records the result, deletes the temp file, and never swaps. Enabling the swap is a separate, explicit change and stays off until that later change. The swap copies the warehouse again that day, because rows written after the check exist only in the old file.
+The session-start hook starts one background pass, detached, through an internal engine entry point. It checks an old warehouse once. There is no new user-facing CLI command, and ingest, embed, and the nightly job do not start it. The hook arrives with a plugin update, so a machine that only receives releases runs the check without re-installing anything. The check is a measured rehearsal of the swap. It records the original's size, the copy's size, free disk at the start, and the build, verification, and lock-hold times. The swap release sets its free-disk margin and expected writer wait from those numbers as measured on the operator's machines. The first release builds the new file, verifies it, records the result, deletes the temp file, and never swaps. Enabling the swap is a separate, explicit change and stays off until that later change. The swap copies the warehouse again that day, because rows written after the check exist only in the old file.
 
 ### Doctor
 
@@ -37,7 +39,7 @@ The session-start hook starts one background pass, detached, through an internal
 1. The HNSW index stays. Writers that change `embeddings` drop it before writing and recreate it after. Skip both when the run writes nothing.
 2. Embed inserts go through a NumPy scan in one statement.
 3. New warehouses use the newer storage format and ZSTD on `messages.text` and `tool_calls.tool_input`. ZSTD is asserted through `pragma_storage_info` after a write, on a new-format file. `duckdb_tables().sql` does not show the compression clause.
-4. The check-only pass runs once in the background. The session-start hook starts it. Ingest, embed, the nightly job, and other writer opens do not. Verified, mismatch, and already new are final. A skip or a crash is not final: the pass runs again at the next session start and decides there whether to build. After an overrun or a crash it rebuilds only under a condition chosen in planning, so a warehouse that always overruns or crashes does not rebuild at every session start. A crash leaves a record that doctor shows. The builder runs in a child process that the pass can kill at the time limit. No warehouse yet, a warehouse below the schema head, and a lock hold past the pass's time limit are skips. On an overrun the pass deletes its temp file and releases the lock. It records the result in a sidecar file under the stockroom home and deletes the temp file. `open_current()`, the dashboard, and `stockroom doctor` never start it.
+4. The check-only pass runs once in the background. The session-start hook starts it. Ingest, embed, the nightly job, and other writer opens do not. Verified, mismatch, already new, a crash, and a time-limit overrun are final. A crash or an overrun leaves a started entry that doctor shows, and deleting the record file runs the check again. Skips (low disk, a wal, a busy flock, a read-only filesystem, no warehouse yet, a warehouse below the schema head) build nothing and retry at the next session start. At the time limit the process ends itself, so the OS releases the flock. It records the result in a sidecar file under the stockroom home and deletes the temp file. `open_current()`, the dashboard, and `stockroom doctor` never start it.
 5. The rewrite is a storage upgrade outside the schema-version chain. A skipped rewrite must not make `open_current()` readers treat the warehouse as behind head.
 6. Populated files are never altered in place. ZSTD and the newer format are applied when creating a brand-new warehouse and when copying rows into the new file. They are not a migration that rebuilds `messages` or `tool_calls` inside an existing file.
 7. The first release is that one background check. The swap (hard-link the original to a backup name, then `os.replace` the verified temp file onto `warehouse.duckdb`) is a later explicit change. It copies the warehouse again at that time. It does not replay the deleted temp file.
@@ -54,7 +56,7 @@ The rewrite must never break a warehouse. A bug can cost time. It cannot cost da
 5. The swap, when it is run, keeps the original by adding a name, not by copying it. Hard-link the original to a backup name, then `os.replace` the verified temp file. If the filesystem refuses hard links, skip. There is no copy-then-delete fallback.
 6. Stockroom never deletes the original. It stays under the backup name until the user deletes it. `stockroom doctor` reports its path and size.
 7. Free disk must cover the new file plus a margin, or the rewrite skips. The new file's size is estimated from live data size, not from the original's file size. A skipped or failed rewrite leaves the warehouse exactly as it was, and `doctor` says so.
-8. A leftover temp file from a crash is deleted on the next run. Cleanup never touches the original or the backup. A warehouse already in the new layout is a no-op.
+8. A leftover temp file from a crash is deleted on the next run, even when the record is final. Cleanup never touches the original or the backup. A warehouse already in the new layout is a no-op.
 9. The rewrite `fsync`s the new file and its directory before the replace. Readers who already have the old file open keep that inode until they reopen.
 10. Rollback is renaming the backup back to `warehouse.duckdb`.
 
@@ -63,7 +65,7 @@ Proof that must have tests:
 - The original's SHA-256 before a swap equals the backup's SHA-256 after it.
 - Fault injection after the temp file is created, during the build, during verification, after the hard link, and after the replace. In every case `warehouse.duckdb` opens and holds either the original content or the verified new content, and no data file is lost.
 - Low disk, a `.wal` present, hard links refused, the flock busy, and a read-only filesystem each skip and leave the original untouched.
-- Fixture warehouses at every schema version from `0001` through head are migrated, then rewritten, then pass the equality checks.
+- An old-format fixture warehouse with rows written at `0001` and again after migrating to head is rewritten and passes the equality checks. One fixture is enough: every real install is at head, and the check skips one that is not.
 
 Out of scope:
 

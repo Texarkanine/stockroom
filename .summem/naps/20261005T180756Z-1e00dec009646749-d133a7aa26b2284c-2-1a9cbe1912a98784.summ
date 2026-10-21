@@ -1,0 +1,1 @@
+DuckDB 1.5.4 VSS post-filters WHERE after HNSW: a harness predicate plus ORDER BY distance LIMIT can return zero rows. Semantic tsv/table put session_id and message_id before role, a breaking shift marked chore(semantic)! so release-please cut 2.0.0.

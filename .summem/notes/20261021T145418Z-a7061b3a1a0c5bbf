@@ -1,0 +1,1 @@
+Issue 147 storage migration chain (verified copy, session-start check, swap) is short-lived: about 5-6 installs, kept a month or two, then removed. Build it reliable, not bulletproof; data-safety rules still hold. Keep it in its own module.
