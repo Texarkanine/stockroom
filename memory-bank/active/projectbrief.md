@@ -8,9 +8,9 @@ Spec: [issue 147](https://github.com/Texarkanine/stockroom/issues/147). That iss
 
 Lifetime (operator, 2026-10-21): the migration chain (verified copy, check, session-start launch, swap) is a short-lived utility for about five installs, optimistically six: the operator's four machines and a few people he knows. It stays in the plugin for a month or two, until every install has updated through Cursor, and is then removed. It must be reliable for those installs over that time, not long-term durable or bulletproof. The data-safety constraints below still hold in full. The new file format, NumPy inserts, HNSW rebuild, and doctor report are durable.
 
-DuckDB 2.0 first (operator, 2026-10-21): before the format work, the engine moves from DuckDB 1.5.4 to DuckDB 2.0, a long-term support line supported until at least October 2027 (the 1.5 line ends in March 2027). That move ships in its own release, so the one-time rewrite targets the format stockroom keeps. DuckDB before 2.0 cannot open a file 2.0 creates. [Announcement](https://duckdb.org/2026/10/21/announcing-duckdb-200).
+DuckDB 2.0 first (operator, 2026-10-21): before the format work, the engine moves from DuckDB 1.5.4 to DuckDB 2.0, a long-term support line supported until at least October 2027 (the 1.5 line ends in March 2027). The one-time rewrite then targets the format stockroom keeps. There is no 2.0-only release: the 2.0 move ships in one release together with the size work, after the operator runs a shadow test from a clone of the branch on his machines. New files and the copy use storage `v2.0.0`. The operator chose it over `v1.5.0`, which DuckDB 1.5.4 could still open. DuckDB before 2.0 cannot open a file 2.0 creates. [Announcement](https://duckdb.org/2026/10/21/announcing-duckdb-200).
 
-Skipped releases (operator, 2026-10-21): this project ships in several releases, and users skip releases. Every release must stand alone. A user who arrives from any earlier stockroom release, with no release in between, gets a warehouse that opens, migrates forward, and works. No release may assume that the user ran an earlier release of this project. Every stockroom release so far pinned DuckDB 1.5.4, so existing warehouses are `v1.0.0+` files at schema versions 1 to 8.
+Skipped releases (operator, 2026-10-21): this project ships in several releases, and users skip releases. Every release must stand alone. A user who arrives from any earlier stockroom release, with no release in between, gets a warehouse that opens, migrates forward, and works. No release may assume that the user ran an earlier release of this project. Every stockroom release so far pinned DuckDB 1.5.4, so existing warehouses are `v1.0.0+` files at schema versions 0 to 8. Schema 0 is an empty file that a failed first open left behind.
 
 ## Use-Case(s)
 
@@ -46,10 +46,10 @@ The session-start hook starts one background pass, detached, through an internal
 4. The check-only pass runs once in the background. The session-start hook starts it. Ingest, embed, the nightly job, and other writer opens do not. Verified, mismatch, already new, a crash, and a time-limit overrun are final. A crash or an overrun leaves a started entry that doctor shows, and deleting the record file runs the check again. Skips (low disk, a wal, a busy flock, a read-only filesystem, no warehouse yet, a warehouse below the schema head) build nothing and retry at the next session start. At the time limit the process ends itself, so the OS releases the flock. It records the result in a sidecar file under the stockroom home and deletes the temp file. `open_current()`, the dashboard, and `stockroom doctor` never start it.
 5. The rewrite is a storage upgrade outside the schema-version chain. A skipped rewrite must not make `open_current()` readers treat the warehouse as behind head.
 6. Populated files are never altered in place. ZSTD and the newer format are applied when creating a brand-new warehouse and when copying rows into the new file. They are not a migration that rebuilds `messages` or `tool_calls` inside an existing file.
-7. The first release is that one background check. The swap (hard-link the original to a backup name, then `os.replace` the verified temp file onto `warehouse.duckdb`) is a later explicit change. It copies the warehouse again at that time. It does not replay the deleted temp file.
+7. The first release of this project runs that one background check and never swaps. The swap (hard-link the original to a backup name, then `os.replace` the verified temp file onto `warehouse.duckdb`) is a later explicit change. It copies the warehouse again at that time. It does not replay the deleted temp file.
 8. `stockroom doctor` gains the storage report on its existing read-only fact path. No `compact` subcommand.
-9. The engine moves to DuckDB 2.0 first, in its own release, proven by a shadow test on a copy of a real warehouse.
-10. Every release of this project works for a user who skipped any number of earlier releases. The check treats a `v2.0.0+` warehouse without zstd columns, or with leaked index copies, as not yet new. The check milestone's plan sets the test for leaked copies.
+9. The engine moves to DuckDB 2.0 first, proven by a shadow test on a copy of a real warehouse. No release carries the 2.0 move without the new-file format and the HNSW rebuild.
+10. Every release of this project works for a user who skipped any number of earlier releases. The check treats a warehouse as already new only when it has the newest storage tag and zstd on both columns.
 
 ## Constraints
 
@@ -80,18 +80,18 @@ Out of scope:
 - Dropping HNSW, quantizing vectors, tiering old history, or deleting old history.
 - [Issue 146](https://github.com/Texarkanine/stockroom/issues/146) (nightly `stockroom shim ensure-env`). It should ship first and this work does not depend on it.
 
-`duckdb.connect(path, config={"storage_compatibility_version": "latest"})` does not upgrade an existing file. The conversion is `COPY FROM DATABASE` into a file attached with `STORAGE_VERSION 'latest'`. Every tagged stockroom release so far pins DuckDB 1.5.4. This project moves the engine to DuckDB 2.0, which reads `v1.0.0+` files and creates `v2.0.0+` files that DuckDB before 2.0 cannot open. These DuckDB facts were measured on 1.5.4; the DuckDB 2.0 milestone re-measures them.
+`duckdb.connect(path, config={"storage_compatibility_version": "latest"})` does not upgrade an existing file. The conversion copies the warehouse table by table into a new file attached in the newest storage version, as the copy milestone describes. Plain `COPY FROM DATABASE` does not apply the zstd clauses. Every tagged stockroom release so far pins DuckDB 1.5.4. This project moves the engine to DuckDB 2.0, which reads `v1.0.0+` files and creates `v2.0.0+` files that DuckDB before 2.0 cannot open. These DuckDB facts were measured on 1.5.4; the DuckDB 2.0 milestone re-measures them.
 
 ## Acceptance Criteria
 
 1. Changing `embeddings` and checkpointing no longer grows the file by an index copy. A test runs several write-and-checkpoint cycles and bounds the file size.
 2. Nights that embed nothing do not rebuild the index.
 3. An embed of a few thousand chunks is faster than today's insert path on the same data. The test asserts the NumPy insert path against a fixture rather than timing it.
-4. A new warehouse is created in the `v1.5.0+` format with ZSTD on `messages.text` and `tool_calls.tool_input`.
+4. A new warehouse is created in the `v2.0.0+` format with ZSTD on `messages.text` and `tool_calls.tool_input`.
 5. An existing warehouse is copied once, automatically, and the copy passes the equality, catalog, and HNSW checks above. In this project the copy is verified and deleted, not swapped in.
 6. The original file's bytes are unchanged after a rewrite, and stockroom has no path that deletes the backup.
 7. Every fault and skip in the proof list has a test.
 8. The first release is verify-only. The swap is a separate, explicit change.
 9. `stockroom doctor` reports file size, used and free blocks, reclaimable space, storage format, free disk, the background check's last outcome and measurements, and the backup when one exists, and it never writes.
-10. The engine runs on DuckDB 2.0. A copy of a real warehouse survives a 2.0 open and checkpoint unchanged, then ingest and embed under 2.0, and DuckDB 1.5.4 still opens it afterwards.
-11. A `v1.0.0+` warehouse at any schema version, as any earlier release left it, works with each release of this project, with no earlier release of this project installed first.
+10. The engine runs on DuckDB 2.0. A copy of a real warehouse survives a 2.0 open and checkpoint unchanged, then ingest and embed under 2.0. DuckDB 1.5.4 can still write to it afterwards, and 2.0 still opens it after that.
+11. A `v1.0.0+` warehouse at any schema version from 0 to 8, as any earlier release left it, works with each release of this project, with no earlier release of this project installed first.

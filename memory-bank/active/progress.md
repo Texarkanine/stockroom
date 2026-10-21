@@ -263,3 +263,23 @@ Stop the warehouse file growing far past the history it holds, as specified in [
     - Measured: DuckDB 2.0.0 raises `BinderException` for `USING COMPRESSION zstd` on a `v1.0.0+` file. 1.5.4 stored the column uncompressed with no error. 2.0 accepts the clause at `v1.5.0` and `v2.0.0`
     - Measured: 1.5.4 and 2.0.0 can take turns reading and writing one `v1.0.0+` file with an HNSW index, and the tag stays `v1.0.0+`. 1.5.4 replays a wal that a killed 2.0 writer left (synthetic data)
     - Measured: 1.5.4 opens a `v1.5.0+` file that 2.0 created, with zstd and HNSW. It refuses a `v2.0.0+` file ("version number 999")
+
+## 2026-10-21 - PLAN (RE-PLAN AFTER SEVENTH PREFLIGHT) - COMPLETE
+
+* Work completed
+    - Folded the three fixable findings and the advisories into `milestones.md` and `projectbrief.md`. Still nine milestones, same order and graph
+    - Confirmed the binder finding (`.scratch/scripts/zstd_clause_by_storage.py`): on 2.0.0 the zstd clause raises `BinderException` at storage `v1.0.0` and gives ZSTD at `v1.2.0`, `v1.5.0`, and `v2.0.0`; on 1.5.4 it is silently uncompressed at `v1.0.0`
+    - Measured (`.scratch/scripts/crashed_wal_*`): 1.5.4 opens a `v1.0.0+` file that a killed 2.0.0 writer left with a wal, plain or HNSW-indexed, read-only and read-write, and replays every row
+    - Found that this machine's live shim runs this checkout (03:30 nightly cron through it), and that a Claude Code stockroom 0.16.0 (DuckDB 1.5.4) is installed beside it
+* Decisions made
+    - Operator: no 2.0-only release. Milestones land in order on the branch; milestones 1 to 8 ship in one release (the swap may join, off). No release carries the 2.0 lock without the new-file format and the HNSW rebuild. The operator runs the shadow test from a branch clone on his Macs before that release
+    - Operator: new files and the copy use storage `v2.0.0`, not the preflight's `v1.5.0` advisory
+    - Operator: this checkout's environment stays on 1.5.4 until the shadow test passes on this machine; then the branch goes live here
+    - Operator: the DuckDB 2.0 sub-run may rewrite DuckDB-behaviour sentences in later milestones' Done and Risks lines (finding 3). Scope, order, and ownership changes still stop for the operator
+    - Finding 1: brief acceptance 4 now says `v2.0.0+`
+    - Finding 2: arrivals now include a schema-0 `v1.0.0+` file; the format milestone must open and migrate it without deleting it, despite 2.0 rejecting the zstd clause at `v1.0.0`. Old-format test fixtures use storage `v1.0.0` with the v2.1.2 migration SQL
+    - Adopted advisories: frozen shadow baseline under the flock, a 1.5.4 writer step, duckdb range below 2.1, a lasting HNSW-plan test, brief wording (first release, conversion method)
+    - "Already new" simplified to newest tag plus zstd on both columns, because the single release removes the released `v2.0.0+`-without-zstd state; brief requirement 10 no longer mentions leaked copies
+* Insights
+    - Grouping 2.0 with the format and HNSW work removed an arrival state instead of adding code to handle it
+    - A dev checkout that is also the live engine turns every lock change into a production change on that machine; the commit hook's exact sync makes it immediate

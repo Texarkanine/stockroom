@@ -1,0 +1,1 @@
+Human pages omit semantic --harness/--role (flag home: sr-semantic SKILL.md). Claude message tokens stored once per (message.id, requestId), field-wise max; subagent copies of a parent response carry none; vanished transcripts are not rewritten.
