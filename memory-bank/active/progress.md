@@ -246,3 +246,20 @@ Stop the warehouse file growing far past the history it holds, as specified in [
 * Insights
     - The bump changes the new-file format on its own, because 2.0's default is already `v2.0.0+`. The format milestone's explicit setting guards against a later default that lags the newest format
     - A release's head start over the next one helps only the machines that install it. Skip-safety has to live in each release, not in the release order
+
+## 2026-10-21 - PREFLIGHT (SEVENTH RUN) - COMPLETE
+
+* Work completed
+    - Validated the 9-milestone list (DuckDB 2.0 first, skipped releases) against `projectbrief.md`, the diff from `9392fce`, the engine code, and four short DuckDB 1.5.4 and 2.0.0 experiments
+    - Recorded preflight status: FAIL (fixable). The milestone list was not changed
+* Decisions made
+    - Prerequisites, checklist shape, scope, order, invariants, and the Done and Risks blocks pass. The checklist is a valid serial walk of the new graph
+    - Fixable: brief acceptance 4 still says a new warehouse is `v1.5.0+`, against the amended use case and milestone 2's Done line
+    - Fixable: the skipped-release arrivals leave out an empty `v1.0.0+` file at schema 0 (left by a failed first open). On 2.0, milestone 2's zstd clauses in `0001` raise a binder error on that file, so every writer open would fail. That breaks acceptance 11
+    - Fixable: milestone 1's Done line has the sub-run rewrite later milestones' lines, which the milestones lifecycle rule forbids. One sentence of operator authority, or a hand-off through `/niko-plan`, resolves it
+    - Advisory, not adopted: freeze the shadow test's baseline under the flock; build old-format fixtures from the v2.1.2 migration SQL; add a 1.5.4 writer step to the shadow test; cap duckdb below 2.1 so dependabot cannot leave the LTS line; keep a durable test that semantic search plans through the HNSW index; small brief wording fixes
+    - Radical advisory, not adopted: create new files and the rewrite at `v1.5.0` storage, which 1.5.4 can open, instead of `v2.0.0`
+* Insights
+    - Measured: DuckDB 2.0.0 raises `BinderException` for `USING COMPRESSION zstd` on a `v1.0.0+` file. 1.5.4 stored the column uncompressed with no error. 2.0 accepts the clause at `v1.5.0` and `v2.0.0`
+    - Measured: 1.5.4 and 2.0.0 can take turns reading and writing one `v1.0.0+` file with an HNSW index, and the tag stays `v1.0.0+`. 1.5.4 replays a wal that a killed 2.0 writer left (synthetic data)
+    - Measured: 1.5.4 opens a `v1.5.0+` file that 2.0 created, with zstd and HNSW. It refuses a `v2.0.0+` file ("version number 999")

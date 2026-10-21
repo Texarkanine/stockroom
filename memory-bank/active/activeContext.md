@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: warehouse-file-growth
-**Phase:** PLAN - COMPLETE (amended 2026-10-21: DuckDB 2.0 first milestone, skip-safe releases)
+**Phase:** PREFLIGHT - COMPLETE (FAIL (fixable))
 
 ## What Was Done
 - `/niko` classified the format milestone as a Level 2 sub-run, then the plan phase found a decision for the operator: move to DuckDB 2.0 (LTS, released 2026-10-21) before the format work

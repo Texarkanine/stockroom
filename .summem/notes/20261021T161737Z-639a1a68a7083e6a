@@ -1,0 +1,1 @@
+Measured 2026-10-21: DuckDB 1.5.4 opens (ro and rw) a v1.0.0+ file a crashed DuckDB 2.0.0 writer left with a wal, plain or vss HNSW-indexed, and replays all rows; the wal matches a 1.5.4 writer's in size. Only files 2.0 creates (v2.0.0+) are unreadable before 2.0.
