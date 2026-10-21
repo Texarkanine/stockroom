@@ -80,6 +80,20 @@ Move the engine to DuckDB 2.0 and prove it on a copy of a real warehouse. This i
 * Insights
     - Killing when the wal file appears can be before the insert commits. The kill is SIGKILL after a commit that stays under `checkpoint_threshold`
 
+## 2026-10-21 - PLAN (THIRD RE-PLAN) - COMPLETE
+
+* Work completed
+    - Repair now waits on `classify`. Loud is a remaining wal plus a hung or raised probe. Folded is a gone wal plus an index count below the row count
+    - The kill is SIGKILL after the child commits an insert that stays under `checkpoint_threshold`
+* Decisions made
+    - Adopted the read-only used-block and distinct-block print after the leaking delete
+    - Adopted the row check that lets `embeddings` shrink by the orphan count embed reports
+    - Adopted one `classify` function shared by synthetic, live, and the patch repeat
+    - Not adopted: a JSON phase file under the scratch home. The script prints the facts
+* Insights
+    - A repair that finishes on a healthy index is not evidence the replay bug was present
+
+
 
 
 

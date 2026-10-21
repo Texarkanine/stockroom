@@ -1,11 +1,11 @@
 # Active Context
 
 ## Current Task: warehouse-file-growth
-**Phase:** PREFLIGHT - FAIL (fixable)
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
 - Classified the first milestone as Level 3
-- Third preflight failed because a healthy index could pass the repair phases. The kill could also land before the insert committed
+- Re-planned the shadow classification. Repair runs only after the copy is loud or folded. The kill is SIGKILL after a committed insert that stays under `checkpoint_threshold`
 
 ## Next Step
-- Re-plan the loud and folded classification, then preflight again
+- Preflight the revised plan
