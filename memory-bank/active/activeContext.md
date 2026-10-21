@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: warehouse-file-growth
-**Phase:** REVIEW - short-lived lens applied to the plan
+**Phase:** PREFLIGHT - COMPLETE (PASS WITH ADVISORY), post-preflight fixes folded in
 
 ## What Was Done
 - Confirmed intent: implement [issue 147](https://github.com/Texarkanine/stockroom/issues/147) as written
@@ -20,5 +20,7 @@
 - Operator decision (2026-10-21): fold fifth-run advisories 1 to 4 (lock holder writes the record, detached launch, a real no-rebuild test, doctor never creates the home folder) and run preflight once more. Declined: index build after releasing the lock
 - Operator decision (2026-10-21): milestones 5 to 8 are a short-lived migration utility for about five or six installs, kept a month or two, then removed. Reliable, not bulletproof; data safety unchanged. Applied: crash and overrun are final, the time limit ends the process, the rehearsal is trimmed, one fixture, and the chain stays in its own module
 
+- Sixth preflight (lens applied): PASS WITH ADVISORY. Folded advisories 1 to 4: lock before reading or deleting, start time in the started entry, alarm only in the entry point's process, doctor's backup line outlives the chain. Not adopted: per-machine config key for the swap
+
 ## Next Step
-- Preflight validates the amended 8-milestone list, then `/niko` starts the first milestone
+- Plan is final. In a new window, `/niko` starts milestone 1 (new warehouses in v1.5.0+ with ZSTD)

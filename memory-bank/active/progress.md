@@ -197,3 +197,32 @@ Stop the warehouse file growing far past the history it holds, as specified in [
 * Insights
     - Data-safety rules are the only part of the chain that must not shrink with its lifetime
 
+## 2026-10-21 - PREFLIGHT (SIXTH RUN) - COMPLETE
+
+* Work completed
+    - Validated the 8-milestone list after the fifth-run advisories and the short-lived lens, against `projectbrief.md`, the diff from `beb1abe`, the engine code, and one DuckDB 1.5.4 experiment
+    - Recorded preflight status: PASS WITH ADVISORY. The milestone list was not changed
+* Decisions made
+    - All seven Level 4 checks pass. Every lens change maps to a milestone, the graph is unchanged, and no wording from the earlier design is left
+    - Advisory, not adopted: a pass takes the flock before it reads the record or deletes anything. A started entry is now final, so without this a second session start can delete the temp file of a pass that is still running (milestones 6 and 8)
+    - Advisory, not adopted: the started entry carries its start time and the time limit, so doctor can tell a running pass from a dead one. Doctor names the record path, because deleting it is the only retry (milestone 6)
+    - Advisory, not adopted: set the alarm only in the entry point's process, not in the pass function that in-process tests call under `pytest-xdist` (milestone 6)
+    - Advisory, not adopted: doctor's backup line is durable, not chain code that removal deletes, because a 39 to 88 GB backup can outlive the chain (invariants, milestone 4)
+    - Radical advisory, not adopted: turn on the swap per machine with a config key instead of a release, so each machine swaps on its own rehearsal numbers
+* Insights
+    - Measured: `signal.alarm` with its default action ended a process 2.03 s into a 10.4 s HNSW build (exit -14), and a blocked flock waiter got the lock at that moment
+    - No engine code installs a signal handler, and the test stack has no timeout plugin
+
+## 2026-10-21 - REVIEW - POST-PREFLIGHT FIXES
+
+* Work completed
+    - Folded sixth-run advisories 1 to 4 into milestone 6, the lifetime paragraph, and brief constraint 8. No re-preflight: each is a one-sentence correction to the lens edits and changes no milestone's scope, order, or ownership
+* Decisions made
+    - Every pass takes the lock without waiting before it reads the record or deletes anything. A pass that cannot take it does nothing, so it cannot delete a running pass's temp file
+    - The started entry carries its start time and time limit. Doctor shows one inside its limit as running, and prints the record's path because deleting it is the retry
+    - Only the entry point's own process sets the alarm, so in-process tests cannot kill an xdist worker
+    - Doctor's backup line outlives the chain's removal
+    - Not adopted: a per-machine `config.toml` key to enable the swap. That is the operator's call and would change the brief's "later explicit change"
+* Insights
+    - Making crashes final made a running pass and a dead pass look alike. Lock-first ordering is what keeps them apart
+

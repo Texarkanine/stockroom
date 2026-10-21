@@ -56,7 +56,7 @@ The rewrite must never break a warehouse. A bug can cost time. It cannot cost da
 5. The swap, when it is run, keeps the original by adding a name, not by copying it. Hard-link the original to a backup name, then `os.replace` the verified temp file. If the filesystem refuses hard links, skip. There is no copy-then-delete fallback.
 6. Stockroom never deletes the original. It stays under the backup name until the user deletes it. `stockroom doctor` reports its path and size.
 7. Free disk must cover the new file plus a margin, or the rewrite skips. The new file's size is estimated from live data size, not from the original's file size. A skipped or failed rewrite leaves the warehouse exactly as it was, and `doctor` says so.
-8. A leftover temp file from a crash is deleted on the next run, even when the record is final. Cleanup never touches the original or the backup. A warehouse already in the new layout is a no-op.
+8. A leftover temp file from a crash is deleted on the next run, even when the record is final. A pass reads the record and deletes anything only while it holds the writer flock. A pass that cannot take the flock does nothing. Cleanup never touches the original or the backup. A warehouse already in the new layout is a no-op.
 9. The rewrite `fsync`s the new file and its directory before the replace. Readers who already have the old file open keep that inode until they reopen.
 10. Rollback is renaming the backup back to `warehouse.duckdb`.
 
