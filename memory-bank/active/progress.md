@@ -200,3 +200,14 @@ Move the engine to DuckDB 2.0 and prove it on a copy of a real warehouse. This i
     - Measured: one HNSW insert leaves a 1701-byte wal after the index is checkpointed. A 4KB threshold set before that checkpoint leaves no wal
     - Measured: `pragma_hnsw_index_info()` takes no arguments on 1.5.4 and 2.0.0. The indexed-row count is the `count` column
 
+## 2026-10-21 - PREFLIGHT - ABORTED
+
+* Work completed
+    - A preflight of the plan at `3ccba40` was aborted before it wrote `.preflight-status`
+    - It left two untracked SumMem notes
+* Decisions made
+    - None. The plan was not edited
+* Insights
+    - Measured, and not yet folded into the plan: from inside `uv run --with duckdb==2.0.0`, a nested `uv run --no-sync --with duckdb==VERSION` selects `VERSION` even when `VIRTUAL_ENV` is inherited. Unsetting `VIRTUAL_ENV` is not what makes `--with` take effect
+    - Measured: on DuckDB 2.0.0, `EXPLAIN` of the unscoped cosine query contains `HNSW` in the line `HNSW Index: embeddings_vector_hnsw`. The operator title is `Hnsw Index Scan`, which does not itself contain `HNSW`. A case-sensitive `HNSW` check passes on 1.5.4 and 2.0.0
+
