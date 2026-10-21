@@ -117,6 +117,16 @@ Move the engine to DuckDB 2.0 and prove it on a copy of a real warehouse. This i
 * Insights
     - A second open of a file this process still holds raises `IOException` on DuckDB 1.5.4. That is not the replay bug
 
+## 2026-10-21 - PREFLIGHT (FIFTH RUN) - FAIL (fixable)
+
+* Work completed
+    - Preflight of the fourth re-plan. The plan was not edited. Status is in `memory-bank/active/.preflight-status`
+* Decisions made
+    - Fixable: the patch-repeat child has to start with `VIRTUAL_ENV` unset. From inside the overlay, a nested `uv run --with` ignores the requested DuckDB and runs the project interpreter
+* Insights
+    - PyPI's newest final duckdb is still 2.0.0, so the skip branch is what runs today. The command has to select a later patch when one exists
+
+
 
 
 
@@ -166,4 +176,15 @@ Move the engine to DuckDB 2.0 and prove it on a copy of a real warehouse. This i
     - Measured: `EXPLAIN` of a `?` statement without the bound value raises `InvalidInputException`
     - Measured: PyPI's latest duckdb is `2.0.0`. `2.0.0.dev*` uploads are published and sort after `2.0.0` as strings
     - `uv` 0.12.22 `uv run` syncs inexactly unless `--exact`. Torch is absent from the project `.venv`
+
+## 2026-10-21 - PREFLIGHT - COMPLETE (FAIL (fixable))
+
+* Work completed
+    - Preflight of the fourth re-plan. The plan was not edited. First line of `memory-bank/active/.preflight-status` is `FAIL (fixable)`
+* Decisions made
+    - The patch-repeat child has to be started with `VIRTUAL_ENV` unset. A nested `uv run --with` from inside the 2.0 overlay runs the project interpreter, DuckDB 1.5.4
+* Insights
+    - Measured: the parent overlay is ephemeral 2.0.0 and its `VIRTUAL_ENV` is that prefix. Unsetting `VIRTUAL_ENV` makes `uv run --no-sync --with duckdb==2.0.0` select 2.0.0. The project interpreter stayed 1.5.4
+    - Measured: one HNSW insert leaves a 1701-byte wal after the index is checkpointed. A 4KB threshold set before that checkpoint leaves no wal
+    - Measured: `pragma_hnsw_index_info()` takes no arguments on 1.5.4 and 2.0.0. The indexed-row count is the `count` column
 

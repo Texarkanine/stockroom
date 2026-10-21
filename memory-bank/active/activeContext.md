@@ -1,11 +1,11 @@
 # Active Context
 
 ## Current Task: warehouse-file-growth
-**Phase:** PLAN - COMPLETE
+**Phase:** PREFLIGHT - FAIL (fixable)
 
 ## What Was Done
 - Classified the first milestone as Level 3
-- Re-planned after the fourth preflight. The row count is compared right after the repair checkpoint. A lock error is `blocked`, not loud. The patch repeat accepts only final `2.0.N` versions
+- Fifth preflight failed because a patch-repeat child started inside the 2.0 overlay ignores `--with` and runs this checkout's DuckDB 1.5.4
 
 ## Next Step
-- Preflight the revised plan
+- Re-plan that child so `VIRTUAL_ENV` is unset, then preflight again
