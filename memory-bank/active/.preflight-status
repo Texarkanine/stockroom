@@ -1,65 +1,43 @@
-FAIL (fixable)
+PASS WITH ADVISORY
 
 ## Preflight Findings
 
-Re-preflight of the amended Level 4 milestone list for `warehouse-file-growth`, checked against `projectbrief.md`, issue 147, the operator's amendment in the parent chat, and the current engine code.
+Third preflight of the Level 4 milestone list for `warehouse-file-growth`. It checks the list as amended after the second preflight's `FAIL (fixable)` against `projectbrief.md`, the engine code, and short experiments with the pinned DuckDB 1.5.4. The milestone list was not changed.
 
 ### Checks That Passed
 
-- **Prerequisites**: Pass. `progress.md` and `tasks.md` record Level 4. `milestones.md` exists and its header `# Milestones: warehouse-file-growth` matches the task ID.
-- **Checklist shape**: Pass. Seven contiguous GFM checkboxes under Execution Order, no sub-bullets, no stray checkboxes elsewhere.
-- **Coverage**: Pass. Requirements 1 through 8, constraints 1 through 10, every proof item, and every acceptance criterion map to a milestone with no duplicated purpose. The fault and skip proofs are split cleanly: create, build, verification, low disk, wal, busy flock, and read-only filesystem are in the verify-only milestone; after-link, after-replace, hard-link refusal, and the SHA-256 proof are in the swap milestone.
-- **Scope and concreteness**: Pass for milestones 1 through 5 and 7. Each is Level 2 or 3 and names a deliverable. Milestone 6 is plannable only after the first finding below is fixed.
-- **Order**: Pass for serial safety. Walking the list one at a time never needs a later milestone. The DAG is missing one edge (third finding).
-- **Done and risks**: Pass. Every checkbox has a heading with identical text and both a Done and a Risks line.
+- **Prerequisites**: Pass. `progress.md` and `tasks.md` record Level 4. `milestones.md` exists, and its header `# Milestones: warehouse-file-growth` matches the task ID.
+- **Checklist shape**: Pass. Seven contiguous GFM checkboxes under Execution Order, with no sub-bullets and no stray checkboxes elsewhere.
+- **Coverage**: Pass. Requirements 1 through 8, constraints 1 through 10, every proof item, and acceptance criteria 1 through 9 each map to a milestone, and no two milestones have the same purpose. Fault injection is split cleanly: create, build, and verification are in milestone 6; after the link and after the replace are in milestone 7. The skips are split the same way: low disk, wal, busy flock, and read-only filesystem are in milestone 6; hard-link refusal and the SHA-256 proof are in milestone 7.
+- **Scope and concreteness**: Pass. Each milestone is Level 2 or Level 3 and names a deliverable. Milestone 6 is now plannable because it names its trigger, its entry point, and its outcome contract. It is the heaviest Level 3 milestone.
+- **Order**: Pass. The checklist order 1 through 7 is a valid serial walk of the DAG. Every edge (`format --> builder`, `numpy --> hnsw`, `hnsw --> builder`, `builder --> verifyonly`, `doctor --> verifyonly`, `verifyonly --> swap`) points forward in the list. Milestone 7 depends on doctor's backup filename only through milestone 6, so it needs no direct `doctor --> swap` edge.
+- **Cross-milestone invariants**: Pass. Every shared artifact has a handoff rule: the embed writer (milestones 2 and 3), the index definition (3 and 5), the ZSTD definition (1 and 5), the doctor storage section and the backup filename (4, 6, and 7), the check record (6 and 7), and the builder (5, 6, and 7).
+- **Done and risks**: Pass. Every checkbox has a heading with identical text and both a Done and a Risks line. Each Done line can be judged.
 
-### Finding 1: The background pass has no trigger (fixable)
+### Prior Findings Resolved
 
-The amendment says the verify-only pass runs "once, in the background" but never names what starts it. The plan then excludes every existing entry point. Ingest, embed, and every other writer open are excluded, which also covers `migrate` and `backfill`. Readers, `open_current()`, and `doctor` are excluded, which covers the dashboard. The brief also says there is no new CLI command. The operator said only "in the background somehow", so the mechanism was never decided.
-
-The choice of trigger decides whether this release does its job, which is proving the work machine's real warehouse after an ordinary release update:
-
-- The nightly cron or launchd entry is re-rendered only on re-install (`systemPatterns.md`, "Rendered-out artifacts"). A new step there will not reach an existing machine through a release.
-- Session-start hooks arrive with the plugin update. In Cursor, though, plugin hooks load only when "Include third-party Plugins, Skills, and other configs" is turned on. Also, `shim rectify` runs under a bare `uv python find` interpreter with stdlib-only imports, so it cannot run DuckDB itself. The hook has to launch the engine through the shim, which means a subcommand or module entry point. That conflicts with "no new CLI command" unless the plan says this rule bans only a new user-facing command.
-
-Fix: name the trigger in the cross-milestone invariants and in milestone 6's Done. Reconcile "no new CLI command" with it, for example by allowing an internal entry point that the session-start hook launches detached. If no trigger satisfies both "no new CLI command" and "reaches other machines through a release", the operator has to decide.
-
-### Finding 2: "Once" is not defined (fixable)
-
-Milestone 6 says the pass "does not run again while that result stands" but does not say which outcomes stand. If a skip counts as the result, then a first attempt that hits a busy flock, a wal, low disk, or a read-only filesystem blocks the proof permanently. If nothing counts, the pass runs on every trigger. The crash-cleanup rule ("deleted on the next run") already assumes a crashed run leaves no standing result.
-
-Fix: state which outcomes are terminal (verified, or verification mismatch) and which outcomes retry on the next trigger (each skip reason, and a crash). This is the record's contract with doctor and with the later swap.
-
-### Finding 3: Doctor's report is shared with no handoff rule, and the DAG lacks an edge (fixable)
-
-The invariants say "the doctor milestone owns the reported facts". Milestone 6 also adds a reported fact ("records the result where doctor can show it", "Doctor reports a skip") and creates the record that doctor reads. That makes the doctor report an artifact shared by milestones 4 and 6. The existing handoff rule covers only milestones 4 and 7, and its ownership wording contradicts milestone 6. The DAG has `doctor --> swap` but no `doctor --> verifyonly`. A parallel walk could therefore start milestone 6 before milestone 4 and have both edit the doctor report. The serial list already orders them correctly.
-
-Fix: add a handoff rule saying that milestone 6 owns the check-result record and its doctor line, that milestone 6 adds that line to the storage section milestone 4 built, and that the record is a sidecar under the stockroom home, never a write to the warehouse. Add the edge `doctor --> verifyonly`.
-
-### Finding 4: The brief names the issue as the authority, but the amendment overrides the issue (fixable)
-
-`projectbrief.md` says issue 147 "is the authority for decisions, proof, and acceptance". The issue says "The rewrite runs from the writer path". The amended plan says the pass never runs from a writer open. A sub-run planner who follows the issue will rebuild the rejected design.
-
-Fix: add one sentence to the brief saying the operator's 2026-10-20 amendment replaces the issue's writer-path trigger, or update the issue.
+1. **Trigger**: The session-start hook starts the pass detached, through an internal engine entry point. "No new CLI command" now means no new user-facing command. This is feasible: both hooks already launch `stockroom dashboard` through the on-path shim, and `dashboard/__main__.py` `spawn` detaches with `Popen(start_new_session=True)`. The hook-shape tests in `test_packaging.py` accept a third on-path `stockroom …` call after the dashboard.
+2. **Once**: Verified, mismatch, and already new are final. Each skip and a crash retry. The record names a check version.
+3. **Doctor ownership**: Milestone 6 owns the sidecar record and one line in the storage section that milestone 4 builds, and the DAG now has the edge `doctor --> verifyonly`.
+4. **Brief authority**: The brief says where the operator's 2026-10-20 amendments replace issue 147.
 
 ### Advisory Items
 
-- **Ingest also changes `embeddings`.** `ingest/writer.py` `write_session` deletes vectors for removed or text-changed messages. That modifies the HNSW index, so the next checkpoint writes another full index copy. Milestone 3's Done ("a run that modifies `embeddings`") covers ingest, but its checkbox and the invariant ("the HNSW milestone wraps the write") describe only the embed writer. Milestone 3's plan should choose one approach explicitly. It can wrap ingest's delete path too, which costs a 31 to 71 second rebuild on any night ingest deletes a vector. Or it can rely on the next embed run that writes, whose `DROP INDEX` plus `CHECKPOINT` reclaims those blocks, and accept that a machine with broken torch, or a night when embed writes nothing, keeps ingest's copy until then.
-- **One owner for the HNSW index definition.** Milestone 3 adds a code path that recreates the index outside migration `0003`. Milestone 5 must build the same index on the copy, and its catalog check compares the two. Make milestone 3 the single owner of the index DDL and have milestone 5 reuse it, or add the edge `hnsw --> builder`.
-- **Old-format fixtures.** After milestone 1, every file created through `warehouse.open()` is already in the new format. Milestone 5 and 6 tests need fixtures created in the old format on purpose. Otherwise those tests only exercise the "already new, no-op" path.
-- **The swap is a mode of the milestone 6 pass.** Milestone 7 needs the same flock, readiness skips, temp naming, and leftover cleanup as milestone 6. State that the swap reuses that pass rather than building a second pipeline, so the skip and cleanup proofs cannot drift apart.
-- **Acceptance 5 versus acceptance 8.** With the swap off, no warehouse is replaced in this project. The capstone should report acceptance 5 as "built and verified once, not swapped", so nobody reads the project as having already shrunk a file.
-- **The earlier advisory was partly adopted.** The previous run's verification-receipt idea now appears as "records the result where doctor can show it" and "runs once". Findings 2 and 3 are the remaining gaps in that adoption.
+- **A running pass blocks every writer, with no time limit.** `warehouse.open(read_only=False)` takes the flock with a blocking `fcntl.flock(fd, LOCK_EX)`, and `_migrate_under_lock` does too. The pass holds that flock through the whole build and verification. While the pass runs, the nightly job, `stockroom ingest`, `stockroom embed`, and a reader that has to migrate all wait. If the pass hangs, they wait until the process dies. Milestone 6's risks do not mention this. The sub-run should add a time limit that aborts the pass and records a skip that retries, or at least document that writers wait.
+- **Name the outcomes for "no warehouse" and "behind head."** On a new machine, the first session start finds no file. Treating that as a retrying skip works: once ingest creates the file, the next check records already new. A warehouse below the schema head at check time is not covered. One option is to skip and retry until a writer migrates it. The other is to copy it at its current version, because the catalog check compares `schema_version` rows. Both are safe, but milestone 6 should pick one.
+- **`COPY FROM DATABASE` alone does not apply ZSTD.** Measured on DuckDB 1.5.4, copying an old file into a file attached with `storage_compatibility_version` `latest` gives storage `v1.5.0+` and copies the HNSW index. Text columns come out `DICT_FSST`, not ZSTD. `SET force_compression='zstd'` gives ZSTD, but on every text column, which does not match milestone 1's definition of two columns. To meet "ZSTD applied on the copy" with milestone 1's definition, milestone 5 has to create the tables from that definition and then insert the rows. Copying `schema_version` rows verbatim is better than re-running migrations on the copy, because re-run `applied_at` values would fail the equality check. The copied index comes from the original's `0003` definition, so milestone 5 still has to rebuild the index from milestone 3's definition, or show that the two definitions are the same. The brief's sentence "The conversion is `COPY FROM DATABASE`" is a hint, not the whole mechanism.
+- **On an old-format file, the ZSTD clause stores the column uncompressed.** Measured: on a `v1.0.0+` file, `USING COMPRESSION zstd` gives no error, and the column is stored `Uncompressed`, which is worse than the `DICT_FSST` that real old warehouses get. If milestone 1 puts the clause in `0001`, any old-format fixture that milestones 5 and 6 build by running the migrations gets uncompressed text. Equality checks still hold, so this is a fidelity note, not a blocker. Also measured: connecting an existing file with the `latest` setting leaves it at `v1.0.0+`, which confirms the brief.
+- **Hidden entry point and `--help`.** The dispatcher prints every `SUBCOMMANDS` entry in `stockroom --help`, and nothing forces the docs to list every subcommand. "The user guide does not list" it allows a visible help line. If "internal" should also mean absent from `--help`, milestone 6 needs a hidden dispatch entry.
+- **Doctor's first warehouse open.** Today `doctor probe` never opens DuckDB. For block counts and the storage format, milestone 4 has to open the warehouse read-only without migrating (`open_current()` or `open(read_only=True, migrate=False)`, not plain `open(read_only=True)`, which migrates a warehouse that is behind). It also has to report busy or stale states as facts. Measured: `pragma_database_size()` and the `duckdb_databases().tags` storage version both work on a read-only connection.
 
 ### Advisory: Radical Innovation
 
-#### A Once-Only Maintenance Ledger Driven by Session Start
+#### Make the verify-only pass a measured rehearsal of the swap
 
-Replace the one-off background pass with a small, general mechanism that this project and the later swap both use:
+The check-only release exists to prove the work machine's real warehouse before any swap. Progress notes that the 88 GB collapse there is "an expectation ... not a measurement." As planned, the record says only whether verification passed, so the operator still has no measured payoff or cost before enabling the swap. The sketch:
 
-1. The session-start hook, which already launches the dashboard detached, also launches one detached internal engine entry point. This is not a user-facing subcommand. That process holds no lock until it has work to do.
-2. A sidecar ledger under the stockroom home, for example `maintenance.json`, records one entry per named one-shot job: job id, outcome (`verified`, `mismatch`, or a skip reason), timestamp, and the measured sizes. Terminal outcomes stand. Skips and crashes do not stand, so the job retries at the next session start.
-3. This release registers one job, `storage-verify-v1`, which is milestone 6's pass. The later enable release registers `storage-swap-v1`, which is milestone 7's swap running a fresh copy that day. Turning the swap on then means registering one job, not adding a new trigger.
-4. `stockroom doctor` reads the ledger read-only and prints each job's last outcome. That gives doctor a single source for check results and skip reasons.
+1. The check record stores what that run measured as well as the outcome: the original's size and its used and free blocks, the copy's size, the build, verification, and flock-hold times, the lowest free disk during the run, and an HNSW recall figure. For recall, query the copy's index with about 20 sampled stored vectors, compare the top 10 against an exact `array_cosine_distance` scan, and run the same check on the original to show the two match.
+2. Doctor keeps its single line and shows those numbers, for example: `storage-check: verified v1 2026-10-21 — copy 0.41 of 39.06 GiB, built 74s, verified 38s, lock 112s, recall@10 1.00`.
+3. The later swap release sets its free-disk margin from the measured copy size and its expected writer wait from the measured lock time. The decision to enable the swap is made from one `stockroom doctor` run on the work machine.
 
-This structure answers findings 1 through 3 together: the trigger, the meaning of "once", and ownership of the doctor line. It reaches machines through an ordinary release because hooks come with the plugin, not with a re-installed cron entry. The costs are the Cursor hook setting (consider the nightly entry as a second trigger once it is re-installed) and one more file under the stockroom home.
+Cost: milestone 6's record grows by a few fields. Milestone 5's verification gains a recall check that takes seconds and is stronger than "present and answering a query", because a damaged index can still answer queries. No new trigger, file, or surface is added. This touches milestone 5's verification and milestone 6's record, so adopting it is a plan change for the operator to weigh.

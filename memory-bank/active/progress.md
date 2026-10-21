@@ -90,3 +90,17 @@ Stop the warehouse file growing far past the history it holds, as specified in [
 * Insights
     - Session-start hooks reach every machine with the plugin update, while nightly entries change only on re-install. That is why the hook is the only trigger that serves the check-only release
 
+## 2026-10-20 - PREFLIGHT (THIRD RUN) - COMPLETE
+
+* Work completed
+    - Validated the re-planned milestone list against `projectbrief.md`, the engine code, and short DuckDB 1.5.4 experiments
+    - Recorded preflight status: PASS WITH ADVISORY. The milestone list was not changed
+* Decisions made
+    - All seven Level 4 checks pass. The four earlier fixable findings are resolved: trigger, once, doctor ownership, and brief authority
+    - Advisory, not adopted: bound the pass's flock hold, because writers block on the flock with no time limit
+    - Advisory, not adopted: name the "no warehouse" and "behind head" outcomes, hide or show the internal entry in `stockroom --help`, and have doctor open the warehouse without migrating
+    - Radical advisory, not adopted: the check record stores measured sizes, times, and HNSW recall, and doctor prints them, so the swap is enabled from measurements on the work machine
+* Insights
+    - Measured: plain `COPY FROM DATABASE` gives `v1.5.0+` storage and copies the HNSW index, but text comes out `DICT_FSST`, not ZSTD. Milestone 5 has to create the tables from milestone 1's definition and copy `schema_version` rows verbatim
+    - Measured: on an old-format file, `USING COMPRESSION zstd` gives no error and stores the column uncompressed. Connecting an existing file with the `latest` setting leaves it at `v1.0.0+`
+
