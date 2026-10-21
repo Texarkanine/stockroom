@@ -34,6 +34,20 @@ Move the engine to DuckDB 2.0 and prove it on a copy of a real warehouse. This i
 * Insights
     - `uv run --with duckdb==2.0.0` left this checkout's interpreter on 1.5.4. The project virtualenv has no torch. The hashed freeze is at `~/.local/share/stockroom/torch-requirements.txt`
 
+## 2026-10-21 - PLAN (RE-PLAN) - COMPLETE
+
+* Work completed
+    - Split the shadow repair into two copies of the baseline. Branch A repairs while the `.wal` exists. Branch B folds, then repairs. Both repeat on a newer 2.0 patch
+    - Added the same two branches to `--synthetic`, on small files, before the live copy
+* Decisions made
+    - Adopted the ingest advisory: an ingest exit of 0 is not an index health check
+    - Adopted the torch advisory: the overlay prints DuckDB 2.0.0 and imports torch, installed from the hashed freeze into that overlay only
+    - Not adopted as a replacement: moving the kill off the real warehouse. The synthetic branches are a prelude. The Done line still runs both branches on copies of the real baseline
+    - An observation probe that hangs is recorded. A repair probe that does not finish fails the script
+* Insights
+    - Folding the log before `DROP INDEX` removes the leftover-`.wal` state, so one copy cannot prove both repairs
+
+
 ## 2026-10-21 - PREFLIGHT - COMPLETE (FAIL (fixable))
 
 * Work completed
