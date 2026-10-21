@@ -1,1 +1,0 @@
-Root uv lock: --no-config --refresh; CI uv 0.12.22 (lock rev 5; 0.8.22 rewrites to 3), bump only with a refresh. 1.5.4 VSS post-filters WHERE after HNSW: --harness/--role rank the joined set, no WHERE on the LIMIT query. Semantic ids before role (2.0.0).

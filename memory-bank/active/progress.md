@@ -374,3 +374,16 @@ Stop the warehouse file growing far past the history it holds, as specified in [
     - Not adopted: making embed the only process that changes `embeddings`. A night that both invalidates and inserts pays two index builds. That is the smaller fix the preflight named
 * Insights
     - The leak is at checkpoint and at process close, on 1.5.4 and 2.0.0. Ingest's close after `write_session` is the certain one, because ingest and embed are separate processes
+
+## 2026-10-21 - PREFLIGHT (ELEVENTH RUN) - COMPLETE
+
+* Work completed
+    - Validated the re-planned 9-milestone list against `projectbrief.md`, the engine code, and delete-and-exit cycles on DuckDB 1.5.4 and 2.0.0
+    - Recorded preflight status: PASS WITH ADVISORY. The milestone list was not changed
+* Decisions made
+    - All seven Level 4 checks pass. The tenth run's delete-leak finding is in the plan, and the planned drop, delete, recreate, checkpoint cycle keeps used blocks flat on both DuckDB versions
+    - Advisory, not adopted: checkpoint while the index is down, before `CREATE INDEX`, and bound the growth test on used blocks. The single trailing checkpoint alternates the file by one index
+    - Advisory, not adopted: ingest keeps the index down across every `write_session` in the process. Recreating between two embedding deletes leaves one used index copy
+    - Radical advisory, not adopted: one helper is the only embeddings mutator, and it checkpoints the dropped index before it builds the new one
+* Insights
+    - On a 1,500-row fixture the control delete climbs every cycle. The planned cycle stays at 20 used blocks. `DROP INDEX` then `CHECKPOINT` before the delete stays within one block of the start on every cycle, on 1.5.4 and 2.0.0, with the same numbers on both

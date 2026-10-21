@@ -1,48 +1,35 @@
-FAIL (fixable)
+PASS WITH ADVISORY
 
 ## Preflight Findings
 
-This is the tenth preflight of the Level 4 milestone list for `warehouse-file-growth`. It checks the plan after the re-plan that followed the ninth run. That re-plan corrected the silent `.wal` fold, renamed the fix to `stockroom doctor fix hnsw-rebuild`, added the index-coverage check, and kept deletes of `embeddings` outside the HNSW drop. The checks ran against `projectbrief.md`, the engine code, and new DuckDB 1.5.4 and 2.0.0 experiments. The milestone list was not changed.
+This is the eleventh preflight of the Level 4 milestone list for `warehouse-file-growth`. It checks the plan after the re-plan that followed the tenth run. That re-plan drops the HNSW index before a process adds or removes `embeddings` rows, recreates it, and checkpoints before the process exits. The checks ran against `projectbrief.md`, the engine code, and the same delete-and-exit cycles on DuckDB 1.5.4 and 2.0.0. The milestone list was not changed.
 
 ### Checks That Passed
 
 - **Prerequisites**: Pass. `progress.md` and `tasks.md` record Level 4. `milestones.md` exists. The header `# Milestones: warehouse-file-growth` matches the task ID.
 - **Checklist shape**: Pass. Nine contiguous checkboxes under Execution Order, with no sub-bullets. The lists in the invariants are plain bullets.
-- **Coverage**: Pass as a mapping. Each requirement and acceptance line has a milestone, and no two milestones share a purpose. Acceptance 1 and milestone 4 disagree about deletes; that is finding 1, and the change stays inside milestone 4.
-- **Scope and concreteness**: Pass. No milestone is Level 4. Finding 1 does not add one.
-- **Order**: Pass. The checklist is a valid serial walk of the graph. The hook and the swap can still run in parallel after the check.
+- **Coverage**: Pass. Each requirement, use case, constraint, and acceptance line maps to a milestone, including acceptance 1's delete-and-exit cycle and the missing-index fix. No two milestones share a purpose.
+- **Scope and concreteness**: Pass. Each milestone names a deliverable an L1–L3 sub-run can plan. None is a nested Level 4.
+- **Order**: Pass. The checklist is a valid serial walk of the graph. The hook and the swap can still run in parallel after the check. Milestone 4 does not need milestone 5 to ship its growth bound; the doctor fix remains the later recovery for a missing index.
 - **Cross-milestone invariants**: Pass. The shared-artifact rules still name an owner for the pin, the new-file definition, the vector binding, the index definition, the doctor section and the fix, the check record, the builder, and the hook launch.
-- **Done and risks**: Pass as structure. All nine headings match their checkbox text, and each has a Done line and a Risks line.
-- **The ninth run's finding is in the plan.** The fold, the coverage check, `hnsw-rebuild`, milestone 1's threshold step, and the exposure window are written down. The delete exception that came with that re-plan is finding 1.
-
-### Fixable Finding
-
-1. **A delete of `embeddings` rows, with the HNSW index left in place, still leaks a full index copy at checkpoint. Process exit is enough. The plan's rule that deletes leave the index in place fails acceptance 1.**
-   - Measured on DuckDB 1.5.4, block size 262144, 1,500 `FLOAT[384]` rows. The table alone was 9 used blocks. After `CREATE INDEX ... USING HNSW` and `CHECKPOINT` the file was 19 used blocks, so the index was 10 blocks (2,621,440 bytes). Then one `DELETE` of a single row and `CHECKPOINT`: 29 used blocks and the file grew by those same 10 blocks. A second delete went to 39 total blocks, and a third to 48. The copies did not level off. A `DELETE` that matched nothing left the file unchanged. The same engine's one-row insert leak is the known issue 147 behavior; the delete grew by the same amount as that index.
-   - Measured on DuckDB 1.5.4 with 800 rows. After the index, the file was 3,158,016 bytes and 12 used blocks. One `DELETE` left a `.wal` of 125 bytes and did not grow the file. `connection.close()` deleted the `.wal` and grew the file to 4,730,880 bytes, 18 used blocks. No explicit `CHECKPOINT`.
-   - Measured on DuckDB 2.0.0 with the same 800-row shape. One `DELETE` plus `CHECKPOINT` grew the file from 3,158,016 bytes (12 used) to 4,730,880 (18 used). A second delete grew it to 6,303,744 (23 used, 1 free). A no-op delete did not. `connection.close()` on a 159-byte `.wal` did the same thing as the explicit checkpoint: 4,730,880 bytes, 18 used. The 2.0 move does not remove this leak, so milestone 1's stop condition for "checkpoints no longer leave a copy" will not retire it.
-   - On the small 1.5.4 file, `DROP INDEX`, `CHECKPOINT`, then `CREATE INDEX` brought used blocks back to about the start. Issue 147 already measured that a real warehouse does not shrink: the dropped copies become free blocks. A later delete reuses that free space only when a drop has run. Three deletes with no drop kept the copies in used blocks.
-   - Where the plan checkpoints that delete:
-     - `stockroom ingest` and `stockroom embed` are separate processes. `write_session` deletes `embeddings` for a removed or text-changed message, and `ingest()` closes that connection on return. That close checkpoints. Every night that invalidates a vector allocates a new index copy before embed starts.
-     - Milestone 4 recreates the index only when the run inserts. A night that only removes embeddings inserts nothing, skips the drop, and keeps the copy. The next such night adds another. That is the unbounded growth acceptance 1 forbids.
-     - `embed_pending` runs the orphan delete after the insert transaction, on every embed, including a run that inserted. A no-op orphan delete does not grow the file. An orphan delete that removes rows, followed by process exit, allocates a new copy after the rebuild. Ingest usually deletes those rows first, so this one is often a no-op. Ingest's own close is the certain leak.
-   - What to change: the skip condition is "this process did not change `embeddings`", which is issue 147's rule. A statement that adds or removes rows runs with the index dropped. The process recreates the index, checkpoints, and does not change `embeddings` again before it exits. A delete that matches nothing stays outside the drop. The growth test includes a process that deletes rows and exits without inserting. Replay stays safe, because a delete after `DROP INDEX` is the case already measured as harmless. The sentence to amend is the operator's "deletes leave the index in place", in the brief (requirement 1, the nightly-embed use case, the nothing-to-embed use case, and the happy-path paragraph) and in the invariants and milestone 4. Keeping that sentence means narrowing acceptance 1 and letting the file grow on removal nights.
+- **Done and risks**: Pass. All nine headings match their checkbox text, and each has a Done line and a Risks line. The tenth run's finding is in the plan: ingest, embed's orphan delete, a delete-only process, and `hnsw-rebuild` when the index is already gone.
+- **The planned cycle bounds the leak.** On both DuckDB 1.5.4 and 2.0.0, a 1,500-row `FLOAT[384]` table with a persistent HNSW index starts at 5,255,168 bytes and 20 used blocks. A delete with the index left in place climbs every cycle (used blocks 20, 30, 39, 48, 57). Drop, delete, create, checkpoint, close keeps used blocks at 20 for four cycles. Closing without an explicit checkpoint does the same. A second checkpoint in that process does the same. A no-op delete stays at the start. Writing another table after the recreate adds one used block, which is the row, and does not add an index copy.
 
 ### Advisory Items
 
-1. **The fix command needs to succeed when the index is already gone (milestone 5).** The probe treats a missing index like a short one and names `stockroom doctor fix hnsw-rebuild`. The Done line then drops the index. A crash after the HNSW drop and before the recreate leaves no index to drop, and that is the missing-index case the probe reports.
+1. **Checkpoint while the index is down, before `CREATE INDEX`, and bound the growth test on used blocks (milestone 4).** The plan's single checkpoint after the recreate keeps used blocks flat, and the file size does not accumulate. On this fixture it alternates by one index: 8,138,752 bytes, then 5,255,168, then 8,138,752, then 5,255,168. That is 11 blocks of 262,144, the same size as the index, sitting on the free list. A test that requires each cycle to be no larger than the previous one fails the working sequence on the odd cycles. A test that only samples an even cycle hides the spike. `DROP INDEX`, `CHECKPOINT`, then the delete, `CREATE INDEX`, and `CHECKPOINT` stays at 5,517,312 bytes and 20 used blocks on every cycle, on both versions. That is one block over the start and it does not move. The same flat used-block count holds when the row change is checkpointed before the create, with the file size moving by that one block. The growth test should assert used blocks, or a high-water file size of one index over the start, across every cycle.
+
+2. **Ingest keeps the index down until every embedding delete in that process has run (milestone 4).** `ingest()` calls `write_session` once per session and closes once. The Done line already says the process makes its changes and then recreates. The ingest sentence can also be read as a recreate around each session's delete. Measured on both versions: drop, delete, create, then a second delete, then checkpoint, leaves used blocks at 30 for every later cycle. Both deletes, then one create, keeps used blocks at 20. The message rewrite after a recreate is not the leak. A second embedding delete after the recreate is.
 
 ### Advisory: Radical Innovation
 
-#### One process writes embeddings
+#### One helper checkpoints the dropped index before it builds the new one
 
-Ingest's close is what leaks, and embed's later drop is what gives the blocks back. Doing both rebuilds in one night pays the index build twice (31 to 71 seconds at the size in issue 147). One writer avoids that.
+The two advisories are one write protocol. Milestone 4 can own a single helper that is the only code allowed to change `embeddings`. Ingest calls it once around the whole run. Embed calls it once around the replace and the orphan delete. `stockroom doctor fix hnsw-rebuild` calls the create half.
 
-Sketch:
+1. A `SELECT` decides whether any row would change. A delete that would match nothing, and a process with nothing to insert and no orphans, returns without dropping the index.
+2. Otherwise the helper drops the index and runs every embedding change for that process while the index stays down.
+3. It checkpoints while the index is still absent. Measured: this is the checkpoint that leaves the file within one block of the start on every later cycle.
+4. It creates the index from the definition milestone 4 owns, checkpoints again, and returns.
 
-1. A new migration adds an empty `embeddings_dirty(harness, owner_table, owner_id)` table. It does not rewrite `messages` or `tool_calls`.
-2. `write_session` still computes the stale owner ids. It inserts those ids into `embeddings_dirty` and does not delete from `embeddings`. Ingest can checkpoint on close without touching the index.
-3. `embed_pending` is the only code that changes `embeddings`. When nothing is pending and nothing is dirty, it does not drop or rebuild. Otherwise it drops the index, deletes the dirty owners, runs the orphan delete, inserts, recreates the index from the HNSW milestone's definition, clears `embeddings_dirty`, checkpoints, and exits.
-4. `stockroom doctor fix hnsw-rebuild` calls that same recreate.
-
-A removal-only night rebuilds once, inside embed, and ingest stays a metadata write. This replaces finding 1's smaller fix, which is to drop and recreate inside both processes and pay two builds on a night that invalidates and inserts.
+A crash during the build then happens after the row checkpoint, so the rows are durable and the index is missing, which is the power-loss case the brief already allows. The cost is a few sentences in milestone 4's Done line. The milestone list, the graph, and the other eight milestones stay as they are.

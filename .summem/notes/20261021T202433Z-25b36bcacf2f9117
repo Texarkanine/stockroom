@@ -1,0 +1,1 @@
+2026-10-21 eleventh L4 preflight PASS WITH ADVISORY. Drop, delete, recreate, checkpoint keeps HNSW used blocks flat on DuckDB 1.5.4 and 2.0.0. Advisories unadopted: checkpoint while the index is down; ingest keeps the index down for the whole process.

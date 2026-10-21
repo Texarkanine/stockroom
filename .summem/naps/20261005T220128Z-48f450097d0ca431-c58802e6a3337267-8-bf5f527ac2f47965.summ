@@ -1,1 +1,0 @@
-Docs omit semantic --harness/--role. Claude tokens once per (message.id, requestId); subagent copies carry none; vanished rows stay. subagentInfo stamps children; Task slots include CallDynamicTool cursor/Task. .git and Makefile are not dev markers; only a dead shim is replaced.
