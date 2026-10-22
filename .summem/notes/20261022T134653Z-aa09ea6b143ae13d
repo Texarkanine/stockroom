@@ -1,0 +1,1 @@
+Operator 2026-10-22: exact semantic search has no orphan guard. write_session commits each statement separately, so an ingest crash can leave orphan embeddings until the next ingest or embed; a top-k search may then be short, never an error.

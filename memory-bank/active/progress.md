@@ -26,3 +26,13 @@ The L4 plan's history (twelve preflights, the failed DuckDB 2.0 sub-run, the re-
 * Insights
     - The live shim runs this checkout's working tree, not its commits, so a saved file is live at once. The milestone's "first commit is live" understated this
     - On DuckDB 1.5.4 without `vss`, every `INSERT` or `DELETE` on `embeddings` fails while the HNSW index exists, even a delete that matches nothing; `DROP INDEX IF EXISTS` inside a transaction works. So removing `ensure_vss` before `0009` would break the nightly ingest and embed, and an empty stub `0009` would record version 9 without dropping the index
+
+## 2026-10-22 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Level 3 preflight of the milestone 1 plan; `.preflight-status` first line: `PASS WITH ADVISORY`
+    - All seven Level 2/3 checks pass. `tasks.md` was not changed (no TDD swap, no strike)
+    - Measured on DuckDB 1.5.4 and 2.0.0 (`pf13/killed_migrator_probe.py` in this session's scratchpad): a migrator with no `vss`, killed after it committed the `0009` drop, leaves a `.wal` that a no-`vss` open replays (no index, every row, version 9). A `vss` writer killed after an insert leaves a `.wal` that a no-`vss` open replays, then the drop, an insert, and the exact search work. A comment-only migration runs through `con.execute` outside and inside a transaction. `duckdb_extensions()` lists `vss` even when it is not installed
+* Decisions made
+    - Eight advisories, none adopted yet: in step 4.5, write `0009` before removing `ensure_vss`, and remove the calls before the definition; B12 passes in step 4's red run (move it to step 2); the orphan rationale misses an interrupted autocommit `write_session` (key-join guard costs about 57 ms on 2.0.0); add `test_schema_0007._apply_through` to step 2.3; take verify_live's "before" record before landing; pin the scratch scripts' absolute paths; do step 3 before step 2; milestone 3's zstd `0001` will break `build_v2_1_2_chain`
+    - Radical advisory, not applied: build in a git worktree so nothing is live until one fast-forward, and the live-copy proof runs the exact code that lands

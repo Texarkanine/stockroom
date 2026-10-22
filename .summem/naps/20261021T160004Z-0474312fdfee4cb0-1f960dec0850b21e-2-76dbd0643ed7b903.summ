@@ -1,0 +1,1 @@
+Releases stand alone (users skip them); v0.1.0-v2.1.2 pinned DuckDB 1.5.4, so wild warehouses are v1.0.0+ at schema 0-8; old-format tests create v1.0.0 on purpose. 1.5.4 opens and replays a v1.0.0+ file a killed 2.0.0 writer left; only v2.0.0+ files are unreadable.
