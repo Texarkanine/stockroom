@@ -285,9 +285,18 @@ Move the engine to DuckDB 2.0 and prove it on a copy of a real warehouse. This i
     - Not adopted: the radical advisory's overlay pytest that asserts `loud` and `folded`. The script's synthetic gate already fails in seconds, before the copy
     - Deviation: the scoped starvation test fixture changed (see above). It keeps that regression guard working at the 2.0 pin
 * Insights
-    - `pragma_hnsw_index_info` count includes deleted rows. The healthy baseline reads 280,901 against 133,793 rows on 1.5.4 and on 2.0.0. After the branch B fold it reads 280,901 against 133,794. The folded rule (index count below row count) cannot fire on a warehouse with embedding deletes. The fold is real: an HNSW top-3 search with the replayed row's own vector misses it while the row is in the table at exact distance 0
+    - `pragma_hnsw_index_info` count is far above the row count on this warehouse: the healthy baseline reads 280,901 against 133,793 rows on 1.5.4 and on 2.0.0. The origin of the extra entries is unknown: `PRAGMA hnsw_compact_index` leaves the count at 280,901. A drop, create, and checkpoint (21 s) gives 133,793 = 133,793. After the branch B fold it reads 280,901 against 133,794. The folded rule (index count below row count) cannot fire on a warehouse with embedding deletes. The fold is real: an HNSW top-3 search with the replayed row's own vector misses it while the row is in the table at exact distance 0
     - The same count premise is in the doctor milestone (index-coverage check) and in the replay-bug invariant ("count is lower than `count(*)`"). Synthetic files never had a delete, so they agreed with it
     - On the live copy the loud cosine query raised `InternalException` and the delete hung. The eighth preflight's note that the cosine query hangs there did not hold
-    - Deleted entries also shorten HNSW results: the unscoped `LIMIT 100` query returned 57 rows on the copy under 1.5.4 and 2.0.0
+    - The extra entries shorten HNSW results: the unscoped `LIMIT 100` query returned 40 to 65 rows over 10 queries on the copy, under 1.5.4 and 2.0.0. Compaction changed nothing. After a rebuild every query returned 100
     - Under 2.0.0, `stockroom embed` and `stockroom semantic` print nanobind leak warnings to stderr at exit. Ingest does not
     - `approx_memory_usage` is the in-memory index size: 16.8 MB (2.0.0) and 21.0 MB (1.5.4) for a 1,500-row index in a 9.2 MB file
+
+## 2026-10-21 - BUILD - OPERATOR DECISIONS
+
+* Decisions made
+    - Operator: this milestone's shadow script detects the folded state by an HNSW lookup of the replayed row by its own vector, not by count against `count(*)`
+    - Operator: a fold on today's warehouses cannot be reliably detected read-only, and that is now the working assumption for the doctor milestone's coverage check
+    - Operator: HNSW results shortened by stale index entries must be fixed
+* Insights
+    - DuckDB 1.5.4's Python package is built with pybind11. 2.0.0 is built with nanobind, whose shutdown check prints the "leaked instances" warnings seen after `stockroom embed` and `stockroom semantic`

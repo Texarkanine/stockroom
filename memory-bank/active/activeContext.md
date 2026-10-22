@@ -10,10 +10,10 @@
 - The synthetic section passed on 2.0.0. The live run passed through branch A and failed at branch B
 
 ## Blocking Finding
-- `pragma_hnsw_index_info` count includes deleted rows: 280,901 against 133,793 rows on the healthy live copy, on 1.5.4 and 2.0.0. "Index count below row count" cannot mark a fold on a warehouse with embedding deletes. The fold itself reproduced: the replayed row is in the table and the index does not find it
+- `pragma_hnsw_index_info` count is 280,901 against 133,793 rows on the healthy live copy, on 1.5.4 and 2.0.0. The extra entries are of unknown origin; compaction leaves them, a rebuild removes them. "Index count below row count" cannot mark a fold there. The fold itself reproduced: the replayed row is in the table and the index does not find it
 - That count premise is in this plan's `classify`, in the doctor milestone's coverage check, and in the replay-bug invariant
 
 ## Next Step
-- Operator decides how the folded state is detected, for the shadow script and for the doctor milestone, then `/niko-plan`
+- Operator decided: the shadow script detects the fold by looking up the replayed row by its own vector. A read-only fold check on today's warehouses is not reliable, which reaches the doctor milestone's coverage premise. Short HNSW results must be fixed. Next: `/niko-plan`
 - The 2.0 lock is not landed; this checkout's engine stays on DuckDB 1.5.4
 - Scratch copies from the run (about 85 GB, `baseline.duckdb` and the folded `warehouse.duckdb`) are in `/tmp/claude-1000/-home-mobaxterm-git-stockroom/99a0b37b-a8f2-4650-99f5-3edb42033c6b/scratchpad/shadow-live/`

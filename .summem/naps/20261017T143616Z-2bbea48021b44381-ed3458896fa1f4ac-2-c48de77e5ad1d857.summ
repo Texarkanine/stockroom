@@ -1,0 +1,1 @@
+sr-initialize Step 2 reads ${CLAUDE_SKILL_DIR}/${CLAUDE_PLUGIN_DATA} from a quoted heredoc (IFS= read -r); a value still starting with $ was not substituted. Paths in shell text are quoted (shlex.quote, Makefile "..."): space and ' work; $, backtick, ", \, % out of scope.
