@@ -66,3 +66,13 @@ L4 milestone 2 of 7 for `warehouse-file-growth` ([issue 147](https://github.com/
     - Did not chase the pytest-plus-torch nanobind exit noise: it is a test-process effect, not a stockroom command, and does not change any exit code
 * Insights
     - The first live write under 2.0 was supervised, after both gates; the named backup was byte-identical to the live file up to that moment
+
+## 2026-10-22 - QA - COMPLETE (PASS)
+
+* Work completed
+    - Semantic review of the build (`b0b4bc8..HEAD`) against the Level 3 plan, milestone 2's done list, and the brief. Checked the Hub-filter context manager and its wiring, N1 to N5, the shadow script's new checks and milestone-1 cleanups, S1 to S6, the range, lock, and Dependabot change, the doc page, `techContext`, and the commit shape (`feat!:`, `BREAKING CHANGE` footer, lock last)
+    - Ran, with no sync, on the landed tree: pytest 1,050 passed and 39 skipped; ruff check and format-check on the engine and `scripts/`; `uv lock --locked`; and `make docs-build` (strict). All green
+* Decisions made
+    - PASS. Five advisories are recorded in `tasks.md`, and none blocks: a stale `test_embed.py` module docstring; "overlay" naming in the shadow script; the 2.0-lock run form not yet run end to end (the operator's Mac run, a release gate, covers it, and a failure there is loud); the pytest-plus-torch nanobind noise, recorded only in context; and torch stripped from `.venv` again by the QA-save commit's hook
+* Insights
+    - The lock's `revision` bump is safe for users on older uv: uv documents revision changes as backward compatible. The hashed torch freeze holds only the torch stack, so a heal cannot downgrade DuckDB
