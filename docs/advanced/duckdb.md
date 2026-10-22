@@ -2,6 +2,16 @@
 
 Open the warehouse with the [DuckDB CLI](https://duckdb.org/docs/stable/clients/cli/overview) when you need ad-hoc SQL outside the `stockroom query` presentation layer.
 
+## DuckDB version
+
+Use DuckDB 2.0 or newer to open the warehouse. Stockroom's engine runs DuckDB 2.0, and a warehouse that stockroom creates is stored in DuckDB 2.0's file format. A DuckDB release before 2.0 cannot open that file.
+
+Check which DuckDB your CLI runs:
+
+```bash
+duckdb --version
+```
+
 ## Warehouse path
 
 The warehouse file is `$STOCKROOM_HOME/warehouse.duckdb`. Default home is `$XDG_DATA_HOME/stockroom` or `~/.local/share/stockroom`. Full path topology: [Installed layout](../user-guide/installed-layout.md).
