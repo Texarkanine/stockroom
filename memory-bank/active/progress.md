@@ -258,3 +258,15 @@ Move the engine to DuckDB 2.0 and prove it on a copy of a real warehouse. This i
 * Insights
     - A 5-second read is enough to catch an unflushed pipe and too short for the insert that prints the count on the 39 GiB copy
 
+## 2026-10-21 - PREFLIGHT (EIGHTH RUN) - COMPLETE (PASS WITH ADVISORY)
+
+* Work completed
+    - Preflight of the seventh re-plan. The plan was not edited. First line of `memory-bank/active/.preflight-status` is `PASS WITH ADVISORY`
+* Decisions made
+    - Build may start. The advisories do not change the plan
+    - The observation probe list should name only statements that started. A hang on the first cosine query is opened and hung, not blocked
+    - Repair's index rebuild is not on the 180-second kill timer
+* Insights
+    - On this warehouse the loud cosine query hangs, so the other three observation statements never start. Synthetic files raise `InternalException` instead, and the step 3 `reproduce` test accepts `healthy` from DuckDB 1.5.4
+    - The overlay pytest already planned before `uv lock` can assert `loud` and `folded` on two tiny files, which fails a bad protocol before the 39 GiB copy
+

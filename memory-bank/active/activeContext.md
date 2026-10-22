@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: warehouse-file-growth
-**Phase:** PLAN - COMPLETE
+**Phase:** PREFLIGHT - COMPLETE (PASS WITH ADVISORY)
 
 ## What Was Done
 - `reproduce` waits 180 seconds for the flushed embeddings count, or until the insert child exits. If there is no line, the parent sends SIGKILL and the phase fails. The 5-second deadline stays on the unit test of a child that has already printed
@@ -9,4 +9,4 @@
 - The proof pass after repair is those four statements again, with no kill
 
 ## Next Step
-- Preflight this plan. That run replaces `.preflight-status`
+- Build may start. `.preflight-status` is `PASS WITH ADVISORY`. The advisories do not block.
