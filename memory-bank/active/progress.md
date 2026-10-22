@@ -239,3 +239,22 @@ Move the engine to DuckDB 2.0 and prove it on a copy of a real warehouse. This i
     - The fifth re-plan treated a 1.5.4 `--with` that reused the project interpreter as "`VIRTUAL_ENV` makes `--with` ignore the request". Requesting 2.0.0 from that same parent selects 2.0.0 with `VIRTUAL_ENV` inherited. `duckdb==2.0.99` exits 1 and does not run 1.5.4
     - An unflushed `print` on a pipe was still buffered after one second, so the parent never reached SIGKILL
 
+## 2026-10-21 - PREFLIGHT (SEVENTH RUN) - COMPLETE (FAIL (fixable))
+
+* Work completed
+    - Preflight of the sixth re-plan. The plan was not edited. First line of `memory-bank/active/.preflight-status` is `FAIL (fixable)`
+* Decisions made
+    - `reproduce` waits for the flushed embeddings count until the line arrives or the child exits. The 5-second deadline stays on the unit test where the child has already printed and is sleeping
+* Insights
+    - The same function budgets 180 seconds for one probe of the real index. The count line is printed only after the HNSW insert commits, so a 5-second read ends before SIGKILL on the 39 GiB copy
+
+## 2026-10-21 - PLAN (SEVENTH RE-PLAN) - COMPLETE
+
+* Work completed
+    - `reproduce` waits 180 seconds for the flushed embeddings count, or until the child exits, and sends SIGKILL if there is no line. The 5-second deadline stays on the unit test of a child that has already printed
+    - After SIGKILL, and before any fold, the four observation statements run in one child. Each prints a flushed line. The parent kills that child once, at the first hang
+* Decisions made
+    - Adopted both advisories. The fold stays behind the observation. The proof pass after repair is the same four statements with no kill
+* Insights
+    - A 5-second read is enough to catch an unflushed pipe and too short for the insert that prints the count on the 39 GiB copy
+

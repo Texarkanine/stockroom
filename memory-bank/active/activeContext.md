@@ -4,12 +4,9 @@
 **Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Folded the fifth preflight into the plan. The kill child flushes its embeddings count, and the parent fails the phase when that line does not arrive within 5 seconds
-- Embed runs as `embed --verbose`. The embeddings floor is the count after ingest minus the orphan line, or minus zero when that line is absent
-- Synthetic and live kill branches call one `reproduce` function
-- `uv run --with` selects a requested DuckDB version the project environment does not already provide, with `VIRTUAL_ENV` inherited. Unsetting `VIRTUAL_ENV` is not what selects it
-- The unscoped plan assertion stays a case-sensitive `HNSW`. On DuckDB 2.0.0 that substring is the line `HNSW Index: embeddings_vector_hnsw`
-- Not adopted: allowing `sessions`, `messages`, or `tool_calls` to shrink during ingest. The milestone Done line still requires no fewer rows
+- `reproduce` waits 180 seconds for the flushed embeddings count, or until the insert child exits. If there is no line, the parent sends SIGKILL and the phase fails. The 5-second deadline stays on the unit test of a child that has already printed
+- After that kill, and before any fold, one child runs the cosine query, an embeddings delete, an insert, and `CHECKPOINT`. It prints a flushed line after each. The parent kills that child once, at the first hang
+- The proof pass after repair is those four statements again, with no kill
 
 ## Next Step
 - Preflight this plan. That run replaces `.preflight-status`
