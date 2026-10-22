@@ -1,312 +1,446 @@
 # Progress
 
-Move the engine to DuckDB 2.0 and prove it on a copy of a real warehouse. This is the first milestone of `warehouse-file-growth`. The pin, the dependency range, the shadow-test script, and the user-facing statement of which DuckDB versions can open the warehouse belong to this sub-run. The 2.0 lock is the last change this sub-run brings into this checkout.
+Stop the warehouse file growing far past the history it holds, as specified in [issue 147](https://github.com/Texarkanine/stockroom/issues/147) and `memory-bank/active/projectbrief.md`. Keep HNSW, rebuild it around embedding writes, insert vectors through NumPy, create new warehouses in the current DuckDB storage format with ZSTD text columns, rewrite an existing warehouse once in verify-only mode, and teach read-only `stockroom doctor` to report the file. The swap that replaces the live file stays a separate change and stays off.
 
-**Complexity:** Level 3
+**Complexity:** Level 4
 
-## 2026-10-21 - COMPLEXITY ANALYSIS - COMPLETE
-
-* Work completed
-    - Classified the first unchecked milestone, "Move the engine to DuckDB 2.0 and prove it on a copy of a real warehouse"
-* Decisions made
-    - Level 3. The work is one feature across the lock, Dependabot, durable tests, a shadow-test script, and `docs/advanced/duckdb.md`. The architectural choices are already in the milestone list, so this is not a new Level 4. It is not a single-component enhancement: the proof runs against a copy of the live warehouse, and the lock must not land here until that proof passes
-* Insights
-    - The parent Level 4 record stays in git at `95cf742`. This file is the sub-run's record
-
-## 2026-10-21 - PLAN - COMPLETE
+## 2026-10-20 - COMPLEXITY ANALYSIS - COMPLETE
 
 * Work completed
-    - Wrote the Level 3 plan for the DuckDB 2.0 milestone in `memory-bank/active/tasks.md`
-    - Named the storage tag: `duckdb_databases().tags['storage_version']`, `v1.0.0+` on a file created at `v1.0.0`
+    - Confirmed the issue is the spec, including the safety rules and the verify-only first release
+    - Classified the work as Level 4
 * Decisions made
-    - No open questions. The shadow script is `scripts/shadow_duckdb_20.py`. Durable tests cover the schema-1 tag, the unscoped HNSW plan, and the script's guards
-    - The pin commit is last. The Mac runs of the script stay the operator's step before the release
+    - Level 4 because the change crosses warehouse creation, embed writes, index lifetime, an automatic rewrite, and doctor, and a bad rewrite can lose the warehouse
+    - Issue 147 supersedes the earlier creative note that dropped HNSW and added a `compact` command
 * Insights
-    - `make format` syncs the lock, and the commit hook runs it. Editing the lock and committing are the same event on this machine
+    - The approach is already decided in the issue. Planning only has to split it into milestones that can ship on their own
 
-## 2026-10-21 - PREFLIGHT - FAIL (fixable)
+## 2026-10-20 - PLAN - COMPLETE
 
 * Work completed
-    - Preflight of the DuckDB 2.0 plan. The plan was not edited. Status is in `memory-bank/active/.preflight-status`
+    - Split the issue into seven milestones in dependency order
+    - Recorded the cross-milestone invariants, including verify-only as the default writer path
 * Decisions made
-    - Fixable: the repair has to restore the leftover-`.wal` state and the folded state. One copy that folds before `DROP INDEX` proves only the folded state. The fix is two fresh copies of the baseline
-    - Not decided yet: the three advisories. The re-plan records which are adopted
+    - New-file format and ZSTD: Level 2. One creation path, two column clauses, and one doc page
+    - NumPy inserts: Level 2. One insert path in the embed writer
+    - HNSW drop and recreate: Level 3. The growth bound, the skip-when-idle rule, and semantic search still answering
+    - Doctor storage report: Level 2. Read-only facts on the existing probe
+    - Verified copy: Level 3. Equality, catalog, HNSW, and every schema fixture, with the original untouched
+    - Verify-only writer path: Level 3. Flock, skip rules, cleanup, and faults before any swap
+    - Hard-link swap kept off: Level 3. The proof from the issue, without turning the default path into a replace
 * Insights
-    - `uv run --with duckdb==2.0.0` left this checkout's interpreter on 1.5.4. The project virtualenv has no torch. The hashed freeze is at `~/.local/share/stockroom/torch-requirements.txt`
+    - Format, NumPy inserts, and the doctor report can start together. The HNSW wrap waits on the insert path. The copy waits on the new-file format. The swap waits on verify-only and on the doctor backup name
 
-## 2026-10-21 - PLAN (RE-PLAN) - COMPLETE
+## 2026-10-20 - PREFLIGHT - COMPLETE
 
 * Work completed
-    - Split the shadow repair into two copies of the baseline. Branch A repairs while the `.wal` exists. Branch B folds, then repairs. Both repeat on a newer 2.0 patch
-    - Added the same two branches to `--synthetic`, on small files, before the live copy
+    - Validated Level 4 milestone decomposition in `memory-bank/active/milestones.md` against `projectbrief.md`
+    - Confirmed serial-safety, DAG alignment, coverage, invariant constraints, and definitions of done across all 7 milestones
+    - Recorded preflight status: PASS WITH ADVISORY
 * Decisions made
-    - Adopted the ingest advisory: an ingest exit of 0 is not an index health check
-    - Adopted the torch advisory: the overlay prints DuckDB 2.0.0 and imports torch, installed from the hashed freeze into that overlay only
-    - Not adopted as a replacement: moving the kill off the real warehouse. The synthetic branches are a prelude. The Done line still runs both branches on copies of the real baseline
-    - An observation probe that hangs is recorded. A repair probe that does not finish fails the script
+    - Preflight result is PASS WITH ADVISORY. The milestone list was not changed
+    - Advisory, not adopted: a verification receipt so verify-only mode does not rebuild on every later writer open, and so doctor can show that a copy already verified
 * Insights
-    - Folding the log before `DROP INDEX` removes the leftover-`.wal` state, so one copy cannot prove both repairs
+    - The 7-milestone decomposition cleanly separates read-only diagnostic visibility, incremental vector insert performance, index rebuild bounds, and non-destructive shadow verification from the final inactive swap operation
 
-## 2026-10-21 - PREFLIGHT (SECOND RUN) - FAIL (fixable)
+## 2026-10-20 - REVIEW - PLAN AMENDED
 
 * Work completed
-    - Preflight of the revised plan. The plan was not edited. Status is in `memory-bank/active/.preflight-status`
+    - Measured `~/.local/share/stockroom/warehouse.duckdb`: 39.058 GiB, 159613 of 159982 blocks used, 369 free. Payload is 73 MiB of `messages.text`, 94 MiB of `tool_input`, and 192 MiB of vector floats. Counts match issue 147. This machine has about 806 GiB free. The work machine's 88 GB file was not opened
+    - Amended the check-only milestone after the operator rejected a run on every writer open
 * Decisions made
-    - Fixable: ingest, embed, and semantic under the 2.0 overlay must be `sys.executable` with `PYTHONPATH=skills/sr-search/src`. A nested `uv run` stays on the project interpreter, DuckDB 1.5.4
-    - Fixable: `make ci` syncs the new lock into `.venv` before the commit. A failed gate restores the 1.5.4 lock and runs `make sync` before the next nightly job
+    - The check runs once, in the background. It records the result, deletes the temp file, and does not swap. Ingest and embed do not start it
+    - The check-only release is how the work machine, which only receives stockroom through a release, proves its real warehouse before any swap
+    - A later swap copies the warehouse again that day. Rows written after the check are only in the old file, and the old file stays in the old storage format
+    - No periodic compaction. The HNSW drop-and-recreate stops the accumulation. The primary-key leak stays out of scope
+    - Automatic deletion of a backup after a successful query was not adopted
 * Insights
-    - `package = false` means the overlay does not import `stockroom` until `PYTHONPATH` includes `skills/sr-search/src`
+    - Preflight passed the writer-path wording and is stale for the amended check milestone. Re-preflight before building
+    - The 88 GB collapse is an expectation from this machine's leak, not a measurement of that file
 
-## 2026-10-21 - PLAN (SECOND RE-PLAN) - COMPLETE
+## 2026-10-20 - PREFLIGHT (RE-RUN) - COMPLETE
 
 * Work completed
-    - Pointed ingest, embed, and semantic at the overlay interpreter with `PYTHONPATH=skills/sr-search/src`, and required those imports before the live copy
-    - Stated that `make ci` is the sync that moves `.venv`, and that a failed gate restores the 1.5.4 lock and runs `make sync` before 03:30
+    - Re-validated the amended milestone list against `projectbrief.md`, issue 147, the operator's amendment, and the engine code
+    - Recorded preflight status: FAIL (fixable)
 * Decisions made
-    - Adopted the schema-1 setup from `test_open_current_refuses_stale_schema_without_migrating`, including the `filename` column
-    - Adopted a fixed free-space margin of 1 GiB above two copies
-    - Adopted the home-guard check on directory entry names
-    - Adopted the overlay pytest of the two durable tests before `uv lock`
-    - The 1.5.4 writer stays a nested `uv run`, which is what puts it on the project interpreter
+    - Prerequisites, checklist shape, coverage, scope, serial order, and done/risks blocks pass
+    - Fixable: the background pass names no trigger, and every existing entry point is excluded. Scheduler entries reach a machine only on re-install. Session-start hooks need Cursor's third-party plugin setting and an engine entry point, which conflicts with "no new CLI command"
+    - Fixable: "once" does not say which outcomes stand (terminal results versus skips and crashes that should retry)
+    - Fixable: the verify-only milestone adds a doctor fact and the record doctor reads, but the invariants give milestone 4 sole ownership of reported facts. The DAG lacks the edge `doctor --> verifyonly`
+    - Fixable: the brief calls issue 147 the authority, but the issue's writer-path trigger was overridden by the amendment
 * Insights
-    - A nested `uv run` from inside the overlay ignores `VIRTUAL_ENV` and uses `skills/sr-search/.venv`
+    - Ingest's `write_session` also deletes embeddings, so it is a second writer that modifies the HNSW index. Milestone 3 has to cover it explicitly (advisory)
+    - Radical advisory: a ledger of once-only maintenance jobs, launched from session start and read by doctor, would answer the trigger, once, and doctor-ownership findings together, and would make enabling the swap a single job registration
 
-## 2026-10-21 - PREFLIGHT (THIRD RUN) - FAIL (fixable)
+## 2026-10-20 - PLAN (RE-PLAN) - COMPLETE
 
 * Work completed
-    - Preflight of the second re-plan. The plan was not edited. Status is in `memory-bank/active/.preflight-status`
+    - Amended `milestones.md` and `projectbrief.md` for the four preflight findings. Still seven milestones
+    - Milestone 6 is now "Run that copy once from the session-start hook in verify-only mode, and skip when the file is not ready"
+    - Added the edges `doctor --> verifyonly` and `hnsw --> builder`. Dropped `doctor --> swap`, which the new edges imply
 * Decisions made
-    - Fixable: repair runs only after the copy is classified. Loud means the wal remains and a probe hung or raised. Folded means the wal is gone and the index count is lower than the row count. A healthy index must not walk into a passing repair
+    - Operator: the session-start hook starts the check as a hidden internal job. Not the nightly job, not a hand-run command. "No new CLI command" means no new user-facing command
+    - Verified, mismatch, and already new are final. Each skip and a crash retry at the next session start. The record names a check version, so a later enabled swap runs under a new version
+    - Milestone 6 owns the check record (a sidecar under the stockroom home) and one doctor line in the storage section milestone 4 built
+    - Adopted advisories: milestone 3 picks how ingest's embedding deletes are handled, milestone 3 owns the index definition and milestone 5 reuses it, milestones 5 and 6 test with old-format files, the swap is a mode of the milestone 6 pass, and acceptance 5 now says the copy is verified and deleted, not swapped
+    - Not adopted: a general job ledger. One check record with a version covers this project and the later swap
+    - Issue 147 itself was not edited. The brief says where the amendments replace it
+    - Advisory estimates: format L2, NumPy inserts L2, HNSW rebuild L3, doctor report L2, verified copy L3, session-start check L3, swap kept off L3
 * Insights
-    - Killing when the wal file appears can be before the insert commits. The kill is SIGKILL after a commit that stays under `checkpoint_threshold`
+    - Session-start hooks reach every machine with the plugin update, while nightly entries change only on re-install. That is why the hook is the only trigger that serves the check-only release
 
-## 2026-10-21 - PLAN (THIRD RE-PLAN) - COMPLETE
+## 2026-10-20 - PREFLIGHT (THIRD RUN) - COMPLETE
 
 * Work completed
-    - Repair now waits on `classify`. Loud is a remaining wal plus a hung or raised probe. Folded is a gone wal plus an index count below the row count
-    - The kill is SIGKILL after the child commits an insert that stays under `checkpoint_threshold`
+    - Validated the re-planned milestone list against `projectbrief.md`, the engine code, and short DuckDB 1.5.4 experiments
+    - Recorded preflight status: PASS WITH ADVISORY. The milestone list was not changed
 * Decisions made
-    - Adopted the read-only used-block and distinct-block print after the leaking delete
-    - Adopted the row check that lets `embeddings` shrink by the orphan count embed reports
-    - Adopted one `classify` function shared by synthetic, live, and the patch repeat
-    - Not adopted: a JSON phase file under the scratch home. The script prints the facts
+    - All seven Level 4 checks pass. The four earlier fixable findings are resolved: trigger, once, doctor ownership, and brief authority
+    - Advisory, not adopted: bound the pass's flock hold, because writers block on the flock with no time limit
+    - Advisory, not adopted: name the "no warehouse" and "behind head" outcomes, hide or show the internal entry in `stockroom --help`, and have doctor open the warehouse without migrating
+    - Radical advisory, not adopted: the check record stores measured sizes, times, and HNSW recall, and doctor prints them, so the swap is enabled from measurements on the work machine
 * Insights
-    - A repair that finishes on a healthy index is not evidence the replay bug was present
+    - Measured: plain `COPY FROM DATABASE` gives `v1.5.0+` storage and copies the HNSW index, but text comes out `DICT_FSST`, not ZSTD. Milestone 5 has to create the tables from milestone 1's definition and copy `schema_version` rows verbatim
+    - Measured: on an old-format file, `USING COMPRESSION zstd` gives no error and stores the column uncompressed. Connecting an existing file with the `latest` setting leaves it at `v1.0.0+`
 
-## 2026-10-21 - PREFLIGHT (FOURTH RUN) - FAIL (fixable)
+## 2026-10-21 - REVIEW - PLAN AMENDED
 
 * Work completed
-    - Preflight of the classification re-plan. The plan was not edited. Status is in `memory-bank/active/.preflight-status`
+    - Folded four third-run preflight advisories into `milestones.md` and `projectbrief.md`. Still seven milestones, same order and graph
 * Decisions made
-    - Fixable: compare the embeddings count, taken before SIGKILL, immediately after the repair checkpoint. The later probes only have to finish
-    - Fixable: a failure to open the file is not the loud state. Loud is a remaining wal plus a probe that opened the database and then hung or raised
-    - Fixable: the patch repeat accepts only final `2.0.N` versions. `2.0.0.dev*` uploads sort after `2.0.0` and are ignored
+    - Operator adopted: a time limit on the pass's lock hold. An overrun deletes the temp file, releases the lock, and is a retrying skip
+    - Operator adopted: milestone 5 attaches the copy in the new format, creates tables from milestone 1's definition, inserts rows, copies `schema_version` rows unchanged, and builds the index from milestone 3's definition
+    - Operator adopted: no warehouse yet and a warehouse below the schema head are retrying skips
+    - Operator adopted: the check is a measured rehearsal. Milestone 5's builder returns sizes, build and verification times, lowest free disk, and the index top-10 match share against an exact scan. Milestone 6 adds the lock-hold time to the record, and doctor's line prints them. The later swap release sets its margin and expected writer wait from these numbers
+    - Operator declined: hiding the internal entry point from `stockroom --help`
+    - Planner additions: the index match share is recorded, not a pass condition, and its exact scan must not use the index. A warehouse whose copy always overruns the time limit must not rebuild at every session start, and milestone 6's plan decides how
+    - Doctor opening the warehouse without migrating is already required by "doctor never writes", so it was not added as a separate line
 * Insights
-    - PyPI's newest stable duckdb today is 2.0.0, so the repeat prints that and skips
+    - The rehearsal turns the check-only release into the data source for the swap decision on the 88 GB work machine
 
-## 2026-10-21 - PLAN (FOURTH RE-PLAN) - COMPLETE
+## 2026-10-21 - PREFLIGHT (FOURTH RUN) - COMPLETE
 
 * Work completed
-    - The embeddings count is taken from the child before SIGKILL and compared immediately after the repair checkpoint. The later probes only have to finish
-    - `classify` returns `blocked` when a probe does not open or reports a lock error. Loud requires a probe that opened and then hung or raised
-    - The patch repeat keeps final `2.0.N` versions only
+    - Validated the 2026-10-21 amended milestone list against `projectbrief.md`, issue 147, the engine code, and short DuckDB 1.5.4 experiments
+    - Recorded preflight status: PASS WITH ADVISORY. The milestone list was not changed
 * Decisions made
-    - Adopted `--no-sync` on the shadow `uv run`
-    - Adopted binding the vector on `EXPLAIN`
-    - Adopted four direct tests of the pure `classify` function
+    - All seven Level 4 checks pass. Each new brief item (the measured rehearsal, the named skips, the cleanup after an overrun, and the doctor measurements) maps to milestone 5 or 6, and the builder's measurements have a handoff rule
+    - Advisory, not adopted: requirement 4 says an overrun retries at the next session start, and milestone 6's risk says an always-overrunning copy must not rebuild at every session start. The two hold together only if "retry" means the pass runs again and decides whether to build. A crash that repeats has the same gap and leaves no record
+    - Advisory, not adopted: milestone 4 owns a live-size estimate, which doctor's reclaimable figure and milestone 6's pre-build free-disk check both use
+    - Advisory, not adopted: milestone 5's plan says where the head table definitions come from. Milestone 6 may split at the trigger
+    - Radical advisory, not adopted: writers mark that they are waiting, and the pass yields to them, so the time limit only guards against hangs
 * Insights
-    - A second open of a file this process still holds raises `IOException` on DuckDB 1.5.4. That is not the replay bug
+    - Measured: `con.interrupt()` does not stop `CREATE INDEX ... USING HNSW` during the build. An interrupt sent 10% into a 7.9 s build took effect 9.1 s later. The time limit needs a builder in a child process that can be killed
+    - Measured: the HNSW leak sits in used blocks. A small file at 218.5 MiB had only 26.5 MiB free, so free blocks alone understate reclaimable space. Counting distinct `pragma_storage_info` blocks and adding `pragma_hnsw_index_info` works read-only
+    - Measured: `ORDER BY array_cosine_distance(...) + 0 LIMIT 10` and a `row_number()` filter plan an exact scan, not `HNSW_INDEX_SCAN`
 
-## 2026-10-21 - PREFLIGHT (FIFTH RUN) - FAIL (fixable)
+## 2026-10-21 - REVIEW - PLAN AMENDED (8 MILESTONES)
 
 * Work completed
-    - Preflight of the fourth re-plan. The plan was not edited. Status is in `memory-bank/active/.preflight-status`
+    - Folded fourth-run advisories 1 to 4 into the invariants and the milestone 4, 5, and 6 Done and Risks lines
+    - Split milestone 6 at the trigger. Milestone 6 is the check itself (lock, child builder, time limit, skips, record, doctor line), and no shipped code starts it. Milestone 7 makes both session-start hooks launch it. The swap is now milestone 8
+    - Graph: `builder --> check`, `doctor --> check`, `check --> hook`, `check --> swap`. The hook and the swap can run in parallel
 * Decisions made
-    - Fixable: the patch-repeat child has to start with `VIRTUAL_ENV` unset. From inside the overlay, a nested `uv run --with` ignores the requested DuckDB and runs the project interpreter
+    - Operator adopted advisories 1 to 4 and the milestone 6 split. Operator declined the writer step-aside idea
+    - Retry means the pass runs again and decides whether to build. After an overrun or a crash it rebuilds only under a condition milestone 6's plan chooses. A crash leaves a record that doctor shows
+    - The builder runs in a child process. The parent holds the flock and kills the child at the time limit
+    - Milestone 4 owns a live-size estimate. Doctor's reclaimable figure and milestone 6's low-disk test both use it
+    - Milestone 5 runs the migrations on the empty copy, replaces `schema_version` rows with the original's, drops the index, inserts rows, and rebuilds the index from milestone 3's definition
+    - Advisory estimates: format L2, NumPy inserts L2, HNSW rebuild L3, doctor report L2, verified copy L3, verify-only check L3, session-start hooks L2, swap kept off L3
 * Insights
-    - PyPI's newest final duckdb is still 2.0.0, so the skip branch is what runs today. The command has to select a later patch when one exists
+    - Advisories that only live in `progress.md` and `.preflight-status` are deleted when the first milestone finishes. Anything later milestones must see belongs in `milestones.md` or the brief
 
-## 2026-10-21 - PLAN (FIFTH RE-PLAN) - COMPLETE
+## 2026-10-21 - PREFLIGHT (FIFTH RUN) - COMPLETE
 
 * Work completed
-    - The 1.5.4 writer and the patch child start with `VIRTUAL_ENV` unset. Each prints `duckdb.__version__`, and the phase fails on a mismatch
-    - The synthetic `checkpoint_threshold` is set after the index is checkpointed, above the insert's wal
-    - The folded check reads the `count` column of `pragma_hnsw_index_info()`
+    - Validated the 8-milestone list against `projectbrief.md`, the diff from the fourth run's plan, the engine code, and short DuckDB 1.5.4 experiments
+    - Recorded preflight status: PASS WITH ADVISORY. The milestone list was not changed
 * Decisions made
-    - Not adopted: a launcher that spawns every DuckDB version as a sibling. Unsetting `VIRTUAL_ENV` on the two version-pinned children is the smaller fix
+    - All seven Level 4 checks pass. The fourth run's five advisories are resolved in the plan. Milestone 6 owns the pass and milestone 7 owns the hook launch, with no overlap. The checklist is a valid serial walk of the new graph, and milestones 7 and 8 can run in parallel
+    - Advisory, not adopted: only the flock holder writes the check record, written by temp file and `os.replace`. A busy skip from a concurrent session start must not replace a final result or an "attempt started" entry (milestone 6)
+    - Advisory, not adopted: the check entry point detaches itself like `stockroom dashboard`, because Cursor's `sessionStart` does not redirect stderr (milestone 7)
+    - Advisory, not adopted: milestone 7's plan says how "a session start after a final result does not build" is tested, because the hook tests check strings only
+    - Advisory, not adopted: doctor checks the file through `resolve_home()` before `open_current()`, which creates the home folder, and still prints the facts that need no connection when the warehouse is missing, below head, or busy (milestone 4)
+    - Radical advisory, not adopted: build the HNSW index on the temp file after the flock is released, and have the later swap check a fingerprint of the original under the flock. This replaces brief constraint 2
 * Insights
-    - While `VIRTUAL_ENV` points at the overlay, `uv run --with` ignores the requested package and runs the project interpreter
+    - Measured: `USING COMPRESSION zstd` survives a later `ALTER TABLE ... ADD COLUMN` (migration `0004` on `messages`) on a `v1.5.0+` file, so the clauses can live in `0001`
+    - Measured: the original's inode, size, `mtime_ns`, and first 12 KiB stay the same through read-only and no-write opens, and change after an insert, an update, or a delete. A delete can keep the size the same
+    - No migration seeds rows or rebuilds `messages` or `tool_calls`
 
-
-
-
-
-
-
-
-
-
-## 2026-10-21 - PREFLIGHT - COMPLETE (FAIL (fixable))
+## 2026-10-21 - REVIEW - PLAN AMENDED (FIFTH-RUN ADVISORIES)
 
 * Work completed
-    - Preflight of the DuckDB 2.0 plan. First line of `memory-bank/active/.preflight-status` is `FAIL (fixable)`
+    - Folded fifth-run advisories 1 to 4 into the milestone 4, 6, and 7 Done and Risks lines, and into the hook milestone's shared-artifact rule. Still eight milestones, same order and graph
 * Decisions made
-    - The plan changes before build. The shadow repair has to run on a leftover-`.wal` copy and on a folded copy. Folding first leaves the loud state unproven
+    - Operator adopted advisories 1 to 4 and asked for one more preflight. Operator declined the index-after-unlock idea, so brief constraint 2 stands
+    - Milestone 6: only the lock holder writes the check record, through a temp file and a rename. A busy-lock skip writes nothing
+    - Milestone 7: the launch detaches the way `stockroom dashboard` does, and milestone 7 owns that detached launch. A test runs the entry point against a final record to prove no build
+    - Milestone 4: doctor checks that the file exists before opening anything, never creates the stockroom home, and still prints connection-free facts when the warehouse is missing, below head, or busy
 * Insights
-    - On 1.5.4, one row is enough for `EXPLAIN` of the unscoped cosine statement to contain `HNSW_INDEX_SCAN`. `uv run --with duckdb==2.0.0` layered 2.0.0 over `.venv` and left the project interpreter on 1.5.4. This `.venv` has no torch; the hashed freeze is present
+    - Confirmed in code: `open_current()` reaches `home_dir()`, which runs `mkdir`. Doctor's probe already uses the pure `resolve_home()`
+    - Confirmed in code: Cursor's session-start hook redirects stdout only. Claude Code's redirects both streams
 
-## 2026-10-21 - PREFLIGHT - COMPLETE (FAIL (fixable))
+## 2026-10-21 - REVIEW - SHORT-LIVED LENS APPLIED
 
 * Work completed
-    - Preflight of the revised DuckDB 2.0 plan. The plan was not edited. First line of `memory-bank/active/.preflight-status` is `FAIL (fixable)`
+    - The sixth preflight run was aborted before it wrote anything
+    - Pinned the operator's lifetime statement first in the `milestones.md` invariants and in the brief: milestones 5 to 8 are a short-lived migration utility for about five or six installs, kept a month or two, then removed
+    - Simplified the chain under that lens. Still eight milestones, same order and graph
 * Decisions made
-    - The 2.0 ingest, embed, and semantic commands have to run as the overlay interpreter with `PYTHONPATH=skills/sr-search/src`. A nested `uv run` uses the project `.venv` and DuckDB 1.5.4
-    - `make ci` is the sync that moves `.venv`. A failed gate restores the 1.5.4 lock and runs `make sync` before the next nightly job
+    - A crash or a time-limit overrun is now final. Its started entry stays for doctor, and deleting the record file retries. This replaces "rebuild only under a condition the plan chooses"
+    - The time limit ends the pass's own process (for example `signal.alarm` with its default action), and the OS releases the flock. No child builder process
+    - The rehearsal keeps the original's size, the copy's size, free disk at the start, and the build, verification, and lock-hold times. Dropped: lowest free disk during the run, and the index top-10 match share against an exact scan
+    - One old-format fixture with rows at `0001` and at head replaces fixtures at every schema version
+    - The chain lives in its own module, touching shared code only at its entry point, the hook command, and doctor's check and backup lines, so removing it is a deletion
+    - Unchanged on purpose: every data-safety rule, fault-injection and SHA-256 proofs, the lock-holder-only record write, the detached launch, and milestones 1 to 4
 * Insights
-    - Measured: parent `uv run --with duckdb==2.0.0` is ephemeral 2.0.0; nested `uv run --no-sync --with duckdb==1.5.4` warns that the overlay `VIRTUAL_ENV` does not match `skills/sr-search/.venv` and runs 1.5.4 there. The project interpreter stayed 1.5.4. `import stockroom` is missing until `PYTHONPATH` includes `skills/sr-search/src`
+    - Data-safety rules are the only part of the chain that must not shrink with its lifetime
 
-## 2026-10-21 - PREFLIGHT - COMPLETE (FAIL (fixable))
+## 2026-10-21 - PREFLIGHT (SIXTH RUN) - COMPLETE
 
 * Work completed
-    - Preflight of the second re-plan. The plan was left unchanged. First line of `memory-bank/active/.preflight-status` is `FAIL (fixable)`
+    - Validated the 8-milestone list after the fifth-run advisories and the short-lived lens, against `projectbrief.md`, the diff from `beb1abe`, the engine code, and one DuckDB 1.5.4 experiment
+    - Recorded preflight status: PASS WITH ADVISORY. The milestone list was not changed
 * Decisions made
-    - The repair phases have to see the loud state and the folded state before they repair. A healthy index that survives the kill is a failed phase
-    - An observation hang and an `InternalException` both count as the loud state. A normal return does not
+    - All seven Level 4 checks pass. Every lens change maps to a milestone, the graph is unchanged, and no wording from the earlier design is left
+    - Advisory, not adopted: a pass takes the flock before it reads the record or deletes anything. A started entry is now final, so without this a second session start can delete the temp file of a pass that is still running (milestones 6 and 8)
+    - Advisory, not adopted: the started entry carries its start time and the time limit, so doctor can tell a running pass from a dead one. Doctor names the record path, because deleting it is the only retry (milestone 6)
+    - Advisory, not adopted: set the alarm only in the entry point's process, not in the pass function that in-process tests call under `pytest-xdist` (milestone 6)
+    - Advisory, not adopted: doctor's backup line is durable, not chain code that removal deletes, because a 39 to 88 GB backup can outlive the chain (invariants, milestone 4)
+    - Radical advisory, not adopted: turn on the swap per machine with a config key instead of a release, so each machine swaps on its own rehearsal numbers
 * Insights
-    - Killing the writer when `warehouse.duckdb.wal` appears can land before the embeddings insert commits. Replay then rolls that insert back and the index stays whole
+    - Measured: `signal.alarm` with its default action ended a process 2.03 s into a 10.4 s HNSW build (exit -14), and a blocked flock waiter got the lock at that moment
+    - No engine code installs a signal handler, and the test stack has no timeout plugin
 
-## 2026-10-21 - PREFLIGHT - COMPLETE (FAIL (fixable))
+## 2026-10-21 - REVIEW - POST-PREFLIGHT FIXES
 
 * Work completed
-    - Preflight of the third re-plan. The plan was not edited. First line of `memory-bank/active/.preflight-status` is `FAIL (fixable)`
+    - Folded sixth-run advisories 1 to 4 into milestone 6, the lifetime paragraph, and brief constraint 8. No re-preflight: each is a one-sentence correction to the lens edits and changes no milestone's scope, order, or ownership
 * Decisions made
-    - The repair's embeddings count is the count after the killed commit, compared after the repair checkpoint and before the post-repair delete and insert
-    - A probe that cannot open the file fails the phase. Loud requires that the probe opened the database and then hung or raised
-    - The patch repeat accepts only final `2.0.N` versions. The child is `uv run --no-sync --with duckdb==<version>`
+    - Every pass takes the lock without waiting before it reads the record or deletes anything. A pass that cannot take it does nothing, so it cannot delete a running pass's temp file
+    - The started entry carries its start time and time limit. Doctor shows one inside its limit as running, and prints the record's path because deleting it is the retry
+    - Only the entry point's own process sets the alarm, so in-process tests cannot kill an xdist worker
+    - Doctor's backup line outlives the chain's removal
+    - Not adopted: a per-machine `config.toml` key to enable the swap. That is the operator's call and would change the brief's "later explicit change"
 * Insights
-    - Measured: a second open of a DuckDB file this process still holds raises `IOException` `Could not set lock`. After close, the open succeeds
-    - Measured: `EXPLAIN` of a `?` statement without the bound value raises `InvalidInputException`
-    - Measured: PyPI's latest duckdb is `2.0.0`. `2.0.0.dev*` uploads are published and sort after `2.0.0` as strings
-    - `uv` 0.12.22 `uv run` syncs inexactly unless `--exact`. Torch is absent from the project `.venv`
+    - Making crashes final made a running pass and a dead pass look alike. Lock-first ordering is what keeps them apart
 
-## 2026-10-21 - PREFLIGHT - COMPLETE (FAIL (fixable))
+
+## 2026-10-21 - REVIEW - PLAN AMENDED (DUCKDB 2.0 FIRST, SKIPPED RELEASES)
 
 * Work completed
-    - Preflight of the fourth re-plan. The plan was not edited. First line of `memory-bank/active/.preflight-status` is `FAIL (fixable)`
+    - `/niko` had classified the format milestone as a Level 2 sub-run (commit `ce2e784`). That classification is withdrawn: the operator inserted a new first milestone, so `progress.md` and `tasks.md` were restored to the Level 4 plan state
+    - Probed the format milestone on DuckDB 1.5.4 (`.scratch/scripts/m1_new_file_probe.py`): a new file under `storage_compatibility_version = 'latest'` is `v1.5.0+` with ZSTD on both columns; the setting leaves an existing `v1.0.0+` file's tag and codecs unchanged; two read-write connections to one file in one process must carry the same config; DuckDB 1.4.5 cannot read a `v1.5.0+` file
+    - Probed DuckDB 2.0.0 (released 2026-10-21) and 1.5.6: 2.0 creates `v2.0.0+` files even without the setting, reads `v1.0.0+` and `v1.5.0+` files, installs vss, still plans top-k through HNSW (EXPLAIN prints `Hnsw Index Scan`), and gives ZSTD for the clauses. The engine suite passes unchanged on 2.0.0 (1024 passed, 38 skipped, torch absent). No shipped SQL uses the single-arrow lambda syntax 2.0 turns off
+    - Every stockroom release tag (v0.1.0 to v2.1.2) and every lock in the repo's history pinned DuckDB 1.5.4. This machine's live warehouse is `v1.0.0+` at schema version 8
+    - Amended `milestones.md` (now 9 milestones) and `projectbrief.md`
 * Decisions made
-    - The patch-repeat child has to be started with `VIRTUAL_ENV` unset. A nested `uv run --with` from inside the 2.0 overlay runs the project interpreter, DuckDB 1.5.4
+    - Operator: move the engine to DuckDB 2.0 (LTS until at least October 2027) as the new first milestone, released on its own before the copy chain, so the one-time rewrite targets the format stockroom keeps
+    - Operator: every release must stand alone. Users skip releases, so no milestone may assume that a user ran an earlier release of this project, the check, or the swap. The arrivals each release must handle: a `v1.0.0+` file at schema versions 1 to 8, a `v2.0.0+` file with or without zstd columns and leaked index copies, and no warehouse
+    - The 2.0 milestone owns the pin and the user-facing statement of which DuckDB versions open the warehouse. It shadow-tests a copy of this machine's real warehouse, proves a schema-1 `v1.0.0+` warehouse migrates to head under 2.0, and re-measures every 1.5.4 fact that later milestones and `docs/architecture/embeddings.md` state. A premise that no longer holds stops for the operator
+    - Format milestone: the new-file tag follows the pinned DuckDB (`v2.0.0+`), set explicitly at creation. Its plan chooses `'latest'` or an explicit 2.0 storage version. Its doc line moved to the 2.0 milestone
+    - Copy milestone: one `v1.0.0+` fixture at head is enough because the check copies only a warehouse at head. The earlier reason ("every real install is at head") does not hold once releases are skipped
+    - Check milestone: "already new" must not be judged by storage tag alone, because the 2.0 release creates `v2.0.0+` warehouses without zstd columns that may collect leaked index copies
+    - Advisory estimates: DuckDB 2.0 L2 (lock, shadow test, re-measurement, one doc page), format L2, NumPy inserts L2, HNSW rebuild L3, doctor report L2, verified copy L3, verify-only check L3, session-start hooks L2, swap kept off L3
 * Insights
-    - Measured: the parent overlay is ephemeral 2.0.0 and its `VIRTUAL_ENV` is that prefix. Unsetting `VIRTUAL_ENV` makes `uv run --no-sync --with duckdb==2.0.0` select 2.0.0. The project interpreter stayed 1.5.4
-    - Measured: one HNSW insert leaves a 1701-byte wal after the index is checkpointed. A 4KB threshold set before that checkpoint leaves no wal
-    - Measured: `pragma_hnsw_index_info()` takes no arguments on 1.5.4 and 2.0.0. The indexed-row count is the `count` column
+    - The bump changes the new-file format on its own, because 2.0's default is already `v2.0.0+`. The format milestone's explicit setting guards against a later default that lags the newest format
+    - A release's head start over the next one helps only the machines that install it. Skip-safety has to live in each release, not in the release order
 
-## 2026-10-21 - PREFLIGHT - COMPLETE (FAIL (fixable))
+## 2026-10-21 - PREFLIGHT (SEVENTH RUN) - COMPLETE
 
 * Work completed
-    - Preflight of the fifth re-plan. The plan was not edited. First line of `memory-bank/active/.preflight-status` is `FAIL (fixable)`
+    - Validated the 9-milestone list (DuckDB 2.0 first, skipped releases) against `projectbrief.md`, the diff from `9392fce`, the engine code, and four short DuckDB 1.5.4 and 2.0.0 experiments
+    - Recorded preflight status: FAIL (fixable). The milestone list was not changed
 * Decisions made
-    - The kill child has to flush its embeddings count before it waits. A pipe buffers `print`, so the parent never reaches SIGKILL
-    - Embed runs with `--verbose`. The embeddings floor is the post-ingest count minus the orphan line, because ingest deletes embeddings for rewritten messages before that line exists
+    - Prerequisites, checklist shape, scope, order, invariants, and the Done and Risks blocks pass. The checklist is a valid serial walk of the new graph
+    - Fixable: brief acceptance 4 still says a new warehouse is `v1.5.0+`, against the amended use case and milestone 2's Done line
+    - Fixable: the skipped-release arrivals leave out an empty `v1.0.0+` file at schema 0 (left by a failed first open). On 2.0, milestone 2's zstd clauses in `0001` raise a binder error on that file, so every writer open would fail. That breaks acceptance 11
+    - Fixable: milestone 1's Done line has the sub-run rewrite later milestones' lines, which the milestones lifecycle rule forbids. One sentence of operator authority, or a hand-off through `/niko-plan`, resolves it
+    - Advisory, not adopted: freeze the shadow test's baseline under the flock; build old-format fixtures from the v2.1.2 migration SQL; add a 1.5.4 writer step to the shadow test; cap duckdb below 2.1 so dependabot cannot leave the LTS line; keep a durable test that semantic search plans through the HNSW index; small brief wording fixes
+    - Radical advisory, not adopted: create new files and the rewrite at `v1.5.0` storage, which 1.5.4 can open, instead of `v2.0.0`
 * Insights
-    - Measured: `print` then sleep on a pipe is not readable after one second
-    - Measured: a schema-1 file at storage `v1.0.0` migrates to version 8 and keeps `v1.0.0+` on 1.5.4 and 2.0.0
-    - Measured: EXPLAIN contains `HNSW` on 2.0.0 via the line `HNSW Index: embeddings_vector_hnsw`
-    - Measured: nested `uv run --with duckdb==VERSION` selects VERSION even when `VIRTUAL_ENV` is inherited
-    - Recorded an advisory to run the synthetic kill and the live branches through one `reproduce()` function
+    - Measured: DuckDB 2.0.0 raises `BinderException` for `USING COMPRESSION zstd` on a `v1.0.0+` file. 1.5.4 stored the column uncompressed with no error. 2.0 accepts the clause at `v1.5.0` and `v2.0.0`
+    - Measured: 1.5.4 and 2.0.0 can take turns reading and writing one `v1.0.0+` file with an HNSW index, and the tag stays `v1.0.0+`. 1.5.4 replays a wal that a killed 2.0 writer left (synthetic data)
+    - Measured: 1.5.4 opens a `v1.5.0+` file that 2.0 created, with zstd and HNSW. It refuses a `v2.0.0+` file ("version number 999")
 
-## 2026-10-21 - PREFLIGHT - ABORTED
+## 2026-10-21 - PLAN (RE-PLAN AFTER SEVENTH PREFLIGHT) - COMPLETE
 
 * Work completed
-    - A preflight of the plan at `3ccba40` was aborted before it wrote `.preflight-status`
-    - It left two untracked SumMem notes
+    - Folded the three fixable findings and the advisories into `milestones.md` and `projectbrief.md`. Still nine milestones, same order and graph
+    - Confirmed the binder finding (`.scratch/scripts/zstd_clause_by_storage.py`): on 2.0.0 the zstd clause raises `BinderException` at storage `v1.0.0` and gives ZSTD at `v1.2.0`, `v1.5.0`, and `v2.0.0`; on 1.5.4 it is silently uncompressed at `v1.0.0`
+    - Measured (`.scratch/scripts/crashed_wal_*`): 1.5.4 opens a `v1.0.0+` file that a killed 2.0.0 writer left with a wal, plain or HNSW-indexed, read-only and read-write, and replays every row
+    - Found that this machine's live shim runs this checkout (03:30 nightly cron through it), and that a Claude Code stockroom 0.16.0 (DuckDB 1.5.4) is installed beside it
 * Decisions made
-    - None. The plan was not edited
+    - Operator: no 2.0-only release. Milestones land in order on the branch; milestones 1 to 8 ship in one release (the swap may join, off). No release carries the 2.0 lock without the new-file format and the HNSW rebuild. The operator runs the shadow test from a branch clone on his Macs before that release
+    - Operator: new files and the copy use storage `v2.0.0`, not the preflight's `v1.5.0` advisory
+    - Operator: this checkout's environment stays on 1.5.4 until the shadow test passes on this machine; then the branch goes live here
+    - Operator: the DuckDB 2.0 sub-run may rewrite DuckDB-behaviour sentences in later milestones' Done and Risks lines (finding 3). Scope, order, and ownership changes still stop for the operator
+    - Finding 1: brief acceptance 4 now says `v2.0.0+`
+    - Finding 2: arrivals now include a schema-0 `v1.0.0+` file; the format milestone must open and migrate it without deleting it, despite 2.0 rejecting the zstd clause at `v1.0.0`. Old-format test fixtures use storage `v1.0.0` with the v2.1.2 migration SQL
+    - Adopted advisories: frozen shadow baseline under the flock, a 1.5.4 writer step, duckdb range below 2.1, a lasting HNSW-plan test, brief wording (first release, conversion method)
+    - "Already new" simplified to newest tag plus zstd on both columns, because the single release removes the released `v2.0.0+`-without-zstd state; brief requirement 10 no longer mentions leaked copies
 * Insights
-    - Measured, and not yet folded into the plan: from inside `uv run --with duckdb==2.0.0`, a nested `uv run --no-sync --with duckdb==VERSION` selects `VERSION` even when `VIRTUAL_ENV` is inherited. Unsetting `VIRTUAL_ENV` is not what makes `--with` take effect
-    - Measured: on DuckDB 2.0.0, `EXPLAIN` of the unscoped cosine query contains `HNSW` in the line `HNSW Index: embeddings_vector_hnsw`. The operator title is `Hnsw Index Scan`, which does not itself contain `HNSW`. A case-sensitive `HNSW` check passes on 1.5.4 and 2.0.0
+    - Grouping 2.0 with the format and HNSW work removed an arrival state instead of adding code to handle it
+    - A dev checkout that is also the live engine turns every lock change into a production change on that machine; the commit hook's exact sync makes it immediate
 
-## 2026-10-21 - PLAN (SIXTH RE-PLAN) - COMPLETE
+## 2026-10-21 - PREFLIGHT (EIGHTH RUN) - COMPLETE
 
 * Work completed
-    - Folded the fifth preflight's fixable findings and the aborted run's measurements into the plan
-    - The kill child flushes its count. `read_count_line` has a 5-second deadline. Embed is `embed --verbose`, and the embeddings floor is the post-ingest count minus the orphan line
-    - Synthetic and live branches call one `reproduce` function
+    - Validated the re-planned 9-milestone list against `projectbrief.md`, the diff `f3a7c31..37cf1c0`, the engine code, and new DuckDB 1.5.4 and 2.0.0 experiments
+    - Recorded preflight status: FAIL (fixable). The milestone list was not changed
 * Decisions made
-    - `--with` selects a DuckDB version the project environment does not already provide, whether or not `VIRTUAL_ENV` is set. While the lock is 1.5.4, `--project --with duckdb==1.5.4` runs the project interpreter
-    - Ingest, embed, and semantic stay on `sys.executable` because that process has the torch install
-    - Not adopted: letting `sessions`, `messages`, or `tool_calls` shrink. The Done line still requires no fewer rows
+    - All seven Level 4 checks pass, and the seventh run's three fixable findings are resolved
+    - Fixable: on DuckDB 2.0.0 (vss `3685131eac`), a writer killed after inserting into the indexed `embeddings` table leaves a wal that breaks the index after replay. Semantic search fails, ingest's embedding deletes fail, and the next insert hangs while it holds the writer flock. It does not matter whether 1.5.4 or 2.0 wrote the wal. The plan needs this arrival in the list, a milestone 1 re-measure step, an owner for the heal (milestone 4 is the natural one), and protection for this machine between milestones 1 and 4
+    - Advisory, not adopted: name every Make target that syncs this checkout; hold Dependabot on `main` off duckdb 2.0 until the branch merges; say which machines run the shadow test; small wording fixes
+    - Radical advisory, not adopted: the writer chokepoint rebuilds the index whenever a wal existed at open or the index is missing
 * Insights
-    - The fifth re-plan treated a 1.5.4 `--with` that reused the project interpreter as "`VIRTUAL_ENV` makes `--with` ignore the request". Requesting 2.0.0 from that same parent selects 2.0.0 with `VIRTUAL_ENV` inherited. `duckdb==2.0.99` exits 1 and does not run 1.5.4
-    - An unflushed `print` on a pipe was still buffered after one second, so the parent never reached SIGKILL
+    - Measured: on 2.0.0, `DROP INDEX`, then `CREATE INDEX`, then `CHECKPOINT` heals the broken state. A wal that holds only deletes or drop-then-insert replays cleanly. 1.5.4 replays every such wal with no problem
+    - Measured: a 2.0.0 writer with `storage_compatibility_version` set to `'latest'` or `'v2.0.0'` keeps an existing `v1.0.0+` file at `v1.0.0+` with FSST text, and 1.5.4 still reads and writes it, including after a killed 2.0 writer
 
-## 2026-10-21 - PREFLIGHT (SEVENTH RUN) - COMPLETE (FAIL (fixable))
+## 2026-10-21 - PLAN (RE-PLAN AFTER EIGHTH PREFLIGHT) - COMPLETE
 
 * Work completed
-    - Preflight of the sixth re-plan. The plan was not edited. First line of `memory-bank/active/.preflight-status` is `FAIL (fixable)`
+    - Reproduced the eighth preflight's finding with a standalone script (`.scratch/scripts/wal_replay_hnsw_*`, scratchpad `upstream/`): on DuckDB 2.0.0, replaying a `.wal` that holds inserts into an HNSW-indexed table, written by a killed 1.5.4 or 2.0.0 writer, leaves the index broken. Query, delete, and insert raise `InternalException` on small tables; on a 384-wide, 4,000-row table the first top-k query hung (stopped at 150 s). Every checkpoint then fails fatally, so the `.wal` stays. 1.5.4 replays the same log fine. `DROP INDEX`, `CREATE INDEX`, `CHECKPOINT` repairs it. Logs holding only deletes, or inserts after `DROP INDEX`, replay fine. Loading vss before `ATTACH` (duckdb-vss #65's workaround) does not help
+    - Drafted an upstream duckdb-vss issue for the operator to file (scratchpad `upstream/issue-draft.md`); no existing issue matches
+    - Amended `milestones.md` and `projectbrief.md`. Still nine milestones; the doctor milestone gained the fix group and the edge `hnsw --> doctor`
 * Decisions made
-    - `reproduce` waits for the flushed embeddings count until the line arrives or the child exits. The 5-second deadline stays on the unit test where the child has already printed and is sleeping
+    - Operator: no automatic repair code. Doctor detects a leftover `.wal` (with the writer flock free) and names the fix; a troubleshooting page documents symptoms and fix
+    - Operator: discoverable doctor commands never write. Every doctor write sits behind `stockroom doctor fix <name>`; the first fix is `stockroom doctor fix hnsw-wal` (drop, recreate from the HNSW milestone's definition, checkpoint, under the writer flock). The doctor milestone owns the fix group and the page
+    - Operator: the work machine does not run the shadow test; the Macs and this machine do
+    - Operator: draft the upstream issue; the operator files it
+    - Arrivals now include a `v1.0.0+` file with a `.wal` from a killed 1.5.4 embed. The HNSW milestone states the rule that no stockroom path inserts into `embeddings` while the index exists
+    - Milestone 1: shadow test adds a killed-2.0-writer step (repeated on the newest 2.0 patch at build time); the 2.0 lock is the last change into this checkout (commit hook and every `make` target sync the environment); `.github/dependabot.yaml` ignores duckdb beyond 2.0; this machine's exposure between milestones 1 and 5 is accepted with a known lossless recovery
+    - Not adopted: the preflight's radical idea of a repair rule inside `warehouse.open`. Acceptance 2 needs no exception, because no automatic rebuild exists
+    - Advisory estimates: DuckDB 2.0 L2, format L2, NumPy inserts L2, HNSW rebuild L3, doctor report and fix L3 (was L2: a writing subcommand group and hang-safe detection), verified copy L3, verify-only check L3, session-start hooks L2, swap kept off L3
 * Insights
-    - The same function budgets 180 seconds for one probe of the real index. The count line is printed only after the HNSW insert commits, so a 5-second read ends before SIGKILL on the 39 GiB copy
+    - The replay bug turns a crash during embedding inserts into a stuck nightly, but the HNSW milestone's drop-before-insert design already avoids writing the log that triggers it. What remains is an arrival edge case, which the operator chose to handle with a named fix instead of automatic code
 
-## 2026-10-21 - PLAN (SEVENTH RE-PLAN) - COMPLETE
+## 2026-10-21 - PREFLIGHT (NINTH RUN) - COMPLETE
 
 * Work completed
-    - `reproduce` waits 180 seconds for the flushed embeddings count, or until the child exits, and sends SIGKILL if there is no line. The 5-second deadline stays on the unit test of a child that has already printed
-    - After SIGKILL, and before any fold, the four observation statements run in one child. Each prints a flushed line. The parent kills that child once, at the first hang
+    - Validated the re-planned 9-milestone list against `projectbrief.md`, the diff `37cf1c0..1d8ff00`, the engine code, and new DuckDB 1.5.4 and 2.0.0 experiments on stockroom's real `embeddings` shape
+    - Recorded preflight status: FAIL (fixable). The milestone list was not changed
 * Decisions made
-    - Adopted both advisories. The fold stays behind the observation. The proof pass after repair is the same four statements with no kill
+    - All seven Level 4 checks pass. The eighth run's finding and advisories are resolved as the operator chose. The new edge `hnsw --> doctor` agrees with the unchanged checklist
+    - Fixable: the plan's replay-bug description is wrong. On 2.0.0, a writer that does not touch `embeddings` exits 0 and the `.wal` grows. Once the `.wal` passes `checkpoint_threshold` (16 MiB by default), an automatic checkpoint deletes it and keeps an HNSW index that lacks every replayed row (3,000 of 3,500), with no error. Doctor's `.wal`-only detection, acceptance 12, the page's symptoms, milestone 1's recovery note, and the premise of "no automatic repair" all need revisiting. Options: correct the paragraph, add an index-coverage fact to doctor (`pragma_hnsw_index_info()` `count` against `count(*)`), cover the fold in milestone 1, and decide milestone 4's drop-before-sweep order
+    - Advisory, not adopted: doctor's flock test must not create `.warehouse.lock`; the reproduction test must not go red when a 2.0 patch fixes the bug; acceptance 11 needs a qualifier for the `.wal` arrival; bound the shadow test's killed-writer probes with a time limit; record the work machine's exposure and rollback in milestone 1
+    - Radical advisory, not adopted: move `embeddings` and its HNSW index into a separate small vectors file that is rebuilt and swapped as a whole
 * Insights
-    - A 5-second read is enough to catch an unflushed pipe and too short for the insert that prints the count on the 39 GiB copy
+    - Measured: an explicit `CHECKPOINT` fails fatally on the broken state, but the automatic checkpoint at commit succeeds and folds the log into a partial index. The loud state can turn silent on its own
+    - Measured: on 2.0.0, `pragma_hnsw_index_info()` `count` equals the row count on a healthy index, including after deletes, so comparing the two is a cheap read-only coverage check
+    - Measured: while the broken `.wal` is present, even a `DELETE` from `embeddings` that matches no rows raises the `InternalException`, so the order of embed's orphan sweep and the index drop decides whether the next writing embed repairs the warehouse
 
-## 2026-10-21 - PREFLIGHT (EIGHTH RUN) - COMPLETE (PASS WITH ADVISORY)
+## 2026-10-21 - PLAN (RE-PLAN AFTER NINTH PREFLIGHT) - COMPLETE
 
 * Work completed
-    - Preflight of the seventh re-plan. The plan was not edited. First line of `memory-bank/active/.preflight-status` is `PASS WITH ADVISORY`
+    - Folded the ninth preflight's fixable finding into `milestones.md` and `projectbrief.md`. Still nine milestones, same order and graph
+    - Corrected the replay-bug description: a writer that does not touch `embeddings` can auto-checkpoint the `.wal` away and leave an index that silently lacks rows. Explicit `CHECKPOINT` fails only while the `.wal` remains
+    - Renamed the fix to `stockroom doctor fix hnsw-rebuild`. Doctor compares `pragma_hnsw_index_info` count with `count(*)` when no `.wal` is present, and treats a missing index the same way. The troubleshooting page lists both states
+    - Milestone 1's killed-writer step now crosses `checkpoint_threshold` and compares the index count with the row count. The exposure window ends at the HNSW milestone; the fix arrives at the doctor milestone
+    - The HNSW milestone drops the index only around inserts. Embed's orphan delete, which runs after the insert transaction on every embed, and ingest's delete for a removed or text-changed message, leave the index in place
 * Decisions made
-    - Build may start. The advisories do not change the plan
-    - The observation probe list should name only statements that started. A hang on the first cosine query is opened and hung, not blocked
-    - Repair's index rebuild is not on the 180-second kill timer
+    - Operator: no automatic repair. About five installs, embed nightly, rollout of a couple of days. Build for a finished embed. A power loss may require the troubleshooting page. It must not empty the warehouse or delete its rows
+    - Operator, from the prior session: doctor-only plus a coverage check. Confirmed here, with the command name `hnsw-rebuild`
+    - Not adopted: the ninth preflight's advisories, including doctor opening `.warehouse.lock` without creating it, a reproduction test that skips if a patch fixes the bug, a timed child around the shadow-test probes, and naming the work machine's rollback in milestone 1. Acceptance 11 now points at acceptance 12 for a warehouse left mid-embed, because that is the operator's power-loss rule
+    - Not adopted: the radical idea of moving `embeddings` and its HNSW index into a separate file
 * Insights
-    - On this warehouse the loud cosine query hangs, so the other three observation statements never start. Synthetic files raise `InternalException` instead, and the step 3 `reproduce` test accepts `healthy` from DuckDB 1.5.4
-    - The overlay pytest already planned before `uv lock` can assert `loud` and `folded` on two tiny files, which fails a bad protocol before the 39 GiB copy
+    - A later embed that inserts recreates the index from every row, so that recreate includes rows a partial index had lacked. An idle night does not rebuild
+    - Today's embed runs the orphan delete after the insert transaction, not before it
 
-## 2026-10-21 - BUILD - FAIL (plan deficiency)
+## 2026-10-21 - PREFLIGHT (TENTH RUN) - COMPLETE
 
 * Work completed
-    - Step 1: `test_schema_one_v1_file_migrates_to_head_and_keeps_storage_tag`. Step 2: `test_unscoped_semantic_plan_uses_hnsw`. Both pass on 1.5.4 with no production change, and the HNSW assertion fails on the same statement without `LIMIT`
-    - Step 3: `scripts/shadow_duckdb_20.py` and 14 tests in `test_shadow_duckdb_20.py`, green on 1.5.4. `reproduce` returns `healthy` there
-    - Step 4 synthetic section on DuckDB 2.0.0 passed: `loud` and `folded` on small files, and the repair restored both
-    - Step 4.3: no later milestone's Done or Risks sentence differs on 2.0.0, so `milestones.md` is unchanged. Same on 2.0.0 as stated: the storage tag of new and existing files, `'latest'` leaving an old tag, a second connection with another storage setting failing (`ConnectionException`), zstd raising `BinderException` at `v1.0.0` and giving `ZSTD` at `v1.2.0`, zstd surviving `ADD COLUMN` on a `v2.0.0+` file, a row-removing delete with the index up leaking one index copy (23 to 33 used blocks) while a no-match delete does not, `COPY FROM DATABASE` keeping the index and storing text as `DICT_FSST`, and an interrupt during `CREATE INDEX` taking effect only after the build
-    - Step 4.3: `docs/architecture/embeddings.md`, two `semantic.py` docstrings, and the scoped starvation test said VSS applies `WHERE` after the HNSW pick. 2.0.0 filters inside the index scan (`Filters: optional`). Rewrote the three statements without a version. The test fixture is now 4,096 identical outsiders. A mutation check showed that a naive `WHERE` on the HNSW `LIMIT` query passed the old 32-row test on 2.0.0 and fails the new one on both versions
-    - Step 4 live run on a copy of this machine's warehouse (42,426,445,824 bytes): the copy, checkpoint equality (6 tables), ingest (no table shrank), `embed --verbose` (+962 rows, 0 orphans), the `v1.0.0+` tag, semantic search, the unscoped plan, the 1.5.4 writer, and the 2.0.0 re-read passed. Branch A returned `loud`, and the repair restored 133,794 = 133,794 rows with all four proof statements. Branch B failed: `expected folded, got healthy`
+    - Validated the re-planned 9-milestone list against `projectbrief.md`, the engine code, and new DuckDB 1.5.4 and 2.0.0 experiments on delete-and-checkpoint growth
+    - Recorded preflight status: FAIL (fixable). The milestone list was not changed
 * Decisions made
-    - Build stops as a plan deficiency. The 2.0 lock is not landed, step 5 did not start, and `pyproject.toml` and `uv.lock` are unchanged at 1.5.4. The live warehouse was not modified (mtime 03:34, same size, no `.wal`)
-    - Adopted the first preflight advisory: only started statements are probes, and repair is not on the 180-second timer
-    - Not adopted: the radical advisory's overlay pytest that asserts `loud` and `folded`. The script's synthetic gate already fails in seconds, before the copy
-    - Deviation: the scoped starvation test fixture changed (see above). It keeps that regression guard working at the 2.0 pin
+    - All seven Level 4 checks pass as structure. The ninth run's fold, coverage check, and `hnsw-rebuild` fix are in the plan
+    - Fixable: a delete of `embeddings` rows with the HNSW index left in place leaks a full index copy. On 1.5.4, one single-row delete plus checkpoint grew a 1,500-row file by exactly the index (10 blocks of 262144). Two further deletes kept adding copies. Process close does it with no explicit checkpoint, on 1.5.4 (wal of 125 bytes) and on 2.0.0 (wal of 159 bytes). A delete that matches nothing does not. Ingest closes its connection after `write_session` deletes embeddings, and embed skips the drop when it inserts nothing, so removal nights keep the copy
 * Insights
-    - `pragma_hnsw_index_info` count is far above the row count on this warehouse: the healthy baseline reads 280,901 against 133,793 rows on 1.5.4 and on 2.0.0. The origin of the extra entries is unknown: `PRAGMA hnsw_compact_index` leaves the count at 280,901. A drop, create, and checkpoint (21 s) gives 133,793 = 133,793. After the branch B fold it reads 280,901 against 133,794. The folded rule (index count below row count) cannot fire on a warehouse with embedding deletes. The fold is real: an HNSW top-3 search with the replayed row's own vector misses it while the row is in the table at exact distance 0
-    - The same count premise is in the doctor milestone (index-coverage check) and in the replay-bug invariant ("count is lower than `count(*)`"). Synthetic files never had a delete, so they agreed with it
-    - On the live copy the loud cosine query raised `InternalException` and the delete hung. The eighth preflight's note that the cosine query hangs there did not hold
-    - The extra entries shorten HNSW results: the unscoped `LIMIT 100` query returned 40 to 65 rows over 10 queries on the copy, under 1.5.4 and 2.0.0. Compaction changed nothing. After a rebuild every query returned 100
-    - Under 2.0.0, `stockroom embed` and `stockroom semantic` print nanobind leak warnings to stderr at exit. Ingest does not
-    - `approx_memory_usage` is the in-memory index size: 16.8 MB (2.0.0) and 21.0 MB (1.5.4) for a 1,500-row index in a 9.2 MB file
+    - The 2.0 move does not remove this leak. A later drop returns the copies to the free list on a small file; issue 147 already measured that the real warehouse does not shrink
+    - Advisory, not adopted: `hnsw-rebuild` has to create the index when it is already missing. Radical advisory, not adopted: ingest records dirty owner ids and embed is the only process that changes `embeddings`, so a night pays one rebuild
 
-## 2026-10-21 - BUILD - OPERATOR DECISIONS
+## 2026-10-21 - PLAN (RE-PLAN AFTER TENTH PREFLIGHT) - COMPLETE
 
+* Work completed
+    - Folded the tenth preflight's fixable finding into `milestones.md` and `projectbrief.md`. Still nine milestones, same order and graph
+    - A process that adds or removes `embeddings` rows drops the index before those statements, recreates it, and checkpoints before it exits. A delete that matches nothing is not a change, and a process that changes nothing does not rebuild
+    - Ingest does this around its delete for a removed or text-changed message, before it closes the connection. Embed drops once around its inserts and an orphan delete that removes rows
+    - The growth test includes a process that deletes rows and exits without inserting
+    - `stockroom doctor fix hnsw-rebuild` creates the index when it is already missing, and drops it only when one exists
 * Decisions made
-    - Operator: this milestone's shadow script detects the folded state by an HNSW lookup of the replayed row by its own vector, not by count against `count(*)`
-    - Operator: a fold on today's warehouses cannot be reliably detected read-only, and that is now the working assumption for the doctor milestone's coverage check
-    - Operator: HNSW results shortened by stale index entries must be fixed
+    - The operator's "deletes leave the index in place" line is amended by the measurement. Keeping it would let removal nights grow the file by an index copy, which fails acceptance 1. The power-loss rule is unchanged: a crash must not empty the warehouse
+    - Adopted the advisory that the fix command has to succeed when the index is already gone, because the probe already names that command for a missing index
+    - Not adopted: making embed the only process that changes `embeddings`. A night that both invalidates and inserts pays two index builds. That is the smaller fix the preflight named
 * Insights
-    - DuckDB 1.5.4's Python package is built with pybind11. 2.0.0 is built with nanobind, whose shutdown check prints the "leaked instances" warnings seen after `stockroom embed` and `stockroom semantic`
+    - The leak is at checkpoint and at process close, on 1.5.4 and 2.0.0. Ingest's close after `write_session` is the certain one, because ingest and embed are separate processes
 
-## 2026-10-21 - BUILD - OPERATOR DECISION: DROP THE HNSW INDEX
+## 2026-10-21 - PREFLIGHT (ELEVENTH RUN) - COMPLETE
 
+* Work completed
+    - Validated the re-planned 9-milestone list against `projectbrief.md`, the engine code, and delete-and-exit cycles on DuckDB 1.5.4 and 2.0.0
+    - Recorded preflight status: PASS WITH ADVISORY. The milestone list was not changed
 * Decisions made
-    - Operator: drop the HNSW index, because it is a two-way door. A later `CREATE INDEX` migration can bring it back. This reverses the invariant that the HNSW index stays
-    - It changes the milestone list (the drop-and-recreate milestone, doctor's index checks, and the copy chain's index rebuild), so the next plan is an L4 milestone re-plan, not only an L3 re-plan of this milestone
+    - All seven Level 4 checks pass. The tenth run's delete-leak finding is in the plan, and the planned drop, delete, recreate, checkpoint cycle keeps used blocks flat on both DuckDB versions
+    - Advisory, not adopted: checkpoint while the index is down, before `CREATE INDEX`, and bound the growth test on used blocks. The single trailing checkpoint alternates the file by one index
+    - Advisory, not adopted: ingest keeps the index down across every `write_session` in the process. Recreating between two embedding deletes leaves one used index copy
+    - Radical advisory, not adopted: one helper is the only embeddings mutator, and it checkpoints the dropped index before it builds the new one
 * Insights
-    - Measured on a copy of the live warehouse (DuckDB 2.0.0): `DROP INDEX` and a checkpoint took 0.8 s and cut used blocks from 161,453 to 6,846 (37.4 GiB freed inside the file). A `COPY FROM DATABASE` of the result is a 506 MB file, made in 5.2 s
-    - Exact top-100 search over 133,793 vectors: median 130 ms on 2.0.0 and 164 ms on 1.5.4, always 100 rows. The HNSW path: 34 ms and 41 ms, returning 37 to 65 rows
-    - Exact search grows linearly with rows: about 1 s at a million if linear (not measured), about 900 nights at the 962 vectors embedded tonight
+    - On a 1,500-row fixture the control delete climbs every cycle. The planned cycle stays at 20 used blocks. `DROP INDEX` then `CHECKPOINT` before the delete stays within one block of the start on every cycle, on 1.5.4 and 2.0.0, with the same numbers on both
+
+## 2026-10-21 - REVIEW (ADVISORY 1) - COMPLETE
+
+* Work completed
+    - Wrote the operator's decision into the HNSW milestone and acceptance 1. The milestone list is unchanged
+* Decisions made
+    - The growth test asserts, on every cycle, used blocks or a high-water file size of one index over the start. A cycle's file may be larger than the previous cycle by that one free index
+    - Not adopted: checkpoint while the index is down. That pass only removes free blocks the next cycle reclaims. The plan checkpoints once, after the recreate
+* Insights
+    - The leak is used blocks that stay up. The breath is file size. The test has to be able to tell them apart
+
+## 2026-10-21 - REVIEW (ADVISORY 2) - COMPLETE
+
+* Work completed
+    - Wrote the write order into the HNSW milestone, the happy path, and acceptance 1. The milestone list is unchanged
+* Decisions made
+    - The index stays down until every embedding delete in the process has run. The process recreates once, after the last one. The growth test includes two deletes and one recreate, with the recreate after both
+    - A message rewrite that does not change embeddings does not keep the index down
+    - Not adopted: a single helper as the only code allowed to change `embeddings`. The order is the requirement
+* Insights
+    - This is the same leak as an index-up delete. DuckDB 2.0 and the new file format do not remove it. Asking the operator to choose the order was a mislabel: the preflight called a misreadable sentence an advisory
+
+## 2026-10-21 - MILESTONE 1 SUB-RUN (DUCKDB 2.0) - BUILD FAIL, SUPERSEDED BY RE-PLAN
+
+* Work completed
+    - Level 3 sub-run for "Move the engine to DuckDB 2.0 and prove it on a copy of a real warehouse": plan, eight preflights, and build. Its full record is in git at `bd910c3` (`memory-bank/active/progress.md` and `tasks.md`)
+    - Built and committed on this branch: the schema-1 storage-tag test, the unscoped-HNSW plan test, `scripts/shadow_duckdb_20.py` with 14 tests, version-free wording for the scoped-filter reason, and a 4,096-row scoped starvation fixture
+    - The synthetic section passed on DuckDB 2.0.0. The live run on a copy of this machine's warehouse passed through branch A, then failed at branch B: `expected folded, got healthy`
+* Decisions made
+    - The 2.0 lock never landed. This checkout stays on DuckDB 1.5.4, and the live warehouse was only flocked, checked, copied, and stat'ed
+    - Operator: drop the HNSW index, a two-way door; strip everything about the index except the migration that drops it; re-plan the L4 milestones
+* Insights
+    - The live index reads 280,901 entries for 133,793 rows while healthy, on 1.5.4 and 2.0.0. `hnsw_compact_index` leaves the count; a rebuild (21 s) makes it equal and restores full top-100 results. So a fold cannot be detected from counts on a real warehouse
+    - Exact top-100 search over the same rows: 130 ms median on 2.0.0, 164 ms on 1.5.4, always 100 rows. Through the index: 34 ms and 41 ms, 37 to 65 rows
+    - `DROP INDEX` and a checkpoint on the live copy: 0.8 s, used blocks 161,453 to 6,846, 37.4 GiB freed inside the file. `COPY FROM DATABASE` of the result: 506 MB in 5.2 s
+    - DuckDB 2.0.0 filters a scoped `WHERE` inside the HNSW scan; DuckDB 2.0.0 rejects the SQL lambda arrow `x -> ...`; under 2.0.0, `stockroom embed` and `stockroom semantic` print nanobind leaked-instance warnings at exit (cause unknown)
+
+## 2026-10-21 - PLAN (L4 RE-PLAN: DROP THE HNSW INDEX) - COMPLETE
+
+* Work completed
+    - Rewrote `milestones.md`: eight milestones. Dropping the index and `vss` comes first, then DuckDB 2.0, then the new file format and the doctor storage report, then the verified copy, the verify-only check, its session-start launch, and the swap kept off
+    - Rewrote `projectbrief.md` for the decision: requirements, use cases, constraints, and acceptance no longer keep the index, the NumPy insert path, or a doctor fix
+* Decisions made
+    - Drop the HNSW index and `vss`: estimated L3. A migration, the warehouse chokepoint, semantic search, schema snapshots, tests, docs, and the shadow script all change, and the first commit with the migration goes live on this machine
+    - DuckDB 2.0: estimated L3. The pin, Dependabot, the shadow script without its kill branches, a live-copy run before the lock lands, and the nanobind warnings
+    - New file format and ZSTD: estimated L2. One creation path, two column clauses, the schema-0 case, and one doc page
+    - Doctor storage report: estimated L2. Read-only facts on the existing probe, with no index lines and no fix
+    - Verified copy: estimated L3. Equality, catalog, zstd on the copy, and the old-format fixture, with the original untouched
+    - Verify-only check: estimated L3. Flock, skip rules, the record, the time limit, cleanup, and faults
+    - Session-start launch: estimated L2. Two hook files and a detached launch
+    - Swap kept off: estimated L3. Hard link, replace, fsync, the SHA-256 proof, and faults after the link and the replace
+    - Cut from the plan: the HNSW drop-and-recreate milestone, the NumPy insert milestone, doctor's `.wal` and index-coverage lines, `stockroom doctor fix hnsw-rebuild`, the replay-bug troubleshooting page, and the HNSW checks in the copy
+    - `vss` leaves the engine, not only the index. Measured on 1.5.4 and 2.0.0 with autoload off: a file with the index, with or without a leftover `.wal` from a killed 1.5.4 embed, opens without `vss`, keeps every row, runs an exact cosine query, and drops the index inside a transaction
+    - Releases: milestones 1 and 2 make the first release, and milestone 1 may ship alone before it. This replaces "milestones 1 to 8 ship together", whose reason was the HNSW rebuild
+    - DuckDB facts in the later milestones are the ones measured on 2.0.0 on 2026-10-21, so the 2.0 milestone no longer re-measures and rewrites them
+* Insights
+    - With the index gone, copying this machine's warehouse takes seconds and about 0.5 GB. The verify-only release before the swap was sized for a long rebuild of a 39 to 88 GB file. The plan keeps it, because it is the operator's decision and not about the index; the operator can fold it into the swap at review

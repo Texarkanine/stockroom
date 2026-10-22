@@ -1,0 +1,1 @@
+Engine suite from a git-archive copy: test_reuse_lint_passes fails once coverage-engine's sync made the copy's .venv; git init + git add -A avoids it. semantic/embed exit 1 with one torch line: ensure-env if a usable freeze exists, else the quoted pip line.

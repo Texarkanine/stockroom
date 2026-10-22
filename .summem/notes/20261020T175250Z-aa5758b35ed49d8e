@@ -1,1 +1,0 @@
-semantic and embed exit 1 with one torch line: ensure-env when a usable freeze exists, else the quoted pip line; an encoder failure after import says re-run sr-initialize, not ensure-env.

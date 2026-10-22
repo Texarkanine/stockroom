@@ -1,0 +1,1 @@
+Measured 2026-10-21, DuckDB 1.5.4 and 2.0.0, vss never loaded (autoload off): a file with the HNSW index, with or without a .wal from a killed 1.5.4 embed, opens, keeps every row, runs exact array_cosine_distance, DROP INDEX in a transaction, insert, checkpoint.
