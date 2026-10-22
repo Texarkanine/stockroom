@@ -76,3 +76,14 @@ L4 milestone 2 of 7 for `warehouse-file-growth` ([issue 147](https://github.com/
     - PASS. Five advisories are recorded in `tasks.md`, and none blocks: a stale `test_embed.py` module docstring; "overlay" naming in the shadow script; the 2.0-lock run form not yet run end to end (the operator's Mac run, a release gate, covers it, and a failure there is loud); the pytest-plus-torch nanobind noise, recorded only in context; and torch stripped from `.venv` again by the QA-save commit's hook
 * Insights
     - The lock's `revision` bump is safe for users on older uv: uv documents revision changes as backward compatible. The hashed torch freeze holds only the torch stack, so a heal cannot downgrade DuckDB
+
+## 2026-10-22 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `reflection/reflection-warehouse-file-growth-m2.md`
+    - Fixed QA advisory 1 (`test_embed.py` module docstring, `622556c`)
+    - Closed QA advisory 3: the shadow script's 2.0-lock form ran end to end from a fresh clone of `622556c` and passed
+    - Reconciled persistent files: no update needed
+* Insights
+    - A logger filter left on a third-party logger anchors its module, and so `duckdb`, until shutdown; scope such filters to the call
+    - When a landing changes which form of a recipe applies, run the post-landing form once from a fresh clone of the landed commit

@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: warehouse-file-growth, milestone 2 (DuckDB 2.0)
-**Phase:** QA - COMPLETE (PASS)
+**Phase:** REFLECT - COMPLETE
 
 ## What Was Done
 - Milestone 1 is checked off; milestone 2 is classified Level 3
@@ -47,6 +47,13 @@ Deviations and decisions during build:
 - `check_live_copy`'s message leaves out the file path, so its version numbers cannot collide with digits in a path
 - Finding, not fixed: on DuckDB 2.0.0, a pytest process that loads the engine `conftest` and imports torch in-process prints nanobind leaked-instance lines at exit, exit code unchanged. Plain pytest with DuckDB and stockroom imports, collection without torch, and CI (torch-free) print none; the stockroom command processes print none after step 1. Contributors with torch in `.venv` will see this noise at the end of a local pytest run
 
+## Reflect (2026-10-22) - COMPLETE
+- Reflection: `memory-bank/active/reflection/reflection-warehouse-file-growth-m2.md` (milestone 1's reflection stays beside it for the capstone archive)
+- QA advisory 1 fixed: `test_embed.py` module docstring (`622556c`)
+- QA advisory 3 closed: the docstring's 2.0-lock form (no `--with`) ran end to end from a fresh clone of `622556c` on a copy of the live warehouse after its 2.0 writes: exit 0, every phase passed, no `nanobind` line
+- QA advisory 2 ("overlay" naming) left as is; advisory 4 (pytest-plus-torch noise) recorded in SumMem and the reflection; advisory 5 (torch stripped by commit hooks) handled with `stockroom shim ensure-env`
+- Persistent files: `productContext`, `systemPatterns`, `techContext` all skipped (the 2.0 pointer already landed in `techContext` with `ac8c6ca`)
+
 ## Next Step
-- QA (`/niko-qa` in a sub-agent)
+- Operator: run `/niko` to continue to the next milestone
 - Release gate after QA: the operator runs the shadow script from a fresh clone of the branch on his Macs (the docstring recipe) and reports back. The pull request title must start `feat!:`

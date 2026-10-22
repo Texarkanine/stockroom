@@ -1,1 +1,0 @@
-Operator 2026-10-21: silent HNSW fold is doctor-only, plus an index-coverage check. No repair on reconnect. The fix command is doctor fix hnsw-rebuild.
