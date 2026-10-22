@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: warehouse-file-growth, milestone 1 (drop the HNSW index and vss)
-**Phase:** QA - COMPLETE (PASS)
+**Phase:** REFLECT - COMPLETE
 
 ## What Was Done
 - Planning and preflight: see `progress.md`. Operator decisions on the thirteenth preflight: no orphan guard; build in place; advisories 1, 2, 4 to 7 folded; advisory 8 is for milestone 3
@@ -27,5 +27,10 @@
 - Timings on the migrated copy (DuckDB 1.5.4, top-100): unscoped 205 ms (old SQL 1,676 ms), `--role user` 445 ms (1,181 ms), `--harness claude` 61 ms (697 ms)
 - Machine state: `stockroom shim ensure-env` restored torch for the proof; the pre-commit exact sync removed it again, as before the build. Proof copies deleted; scripts and logs remain under this session's scratchpad `m1/`
 
+## Reflection
+- `memory-bank/active/reflection/reflection-warehouse-file-growth.md`. Key insights: land a dependency-removing migration before removing the capability it depends on; compare rankings on nearer-than-cut sets over several query vectors, because ties at the cut are common in this data; in a live checkout, script the landing and run the same script on the proof copy first
+- Reconcile: `systemPatterns` gained one clause (a retired migration stays as a comment-only file so versions stay contiguous); `techContext` was already corrected in build step 5; `productContext` never mentioned the index
+- QA advisories left for later: shadow-script leftovers (milestone 2 owns the script) and duplicated `_vss_loaded` / `_non_primary_indexes` test helpers
+
 ## Next Step
-- QA runs in a subagent (`/niko-qa`)
+- Milestone 1 of 7 is complete. The operator runs `/niko` to continue to the next milestone

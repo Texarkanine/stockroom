@@ -72,3 +72,13 @@ The L4 plan's history (twelve preflights, the failed DuckDB 2.0 sub-run, the re-
     - PASS. The three advisories are recorded in `tasks.md` and none blocks: unused pieces left by the shadow strip, two duplicated test helpers, and a note that "forward-only" still holds for the comment-only `0003` and `0001` edits
 * Insights
     - The landing order held: the before record shows schema 8 with the index, and the after record shows schema 9, no index, no `.wal`, every row count the same, and used blocks down from 163,283 to 6,862
+
+## 2026-10-22 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `reflection/reflection-warehouse-file-growth.md` covering plan, preflight, build, and QA
+    - Reconciled persistent files: one `systemPatterns` clause for retired migrations; `techContext` and `productContext` needed nothing more
+* Insights
+    - Preflight advisory 1 (write `0009` first) is what made the usage-limit interruption harmless: the build could stop at the one point before the landing
+    - Planning's single-vector shape comparison hid the tie behaviour that build had to explain
+
