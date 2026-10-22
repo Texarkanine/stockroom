@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: warehouse-file-growth, milestone 1 (drop the HNSW index and vss)
-**Phase:** BUILD - COMPLETE (milestone 1 landed; live warehouse migrated to schema 9)
+**Phase:** QA - COMPLETE (PASS)
 
 ## What Was Done
 - Planning and preflight: see `progress.md`. Operator decisions on the thirteenth preflight: no orphan guard; build in place; advisories 1, 2, 4 to 7 folded; advisory 8 is for milestone 3

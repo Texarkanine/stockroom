@@ -63,3 +63,12 @@ The L4 plan's history (twelve preflights, the failed DuckDB 2.0 sub-run, the re-
     - DuckDB's Python client draws a progress bar on stdout for long queries; a child whose stdout is parsed needs `SET enable_progress_bar = false`
     - The live drop and close took 0.9 s; the same drop on the cold copy took 19.6 s at close
 
+## 2026-10-22 - QA - COMPLETE (PASS)
+
+* Work completed
+    - Semantic review of the build (`1764c4e..HEAD`) against the Level 3 plan, milestone 1's done list, and the brief. Checked the semantic statement, the chokepoint removal, both migrations, the worker fixtures, B1 to B16, the shadow strip, the docs and context, and the live-copy proof and live before/after records
+    - Ran `make ci` separately: it passes, with pytest 1,040 passed and 38 skipped
+* Decisions made
+    - PASS. The three advisories are recorded in `tasks.md` and none blocks: unused pieces left by the shadow strip, two duplicated test helpers, and a note that "forward-only" still holds for the comment-only `0003` and `0001` edits
+* Insights
+    - The landing order held: the before record shows schema 8 with the index, and the after record shows schema 9, no index, no `.wal`, every row count the same, and used blocks down from 163,283 to 6,862
