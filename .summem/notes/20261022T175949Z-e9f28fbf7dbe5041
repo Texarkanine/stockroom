@@ -1,0 +1,1 @@
+2026-10-22: live data has many identical vectors (one query: 150 owners at distance 0), so top-k ties at the cut are common; exact semantic breaks them by harness, then id. DuckDB Python draws a progress bar on stdout for long queries; SET enable_progress_bar = false to parse it.

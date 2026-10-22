@@ -1,1 +1,0 @@
-DuckDB 2.0.0 raises BinderException for USING COMPRESSION zstd at storage v1.0.0 (1.5.4 stored it uncompressed silently); v1.2.0+ storage gives ZSTD. A zstd clause in 0001 breaks a schema-0 v1.0.0+ file and old-format test fixtures built from current 0001.

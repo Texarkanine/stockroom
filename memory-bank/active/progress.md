@@ -48,3 +48,18 @@ The L4 plan's history (twelve preflights, the failed DuckDB 2.0 sub-run, the re-
     - Advisory 8 is for milestone 3: the old-chain builder will need v2.1.2's `0001` once `0001` gains zstd
 * Insights
     - Writing `0009` first removes every unsafe moment from the landing, so the build needs no "never stop between two edits" rule
+
+## 2026-10-22 - BUILD - COMPLETE
+
+* Work completed
+    - All six plan steps, committed per step (`9732611`, `e1b3d00`, `5af3bf1`, `7f1d338`, `9a11273`). Red runs before every executable change: step 1 (B1 one owner of three, B2 `KeyError`; B3 and B5 already passed), step 3 (24 failures on `0003`'s `vss`-only `SET`, and B12), step 4 (16 failures: no `0009`, `vss` loaded, head 8)
+    - Live-copy proof on a 43 GB copy of this machine's warehouse, then the landing, then `stockroom migrate` on the live warehouse, verified against a read-only before record
+    - `make ci` and `make docs-build` pass: pytest 1,040 passed, 38 skipped
+* Decisions made
+    - The landing went through one scratch script applied identically to the proof copy and the checkout, so the proof ran the exact code that landed (a byte diff confirmed it)
+    - Docs name the removed thing "vector index", not HNSW or `vss`, per the operator's strip instruction
+* Insights
+    - The live data has many identical vectors, so equal distances at the cut are common; the old scoped SQL broke them arbitrarily, and the new tie-break (harness, then message id) is what makes results repeatable
+    - DuckDB's Python client draws a progress bar on stdout for long queries; a child whose stdout is parsed needs `SET enable_progress_bar = false`
+    - The live drop and close took 0.9 s; the same drop on the cold copy took 19.6 s at close
+

@@ -269,7 +269,7 @@ No new technology - validation not required. No dependency, lock, or build chang
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight
-- [ ] Build
+- [x] Build
     - [x] Step 1: exact semantic search. Red run: B1 (1 of 3 owners) and B2 (`KeyError`) failed; B3 and B5 already passed on the old code. Green: `test_semantic`, `test_render`, `test_dispatcher_cli` (93 passed, 1 torch-gated skip)
     - [x] Step 2: shadow script strip. No red run (deletion); the 6 kept tests passed before and after (`test_shadow_duckdb_20`), `make lint` and `make format-check` clean. Also removed `LOCK_ERROR` and the child prelude's `one_line`, which only deleted code used
     - [x] Step 3: retire `0003`, schema tests without `vss`. Red run: 24 failed (B7, B12, and every chain helper on `0003`'s `vss`-only `SET`). Green: schema, runner, discovery, and `test_warehouse_open` (93 passed); snapshot diff is only `indexes` emptied in 0003/0004/0006/0007/0008; `make schema-docs-check` clean; full `make test` 1,035 passed, 38 skipped. The head-snapshot docstring in `test_warehouse_open` was reworded here, not in step 4, because the snapshot changed here
@@ -280,5 +280,5 @@ No new technology - validation not required. No dependency, lock, or build chang
         - [x] 4.6 landed with `land.py`; checkout `src` is byte-identical to `src-proof` (`diff -ru` empty); step-4 tests 27 passed
         - [x] 4.7 `stockroom migrate` (0.9 s; row 9 applied 12:53:03 by that run): `verify_live.py compare` all PASS: version 9, no index, no `.wal`, no `vss`, used blocks 163,283 to 6,862, every table's row count unchanged
     - [x] Step 5: docs and context. The `vss|hnsw|over-?fetch` grep hits only `0003_retired.sql`, `0009`, the worker's v2.1.2 fixture, and the tests that build or assert the old index. The embeddings page and `techContext` say "vector index" instead of naming HNSW or `vss` (operator: strip everything about the index except the migration that drops it)
-    - [ ] Step 6: `make ci`, `make docs-build`
+    - [x] Step 6: `make ci` (lock, lint, format, schema-docs, 134 JS tests, pytest 1,040 passed / 38 skipped, REUSE) and `make docs-build --strict` both pass
 - [ ] QA
