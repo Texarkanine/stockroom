@@ -36,3 +36,15 @@ The L4 plan's history (twelve preflights, the failed DuckDB 2.0 sub-run, the re-
 * Decisions made
     - Eight advisories, none adopted yet: in step 4.5, write `0009` before removing `ensure_vss`, and remove the calls before the definition; B12 passes in step 4's red run (move it to step 2); the orphan rationale misses an interrupted autocommit `write_session` (key-join guard costs about 57 ms on 2.0.0); add `test_schema_0007._apply_through` to step 2.3; take verify_live's "before" record before landing; pin the scratch scripts' absolute paths; do step 3 before step 2; milestone 3's zstd `0001` will break `build_v2_1_2_chain`
     - Radical advisory, not applied: build in a git worktree so nothing is live until one fast-forward, and the live-copy proof runs the exact code that lands
+
+## 2026-10-22 - REVIEW (OPERATOR) - COMPLETE
+
+* Work completed
+    - Folded the thirteenth preflight's six correction advisories into `tasks.md`, and corrected the orphan reasoning
+* Decisions made
+    - Operator: no orphan guard in exact search (advisory 3). The plan's premise was wrong: `write_session` commits each statement separately, so an ingest crash can leave orphans until the next ingest or embed, and a top-k search can be short then. The guard's cost (+57 ms on 2.0.0, +340 ms on 1.5.4) was not taken
+    - Operator: build in place, not in a git worktree (radical advisory)
+    - Operator: accept advisories 1, 2, 4, 5, 6, and 7. Landing order is `0009` first, then the `ensure_vss` calls, then the function; B12 moves to the retire-`0003` step; `test_schema_0007._apply_through` joins the cleanup; the live before record comes just before landing; scratch scripts have full paths; the shadow strip (now step 2) runs before retiring `0003` (now step 3)
+    - Advisory 8 is for milestone 3: the old-chain builder will need v2.1.2's `0001` once `0001` gains zstd
+* Insights
+    - Writing `0009` first removes every unsafe moment from the landing, so the build needs no "never stop between two edits" rule
