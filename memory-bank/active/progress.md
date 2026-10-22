@@ -200,6 +200,20 @@ Move the engine to DuckDB 2.0 and prove it on a copy of a real warehouse. This i
     - Measured: one HNSW insert leaves a 1701-byte wal after the index is checkpointed. A 4KB threshold set before that checkpoint leaves no wal
     - Measured: `pragma_hnsw_index_info()` takes no arguments on 1.5.4 and 2.0.0. The indexed-row count is the `count` column
 
+## 2026-10-21 - PREFLIGHT - COMPLETE (FAIL (fixable))
+
+* Work completed
+    - Preflight of the fifth re-plan. The plan was not edited. First line of `memory-bank/active/.preflight-status` is `FAIL (fixable)`
+* Decisions made
+    - The kill child has to flush its embeddings count before it waits. A pipe buffers `print`, so the parent never reaches SIGKILL
+    - Embed runs with `--verbose`. The embeddings floor is the post-ingest count minus the orphan line, because ingest deletes embeddings for rewritten messages before that line exists
+* Insights
+    - Measured: `print` then sleep on a pipe is not readable after one second
+    - Measured: a schema-1 file at storage `v1.0.0` migrates to version 8 and keeps `v1.0.0+` on 1.5.4 and 2.0.0
+    - Measured: EXPLAIN contains `HNSW` on 2.0.0 via the line `HNSW Index: embeddings_vector_hnsw`
+    - Measured: nested `uv run --with duckdb==VERSION` selects VERSION even when `VIRTUAL_ENV` is inherited
+    - Recorded an advisory to run the synthetic kill and the live branches through one `reproduce()` function
+
 ## 2026-10-21 - PREFLIGHT - ABORTED
 
 * Work completed
@@ -210,4 +224,18 @@ Move the engine to DuckDB 2.0 and prove it on a copy of a real warehouse. This i
 * Insights
     - Measured, and not yet folded into the plan: from inside `uv run --with duckdb==2.0.0`, a nested `uv run --no-sync --with duckdb==VERSION` selects `VERSION` even when `VIRTUAL_ENV` is inherited. Unsetting `VIRTUAL_ENV` is not what makes `--with` take effect
     - Measured: on DuckDB 2.0.0, `EXPLAIN` of the unscoped cosine query contains `HNSW` in the line `HNSW Index: embeddings_vector_hnsw`. The operator title is `Hnsw Index Scan`, which does not itself contain `HNSW`. A case-sensitive `HNSW` check passes on 1.5.4 and 2.0.0
+
+## 2026-10-21 - PLAN (SIXTH RE-PLAN) - COMPLETE
+
+* Work completed
+    - Folded the fifth preflight's fixable findings and the aborted run's measurements into the plan
+    - The kill child flushes its count. `read_count_line` has a 5-second deadline. Embed is `embed --verbose`, and the embeddings floor is the post-ingest count minus the orphan line
+    - Synthetic and live branches call one `reproduce` function
+* Decisions made
+    - `--with` selects a DuckDB version the project environment does not already provide, whether or not `VIRTUAL_ENV` is set. While the lock is 1.5.4, `--project --with duckdb==1.5.4` runs the project interpreter
+    - Ingest, embed, and semantic stay on `sys.executable` because that process has the torch install
+    - Not adopted: letting `sessions`, `messages`, or `tool_calls` shrink. The Done line still requires no fewer rows
+* Insights
+    - The fifth re-plan treated a 1.5.4 `--with` that reused the project interpreter as "`VIRTUAL_ENV` makes `--with` ignore the request". Requesting 2.0.0 from that same parent selects 2.0.0 with `VIRTUAL_ENV` inherited. `duckdb==2.0.99` exits 1 and does not run 1.5.4
+    - An unflushed `print` on a pipe was still buffered after one second, so the parent never reached SIGKILL
 

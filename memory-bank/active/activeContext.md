@@ -4,9 +4,12 @@
 **Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Classified the first milestone as Level 3
-- Re-planned the version-pinned children. They start with `VIRTUAL_ENV` unset, print their DuckDB version, and fail the phase on a mismatch. The synthetic threshold is set after the index checkpoint
-- The next preflight was aborted. It did not replace `.preflight-status`. That file is still the prior run. The aborted run left two SumMem notes: a nested `uv run --no-sync --with duckdb==VERSION` already selects `VERSION` while `VIRTUAL_ENV` is inherited, and unsetting `VIRTUAL_ENV` is not what makes `--with` take effect. The plan still says `--with` is ignored while `VIRTUAL_ENV` points at the overlay
+- Folded the fifth preflight into the plan. The kill child flushes its embeddings count, and the parent fails the phase when that line does not arrive within 5 seconds
+- Embed runs as `embed --verbose`. The embeddings floor is the count after ingest minus the orphan line, or minus zero when that line is absent
+- Synthetic and live kill branches call one `reproduce` function
+- `uv run --with` selects a requested DuckDB version the project environment does not already provide, with `VIRTUAL_ENV` inherited. Unsetting `VIRTUAL_ENV` is not what selects it
+- The unscoped plan assertion stays a case-sensitive `HNSW`. On DuckDB 2.0.0 that substring is the line `HNSW Index: embeddings_vector_hnsw`
+- Not adopted: allowing `sessions`, `messages`, or `tool_calls` to shrink during ingest. The milestone Done line still requires no fewer rows
 
 ## Next Step
-- Reconcile that measurement with the plan, then preflight. Do not treat `.preflight-status` as the result of the aborted run
+- Preflight this plan. That run replaces `.preflight-status`
