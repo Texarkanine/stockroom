@@ -1,0 +1,1 @@
+Operator 2026-10-21: drop the HNSW index (two-way door; a later CREATE INDEX can restore it). Reverses 'HNSW stays'. Exact top-100 over 133,793 vectors is 130 ms on 2.0.0. Needs an L4 milestone re-plan.

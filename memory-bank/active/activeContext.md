@@ -14,6 +14,6 @@
 - That count premise is in this plan's `classify`, in the doctor milestone's coverage check, and in the replay-bug invariant
 
 ## Next Step
-- Operator decided: the shadow script detects the fold by looking up the replayed row by its own vector. A read-only fold check on today's warehouses is not reliable, which reaches the doctor milestone's coverage premise. Short HNSW results must be fixed. Next: `/niko-plan`
+- Operator decided (latest): drop the HNSW index; it is a two-way door. Exact search measured 130 ms on the live copy. This supersedes the fold-lookup decision and needs an L4 milestone re-plan: the index-stays invariant, the drop-and-recreate milestone, doctor's index checks, and the copy chain's index rebuild all change. Next: an L4 re-plan through `/niko-plan`
 - The 2.0 lock is not landed; this checkout's engine stays on DuckDB 1.5.4
 - Scratch copies from the run (about 85 GB, `baseline.duckdb` and the folded `warehouse.duckdb`) are in `/tmp/claude-1000/-home-mobaxterm-git-stockroom/99a0b37b-a8f2-4650-99f5-3edb42033c6b/scratchpad/shadow-live/`

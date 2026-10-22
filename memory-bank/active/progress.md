@@ -300,3 +300,13 @@ Move the engine to DuckDB 2.0 and prove it on a copy of a real warehouse. This i
     - Operator: HNSW results shortened by stale index entries must be fixed
 * Insights
     - DuckDB 1.5.4's Python package is built with pybind11. 2.0.0 is built with nanobind, whose shutdown check prints the "leaked instances" warnings seen after `stockroom embed` and `stockroom semantic`
+
+## 2026-10-21 - BUILD - OPERATOR DECISION: DROP THE HNSW INDEX
+
+* Decisions made
+    - Operator: drop the HNSW index, because it is a two-way door. A later `CREATE INDEX` migration can bring it back. This reverses the invariant that the HNSW index stays
+    - It changes the milestone list (the drop-and-recreate milestone, doctor's index checks, and the copy chain's index rebuild), so the next plan is an L4 milestone re-plan, not only an L3 re-plan of this milestone
+* Insights
+    - Measured on a copy of the live warehouse (DuckDB 2.0.0): `DROP INDEX` and a checkpoint took 0.8 s and cut used blocks from 161,453 to 6,846 (37.4 GiB freed inside the file). A `COPY FROM DATABASE` of the result is a 506 MB file, made in 5.2 s
+    - Exact top-100 search over 133,793 vectors: median 130 ms on 2.0.0 and 164 ms on 1.5.4, always 100 rows. The HNSW path: 34 ms and 41 ms, returning 37 to 65 rows
+    - Exact search grows linearly with rows: about 1 s at a million if linear (not measured), about 900 nights at the 962 vectors embedded tonight
