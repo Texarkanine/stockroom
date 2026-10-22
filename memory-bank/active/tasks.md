@@ -203,6 +203,6 @@ No new dependency. DuckDB is already the engine. On 1.5.4, a file created with `
     - [x] 1. Schema-1 file keeps its storage tag (passes on 1.5.4, no production change)
     - [x] 2. Unscoped semantic search plans through HNSW (passes on 1.5.4, no production change)
     - [x] 3. Shadow script guards and checkpoint equality (14 tests green on 1.5.4; `reproduce` returns `healthy` there)
-    - [ ] 4. Re-measure DuckDB 2.0 and shadow the real warehouse
-    - [ ] 5. Docs, Dependabot, and the pin
+    - [ ] 4. Re-measure DuckDB 2.0 and shadow the real warehouse (synthetic, 4.3, the live phases, and branch A pass; branch B fails: the folded rule cannot fire, see progress.md)
+    - [ ] 5. Docs, Dependabot, and the pin (not started; the lock stays 1.5.4)
 - [ ] QA

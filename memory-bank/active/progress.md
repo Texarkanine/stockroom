@@ -270,3 +270,24 @@ Move the engine to DuckDB 2.0 and prove it on a copy of a real warehouse. This i
     - On this warehouse the loud cosine query hangs, so the other three observation statements never start. Synthetic files raise `InternalException` instead, and the step 3 `reproduce` test accepts `healthy` from DuckDB 1.5.4
     - The overlay pytest already planned before `uv lock` can assert `loud` and `folded` on two tiny files, which fails a bad protocol before the 39 GiB copy
 
+## 2026-10-21 - BUILD - FAIL (plan deficiency)
+
+* Work completed
+    - Step 1: `test_schema_one_v1_file_migrates_to_head_and_keeps_storage_tag`. Step 2: `test_unscoped_semantic_plan_uses_hnsw`. Both pass on 1.5.4 with no production change, and the HNSW assertion fails on the same statement without `LIMIT`
+    - Step 3: `scripts/shadow_duckdb_20.py` and 14 tests in `test_shadow_duckdb_20.py`, green on 1.5.4. `reproduce` returns `healthy` there
+    - Step 4 synthetic section on DuckDB 2.0.0 passed: `loud` and `folded` on small files, and the repair restored both
+    - Step 4.3: no later milestone's Done or Risks sentence differs on 2.0.0, so `milestones.md` is unchanged. Same on 2.0.0 as stated: the storage tag of new and existing files, `'latest'` leaving an old tag, a second connection with another storage setting failing (`ConnectionException`), zstd raising `BinderException` at `v1.0.0` and giving `ZSTD` at `v1.2.0`, zstd surviving `ADD COLUMN` on a `v2.0.0+` file, a row-removing delete with the index up leaking one index copy (23 to 33 used blocks) while a no-match delete does not, `COPY FROM DATABASE` keeping the index and storing text as `DICT_FSST`, and an interrupt during `CREATE INDEX` taking effect only after the build
+    - Step 4.3: `docs/architecture/embeddings.md`, two `semantic.py` docstrings, and the scoped starvation test said VSS applies `WHERE` after the HNSW pick. 2.0.0 filters inside the index scan (`Filters: optional`). Rewrote the three statements without a version. The test fixture is now 4,096 identical outsiders. A mutation check showed that a naive `WHERE` on the HNSW `LIMIT` query passed the old 32-row test on 2.0.0 and fails the new one on both versions
+    - Step 4 live run on a copy of this machine's warehouse (42,426,445,824 bytes): the copy, checkpoint equality (6 tables), ingest (no table shrank), `embed --verbose` (+962 rows, 0 orphans), the `v1.0.0+` tag, semantic search, the unscoped plan, the 1.5.4 writer, and the 2.0.0 re-read passed. Branch A returned `loud`, and the repair restored 133,794 = 133,794 rows with all four proof statements. Branch B failed: `expected folded, got healthy`
+* Decisions made
+    - Build stops as a plan deficiency. The 2.0 lock is not landed, step 5 did not start, and `pyproject.toml` and `uv.lock` are unchanged at 1.5.4. The live warehouse was not modified (mtime 03:34, same size, no `.wal`)
+    - Adopted the first preflight advisory: only started statements are probes, and repair is not on the 180-second timer
+    - Not adopted: the radical advisory's overlay pytest that asserts `loud` and `folded`. The script's synthetic gate already fails in seconds, before the copy
+    - Deviation: the scoped starvation test fixture changed (see above). It keeps that regression guard working at the 2.0 pin
+* Insights
+    - `pragma_hnsw_index_info` count includes deleted rows. The healthy baseline reads 280,901 against 133,793 rows on 1.5.4 and on 2.0.0. After the branch B fold it reads 280,901 against 133,794. The folded rule (index count below row count) cannot fire on a warehouse with embedding deletes. The fold is real: an HNSW top-3 search with the replayed row's own vector misses it while the row is in the table at exact distance 0
+    - The same count premise is in the doctor milestone (index-coverage check) and in the replay-bug invariant ("count is lower than `count(*)`"). Synthetic files never had a delete, so they agreed with it
+    - On the live copy the loud cosine query raised `InternalException` and the delete hung. The eighth preflight's note that the cosine query hangs there did not hold
+    - Deleted entries also shorten HNSW results: the unscoped `LIMIT 100` query returned 57 rows on the copy under 1.5.4 and 2.0.0
+    - Under 2.0.0, `stockroom embed` and `stockroom semantic` print nanobind leak warnings to stderr at exit. Ingest does not
+    - `approx_memory_usage` is the in-memory index size: 16.8 MB (2.0.0) and 21.0 MB (1.5.4) for a 1,500-row index in a 9.2 MB file

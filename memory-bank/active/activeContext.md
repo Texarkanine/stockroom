@@ -1,12 +1,19 @@
 # Active Context
 
 ## Current Task: warehouse-file-growth
-**Phase:** PREFLIGHT - COMPLETE (PASS WITH ADVISORY)
+**Phase:** BUILD - FAIL (plan deficiency)
 
 ## What Was Done
-- `reproduce` waits 180 seconds for the flushed embeddings count, or until the insert child exits. If there is no line, the parent sends SIGKILL and the phase fails. The 5-second deadline stays on the unit test of a child that has already printed
-- After that kill, and before any fold, one child runs the cosine query, an embeddings delete, an insert, and `CHECKPOINT`. It prints a flushed line after each. The parent kills that child once, at the first hang
-- The proof pass after repair is those four statements again, with no kill
+- Added `test_schema_one_v1_file_migrates_to_head_and_keeps_storage_tag` (`tests/test_warehouse_open.py`) and `test_unscoped_semantic_plan_uses_hnsw` (`tests/test_semantic.py`)
+- Added `scripts/shadow_duckdb_20.py` and `tests/test_shadow_duckdb_20.py`
+- Rewrote the scoped-filter reason in `docs/architecture/embeddings.md` and `semantic.py`, and raised the scoped starvation fixture to 4,096 rows, because DuckDB 2.0.0 filters inside the HNSW scan
+- The synthetic section passed on 2.0.0. The live run passed through branch A and failed at branch B
+
+## Blocking Finding
+- `pragma_hnsw_index_info` count includes deleted rows: 280,901 against 133,793 rows on the healthy live copy, on 1.5.4 and 2.0.0. "Index count below row count" cannot mark a fold on a warehouse with embedding deletes. The fold itself reproduced: the replayed row is in the table and the index does not find it
+- That count premise is in this plan's `classify`, in the doctor milestone's coverage check, and in the replay-bug invariant
 
 ## Next Step
-- Build may start. `.preflight-status` is `PASS WITH ADVISORY`. The advisories do not block.
+- Operator decides how the folded state is detected, for the shadow script and for the doctor milestone, then `/niko-plan`
+- The 2.0 lock is not landed; this checkout's engine stays on DuckDB 1.5.4
+- Scratch copies from the run (about 85 GB, `baseline.duckdb` and the folded `warehouse.duckdb`) are in `/tmp/claude-1000/-home-mobaxterm-git-stockroom/99a0b37b-a8f2-4650-99f5-3edb42033c6b/scratchpad/shadow-live/`

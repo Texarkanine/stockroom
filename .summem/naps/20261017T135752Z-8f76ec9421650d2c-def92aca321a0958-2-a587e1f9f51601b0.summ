@@ -1,0 +1,1 @@
+CC 2.1.302 hooks expand "${CLAUDE_PLUGIN_ROOT}" from env (safe); skill text is pasted raw. sr-initialize owner: default plugin dirs by path; else claude if <copy root>/data/<id> or installed_plugins.json lists it, dev if stockroom-inline, cursor via CURSOR_PLUGIN_ROOT, else ask.
