@@ -16,9 +16,9 @@ Everything before the lock lands works on DuckDB 1.5.4 and 2.0 alike, because th
 flowchart TD
   fix[Step 1: scope the Hub filter to the model load]
   shadow[Step 2: finish the shadow script]
-  clone[Step 3: clone recipe smoke on this machine]
+  clone[Step 3: fresh clone of the branch, recipe smoke]
   gateA{Step 4a: full suite on a 2.0 overlay with torch}
-  gateB{Step 4b: shadow run on a copy of the live warehouse}
+  gateB{Step 4b: shadow run from the clone on a copy of the live warehouse}
   move[Step 5: one commit - range, lock, Dependabot, doc page, techContext]
   live[Step 6: live checks, dashboard bounce]
   stop[Stop: report, do not land]
@@ -43,6 +43,7 @@ flowchart TD
 - A new warehouse from `warehouse.open()` on 2.0.0 is tagged `v2.0.0+`; on 1.5.4 it is `v1.0.0+`. Both reach schema 9.
 - No engine SQL and no `sr-query` recipe uses the `x -> ...` lambda arrow that 2.0.0 rejects.
 - Live warehouse: 42,436,407,296 bytes, schema 9, no index, no `.wal`. The scratchpad disk has 763 GB free; the shadow run needs twice the source plus 1 GiB.
+- Backup, made before the build at the operator's request (2026-10-22 14:43): `~/.local/share/stockroom/warehouse.issue147-pre-duckdb2.duckdb`, a byte copy taken under the writer flock with no `.wal` (scratch `m2/backup_warehouse.py`). The live file's size was 42,436,407,296 and its `mtime_ns` 1792691583558847137. The backup and the source have the same SHA-256, `e7c36f1d550431b94171470de70f57cb2b7784d16d6e77f442550f053c0db19c`. The record is at scratch `m2/backup-record.txt`. This is the rollback copy for the landing, named by the backup rule (brief, constraint 11).
 - The session-start dashboard (pid 1762403, started 2026-10-20) is a long-lived process on this checkout's `.venv` with DuckDB 1.5.4 loaded. `stockroom dashboard --replace` restarts an owned listener.
 
 ## Component Analysis
@@ -77,7 +78,7 @@ flowchart TD
 - Every change before the lock behaves the same on DuckDB 1.5.4 and 2.0 (the working tree is live).
 - The shadow script never opens `--source` with DuckDB; its only operations on that file are the flock, the `.wal` check, one byte copy, and a stat.
 - The live warehouse is never opened for writing by anything except the stockroom commands of step 6, and is never replaced, renamed, or deleted. If step 6 finds damage, the build stops and asks the operator before restoring anything.
-- The shadow run's baseline copy stays on disk after the run, as a byte-identical rollback copy for the landing, as long as the live file's size and mtime have not changed since the copy.
+- The rollback copy is `warehouse.issue147-pre-duckdb2.duckdb`. It is byte-identical to the live file only while the live file's size and `mtime_ns` equal the backup record, so gate 4b through step 6 run in one sitting that ends well before the 03:30 job. Nothing in this milestone deletes or replaces that backup.
 - No vector index, no `vss`, no migration, and no new user-facing command (cross-milestone invariants).
 - Nothing in this milestone sets the new-file storage version explicitly or adds ZSTD clauses (milestone 3 owns both).
 - The Hub's unauthenticated-request notice stays hidden during model load, and other warnings from that logger still pass.
@@ -137,7 +138,7 @@ Edge cases considered and left out on purpose:
 
 1. Stub tests: in `test_embed.py`, rework `test_unauthenticated_hub_notice_is_dropped_and_other_warnings_remain` (N1) to use the context manager; add empty `test_hub_notice_filter_is_removed_on_exit` (N2, parametrized `normal` / `raised`), `test_bge_encoder_silences_hub_notice_only_while_loading` (N3), `test_bge_encoder_removes_hub_filter_when_load_fails` (N4), and the torch-gated `test_embed_and_semantic_exit_without_nanobind_leak_warnings` (N5) beside the other BGE tests, each with a docstring.
 2. Stub interface: `silence_unauthenticated_hub_warning()` becomes `@contextlib.contextmanager def silence_unauthenticated_hub_warning() -> Iterator[None]` with a docstring that says why the filter must not outlive the load (it keeps `stockroom.embed`, and so `duckdb`, alive until nanobind's shutdown check under DuckDB 2.0). The body is still the old permanent add, so the stub keeps today's behaviour.
-3. Write tests and run red: N3 and N4 install fakes with `monkeypatch.setitem(sys.modules, ...)`. The fake `SentenceTransformer` logs the notice through `logging.getLogger("huggingface_hub.utils._http")` and, for N4, raises `RuntimeError`. Assertions use `caplog` at WARNING on that logger, as N1 does. N5 seeds one message with `_seed_warehouse_message`, then runs both CLIs with `subprocess.run([sys.executable, "-m", "stockroom", ...], env={**os.environ, "PYTHONPATH": <src>, "STOCKROOM_HOME": str(warehouse_home)}, capture_output=True, text=True, timeout=600)`. Run `test_embed.py` on the project venv: N2, N3, and N4 fail (the filter stays). Then run N5 under the 2.0 overlay with torch: `uv run --project skills/sr-search --no-config --no-sync --with duckdb==2.0.0 bash -c '<install torch from ~/.local/share/stockroom/torch-requirements.txt into $(command -v python)>; python -m pytest -n0 tests/test_embed.py -k nanobind'`. N5 must fail on `nanobind`.
+3. Write tests and run red: N3 and N4 install fakes with `monkeypatch.setitem(sys.modules, ...)`. The fake `SentenceTransformer` logs the notice through `logging.getLogger("huggingface_hub.utils._http")` and, for N4, raises `RuntimeError`. Assertions use `caplog` at WARNING on that logger, as N1 does. N5 seeds one message with `_seed_warehouse_message`, then runs both CLIs with `subprocess.run([sys.executable, "-m", "stockroom", ...], env={**os.environ, "PYTHONPATH": <src>, "STOCKROOM_HOME": str(warehouse_home)}, capture_output=True, text=True, timeout=600)`. Run `test_embed.py` on the project venv: N2, N3, and N4 fail (the filter stays). Then run N5 under the 2.0 overlay with torch, from the repo root: `uv --directory skills/sr-search --no-config run --no-sync --with duckdb==2.0.0 bash -c '<install torch from ~/.local/share/stockroom/torch-requirements.txt into $(command -v python)>; python -m pytest -n0 tests/test_embed.py -k nanobind'`. (`--project skills/sr-search` fails from inside the engine folder in uv 0.12.22, and the test path needs the engine folder.) N5 must fail on `nanobind`.
 4. Write code and run green: the context manager adds a fresh `_DropUnauthenticatedHubWarning` to the Hub logger, yields, and removes that same instance in `finally` (the idempotence check goes away; nested uses each remove their own instance). `BgeEncoder.__init__` runs `SentenceTransformer(...)` inside `with silence_unauthenticated_hub_warning():`. Run `test_embed.py` and `test_semantic.py` on the project venv (green), then N5 again under the 2.0 overlay with torch (green). Commit: `fix: stop the Hub warning filter from outliving the model load`.
 
 ### 2. Finish the shadow script — executable
@@ -155,33 +156,35 @@ Edge cases considered and left out on purpose:
     - Docstring: the run forms ("with the 2.0 lock: `uv run --project skills/sr-search --no-config --no-sync python scripts/shadow_duckdb_20.py ...`; on a checkout still locked to 1.5.4, add `--with duckdb==2.0.0`"), the fresh-clone recipe for another machine (`git clone --branch <branch> <repo>`, `make sync` in the clone, then the run; never `make shim` or `make torch` there, because the script installs torch from that machine's hashed freeze into the run's own interpreter), and phase 5's new checks.
     - Run `test_shadow_duckdb_20.py` (green) and `make lint` / `make format-check`. Commit: `chore: finish the DuckDB 2.0 shadow script checks`.
 
-### 3. Clone-recipe smoke on this machine — verification
+### 3. Fresh clone and recipe smoke on this machine — verification
 
 - No files change.
 
-1. Clone this branch into the scratchpad (`git clone --branch constrain-size-as-best-we-can /home/mobaxterm/git/stockroom <scratch>/m2/clone`), run `make sync` there, and run the docstring's 1.5.4-lock form with `--synthetic --home <scratch>/m2/clone-home`. Expect exit 0 and `shadow: synthetic section passed`. This shows the Mac recipe works mechanically and that the clone's run never touches this checkout's `.venv` or the live warehouse.
-2. Delete the clone and its home.
+1. After steps 1 and 2 are committed, clone this branch into the scratchpad (`git clone --branch constrain-size-as-best-we-can /home/mobaxterm/git/stockroom <scratch>/m2/clone`), run `make sync` there, and run the docstring's 1.5.4-lock form with `--synthetic --home <scratch>/m2/clone-home`. Expect exit 0 and `shadow: synthetic section passed`. This shows the Mac recipe works and that a run from the clone never touches this checkout's `.venv` or the live warehouse.
+2. Keep the clone for gate 4b; delete `clone-home`.
 
 ### 4. Pre-lock gates — verification
 
 - No files change. Both gates must pass before step 5. If either fails, stop, record it, and report; the 1.5.4 lock stays.
+- Both gates can take longer than the 10-minute foreground limit. Run each in the background with its output in a log file under `<scratch>/m2/`, wait for the completion notice, then read the whole log.
 
-1. Gate 4a: `uv run --project skills/sr-search --no-config --no-sync --with duckdb==2.0.0 bash -c '<install torch from the freeze>; python -m pytest'` from the engine dir. Read the whole output. Expect green, with fewer skips than 38 (the torch-gated tests run).
-2. Gate 4b, before record: stat the live warehouse (size, `mtime_ns`), confirm there is no `.wal`, and record `schema`, the storage tag, and row counts through `stockroom query` (1.5.4, read-only). Write them to `<scratch>/m2/live-before.txt`.
-3. Gate 4b, the run, from the repo root: `set -o pipefail; uv run --project skills/sr-search --no-config --no-sync --with duckdb==2.0.0 python scripts/shadow_duckdb_20.py --source ~/.local/share/stockroom/warehouse.duckdb --home <scratch>/m2/shadow 2>&1 | tee <scratch>/m2/shadow.log`. `pipefail` keeps the script's exit status through `tee`. Expect exit 0 and `shadow: every phase passed`. Keep `<scratch>/m2/shadow/baseline.duckdb`.
+1. Gate 4a, from the repo root: `uv --directory skills/sr-search --no-config run --no-sync --with duckdb==2.0.0 bash -c '<install torch from the freeze>; python -m pytest'`. Expect green, with fewer skips than 38 (the torch-gated tests run).
+2. Gate 4b, before record: confirm the live warehouse's size and `mtime_ns` still equal the backup record and that there is no `.wal`. Record `schema`, the storage tag, and row counts through `stockroom query` (1.5.4, read-only) in `<scratch>/m2/live-before.txt`.
+3. Gate 4b, the run, from the clone's root, so it follows the exact recipe the operator will use on his Macs: `set -o pipefail; uv run --project skills/sr-search --no-config --no-sync --with duckdb==2.0.0 python scripts/shadow_duckdb_20.py --source ~/.local/share/stockroom/warehouse.duckdb --home <scratch>/m2/shadow 2>&1 | tee <scratch>/m2/shadow.log`. `pipefail` keeps the script's exit status through `tee`. Expect exit 0 and `shadow: every phase passed`. The script's last line ("baseline can be deleted") stays as it is (operator).
+4. After it passes, delete the clone and `<scratch>/m2/shadow` (its baseline duplicates the named backup, which is the rollback copy).
 
 ### 5. The DuckDB 2.0 move (one commit) — executable config plus prose
 
 - Files: `skills/sr-search/pyproject.toml`, `skills/sr-search/uv.lock`, `.github/dependabot.yaml`, `docs/advanced/duckdb.md`, `memory-bank/techContext.md`
 - No new tests: the whole suite on 2.0 (gate 4a, then `make ci`) is the proof; a pin test would be a change-detector, and the Dependabot file and the doc page are config and prose.
 
-1. Confirm the live warehouse's size and `mtime_ns` still equal the before record and that there is no `.wal`, so the baseline is a byte-identical rollback copy.
+1. Confirm the live warehouse's size and `mtime_ns` still equal the backup record (42,436,407,296; 1792691583558847137) and that there is no `.wal`, so the named backup is still a byte-identical rollback copy. If either differs (for example, the 03:30 job ran), stop and ask the operator whether to take a fresh backup before landing. Do not replace the existing backup without that answer.
 2. `pyproject.toml`: `"duckdb>=2.0,<2.1"`. Run `uv --directory skills/sr-search --no-config lock` and confirm the lock diff changes only duckdb (1.5.4 → 2.0.0).
 3. `.github/dependabot.yaml`, engine `uv` block: an `ignore` entry for `dependency-name: 'duckdb'` with `versions: ['>=2.1.0']` and a comment that the engine stays on the 2.0 line. Check that the file still parses as YAML.
 4. `docs/advanced/duckdb.md`: a "DuckDB version" section after the intro. It says to use DuckDB 2.0 or newer, that stockroom's engine runs DuckDB 2.0, and that a warehouse it creates is stored in DuckDB 2.0's file format, which DuckDB before 2.0 cannot open. It shows `duckdb --version` as the check. Plain language (ISO 24495); no version history.
-5. `memory-bank/techContext.md`: one sentence in Environment Setup that the engine pins the DuckDB 2.0 line (`>=2.0,<2.1`; Dependabot ignores 2.1 and later).
+5. `memory-bank/techContext.md`: one sentence in Environment Setup that the engine stays on the DuckDB 2.0 line, pointing to the range in `skills/sr-search/pyproject.toml` and the Dependabot ignore, without repeating the version numbers.
 6. `make ci`. This is the sync that moves `.venv`, the live engine, to 2.0. Then `make docs-build`. Read the whole output of both. If `make ci` fails: restore `pyproject.toml` and `uv.lock` from `HEAD` (one `git checkout --` call), run `make sync`, confirm `.venv` imports duckdb 1.5.4, stop, and report. That leaves the machine on 1.5.4 before the 03:30 job.
-7. Commit all five files together: `feat: move the engine to DuckDB 2.0`, with a body saying new warehouses need DuckDB 2.0 or newer to open, and existing ones keep their format.
+7. Commit all five files together: `feat!: move the engine to DuckDB 2.0`, with a body saying new warehouses need DuckDB 2.0 or newer to open, and existing ones keep their format. The operator confirmed a major version release; the pull request title, which decides the bump at squash-merge, must also start `feat!:`. No pull request exists for this branch yet.
 
 ### 6. Live checks after landing — verification
 
@@ -189,10 +192,10 @@ Edge cases considered and left out on purpose:
 
 1. `stockroom dashboard --replace`, so the session-start dashboard stops running 1.5.4 code against 2.0 files; check that `http://127.0.0.1:58008/` answers.
 2. Read-only after record through `stockroom query` (now 2.0): storage tag `v1.0.0+`, schema 9, row counts equal to the before record.
-3. `stockroom shim ensure-env` (the commit's exact sync removed torch), then `stockroom ingest`, `stockroom embed --verbose`, and `stockroom semantic -k 3 "how does the warehouse lock work"` through the shim. Each exits 0 and prints no `nanobind` line. `sessions`, `messages`, and `tool_calls` do not shrink, and `embeddings` shrinks by no more than the orphans embed reports.
+3. `stockroom shim ensure-env` (the commit's exact sync removed torch), then `stockroom ingest`, `stockroom embed --verbose`, `stockroom semantic -k 3 "how does the warehouse lock work"`, and `stockroom doctor smoke` through the shim. Each exits 0 and prints no `nanobind` line. (`doctor smoke` also builds the encoder in a process that has loaded DuckDB, and `sr-initialize` runs it.) `sessions`, `messages`, and `tool_calls` do not shrink, and `embeddings` shrinks by no more than the orphans embed reports.
 4. A DuckDB 1.5.4 read-only open of the live warehouse (`uv run --project skills/sr-search --no-config --no-sync --with duckdb==1.5.4 python -c ...`) counts `messages`, as the stockroom 0.16.0 copy on this machine would.
-5. On any failure: do not touch the live file. Revert the commit (`git revert`, one call), run `make sync`, and ask the operator before restoring the warehouse from the baseline.
-6. Leave the baseline in place and report its path and size to the operator. Stockroom never deletes it, and the operator decides when it goes.
+5. On any failure: do not touch the live file. Revert the commit (`git revert`, one call), run `make sync`, and ask the operator before restoring the warehouse from `warehouse.issue147-pre-duckdb2.duckdb`.
+6. Leave the backup in place and report its path and size to the operator. Nothing deletes it in this milestone; a later release may, by its `warehouse.issue147-` name.
 
 ### 7. Final verification
 
@@ -214,7 +217,7 @@ No new technology. DuckDB 2.0.0 replaces an existing dependency at a new major v
 - Torch is missing from `.venv` on this machine (each commit's exact sync removes it). Mitigation: the overlay gates install torch from the hashed freeze into the overlay's own interpreter only. Step 6 runs `stockroom shim ensure-env` before the live embed, and `embed` restores torch itself if needed.
 - The 2.0 overlay is a temporary environment that `uv` deletes when the run ends. Mitigation: every overlay command installs torch and runs its work inside one `uv run ... bash -c` call.
 - The shadow run copies 42 GB twice and runs `EXCEPT ALL` over every table. Mitigation: 763 GB is free. The run is long but reports progress line by line. `--stop-after` allows a partial rerun, though a rerun needs an empty `--home`.
-- The first 2.0 write to the live warehouse. Mitigation: gate 4b proves it on a byte copy. The baseline stays on disk as a rollback copy (step 5.1 checks it is still byte-identical by size and mtime). Step 6 makes the first live 2.0 writes supervised, not at 03:30, and 1.5.4 must still open the file afterwards.
+- The first 2.0 write to the live warehouse. Mitigation: gate 4b proves it on a byte copy. `warehouse.issue147-pre-duckdb2.duckdb` is the rollback copy (SHA-256 verified; step 5.1 checks by size and `mtime_ns` that it is still byte-identical). Step 6 makes the first live 2.0 writes supervised, not at 03:30, and 1.5.4 must still open the file afterwards.
 - The long-lived dashboard has DuckDB 1.5.4 loaded while `.venv` swaps to 2.0 under it. Mitigation: step 6.1 restarts it with `--replace`.
 - Dependabot config errors show only on GitHub. Mitigation: the documented `>=` form, a YAML parse check, and the `<2.1` range in `pyproject.toml` as the first guard.
 - 2.0.1 may be released mid-build (a dev build exists). Mitigation: pin 2.0.0; the range admits a later patch through Dependabot.
@@ -234,6 +237,6 @@ No new technology. DuckDB 2.0.0 replaces an existing dependency at a new major v
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight (PASS WITH ADVISORY; operator decisions folded 2026-10-22)
 - [ ] Build
 - [ ] QA

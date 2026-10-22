@@ -1,0 +1,1 @@
+Releases stand alone; v0.1.0-v2.1.2 pinned DuckDB 1.5.4: wild warehouses are v1.0.0+ at schema 0-8. 2.0 files are v2.0.0+, unopenable before 2.0. 2.0 zstd: BinderException on v1.0.0. Issue 147 chain: short-lived, own module, data-safe. embed/semantic heal torch from the freeze.

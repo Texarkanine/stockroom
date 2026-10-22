@@ -26,3 +26,27 @@ L4 milestone 2 of 7 for `warehouse-file-growth` ([issue 147](https://github.com/
 * Insights
     - The warning is not a DuckDB refcount bug in stockroom's queries: DuckDB with any binding, torch, and a plain sentence-transformers load are all clean. It is stockroom's own logger filter, which outlives the model load
     - A torch-free process cannot reproduce it, so only a torch-gated test can check the exit warning itself; a torch-free test checks the filter's scope
+
+## 2026-10-22 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Checked the Level 3 plan against the code: `embed.py`, `test_embed.py`, `scripts/shadow_duckdb_20.py` and its tests, `semantic.py` / `render.py` TSV output, `doctor.py`, `.github/dependabot.yaml`, `docs/advanced/duckdb.md`, the Makefile, and the commit hook
+    - Confirmed on DuckDB 1.5.4 that S1 and S4 hold as written: a migrated `v1.0.0` file reads `v1.0.0+`, schema 9, no non-primary index; a `v1.2.0` file reads `v1.2.0+`
+    - Result: `.preflight-status` first line `PASS WITH ADVISORY`. No TDD step swap and no strike
+* Decisions made
+    - TDD passes: units 1 and 2 run tests first; unit 5 is a dependency move proven by the existing suite on a 2.0 overlay before the change and in `make ci` after it
+* Insights
+    - Gate 4a and the N5 red command have a path slip (`--project skills/sr-search` from the engine dir fails in uv 0.12.22); use the `uv --directory skills/sr-search` form
+    - Step 5.1 needs a step for a live-file change after gate 4b, or the baseline stops being a rollback copy; `stockroom doctor smoke` is a third nanobind-exposed `BgeEncoder` path that nothing checks
+
+## 2026-10-22 - REVIEW (OPERATOR) - COMPLETE
+
+* Work completed
+    - Made the backup the operator asked for before the build: `~/.local/share/stockroom/warehouse.issue147-pre-duckdb2.duckdb`, a byte copy under the writer flock with no `.wal`, SHA-256 equal to the live file
+    - Folded the operator's decisions on the nine preflight advisories into `tasks.md` and `projectbrief.md`
+* Decisions made
+    - Operator: adopt advisories 1, 2, 4, 5, 6, and 7; leave 3 (the "can be deleted" line stays); major version release (advisory 8, `feat!:`); decline the worktree idea (9)
+    - Operator: every backup stockroom or a contributor makes is named `warehouse.issue147-<purpose>.duckdb` in the stockroom home, so a later release that deletes backups when present removes only stockroom's own, never a user's
+    - The named backup, not the shadow baseline, is the landing's rollback copy; the shadow scratch home is deleted after gate 4b
+* Insights
+    - Milestone 1 kept no backup of the live warehouse: its proof copies were deleted once the live migrate verified, which departs from the developer guide's "Make a Backup" step. The rows were verified intact, so nothing was lost, but there was no rollback copy
