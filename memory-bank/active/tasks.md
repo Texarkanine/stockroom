@@ -279,6 +279,6 @@ No new technology - validation not required. No dependency, lock, or build chang
         - [x] 4.5 live before record (`scratchpad/m1/live-before.json`): schema 8, index present, no `.wal`, 163,283 used blocks, unchanged since the 03:32 nightly
         - [x] 4.6 landed with `land.py`; checkout `src` is byte-identical to `src-proof` (`diff -ru` empty); step-4 tests 27 passed
         - [x] 4.7 `stockroom migrate` (0.9 s; row 9 applied 12:53:03 by that run): `verify_live.py compare` all PASS: version 9, no index, no `.wal`, no `vss`, used blocks 163,283 to 6,862, every table's row count unchanged
-    - [ ] Step 5: docs and context
+    - [x] Step 5: docs and context. The `vss|hnsw|over-?fetch` grep hits only `0003_retired.sql`, `0009`, the worker's v2.1.2 fixture, and the tests that build or assert the old index. The embeddings page and `techContext` say "vector index" instead of naming HNSW or `vss` (operator: strip everything about the index except the migration that drops it)
     - [ ] Step 6: `make ci`, `make docs-build`
 - [ ] QA

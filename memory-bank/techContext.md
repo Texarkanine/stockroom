@@ -1,6 +1,6 @@
 # Tech Context
 
-Stockroom is a local **Python** application managed with **uv**, storing agentic-coding history in a single-file **DuckDB** warehouse with local **`sentence-transformers`** embeddings indexed via DuckDB **VSS/HNSW**. It ships as a **dual-manifest** Cursor/Claude Code plugin with **no build step** (committed layout = install layout). The engine lives in [`skills/sr-search/`](../skills/sr-search/).
+Stockroom is a local **Python** application managed with **uv**, storing agentic-coding history in a single-file **DuckDB** warehouse with local **`sentence-transformers`** embeddings ranked by exact cosine search. It ships as a **dual-manifest** Cursor/Claude Code plugin with **no build step** (committed layout = install layout). The engine lives in [`skills/sr-search/`](../skills/sr-search/).
 
 ## Environment Setup
 
@@ -20,7 +20,7 @@ Warehouse home: `$XDG_DATA_HOME/stockroom` or `~/.local/share/stockroom`, overri
 
 ## Warehouse Schema
 
-Authoritative DDL is the migration chain under [`skills/sr-search/src/stockroom/migrations/`](../skills/sr-search/src/stockroom/migrations/). Schema-contract tests and golden snapshots live under [`skills/sr-search/tests/`](../skills/sr-search/tests/) and `tests/fixtures/schema/`. Logical ERD edges are `-- @rel` / `-- @rel-none` comments in those migrations; regenerate the query-facing picture with `make schema-docs` (SSOT [`skills/sr-query/references/warehouse-schema.md`](../skills/sr-query/references/warehouse-schema.md), Advanced symlink [`docs/advanced/warehouse-schema.md`](../docs/advanced/warehouse-schema.md)). Column-meaning prose is not harvested from the migration write log; it lives in `sr-query` / Architecture. Consumers use [`stockroom.warehouse.open()`](../skills/sr-search/src/stockroom/warehouse.py); migration bookkeeping is [`stockroom.migrate`](../skills/sr-search/src/stockroom/migrate.py). VSS is loaded at the warehouse chokepoint (`ensure_vss`); the HNSW index is migration `0003`.
+Authoritative DDL is the migration chain under [`skills/sr-search/src/stockroom/migrations/`](../skills/sr-search/src/stockroom/migrations/). Schema-contract tests and golden snapshots live under [`skills/sr-search/tests/`](../skills/sr-search/tests/) and `tests/fixtures/schema/`. Logical ERD edges are `-- @rel` / `-- @rel-none` comments in those migrations; regenerate the query-facing picture with `make schema-docs` (SSOT [`skills/sr-query/references/warehouse-schema.md`](../skills/sr-query/references/warehouse-schema.md), Advanced symlink [`docs/advanced/warehouse-schema.md`](../docs/advanced/warehouse-schema.md)). Column-meaning prose is not harvested from the migration write log; it lives in `sr-query` / Architecture. Consumers use [`stockroom.warehouse.open()`](../skills/sr-search/src/stockroom/warehouse.py); migration bookkeeping is [`stockroom.migrate`](../skills/sr-search/src/stockroom/migrate.py). The warehouse has no vector index and the engine loads no DuckDB extension; migration `0009` drops the vector index older warehouses carry.
 
 ## Engine Surfaces
 

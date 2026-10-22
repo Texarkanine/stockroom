@@ -70,7 +70,7 @@ Connection chokepoints, concurrency, and forward-only schema migrations.
 
 Every consumer reaches DuckDB through a warehouse chokepoint:
 
-- **`open()`** — path resolution, lazy migration, VSS load. Writers take an exclusive coordination flock for the connection's lifetime; readers open read-only and back off to a typed busy error when the file stays locked.
+- **`open()`** — path resolution and lazy migration. Writers take an exclusive coordination flock for the connection's lifetime; readers open read-only and back off to a typed busy error when the file stays locked.
 - **`open_current()`** — the dashboard exception: read-only, **no migrate**, typed stale/busy errors. A UI process must not become the migrator mid-browse.
 
 Coordination uses `fcntl.flock` on a sidecar lock file; data integrity uses DuckDB's own file lock. Those are two layers with different jobs — do not collapse them into “just open the file.”
