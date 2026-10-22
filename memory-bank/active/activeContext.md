@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: warehouse-file-growth
-**Phase:** PLAN - COMPLETE (L4 re-plan: drop the HNSW index)
+**Phase:** PREFLIGHT - COMPLETE (PASS WITH ADVISORY)
 
 ## What Was Done
 - The milestone-1 sub-run (DuckDB 2.0) failed its live shadow run at branch B. Its record is in git at `bd910c3`

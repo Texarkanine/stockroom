@@ -444,3 +444,19 @@ Stop the warehouse file growing far past the history it holds, as specified in [
     - DuckDB facts in the later milestones are the ones measured on 2.0.0 on 2026-10-21, so the 2.0 milestone no longer re-measures and rewrites them
 * Insights
     - With the index gone, copying this machine's warehouse takes seconds and about 0.5 GB. The verify-only release before the swap was sized for a long rebuild of a 39 to 88 GB file. The plan keeps it, because it is the operator's decision and not about the index; the operator can fold it into the swap at review
+
+## 2026-10-21 - PREFLIGHT (TWELFTH RUN) - COMPLETE
+
+* Work completed
+    - Validated the 8-milestone "drop the HNSW index" list against `projectbrief.md`, the engine code, and new DuckDB 1.5.4 and 2.0.0 experiments, including read-only runs on the scratchpad copy of this machine's warehouse (no write; size and mtime unchanged)
+    - Recorded preflight status: PASS WITH ADVISORY. The milestone list was not changed
+* Decisions made
+    - All seven Level 4 checks pass. Every requirement, proof, and acceptance item maps to a milestone. The checklist is a valid serial walk of the graph, and each shared artifact has a handoff rule
+    - Advisory, not adopted: milestone 1's single exact path removes duplicate chunks (max-sim) and cuts to the limit before it joins `messages.text`. Run with no scope, today's scoped SQL takes 1.3 s on 2.0.0 and 1.7 s on 1.5.4 on this machine's data. The dedup-first shape takes 153 ms and 205 ms
+    - Advisory, not adopted: milestone 1's leftover-wal test opens through `warehouse.open()` in a DuckDB instance that never loaded vss, and asserts vss is not loaded. Connections to the same path in one process share the database and the extensions loaded in it
+    - Advisory, not adopted: the zstd checks in milestones 3 and 6 look only at data segments (VARCHAR or JSON) and say what an empty table means. VALIDITY segments show `Uncompressed` or `Constant` under zstd
+    - Radical advisory, not adopted: merge the swap into the check as a per-machine two-phase record (rehearsed, then swapped at a later session start), dropping the separate enable release
+* Insights
+    - With the engine's default config (autoload and autoinstall on), DuckDB 1.5.4 and 2.0.0 never load vss by themselves for a file with the index, read-only or read-write, with or without a killed embed's wal
+    - The live data's tables copy to 288 MiB with zstd, against 483 MiB without, in about 6 s on 2.0.0
+    - On 2.0.0 without vss, `COPY FROM DATABASE` fails on a file that still has the index. A comment-only migration file runs on both versions

@@ -1,1 +1,0 @@
-Hooks expand "${CLAUDE_PLUGIN_ROOT}" from env; skill text is pasted raw, so Step 2 reads paths via quoted heredoc. Owner: claude if <root>/data/<id> or installed_plugins.json lists it, dev if stockroom-inline, cursor via CURSOR_PLUGIN_ROOT, else ask. Shell paths quoted.

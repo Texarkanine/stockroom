@@ -1,0 +1,1 @@
+Dead shim: ENOENT/ENOTDIR/ELOOP (EACCES/ESTALE stay). Owner rules in systemPatterns, else ask. Local-path mkts load from source; CLAUDE_CONFIG_DIR moves plugins. Hooks expand ${CLAUDE_PLUGIN_ROOT}; paths quoted. Cron has PATH+STOCKROOM_HOME. Archive copy: git init for reuse lint.

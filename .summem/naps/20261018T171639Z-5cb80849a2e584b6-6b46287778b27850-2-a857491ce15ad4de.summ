@@ -1,1 +1,0 @@
-Nightly cron/launchd entries carry PATH and STOCKROOM_HOME (no profile); 'schedule status' shows up-to-date: and entry home:, and Step 8 offers re-install. Path quoting covers printed commands too (doctor smoke remedy, localdev hint): audit messages, not only shell code.

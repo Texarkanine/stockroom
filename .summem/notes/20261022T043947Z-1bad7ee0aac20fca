@@ -1,0 +1,1 @@
+Measured 2026-10-21, live copy (133,793 vectors): exact semantic as join messages then QUALIFY row_number() takes 1.3 s on 2.0.0 (1.7 s on 1.5.4); group-by-min, LIMIT, then join messages takes 153 ms (205 ms). Role scope: 1.15 s vs 363 ms. Dedup before joining text.
