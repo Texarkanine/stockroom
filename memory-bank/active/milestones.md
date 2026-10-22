@@ -67,7 +67,7 @@ flowchart TD
   check --> hook
 ```
 
-- [ ] Drop the HNSW index with a migration and remove the vss extension and everything else about the index from the engine
+- [x] Drop the HNSW index with a migration and remove the vss extension and everything else about the index from the engine
 - [ ] Move the engine to DuckDB 2.0 and prove it on a copy of a real warehouse
 - [ ] Create new warehouses in the newest DuckDB storage format with ZSTD on messages.text and tool_calls.tool_input
 - [ ] Report warehouse file size, block use, reclaimable space, storage format, free disk, and an existing backup from stockroom doctor
