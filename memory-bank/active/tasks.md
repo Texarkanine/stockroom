@@ -172,6 +172,7 @@ Edge cases considered and left out on purpose:
 ### 4. Pre-lock gates — verification
 
 - [x] Gate 4a: 1,053 passed, 36 skipped, exit 0 (2.0.0 overlay, torch 2.13.0+cu126). All 5 torch-gated tests ran; the remaining torch-related skips are `test_doctor_cli.py:54`, which skips when torch is installed
+- [x] Gate 4b: from the clone, exit 0, `shadow: every phase passed`. Checkpoint equality on 6 tables; ingest +12 sessions, +1,422 messages, +1,033 tool_calls; embed 406 chunks, 0 orphans; after the checkpoint `v1.0.0+`, schema at the head, no index; semantic rank-1 rows; DuckDB 1.5.4 wrote the copy and 2.0.0 answered after. No `nanobind` line from any command. Clone and shadow home deleted afterwards
 
 - No files change. Both gates must pass before step 5. If either fails, stop, record it, and report; the 1.5.4 lock stays.
 - Both gates can take longer than the 10-minute foreground limit. Run each in the background with its output in a log file under `<scratch>/m2/`, wait for the completion notice, then read the whole log.
@@ -182,6 +183,8 @@ Edge cases considered and left out on purpose:
 4. After it passes, delete the clone and `<scratch>/m2/shadow` (its baseline duplicates the named backup, which is the rollback copy).
 
 ### 5. The DuckDB 2.0 move (one commit) — executable config plus prose
+
+- [x] Done: `ac8c6ca`. Live file still matched the backup record before landing. Lock: only duckdb changed among 56 packages (1.5.4 → 2.0.0); uv 0.12.22 also rewrote the file format (`revision` 3 → 5, scipy's numpy markers). `make ci` green (1,050 passed, 39 skipped) and `make docs-build --strict` green before the commit
 
 - Files: `skills/sr-search/pyproject.toml`, `skills/sr-search/uv.lock`, `.github/dependabot.yaml`, `docs/advanced/duckdb.md`, `memory-bank/techContext.md`
 - No new tests: the whole suite on 2.0 (gate 4a, then `make ci`) is the proof; a pin test would be a change-detector, and the Dependabot file and the doc page are config and prose.
@@ -196,6 +199,8 @@ Edge cases considered and left out on purpose:
 
 ### 6. Live checks after landing — verification
 
+- [x] Done: dashboard replaced (serves `/api/sessions` 200 on 2.0); after-record equals the before-record except the engine DuckDB (v2.0.0); `ensure-env`, `ingest`, `embed --verbose` (414 chunks, 0 orphans), `semantic -k 3`, and `doctor smoke` each exit 0 with no `nanobind` line; sessions/messages/tool_calls only grew; DuckDB 1.5.4 opens the live file read-only (169,932 messages, `v1.0.0+`). Backup left in place
+
 - No files change.
 
 1. `stockroom dashboard --replace`, so the session-start dashboard stops running 1.5.4 code against 2.0 files; check that `http://127.0.0.1:58008/` answers.
@@ -206,6 +211,8 @@ Edge cases considered and left out on purpose:
 6. Leave the backup in place and report its path and size to the operator. Nothing deletes it in this milestone; a later release may, by its `warehouse.issue147-` name.
 
 ### 7. Final verification
+
+- [x] Done: `make ci` on the landed tree (1,050 passed, 39 skipped; lock-check, lint, format, schema-docs, JS, REUSE green) and `make docs-build` (strict) green. Torch restored afterwards with `stockroom shim ensure-env`
 
 1. `make ci` and `make docs-build` on the landed tree (2.0); read the whole output.
 2. Update `tasks.md` and `progress.md` and commit per the workflow.
@@ -246,5 +253,5 @@ No new technology. DuckDB 2.0.0 replaces an existing dependency at a new major v
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight (PASS WITH ADVISORY; operator decisions folded 2026-10-22)
-- [ ] Build
+- [x] Build
 - [ ] QA

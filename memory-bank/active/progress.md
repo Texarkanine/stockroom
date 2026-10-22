@@ -50,3 +50,19 @@ L4 milestone 2 of 7 for `warehouse-file-growth` ([issue 147](https://github.com/
     - The named backup, not the shadow baseline, is the landing's rollback copy; the shadow scratch home is deleted after gate 4b
 * Insights
     - Milestone 1 kept no backup of the live warehouse: its proof copies were deleted once the live migrate verified, which departs from the developer guide's "Make a Backup" step. The rows were verified intact, so nothing was lost, but there was no rollback copy
+
+## 2026-10-22 - BUILD - COMPLETE
+
+* Work completed
+    - Step 1 (`fb09cf4`): the Hub-notice filter lives only for the model load; N1 to N5
+    - Step 2 (`e011a53`): the shadow script's live-phase checks and milestone 1 QA cleanups; S1 to S6
+    - Step 3: fresh-clone recipe smoke (`--synthetic`) passed without touching the live engine or warehouse
+    - Gates: 4a (suite on the 2.0.0 overlay with torch) green; 4b (shadow run from the clone on a copy of the live warehouse) exit 0
+    - Step 5 (`ac8c6ca`): `feat!: move the engine to DuckDB 2.0` (range, lock, Dependabot, doc page, techContext); `make ci` and the strict docs build green
+    - Step 6: supervised live checks on DuckDB 2.0 all passed; DuckDB 1.5.4 still opens the live file
+    - Step 7: `make ci` and the docs build green on the landed tree
+* Decisions made
+    - Accepted uv 0.12.22's lock-format rewrite with the duckdb bump; only duckdb changed in the package set
+    - Did not chase the pytest-plus-torch nanobind exit noise: it is a test-process effect, not a stockroom command, and does not change any exit code
+* Insights
+    - The first live write under 2.0 was supervised, after both gates; the named backup was byte-identical to the live file up to that moment
