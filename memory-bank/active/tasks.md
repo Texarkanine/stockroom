@@ -268,6 +268,12 @@ No new technology - validation not required. No dependency, lock, or build chang
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
+    - [x] Step 1: exact semantic search. Red run: B1 (1 of 3 owners) and B2 (`KeyError`) failed; B3 and B5 already passed on the old code. Green: `test_semantic`, `test_render`, `test_dispatcher_cli` (93 passed, 1 torch-gated skip)
+    - [ ] Step 2: shadow script strip
+    - [ ] Step 3: retire `0003`, schema tests without `vss`
+    - [ ] Step 4: `0009`, `ensure_vss` removal, live-copy proof, live migrate
+    - [ ] Step 5: docs and context
+    - [ ] Step 6: `make ci`, `make docs-build`
 - [ ] QA
