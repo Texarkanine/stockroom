@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: warehouse-file-growth, milestone 2 (DuckDB 2.0)
-**Phase:** PREFLIGHT - COMPLETE (PASS WITH ADVISORY; operator decisions folded)
+**Phase:** BUILD - IN PROGRESS
 
 ## What Was Done
 - Milestone 1 is checked off; milestone 2 is classified Level 3
@@ -23,4 +23,4 @@
 - Advisory 9 declined: no worktree as the live engine
 
 ## Next Step
-- The operator runs `/niko-build`
+- Build step 1: scope the Hub-notice filter to the model load
