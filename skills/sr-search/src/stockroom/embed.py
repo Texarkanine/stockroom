@@ -23,10 +23,11 @@ detection, and the model choice are documented in
 """
 
 import argparse
+import contextlib
 import importlib
 import logging
 import sys
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from pathlib import Path
 from typing import Protocol
 
@@ -293,20 +294,27 @@ class _DropUnauthenticatedHubWarning(logging.Filter):
         return "unauthenticated requests to the HF Hub" not in record.getMessage()
 
 
-def silence_unauthenticated_hub_warning() -> None:
-    """Stop the Hub's unauthenticated-request notice from reaching stderr.
+@contextlib.contextmanager
+def silence_unauthenticated_hub_warning() -> Iterator[None]:
+    """Keep the Hub's unauthenticated-request notice off stderr inside the block.
 
     The Hub sends that text as an ``X-HF-Warning`` response header, and
     ``huggingface_hub`` logs it once per process. Stockroom does not use a
     token for the local embedding model; the notice is not a failure. Other
     warnings from the same logger, including a failed download, still pass.
-    Idempotent: a second call does not stack another filter.
+
+    The filter comes off when the block exits, even on an exception. A filter
+    left on the Hub logger keeps this module, and so ``duckdb``, alive until
+    interpreter shutdown, where DuckDB 2.0's nanobind check reports them as
+    leaked instances.
     """
     hub = logging.getLogger("huggingface_hub.utils._http")
-    if not any(
-        isinstance(item, _DropUnauthenticatedHubWarning) for item in hub.filters
-    ):
-        hub.addFilter(_DropUnauthenticatedHubWarning())
+    drop = _DropUnauthenticatedHubWarning()
+    hub.addFilter(drop)
+    try:
+        yield
+    finally:
+        hub.removeFilter(drop)
 
 
 class BgeEncoder:
@@ -322,14 +330,14 @@ class BgeEncoder:
     """
 
     def __init__(self, model_name: str = EMBED_MODEL) -> None:
-        silence_unauthenticated_hub_warning()
         import torch  # noqa: PLC0415 — lazy: keep torch off the module import path
         from sentence_transformers import SentenceTransformer  # noqa: PLC0415
 
         device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.model = SentenceTransformer(
-            model_name, device=device, trust_remote_code=False
-        )
+        with silence_unauthenticated_hub_warning():
+            self.model = SentenceTransformer(
+                model_name, device=device, trust_remote_code=False
+            )
 
     def encode(self, texts: list[str]) -> list[list[float]]:
         """Encode ``texts`` into 384-dim vectors (no passage prefix for m1)."""
