@@ -8,7 +8,9 @@ contract):
 * :func:`embed_chunks` / :func:`embed_pending` — exercised against a deterministic
   ``FakeEncoder`` and the in-memory ``migrated_con`` fixture, so the per-chunk
   write/selection logic is verified without loading a model.
-* :class:`BgeEncoder` — the only torch-dependent surface; its test is
+* :class:`BgeEncoder` — the only torch-dependent surface. Its Hub-notice
+  handling is tested torch-free with fake ``torch`` and
+  ``sentence_transformers`` modules; its real-model tests are
   ``pytest.importorskip("torch")``-gated and skipped in CI.
 """
 
