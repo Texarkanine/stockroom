@@ -60,7 +60,6 @@ __all__ = [
     "XDG_DATA_HOME_ENV_VAR",
     "WarehouseBusyError",
     "WarehouseStaleError",
-    "ensure_vss",
     "home_dir",
     "lock_path",
     "open",
@@ -127,7 +126,6 @@ def open_current(
 
     con = _open_with_backoff(path, read_only=True, **backoff)
     try:
-        ensure_vss(con)
         current = current_version(con)
         latest = _latest_version()
         if current < latest:
@@ -136,31 +134,6 @@ def open_current(
     except BaseException:
         con.close()
         raise
-
-
-def ensure_vss(con: duckdb.DuckDBPyConnection) -> None:
-    """Load the DuckDB ``vss`` extension and enable live HNSW persistence.
-
-    The single place the (rare, provisioning-time) network ``INSTALL`` may
-    occur: ``LOAD vss`` is tried first (offline-safe once the extension is
-    cached); only if that fails is ``INSTALL vss`` run and the load retried.
-    Then ``hnsw_enable_experimental_persistence`` is set so HNSW indexes can be
-    created and *modified* (insert/delete) against a persistent DB — a
-    per-connection ``SET`` (it is not stored in the DB), so the chokepoint must
-    run it on every connection that touches the warehouse post-``0003``.
-
-    Idempotent, and safe on both read-write and read-only connections (``LOAD``
-    and ``SET`` are session-level, not DB writes). Keeping the network
-    ``INSTALL`` out of the shipped migration SQL preserves the offline /
-    supply-chain posture (see
-    ``creative-vss-provisioning-and-index.md``).
-    """
-    try:
-        con.execute("LOAD vss")
-    except duckdb.Error:
-        con.execute("INSTALL vss")
-        con.execute("LOAD vss")
-    con.execute("SET hnsw_enable_experimental_persistence = true")
 
 
 def warehouse_path() -> Path:
@@ -276,7 +249,6 @@ def _migrate_under_lock(path: Path, target_version: int, **backoff) -> None:
     with _flock(lock_path()):
         con = _open_with_backoff(path, read_only=False, **backoff)
         try:
-            ensure_vss(con)
             if current_version(con) < target_version:
                 apply_pending(con)
         finally:
@@ -314,13 +286,11 @@ def open(  # noqa: A001 — the warehouse "open" verb is the intended public nam
     if read_only:
         con = _open_with_backoff(path, read_only=True, **backoff)
         if not migrate or current_version(con) >= target_version:
-            ensure_vss(con)
             return con
         # Behind: become the migrator, then reopen read-only for the caller.
         con.close()
         _migrate_under_lock(path, target_version, **backoff)
         con = _open_with_backoff(path, read_only=True, **backoff)
-        ensure_vss(con)
         return con
 
     # Writer: hold the single-writer flock for the connection's lifetime.
@@ -328,7 +298,6 @@ def open(  # noqa: A001 — the warehouse "open" verb is the intended public nam
     fcntl.flock(fd, fcntl.LOCK_EX)
     try:
         con = _open_with_backoff(path, read_only=False, **backoff)
-        ensure_vss(con)
         if migrate and current_version(con) < target_version:
             apply_pending(con)
     except BaseException:

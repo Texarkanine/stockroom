@@ -14,13 +14,38 @@ from pathlib import Path
 import duckdb
 import pytest
 
-from stockroom import migrate, warehouse
+from _warehouse_worker import KILLED_SLOT, one_hot
+from stockroom import migrate, semantic, warehouse
 from stockroom.migrations import discover
 from test_schema_0003 import _introspect_schema
 from test_schema_0008 import SNAPSHOT_PATH
+from test_semantic import _FixedEncoder
 
 _PRODUCT_TABLES = {"sessions", "messages", "tool_calls", "embeddings", "_sync_state"}
-_HEAD_VERSION = 8
+_HEAD_VERSION = 9
+
+
+def _vss_loaded(con: duckdb.DuckDBPyConnection) -> bool:
+    return con.execute(
+        "SELECT loaded FROM duckdb_extensions() WHERE extension_name = 'vss'"
+    ).fetchone()[0]
+
+
+def _non_primary_indexes(con: duckdb.DuckDBPyConnection) -> list[str]:
+    return [
+        row[0]
+        for row in con.execute(
+            "SELECT index_name FROM duckdb_indexes() WHERE NOT is_primary"
+        ).fetchall()
+    ]
+
+
+def _counts(con: duckdb.DuckDBPyConnection) -> tuple[int, int]:
+    """Return ``(messages, embeddings)`` row counts."""
+    return (
+        con.execute("SELECT count(*) FROM messages").fetchone()[0],
+        con.execute("SELECT count(*) FROM embeddings").fetchone()[0],
+    )
 
 
 def _table_names(con: duckdb.DuckDBPyConnection) -> set[str]:
@@ -91,30 +116,25 @@ def test_open_reader_on_current_warehouse_does_not_invoke_runner(
         con.close()
 
 
-def test_open_reader_has_vss_loaded(warehouse_home: Path) -> None:
-    """An opened reader has ``vss`` loaded and its persistence ``SET`` applied.
+def test_open_and_open_current_do_not_load_vss(warehouse_home: Path) -> None:
+    """Writer ``open()``, reader ``open()``, and ``open_current()`` load no ``vss``.
 
-    Resolves the preflight advisory: ``ensure_vss`` runs ``LOAD vss`` + the
-    per-connection ``SET hnsw_enable_experimental_persistence`` on read-only
-    connections too (m2 readers need ``vss`` for vector ops), and both are
-    session-level — not DB writes — so they succeed against a read-only DuckDB
-    handle. The setting only *exists* once ``vss`` is loaded, so reading it as
-    ``true`` proves both halves ran on the reader.
+    Each connection is opened and closed in turn, so no two share one DuckDB
+    instance and its loaded extensions.
     """
-    warehouse.open(read_only=False).close()  # create + migrate first
+    loaded: dict[str, bool] = {}
+    for name, opener in (
+        ("writer", lambda: warehouse.open(read_only=False)),
+        ("reader", lambda: warehouse.open(read_only=True)),
+        ("open_current", warehouse.open_current),
+    ):
+        con = opener()
+        try:
+            loaded[name] = _vss_loaded(con)
+        finally:
+            con.close()
 
-    con = warehouse.open(read_only=True)
-    try:
-        loaded = con.execute(
-            "SELECT loaded FROM duckdb_extensions() WHERE extension_name = 'vss'"
-        ).fetchone()[0]
-        assert loaded is True
-        setting = con.execute(
-            "SELECT current_setting('hnsw_enable_experimental_persistence')"
-        ).fetchone()[0]
-        assert setting is True
-    finally:
-        con.close()
+    assert loaded == {"writer": False, "reader": False, "open_current": False}
 
 
 def test_open_with_migrate_false_skips_the_gate(
@@ -261,3 +281,89 @@ def test_new_warehouse_has_no_vector_index(warehouse_home: Path) -> None:
         con.close()
 
     assert indexes == []
+
+
+# --- old indexed warehouses ----------------------------------------------------
+
+
+def test_schema_eight_indexed_warehouse_with_killed_embed_wal_migrates_to_head(
+    warehouse_home: Path, tmp_path: Path, spawn_worker, wait_for_sentinel
+) -> None:
+    """A schema-8 indexed file with a killed embed's ``.wal`` migrates with every row.
+
+    One child builds a ``v1.0.0`` file at schema 8 with the HNSW index and 20
+    embedded messages. A second child, with ``vss`` loaded, inserts message
+    ``k#0`` and its embedding, commits, and is killed. The ``.wal`` exists.
+    Then ``open(read_only=False)`` here migrates it to head: no index, no
+    ``vss``, 21 messages and 21 embeddings, ``k#0`` found first by its own
+    vector, a full ``limit=21`` result, and no ``.wal`` after close.
+    """
+    db = warehouse.warehouse_path()
+    wal = db.with_name(db.name + ".wal")
+    build = spawn_worker("build_indexed", db, 20, tmp_path / "chain")
+    assert build.wait(timeout=120) == 0
+    ready = tmp_path / "inserted"
+    embedder = spawn_worker("insert_and_hang", db, ready)
+    wait_for_sentinel(ready, timeout=60)
+    embedder.kill()
+    embedder.wait()
+    assert wal.exists()
+
+    con = warehouse.open(read_only=False)
+    try:
+        version = migrate.current_version(con)
+        indexes = _non_primary_indexes(con)
+        loaded = _vss_loaded(con)
+        counts = _counts(con)
+        encoder = _FixedEncoder(one_hot(KILLED_SLOT))
+        nearest = semantic.run_semantic_search(
+            "the killed row", encoder, con=con, query_prefix="", limit=1
+        )
+        everything = semantic.run_semantic_search(
+            "the killed row", encoder, con=con, query_prefix="", limit=21
+        )
+    finally:
+        con.close()
+
+    assert version == _HEAD_VERSION
+    assert indexes == []
+    assert loaded is False
+    assert counts == (21, 21)
+    assert [hit.message_id for hit in nearest] == ["k#0"]
+    assert len(everything) == 21
+    assert not wal.exists()
+
+
+def test_writer_killed_after_index_drop_reopens_at_head(
+    warehouse_home: Path, tmp_path: Path, spawn_worker, wait_for_sentinel
+) -> None:
+    """A migrator killed after it committed ``0009`` leaves a file that reopens at head.
+
+    A child builds a clean indexed schema-8 file. A second child opens it as a
+    writer through ``open()``, which migrates, then is killed before it closes.
+    The ``.wal`` exists. Then ``open()`` here gives head, no index, and every
+    row.
+    """
+    db = warehouse.warehouse_path()
+    wal = db.with_name(db.name + ".wal")
+    build = spawn_worker("build_indexed", db, 20, tmp_path / "chain")
+    assert build.wait(timeout=120) == 0
+    ready = tmp_path / "migrated"
+    migrator = spawn_worker("migrate_and_hang", ready)
+    wait_for_sentinel(ready, timeout=60)
+    migrator.kill()
+    migrator.wait()
+    assert ready.read_text(encoding="utf-8") == str(_HEAD_VERSION)
+    assert wal.exists()
+
+    con = warehouse.open()
+    try:
+        version = migrate.current_version(con)
+        indexes = _non_primary_indexes(con)
+        counts = _counts(con)
+    finally:
+        con.close()
+
+    assert version == _HEAD_VERSION
+    assert indexes == []
+    assert counts == (20, 20)

@@ -18,7 +18,7 @@ Design seams (so the bulk runs under torch-free CI, per the Phase-0 contract):
   ``sentence_transformers`` so importing this module never pulls torch.
 
 Storage grain (per-chunk vs mean-pool), owner grain (messages-only), incremental
-detection, the VSS/HNSW index, and the model choice are documented in
+detection, and the model choice are documented in
 ``memory-bank/active/creative/creative-*.md``.
 """
 
@@ -250,7 +250,7 @@ def embed_pending(
     Delegates the encode/write replace path to :func:`_embed_selected_messages`
     and orphan hygiene to :func:`_delete_orphan_message_embeddings` (all models
     for dangling message owners). ``tool_calls`` are not embedded in m1. Assumes
-    a read-write connection with ``vss`` loaded (the chokepoint's ``ensure_vss``).
+    a read-write connection.
 
     When ``on_progress`` is set, emits embed progress from the replace helper,
     then ``embed: removed K orphaned embedding rows`` when ``K > 0``.
@@ -467,7 +467,7 @@ def main(
     constructed. A missing torch with a usable freeze is restored once and the
     embed retried. Any other construction failure prints one stderr line
     naming ``sr-initialize``. Opens the warehouse read-write through
-    ``warehouse.open()`` (so ``vss`` is loaded and the schema is current) and
+    ``warehouse.open()`` (so the schema is current) and
     constructs the encoder via ``encoder_factory`` (default :class:`BgeEncoder`,
     which loads torch out of band; tests inject a fake).
     """
