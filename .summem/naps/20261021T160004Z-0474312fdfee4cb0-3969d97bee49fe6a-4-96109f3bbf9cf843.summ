@@ -1,0 +1,1 @@
+Releases stand alone; v0.1.0-v2.1.2 pinned DuckDB 1.5.4, so wild warehouses are v1.0.0+ at schema 0-8 (tests make v1.0.0 on purpose). 1.5.4 replays a v1.0.0+ file a killed 2.0.0 writer left, and cannot open v2.0.0+. 2.0.0 zstd clause: BinderException on v1.0.0, ZSTD at v1.2.0+.

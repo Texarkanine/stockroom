@@ -1,11 +1,13 @@
 # Active Context
 
 ## Current Task: warehouse-file-growth, milestone 2 (DuckDB 2.0)
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Milestone 1 (drop the HNSW index and `vss`) is checked off; its sub-run files were cleared
-- Classified milestone 2, "Move the engine to DuckDB 2.0 and prove it on a copy of a real warehouse", as Level 3: lock and range, Dependabot, the shadow script and its tests, a live-copy run before the lock lands, a doc page, and the nanobind warnings
+- Milestone 1 is checked off; milestone 2 is classified Level 3
+- Wrote the Level 3 plan in `tasks.md`: 7 steps (scope the Hub filter, finish the shadow script, clone-recipe smoke, two pre-lock gates, the one-commit 2.0 move, live checks, final verification) and 11 behaviours (N1 to N5, S1 to S6)
+- Found the nanobind cause by measurement: stockroom's own `_DropUnauthenticatedHubWarning` stays on the `huggingface_hub` logger for the process, which keeps `stockroom.embed` and so `duckdb` alive past nanobind's shutdown check. Removing it after the model loads silences `embed` and `semantic` under 2.0.0
+- Measured: full suite green on a 2.0.0 overlay (1,040 passed, 38 skipped); the lock resolves with only duckdb changing; 2.0.0 wheels cover every platform; `warehouse.open()` on 2.0.0 makes a `v2.0.0+` file
 
 ## Next Step
-- Load the Level 3 workflow and run its plan phase
+- Preflight (subagent), then the operator runs `/niko-build`

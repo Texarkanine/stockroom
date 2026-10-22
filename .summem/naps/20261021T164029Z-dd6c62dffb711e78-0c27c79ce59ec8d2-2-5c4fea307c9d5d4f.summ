@@ -1,1 +1,0 @@
-DuckDB 2.0.0: USING COMPRESSION zstd raises BinderException on v1.0.0 storage (1.5.4 ignores it); v1.2.0+ gives ZSTD, so zstd in 0001 breaks v1.0.0 fixtures. 2.0.0 wal replay into an HNSW index breaks it (InternalException or hang); DROP+CREATE+CHECKPOINT repairs.
