@@ -187,6 +187,42 @@ def test_open_current_refuses_stale_schema_without_migrating(
         con.close()
 
 
+def test_schema_one_v1_file_migrates_to_head_and_keeps_storage_tag(
+    warehouse_home: Path,
+) -> None:
+    """A ``v1.0.0+`` file an older release left at schema 1 migrates and keeps its tag.
+
+    Every release before the DuckDB 2.0 move pinned DuckDB 1.5.4, so a warehouse
+    in the wild is storage ``v1.0.0+`` at any schema version. Opening one
+    read-write must migrate it to head without rewriting its storage format:
+    the tag stays ``v1.0.0+`` until a deliberate rewrite changes it.
+    """
+    path = warehouse.warehouse_path()
+    con = duckdb.connect(str(path), config={"storage_compatibility_version": "v1.0.0"})
+    migration = next(item for item in discover() if item.version == 1)
+    try:
+        con.execute(migration.path.read_text(encoding="utf-8"))
+        migrate.ensure_schema_version_table(con)
+        con.execute(
+            f"INSERT INTO {migrate.SCHEMA_VERSION_TABLE} (version, filename) "
+            "VALUES (1, ?)",
+            [migration.path.name],
+        )
+    finally:
+        con.close()
+
+    con = warehouse.open(read_only=False)
+    try:
+        assert migrate.current_version(con) == _HEAD_VERSION
+        tags = con.execute(
+            "SELECT tags FROM duckdb_databases() "
+            "WHERE database_name = current_database()"
+        ).fetchone()[0]
+        assert tags["storage_version"] == "v1.0.0+"
+    finally:
+        con.close()
+
+
 # --- radical-innovation guard: the framework yields exactly the locked DDL --
 
 

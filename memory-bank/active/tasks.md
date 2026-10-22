@@ -198,6 +198,11 @@ No new dependency. DuckDB is already the engine. On 1.5.4, a file created with `
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
+    - [x] 1. Schema-1 file keeps its storage tag (passes on 1.5.4, no production change)
+    - [x] 2. Unscoped semantic search plans through HNSW (passes on 1.5.4, no production change)
+    - [ ] 3. Shadow script guards and checkpoint equality
+    - [ ] 4. Re-measure DuckDB 2.0 and shadow the real warehouse
+    - [ ] 5. Docs, Dependabot, and the pin
 - [ ] QA

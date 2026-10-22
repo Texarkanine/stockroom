@@ -948,6 +948,59 @@ def test_search_scope_returns_inscope_behind_nearer_outsiders(migrated_con) -> N
     assert [hit.message_id for hit in hits] == [insider]
 
 
+# --- Unscoped plan -----------------------------------------------------------
+
+
+def test_unscoped_semantic_plan_uses_hnsw(warehouse_home: Path) -> None:
+    """The unscoped search statement plans through the ``0003`` HNSW index.
+
+    Records the ``embeddings`` statement ``run_semantic_search`` executes with
+    no scope, then runs ``EXPLAIN`` on it with the same vector bound. The plan
+    text names ``HNSW``: DuckDB 1.5.4 prints ``HNSW_INDEX_SCAN``, and 2.0 prints
+    the line ``HNSW Index: embeddings_vector_hnsw``. The operator title differs
+    between those versions, so the test asserts only the shared substring.
+    """
+    con = warehouse.open(read_only=False)
+    try:
+        owner_id = _insert_message(con, ordinal=0, text="indexed message")
+        _insert_embedding(
+            con,
+            harness="claude",
+            owner_id=owner_id,
+            vector=FakeEncoder().encode(["indexed message"])[0],
+        )
+        recorder = _RecordingConnection(con)
+
+        semantic.run_semantic_search(
+            "indexed message", FakeEncoder(), con=recorder, query_prefix=""
+        )
+
+        sql, params = next(
+            (sql, params)
+            for sql, params in recorder.statements
+            if "FROM embeddings" in sql
+        )
+        plan = "\n".join(
+            row[1] for row in con.execute(f"EXPLAIN {sql}", params).fetchall()
+        )
+    finally:
+        con.close()
+
+    assert "HNSW" in plan
+
+
+class _RecordingConnection:
+    """Delegates ``execute`` to a real connection and records each statement."""
+
+    def __init__(self, con) -> None:
+        self._con = con
+        self.statements: list[tuple[str, list]] = []
+
+    def execute(self, sql: str, params: list | None = None):
+        self.statements.append((sql, params))
+        return self._con.execute(sql, params)
+
+
 # --- Step 5: real-model end-to-end (torch-gated, CI-skipped) ----------------
 
 
