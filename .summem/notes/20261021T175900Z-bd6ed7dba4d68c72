@@ -1,1 +1,0 @@
-DuckDB 2.0.0 replay bug goes silent: other writers succeed, the wal grows, and past checkpoint_threshold (16 MiB) the auto-checkpoint folds it. Then the HNSW index silently lacks the replayed rows (pragma_hnsw_index_info count < count(*)); top-k skips them. A rebuild fixes it.

@@ -1,0 +1,1 @@
+Doctor rule (operator, 2026-10-21): discoverable doctor commands (probe, smoke) never write; writes only via 'stockroom doctor fix <name>'. DuckDB 2.0.0 vss HNSW replay bug: auto-checkpoint folds the wal, index misses replayed rows; moot once index and vss were dropped.

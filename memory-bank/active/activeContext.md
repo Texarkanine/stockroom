@@ -22,5 +22,13 @@
 - Advisory 8: the release is a major version; the 2.0 move commit and the pull request title use `feat!:`
 - Advisory 9 declined: no worktree as the live engine
 
+## Build progress (2026-10-22)
+- Step 1 `fb09cf4`: `silence_unauthenticated_hub_warning` is a context manager around the model construction in `BgeEncoder`. N1 to N4 green (torch-free); N5 red then green on the 2.0 overlay with torch
+- Step 2 `e011a53`: shadow script gains `check_live_copy`, `semantic_answered`, `nanobind_lines`; `_stockroom` fails on any `nanobind:` line; milestone 1 QA cleanups done; S1 to S6 red then green
+- Step 3: fresh clone of the branch passed the `--synthetic` recipe; nothing outside the clone changed
+- Gate 4a: green on the 2.0 overlay with torch (1,053 passed, 36 skipped)
+- Live before-record (read-only, DuckDB 1.5.4): schema 9, `v1.0.0+`, sessions 3,168, messages 168,455, tool_calls 186,011, embeddings 134,823, `_sync_state` 3; size and `mtime_ns` still match the backup record
+- Finding, not in the plan: on DuckDB 2.0.0 a pytest process that loads the engine `conftest` and imports torch prints nanobind leaked-instance lines at exit (exit code unchanged). Torch-free processes, including CI, do not. The stockroom `embed` and `semantic` processes print none after step 1. Not chased in this milestone
+
 ## Next Step
-- Build step 1: scope the Hub-notice filter to the model load
+- Gate 4b (running): shadow script from the clone on a copy of the live warehouse

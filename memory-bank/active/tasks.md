@@ -134,6 +134,8 @@ Edge cases considered and left out on purpose:
 
 ### 1. Scope the Hub-notice filter to the model load — executable
 
+- [x] Done: `fb09cf4` (N1 to N4 green on the project venv; N5 red then green on the 2.0 overlay with torch)
+
 - Files: `skills/sr-search/src/stockroom/embed.py`, `skills/sr-search/tests/test_embed.py`
 
 1. Stub tests: in `test_embed.py`, rework `test_unauthenticated_hub_notice_is_dropped_and_other_warnings_remain` (N1) to use the context manager; add empty `test_hub_notice_filter_is_removed_on_exit` (N2, parametrized `normal` / `raised`), `test_bge_encoder_silences_hub_notice_only_while_loading` (N3), `test_bge_encoder_removes_hub_filter_when_load_fails` (N4), and the torch-gated `test_embed_and_semantic_exit_without_nanobind_leak_warnings` (N5) beside the other BGE tests, each with a docstring.
@@ -142,6 +144,8 @@ Edge cases considered and left out on purpose:
 4. Write code and run green: the context manager adds a fresh `_DropUnauthenticatedHubWarning` to the Hub logger, yields, and removes that same instance in `finally` (the idempotence check goes away; nested uses each remove their own instance). `BgeEncoder.__init__` runs `SentenceTransformer(...)` inside `with silence_unauthenticated_hub_warning():`. Run `test_embed.py` and `test_semantic.py` on the project venv (green), then N5 again under the 2.0 overlay with torch (green). Commit: `fix: stop the Hub warning filter from outliving the model load`.
 
 ### 2. Finish the shadow script — executable
+
+- [x] Done: `e011a53` (S1 to S6 red then green; `make lint` and `make format-check` clean)
 
 - Files: `scripts/shadow_duckdb_20.py`, `skills/sr-search/tests/test_shadow_duckdb_20.py`
 
@@ -158,12 +162,16 @@ Edge cases considered and left out on purpose:
 
 ### 3. Fresh clone and recipe smoke on this machine — verification
 
+- [x] Done: clone of `e011a53`, `make sync`, then the 1.5.4-lock `--with duckdb==2.0.0` form with `--synthetic`: exit 0, `shadow: synthetic section passed`. The live warehouse (size, `mtime_ns`, no `.wal`) and this checkout's `.venv` (DuckDB 1.5.4, 51 packages) were unchanged afterwards
+
 - No files change.
 
 1. After steps 1 and 2 are committed, clone this branch into the scratchpad (`git clone --branch constrain-size-as-best-we-can /home/mobaxterm/git/stockroom <scratch>/m2/clone`), run `make sync` there, and run the docstring's 1.5.4-lock form with `--synthetic --home <scratch>/m2/clone-home`. Expect exit 0 and `shadow: synthetic section passed`. This shows the Mac recipe works and that a run from the clone never touches this checkout's `.venv` or the live warehouse.
 2. Keep the clone for gate 4b; delete `clone-home`.
 
 ### 4. Pre-lock gates — verification
+
+- [x] Gate 4a: 1,053 passed, 36 skipped, exit 0 (2.0.0 overlay, torch 2.13.0+cu126). All 5 torch-gated tests ran; the remaining torch-related skips are `test_doctor_cli.py:54`, which skips when torch is installed
 
 - No files change. Both gates must pass before step 5. If either fails, stop, record it, and report; the 1.5.4 lock stays.
 - Both gates can take longer than the 10-minute foreground limit. Run each in the background with its output in a log file under `<scratch>/m2/`, wait for the completion notice, then read the whole log.
