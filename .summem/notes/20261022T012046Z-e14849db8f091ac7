@@ -1,0 +1,1 @@
+DuckDB 2.0.0 vss filters a WHERE inside the HNSW scan (EXPLAIN: Filters: optional); it found 1 in-scope row behind 2,048 nearer rows but none behind 4,096 identical ones (4/4 builds). 1.5.4 post-filters, misses from 32. Scoped semantic stays exact; test uses 4,096.

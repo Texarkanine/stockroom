@@ -730,9 +730,12 @@ def test_cli_repeated_harness_is_not_a_union(warehouse_home: Path, capsys) -> No
 
 # --- Scoped ranking ---------------------------------------------------------
 
-#: Nearer out-of-scope chunks that make a post-filtered HNSW ``LIMIT`` return
-#: none of the in-scope row on DuckDB 1.5.4 (probed at 32).
-_STARVATION_OUTSIDERS = 32
+#: Identical nearer out-of-scope chunks that make a ``WHERE`` on the HNSW
+#: ``LIMIT`` query return none of the in-scope row. DuckDB 1.5.4 applies the
+#: predicate after the index pick and misses it from 32. DuckDB 2.0.0 filters
+#: inside the index scan: it found the row behind 2,048 and missed it behind
+#: 4,096 in every build probed (2026-10-21).
+_STARVATION_OUTSIDERS = 4096
 
 
 class _FixedEncoder:
@@ -904,11 +907,11 @@ def test_search_limit_applies_after_scope(migrated_con) -> None:
 
 
 def test_search_scope_returns_inscope_behind_nearer_outsiders(migrated_con) -> None:
-    """Enough nearer outsiders to starve a post-filtered HNSW limit still yield the in-scope message.
+    """Enough nearer outsiders to starve a ``WHERE`` on the HNSW limit still yield the in-scope message.
 
-    Thirty-two nearer out-of-scope chunks make ``WHERE harness = 'claude' ORDER BY
-    distance LIMIT 5`` on this DuckDB VSS return no row. The scoped search must
-    still return the farther in-scope message.
+    ``_STARVATION_OUTSIDERS`` nearer out-of-scope chunks make ``WHERE harness =
+    'claude' ORDER BY distance LIMIT 5`` return no row on DuckDB 1.5.4 and 2.0.0.
+    The scoped search must still return the farther in-scope message.
     """
     dim = embed.EMBED_DIM
     query_vector = [1.0] + [0.0] * (dim - 1)
@@ -923,18 +926,19 @@ def test_search_scope_returns_inscope_behind_nearer_outsiders(migrated_con) -> N
         text="insider",
     )
     _insert_embedding(migrated_con, harness="claude", owner_id=insider, vector=farther)
-    for ordinal in range(_STARVATION_OUTSIDERS):
-        outsider = _insert_message(
-            migrated_con,
-            harness="cursor",
-            session_id="out",
-            ordinal=ordinal,
-            role="assistant",
-            text="outsider",
-        )
-        _insert_embedding(
-            migrated_con, harness="cursor", owner_id=outsider, vector=nearer
-        )
+    migrated_con.execute(
+        "INSERT INTO messages (harness, session_id, message_id, ordinal, role, text) "
+        "SELECT 'cursor', 'out', 'out#' || range, range, 'assistant', 'outsider' "
+        "FROM range(?)",
+        [_STARVATION_OUTSIDERS],
+    )
+    migrated_con.execute(
+        "INSERT INTO embeddings "
+        "(harness, owner_table, owner_id, chunk_index, embed_model, vector) "
+        f"SELECT 'cursor', 'messages', 'out#' || range, 0, 'fake', ?::FLOAT[{dim}] "
+        "FROM range(?)",
+        [nearer, _STARVATION_OUTSIDERS],
+    )
 
     hits = semantic.run_semantic_search(
         "ignored by the fixed encoder",

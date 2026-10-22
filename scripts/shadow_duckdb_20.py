@@ -114,7 +114,8 @@ def say(line):
 
 
 def one_line(exc):
-    return f"{type(exc).__name__}: {exc}".replace("\n", " ")
+    text = f"{type(exc).__name__}: {exc}".split("Stack Trace:")[0]
+    return " ".join(text.split())
 
 
 def connect(db, read_only=False):

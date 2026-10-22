@@ -5,8 +5,8 @@ same ``sentence-transformers`` model the m1 pipeline used. With no scope it runs
 **cosine KNN over the ``0003`` HNSW index**, dedups multi-chunk hits to one row
 per owner message (the "max-sim" obligation m1 deferred), and joins the winners
 back to their ``messages`` rows. Optional ``--harness`` and ``--role`` rank the
-joined filtered set instead, because a ``WHERE`` on the HNSW limit query drops
-matches. Printing is a ranked table — all **read-only** through the
+joined filtered set instead, because a ``WHERE`` on the HNSW limit query can
+drop matches. Printing is a ranked table — all **read-only** through the
 ``warehouse.open()`` chokepoint.
 
 Named ``semantic`` (not ``search``) so a keyword-search seeker doesn't grab it by
@@ -117,7 +117,8 @@ def run_semantic_search(
     ``messages`` rows. With a ``harness`` or ``role`` scope, the joined
     filtered set is ranked exactly and deduped in that same statement — a
     ``WHERE`` on the HNSW ``LIMIT`` query is not used, because DuckDB VSS
-    applies that predicate after the index pick and can return no rows.
+    can return fewer matching rows than the limit, or none, when many nearer
+    rows fall outside the scope.
     Assumes ``vss`` is loaded (the chokepoint's ``ensure_vss``); m1 embeds
     messages only, so only ``owner_table = 'messages'`` rows participate.
     """
