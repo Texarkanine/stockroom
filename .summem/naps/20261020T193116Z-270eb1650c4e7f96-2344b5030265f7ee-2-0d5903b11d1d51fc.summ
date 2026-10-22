@@ -1,0 +1,1 @@
+semantic/embed restore torch once from a usable hashed freeze and retry; else say re-run sr-initialize. doctor smoke is report-only. Nightly payload: (date; stockroom shim ensure-env; stockroom ingest && stockroom embed): a failed heal still ingests; failed ingest skips embed.

@@ -460,3 +460,16 @@ Stop the warehouse file growing far past the history it holds, as specified in [
     - With the engine's default config (autoload and autoinstall on), DuckDB 1.5.4 and 2.0.0 never load vss by themselves for a file with the index, read-only or read-write, with or without a killed embed's wal
     - The live data's tables copy to 288 MiB with zstd, against 483 MiB without, in about 6 s on 2.0.0
     - On 2.0.0 without vss, `COPY FROM DATABASE` fails on a file that still has the index. A comment-only migration file runs on both versions
+
+## 2026-10-22 - REVIEW (OPERATOR) - COMPLETE
+
+* Work completed
+    - Folded the twelfth preflight's three advisories into `milestones.md`: the dedup-first search shape and the separate-process leftover-`.wal` test in milestone 1, and a zstd data-segment invariant used by milestones 3, 5, and 6
+    - Merged the swap milestone into the check milestone, leaving 7 milestones. Updated the invariants, shared artifacts, execution order, the hook milestone, and `projectbrief.md` (spec note, lifetime, existing-warehouse use case, requirements 2, 3, and 6, and acceptance 4 and 7)
+* Decisions made
+    - Operator: adopt advisories 1 to 3
+    - Operator: merge the swap into the check (the radical advisory). Phase A records `rehearsed`. Phase B runs at a later session start, at least one day after a `rehearsed` record of the same check version: it copies again, verifies, hard-links the original to the backup name, and replaces the live file. This reverses "the check's first release never swaps". The kill switch is a release that changes the check version and keeps phase B off
+    - A filesystem that refuses hard links is now a skip reason, tested before the pass builds
+    - The merged list was not preflighted again; the operator directed it at review
+* Insights
+    - Without the index, the rehearsal measures a copy of 288 MiB built in under 6 s, so a release spent collecting field data before any swap no longer buys much
