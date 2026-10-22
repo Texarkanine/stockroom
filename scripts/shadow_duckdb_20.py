@@ -1,12 +1,27 @@
 """Shadow-test the DuckDB 2.0 engine against a copy of a real warehouse.
 
 A contributor program, not a stockroom command, and nothing starts it from a
-hook. It runs from a clone of the branch under a DuckDB 2.0 overlay of the
-engine project, from the repo root::
+hook. Run it from the root of a clone of the branch. With the engine locked to
+DuckDB 2.0::
 
-    uv run --project skills/sr-search --no-config --no-sync --with duckdb==2.0.0 \\
+    uv run --project skills/sr-search --no-config --no-sync \\
         python scripts/shadow_duckdb_20.py \\
         --source ~/.local/share/stockroom/warehouse.duckdb --home /scratch/shadow
+
+On a checkout still locked to DuckDB 1.5.4, add ``--with duckdb==2.0.0`` after
+``--no-sync``, so the run uses a DuckDB 2.0 overlay of the engine project.
+
+On another machine, make a fresh clone, so the run cannot touch the copy of
+stockroom that the machine uses::
+
+    git clone --branch <branch> <repo-url> stockroom-shadow
+    cd stockroom-shadow
+    make sync
+
+Then run the command above in that folder. Do not run ``make shim`` or
+``make torch`` in the clone: ``make shim`` would point the machine's
+``stockroom`` command at the clone, and the script installs torch itself, from
+the machine's hashed freeze, into the run's own Python environment.
 
 It never opens ``--source`` with DuckDB. Its only operations on that file are
 the writer flock beside it, a ``.wal`` check, one byte copy, and a stat. All
@@ -25,8 +40,12 @@ Phases, in order (``--stop-after`` ends the run early):
 3. Copy under the writer flock, refusing a source with a ``.wal``.
 4. Checkpoint the working copy with DuckDB 2.0 and compare every table with
    the baseline copy in both directions.
-5. Ingest, ``embed --verbose``, a checkpoint, and semantic search on the
-   working copy, then a DuckDB 1.5.4 writer and a 2.0 reader.
+5. Ingest, ``embed --verbose``, and a checkpoint on the working copy. The
+   copy must keep its ``v1.0.0+`` storage tag, be at the schema head, and have
+   no index, and ``stockroom semantic`` must return a rank-1 row. Then a DuckDB
+   1.5.4 writer and a 2.0 reader. A stockroom command that prints a
+   ``nanobind:`` line (DuckDB 2.0's leaked-instance report at exit) fails the
+   run.
 
 The script exits 0 only when every phase it ran passed. Stdlib at import:
 DuckDB and the engine are imported inside the functions that use them, so the
@@ -67,9 +86,10 @@ OLD_DUCKDB = "1.5.4"
 
 _ORPHAN_LINE = re.compile(r"embed: removed (\d+) orphaned embedding rows")
 
-#: Shared head of every DuckDB child program. A child prints each fact as one
-#: flushed line, so the parent can read it while the child keeps running.
-_CHILD_PRELUDE = r"""
+#: The DuckDB child program: writes ``shadow_probe``, answers the unscoped
+#: cosine query, and prints its version. It prints each fact as one flushed
+#: line, so the parent can read it while the child keeps running.
+_WRITER_CHILD = r"""
 import random
 import sys
 
@@ -86,33 +106,21 @@ def say(line):
     print(line, flush=True)
 
 
-def connect(db, read_only=False):
-    # No extension: stockroom loads none, and exact search needs none.
-    return duckdb.connect(db, read_only=read_only)
-
-
-def vector(seed):
-    rng = random.Random(seed)
-    return [rng.random() for _ in range(384)]
-"""
-
-#: Writes ``shadow_probe``, answers the unscoped cosine query, prints its version.
-_WRITER_CHILD = (
-    _CHILD_PRELUDE
-    + r"""
-con = connect(sys.argv[1])
+rng = random.Random(2)
+query = [rng.random() for _ in range(384)]
+# No extension: stockroom loads none, and exact search needs none.
+con = duckdb.connect(sys.argv[1])
 con.execute(
     "CREATE TABLE IF NOT EXISTS shadow_probe (written_at TIMESTAMP, duckdb VARCHAR)"
 )
 con.execute(
     "INSERT INTO shadow_probe VALUES (current_timestamp, ?)", [duckdb.__version__]
 )
-rows = con.execute(COSINE_SQL, [vector(2)]).fetchall()
+rows = con.execute(COSINE_SQL, [query]).fetchall()
 say(f"cosine ok {len(rows)} rows")
 say(f"duckdb {duckdb.__version__}")
 con.close()
 """
-)
 
 
 class PhaseError(RuntimeError):
@@ -122,6 +130,62 @@ class PhaseError(RuntimeError):
 def embeddings_held(after_ingest: int, after_embed: int, removed_orphans: int) -> bool:
     """True when embed kept every embedding row except the orphans it reported."""
     return after_embed >= after_ingest - removed_orphans
+
+
+def check_live_copy(db: Path) -> str:
+    """Check the working copy after the live phase; return its storage tag.
+
+    The copy must still carry the old storage tag (``OLD_TAG``), so DuckDB
+    before 2.0 can open it; its newest ``schema_version`` row must be the head
+    of the engine's migration chain; and it must have no index beyond primary
+    keys. Raises one :class:`PhaseError` that names every mismatch.
+    """
+    _engine_on_path()
+    from stockroom.migrations import discover
+
+    head = max(migration.version for migration in discover())
+    con = _connect(db, read_only=True)
+    try:
+        tag = _storage_tag(con)
+        schema = con.execute("SELECT max(version) FROM schema_version").fetchone()[0]
+        indexes = [
+            row[0]
+            for row in con.execute(
+                "SELECT index_name FROM duckdb_indexes() "
+                "WHERE database_name = current_database() AND NOT is_primary "
+                "ORDER BY index_name"
+            ).fetchall()
+        ]
+    finally:
+        con.close()
+    problems = []
+    if tag != OLD_TAG:
+        problems.append(f"storage {tag}, not {OLD_TAG}")
+    if schema != head:
+        problems.append(f"schema_version {schema}, not the head {head}")
+    if indexes:
+        problems.append(f"index {', '.join(indexes)}, where there should be none")
+    if problems:
+        raise PhaseError("the copy after the live phase has " + "; ".join(problems))
+    return tag
+
+
+def semantic_answered(lines: list[str]) -> bool:
+    """True when ``stockroom semantic`` output holds a rank-1 row.
+
+    A TSV result row starts with its rank and a tab; the header and any
+    stderr line merged into the output do not.
+    """
+    return any(line.startswith("1\t") for line in lines)
+
+
+def nanobind_lines(lines: list[str]) -> list[str]:
+    """Return the lines that start ``nanobind:``, in order.
+
+    DuckDB 2.0 builds on nanobind, which prints such lines at interpreter exit
+    when ``duckdb`` instances are still alive (leaked instances).
+    """
+    return [line for line in lines if line.startswith("nanobind:")]
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -374,7 +438,7 @@ def _live(home: Path, working: Path) -> None:
             raise PhaseError(
                 f"ingest: {table} fell from {before[table]} to {after_ingest[table]}"
             )
-    output = _stockroom(env, "embed", "--verbose")
+    output = "\n".join(_stockroom(env, "embed", "--verbose"))
     match = _ORPHAN_LINE.search(output)
     removed = int(match.group(1)) if match else 0
     after_embed = _row_counts(working)
@@ -389,13 +453,13 @@ def _live(home: Path, working: Path) -> None:
     con = _connect(working)
     try:
         con.execute("CHECKPOINT")
-        tag = _storage_tag(con)
     finally:
         con.close()
-    if tag != OLD_TAG:
-        raise PhaseError(f"the copy's storage tag became {tag}, not {OLD_TAG}")
-    _say(f"live: checkpoint done; storage {tag}")
-    _stockroom(env, "semantic", "-k", "3", "how does the warehouse lock work")
+    tag = check_live_copy(working)
+    _say(f"live: checkpoint done; storage {tag}; schema at the head; no index")
+    found = _stockroom(env, "semantic", "-k", "3", "how does the warehouse lock work")
+    if not semantic_answered(found):
+        raise PhaseError("stockroom semantic: no rank-1 row")
     lines = _run_command(
         f"duckdb {OLD_DUCKDB}",
         [*_uv_python(OLD_DUCKDB), "-c", _WRITER_CHILD, str(working)],
@@ -403,10 +467,9 @@ def _live(home: Path, working: Path) -> None:
         required="cosine ok",
     )
     _require_version(lines, OLD_DUCKDB)
-    lines = _run_child(
+    lines = _run_command(
         "duckdb 2.0",
-        _WRITER_CHILD,
-        str(working),
+        [sys.executable, "-c", _WRITER_CHILD, str(working)],
         timeout=PROBE_SECONDS,
         required="cosine ok",
     )
@@ -426,16 +489,23 @@ def _row_counts(db: Path) -> dict[str, int]:
         con.close()
 
 
-def _stockroom(env: dict[str, str], *args: str) -> str:
-    """Run ``python -m stockroom`` with this interpreter; return its output."""
+def _stockroom(env: dict[str, str], *args: str) -> list[str]:
+    """Run ``python -m stockroom`` with this interpreter; return its output lines.
+
+    Stderr is merged in, so a ``nanobind:`` line printed at exit fails the run.
+    """
+    label = f"stockroom {args[0]}"
     lines = _run_command(
-        f"stockroom {args[0]}",
+        label,
         [sys.executable, "-m", "stockroom", *args],
         timeout=None,
         env=env,
         merge_stderr=True,
     )
-    return "\n".join(lines)
+    leaks = nanobind_lines(lines)
+    if leaks:
+        raise PhaseError(f"{label}: printed {len(leaks)} nanobind lines: {leaks[0]}")
+    return lines
 
 
 def _uv_python(version: str) -> list[str]:
@@ -499,19 +569,6 @@ def _stop(proc: subprocess.Popen[bytes]) -> None:
     if proc.poll() is None:
         proc.kill()
     proc.wait()
-
-
-def _run_child(
-    label: str,
-    code: str,
-    *args: str,
-    timeout: float | None,
-    required: str | None = None,
-) -> list[str]:
-    """Run a DuckDB child program of this interpreter; return its lines."""
-    return _run_command(
-        label, [sys.executable, "-c", code, *args], timeout=timeout, required=required
-    )
 
 
 def _run_command(
@@ -597,12 +654,12 @@ def _synthetic(work: Path) -> None:
         shutil.rmtree(work, ignore_errors=True)
 
 
-def _synthetic_warehouse(db: Path, *, rows: int, storage: str = "v1.0.0") -> None:
-    """Create a migrated warehouse at ``storage`` with ``rows`` random embeddings."""
+def _synthetic_warehouse(db: Path, *, rows: int) -> None:
+    """Create a migrated ``v1.0.0`` warehouse with ``rows`` random embeddings."""
     _engine_on_path()
     from stockroom.migrate import apply_pending
 
-    con = _connect(db, storage_compatibility_version=storage)
+    con = _connect(db, storage_compatibility_version="v1.0.0")
     try:
         apply_pending(con)
         _insert_random_embeddings(con, rows)
@@ -611,13 +668,13 @@ def _synthetic_warehouse(db: Path, *, rows: int, storage: str = "v1.0.0") -> Non
         con.close()
 
 
-def _insert_random_embeddings(con: Any, rows: int, *, start: int = 0) -> None:
+def _insert_random_embeddings(con: Any, rows: int) -> None:
     con.execute(
         "INSERT INTO embeddings "
         "(harness, owner_table, owner_id, chunk_index, embed_model, vector) "
         "SELECT 'synthetic', 'messages', 'synthetic#' || range, 0, 'synthetic', "
         "list_transform(range(384), lambda x: random()::FLOAT)::FLOAT[384] "
-        f"FROM range({int(start)}, {int(start) + int(rows)})"
+        f"FROM range({int(rows)})"
     )
 
 

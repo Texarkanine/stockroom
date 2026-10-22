@@ -1,4 +1,7 @@
-"""Shadow-test script for the DuckDB 2.0 move: guards and checkpoint equality.
+"""Shadow-test script for the DuckDB 2.0 move: guards, checkpoint equality, checks.
+
+The checks are the ones the live phase runs on the working copy and on the
+stockroom commands' output.
 
 ``scripts/shadow_duckdb_20.py`` is a contributor program at the repo root, not
 part of the engine package. These tests run it as a subprocess with this
@@ -10,6 +13,7 @@ with importlib from the anchored path. The acceptance run of the script is the
 from __future__ import annotations
 
 import importlib.util
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -17,6 +21,9 @@ from types import ModuleType
 
 import duckdb
 import pytest
+
+from stockroom.migrate import apply_pending
+from stockroom.migrations import discover
 
 SCRIPT = Path(__file__).resolve().parents[3] / "scripts" / "shadow_duckdb_20.py"
 
@@ -168,3 +175,125 @@ def test_embeddings_held_allows_only_reported_orphans(shadow: ModuleType) -> Non
     assert shadow.embeddings_held(100, 95, 5)
     assert not shadow.embeddings_held(100, 94, 5)
     assert not shadow.embeddings_held(100, 99, 0)
+
+
+# --- the copy after the live phase ---------------------------------------------
+
+
+def _head_warehouse(path: Path, storage: str = "v1.0.0") -> Path:
+    """Create a warehouse at ``storage``, migrated to the schema head, and close it."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    con = duckdb.connect(str(path), config={"storage_compatibility_version": storage})
+    try:
+        apply_pending(con)
+    finally:
+        con.close()
+    return path
+
+
+def _execute(db: Path, sql: str) -> None:
+    """Run one statement on ``db`` read-write and close it."""
+    con = duckdb.connect(str(db))
+    try:
+        con.execute(sql)
+    finally:
+        con.close()
+
+
+def _head() -> int:
+    return max(migration.version for migration in discover())
+
+
+def test_check_live_copy_passes_old_tag_at_head_without_index(
+    shadow: ModuleType, tmp_path: Path
+) -> None:
+    """A ``v1.0.0`` file at the schema head with no extra index passes.
+
+    ``check_live_copy`` returns the storage tag it read.
+    """
+    db = _head_warehouse(tmp_path / "warehouse.duckdb")
+
+    assert shadow.check_live_copy(db) == "v1.0.0+"
+
+
+def test_check_live_copy_names_an_extra_index(
+    shadow: ModuleType, tmp_path: Path
+) -> None:
+    """A non-primary index on the copy fails the check, which names the index."""
+    db = _head_warehouse(tmp_path / "warehouse.duckdb")
+    _execute(db, "CREATE INDEX extra ON sessions (session_id)")
+
+    with pytest.raises(shadow.PhaseError, match="extra"):
+        shadow.check_live_copy(db)
+
+
+def test_check_live_copy_names_a_schema_behind_head(
+    shadow: ModuleType, tmp_path: Path
+) -> None:
+    """A copy whose newest ``schema_version`` row is below the head fails.
+
+    The message names the version found and the head.
+    """
+    head = _head()
+    db = _head_warehouse(tmp_path / "warehouse.duckdb")
+    _execute(db, f"DELETE FROM schema_version WHERE version = {head}")
+
+    with pytest.raises(shadow.PhaseError) as excinfo:
+        shadow.check_live_copy(db)
+
+    message = str(excinfo.value)
+    assert re.search(rf"\b{head - 1}\b", message), message
+    assert re.search(rf"\b{head}\b", message), message
+
+
+def test_check_live_copy_names_a_new_storage_tag(
+    shadow: ModuleType, tmp_path: Path
+) -> None:
+    """A copy whose storage tag moved off ``v1.0.0+`` fails, naming both tags.
+
+    DuckDB before 2.0 opens only the old tag, so a moved tag would lock the
+    machine's older stockroom copies out of the warehouse.
+    """
+    db = _head_warehouse(tmp_path / "warehouse.duckdb", storage="v1.2.0")
+
+    with pytest.raises(shadow.PhaseError, match=r"v1\.2\.0\+") as excinfo:
+        shadow.check_live_copy(db)
+
+    assert "v1.0.0+" in str(excinfo.value)
+
+
+# --- reading the commands' output -------------------------------------------------
+
+_SEMANTIC_HEADER = "rank\tscore\tharness\tsession_id\tmessage_id\trole\tpreview"
+
+
+def test_semantic_answered_needs_a_rank_one_row(shadow: ModuleType) -> None:
+    """Only a line that starts with rank 1 and a tab counts as an answer.
+
+    No lines, or the TSV header alone, is no answer. A line that merely holds
+    ``1<TAB>`` later on (such as a log line) is not a rank-1 row.
+    """
+    row = "1\t0.91\tclaude\ts1\ts1#0\tuser\thow does the warehouse lock work"
+
+    assert not shadow.semantic_answered([])
+    assert not shadow.semantic_answered([_SEMANTIC_HEADER])
+    assert shadow.semantic_answered([_SEMANTIC_HEADER, row])
+    assert not shadow.semantic_answered(
+        [_SEMANTIC_HEADER, "Batches: 100%|##########| 1/1\t1\tdone"]
+    )
+
+
+def test_nanobind_lines_returns_only_nanobind_lines(shadow: ModuleType) -> None:
+    """``nanobind_lines`` returns exactly the lines that start ``nanobind:``."""
+    leaks = [
+        "embedded 3 chunk vectors",
+        "nanobind: leaked 27 instances!",
+        "nanobind: leaked 6 types!",
+        ' - leaked type "_duckdb.DuckDBPyConnection"',
+        "nanobind: this is likely caused by a reference counting issue",
+        "See https://nanobind.readthedocs.io/en/latest/refleaks.html",
+    ]
+
+    assert shadow.nanobind_lines(leaks) == [leaks[1], leaks[2], leaks[4]]
+    assert shadow.nanobind_lines(["embedded 3 chunk vectors"]) == []
+    assert shadow.nanobind_lines([]) == []
