@@ -12,7 +12,6 @@ from pathlib import Path
 
 import duckdb
 
-from stockroom import warehouse
 from stockroom.migrations import discover
 from test_schema_0003 import _introspect_schema
 
@@ -20,8 +19,7 @@ SNAPSHOT_PATH = Path(__file__).parent / "fixtures" / "schema" / "0004_snapshot.j
 
 
 def _apply_chain(con: duckdb.DuckDBPyConnection) -> None:
-    """Load VSS and apply every packaged migration through ``0004``."""
-    warehouse.ensure_vss(con)
+    """Apply every packaged migration through ``0004``."""
     for migration in discover():
         if migration.version > 4:
             break

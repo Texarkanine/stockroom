@@ -1,17 +1,13 @@
-"""Contract tests for migration ``0003_embeddings_hnsw_index.sql``.
+"""Contract tests for migration ``0003_retired.sql``.
 
-``0003`` lands the deferred VSS/HNSW vector index that Phase 2 needs: a cosine
-HNSW index on ``embeddings(vector)`` with experimental persistence enabled (so
-deletes/inserts work against the live index). It is a *thin* migration — it
-creates only the index; the ``vss`` extension is loaded by the caller
-(``warehouse.ensure_vss`` at the chokepoint, or these tests directly), never by
-the migration SQL, keeping the network ``INSTALL`` off the shipped DDL path (see
-``creative-vss-provisioning-and-index.md``).
+``0003`` is retired. It once created a cosine HNSW index on
+``embeddings(vector)``, which needed the ``vss`` extension. Semantic search now
+ranks every vector exactly, so the file holds only comments: a new warehouse
+gets no index, and the runner still records version 3, so version numbers stay
+contiguous. ``0009`` drops the index from a warehouse that already has one.
 
-``0001``/``0002`` and their golden snapshots stay frozen; this module adds the
-cumulative ``0003_snapshot.json`` — identical columns/PKs to ``0002`` plus a new
-**indexes** section, so an otherwise column-stable migration is still a
-meaningfully locked artifact.
+``0001``/``0002`` and their golden snapshots stay frozen; this module keeps the
+cumulative ``0003_snapshot.json``, whose **indexes** section is empty.
 """
 
 import json
@@ -20,12 +16,9 @@ from pathlib import Path
 
 import duckdb
 
-from stockroom import warehouse
 from stockroom.migrations import discover
 
 SNAPSHOT_PATH = Path(__file__).parent / "fixtures" / "schema" / "0003_snapshot.json"
-
-HNSW_INDEX_NAME = "embeddings_vector_hnsw"
 
 
 def _apply(con: duckdb.DuckDBPyConnection, version: int) -> None:
@@ -35,66 +28,29 @@ def _apply(con: duckdb.DuckDBPyConnection, version: int) -> None:
 
 
 def _apply_chain(con: duckdb.DuckDBPyConnection) -> None:
-    """Load ``vss`` then apply ``0001``..``0003`` directly (the chain head).
-
-    ``ensure_vss`` is the precondition ``0003`` assumes (the migration SQL does
-    not ``LOAD``); calling it here mirrors what the chokepoint/fixtures do.
-    """
-    warehouse.ensure_vss(con)
+    """Apply ``0001``..``0003`` directly (no runner)."""
     for version in (1, 2, 3):
         _apply(con, version)
 
 
-def _unit(slot: int) -> list[float]:
-    """A one-hot 384-vector (1.0 at ``slot``), giving each row a distinct
-    cosine *direction* (mere magnitude scaling leaves cosine unchanged).
-    """
-    v = [0.0] * 384
-    v[slot] = 1.0
-    return v
-
-
-def test_0003_creates_hnsw_cosine_index(mem_con: duckdb.DuckDBPyConnection) -> None:
-    """After the chain, a non-primary HNSW index sits on ``embeddings(vector)``."""
-    _apply_chain(mem_con)
-
-    rows = mem_con.execute(
-        "SELECT index_name, table_name, expressions, is_primary "
-        "FROM duckdb_indexes() WHERE schema_name = 'main' "
-        "AND index_name = ?",
-        [HNSW_INDEX_NAME],
-    ).fetchall()
-    assert len(rows) == 1
-    index_name, table_name, expressions, is_primary = rows[0]
-    assert index_name == HNSW_INDEX_NAME
-    assert table_name == "embeddings"
-    assert expressions == "[vector]"
-    assert is_primary is False
-
-
-def test_0003_index_supports_knn_and_live_delete(
+def test_0003_needs_no_extension_and_creates_no_index(
     mem_con: duckdb.DuckDBPyConnection,
 ) -> None:
-    """The live index answers cosine KNN and accepts a delete (persistence on)."""
+    """``0001`` to ``0003`` apply on a connection that never loaded ``vss``.
+
+    No error is raised, no non-primary index exists afterwards, and ``vss`` is
+    still not loaded.
+    """
     _apply_chain(mem_con)
-    for ordinal in range(3):
-        mem_con.execute(
-            "INSERT INTO embeddings "
-            "(harness, owner_table, owner_id, chunk_index, embed_model, vector) "
-            "VALUES ('claude', 'messages', ?, 0, 'm', ?)",
-            [f"s#{ordinal}", _unit(ordinal)],
-        )
 
-    nearest = mem_con.execute(
-        "SELECT owner_id FROM embeddings "
-        "ORDER BY array_cosine_distance(vector, ?::FLOAT[384]) LIMIT 1",
-        [_unit(0)],
+    indexes = mem_con.execute(
+        "SELECT index_name FROM duckdb_indexes() WHERE NOT is_primary"
+    ).fetchall()
+    assert indexes == []
+    loaded = mem_con.execute(
+        "SELECT loaded FROM duckdb_extensions() WHERE extension_name = 'vss'"
     ).fetchone()[0]
-    assert nearest == "s#0"
-
-    # A delete against the live HNSW index must succeed (experimental persistence).
-    mem_con.execute("DELETE FROM embeddings WHERE owner_id = 's#0'")
-    assert mem_con.execute("SELECT count(*) FROM embeddings").fetchone()[0] == 2
+    assert loaded is False
 
 
 # --- Cumulative schema golden snapshot (columns + PKs + indexes) ------------
@@ -106,10 +62,9 @@ def _introspect_schema(con: duckdb.DuckDBPyConnection) -> dict:
     Extends the ``0002`` shape (per-table columns in physical order + composite
     primary keys) with a top-level ``indexes`` list capturing the
     explicitly-created (non-primary) indexes — name, table, and indexed
-    expressions — so the HNSW index is a locked part of the golden. The
+    expressions — so a non-primary index would show in the golden. The
     runner-owned ``schema_version`` table is excluded (it is not a product
-    migration artifact). The cosine *metric* is not introspectable via
-    ``duckdb_indexes()``; it is verified functionally by the KNN test above.
+    migration artifact).
     """
     tables: dict = {}
     cols = con.execute(
@@ -149,7 +104,7 @@ def _introspect_schema(con: duckdb.DuckDBPyConnection) -> dict:
 def test_migrated_schema_matches_0003_snapshot(
     mem_con: duckdb.DuckDBPyConnection,
 ) -> None:
-    """The post-``0003`` schema (columns + PKs + indexes) byte-matches the golden.
+    """The post-``0003`` schema (columns + PKs + no indexes) byte-matches the golden.
 
     A deliberate schema change regenerates ``0003_snapshot.json``
     (``STOCKROOM_UPDATE_SCHEMA_GOLDEN=1``); accidental drift fails here.

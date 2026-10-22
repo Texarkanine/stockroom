@@ -1,0 +1,11 @@
+-- stockroom warehouse — retired migration (migration 0003)
+--
+-- Version 3 once created a cosine HNSW vector index on embeddings(vector),
+-- which needed the DuckDB vss extension. Semantic search now ranks every
+-- stored vector exactly, so stockroom keeps no vector index and loads no
+-- extension. Migration 0009 drops the index from a warehouse that has one.
+--
+-- This file holds only comments, so it changes nothing. It stays so version
+-- numbers stay contiguous: the runner records version 3 and moves on. A
+-- warehouse that already applied the old 0003 keeps its recorded filename;
+-- nothing reads that column.

@@ -20,7 +20,7 @@ import duckdb
 import pytest
 
 import stockroom
-from stockroom import embed, warehouse
+from stockroom import embed
 from stockroom.migrate import apply_pending
 
 
@@ -417,13 +417,8 @@ def migrated_con() -> Iterator[duckdb.DuckDBPyConnection]:
     :func:`stockroom.migrate.apply_pending` — i.e. the post-migration schema the
     ingest writer and orchestrator actually target. Each test gets an isolated,
     up-to-date database.
-
-    ``ensure_vss`` is called before applying the chain because ``0003`` creates
-    the HNSW index and assumes ``vss`` is already loaded (the precondition the
-    ``warehouse.open()`` chokepoint establishes in production).
     """
     con = duckdb.connect(":memory:")
-    warehouse.ensure_vss(con)
     apply_pending(con)
     try:
         yield con

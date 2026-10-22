@@ -1,11 +1,5 @@
 {
-  "indexes": [
-    {
-      "expressions": "[vector]",
-      "name": "embeddings_vector_hnsw",
-      "table": "embeddings"
-    }
-  ],
+  "indexes": [],
   "tables": {
     "_sync_state": {
       "columns": [

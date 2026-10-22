@@ -18,7 +18,7 @@ from pathlib import Path
 import duckdb
 import pytest
 
-from stockroom import migrate, warehouse
+from stockroom import migrate
 
 # Product tables declared by the real ``0001`` migration.
 _PRODUCT_TABLES = {"sessions", "messages", "tool_calls", "embeddings", "_sync_state"}
@@ -72,15 +72,12 @@ def test_apply_pending_applies_all_packaged_on_fresh_db(
     """A fresh DB gets every packaged migration in order, landing at the head.
 
     The product tables come from ``0001``; ``0002`` (workspace identity),
-    ``0003`` (the VSS/HNSW embeddings index), ``0004`` (durable observation
-    times), ``0005`` (UTC watermark reset), ``0006`` (workspace_key),
-    ``0007`` (session tokens + rollup VIEW), and ``0008`` (entrypoint) are
-    structural follow-ons. A fresh apply stamps one bookkeeping row per
-    migration, including ``0001``'s, asserted explicitly. ``ensure_vss`` is the
-    precondition ``0003`` assumes; the chokepoint runs it in production, so the
-    test does too.
+    ``0003`` (retired; it once created a vector index), ``0004`` (durable
+    observation times), ``0005`` (UTC watermark reset), ``0006``
+    (workspace_key), ``0007`` (session tokens + rollup VIEW), and ``0008``
+    (entrypoint) are structural follow-ons. A fresh apply stamps one bookkeeping row per
+    migration, including ``0001``'s, asserted explicitly.
     """
-    warehouse.ensure_vss(mem_con)
     applied = migrate.apply_pending(mem_con)
 
     assert applied == [1, 2, 3, 4, 5, 6, 7, 8]
@@ -100,7 +97,6 @@ def test_apply_pending_is_idempotent(
     mem_con: duckdb.DuckDBPyConnection,
 ) -> None:
     """Re-running on a current DB is a no-op: ``[]``, same version, no dup rows."""
-    warehouse.ensure_vss(mem_con)
     applied = migrate.apply_pending(mem_con)
     second = migrate.apply_pending(mem_con)
 

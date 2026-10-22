@@ -15,7 +15,6 @@ from pathlib import Path
 
 import duckdb
 
-from stockroom import warehouse
 from stockroom.migrations import discover
 from test_schema_0003 import _introspect_schema
 
@@ -30,8 +29,7 @@ SESSION_TOKEN_COLUMNS = (
 
 
 def _apply_chain(con: duckdb.DuckDBPyConnection) -> None:
-    """Load VSS and apply every packaged migration through ``0007``."""
-    warehouse.ensure_vss(con)
+    """Apply every packaged migration through ``0007``."""
     for migration in discover():
         if migration.version > 7:
             break
@@ -39,8 +37,7 @@ def _apply_chain(con: duckdb.DuckDBPyConnection) -> None:
 
 
 def _apply_through(con: duckdb.DuckDBPyConnection, version: int) -> None:
-    """Load VSS and apply packaged migrations through ``version`` inclusive."""
-    warehouse.ensure_vss(con)
+    """Apply packaged migrations through ``version`` inclusive."""
     for migration in discover():
         if migration.version > version:
             break

@@ -9,15 +9,13 @@ from datetime import datetime
 
 import duckdb
 
-from stockroom import warehouse
 from stockroom.migrations import discover
 from test_schema_0003 import _introspect_schema
 from test_schema_0004 import SNAPSHOT_PATH as SNAPSHOT_0004
 
 
 def _apply_through(con: duckdb.DuckDBPyConnection, *, through_version: int) -> None:
-    """Load VSS and apply packaged migrations through ``through_version``."""
-    warehouse.ensure_vss(con)
+    """Apply packaged migrations through ``through_version``."""
     for migration in discover():
         if migration.version > through_version:
             break

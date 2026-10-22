@@ -230,12 +230,12 @@ def test_migrated_warehouse_matches_locked_snapshot(warehouse_home: Path) -> Non
     """A freshly opened warehouse's product schema byte-matches the head snapshot.
 
     Reuses the schema-introspection helper against the *cumulative* post-``0008``
-    golden (``0008_snapshot.json``: columns + PKs + the HNSW index; the VIEW
-    ``session_token_usage`` appears via ``duckdb_columns``). The runner-owned
-    ``schema_version`` bookkeeping table is excluded by the helper (it is not
-    part of any product migration), proving the migration framework produces
-    precisely the locked product DDL — including the VSS index — at the chain
-    head: opening the warehouse yields the current locked schema.
+    golden (``0008_snapshot.json``: columns + PKs + an empty index list; the
+    VIEW ``session_token_usage`` appears via ``duckdb_columns``). The
+    runner-owned ``schema_version`` bookkeeping table is excluded by the helper
+    (it is not part of any product migration), proving the migration framework
+    produces precisely the locked product DDL at the chain head: opening the
+    warehouse yields the current locked schema.
     """
     con = warehouse.open(read_only=False)
     try:
@@ -245,3 +245,19 @@ def test_migrated_warehouse_matches_locked_snapshot(warehouse_home: Path) -> Non
 
     expected = json.loads(SNAPSHOT_PATH.read_text(encoding="utf-8"))
     assert schema == expected
+
+
+# --- no vector index ------------------------------------------------------------
+
+
+def test_new_warehouse_has_no_vector_index(warehouse_home: Path) -> None:
+    """A warehouse that ``open()`` creates has no non-primary index."""
+    con = warehouse.open(read_only=False)
+    try:
+        indexes = con.execute(
+            "SELECT index_name FROM duckdb_indexes() WHERE NOT is_primary"
+        ).fetchall()
+    finally:
+        con.close()
+
+    assert indexes == []

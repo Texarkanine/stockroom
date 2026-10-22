@@ -19,8 +19,8 @@
 --     enforced in the ingest layer (milestone 3) and asserted via tests.
 --   * No CHECK on `harness` — hard-coding the known set would block
 --     future-harness onboarding (extensibility invariant).
---   * No HNSW/VSS index on embeddings — that needs the VSS extension (Phase 2);
---     0001 defines the table and FLOAT[384] column only.
+--   * No vector index on embeddings — semantic search ranks every vector
+--     exactly; 0001 defines the table and FLOAT[384] column only.
 
 -- One row per conversation. Subagents are their own session rows linked to a
 -- parent via parent_session_id.
@@ -79,7 +79,7 @@ CREATE TABLE tool_calls (
     PRIMARY KEY (harness, session_id, message_id, ordinal)
 );
 
--- Forward-declared; populated in Phase 2 (embeddings + search). No HNSW index.
+-- Forward-declared; populated in Phase 2 (embeddings + search). No vector index.
 -- @rel embeddings(harness, owner_id) -> messages(harness, message_id) : owner_table=messages
 -- @rel embeddings(harness, owner_id) -> tool_calls(harness, message_id) : owner_table=tool_calls
 CREATE TABLE embeddings (
@@ -88,7 +88,7 @@ CREATE TABLE embeddings (
     owner_id    TEXT,                 -- references the owner row's message_id
     chunk_index INTEGER,
     embed_model TEXT NOT NULL,
-    vector      FLOAT[384],           -- VSS/HNSW index added in Phase 2
+    vector      FLOAT[384],           -- ranked exactly by cosine distance
     PRIMARY KEY (harness, owner_table, owner_id, chunk_index)
 );
 

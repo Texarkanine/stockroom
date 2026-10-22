@@ -12,7 +12,6 @@ from pathlib import Path
 
 import duckdb
 
-from stockroom import warehouse
 from stockroom.migrations import discover
 from test_schema_0003 import _introspect_schema
 
@@ -20,8 +19,7 @@ SNAPSHOT_PATH = Path(__file__).parent / "fixtures" / "schema" / "0006_snapshot.j
 
 
 def _apply_chain(con: duckdb.DuckDBPyConnection) -> None:
-    """Load VSS and apply every packaged migration through ``0006``."""
-    warehouse.ensure_vss(con)
+    """Apply every packaged migration through ``0006``."""
     for migration in discover():
         if migration.version > 6:
             break
@@ -54,7 +52,6 @@ def test_0006_preserves_rows_with_null_workspace_key(
     mem_con: duckdb.DuckDBPyConnection,
 ) -> None:
     """Pre-existing sessions survive with ``workspace_key IS NULL`` (no backfill)."""
-    warehouse.ensure_vss(mem_con)
     for migration in discover():
         if migration.version > 5:
             break
