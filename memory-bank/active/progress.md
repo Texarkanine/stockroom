@@ -12,3 +12,17 @@ The L4 plan's history (twelve preflights, the failed DuckDB 2.0 sub-run, the re-
     - Classified milestone 1, "Drop the HNSW index with a migration and remove the vss extension and everything else about the index from the engine"
 * Decisions made
     - Level 3, as the L4 plan estimated. A new migration, the warehouse chokepoint, semantic search, schema snapshots and the ERD, tests, docs, the system-model reference, memory-bank context, and the shadow script all change. The first commit that contains the migration drops the index on this machine's live warehouse
+
+## 2026-10-22 - PLAN - COMPLETE
+
+* Work completed
+    - Wrote the Level 3 plan in `tasks.md`: 6 steps (exact search, retire `0003`, strip the shadow script, `0009` with the `ensure_vss` removal and a live-copy proof, docs and context, full verification) and 16 behaviours
+    - Measured exact-search statements on read-only copies of this machine's data (`scratchpad/m1/measure_shapes.py`), and probed DuckDB 1.5.4 writes against an unbound HNSW index (`scratchpad/m1/unbound_index_probe.py`)
+* Decisions made
+    - One exact statement for every scope: nearest chunk per owner, ordered by distance then harness then owner id, cut to the limit, then a join to `messages` for text. A `--role` scope joins `messages` keys and role inside the ranking. Top-100 over 133,793 vectors: 220 ms on 1.5.4, about 160 ms on 2.0.0; today's scoped SQL takes 1.7 s and about 2 s
+    - No orphan guard in the ranking. The shipped writer cannot make an orphan, embed sweeps them nightly, the live data has 0, and a guard costs 2.5 times as much on 1.5.4. A test pins that an orphan is left out without an error
+    - `0003` becomes `0003_retired.sql`, comment-only; `0009_drop_vector_index.sql` runs `DROP INDEX IF EXISTS embeddings_vector_hnsw`. Snapshots `0003` to `0008` are regenerated with no index; `0009` reuses the `0008` snapshot
+    - Landing order: steps 1 to 3 first (safe with the live index present); then the tests for step 4 run red; then the proof on a fresh copy of the live warehouse with a scratch copy of `src`; then `0009` and the `ensure_vss` removal in one response; then `stockroom migrate` on the live warehouse, verified read-only, before the first commit that contains `0009`
+* Insights
+    - The live shim runs this checkout's working tree, not its commits, so a saved file is live at once. The milestone's "first commit is live" understated this
+    - On DuckDB 1.5.4 without `vss`, every `INSERT` or `DELETE` on `embeddings` fails while the HNSW index exists, even a delete that matches nothing; `DROP INDEX IF EXISTS` inside a transaction works. So removing `ensure_vss` before `0009` would break the nightly ingest and embed, and an empty stub `0009` would record version 9 without dropping the index

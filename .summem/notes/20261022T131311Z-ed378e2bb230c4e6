@@ -1,0 +1,1 @@
+DuckDB 1.5.4 without vss on a file with the HNSW index: every INSERT or DELETE on embeddings fails (Cannot bind index, unknown index type HNSW), even a no-match delete; DROP INDEX IF EXISTS in a transaction works. Drop the index before any write. Measured 2026-10-22.
