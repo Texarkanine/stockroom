@@ -21,7 +21,7 @@ import duckdb
 import pytest
 
 import stockroom
-from stockroom import embed
+from stockroom import embed, storage
 from stockroom.migrate import apply_pending
 
 
@@ -523,15 +523,19 @@ def schema_con(schema_sql_path: Path) -> Iterator[duckdb.DuckDBPyConnection]:
 
 @pytest.fixture
 def migrated_con() -> Iterator[duckdb.DuckDBPyConnection]:
-    """Yield an in-memory DuckDB with the full migration chain applied.
+    """Yield an in-memory DuckDB at the schema head, built as a new warehouse is.
 
     Unlike ``schema_con`` (which executes only the ``0001`` DDL directly), this
-    runs the real packaged migrations (``0001`` + ``0002`` + …) through
-    :func:`stockroom.migrate.apply_pending` — i.e. the post-migration schema the
-    ingest writer and orchestrator actually target. Each test gets an isolated,
-    up-to-date database.
+    installs the frozen schema file (:func:`stockroom.storage.install_schema`)
+    and then any later migrations through
+    :func:`stockroom.migrate.apply_pending` — the head schema the ingest writer
+    and orchestrator actually target. It never runs the released chain, so it
+    needs no ``vss``; ``test_storage`` keeps the schema file equal to the chain.
+    In memory the zstd clause is accepted and the data stored uncompressed.
+    Each test gets an isolated, up-to-date database.
     """
     con = duckdb.connect(":memory:")
+    storage.install_schema(con)
     apply_pending(con)
     try:
         yield con
