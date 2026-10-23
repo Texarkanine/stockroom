@@ -133,3 +133,12 @@ L4 milestone 3 of 7 for `warehouse-file-growth` ([issue 147](https://github.com/
     - Operator (2026-10-23): run the shadow release gate on this machine
 * Insights
     - The copied warehouse was already embedded, so the live phase encoded 14 messages. The stock embed path uses CUDA when that is present and the CPU otherwise; this run used CPU torch 2.13.0 from the hashed freeze
+
+## 2026-10-23 - pull request and docs, milestone 3 still open
+
+* Work completed
+    - Opened PR 150 from `feat/duckdb-2-new-warehouses` (child of this branch with `memory-bank/active/` removed). Ready, not draft. Does not close issue 147. Doc follow-ups on that branch: architecture migrations as cutoffs and a schema snapshot, embeddings exact search without the earlier-release story, iteration schema docs as a generated diagram
+    - Confirmed the existing-file stop is the migrate-or-stop case. No user-guide troubleshooting heading exists for it. The operator will write that heading in the next window and link it from `docs/architecture/warehouse.md`
+* Decisions made
+    - Operator: do not land `memory-bank/active/` on `main`. After a squash-merge, recover the bank by branching from `main` and checking `memory-bank/active/` out of this branch. Do not rebase this branch onto the landed main
+    - `/niko` step 2a stays unrun. Milestone 3 stays unchecked until the operator asks
