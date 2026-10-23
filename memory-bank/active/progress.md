@@ -39,3 +39,14 @@ L4 milestone 3 of 7 for `warehouse-file-growth` ([issue 147](https://github.com/
     - Radical-innovation advisory: build release-matrix fixtures with DuckDB 1.5.4 from each tag's migration blobs, so W6 proves "as any earlier release left it" with the real on-disk format
 * Insights
     - Local `main` (5f31292) is one commit behind `v2.1.3` (bc46e2b). That commit changes only version files, so restoring from `main` and gating against the tag give the same migrations and tests
+
+## 2026-10-23 - REVIEW (OPERATOR) - COMPLETE
+
+* Work completed
+    - Folded the operator's two rulings and the agent's handling of the other preflight advisories into `tasks.md` (now 36 behaviours: W9 added)
+* Decisions made
+    - Operator: a new warehouse goes into place with `os.rename` after a check under the writer flock, not a hard link, so new installs do not depend on hard links (advisory 5; advisory 4 no longer applies)
+    - Operator: W6's schema 3 to 8 files are written by DuckDB 1.5.4 with its `vss`, from the packaged chain, in one `uv run --with duckdb==1.5.4` child per pytest worker (reduced radical innovation; no per-tag matrix)
+    - Agent: advisories 1, 2, 3, 6, 7, and 9 adopted as written; advisory 8 accepted and noted for QA
+* Insights
+    - The first preflight run, on Fable 5.1, stopped on a usage-credit 429 before writing anything; the second, on Opus, completed
