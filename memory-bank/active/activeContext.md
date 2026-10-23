@@ -21,5 +21,23 @@
 - Release gate: the shadow script runs on the personal Mac only, not the work Mac. It passed on Puck on 2026-10-22 (see What Was Done). The work Mac was not run.
 - The operator asked why `0001` is edited rather than a new migration or a new tree; answered in chat (existing files never re-run `0001`; compression can only be set in `CREATE TABLE`; a new migration would have to rebuild populated tables, which the brief forbids)
 
+## Open: editing released migrations (operator, 2026-10-22)
+- The operator rejects editing a released migration: it defeats numbered, ordered migrations, because a database that already applied a version never sees the edit. That rules out this plan's zstd edit to `0001`. It also covers milestone 1's change on this branch, which replaced the released `0003` (the HNSW `CREATE INDEX`, which needs `vss`) with comment-only `0003_retired.sql` and changed `0003_snapshot.json`. Comment-only edits to `0001` (milestone 1's, and `main`'s `@rel` lines) change no SQL that runs
+- The milestone 1+2 pull request opens only after this is settled
+- Facts: v0.1.0 shipped `0001` to `0004`, and every release called `ensure_vss` before migrating. So wild warehouses sit at schema 0 (the bare leftover) or at 4 and above; 1 to 3 only from a crash partway through a first open
+- Advisory 3 stays withdrawn; the operator only wanted the reasoning ("you've answered now so good")
+
+## Operator rulings on migrations (2026-10-22)
+- Restore every released migration exactly as it shipped. Released migrations may not be rewritten
+- A major version break is the only time schema provenance may change in a way that cannot migrate. Even then, a copy-into-a-new-database tool is not an option for stockroom, because plugin distribution through agent harnesses gives no good way to step a user through it
+- No runner rule that records version 3 without running it (rejected as conditional logic that breaks the truth of migrations). The baseline idea was not taken up either
+- The operator asked whether the cost of the released `0003` is only needing `vss` briefly, and why a new migration cannot add zstd
+
+## Measured for those questions (DuckDB 2.0.0, `scratchpad/m3/probe_answers.py`, `measure_force_zstd.py`)
+- Released `0003` without `vss`: CatalogException on its `SET` (no autoload). `INSTALL vss` 0.85 s (download), `LOAD` 0.04 s, 48 MiB extension cache
+- A kill after `0003` commits leaves a wal. A reopen without `vss` opens, the index is present, and `0009`'s drop runs
+- No `ALTER` sets compression. A rebuild of the column (add, update, drop, rename) gets `BinderException` on a `v1.0.0` file and works on `v2.0.0`. Every existing warehouse is `v1.0.0+`
+- `force_compression = 'zstd'` as a connection setting: on `v2.0.0`, every string and JSON column gets ZSTD, integers keep BitPacking, floats keep ALPRD. On `v1.0.0` there is no error, but string segments are written Uncompressed. Real tables: `v2.0.0` 289 MiB forced against 290 MiB with the two-column DDL and 489 MiB with DuckDB's choice; `v1.0.0` 599 MiB forced against 556 MiB with DuckDB's choice
+
 ## Next Step
-- `/niko-build`. The personal Mac shadow gate has passed. Build starts with step 0 (new branch from this branch's tip), then step 1 (backup and real-data proof)
+- The operator chooses how new warehouses get zstd now that migrations cannot carry it, and confirms the engine loads `vss` to run the released `0003`; then re-plan (milestone 1 rework on this branch, milestone 3 on its own branch)

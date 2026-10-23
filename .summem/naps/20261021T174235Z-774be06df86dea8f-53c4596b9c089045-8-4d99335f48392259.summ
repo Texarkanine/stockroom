@@ -1,0 +1,1 @@
+Doctor probe/smoke never write; writes only via 'stockroom doctor fix <name>' (operator 2026-10-21). ~5 installs; tune for a finished nightly embed; power loss must not empty the warehouse. HNSW re-add: deletes with index up leak; drop, delete, recreate once, checkpoint.
