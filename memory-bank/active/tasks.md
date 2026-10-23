@@ -1,5 +1,3 @@
-# Current Task: warehouse-file-growth
+# Current Task: warehouse-file-growth, milestone 3 (restore released migrations, new warehouses from a frozen schema file)
 
-**Complexity:** Level 4
-
-L4 re-plan of 2026-10-22: the milestone list and per-milestone done and risks live in `memory-bank/active/milestones.md`. The next sub-run is milestone 3, classified by `/niko` after the operator reviews this plan.
+**Complexity:** Level 3
