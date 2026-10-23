@@ -16,9 +16,9 @@ Torch is required to encode; it is held out of the lock for machine-specific bui
 
 ### Exact search
 
-Vectors live in the warehouse, and semantic search ranks every one of them by cosine distance. It embeds the query with the same local model, keeps the nearest chunk per message (max-sim at owner grain), cuts to the limit, and only then reads the messages' text. `--harness` and `--role` filter before the cut, so a scope never comes back short because nearer rows fall outside it. Equal distances rank by harness, then message id.
+Vectors live in the warehouse, and semantic search ranks every one of them by cosine distance. It embeds the query with the same local model, keeps the nearest chunk per message (max-sim at owner grain), cuts to the limit, and only then reads the messages' text. `--harness` and `--role` filter before the cut. Equal distances rank by harness, then message id.
 
-There is no vector index and no DuckDB extension. Earlier releases kept a vector index. It could return fewer results than the limit, and it held most of the warehouse file, so migration `0009` drops it from warehouses that have it. Exact search costs time in proportion to the number of stored vectors.
+There is no vector index and no DuckDB extension. Exact search takes time in proportion to the number of stored vectors.
 
 An embedding whose message row is gone is left out of the result. After an interrupted ingest rewrite, a search can therefore return fewer rows than the limit until the next ingest or embed removes those orphans (below).
 
