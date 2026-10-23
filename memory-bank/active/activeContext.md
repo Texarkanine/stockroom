@@ -1,11 +1,11 @@
 # Active Context
 
 ## Current Task: warehouse-file-growth, milestone 3 (restore released migrations, new warehouses from a frozen schema file)
-**Phase:** REFLECT - COMPLETE (real-data run on Puck still pending)
+**Phase:** REFLECT - COMPLETE (step 8.2 recorded from Puck, 2026-10-23)
 
 ## What Was Done
 - Plan (Level 3, 9 steps, 36 behaviours) passed preflight with advisory; the operator ruled on advisories 4 and 5 and the radical innovation (2026-10-23)
-- Build steps 0 to 7 and 8.1 and 8.3 done; 8.2 is with Tachi on Puck (operator, 2026-10-23); 8.4 (personal Mac shadow re-run) is the operator's release gate
+- Build steps 0 to 7, 8.1, 8.2, and 8.3 done. Step 8.2 passed on Puck at `ac20922` (ingest 22s, embed 490s, semantic rank 1; scratch file `v2.0.0+`, schema 9, no index, ZSTD, `vss` unloaded). Figures are in `progress.md`. Step 8.4 (shadow re-run of an existing warehouse) is the operator's release gate
 - Files created: `scripts/check_released_migrations.py`, `skills/sr-search/src/stockroom/storage.py`, `skills/sr-search/src/stockroom/schemas/schema_0009.sql`, `skills/sr-search/tests/test_released_migrations.py`, `skills/sr-search/tests/test_storage.py`, `skills/sr-search/tests/fixtures/schema/0009_snapshot.json`
 - Files restored to their `v2.1.3` SQL or bytes: `migrations/0003_embeddings_hnsw_index.sql` (plus one comment paragraph), the `0003`, `0004`, `0006`, `0007`, `0008` goldens. Deleted: `migrations/0003_retired.sql`
 - Files changed: `Makefile`, `.github/workflows/ci.yaml`, `warehouse.py`, `migrate.py`, `scripts/shadow_duckdb_20.py`, tests (`conftest.py`, `_warehouse_worker.py`, `test_schema_0003.py` to `test_schema_0009.py`, `test_migrate_runner.py`, `test_warehouse_open.py`, `test_warehouse_concurrency.py`, `test_migrate_cli.py`, `test_shadow_duckdb_20.py`), docs (`docs/architecture/warehouse.md`, `docs/contributing/iteration/engine.md`), `memory-bank/systemPatterns.md`, `memory-bank/techContext.md`
@@ -27,99 +27,15 @@
 - Found during the run: a bare full `pytest` in this live checkout drops torch midway (`test_coverage_collection` runs `make coverage-engine`, whose `sync` is exact). Predates this milestone; SumMem note
 - Found during the stopped real-data run: a read-only open of a zstd file with a `.wal` shows the replayed rows as `persistent = false`, `Uncompressed`; every persistent segment was `ZSTD`. Milestones 4 and 6 must count persistent segments only, or check with no `.wal` (SumMem note)
 
-## Handoff: real-data run on Puck (for Tachi)
+## Step 8.2 on Puck
 
-Purpose: prove the new-warehouse path on real transcripts (brief acceptance 12, plan step 8.2). A new scratch home gets a warehouse built from `schema_0009.sql`. Then ingest, embed, and semantic search must work. Do not use or change the real stockroom home, the real warehouse, or the `stockroom` command on the machine.
+Done 2026-10-23 at `ac20922`, from a fresh clone and a scratch home. Ingest exit 0 in 22s, embed exit 0 in 490s (10,715 vectors, no `nanobind:` line), semantic exit 0 in 5s with a rank-1 row. The scratch file stayed `v2.0.0+`, schema `(9, 'schema_0009.sql')`, no index, both large columns `ZSTD`, `vss` unloaded. Size 12,070,912 bytes after ingest and 25,440,256 after embed. The live warehouse was unchanged. Full figures are in `progress.md`. The scratch home and the clone are removed.
 
-1. Make a fresh clone of the branch. Do not use an existing checkout.
-
-   ```sh
-   git clone --branch constrain-size-as-best-we-can https://github.com/Texarkanine/stockroom.git stockroom-m3
-   cd stockroom-m3
-   git rev-parse --short HEAD
-   make sync
-   ```
-
-   Record the commit. Do not run `make shim` or `make torch` in this clone.
-
-2. Set these shell variables. `SCRATCH` must be a new, empty folder outside the real stockroom home.
-
-   ```sh
-   ENGINE="$PWD/skills/sr-search"
-   SCRATCH="$(mktemp -d)/home"
-   sr() { STOCKROOM_HOME="$SCRATCH" PYTHONPATH="$ENGINE/src" uv run --project "$ENGINE" --no-config --no-sync python -m stockroom "$@"; }
-   ```
-
-3. Run the ingest. Record the time and the exit code.
-
-   ```sh
-   time sr ingest --verbose
-   ```
-
-4. Check the new file. Every line must match the comment above it.
-
-   ```sh
-   uv run --project "$ENGINE" --no-config --no-sync python - "$SCRATCH/warehouse.duckdb" <<'EOF'
-   import sys, os, duckdb
-   db = sys.argv[1]
-   con = duckdb.connect(db, read_only=True)
-   q = lambda sql: con.execute(sql).fetchall()
-   # size in bytes, and no .wal: False
-   print("size", os.path.getsize(db), "wal", os.path.exists(db + ".wal"))
-   # tag: v2.0.0+
-   print("tag", q("select tags from duckdb_databases() where database_name = current_database()")[0][0]["storage_version"])
-   # schema_version: [(9, 'schema_0009.sql')]
-   print("schema_version", q("select version, filename from schema_version order by version"))
-   # indexes: []
-   print("indexes", q("select index_name from duckdb_indexes() where not is_primary"))
-   # codecs: only ZSTD for both columns
-   for t, c in (("messages", "text"), ("tool_calls", "tool_input")):
-       print("codecs", t, c, q(f"select distinct compression from pragma_storage_info('{t}') where column_name = '{c}' and segment_type != 'VALIDITY' and persistent"))
-   # rows: sessions, messages, tool_calls all more than 0
-   print("rows", [q(f"select count(*) from {t}")[0][0] for t in ("sessions", "messages", "tool_calls", "embeddings")])
-   # vss: False
-   print("vss", q("select loaded from duckdb_extensions() where extension_name = 'vss'")[0][0])
-   con.close()
-   EOF
-   ```
-
-5. Put torch into the clone. Do not set `STOCKROOM_HOME` for this step: the command reads the hashed torch freeze from the real stockroom home. It changes only the clone's `.venv`. It does not change the `stockroom` command.
-
-   ```sh
-   PYTHONPATH="$ENGINE/src" uv run --project "$ENGINE" --no-config --no-sync python -m stockroom shim ensure-env --app-dir "$ENGINE"
-   uv run --project "$ENGINE" --no-config --no-sync python -c "import torch; print(torch.__version__)"
-   ```
-
-   The second command must print a version. If it fails, stop and tell the operator.
-
-6. Run the embed. Record the time and the exit code. The output must not contain a line that starts with `nanobind:`. If the embed runs for more than 60 minutes, stop it with Ctrl-C and tell the operator.
-
-   ```sh
-   time sr embed --verbose
-   ```
-
-7. Run one search. The output must contain a row that starts with rank `1`.
-
-   ```sh
-   sr semantic "how does the warehouse lock work"
-   ```
-
-8. Do step 4 again. Record the new size and the embeddings count.
-
-9. Send the operator: the commit from step 1, the times and exit codes from steps 3 and 6, all output from steps 4 and 8, and the first lines from step 7.
-
-10. Remove the scratch folder and the clone.
-
-    ```sh
-    rm -rf "$(dirname "$SCRATCH")"
-    cd .. && rm -rf stockroom-m3
-    ```
-
-Also pending on Puck, only when the operator asks: the release gate (plan step 8.4). That is the shadow test from a fresh clone of the same branch, as in the docstring of `scripts/shadow_duckdb_20.py`. Its synthetic section now downloads `vss` once.
+Step 8.4, the release gate, is still waiting on the operator. It re-runs `scripts/shadow_duckdb_20.py` from a fresh clone against a copy of an existing warehouse. The synthetic section downloads `vss` once.
 
 ## Reflection
 - `memory-bank/active/reflection/reflection-warehouse-file-growth-m3.md`. Main points: the plan held in order and scope; the one build surprise (view SQL differs by storage version) came from a technology probe run in one configuration and a test planned in another; the real-data run needed a timed sample at plan time. After QA, three change-detector lines and `0009`'s stale wording were fixed. `techContext.md` gained one pointer: the pytest process never loads `vss`, and released-chain test files come from the child-built fixtures
 
 ## Next Step
-- Operator: point Tachi at the handoff above; relay the results so they go into `progress.md` (needed before the milestone 1 to 3 pull request opens)
+- The Puck result is in `progress.md`, so the milestone 1 to 3 pull request can open. Step 8.4 stays the operator's release gate
 - Then `/niko` to continue to the next milestone

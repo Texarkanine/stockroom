@@ -101,6 +101,22 @@ L4 milestone 3 of 7 for `warehouse-file-growth` ([issue 147](https://github.com/
     - Wrote `memory-bank/active/reflection/reflection-warehouse-file-growth-m3.md`
     - Reconciled the persistent files: `productContext.md` skipped (no change to users, use cases, or constraints); `systemPatterns.md` skipped (step 7 already set the released-SQL rule, schema-file creation, and the floor); `techContext.md` gained one Testing Process pointer (the pytest process never loads `vss`; released-chain test files come from the child-built fixtures)
 * Decisions made
-    - Milestone 3 stays open on the Puck real-data run (step 8.2); its result goes here when the operator relays it
+    - Milestone 3 was left open on the Puck real-data run (step 8.2). The relayed result is the next section
 * Insights
     - Recorded in the reflection: time a sample of any real-data gate during planning; a restoration's evidence is byte equality with the tag plus behaviour tests, not a pin added to make a test red
+
+## 2026-10-23 - BUILD - step 8.2 on Puck
+
+* Work completed
+    - Step 8.2 from a fresh clone of `constrain-size-as-best-we-can` at `ac20922003f0c8d7b69647d71ab2b2aa6b457f15`, a scratch `STOCKROOM_HOME`, and Puck's real transcript roots. `make sync` only. The live warehouse was unchanged: 404,238,336 bytes, inode 2166990, mtime 2026-10-23 06:26:45. The scratch home and the clone were removed
+    - Ingest exit 0 in 22s (10:38:50–10:39:12). Summary: cursor 318 sessions, 13,510 messages, 23,361 tool calls; claude 3 sessions, 239 messages, 102 tool calls
+    - File check after ingest: 12,070,912 bytes, no `.wal`, tag `v2.0.0+`, `schema_version` `[(9, 'schema_0009.sql')]`, no non-primary index, persistent `messages.text` and `tool_calls.tool_input` both `ZSTD`, rows `[318, 13602, 23139, 0]`, `vss` unloaded
+    - `shim ensure-env` in the clone exit 0 (the hashed freeze was read from the real home); torch 2.13.0
+    - Embed exit 0 in 490s (10:42:04–10:50:14): 6,291 messages, 10,715 chunks. No line starting with `nanobind:`
+    - `semantic "how does the warehouse lock work"` exit 0 in 5s, with a rank-1 row (score 0.655, cursor)
+    - File check after embed: 25,440,256 bytes, no `.wal`, same tag, schema row, indexes, codecs, and `vss`; rows `[318, 13602, 23139, 10715]`
+* Decisions made
+    - Operator (2026-10-23): record this result, commit it, and push the branch
+* Insights
+    - The ingest summary counts writes. Claude matches the table (3 sessions, 239 messages, 102 tool calls). Cursor's summary is 3 sessions, 147 messages, and 324 tool calls above the table (315 sessions = 153 parents + 162 subagents; 13,363 messages; 23,037 tool calls). The gap fits three cursor session ids written twice: delete-then-insert kept the last write
+    - Embed selected 6,291 of the 13,602 stored messages and wrote 10,715 chunk rows (claude 65, cursor 10,650)

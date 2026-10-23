@@ -8,7 +8,7 @@ complexity_level: 3
 
 ## Summary
 
-Every migration that shipped in a release has its released SQL again: `0003_embeddings_hnsw_index.sql` is back under its own name, and its five goldens are byte-equal to `v2.1.3`. A gate in `make ci` and CI keeps released SQL frozen. New warehouses no longer run the chain. They are built from a frozen version-9 schema file at storage `v2.0.0`, with zstd on `messages.text` and `tool_calls.tool_input`, and renamed into place under the writer flock. A warehouse below schema 3 stops with an error that names the file and the fix. QA passed on its first run with nine advisories, none blocking. The real-data run of the new-warehouse path is with Tachi on Puck (operator, 2026-10-23).
+Every migration that shipped in a release has its released SQL again: `0003_embeddings_hnsw_index.sql` is back under its own name, and its five goldens are byte-equal to `v2.1.3`. A gate in `make ci` and CI keeps released SQL frozen. New warehouses no longer run the chain. They are built from a frozen version-9 schema file at storage `v2.0.0`, with zstd on `messages.text` and `tool_calls.tool_input`, and renamed into place under the writer flock. A warehouse below schema 3 stops with an error that names the file and the fix. QA passed on its first run with nine advisories, none blocking. The real-data run passed on Puck at `ac20922` (2026-10-23): ingest 22s, embed 490s, semantic rank 1. Figures are in `progress.md`.
 
 ## Requirements vs Outcome
 
@@ -23,7 +23,7 @@ Delivered against milestone 3's done list:
 - **Builders:** old-format test files and the shadow script's synthetic warehouse are built in a child process that loads `vss`. The pytest process never loads it.
 - **Docs:** the architecture and contributor docs, `systemPatterns.md`, and `techContext.md` are updated.
 
-Not yet delivered: the proof of the new-warehouse path on real transcripts (brief acceptance 12). The operator moved it from this machine to Puck, because a scratch ingest here takes hours. The partial run here showed a correct file before it was stopped: `v2.0.0+`, one `schema_0009.sql` row, no index, and every persistent segment `ZSTD`. The runbook passed a dry run on the test fixtures.
+Delivered on Puck after this reflection was first written: the proof of the new-warehouse path on real transcripts (brief acceptance 12), at `ac20922`. Ingest exit 0 in 22s, embed exit 0 in 490s, semantic exit 0 in 5s with a rank-1 row. The scratch file was `v2.0.0+`, schema `(9, 'schema_0009.sql')`, no index, both large columns `ZSTD`, `vss` unloaded. The operator had moved the run to Puck because a scratch ingest on this machine takes hours. The partial run here had already shown those file properties before it was stopped, and the runbook had passed a dry run on the test fixtures. Full figures are in `progress.md`.
 
 Added beyond the plan:
 - `create_warehouse` also removes the temp file when the build raises.
