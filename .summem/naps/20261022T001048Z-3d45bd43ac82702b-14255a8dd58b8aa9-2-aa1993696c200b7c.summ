@@ -1,1 +1,0 @@
-uv --with from a 2.0.0 overlay selects VERSION when the project env lacks it (VIRTUAL_ENV irrelevant); --project --with 1.5.4 reuses a 1.5.4 venv; a missing version exits 1. DuckDB 2.0.0 rejects the SQL lambda arrow (x -> ...); write lambda x: ..., which 1.5.4 accepts.

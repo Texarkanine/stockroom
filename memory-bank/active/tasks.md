@@ -293,7 +293,7 @@ No new technology - validation not required. No new dependencies; `vss` stays te
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight
-- [ ] Build
+- [x] Build
     - [x] 0. Back up the live warehouse
     - [x] 1. Immutability gate
     - [x] 2. Schema file and storage module
@@ -302,5 +302,5 @@ No new technology - validation not required. No new dependencies; `vss` stays te
     - [x] 5. Restore the released migrations, goldens, and schema tests
     - [x] 6. Shadow script's synthetic warehouse
     - [x] 7. Docs and memory bank
-    - [ ] 8. Verification gates
+    - [x] 8. Verification gates: 8.1 `make ci` and 8.3 live checks done here; 8.2 (real-data run) handed to Tachi on Puck (operator, 2026-10-23; runbook in `activeContext.md`); 8.4 is the operator's release gate
 - [ ] QA

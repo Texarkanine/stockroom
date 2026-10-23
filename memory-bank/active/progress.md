@@ -65,3 +65,21 @@ L4 milestone 3 of 7 for `warehouse-file-growth` ([issue 147](https://github.com/
 * Insights
     - DuckDB 2.0.0: a `v1.0.0` file reloads the view's SQL with one fewer closing parenthesis than memory or a `v2.0.0` file shows for the same view. Table SQL and constraints match. Milestone 5's catalog check compares a `v1.0.0` original with a `v2.0.0` copy, so it must not compare view SQL text (SumMem note)
     - The full suite after steps 0 to 2: 1,070 passed, 37 skipped, 3 failed. The three failures are torch-gated `test_embed` tests, and they pass on a rerun after `stockroom shim ensure-env`. Cause, which predates this milestone: `test_coverage_collection` runs `make coverage-engine`, whose `sync` dependency is an exact `uv sync` that removes torch from this checkout while the suite runs. Whether a torch-gated test fails depends on xdist scheduling. So the final gate is `make ci` (which syncs first, so torch tests skip), then `ensure-env` and a separate run of the torch-gated tests (SumMem note)
+
+## 2026-10-23 - BUILD - COMPLETE
+
+* Work completed
+    - Step 3: writer `open()` creates a missing warehouse through `storage.create_warehouse` inside the flock-releasing `try`; writer `open()` and `_migrate_under_lock` stop below schema 3 with `WarehouseUnmigratableError` (path, current, quoted `mv`); `stockroom migrate` prints it as one line. W1 to W5 and W9 pass; W2 expects one schema-file row
+    - Step 4: `migrated_con` installs the schema file, then later migrations
+    - Steps 5 and 6 (one commit): the released `0003` and its five goldens are back, byte-equal to `v2.1.3`; `0003_retired.sql` is gone; `0003` gained one comment paragraph; `0009_snapshot.json` (no index) is the head golden. The `0003` to `0009`, runner, and shadow tests use child-built chains; W6 runs on schema 3 to 8 files written by DuckDB 1.5.4 and its `vss` (the fixture requires the child's `duckdb 1.5.4` line). `make migrations-check` and `make schema-docs-check` pass on the real repo. The shadow script's `--synthetic` section passes
+    - Step 7: architecture and contributor docs, `systemPatterns.md`, `techContext.md`; `make docs-build` (strict) passes
+    - Step 8.1: `make ci` exit 0 (1,085 passed, 39 skipped; 134 JS; REUSE compliant). After `ensure-env`, the torch-gated modules: 111 passed, 2 skipped (the intended inverse skip)
+    - Step 8.3: `stockroom migrate` reports schema 9 on the live warehouse. Its SHA-256 after the open is `20894505a14298be273a2f2a2d03956b3e667025c5cb231513a87cc4265d6a2d`, the same as the step 0 backup, and mtime and size are unchanged. Tag `v1.0.0+`, no index
+    - Step 8.2 started here: a scratch ingest of this machine's transcripts reached 455 of 1,473 Cursor sessions in 11 minutes and was stopped (operator: it takes hours on this machine). Its warehouse, built by the new path, was `v2.0.0+` with one `(9, 'schema_0009.sql')` row, no index, no `vss`, and every persistent segment of both columns `ZSTD`. Scratch home deleted
+    - The Puck runbook (in `activeContext.md`) was dry-run on the test fixtures with this checkout: ingest, the file check, `ensure-env`, embed (19 s), and semantic (rank-1 row, no `nanobind:` line) all passed
+* Decisions made
+    - Operator: step 8.2 runs on Puck (M5 Mac, smaller warehouse) by Tachi from a fresh clone of the pushed branch; the new-warehouse path has no platform-specific code
+    - Build deviations are listed in `activeContext.md` ("Build decisions and deviations"); none changes the plan's behaviours
+* Insights
+    - A read-only open of a zstd file that has a `.wal` lists the replayed rows as `persistent = false` and `Uncompressed`. A zstd check must count persistent segments only, or run with no `.wal` (SumMem note; matters for milestones 4 and 6)
+    - In `sh`, `time` is `/usr/bin/time` and cannot run a shell function; the runbook's `time sr …` needs an interactive zsh or bash
