@@ -37,3 +37,21 @@ Stop the warehouse file growing far past the history it holds ([issue 147](https
 * Insights
     - DuckDB sets compression only at `CREATE TABLE`, and a `v1.0.0` file cannot hold zstd at all. So compression for existing warehouses can come only from a new file, and for new warehouses only from what creates their tables
     - Restoring the released `0003` and adding the schema file must land together: either alone breaks new installs or edits released history
+
+## 2026-10-22 - L4 PREFLIGHT - COMPLETE
+
+* Work completed
+    - Ran the Level 4 checks on the re-planned `milestones.md` against `projectbrief.md`: prerequisites, checklist shape, coverage, scope, order, invariants, and done and risks all pass
+    - `.preflight-status` first line: `PASS WITH ADVISORY`. No plan edits were made
+* Advisories (details in `.preflight-status`)
+    - Requirement 10 and acceptance 11 cannot be met as worded, because `0001` and `0007` changed between v1.1.0 and v1.2.0 (comment-only `@rel` lines, #128). Milestone 3's target, the copy on `main`, can be met
+    - The ERD generator reads `@rel` lines from every `*.sql` file in the migrations folder, so the schema file's name and folder matter. Future edges need a new home
+    - Nothing enforces released-migration immutability. Use a purpose-built gate or review, not a change-detector test
+    - Milestone 2's schema-1 migrate test contradicts milestone 3's stop rule
+    - In a later release that adds `0010`, the check's "at the schema head" precondition and the runner's stop at the format boundary would deadlock. The check should key on a named boundary constant
+    - Milestone 6's lasting-skip error state goes beyond brief requirement 3 and constraint 7. It needs an operator ruling or a creative phase, and the milestone may be worth splitting
+    - The new-warehouse path never runs on real data before the release
+    - Milestone 3's one-commit rule is stricter than needed
+    - Radical innovation: one builder creates every warehouse file at a temp path, and a finished file is renamed into place
+* Insights
+    - DuckDB 2.0.0 applies forced zstd even to a 1-row table, and keeps it after a plain reopen and appends. So "already new" read from data segments works for every table that has rows
