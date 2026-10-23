@@ -80,7 +80,7 @@ Scripts: `scratchpad/m3/probe_storage.py`, `probe_followup.py`, `measure_zstd_re
 ### Behaviors to Verify
 
 Runner (`test_migrate_runner.py`):
-- R1 (red): a `v1.0.0` file, and a `v1.1.0` file, plus a scratch migration whose column carries `USING COMPRESSION zstd`, run through `apply_pending` → the migration applies and is recorded. After rows are inserted and the file is checkpointed, closed, and reopened read-only, the column's data segments are not `ZSTD`. Today this raises `BinderException`.
+- R1 (red): a `v1.0.0` file plus a scratch migration whose column carries `USING COMPRESSION zstd`, run through `apply_pending` → the migration applies and is recorded. After rows are inserted and the file is checkpointed, closed, and reopened read-only, the column's data segments are not `ZSTD`. Today this raises `BinderException`. A `v1.1.0` setting persists as tag `v1.0.0+`, so it is the same case and gets no test of its own (preflight advisory 2).
 - R2 (guard): the same migration on a `v1.2.0` file and on a `v2.0.0` file → the clause stays, and the data segments are `ZSTD`. This catches an implementation that always strips.
 
 Warehouse (`test_warehouse_open.py`):
@@ -112,9 +112,9 @@ Edge cases:
 
 ## Implementation Plan
 
-### 0. Operator decision before build: where milestone 3's commits go
+### 0. Where milestone 3's commits go — resolved (operator, 2026-10-22)
 
-Milestones 1 and 2 make the first release, which waits on the operator's Mac shadow runs. Later milestones ship in later releases. Pull requests are squash-merged. Milestone 3's commits therefore need a home that keeps them out of that release: a new branch from this tip (rebased with `--onto` after the first pull request merges), this branch with the first pull request cut at the last milestone 2 commit, or this branch with milestone 3 joining the first release. Ask at the build gate. Build starts only after the answer is recorded in `activeContext.md`.
+Milestones 1 and 2 make the first release, which waits on the operator's shadow run on the personal Mac. Pull requests are squash-merged. `constrain-size-as-best-we-can` is the milestone 1+2 branch, pushed to origin so another machine can pull it. Build starts by creating a new branch for milestone 3 from this branch's tip, in this checkout. After the first pull request squash-merges, rebase it with `git rebase --onto origin/main <tip of constrain-size-as-best-we-can>`.
 
 ### 1. Backup and real-data proof before the first source edit — build-time operation
 
@@ -129,16 +129,16 @@ Milestones 1 and 2 make the first release, which waits on the operator's Mac sha
 
 - Files: `skills/sr-search/src/stockroom/migrate.py`, `skills/sr-search/tests/test_migrate_runner.py`
 
-1. Stub tests: in `test_migrate_runner.py`, add `test_apply_pending_drops_zstd_on_storage_before_v1_2` (parametrized `v1.0.0`, `v1.1.0`) and `test_apply_pending_keeps_zstd_from_v1_2` (parametrized `v1.2.0`, `v2.0.0`), with docstrings and empty bodies, plus a `_data_codecs(con, table, column)` helper stub.
+1. Stub tests: in `test_migrate_runner.py`, add `test_apply_pending_drops_zstd_on_a_v1_0_0_file` and `test_apply_pending_keeps_zstd_from_v1_2` (parametrized `v1.2.0`, `v2.0.0`), with docstrings and empty bodies, and add one line on the new runner rule to the module docstring (preflight advisory 4). In `conftest.py`, add one shared helper stub that both test files import, the way `FakeEncoder` is shared (preflight advisory 5): `data_codecs(path, table, column) -> set[str]`, which opens a fresh plain read-only connection and returns the compression of the column's `VARCHAR` or `JSON` data segments, validity excluded.
 2. Stub interface: in `migrate.py`, add `_ZSTD_CLAUSE` (a compiled pattern matching `\s+USING\s+COMPRESSION\s+zstd\b`, case-insensitive), `_storage_version(con) -> tuple[int, int, int] | None` (parses `duckdb_databases()` tags for `current_database()`, `None` for no tag or an unknown form), and `_predates_zstd(con) -> bool` (`True` only for a parsed version below `(1, 2, 0)`). Docstrings say which files the clause is dropped on and why (measured `BinderException`). The bodies return "no strip" for now.
-3. Write tests and run red: each test creates a file in `tmp_path` at the parametrized `storage_compatibility_version`. It applies a `tmp_migrations_dir` migration `CREATE TABLE t (id INTEGER, body TEXT USING COMPRESSION zstd);`, inserts 2,000 rows of about 1.8 KB, checkpoints, and closes. It reopens read-only and asserts `current_version == 1` and the codec set of `body`'s `VARCHAR` data segments: `ZSTD` for `v1.2.0` and `v2.0.0`, without `ZSTD` and non-empty for `v1.0.0` and `v1.1.0`. Run `tests/test_migrate_runner.py -n0`. Expect `v1.0.0` and `v1.1.0` red (`BinderException`) and `v1.2.0` and `v2.0.0` green as guards.
+3. Write tests and run red: each test creates a file in `tmp_path` at the parametrized `storage_compatibility_version`. It applies a `tmp_migrations_dir` migration `CREATE TABLE t (id INTEGER, body TEXT USING COMPRESSION zstd);`, inserts 2,000 rows of about 1.8 KB, checkpoints, and closes. It reopens read-only and asserts `current_version == 1` and the codec set of `body`'s `VARCHAR` data segments: `ZSTD` for `v1.2.0` and `v2.0.0`, without `ZSTD` and non-empty for `v1.0.0`. Implement `data_codecs`. Run `tests/test_migrate_runner.py -n0`. Expect `v1.0.0` red (`BinderException`) and `v1.2.0` and `v2.0.0` green as guards.
 4. Write code and run green: implement the helpers. In `apply_pending`, compute `strip = _predates_zstd(con)` once, after `ensure_schema_version_table`, and run `_ZSTD_CLAUSE.sub("", sql)` when `strip` is set. Update the module docstring with one bullet on the storage-aware clause. Run the file green, then `tests/test_migrations_discovery.py tests/test_migrate_cli.py`.
 
 ### 3. New-file format: storage setting on every connect, and zstd in `0001` — executable
 
 - Files: `skills/sr-search/src/stockroom/warehouse.py`, `skills/sr-search/src/stockroom/migrations/0001_initial_schema.sql`, `skills/sr-search/tests/test_warehouse_open.py`, `skills/sr-search/tests/_warehouse_worker.py` (docstring only)
 
-1. Stub tests: in `test_warehouse_open.py`, add `test_new_warehouse_uses_the_engine_storage_version`, `test_new_warehouse_stores_text_and_tool_input_with_zstd`, and `test_bare_v1_file_from_a_failed_first_open_migrates_in_place`, and rework `test_schema_one_v1_file_migrates_to_head_and_keeps_storage_tag` into an empty body with its new docstring (W3). Add stubbed helpers `_persisted_tag(path)` (fresh plain read-only connect) and `_data_codecs(path, table, column, segment_types)`.
+1. Stub tests: in `test_warehouse_open.py`, add `test_new_warehouse_uses_the_engine_storage_version`, `test_new_warehouse_stores_text_and_tool_input_with_zstd`, and `test_bare_v1_file_from_a_failed_first_open_migrates_in_place`, and rework `test_schema_one_v1_file_migrates_to_head_and_keeps_storage_tag` into an empty body with its new docstring (W3). Add a stubbed helper `_persisted_tag(path)` (fresh plain read-only connect). Codecs come from the shared `data_codecs` in `conftest.py`.
 2. Stub interface: in `warehouse.py`, add `STORAGE_VERSION = "v2.0.0"` with a comment block (the operator's choice, why it is explicit and not `'latest'`, that a file that already exists keeps its own tag, and the in-process same-configuration rule), and add it to `__all__`. Do not wire it into `_open_with_backoff` yet.
 3. Write tests and run red: W1 to W4 as in the Test Plan. W2 writes 500 messages and 500 tool calls of about 1.8 KB through the engine connection, checkpoints, and closes before reading codecs. W3 builds schema 1 on a `v1.0.0` connection by copying the packaged `0001` under its own name into a scratch folder and running `apply_pending(con, folder)`, which records the `schema_version` row itself. A `JSON` column's data segments report `segment_type = 'JSON'`, measured as `ZSTD` at 500 rows. Run `tests/test_warehouse_open.py -n0`. Expect W1 and W2 red, and W3 and W4 green.
 4. Write code and run green:
@@ -185,7 +185,7 @@ No new technology - validation not required. The DuckDB 2.0.0 behaviour the plan
 
 ## Pre-Mortem
 
-- **Milestone 3 ships inside the milestone 1 and 2 release by accident**: step 0 makes the branch an explicit operator decision before any milestone 3 commit.
+- **Milestone 3 ships inside the milestone 1 and 2 release by accident**: step 0 puts milestone 3 on its own branch before any milestone 3 commit.
 - **The clause drop hides a mistake later**: a future migration's author expects zstd everywhere, and old files silently get plain columns. Response: that is the intended policy, because old files get zstd from the copy. `systemPatterns.md` and the `0001` header state it, so the behaviour is documented and not a surprise.
 - **Zstd is not applied in practice** (for example, DuckDB skips forced compression on small segments): W2 writes about 900 KB per column and asserts on the file, not on the DDL. P3 measured `ZSTD` at this scale.
 - **The setting reaches a file it should not change**: covered by the first challenge, and by W3 plus step 6's 1.5.4 open of the live file.
