@@ -109,6 +109,6 @@ Confirmed in this checkout on DuckDB 2.0: `pragma_database_size` has `block_size
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
 - [ ] QA
