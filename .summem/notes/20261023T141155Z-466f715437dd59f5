@@ -1,0 +1,1 @@
+Operator 2026-10-23: a new warehouse is built at a temp name and renamed into place after a check under the writer flock, not hard-linked, so new installs need no hard links. Schema 3-8 migrate tests use files written by DuckDB 1.5.4 and its vss.
