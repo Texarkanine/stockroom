@@ -28,7 +28,7 @@ The swap backup name is `warehouse.issue147-swap.duckdb`. A later milestone writ
 - Read-only open failure: the connect raises → `warehouse: unavailable`, `warehouse-bytes` and `disk-free` are present, and probe does not raise.
 - Existing facts: `os`, `arch`, `gpu`, `torch`, `engine-dir`, `home`, and `home-source` are still present. The tests that call `_probe` for those facts, except the two tests below, set `STOCKROOM_HOME` to a temp directory with no warehouse file. `test_probe_reports_home_and_source_from_resolve_home` and `test_probe_home_facts_do_not_mkdir` keep clearing `STOCKROOM_HOME` and setting `XDG_DATA_HOME`. `_probe` itself does not set `STOCKROOM_HOME`.
 - CLI probe: `test_probe_exits_zero_and_prints_fact_keys` sets `STOCKROOM_HOME` to an empty temp home, expects exit 0, and still checks only the current fact keys.
-- Help: `stockroom doctor --help` names file size, free disk, and the backup.
+- Help: `stockroom doctor --help` names file size, used blocks, free blocks, the reclaimable estimate, the storage format, free disk, and the backup.
 
 ### Test Infrastructure
 
@@ -62,7 +62,7 @@ The swap backup name is `warehouse.issue147-swap.duckdb`. A later milestone writ
 
 1. Stub tests: extend `test_help_documents_both_actions` with empty assertions for the new words, then fill them.
 2. Stub interface: none. The parser help string already exists.
-3. Write tests and run red: `--help` stdout contains `file size`, `free disk`, and `backup`.
+3. Write tests and run red: `--help` stdout contains `file size`, `used blocks`, `free blocks`, `reclaimable`, `storage format`, `free disk`, and `backup`.
 4. Write code and run green: the probe sentence in `_build_parser` lists those facts.
 
 ### 3. Contributor probe line — prose/policy

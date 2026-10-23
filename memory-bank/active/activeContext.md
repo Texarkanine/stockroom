@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: warehouse-file-growth, milestone 4 (doctor storage report)
-**Phase:** PLAN - COMPLETE
+**Phase:** PREFLIGHT - COMPLETE (PASS WITH ADVISORY)
 
 ## What Was Done
 - Tag `v3.0.0` is commit `c9fbcc4` on `main`
@@ -12,4 +12,4 @@
 - Preflight FAIL (fixable) is folded into the plan. Existing probe callers that do not already isolate the home set `STOCKROOM_HOME` to an empty temp home. `live_bytes` unions persistent block ids, drops ids below 0, and skips views. A missing warehouse file is `absent` and is not opened
 
 ## Next Step
-- Preflight the plan
+- Build the doctor storage report. Preflight passed with an advisory. Keep `live_bytes` as specified. The probe help sentence also names used blocks, free blocks, the reclaimable estimate, and the storage format.

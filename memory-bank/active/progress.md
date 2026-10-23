@@ -54,3 +54,15 @@
     - The happy-path test drops the writer connection and collects garbage before probe
 * Insights
     - `block_id` `-1` is a constant-segment sentinel and is not a file block
+
+## 2026-10-23 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Re-ran preflight on the revised milestone 4 doctor storage report
+    - Wrote `memory-bank/active/.preflight-status`
+* Decisions made
+    - First line of `.preflight-status` is `PASS WITH ADVISORY`
+    - The plan is acceptable as written. The overhead constant and the wider help sentence stay advisory
+* Insights
+    - On an empty `build_warehouse` file, `free_blocks` is 0 and file size minus the column-block union is 536576 of 798720
+    - A cross-process read-only connect fails immediately when a writer holds the DuckDB lock
