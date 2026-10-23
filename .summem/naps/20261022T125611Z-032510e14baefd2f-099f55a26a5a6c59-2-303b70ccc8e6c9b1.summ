@@ -1,1 +1,0 @@
-2026-10-22: swap is check phase B. Phase A records rehearsed. Phase B, a day or more later: copy, verify, hard-link backup, replace. No swap release. Exact top-100 rank-cut-join: 220 ms on 1.5.4, ~160 ms on 2.0.0 (133,793 vectors); EXISTS 689/320 ms; join-first QUALIFY 1.7/2.0 s.

@@ -1,0 +1,1 @@
+2026-10-23: v3.0.0 is c9fbcc4. warehouse-file-growth restores memory-bank/active from constrain-size-as-best-we-can. Milestone 3 is checked. Milestone 4 is Level 2, the read-only doctor storage report. Do not rebase the old branch.
