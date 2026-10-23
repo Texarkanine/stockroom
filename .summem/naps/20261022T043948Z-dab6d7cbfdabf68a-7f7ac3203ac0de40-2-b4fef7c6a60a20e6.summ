@@ -1,0 +1,1 @@
+2026-10-21: default connects never load vss for HNSW (ro or rw, killed-embed wal) on 1.5.4 and 2.0.0. Same-path connects share one instance and its vss. Validity segments stay Uncompressed or Constant under zstd; check VARCHAR/JSON segments. Zstd copy 288 MiB vs 483 without.
