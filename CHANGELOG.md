@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.0.0](https://github.com/Texarkanine/stockroom/compare/v2.1.3...v3.0.0) (2026-10-23)
+
+
+### ⚠ BREAKING CHANGES
+
+* drop the HNSW index and create new warehouses in DuckDB 2.0 format ([#150](https://github.com/Texarkanine/stockroom/issues/150))
+
+### Features
+
+* drop the HNSW index and create new warehouses in DuckDB 2.0 format ([#150](https://github.com/Texarkanine/stockroom/issues/150)) ([0e1e62e](https://github.com/Texarkanine/stockroom/commit/0e1e62ee0378472e792295d7a2f1880e3c6fe9f6))
+
 ## [2.1.3](https://github.com/Texarkanine/stockroom/compare/v2.1.2...v2.1.3) (2026-10-20)
 
 
