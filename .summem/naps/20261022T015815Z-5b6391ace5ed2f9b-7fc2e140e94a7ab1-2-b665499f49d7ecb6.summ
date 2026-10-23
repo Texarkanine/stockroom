@@ -1,0 +1,1 @@
+HNSW pragma count 280901 vs 133793 rows, 39 GiB file, 1.5.4 and 2.0.0. Not proven deleted; hnsw_compact_index left them. LIMIT 100 returns 40-65. DROP+CREATE+CHECKPOINT (21s) makes count=rows and 100/100. count vs count(*) misses a folded index; own-vector lookup can. 2026-10-21.

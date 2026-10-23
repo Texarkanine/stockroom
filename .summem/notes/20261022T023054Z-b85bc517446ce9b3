@@ -1,1 +1,0 @@
-Correction: the live HNSW index's 280,901 entries for 133,793 rows are not proven deleted rows; hnsw_compact_index left them. Unscoped LIMIT 100 returns 40-65 rows. DROP+CREATE+CHECKPOINT (21 s) gives count = rows and 100 of 100. Measured 2026-10-21 on 2.0.0.

@@ -120,3 +120,16 @@ L4 milestone 3 of 7 for `warehouse-file-growth` ([issue 147](https://github.com/
 * Insights
     - The ingest summary counts writes. Claude matches the table (3 sessions, 239 messages, 102 tool calls). Cursor's summary is 3 sessions, 147 messages, and 324 tool calls above the table (315 sessions = 153 parents + 162 subagents; 13,363 messages; 23,037 tool calls). The gap fits three cursor session ids written twice: delete-then-insert kept the last write
     - Embed selected 6,291 of the 13,602 stored messages and wrote 10,715 chunk rows (claude 65, cursor 10,650)
+
+## 2026-10-23 - BUILD - step 8.4 on Puck
+
+* Work completed
+    - Step 8.4, the shadow release gate, from a fresh clone of `constrain-size-as-best-we-can` at `09ea4ae08dbe523c55226f5cc113709147eac78e`. `make sync` only. `scripts/shadow_duckdb_20.py` against a copy of the live warehouse, under a scratch home. Exit 0 in 43s (11:40:24–11:41:08). `shadow: every phase passed`
+    - Overlay: DuckDB 2.0.0, then torch 2.13.0 installed into the clone's `.venv` from the hashed freeze. Synthetic measurements reported, including the expected `BinderException` for a zstd clause on a `v1.0.0` file
+    - Copy of 404,238,336 bytes. Checkpoint: 6 tables equal to the baseline in both directions; storage stayed `v1.0.0+`
+    - Live phase on the copy: rows before ingest 364 sessions, 15,829 messages, 23,903 tool calls, 12,038 embeddings. Ingest added 1 cursor session (75 messages, 120 tool calls). Embed wrote 17 chunk vectors for 14 messages; embeddings 12,038 to 12,055; orphans removed 0. After checkpoint: storage `v1.0.0+`, schema at the head, no index. Semantic returned a rank-1 row (score 0.692, cursor). DuckDB 1.5.4 wrote the copy and answered 100 cosine rows; DuckDB 2.0.0 then answered 100. The log has no `nanobind:` line
+    - The live warehouse was unchanged: 404,238,336 bytes, inode 2166990, mtime 2026-10-23 06:26:45. The scratch home and the clone were removed
+* Decisions made
+    - Operator (2026-10-23): run the shadow release gate on this machine
+* Insights
+    - The copied warehouse was already embedded, so the live phase encoded 14 messages. The stock embed path uses CUDA when that is present and the CPU otherwise; this run used CPU torch 2.13.0 from the hashed freeze

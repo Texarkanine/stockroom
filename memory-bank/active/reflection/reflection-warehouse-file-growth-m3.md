@@ -8,7 +8,7 @@ complexity_level: 3
 
 ## Summary
 
-Every migration that shipped in a release has its released SQL again: `0003_embeddings_hnsw_index.sql` is back under its own name, and its five goldens are byte-equal to `v2.1.3`. A gate in `make ci` and CI keeps released SQL frozen. New warehouses no longer run the chain. They are built from a frozen version-9 schema file at storage `v2.0.0`, with zstd on `messages.text` and `tool_calls.tool_input`, and renamed into place under the writer flock. A warehouse below schema 3 stops with an error that names the file and the fix. QA passed on its first run with nine advisories, none blocking. The real-data run passed on Puck at `ac20922` (2026-10-23): ingest 22s, embed 490s, semantic rank 1. Figures are in `progress.md`.
+Every migration that shipped in a release has its released SQL again: `0003_embeddings_hnsw_index.sql` is back under its own name, and its five goldens are byte-equal to `v2.1.3`. A gate in `make ci` and CI keeps released SQL frozen. New warehouses no longer run the chain. They are built from a frozen version-9 schema file at storage `v2.0.0`, with zstd on `messages.text` and `tool_calls.tool_input`, and renamed into place under the writer flock. A warehouse below schema 3 stops with an error that names the file and the fix. QA passed on its first run with nine advisories, none blocking. The real-data run passed on Puck at `ac20922` (2026-10-23): ingest 22s, embed 490s, semantic rank 1. The shadow release gate passed on Puck at `09ea4ae` the same day, exit 0 in 43s, and the copy stayed `v1.0.0+`. Figures are in `progress.md`.
 
 ## Requirements vs Outcome
 

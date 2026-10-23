@@ -1,1 +1,0 @@
-pragma_hnsw_index_info count includes deleted rows: the live 39 GiB warehouse reads 280,901 vs 133,793 rows while healthy (1.5.4 and 2.0.0). Count vs count(*) cannot detect a folded index there; an HNSW lookup of a known row by its own vector can. Measured 2026-10-21.
