@@ -28,3 +28,15 @@ L4 milestone 3 of 7 for `warehouse-file-growth` ([issue 147](https://github.com/
     - DuckDB 2.0.0 already defaults to `'latest'` (`v2.0.0+`), so W1 must change the constant to prove the engine sets it explicitly
     - A plain `v2.0.0` file stores `messages.text` uncompressed: 489 MiB plain against 290 MiB with zstd, and a full-text scan takes 142 ms against 196 ms
     - The schema-0 leftover from v2.1.2 has no tables at all: `ensure_vss` ran before `apply_pending`
+
+## 2026-10-22 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Ran the Level 3 preflight checks on the milestone 3 plan. TDD encoding, conventions, dependency impact, conflicts, and completeness all pass. No plan edits
+    - Re-measured on DuckDB 2.0.0 (`scratchpad/preflight/`): storage tags for each setting, the zstd clause with `NOT NULL`, the planned regex against `0001`, and the full packaged chain on a `v2.0.0` file (ZSTD on both columns after 500 rows)
+    - `.preflight-status` first line: `PASS WITH ADVISORY`
+* Decisions made
+    - None. The advisories are left to the operator (see `.preflight-status`)
+* Insights
+    - On DuckDB 2.0.0, `duckdb_tables().sql` shows `USING COMPRESSION ZSTD`. The brief's requirement 2 says it does not. This matters for milestone 5's catalog equality
+    - A `v1.1.0` storage setting persists as tag `v1.0.0+`, so it is the same case as `v1.0.0`

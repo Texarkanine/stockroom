@@ -1,0 +1,36 @@
+PASS WITH ADVISORY
+
+Preflight of warehouse-file-growth milestone 3 (Level 3, default checks), 2026-10-22. No plan edits were made: no TDD step swap and no strike were needed.
+
+Checks
+- Wrong-reference guard: progress.md says Level 3, so the L2/L3 checks apply.
+- Prerequisites: tasks.md planning is complete. No creative phase was flagged, because both design questions were settled by measurement.
+- TDD plan encoding: pass. The two executable units (step 2, the runner; step 3, the new-file format) each stub tests, stub the interface, write the tests and run them red, and only then write code. Step 4 is prose and owes no tests. Steps 0, 1, 5, and 6 are operations. No change-detector is scheduled. W2 asserts on the file's data segments, not on the text of 0001.
+- Convention compliance: pass. Test files, fixtures (warehouse_home, tmp_migrations_dir), the run form (`uv --directory skills/sr-search --no-config run --no-sync`), the constant beside WAREHOUSE_FILENAME, and the systemPatterns edit all follow existing patterns.
+- Dependency impact: pass. `_open_with_backoff` is the only connect in src. The fakes in test_warehouse_lock.py take **kwargs, so the new `config=` argument does not break them. Plain connects in tests (test_warehouse_open, test_dashboard_server, test_ingest_cli, test_backfill_cli) open and close one after the other. The shadow script runs the engine in subprocesses, and its `_synthetic_warehouse` goes through the runner. `schema_con` and `migrated_con` are in-memory and accept the clause. The golden snapshots read `duckdb_columns()`, and the ERD generator reads those snapshots and the `-- @rel` comments, so neither changes.
+- Conflict detection: pass. No product helper already reads the storage tag or codecs. Adding STORAGE_VERSION to `__all__` breaks no public contract.
+- Completeness: pass. Every "done" item of milestone 3 maps to a test: tag (W1), zstd segments (W2), old file keeps its tag (W3), bare schema-0 file migrates in place (W4), and the runner rule (R1 and R2).
+
+Re-measured in this preflight (DuckDB 2.0.0, engine .venv, scratchpad/preflight/)
+- `v1.0.0` and `v1.1.0` settings both persist as tag `v1.0.0+` and reject the clause. `v1.2.0`, `v1.3.0`, `v1.4.0`, `v1.5.0`, `v2.0.0`, and `latest` persist as their own tags (`latest` gives `v2.0.0+`) and accept `JSON NOT NULL USING COMPRESSION zstd`. In-memory has no tags. A bare `v1.0.0` file is 12,288 bytes and stays `v1.0.0+` under the setting.
+- The planned regex, applied to 0001 with both clauses added, gives back today's 0001 byte for byte. That stripped text runs on a `v1.0.0` file.
+- On a `v2.0.0` file, the full packaged chain (with 0004's ALTER ADD COLUMN on messages) plus 500 rows of about 1.8 KB per column, checkpointed and reopened, gives `messages.text` VARCHAR = ZSTD and `tool_calls.tool_input` JSON = ZSTD.
+
+Advisories (none blocks build)
+1. The brief is wrong on one point. Requirement 2 says "`duckdb_tables().sql` does not show the compression clause". On DuckDB 2.0.0 it does: `"text" VARCHAR USING COMPRESSION ZSTD`, both after the full chain and after a reopen. Milestone 3 does not depend on this. But milestone 5's catalog equality would fail on every copy if it compared `duckdb_tables().sql` between the plain original and the zstd copy. The operator should correct the brief before milestone 5 is planned.
+2. R1's `v1.1.0` parameter repeats the `v1.0.0` case. DuckDB 2.0.0 writes a `v1.1.0` setting as tag `v1.0.0+`, so that parameter adds no new tag. The real boundary is R2's `v1.2.0` case. Keeping it does no harm, but its name and docstring should not claim it covers a distinct `v1.1.0` tag.
+3. No step runs the new-file path on real data. Step 6's live checks and the shadow run use only `v1.0.0+` files (the live warehouse and a copy of it). Real ingest into a brand-new zstd warehouse runs only at small scale in suite tests. A cheap addition to step 6: run `stockroom ingest` with `STOCKROOM_HOME` set to a scratch home, against this machine's real transcript roots. Then check the tag (`v2.0.0+`), the codecs of both columns (ZSTD), the row counts against the live file, the file size (about 290 MiB expected), and the ingest time. Delete the scratch home afterwards.
+4. Project convention puts the contract in each test module's docstring. Step 2.4 updates only the docstring of `migrate.py`. The docstring of `test_migrate_runner.py` should gain one line on the storage-aware clause.
+5. `_data_codecs` is planned in two test files with different signatures, and the shadow script has its own `_codecs` and `_storage_tag`. Consider one shared helper in `conftest.py`.
+6. Step 0 (where milestone 3's commits go) is still open and gates build. There is no pull request for this branch yet, and it is 82 commits ahead of main.
+7. Informational: an explicit `'v2.0.0'` equals DuckDB 2.0.0's default (`'latest'`, which gives `v2.0.0+`). On the pinned version, the connect change alters no storage behaviour. Its only runtime effect is that every connection to the same file in one process must use the same configuration. So the risk of editing the live working tree is low, and step 1.2 re-proves what milestone 2 showed. Its cost is small.
+
+Radical innovation (advisory, not adopted)
+Make the storage state one public, read-only catalog fact that sits beside STORAGE_VERSION. The sketch:
+- `warehouse.storage_facts(con) -> StorageFacts(tag, version, zstd_declared)`. It reads the tag from `duckdb_databases()` and the declared compression of `messages.text` and `tool_calls.tool_input` from `duckdb_tables().sql`. On 2.0.0 that text carries `USING COMPRESSION ZSTD` (measured above).
+- The runner's `_predates_zstd` becomes `storage_facts(con).version < (1, 2, 0)`.
+- Milestone 4's doctor prints the format from the same function.
+- Milestone 6's "already new" becomes tag == `f"{STORAGE_VERSION}+"` and both columns declared zstd. That answers on an empty table, where data segments cannot answer.
+- Milestone 5 must normalise the clause in its catalog comparison.
+- Data-segment reads stay as the test-level proof that zstd was applied.
+Cost: one small function and its test, inside milestone 3's own scope ("owns the new-file storage setting and the ZSTD clauses"). Risk: it parses DuckDB's catalog SQL text. The 2.0-line pin holds that risk down, and data-segment tests back it up.

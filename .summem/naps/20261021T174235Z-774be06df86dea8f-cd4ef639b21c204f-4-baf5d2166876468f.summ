@@ -1,0 +1,1 @@
+Operator 2026-10-21: discoverable doctor commands (probe, smoke) never write; writes only via 'stockroom doctor fix <name>'. About five installs, nightly embed, rollout takes days; tune for a finished embed. A power loss may need the troubleshooting page, not an empty warehouse.

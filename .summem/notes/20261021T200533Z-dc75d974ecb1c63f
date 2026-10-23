@@ -1,1 +1,0 @@
-2026-10-21: deleting embeddings rows with the HNSW index up leaks one index copy at checkpoint or process close, on DuckDB 1.5.4 and 2.0.0. A no-match delete does not. The drop covers those deletes, not only inserts.
