@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: warehouse-file-growth, milestone 3 (restore released migrations, new warehouses from a frozen schema file)
-**Phase:** PREFLIGHT - COMPLETE (PASS WITH ADVISORY); operator review folded in
+**Phase:** BUILD - IN-PROGRESS
 
 ## What Was Done
 - Milestone 3 classified Level 3; the L4 preflight status file cleared
@@ -22,5 +22,8 @@
 - Advisory 8 accepted as is, noted for QA: only `stockroom migrate` prints the stop error as one line; other commands show a traceback whose last line names the file and the remedy
 - Real-data run: full ingest and embed in a scratch home with a 60-minute bound (CUDA available)
 
+## Build decisions
+- Branch: the build stays on `constrain-size-as-best-we-can`. `milestones.md` (amended 2026-10-22) ships milestones 1 to 3 in one pull request, which replaces the earlier plan to build milestone 3 on a new branch
+
 ## Next Step
-- Operator: `/niko-build` to run the build (step 0, the live backup, comes first)
+- Build step 0 (the live backup), then steps 1 to 8 in order
