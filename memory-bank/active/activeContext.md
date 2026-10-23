@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: warehouse-file-growth, milestone 3 (restore released migrations, new warehouses from a frozen schema file)
-**Phase:** BUILD - COMPLETE (real-data run of the new-warehouse path handed to Tachi on Puck; see the handoff below)
+**Phase:** QA - COMPLETE (PASS)
 
 ## What Was Done
 - Plan (Level 3, 9 steps, 36 behaviours) passed preflight with advisory; the operator ruled on advisories 4 and 5 and the radical innovation (2026-10-23)

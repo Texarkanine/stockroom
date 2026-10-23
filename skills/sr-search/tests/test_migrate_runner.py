@@ -91,7 +91,6 @@ def test_apply_pending_applies_all_packaged_on_fresh_db(released_chain_con) -> N
     ]
     assert [version for version, _, _ in rows] == [1, 2, 3, 4, 5, 6, 7, 8, 9]
     assert rows[0][1] == "0001_initial_schema.sql"
-    assert rows[2][1] == "0003_embeddings_hnsw_index.sql"
     assert all(applied_at is not None for _, _, applied_at in rows)
     assert _PRODUCT_TABLES <= _table_names(con)
     assert migrate.current_version(con) == 9

@@ -1,7 +1,7 @@
 -- stockroom warehouse — drop the vector index (migration 0009)
 --
 -- Warehouses from earlier releases carry `embeddings_vector_hnsw`, the cosine
--- HNSW index the old 0003 created. Semantic search now ranks every vector
+-- HNSW index the released 0003 created. Semantic search now ranks every vector
 -- exactly, so the index only cost space: it held most of the file and could
 -- leave a search short of its limit. This drops it where it exists; a
 -- warehouse without it is unchanged.

@@ -142,8 +142,6 @@ def test_install_schema_records_one_row_and_no_index(mem_con) -> None:
     storage.install_schema(mem_con)
 
     assert _bookkeeping(mem_con) == [(9, "schema_0009.sql")]
-    assert storage.SCHEMA_FILE.name == "schema_0009.sql"
-    assert storage.SCHEMA_FILE_VERSION == 9
     assert migrate.current_version(mem_con) == 9
     assert set(_tables_sql(mem_con)) == _PRODUCT_TABLES | {"schema_version"}
     assert set(_views_sql(mem_con)) == {"session_token_usage"}

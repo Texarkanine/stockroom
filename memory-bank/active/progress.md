@@ -83,3 +83,14 @@ L4 milestone 3 of 7 for `warehouse-file-growth` ([issue 147](https://github.com/
 * Insights
     - A read-only open of a zstd file that has a `.wal` lists the replayed rows as `persistent = false` and `Uncompressed`. A zstd check must count persistent segments only, or run with no `.wal` (SumMem note; matters for milestones 4 and 6)
     - In `sh`, `time` is `/usr/bin/time` and cannot run a shell function; the runbook's `time sr …` needs an interactive zsh or bash
+
+## 2026-10-23 - QA - COMPLETE (PASS)
+
+* Work completed
+    - Semantic review of the build (`86b8954..HEAD`) against the Level 3 plan, milestone 3's done list, and the brief. Checked the gate and its tests, `storage.py` and the schema file, the chokepoint changes, the restored migration and goldens (compared with `v2.1.3`), the child-built chain fixtures, the shadow script, the docs, and `systemPatterns` / `techContext`
+    - Ran, with no sync, on the landed tree: `make migrations-check` and `make schema-docs-check`; `ruff check` and `ruff format --check` on the engine and `scripts/`; the 15 milestone modules (119 passed); and the full suite without `test_coverage_collection.py` (1,084 passed, 36 skipped). Torch was still importable afterwards
+* Decisions made
+    - PASS. Nine advisories are recorded in `tasks.md`, and none blocks. The one that must be closed before the pull request opens is the Puck real-data run (step 8.2), which the operator handed to Tachi. The others are small cleanups: three redundant constant or filename assertions (change-detector lines), duplicated test helpers, a conftest parameter that hides the `storage` module, and stale "old 0003" wording in `0009`'s header
+* Insights
+    - The full suite minus `test_coverage_collection.py` is a safe QA run in this live checkout: it leaves torch in `.venv`, and only that one test runs the exact sync that strips it
+    - Post-QA cleanups (main session): `0009`'s header says "the released 0003" instead of "the old 0003" (`0009` is unreleased, and only a comment changed); the redundant `SCHEMA_FILE` name and version assertions in `test_storage.py` and the `0003` filename assertion in `test_migrate_runner.py` are removed (the bookkeeping row and the gate already cover them). Affected modules and `make migrations-check` pass. The duplicated test helpers and the `storage=` keyword stay: the suite repeats small helpers per module, and the keyword is the plan's fixture API

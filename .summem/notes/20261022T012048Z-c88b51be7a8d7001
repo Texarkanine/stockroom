@@ -1,1 +1,0 @@
-pragma_hnsw_index_info approx_memory_usage is in-memory size, not disk: 21.0 MB (1.5.4) and 16.8 MB (2.0.0) for a 1,500-row index in a 9.2 MB file. Do not add it to a live-size or reclaimable estimate as disk bytes (measured 2026-10-21).
