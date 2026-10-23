@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: warehouse-file-growth, milestone 3 (restore released migrations, new warehouses from a frozen schema file)
-**Phase:** QA - COMPLETE (PASS)
+**Phase:** REFLECT - COMPLETE (real-data run on Puck still pending)
 
 ## What Was Done
 - Plan (Level 3, 9 steps, 36 behaviours) passed preflight with advisory; the operator ruled on advisories 4 and 5 and the radical innovation (2026-10-23)
@@ -117,5 +117,9 @@ Purpose: prove the new-warehouse path on real transcripts (brief acceptance 12, 
 
 Also pending on Puck, only when the operator asks: the release gate (plan step 8.4). That is the shadow test from a fresh clone of the same branch, as in the docstring of `scripts/shadow_duckdb_20.py`. Its synthetic section now downloads `vss` once.
 
+## Reflection
+- `memory-bank/active/reflection/reflection-warehouse-file-growth-m3.md`. Main points: the plan held in order and scope; the one build surprise (view SQL differs by storage version) came from a technology probe run in one configuration and a test planned in another; the real-data run needed a timed sample at plan time. After QA, three change-detector lines and `0009`'s stale wording were fixed. `techContext.md` gained one pointer: the pytest process never loads `vss`, and released-chain test files come from the child-built fixtures
+
 ## Next Step
-- QA (`/niko-qa` in a subagent), then reflect. The Puck real-data result goes into `progress.md` when the operator relays it; it is needed before the milestone 1 to 3 pull request opens
+- Operator: point Tachi at the handoff above; relay the results so they go into `progress.md` (needed before the milestone 1 to 3 pull request opens)
+- Then `/niko` to continue to the next milestone

@@ -94,3 +94,13 @@ L4 milestone 3 of 7 for `warehouse-file-growth` ([issue 147](https://github.com/
 * Insights
     - The full suite minus `test_coverage_collection.py` is a safe QA run in this live checkout: it leaves torch in `.venv`, and only that one test runs the exact sync that strips it
     - Post-QA cleanups (main session): `0009`'s header says "the released 0003" instead of "the old 0003" (`0009` is unreleased, and only a comment changed); the redundant `SCHEMA_FILE` name and version assertions in `test_storage.py` and the `0003` filename assertion in `test_migrate_runner.py` are removed (the bookkeeping row and the gate already cover them). Affected modules and `make migrations-check` pass. The duplicated test helpers and the `storage=` keyword stay: the suite repeats small helpers per module, and the keyword is the plan's fixture API
+
+## 2026-10-23 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `memory-bank/active/reflection/reflection-warehouse-file-growth-m3.md`
+    - Reconciled the persistent files: `productContext.md` skipped (no change to users, use cases, or constraints); `systemPatterns.md` skipped (step 7 already set the released-SQL rule, schema-file creation, and the floor); `techContext.md` gained one Testing Process pointer (the pytest process never loads `vss`; released-chain test files come from the child-built fixtures)
+* Decisions made
+    - Milestone 3 stays open on the Puck real-data run (step 8.2); its result goes here when the operator relays it
+* Insights
+    - Recorded in the reflection: time a sample of any real-data gate during planning; a restoration's evidence is byte equality with the tag plus behaviour tests, not a pin added to make a test red
