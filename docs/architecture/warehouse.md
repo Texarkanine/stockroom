@@ -77,11 +77,58 @@ Coordination uses `fcntl.flock` on a sidecar lock file; data integrity uses Duck
 
 ### Migrations
 
-Migrations are numbered forward-only SQL under the engine's `migrations/` tree; `schema_version` is runner-owned. There is one chain. A migration that shipped in a release keeps its SQL for good: only its comments may change, and `make migrations-check` (also run in CI) compares every released migration with the latest release tag.
+Migrations are numbered SQL files under the engine's `migrations/` tree. The runner records `schema_version`. There is one chain.
 
-A new warehouse does not run the chain. A writer `open()` builds it from a frozen schema file, `schemas/schema_0009.sql`: the schema at version 9, with no index and with zstd compression on `messages.text` and `tool_calls.tool_input`, in DuckDB 2.0's storage format. It records one `schema_version` row for that file and then runs any later migrations. It builds under a temp name. Then, while it holds the writer flock and only if no warehouse file exists, it renames the finished file into place. A crash never leaves a half-built `warehouse.duckdb`. The schema file is frozen like a released migration, and a test keeps it equal to the chain at version 9, apart from compression.
+```mermaid
+flowchart TD
+  open["Writer open"]
+  exists{"Warehouse file exists"}
+  below{"Schema below 3"}
+  stop["Stop and name the file"]
+  chain["Run the migration chain"]
+  build["Build from the schema file"]
+  later["Run later migrations"]
+  place["Rename into place"]
 
-An existing warehouse keeps its storage format and migrates forward through the chain. One below schema 3 cannot: the released `0003` needs the `vss` extension, which Stockroom no longer loads. Such a file is an empty leftover of a first run that did not finish. A migrating open stops with an error that names the file and says to move it aside. Nothing changes the file.
+  open --> exists
+  exists -->|No| build
+  build --> later
+  later --> place
+  exists -->|Yes| below
+  below -->|Yes| stop
+  below -->|No| chain
+```
+
+#### Released migrations
+
+A migration that shipped in a release keeps its SQL. You may change its comments.
+
+`make migrations-check` compares that SQL with the latest release tag. CI runs the same check.
+
+#### New warehouse
+
+A writer `open()` builds a missing warehouse from `schemas/schema_0009.sql`.
+
+The new file has:
+
+- DuckDB 2.0 storage
+- zstd on `messages.text` and `tool_calls.tool_input`
+- one `schema_version` row that names the schema file
+
+The build runs migrations that come after the schema file. It does not run the chain from the start.
+
+The schema file is frozen in the same way as a released migration. A later schema is a new file.
+
+The build writes a temp file. While `open()` holds the writer flock, it renames that file to `warehouse.duckdb` only when no warehouse file exists. A crash does not leave a half-built file at the warehouse path.
+
+#### Existing warehouse
+
+An existing warehouse keeps its storage format. `open()` runs the chain.
+
+- If the file has a vector index, the chain removes it.
+- A file below schema 3 does not migrate. The file holds no history. The open stops, names the file, and tells you to move it aside. The file is not changed.
+
+Stockroom does not load the `vss` extension. A file below schema 3 needs that extension.
 
 Schema changes go through the `open()` chokepoint — Architecture does not list DDL here. The query-facing picture of the current schema is [Advanced → Warehouse schema](../advanced/warehouse-schema.md).
 
