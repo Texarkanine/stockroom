@@ -1,1 +1,0 @@
-uv run --with duckdb==V selects V (missing V exits 1; --project --with 1.5.4 reuses a 1.5.4 venv). DuckDB 2.0 rejects SQL arrow (x ->); write lambda x:, which 1.5.4 accepts. Historical, index now gone: 2.0 filtered WHERE inside HNSW, 1.5.4 post-filtered.
