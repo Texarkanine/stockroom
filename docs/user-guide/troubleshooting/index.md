@@ -81,13 +81,15 @@ Let session-start heal run (`shim rectify` includes ensure-env), run `stockroom 
 
 ### Move the warehouse file aside
 
-`stockroom migrate` prints one line and exits 1. The line names the warehouse file and includes a quoted `mv`.
+`stockroom migrate` prints one line and exits 1. The line names the warehouse file and gives an `mv` command.
 
-The warehouse file is not damaged. The warehouse file holds no history. Stockroom does not delete the warehouse file, rename the warehouse file, or create a new warehouse on the same path. The path stays occupied. The next open fails in the same way until you move the warehouse file.
+A first run created the warehouse file and did not finish. The warehouse file holds no history. The warehouse file is not damaged. Stockroom cannot run the next migration on the warehouse file. The next migration needs software that Stockroom does not load, so Stockroom stops.
 
-`stockroom ingest` raises the same error. `stockroom ingest` does not print the one-line form. The error text still includes the `mv`.
+Stockroom does not delete the warehouse file. Stockroom does not create a new warehouse on the same path while the warehouse file is there. Each later open fails in the same way until you move the warehouse file. The `mv` command in the error names this warehouse file. After the move, the same command can create a new warehouse. The old warehouse file stays on disk under a name that ends in `.old`.
 
-1. Copy the `mv` command from the error text. Stop the copy before `, then run`.
+`stockroom ingest` raises the same error. `stockroom ingest` does not print one line. The error text still gives the `mv` command.
+
+1. Copy the `mv` command from the error text. Stop before `, then run`.
 2. Run the `mv` command. The `mv` command moves the warehouse file to a name that ends in `.old`.
 3. Run the same command again.
 
