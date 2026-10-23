@@ -29,3 +29,28 @@
 * Insights
     - `pragma_database_size` on DuckDB 2.0 exposes `used_blocks`, `free_blocks`, and `block_size`
     - `open_current` creates the home through `home_dir` and refuses a behind-head file, so doctor cannot use `open_current`
+
+## 2026-10-23 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Preflight of the milestone 4 doctor storage report
+    - Wrote `memory-bank/active/.preflight-status`
+* Decisions made
+    - First line of `.preflight-status` is `FAIL (fixable)`
+    - Existing probe callers that do not already isolate the home must use a temp home before build, so the suite does not open the live warehouse
+* Insights
+    - Same-process `LOCK_EX|LOCK_NB` blocks, and `warehouse.open` keeps `.warehouse.lock` until the connection object is finalized, not when `close()` returns
+    - Persistent `block_id` `-1` is a constant-segment sentinel; per-table sums double-count a shared id; `pragma_storage_info` raises on views
+    - A read-only connect does not create a missing file, and it works after a storage-config connection is closed
+
+## 2026-10-23 - PLAN - COMPLETE
+
+* Work completed
+    - Revised the plan for the fixable preflight finding and the four advisories
+* Decisions made
+    - Existing probe callers that do not already isolate the home set `STOCKROOM_HOME` to an empty temp home. `_probe` does not set that variable
+    - `live_bytes` unions persistent block ids across base tables, drops ids below 0, and skips views
+    - A missing warehouse file is `warehouse: absent`. Probe does not connect
+    - The happy-path test drops the writer connection and collects garbage before probe
+* Insights
+    - `block_id` `-1` is a constant-segment sentinel and is not a file block
