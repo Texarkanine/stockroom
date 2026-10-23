@@ -1,0 +1,1 @@
+Measured 2026-10-21: inside uv run --with duckdb==2.0.0, a nested uv run --no-sync --with duckdb==VERSION selects VERSION even with VIRTUAL_ENV inherited. DuckDB 2.0.0 EXPLAIN of unscoped cosine shows 'HNSW Index: embeddings_vector_hnsw' (title 'Hnsw Index Scan').

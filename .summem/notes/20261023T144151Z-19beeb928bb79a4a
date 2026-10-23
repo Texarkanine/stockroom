@@ -1,0 +1,1 @@
+Measured 2026-10-23: a bare full pytest run in a torch-provisioned checkout drops torch midway: test_coverage_collection runs make coverage-engine, whose sync is exact. Later torch-gated tests fail (No module named torch.distributed); ensure-env, then rerun them.

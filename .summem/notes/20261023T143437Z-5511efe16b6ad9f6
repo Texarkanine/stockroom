@@ -1,0 +1,1 @@
+DuckDB 2.0.0, measured 2026-10-23: a v1.0.0 file reloads view SQL (duckdb_views().sql) with one fewer closing paren than memory or a v2.0.0 file shows for the same view; table SQL and constraints match. A v1.0.0-vs-v2.0.0 catalog check must not compare view SQL text.

@@ -1,1 +1,0 @@
-DuckDB 2.0.0 EXPLAIN of the unscoped cosine query contains substring HNSW via the line 'HNSW Index: embeddings_vector_hnsw'; the operator title is 'Hnsw Index Scan', which does not itself contain HNSW. Case-sensitive 'HNSW' passes on 1.5.4 and 2.0.0.

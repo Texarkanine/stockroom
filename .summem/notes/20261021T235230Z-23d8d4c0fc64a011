@@ -1,1 +1,0 @@
-From inside uv run --with duckdb==2.0.0, a nested uv run --no-sync --with duckdb==VERSION selects VERSION even when VIRTUAL_ENV is inherited (uv warns that VIRTUAL_ENV is ignored). Unsetting VIRTUAL_ENV is not what makes --with take effect. Measured 2026-10-21.

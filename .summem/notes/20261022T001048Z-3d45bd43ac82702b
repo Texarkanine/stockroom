@@ -1,1 +1,0 @@
-uv --with from a 2.0.0 overlay selects VERSION when the project env lacks it, VIRTUAL_ENV set or not. Unsetting VIRTUAL_ENV is not why. --project --with 1.5.4 reuses the project venv while it is 1.5.4. A missing version exits 1.

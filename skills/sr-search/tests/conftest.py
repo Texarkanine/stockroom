@@ -9,6 +9,7 @@ relative-path arithmetic.
 import hashlib
 import json
 import os
+import shutil
 import sqlite3
 import subprocess
 import sys
@@ -132,6 +133,118 @@ def spawn_worker() -> Iterator[Callable[..., subprocess.Popen]]:
             if proc.poll() is None:
                 proc.kill()
             proc.wait()
+
+
+def _worker_env() -> dict[str, str]:
+    """Return this environment with the engine ``src`` first on ``PYTHONPATH``."""
+    env = os.environ.copy()
+    src_dir = str(Path(stockroom.__file__).parent.parent)
+    env["PYTHONPATH"] = os.pathsep.join([src_dir, env.get("PYTHONPATH", "")]).rstrip(
+        os.pathsep
+    )
+    return env
+
+
+@pytest.fixture(scope="session")
+def released_chain(
+    tmp_path_factory: pytest.TempPathFactory,
+) -> Callable[..., Path]:
+    """Return a builder of cached released-chain template files.
+
+    ``released_chain(through, storage, rows)`` returns a closed, checkpointed
+    file that a child process built with the packaged migrations through
+    ``through``, at storage version ``storage``, with ``rows`` messages and
+    one one-hot embedding each (the worker's ``build_chain``). The child loads
+    ``vss`` when the chain reaches ``0003``; this pytest process never loads
+    it. Each template is built once per pytest worker, and tests take copies
+    through ``released_chain_file``; never write to a template.
+    """
+    worker = Path(__file__).parent / "_warehouse_worker.py"
+    base = tmp_path_factory.mktemp("released-chain")
+    built: dict[tuple[int, str, int], Path] = {}
+
+    def _template(through: int, storage: str, rows: int) -> Path:
+        key = (through, storage, rows)
+        if key not in built:
+            name = f"chain-{through}-{storage}-{rows}"
+            db = base / f"{name}.duckdb"
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(worker),
+                    "build_chain",
+                    str(db),
+                    str(through),
+                    str(rows),
+                    storage,
+                    str(base / f"{name}-migrations"),
+                ],
+                env=_worker_env(),
+                capture_output=True,
+                text=True,
+                timeout=300,
+            )
+            assert result.returncode == 0, result.stderr
+            assert result.stdout.strip() == "built", result.stdout
+            built[key] = db
+        return built[key]
+
+    return _template
+
+
+@pytest.fixture
+def released_chain_file(
+    released_chain: Callable[..., Path], tmp_path: Path
+) -> Callable[..., Path]:
+    """Return a factory for this test's copy of a released-chain file.
+
+    ``released_chain_file(through, *, storage="v1.0.0", rows=0, dest=None)``
+    copies the cached template to ``dest`` (default: a file in the test's
+    ``tmp_path``) and returns its path. From schema 3 to 8 the file carries
+    the HNSW index, and this process has no ``vss``: never run an explicit
+    ``CHECKPOINT`` on such a file before ``0009`` has dropped the index
+    (DuckDB 2.0 raises ``FatalException``); a plain close is fine.
+    """
+
+    def _copy(
+        through: int,
+        *,
+        storage: str = "v1.0.0",
+        rows: int = 0,
+        dest: Path | None = None,
+    ) -> Path:
+        template = released_chain(through, storage, rows)
+        target = dest or tmp_path / f"chain-{through}-{storage}-{rows}.duckdb"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(template, target)
+        return target
+
+    return _copy
+
+
+@pytest.fixture
+def released_chain_con(
+    released_chain_file: Callable[..., Path],
+) -> Iterator[Callable[..., duckdb.DuckDBPyConnection]]:
+    """Return a factory of read-write connections to released-chain copies.
+
+    ``released_chain_con(through, **kwargs)`` opens a fresh copy (see
+    ``released_chain_file``) in this process, without ``vss``. Connections are
+    closed at teardown. The no-``CHECKPOINT`` rule of ``released_chain_file``
+    applies.
+    """
+    opened: list[duckdb.DuckDBPyConnection] = []
+
+    def _open(through: int, **kwargs) -> duckdb.DuckDBPyConnection:
+        con = duckdb.connect(str(released_chain_file(through, **kwargs)))
+        opened.append(con)
+        return con
+
+    try:
+        yield _open
+    finally:
+        for con in opened:
+            con.close()
 
 
 @pytest.fixture

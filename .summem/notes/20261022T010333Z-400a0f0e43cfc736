@@ -1,1 +1,0 @@
-DuckDB 2.0.0 rejects the deprecated SQL lambda arrow (list_transform(l, x -> ...)) with BinderException; write lambda x: ... instead, which 1.5.4 also accepts. Engine SQL has no arrow lambdas (checked 2026-10-21).

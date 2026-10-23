@@ -50,3 +50,18 @@ L4 milestone 3 of 7 for `warehouse-file-growth` ([issue 147](https://github.com/
     - Agent: advisories 1, 2, 3, 6, 7, and 9 adopted as written; advisory 8 accepted and noted for QA
 * Insights
     - The first preflight run, on Fable 5.1, stopped on a usage-credit 429 before writing anything; the second, on Opus, completed
+
+## 2026-10-23 - BUILD - IN-PROGRESS
+
+* Work completed
+    - Step 0: backed up the live warehouse under the writer flock with no `.wal` to `~/.local/share/stockroom/warehouse.issue147-pre-schema-file.duckdb` (42,435,358,720 bytes, copied in 314 s). SHA-256 of both files: `20894505a14298be273a2f2a2d03956b3e667025c5cb231513a87cc4265d6a2d`. The milestone 2 backup stays
+    - Step 1: `scripts/check_released_migrations.py`, `make migrations-check` (in `make ci`), and a CI step with `fetch-depth: 0`. G1 to G8 pass. On the real repo it fails and names only `0003_embeddings_hnsw_index.sql` (missing since milestone 1); `0001`'s comment edits pass
+    - Step 2: `src/stockroom/schemas/schema_0009.sql`, `stockroom.storage`, the worker's `build_chain` and `index_knn_delete`, and the conftest fixtures `released_chain`, `released_chain_file`, `released_chain_con`. S1 to S10 pass
+* Decisions made
+    - The build stays on `constrain-size-as-best-we-can` (milestones 1 to 3 share one pull request)
+    - S1 builds its chain file at `STORAGE_VERSION`, not `v1.0.0`: see the insight below
+    - `create_warehouse` also removes the temp file when the build raises, so a failed build leaves no temp name (S10 checks it); a killed build still leaves one for the next creation to remove
+    - `released_chain_file` takes an optional `dest`, so later tests can place a copy at the warehouse path
+* Insights
+    - DuckDB 2.0.0: a `v1.0.0` file reloads the view's SQL with one fewer closing parenthesis than memory or a `v2.0.0` file shows for the same view. Table SQL and constraints match. Milestone 5's catalog check compares a `v1.0.0` original with a `v2.0.0` copy, so it must not compare view SQL text (SumMem note)
+    - The full suite after steps 0 to 2: 1,070 passed, 37 skipped, 3 failed. The three failures are torch-gated `test_embed` tests, and they pass on a rerun after `stockroom shim ensure-env`. Cause, which predates this milestone: `test_coverage_collection` runs `make coverage-engine`, whose `sync` dependency is an exact `uv sync` that removes torch from this checkout while the suite runs. Whether a torch-gated test fails depends on xdist scheduling. So the final gate is `make ci` (which syncs first, so torch tests skip), then `ensure-env` and a separate run of the torch-gated tests (SumMem note)

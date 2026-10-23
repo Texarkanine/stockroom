@@ -21,6 +21,15 @@ Commands:
   install left: a ``v1.0.0`` file at schema 8 with the HNSW index, ``<rows>``
   messages, and one one-hot embedding per message at slots ``0..rows-1``.
   Checkpoints, closes, and prints ``built``.
+* ``build_chain <db> <through> <rows> <storage> <scratch_dir>`` — build the
+  packaged chain through version ``<through>`` into a new file at storage
+  version ``<storage>``, with ``vss`` loaded when ``<through>`` is 3 or more,
+  then write ``<rows>`` messages with one one-hot embedding each, as
+  ``build_indexed`` does. Checkpoints, closes, and prints ``built``.
+* ``index_knn_delete <db> <out_file>`` — with ``vss`` loaded, insert three
+  one-hot embeddings ``s#0`` to ``s#2`` into a file that has the ``0003``
+  index, find the nearest to ``s#0``'s vector, delete ``s#0``, and write
+  ``{"nearest": …, "count": …}`` to ``out_file`` as JSON.
 * ``insert_and_hang <db> <ready_file>`` — with ``vss`` loaded, insert message
   ``k#0`` and its embedding (one-hot at slot 300), commit, signal readiness,
   then sleep until killed: an embed killed with the index up.
@@ -29,6 +38,8 @@ Commands:
   killed: a migrator killed before it closes.
 """
 
+import json
+import shutil
 import sys
 import time
 from pathlib import Path
@@ -89,6 +100,22 @@ def build_v2_1_2_chain(con: duckdb.DuckDBPyConnection, directory: Path) -> None:
     apply_pending(con, directory)
 
 
+def build_released_chain(
+    con: duckdb.DuckDBPyConnection, through: int, directory: Path
+) -> list[int]:
+    """Apply the packaged migrations up to ``through`` to ``con``; return them.
+
+    Copies each packaged migration whose version is ``through`` or lower into
+    ``directory`` under its own name and runs the real runner there. When the
+    chain reaches ``0003``, ``vss`` must already be loaded on ``con``.
+    """
+    directory.mkdir(parents=True, exist_ok=True)
+    for migration in discover():
+        if migration.version <= through:
+            shutil.copyfile(migration.path, directory / migration.path.name)
+    return apply_pending(con, directory)
+
+
 def _insert_message(
     con: duckdb.DuckDBPyConnection, message_id: str, ordinal: int, slot: int
 ) -> None:
@@ -117,6 +144,47 @@ def _build_indexed(db: str, rows: str, scratch_dir: str) -> None:
     finally:
         con.close()
     print("built", flush=True)
+
+
+def _build_chain(
+    db: str, through: str, rows: str, storage: str, scratch_dir: str
+) -> None:
+    con = duckdb.connect(db, config={"storage_compatibility_version": storage})
+    try:
+        if int(through) >= 3:
+            _load_vss(con)
+        build_released_chain(con, int(through), Path(scratch_dir))
+        for ordinal in range(int(rows)):
+            _insert_message(con, f"b#{ordinal}", ordinal, ordinal)
+        con.execute("CHECKPOINT")
+    finally:
+        con.close()
+    print("built", flush=True)
+
+
+def _index_knn_delete(db: str, out_file: str) -> None:
+    con = duckdb.connect(db)
+    try:
+        _load_vss(con)
+        for ordinal in range(3):
+            con.execute(
+                "INSERT INTO embeddings "
+                "(harness, owner_table, owner_id, chunk_index, embed_model, vector) "
+                "VALUES ('claude', 'messages', ?, 0, 'm', ?)",
+                [f"s#{ordinal}", one_hot(ordinal)],
+            )
+        nearest = con.execute(
+            "SELECT owner_id FROM embeddings "
+            "ORDER BY array_cosine_distance(vector, ?::FLOAT[384]) LIMIT 1",
+            [one_hot(0)],
+        ).fetchone()[0]
+        con.execute("DELETE FROM embeddings WHERE owner_id = 's#0'")
+        count = con.execute("SELECT count(*) FROM embeddings").fetchone()[0]
+    finally:
+        con.close()
+    Path(out_file).write_text(
+        json.dumps({"nearest": nearest, "count": count}), encoding="utf-8"
+    )
 
 
 def _insert_and_hang(db: str, ready_file: str) -> None:
@@ -160,6 +228,10 @@ def main(argv: list[str]) -> None:
         _migrate_report(rest[0])
     elif command == "build_indexed":
         _build_indexed(rest[0], rest[1], rest[2])
+    elif command == "build_chain":
+        _build_chain(rest[0], rest[1], rest[2], rest[3], rest[4])
+    elif command == "index_knn_delete":
+        _index_knn_delete(rest[0], rest[1])
     elif command == "insert_and_hang":
         _insert_and_hang(rest[0], rest[1])
     elif command == "migrate_and_hang":

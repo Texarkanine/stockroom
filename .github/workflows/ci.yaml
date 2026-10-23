@@ -21,7 +21,11 @@ jobs:
       run:
         working-directory: skills/sr-search
     steps:
+      # Full history and tags: the released-migrations gate compares the
+      # working tree with the latest release tag.
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Install Node 22
         uses: actions/setup-node@v6
@@ -64,6 +68,10 @@ jobs:
       - name: Warehouse schema docs lockstep
         working-directory: ${{ github.workspace }}
         run: make schema-docs-check
+
+      - name: Released migrations unchanged
+        working-directory: ${{ github.workspace }}
+        run: make migrations-check
 
       - name: Upload engine coverage
         uses: codecov/codecov-action@v7

@@ -30,7 +30,7 @@ LOCALDEV_SH := $(SCRIPTS)/localdev.sh
 .PHONY: help sync lock lock-check test test-dashboard-js test-dashboard-py \
 	coverage coverage-engine coverage-dashboard-js \
 	lint format format-check reuse ci torch \
-	schema-docs schema-docs-check \
+	schema-docs schema-docs-check migrations-check \
 	local-skills local-engine local-dashboard localdev localdev-clean localdev-status shim \
 	docs docs-build require-harness
 
@@ -110,13 +110,17 @@ shim: ## Install on-path shim for this checkout (owner: dev; TAKEOVER=1 / FORCE=
 reuse: sync ## Run reuse lint on the whole repo (REUSE.toml at root)
 	$(UV) run --project $(ENGINE) --no-sync $(UV_NO_CFG) reuse lint
 
-ci: sync lock-check lint format-check schema-docs-check test reuse ## Full local gate (CI also collects/uploads coverage)
+ci: sync lock-check lint format-check schema-docs-check migrations-check test reuse ## Full local gate (CI also collects/uploads coverage)
 
 schema-docs: ## Generate warehouse schema ERD from the head golden
 	python3 scripts/gen_warehouse_schema.py
 
 schema-docs-check: ## Fail if committed warehouse schema ERD is stale
 	python3 scripts/gen_warehouse_schema.py --check
+
+# Needs release tags in the clone (git fetch --tags).
+migrations-check: ## Fail if a released migration's SQL differs from the latest release tag
+	python3 scripts/check_released_migrations.py
 
 # Docs site (root pyproject.toml docs group — separate from the engine project).
 # Requires uv: https://docs.astral.sh/uv/
