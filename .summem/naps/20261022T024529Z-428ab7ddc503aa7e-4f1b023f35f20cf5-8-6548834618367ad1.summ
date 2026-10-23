@@ -1,0 +1,1 @@
+HNSW dropped; CREATE INDEX can restore. DROP+CHECKPOINT 0.8s, blocks 161453 to 6846 (37.4 GiB). Default connect loads no vss (ro/rw, killed wal). Zstd validity Uncompressed/Constant. Swap=phase B: A rehearsed; B day+ later copy, verify, hard-link backup, replace. No swap release.

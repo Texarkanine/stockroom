@@ -1,1 +1,0 @@
-No default connect loads vss (ro/rw, killed wal) on 1.5.4 or 2.0.0; shared vss. Zstd validity Uncompressed/Constant; check VARCHAR/JSON. Swap=phase B: A rehearsed; B day+ later: copy, verify, hard-link backup, replace. No swap release. Top-100 220/160 ms (1.5.4/2.0.0).

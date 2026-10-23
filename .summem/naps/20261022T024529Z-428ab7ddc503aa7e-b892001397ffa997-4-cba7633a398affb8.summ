@@ -1,1 +1,0 @@
-2026-10-21: HNSW dropped (CREATE INDEX can restore it). Dedup-before-join was 153 ms on 2.0 (1.3 s join-first). DROP+CHECKPOINT 0.8 s, used blocks 161453 to 6846 (37.4 GiB). vss unloaded: file opened on 1.5.4 and 2.0.0; DROP INDEX in a transaction, insert, and checkpoint worked.
