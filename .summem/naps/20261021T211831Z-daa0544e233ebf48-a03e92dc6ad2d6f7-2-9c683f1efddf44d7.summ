@@ -1,1 +1,0 @@
-HNSW write rules, for any later re-add (operator 2026-10-21): keep the index down until every embedding delete in the process has run, then recreate once (a recreate between deletes leaks a copy); no checkpoint while it is down. Growth tests assert used blocks each cycle.

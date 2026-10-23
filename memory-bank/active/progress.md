@@ -40,3 +40,12 @@ L4 milestone 3 of 7 for `warehouse-file-growth` ([issue 147](https://github.com/
 * Insights
     - On DuckDB 2.0.0, `duckdb_tables().sql` shows `USING COMPRESSION ZSTD`. The brief's requirement 2 says it does not. This matters for milestone 5's catalog equality
     - A `v1.1.0` storage setting persists as tag `v1.0.0+`, so it is the same case as `v1.0.0`
+
+## 2026-10-22 - RELEASE GATE - COMPLETE
+
+* Work completed
+    - Personal Mac (Puck) shadow run of `constrain-size-as-best-we-can` at `ce16489`. Fresh clone, `make sync`, no `--with`, no `make shim`. Source `~/.local/share/stockroom/warehouse.duckdb`, 383,791,104 bytes, no `.wal`. Exit 0: `shadow: every phase passed`. Copy stayed `v1.0.0+`, six tables equal, schema head, no index. Ingest added 2 Cursor sessions, 28 messages, 54 tool calls. Embed wrote 66 chunks and removed 0 orphans. Semantic returned rank 1. DuckDB 1.5.4 wrote the copy (cosine, 100 rows) and 2.0.0 answered after that. No `nanobind` line. Live file mtime unchanged (2026-10-22 03:31:55). Scratch clone and home removed
+* Decisions made
+    - The work Mac stays out of this gate. Build may start
+* Insights
+    - This warehouse is 366 MB. The work machine's original, described in `milestones.md` as 88 GB, was not the file under test

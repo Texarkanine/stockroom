@@ -1,0 +1,1 @@
+HNSW re-add (2026-10-21, 1.5.4, 2.0.0): index down until all embedding deletes run, then one recreate. Delete with index up leaks one at checkpoint/close (no-match does not); recreate between deletes leaks. No checkpoint while down. Drop, delete, recreate, checkpoint stays flat.

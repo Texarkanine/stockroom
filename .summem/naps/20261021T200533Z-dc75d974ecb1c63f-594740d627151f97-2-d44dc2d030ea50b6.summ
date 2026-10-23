@@ -1,1 +1,0 @@
-HNSW, for any later re-add (2026-10-21, DuckDB 1.5.4 and 2.0.0): deleting embeddings rows with the index up leaks one index copy at checkpoint or process close; a no-match delete does not. Drop index, delete, recreate, checkpoint keeps used blocks flat.

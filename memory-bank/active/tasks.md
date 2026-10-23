@@ -114,7 +114,7 @@ Edge cases:
 
 ### 0. Where milestone 3's commits go — resolved (operator, 2026-10-22)
 
-Milestones 1 and 2 make the first release, which waits on the operator's shadow run on the personal Mac. Pull requests are squash-merged. `constrain-size-as-best-we-can` is the milestone 1+2 branch, pushed to origin so another machine can pull it. Build starts by creating a new branch for milestone 3 from this branch's tip, in this checkout. After the first pull request squash-merges, rebase it with `git rebase --onto origin/main <tip of constrain-size-as-best-we-can>`.
+Milestones 1 and 2 make the first release. The personal Mac shadow run passed on Puck on 2026-10-22 (recorded in `activeContext.md`). Pull requests are squash-merged. `constrain-size-as-best-we-can` is the milestone 1+2 branch, pushed to origin so another machine can pull it. Build starts by creating a new branch for milestone 3 from this branch's tip, in this checkout. After the first pull request squash-merges, rebase it with `git rebase --onto origin/main <tip of constrain-size-as-best-we-can>`.
 
 ### 1. Backup and real-data proof before the first source edit — build-time operation
 
