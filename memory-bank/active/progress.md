@@ -27,3 +27,15 @@ L4 milestone 3 of 7 for `warehouse-file-growth` ([issue 147](https://github.com/
     - DuckDB 2.0.0 without `vss`, on a file with the HNSW index: an explicit `CHECKPOINT` after an `ALTER`, `INSERT`, or `CREATE VIEW` raises `FatalException`, but a plain close checkpoints fine. The runner's `0004` to `0009`, a kill mid-chain, and a tiny `checkpoint_threshold` all reach 9 with every row. The engine runs no explicit `CHECKPOINT`, so only test code could trip it
     - DuckDB re-prints view SQL in a form that does not round-trip, so the schema file copies `0007`'s view text word for word
     - `embed` runs in one transaction, so a time-killed embed keeps nothing; a "bounded" real-data embed needs a smaller source, not a kill
+
+## 2026-10-22 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Preflight (Level 2/3 checks) on the milestone 3 plan. First line of `.preflight-status`: `PASS WITH ADVISORY`
+    - No TDD swap or strike was needed, and `tasks.md` is unchanged
+    - Spot-check (scratchpad `preflight/probe_schema2_bytes.py`, DuckDB 2.0.0): `v1.0.0` files at schema 0, 1, and 2 keep the same SHA-256 after a plain read-write open and close, so W3's premise holds for all three parameters
+* Decisions made
+    - Nine advisories, none blocking. The main ones: the G2 to G8 temp repos need a git identity on CI runners; writer `open()` must call creation inside the flock-releasing `try` (add a test); new installs now depend on hard links (operator to confirm that the 2026-10-22 ruling covers creation); `test_shadow_duckdb_20.py` stays red between steps 5 and 6. Full list in `.preflight-status`
+    - Radical-innovation advisory: build release-matrix fixtures with DuckDB 1.5.4 from each tag's migration blobs, so W6 proves "as any earlier release left it" with the real on-disk format
+* Insights
+    - Local `main` (5f31292) is one commit behind `v2.1.3` (bc46e2b). That commit changes only version files, so restoring from `main` and gating against the tag give the same migrations and tests
