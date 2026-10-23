@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: warehouse-file-growth, milestone 4 (doctor storage report)
-**Phase:** QA - COMPLETE (PASS)
+**Phase:** REFLECT COMPLETE
 
 ## What Was Done
 - `stockroom doctor probe` reports file size, used blocks, free blocks, a reclaimable estimate, the storage format, free disk, and `warehouse.issue147-swap.duckdb` when that file exists
@@ -9,6 +9,8 @@
 - `live_bytes` is the distinct persistent block-id union times `block_size`. The preflight overhead advisory stays advisory
 - Help text and the contributor probe comment name the storage facts
 - `make ci` passed: 1098 pytest passed, 39 skipped; 134 JavaScript tests passed
+- QA passed with advisories and no build change
+- Reflection is in `memory-bank/active/reflection/reflection-warehouse-file-growth-m4.md`
 
 ## Files
 - `/home/mobaxterm/git/stockroom/skills/sr-search/src/stockroom/doctor.py`
@@ -26,4 +28,4 @@
 - Help uses a raw description formatter so `free disk` stays one phrase. `stockroom backfill` already uses that formatter
 
 ## Next Step
-- Reflect on the doctor storage report.
+- Run `/niko` to continue to the next milestone.

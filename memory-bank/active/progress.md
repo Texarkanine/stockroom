@@ -89,3 +89,14 @@
 * Insights
     - The schema-head comparison falls through on both sides. Probe never migrates
     - `reclaimable-bytes` stays file size minus the persistent block-id union. The overhead constant stays out
+
+## 2026-10-23 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `memory-bank/active/reflection/reflection-warehouse-file-growth-m4.md`
+    - Noted warehouse storage facts on the doctor row in `memory-bank/techContext.md`
+* Decisions made
+    - `productContext` and `systemPatterns` need no change. The storage report does not change who the product serves, and the read-only connect is local to doctor
+* Insights
+    - argparse's default help formatter can split a two-word phrase across lines
+    - A healthy new warehouse reports most of its file as reclaimable, and milestone 6 inherits that estimate
