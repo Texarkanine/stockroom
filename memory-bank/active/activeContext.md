@@ -19,5 +19,19 @@
 - Milestones 1 to 3 make the first release on this branch. The pull request opens only after milestone 3 restores the released migrations, and the Mac gate re-runs after milestone 3
 - "Why?" from the operator is a real question, not pushback
 
+## Operator review of the L4 preflight (2026-10-22)
+- Comments in migrations may be added or changed. Changing SQL to do something materially different is not allowed. Milestone 1's comment edits to `0001` stay; `0003`'s SQL and name are restored. Later ERD edges can go into migrations as comments
+- Filesystems that refuse hard links: APFS, Mac OS Extended (Journaled), ext4, and NTFS all support them, so they are out of scope. There is no skip, test, or lasting-skip handling for them, and milestone 6's lasting-skip error state is dropped (a skip retries)
+- Validate the new-warehouse path on real data in milestone 3, and a new install must still work at the end (brief acceptance 12, milestone 7)
+- Folded in on the agent's judgment, with no objection:
+    - requirement wording "the latest release's SQL"
+    - an immutability gate in `make ci` and CI that compares SQL with comments and whitespace removed
+    - the format-boundary constant as the check's precondition
+    - milestone 2's schema-1 test becomes the stop test
+    - the stale `systemPatterns` sentence is deleted
+    - the commit order is relaxed
+    - temp-then-rename creation in milestone 3, extended by milestone 5
+    - split milestone 6 only if it classifies above Level 3
+
 ## Next Step
-- L4 preflight in a subagent, then operator review, then `/niko` to classify milestone 3
+- Operator: `/niko` to classify milestone 3 (the review is done and folded in)

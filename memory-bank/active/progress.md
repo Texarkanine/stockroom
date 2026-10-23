@@ -55,3 +55,15 @@ Stop the warehouse file growing far past the history it holds ([issue 147](https
     - Radical innovation: one builder creates every warehouse file at a temp path, and a finished file is renamed into place
 * Insights
     - DuckDB 2.0.0 applies forced zstd even to a 1-row table, and keeps it after a plain reopen and appends. So "already new" read from data segments works for every table that has rows
+
+## 2026-10-22 - L4 REVIEW (OPERATOR) - COMPLETE
+
+* Work completed
+    - Folded the operator's review of the L4 preflight into `projectbrief.md` and `milestones.md`
+* Decisions made (operator)
+    - Comments in released migrations may be added or changed. Their SQL may not be changed to do something materially different. A gate in `make ci` and CI compares SQL with comments and whitespace removed against the latest release tag
+    - Filesystems that refuse hard links are out of scope: APFS, Mac OS Extended (Journaled), ext4, and NTFS all support them. Milestone 6 drops that skip and the lasting-skip error state; a skip retries
+    - Validate the new-warehouse path on real data in milestone 3. A new install must work when the project is done (brief acceptance 12, milestone 7)
+    - Taken on the agent's judgment: the format-boundary constant as the check's precondition; milestone 2's schema-1 test becomes the stop test; temp-then-rename creation in milestone 3, extended by milestone 5; the commit order is relaxed; milestone 6 splits only if it classifies above Level 3
+* Insights
+    - The ERD's `@rel` comments (#128) already edited two released migrations. So the line the operator draws is SQL behaviour, not bytes
