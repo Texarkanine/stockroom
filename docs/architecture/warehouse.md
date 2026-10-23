@@ -111,19 +111,27 @@ flowchart TD
   ready -->|Yes| chain
 ```
 
-#### No file yet
+#### No warehouse file
 
-The snapshot is frozen the way a released migration is. A later snapshot is a new file. The new warehouse records one `schema_version` row for the snapshot. Later migrations add their own `schema_version` rows.
+The No arrow is a warehouse that does not exist yet, so there is no chain to continue.
 
-The build writes a temp file. Under the writer flock, `open()` renames it onto the warehouse path only when no file is there. A crash does not leave a half-built file at the live path.
+`open()` does not start at the first migration. The early migrations include one that needs a dependency the engine does not load, and the engine cannot run that migration. Those migrations also cannot set the storage format. The format is chosen when the file is created, and an SQL statement cannot change the format later.
 
-Which DuckDB versions can open a new file is in [Advanced → DuckDB](../advanced/duckdb.md).
+`open()` builds a snapshot of the current schema, already in the current storage format, and then runs only the migrations added after that snapshot.
 
-#### Existing file
+The snapshot stays fixed, in the same way a migration stays fixed after the migration ships. A newer picture of the schema is a new snapshot file. The new warehouse records the snapshot in one `schema_version` row, and each later migration adds its own `schema_version` row.
 
-A file that is already past the step the engine cannot run keeps its storage format. `open()` runs the chain forward from the version the file is on. The chain leaves no vector index. Search ranks every vector exactly ([Embeddings](embeddings.md#exact-search)).
+`open()` writes the new warehouse under a temporary name and renames that file onto the warehouse path only while holding the writer flock, and only when no warehouse file is already there. A crash cannot leave a half-built file at the warehouse path.
 
-A file that has not reached that step holds no history. The open stops, names the file, and tells you to move it aside. The file is not changed.
+[Advanced → DuckDB](../advanced/duckdb.md) says which DuckDB versions can open a file in the current storage format.
+
+#### An existing warehouse
+
+The Yes arrow is a warehouse that already exists. The chart then asks whether that file is past the migration the engine cannot run. That migration is the one that needs a dependency the engine does not load.
+
+If the file has not reached that migration, the next SQL step would be the one the engine cannot run. The file holds no history, so `open()` stops, names the file, and tells you to move the file aside. `open()` does not change the file.
+
+If the file is already past that migration, `open()` runs the chain forward from the schema version the file is on. The remaining migrations are SQL. SQL cannot change the storage format, so the file keeps that format. Those migrations leave the file with no vector index. Search ranks every vector exactly ([Embeddings](embeddings.md#exact-search)).
 
 #### Released SQL
 
