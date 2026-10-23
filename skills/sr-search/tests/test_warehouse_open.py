@@ -8,6 +8,7 @@ fresh warehouse returns a ready, migrated connection while opening a current
 one never re-runs the runner.
 """
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -15,7 +16,7 @@ import duckdb
 import pytest
 
 from _warehouse_worker import KILLED_SLOT, one_hot
-from stockroom import migrate, semantic, warehouse
+from stockroom import migrate, semantic, storage, warehouse
 from stockroom.migrations import discover
 from test_schema_0003 import _introspect_schema
 from test_schema_0008 import SNAPSHOT_PATH
@@ -207,40 +208,149 @@ def test_open_current_refuses_stale_schema_without_migrating(
         con.close()
 
 
-def test_schema_one_v1_file_migrates_to_head_and_keeps_storage_tag(
-    warehouse_home: Path,
-) -> None:
-    """A ``v1.0.0+`` file an older release left at schema 1 migrates and keeps its tag.
+def _old_file(path: Path, version: int) -> None:
+    """Write a ``v1.0.0`` file at schema ``version`` (0, 1, or 2), as a crashed
+    first run of an older release could leave it.
 
-    Every release before the DuckDB 2.0 move pinned DuckDB 1.5.4, so a warehouse
-    in the wild is storage ``v1.0.0+`` at any schema version. Opening one
-    read-write must migrate it to head without rewriting its storage format:
-    the tag stays ``v1.0.0+`` until a deliberate rewrite changes it.
+    Schema 0 is a bare file with no tables. Schema 1 and 2 run the packaged
+    ``0001`` (and ``0002``) directly with their bookkeeping rows; neither
+    needs ``vss``.
     """
-    path = warehouse.warehouse_path()
     con = duckdb.connect(str(path), config={"storage_compatibility_version": "v1.0.0"})
-    migration = next(item for item in discover() if item.version == 1)
     try:
-        con.execute(migration.path.read_text(encoding="utf-8"))
-        migrate.ensure_schema_version_table(con)
-        con.execute(
-            f"INSERT INTO {migrate.SCHEMA_VERSION_TABLE} (version, filename) "
-            "VALUES (1, ?)",
-            [migration.path.name],
-        )
+        if version >= 1:
+            migrate.ensure_schema_version_table(con)
+        for migration in discover():
+            if migration.version > version:
+                break
+            con.execute(migration.path.read_text(encoding="utf-8"))
+            con.execute(
+                f"INSERT INTO {migrate.SCHEMA_VERSION_TABLE} (version, filename) "
+                "VALUES (?, ?)",
+                [migration.version, migration.path.name],
+            )
     finally:
         con.close()
 
+
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _flock_is_free() -> bool:
+    try:
+        with warehouse._flock(warehouse.lock_path(), blocking=False):
+            return True
+    except BlockingIOError:
+        return False
+
+
+def _temp_names(home: Path) -> list[str]:
+    return sorted(
+        entry.name
+        for entry in home.iterdir()
+        if entry.name.startswith(storage.BUILDING_FILENAME)
+    )
+
+
+def test_writer_open_creates_a_new_warehouse_from_the_schema_file(
+    warehouse_home: Path,
+) -> None:
+    """W1: a fresh home gets a ``v2.0.0+`` file built from the schema file.
+
+    Its bookkeeping holds the schema file's row and one row per later
+    migration, never ``0001`` to ``0009``. It is at the head, ``vss`` is not
+    loaded, and no temp name is left in the home.
+    """
+    expected = [(storage.SCHEMA_FILE_VERSION, storage.SCHEMA_FILE.name)] + [
+        (m.version, m.path.name)
+        for m in discover()
+        if m.version > storage.SCHEMA_FILE_VERSION
+    ]
+
     con = warehouse.open(read_only=False)
     try:
-        assert migrate.current_version(con) == _HEAD_VERSION
+        rows = con.execute(
+            f"SELECT version, filename FROM {migrate.SCHEMA_VERSION_TABLE} "
+            "ORDER BY version"
+        ).fetchall()
         tags = con.execute(
             "SELECT tags FROM duckdb_databases() "
             "WHERE database_name = current_database()"
         ).fetchone()[0]
-        assert tags["storage_version"] == "v1.0.0+"
+        version = migrate.current_version(con)
+        loaded = _vss_loaded(con)
     finally:
         con.close()
+
+    assert rows == expected
+    assert rows[0] == (9, "schema_0009.sql")
+    assert tags["storage_version"] == "v2.0.0+"
+    assert version == _HEAD_VERSION
+    assert loaded is False
+    assert _temp_names(warehouse_home) == []
+
+
+@pytest.mark.parametrize("version", [0, 1, 2])
+def test_writer_open_stops_below_schema_three_and_leaves_the_file(
+    warehouse_home: Path, version: int
+) -> None:
+    """W3: a file below schema 3 raises a typed error and stays as it was.
+
+    The message names the file and gives the move-aside command. The file's
+    SHA-256 is unchanged, and the writer flock is free afterwards.
+    """
+    path = warehouse.warehouse_path()
+    _old_file(path, version)
+    before = _sha256(path)
+
+    with pytest.raises(warehouse.WarehouseUnmigratableError) as caught:
+        warehouse.open(read_only=False)
+
+    assert caught.value.path == path
+    assert caught.value.current == version
+    message = str(caught.value)
+    assert str(path) in message
+    assert f"schema version {version}" in message
+    assert "mv " in message
+    assert "\n" not in message
+    assert path.is_file()
+    assert _sha256(path) == before
+    assert _flock_is_free()
+    assert _temp_names(warehouse_home) == []
+
+
+def test_reader_open_stops_below_schema_three(warehouse_home: Path) -> None:
+    """W4: a reader that would become the migrator raises the same error."""
+    path = warehouse.warehouse_path()
+    _old_file(path, 1)
+    before = _sha256(path)
+
+    with pytest.raises(warehouse.WarehouseUnmigratableError) as caught:
+        warehouse.open(read_only=True)
+
+    assert caught.value.current == 1
+    assert _sha256(path) == before
+    assert _flock_is_free()
+
+
+def test_writer_open_releases_the_flock_when_creation_fails(
+    warehouse_home: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """W9: a failed build raises, leaves no warehouse, and frees the flock."""
+
+    def _failing_build(dest: Path) -> None:
+        dest.write_bytes(b"partly built")
+        raise RuntimeError("disk full")
+
+    monkeypatch.setattr(storage, "build_warehouse", _failing_build)
+
+    with pytest.raises(RuntimeError, match="disk full"):
+        warehouse.open(read_only=False)
+
+    assert not warehouse.warehouse_path().exists()
+    assert _flock_is_free()
+    assert _temp_names(warehouse_home) == []
 
 
 # --- radical-innovation guard: the framework yields exactly the locked DDL --

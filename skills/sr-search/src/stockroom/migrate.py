@@ -126,12 +126,14 @@ def main(argv: list[str] | None = None) -> int:
     """Migrate the warehouse to the schema head and report the version.
 
     Opens the warehouse read-write through the ``stockroom.warehouse.open()``
-    chokepoint — whose lazy migration gate creates a missing warehouse and
-    applies any pending migrations — then prints the resulting schema version.
+    chokepoint — which creates a missing warehouse from the frozen schema file,
+    and whose lazy migration gate applies any pending migrations — then prints
+    the resulting schema version.
     Idempotent: a current warehouse is a cheap no-op that still reports its
-    version. Returns ``0`` on success and ``1`` with a clean stderr message
-    (no traceback) when the warehouse stays locked past the backoff budget
-    (:class:`stockroom.warehouse.WarehouseBusyError`).
+    version. Returns ``0`` on success and ``1`` with a one-line stderr
+    message (no traceback) when the warehouse stays locked past the backoff
+    budget (:class:`stockroom.warehouse.WarehouseBusyError`) or is too old to
+    migrate (:class:`stockroom.warehouse.WarehouseUnmigratableError`).
     """
     # Imported here, not at module top: stockroom.warehouse imports this
     # module at load time, so a top-level import would be circular.
@@ -141,7 +143,10 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         con = warehouse.open(read_only=False)
-    except warehouse.WarehouseBusyError as exc:
+    except (
+        warehouse.WarehouseBusyError,
+        warehouse.WarehouseUnmigratableError,
+    ) as exc:
         print(f"migrate failed: {exc}", file=sys.stderr)
         return 1
     try:

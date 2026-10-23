@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pytest
 
-from stockroom import migrate, warehouse
+from stockroom import migrate, storage, warehouse
 from stockroom.warehouse import WarehouseBusyError
 
 _PRODUCT_TABLES = {"sessions", "messages", "tool_calls", "embeddings", "_sync_state"}
@@ -89,9 +89,9 @@ def test_racing_migrators_serialize_without_double_apply(
     """Two processes racing to migrate a fresh warehouse both land at head, once.
 
     The flock serializes the would-be migrators and the double-checked gate
-    stops the loser from re-applying: both observe the head version, exactly one
-    bookkeeping row exists *per applied migration* (no double-apply), and the
-    product schema is intact.
+    stops the loser from re-applying: both observe the head version, the
+    warehouse was created once (one row for the schema file, plus one per
+    later migration: no double-apply), and the product schema is intact.
     """
     out_a = tmp_path / "a.txt"
     out_b = tmp_path / "b.txt"
@@ -108,7 +108,7 @@ def test_racing_migrators_serialize_without_double_apply(
         row_count = con.execute(
             f"SELECT count(*) FROM {migrate.SCHEMA_VERSION_TABLE}"
         ).fetchone()[0]
-        assert row_count == _HEAD_VERSION
+        assert row_count == _HEAD_VERSION - storage.SCHEMA_FILE_VERSION + 1
         tables = {
             r[0]
             for r in con.execute(
