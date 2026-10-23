@@ -39,7 +39,8 @@ Prefer `make sync` + restore torch via `stockroom shim ensure-env` when you want
 | `reuse` | Whole-tree REUSE lint |
 | `schema-docs` | Generate the warehouse ERD markdown from the head schema golden + migration `@rel` comments |
 | `schema-docs-check` | Fail if the committed ERD is stale (also part of `ci`) |
-| `ci` | Full engine gate (lint/format/schema-docs-check/test/reuse; Codecov upload is CI-only) |
+| `migrations-check` | Fail if a released migration or schema file has SQL that differs from the latest release tag; comments and whitespace may differ (also part of `ci`; needs release tags: `git fetch --tags`) |
+| `ci` | Full engine gate (lint/format/schema-docs-check/migrations-check/test/reuse; Codecov upload is CI-only) |
 | `shim` | Bake this checkout onto PATH (owner `dev`; takeover flags in Local workflow) |
 | `local-engine` | Claim shim + `ensure-env` for this checkout |
 
@@ -53,13 +54,14 @@ cd skills/sr-search && uv run --no-sync --no-config pytest -n0 tests/test_smoke.
 
 ## Warehouse schema docs
 
-The query-facing ERD is generated, not hand-maintained. Authoritative DDL stays the forward-only files under `skills/sr-search/src/stockroom/migrations/`. Golden snapshots under `skills/sr-search/tests/fixtures/schema/` lock the migrated product schema. Logical relationships are `-- @rel` / `-- @rel-none` comments in those migration files (DuckDB has no FOREIGN KEY constraints). The generator reads the highest `NNNN_snapshot.json` plus those comments and splices the Mermaid `erDiagram` into the one mermaid fence in `skills/sr-query/references/warehouse-schema.md` (Advanced docs symlink the same file). Surrounding prose on that page is authored, not generated.
+The query-facing ERD is generated, not hand-maintained. Authoritative DDL stays the forward-only files under `skills/sr-search/src/stockroom/migrations/`. New warehouses are built from the frozen schema file under `skills/sr-search/src/stockroom/schemas/` instead, and then run every later migration; `tests/test_storage.py` keeps that file equal to the chain at its version. Golden snapshots under `skills/sr-search/tests/fixtures/schema/` lock the migrated product schema. Logical relationships are `-- @rel` / `-- @rel-none` comments in those migration files (DuckDB has no FOREIGN KEY constraints). The generator reads the highest `NNNN_snapshot.json` plus those comments and splices the Mermaid `erDiagram` into the one mermaid fence in `skills/sr-query/references/warehouse-schema.md` (Advanced docs symlink the same file). Surrounding prose on that page is authored, not generated.
 
 After a schema change:
 
-1. Declare `-- @rel` / `-- @rel-none` on the new entity in that migration (every head-snapshot name must be a `<from>`, a `<to>`, or `@rel-none`; omitting the line fails coverage).
-2. Update the head golden: `STOCKROOM_UPDATE_SCHEMA_GOLDEN=1` on the relevant `test_schema_NNNN.py`.
-3. Run `make schema-docs` and commit the migration comments, the snapshot, and the generated ERD together.
+1. Make the change a new migration. A migration that shipped in a release, and the frozen schema file, never change their SQL; only their comments may change. `make migrations-check` compares them with the latest release tag, so fetch the tags first (`git fetch --tags`). New warehouses run the new migration after the schema file, so the schema file stays as it is.
+2. Declare `-- @rel` / `-- @rel-none` on the new entity in that migration (every head-snapshot name must be a `<from>`, a `<to>`, or `@rel-none`; omitting the line fails coverage). Edges live only in migration comments, never in the schema file.
+3. Update the head golden: `STOCKROOM_UPDATE_SCHEMA_GOLDEN=1` on the relevant `test_schema_NNNN.py` (run only that module with it: the flag rewrites every golden a run touches).
+4. Run `make schema-docs` and commit the migration comments, the snapshot, and the generated ERD together.
 
 Regen needs CPython 3 and the repo. It does not need `sr-initialize`, torch, or an on-path shim.
 

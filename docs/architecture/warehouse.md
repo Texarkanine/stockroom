@@ -77,7 +77,13 @@ Coordination uses `fcntl.flock` on a sidecar lock file; data integrity uses Duck
 
 ### Migrations
 
-Migrations are numbered forward-only SQL under the engine's `migrations/` tree; `schema_version` is runner-owned. Schema changes go through the `open()` chokepoint — Architecture does not list DDL here. The query-facing picture of the current schema is [Advanced → Warehouse schema](../advanced/warehouse-schema.md).
+Migrations are numbered forward-only SQL under the engine's `migrations/` tree; `schema_version` is runner-owned. There is one chain. A migration that shipped in a release keeps its SQL for good: only its comments may change, and `make migrations-check` (also run in CI) compares every released migration with the latest release tag.
+
+A new warehouse does not run the chain. A writer `open()` builds it from a frozen schema file, `schemas/schema_0009.sql`: the schema at version 9, with no index and with zstd compression on `messages.text` and `tool_calls.tool_input`, in DuckDB 2.0's storage format. It records one `schema_version` row for that file and then runs any later migrations. It builds under a temp name. Then, while it holds the writer flock and only if no warehouse file exists, it renames the finished file into place. A crash never leaves a half-built `warehouse.duckdb`. The schema file is frozen like a released migration, and a test keeps it equal to the chain at version 9, apart from compression.
+
+An existing warehouse keeps its storage format and migrates forward through the chain. One below schema 3 cannot: the released `0003` needs the `vss` extension, which Stockroom no longer loads. Such a file is an empty leftover of a first run that did not finish. A migrating open stops with an error that names the file and says to move it aside. Nothing changes the file.
+
+Schema changes go through the `open()` chokepoint — Architecture does not list DDL here. The query-facing picture of the current schema is [Advanced → Warehouse schema](../advanced/warehouse-schema.md).
 
 ## Related procedures
 

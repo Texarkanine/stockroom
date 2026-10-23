@@ -301,6 +301,6 @@ No new technology - validation not required. No new dependencies; `vss` stays te
     - [x] 4. `migrated_con` from the schema file
     - [x] 5. Restore the released migrations, goldens, and schema tests
     - [x] 6. Shadow script's synthetic warehouse
-    - [ ] 7. Docs and memory bank
+    - [x] 7. Docs and memory bank
     - [ ] 8. Verification gates
 - [ ] QA
