@@ -1,0 +1,1 @@
+Measured 2026-10-21: engine-default connects (autoload+autoinstall on) never load vss for a file with the HNSW index, ro or rw, with a killed embed's wal, on 1.5.4 and 2.0.0. Same-path connects in one process share one instance and its loaded vss.

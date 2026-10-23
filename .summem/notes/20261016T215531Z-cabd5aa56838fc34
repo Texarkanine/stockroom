@@ -1,1 +1,0 @@
-shim _alive: only ENOENT/ENOTDIR/ELOOP mean a baked engine is dead; other stat errors (EACCES, ESTALE) count as alive, so rectify leaves it. Do not use Path.is_file: it raises those before Python 3.14 and returns False from 3.14.

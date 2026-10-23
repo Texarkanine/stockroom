@@ -4,6 +4,9 @@
 derived at ingest from per-harness strategies (see ``ingest.paths.workspace_key_for``).
 Structural only; no DML backfill. Pre-existing rows keep ``NULL`` until
 ``--full`` re-ingest. Cumulative schema head moves to ``0006_snapshot.json``.
+The chain is built in a child process that loads ``vss``
+(``released_chain_con``); this process reads it without ``vss`` and never
+runs an explicit ``CHECKPOINT`` on it.
 """
 
 import json
@@ -12,20 +15,10 @@ from pathlib import Path
 
 import duckdb
 
-from stockroom import warehouse
 from stockroom.migrations import discover
 from test_schema_0003 import _introspect_schema
 
 SNAPSHOT_PATH = Path(__file__).parent / "fixtures" / "schema" / "0006_snapshot.json"
-
-
-def _apply_chain(con: duckdb.DuckDBPyConnection) -> None:
-    """Load VSS and apply every packaged migration through ``0006``."""
-    warehouse.ensure_vss(con)
-    for migration in discover():
-        if migration.version > 6:
-            break
-        con.execute(migration.path.read_text(encoding="utf-8"))
 
 
 def _sessions_columns(con: duckdb.DuckDBPyConnection) -> set[str]:
@@ -36,11 +29,11 @@ def _sessions_columns(con: duckdb.DuckDBPyConnection) -> set[str]:
     return {row[0] for row in rows}
 
 
-def test_0006_adds_workspace_key_column(mem_con: duckdb.DuckDBPyConnection) -> None:
+def test_0006_adds_workspace_key_column(released_chain_con) -> None:
     """Sessions gain nullable ``workspace_key`` after ``0006``."""
-    _apply_chain(mem_con)
-    assert "workspace_key" in _sessions_columns(mem_con)
-    row = mem_con.execute(
+    con = released_chain_con(6)
+    assert "workspace_key" in _sessions_columns(con)
+    row = con.execute(
         "SELECT data_type, is_nullable FROM duckdb_columns() "
         "WHERE schema_name = 'main' AND table_name = 'sessions' "
         "AND column_name = 'workspace_key'"
@@ -50,36 +43,28 @@ def test_0006_adds_workspace_key_column(mem_con: duckdb.DuckDBPyConnection) -> N
     assert bool(row[1]) is True
 
 
-def test_0006_preserves_rows_with_null_workspace_key(
-    mem_con: duckdb.DuckDBPyConnection,
-) -> None:
+def test_0006_preserves_rows_with_null_workspace_key(released_chain_con) -> None:
     """Pre-existing sessions survive with ``workspace_key IS NULL`` (no backfill)."""
-    warehouse.ensure_vss(mem_con)
-    for migration in discover():
-        if migration.version > 5:
-            break
-        mem_con.execute(migration.path.read_text(encoding="utf-8"))
-    mem_con.execute(
+    con = released_chain_con(5)
+    con.execute(
         "INSERT INTO sessions (harness, session_id, project_id, cwd, "
         "source_path, is_subagent) "
         "VALUES ('cursor', 's1', 'home-x-stockroom', '/home/x/stockroom', "
         "'/p/s1.jsonl', false)"
     )
     path = next(m.path for m in discover() if m.version == 6)
-    mem_con.execute(path.read_text(encoding="utf-8"))
-    row = mem_con.execute(
+    con.execute(path.read_text(encoding="utf-8"))
+    row = con.execute(
         "SELECT session_id, project_id, cwd, workspace_key "
         "FROM sessions WHERE session_id = 's1'"
     ).fetchone()
     assert row == ("s1", "home-x-stockroom", "/home/x/stockroom", None)
 
 
-def test_migrated_schema_matches_0006_snapshot(
-    mem_con: duckdb.DuckDBPyConnection,
-) -> None:
+def test_migrated_schema_matches_0006_snapshot(released_chain_con) -> None:
     """Cumulative post-``0006`` schema byte-matches its golden snapshot."""
-    _apply_chain(mem_con)
-    actual = _introspect_schema(mem_con)
+    con = released_chain_con(6)
+    actual = _introspect_schema(con)
 
     if os.environ.get("STOCKROOM_UPDATE_SCHEMA_GOLDEN"):
         SNAPSHOT_PATH.parent.mkdir(parents=True, exist_ok=True)

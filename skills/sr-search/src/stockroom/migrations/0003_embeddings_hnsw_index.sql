@@ -1,5 +1,12 @@
 -- stockroom warehouse — embeddings vector index (migration 0003)
 --
+-- Later note: stockroom no longer loads vss, and the ensure_vss named below is
+-- gone. Migration 0009 drops this index from every warehouse that has it. A
+-- new warehouse is built from schemas/schema_0009.sql and never runs this
+-- file. A warehouse below version 3 would need vss to run it, so it stops
+-- with an error instead. The SQL below is as it shipped: a released
+-- migration never changes its SQL.
+--
 -- Lands the VSS/HNSW vector index forward-declared (but deferred) in 0001: a
 -- cosine HNSW index over embeddings(vector), enabling fast approximate
 -- nearest-neighbour search for Phase 2 semantic/blended search.

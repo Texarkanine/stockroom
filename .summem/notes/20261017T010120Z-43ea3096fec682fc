@@ -1,1 +1,0 @@
-Claude Code copies even directory-marketplace plugins (source ./ too) into <plugins root>/cache/<mkt>/<plugin>/<version>; installed_plugins.json there records only that copy, never the checkout. CLAUDE_CONFIG_DIR and CLAUDE_CODE_PLUGIN_CACHE_DIR both move the plugins root.

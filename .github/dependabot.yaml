@@ -30,6 +30,11 @@ updates:
       time: '09:00'
     cooldown:
       default-days: 7
+    ignore:
+      # The engine stays on DuckDB's 2.0 line (the range in pyproject.toml);
+      # 2.0 patch releases still come through.
+      - dependency-name: 'duckdb'
+        versions: ['>=2.1.0']
     groups:
       deps-minor-patch:
         dependency-type: 'production'

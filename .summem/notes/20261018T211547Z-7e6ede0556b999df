@@ -1,1 +1,0 @@
-Engine suite from a git-archive copy (empty .git marker): test_reuse_lint_passes fails whenever make coverage-engine's sync has created the copy's skills/sr-search/.venv first; git init plus git add -A in the copy avoids it.

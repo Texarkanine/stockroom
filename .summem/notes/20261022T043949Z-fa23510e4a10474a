@@ -1,0 +1,1 @@
+pragma_storage_info lists VALIDITY segments under the column name, Uncompressed or Constant even with zstd forced; check zstd on VARCHAR/JSON segments. Live tables copy to 288 MiB with zstd vs 483 MiB without on 2.0.0 (measured 2026-10-21).

@@ -1,12 +1,12 @@
 """CLI + library: pure vector search over the warehouse (``python -m stockroom.semantic``).
 
 The Phase-2 milestone-2 read surface. It embeds a natural-language query with the
-same ``sentence-transformers`` model the m1 pipeline used. With no scope it runs
-**cosine KNN over the ``0003`` HNSW index**, dedups multi-chunk hits to one row
-per owner message (the "max-sim" obligation m1 deferred), and joins the winners
-back to their ``messages`` rows. Optional ``--harness`` and ``--role`` rank the
-joined filtered set instead, because a ``WHERE`` on the HNSW limit query drops
-matches. Printing is a ranked table — all **read-only** through the
+same ``sentence-transformers`` model the m1 pipeline used and ranks **every
+stored vector exactly** by cosine distance. Multi-chunk hits are deduped to the
+nearest chunk per owner message (the "max-sim" obligation m1 deferred) before
+the cut to the limit, and only the winners are joined back to their
+``messages`` rows for text. Optional ``--harness`` and ``--role`` filter before
+the cut. Printing is a ranked table — all **read-only** through the
 ``warehouse.open()`` chokepoint.
 
 Named ``semantic`` (not ``search``) so a keyword-search seeker doesn't grab it by
@@ -55,13 +55,6 @@ QUERY_PREFIX = "Represent this sentence for searching relevant passages: "
 #: Default number of ranked owner messages returned / printed.
 DEFAULT_LIMIT = 10
 
-#: Over-fetch factor for the index KNN before owner dedup. m1 stores one vector
-#: per chunk, so a single owner can occupy several of the nearest chunk hits;
-#: fetching ``limit * OVERFETCH`` chunk hits before deduping to one row per owner
-#: makes it vanishingly unlikely a distinct owner is starved by a multi-chunk
-#: neighbour at m2 corpus sizes. (Max-sim dedup is the obligation m1 deferred.)
-OVERFETCH = 10
-
 
 @dataclass
 class SemanticHit:
@@ -102,92 +95,32 @@ def run_semantic_search(
 ) -> list[SemanticHit]:
     """Embed ``query`` and return the ``limit`` nearest owner messages, ranked.
 
-    ``harness`` and ``role`` are optional equality scopes. When both are
-    ``None`` the search is the unfiltered HNSW path. When either is set, only
-    owners matching those equalities are ranked. Callers that omit them keep
-    the previous behavior.
+    ``harness`` and ``role`` are optional equality scopes. When either is set,
+    only owners matching those equalities are ranked, and the scope applies
+    before the cut to ``limit``.
 
     When ``con`` is ``None`` the warehouse is opened **read-only** through
     ``warehouse.open(read_only=True)`` (and closed on return); tests inject a
-    connection. The query is embedded (:func:`embed_query`). With no scope, a
-    cosine KNN over the ``0003`` HNSW index fetches the nearest
-    ``limit * OVERFETCH`` chunk rows; those are deduped to the nearest chunk
-    per ``(harness, owner_id)`` (preserving ascending distance — the max-sim
-    owner grain), truncated to ``limit``, and joined back to their
-    ``messages`` rows. With a ``harness`` or ``role`` scope, the joined
-    filtered set is ranked exactly and deduped in that same statement — a
-    ``WHERE`` on the HNSW ``LIMIT`` query is not used, because DuckDB VSS
-    applies that predicate after the index pick and can return no rows.
-    Assumes ``vss`` is loaded (the chokepoint's ``ensure_vss``); m1 embeds
-    messages only, so only ``owner_table = 'messages'`` rows participate.
+    connection. The query is embedded (:func:`embed_query`), then every
+    embedding is ranked exactly by cosine distance (:func:`_ranked_hits`): the
+    nearest chunk per ``(harness, owner_id)`` is kept (the max-sim owner
+    grain), owners are ordered by distance, then harness, then message id, and
+    cut to ``limit`` before their ``messages`` rows are read. An embedding
+    whose owner row is missing is left out, so the result can then be short;
+    it is never an error. No DuckDB extension is needed; m1 embeds messages
+    only, so only ``owner_table = 'messages'`` rows participate.
     """
     owns_connection = con is None
     connection = con if con is not None else warehouse.open(read_only=True)
     try:
         query_vector = embed_query(query, encoder, prefix=query_prefix)
-        if harness is None and role is None:
-            return _hnsw_hits(connection, query_vector, limit)
-        return _scoped_hits(connection, query_vector, limit, harness=harness, role=role)
+        return _ranked_hits(connection, query_vector, limit, harness=harness, role=role)
     finally:
         if owns_connection:
             connection.close()
 
 
-def _hnsw_hits(
-    connection: duckdb.DuckDBPyConnection,
-    query_vector: list[float],
-    limit: int,
-) -> list[SemanticHit]:
-    """Nearest owners via the HNSW index, then a join back to ``messages``."""
-    fetch_n = limit * OVERFETCH
-    chunk_hits = connection.execute(
-        "SELECT harness, owner_id, "
-        f"array_cosine_distance(vector, ?::FLOAT[{EMBED_DIM}]) AS distance "
-        "FROM embeddings WHERE owner_table = 'messages' "
-        f"ORDER BY distance LIMIT {fetch_n}",
-        [query_vector],
-    ).fetchall()
-
-    # Dedup to the nearest chunk per owner. The hits are already in ascending
-    # distance order, so the first time an owner is seen is its best chunk.
-    best_distance: dict[tuple[str, str], float] = {}
-    for hit_harness, owner_id, distance in chunk_hits:
-        best_distance.setdefault((hit_harness, owner_id), distance)
-    winners = list(best_distance)[:limit]
-    if not winners:
-        return []
-
-    placeholders = ", ".join(["(?, ?)"] * len(winners))
-    params = [value for key in winners for value in key]
-    owner_rows = connection.execute(
-        "SELECT harness, message_id, session_id, role, text FROM messages "
-        f"WHERE (harness, message_id) IN ({placeholders})",
-        params,
-    ).fetchall()
-    by_key = {
-        (row_harness, message_id): (session_id, row_role, text)
-        for row_harness, message_id, session_id, row_role, text in owner_rows
-    }
-
-    hits: list[SemanticHit] = []
-    for rank, key in enumerate(winners, start=1):
-        session_id, row_role, text = by_key[key]
-        hit_harness, message_id = key
-        hits.append(
-            SemanticHit(
-                rank=rank,
-                distance=best_distance[key],
-                harness=hit_harness,
-                session_id=session_id,
-                message_id=message_id,
-                role=row_role,
-                text=text,
-            )
-        )
-    return hits
-
-
-def _scoped_hits(
+def _ranked_hits(
     connection: duckdb.DuckDBPyConnection,
     query_vector: list[float],
     limit: int,
@@ -195,36 +128,43 @@ def _scoped_hits(
     harness: str | None,
     role: str | None,
 ) -> list[SemanticHit]:
-    """Exact rank of the filtered owner set, max-sim deduped in SQL.
+    """Exact rank of every embedding: nearest chunk per owner, cut, then text.
 
-    One statement joins ``embeddings`` to ``messages``, keeps the nearest
-    chunk per owner, and cuts to ``limit``. There is no HNSW ``LIMIT`` and no
-    over-fetch: a scope that is rare in the global neighborhood must still
-    fill ``limit`` from the rows that match.
+    One statement serves every scope. Its ranking part reads ``embeddings``
+    (plus the ``messages`` key and role columns when ``role`` is set), keeps
+    the nearest chunk per ``(harness, owner_id)``, orders by distance, then
+    harness, then owner id, and cuts to ``limit``. Only the surviving owners
+    are joined to ``messages`` for their text. ``harness`` and ``role`` filter
+    before the cut. An embedding whose owner row is missing drops out at the
+    final join.
     """
-    distance = f"array_cosine_distance(e.vector, ?::FLOAT[{EMBED_DIM}])"
+    role_join = ""
     filters = ["e.owner_table = 'messages'"]
-    filter_params: list[str] = []
+    scope_params: list[str] = []
     if harness is not None:
         filters.append("e.harness = ?")
-        filter_params.append(harness)
+        scope_params.append(harness)
     if role is not None:
-        filters.append("m.role = ?")
-        filter_params.append(role)
+        role_join = (
+            "JOIN messages s ON s.harness = e.harness AND s.message_id = e.owner_id "
+        )
+        filters.append("s.role = ?")
+        scope_params.append(role)
     rows = connection.execute(
-        "SELECT e.harness, e.owner_id, m.session_id, m.role, m.text, "
-        f"{distance} AS distance "
-        "FROM embeddings e "
-        "JOIN messages m "
-        "ON e.harness = m.harness AND e.owner_id = m.message_id "
+        "WITH ranked AS ("
+        "SELECT e.harness, e.owner_id, "
+        f"min(array_cosine_distance(e.vector, ?::FLOAT[{EMBED_DIM}])) AS distance "
+        f"FROM embeddings e {role_join}"
         f"WHERE {' AND '.join(filters)} "
-        "QUALIFY row_number() OVER ("
-        "PARTITION BY e.harness, e.owner_id "
-        f"ORDER BY {distance}"
-        ") = 1 "
-        "ORDER BY distance "
-        f"LIMIT {int(limit)}",
-        [query_vector, *filter_params, query_vector],
+        "GROUP BY e.harness, e.owner_id "
+        "ORDER BY distance, e.harness, e.owner_id "
+        f"LIMIT {int(limit)}"
+        ") "
+        "SELECT w.harness, w.owner_id, m.session_id, m.role, m.text, w.distance "
+        "FROM ranked w "
+        "JOIN messages m ON m.harness = w.harness AND m.message_id = w.owner_id "
+        "ORDER BY w.distance, w.harness, w.owner_id",
+        [query_vector, *scope_params],
     ).fetchall()
     return [
         SemanticHit(

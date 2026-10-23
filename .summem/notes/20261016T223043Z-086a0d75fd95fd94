@@ -1,1 +1,0 @@
-Claude Code proves an install by its record, not its folder: installed_plugins.json in the plugins root (beside cache/) lists each installPath; --plugin-dir (@inline) and synced copies have none; orphans keep a version-named folder plus .orphaned_at. Cursor has no such record.

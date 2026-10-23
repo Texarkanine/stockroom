@@ -20,7 +20,7 @@ license = "AGPL-3.0-or-later"
 # Runtime surface. torch is NOT declared here; sentence-transformers pulls it
 # transitively, and the override below keeps it out of the locked resolution.
 dependencies = [
-    "duckdb>=1.2",
+    "duckdb>=2.0,<2.1",
     "sentence-transformers>=3.0",
     "numpy",
 ]

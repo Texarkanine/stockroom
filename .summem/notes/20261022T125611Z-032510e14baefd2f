@@ -1,0 +1,1 @@
+Operator 2026-10-22: the swap is phase B of the session-start check. Phase A records rehearsed; phase B runs at a later session start, at least a day after a rehearsed record of the same check version: copy again, verify, hard-link the backup, replace. No swap release.

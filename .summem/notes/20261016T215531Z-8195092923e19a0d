@@ -1,1 +1,0 @@
-sr-initialize owner: path decides in default plugins dirs (.claude/plugins/cache|synced, .cursor/plugins/cache); elsewhere CURSOR_PLUGIN_ROOT holding the engine is cursor, else Claude Code asks. Substituted CLAUDE_PLUGIN_ROOT is not proof: --plugin-dir substitutes checkouts.

@@ -730,9 +730,9 @@ def test_cli_repeated_harness_is_not_a_union(warehouse_home: Path, capsys) -> No
 
 # --- Scoped ranking ---------------------------------------------------------
 
-#: Nearer out-of-scope chunks that make a post-filtered HNSW ``LIMIT`` return
-#: none of the in-scope row on DuckDB 1.5.4 (probed at 32).
-_STARVATION_OUTSIDERS = 32
+#: More nearer out-of-scope chunks than the limit, so a scope applied after the
+#: cut would return nothing.
+_NEARER_OUTSIDERS = 64
 
 
 class _FixedEncoder:
@@ -745,13 +745,20 @@ class _FixedEncoder:
         return [self.vector for _ in texts]
 
 
-def _insert_embedding(con, *, harness: str, owner_id: str, vector: list[float]) -> None:
-    """Insert one ``embeddings`` chunk row for an existing message."""
+def _insert_embedding(
+    con,
+    *,
+    harness: str,
+    owner_id: str,
+    vector: list[float],
+    chunk_index: int = 0,
+) -> None:
+    """Insert one ``embeddings`` chunk row for ``owner_id``."""
     con.execute(
         "INSERT INTO embeddings "
         "(harness, owner_table, owner_id, chunk_index, embed_model, vector) "
-        "VALUES (?, 'messages', ?, 0, 'fake', ?)",
-        [harness, owner_id, vector],
+        "VALUES (?, 'messages', ?, ?, 'fake', ?)",
+        [harness, owner_id, chunk_index, vector],
     )
 
 
@@ -904,11 +911,11 @@ def test_search_limit_applies_after_scope(migrated_con) -> None:
 
 
 def test_search_scope_returns_inscope_behind_nearer_outsiders(migrated_con) -> None:
-    """Enough nearer outsiders to starve a post-filtered HNSW limit still yield the in-scope message.
+    """A harness scope applies before the cut, so nearer outsiders do not hide the insider.
 
-    Thirty-two nearer out-of-scope chunks make ``WHERE harness = 'claude' ORDER BY
-    distance LIMIT 5`` on this DuckDB VSS return no row. The scoped search must
-    still return the farther in-scope message.
+    ``_NEARER_OUTSIDERS`` out-of-scope chunks are all nearer than the one
+    in-scope message, and there are more of them than the limit. The scoped
+    search must still return the farther in-scope message.
     """
     dim = embed.EMBED_DIM
     query_vector = [1.0] + [0.0] * (dim - 1)
@@ -923,18 +930,19 @@ def test_search_scope_returns_inscope_behind_nearer_outsiders(migrated_con) -> N
         text="insider",
     )
     _insert_embedding(migrated_con, harness="claude", owner_id=insider, vector=farther)
-    for ordinal in range(_STARVATION_OUTSIDERS):
-        outsider = _insert_message(
-            migrated_con,
-            harness="cursor",
-            session_id="out",
-            ordinal=ordinal,
-            role="assistant",
-            text="outsider",
-        )
-        _insert_embedding(
-            migrated_con, harness="cursor", owner_id=outsider, vector=nearer
-        )
+    migrated_con.execute(
+        "INSERT INTO messages (harness, session_id, message_id, ordinal, role, text) "
+        "SELECT 'cursor', 'out', 'out#' || range, range, 'assistant', 'outsider' "
+        "FROM range(?)",
+        [_NEARER_OUTSIDERS],
+    )
+    migrated_con.execute(
+        "INSERT INTO embeddings "
+        "(harness, owner_table, owner_id, chunk_index, embed_model, vector) "
+        f"SELECT 'cursor', 'messages', 'out#' || range, 0, 'fake', ?::FLOAT[{dim}] "
+        "FROM range(?)",
+        [nearer, _NEARER_OUTSIDERS],
+    )
 
     hits = semantic.run_semantic_search(
         "ignored by the fixed encoder",
@@ -946,6 +954,163 @@ def test_search_scope_returns_inscope_behind_nearer_outsiders(migrated_con) -> N
     )
 
     assert [hit.message_id for hit in hits] == [insider]
+
+
+def test_search_role_scope_returns_inscope_behind_nearer_outsiders(
+    migrated_con,
+) -> None:
+    """A role scope applies before the cut, so nearer outsiders do not hide the insider.
+
+    ``_NEARER_OUTSIDERS`` ``assistant`` chunks are all nearer than the one
+    ``user`` message, and there are more of them than the limit. ``role='user'``
+    must still return the farther ``user`` message.
+    """
+    dim = embed.EMBED_DIM
+    query_vector = [1.0] + [0.0] * (dim - 1)
+    nearer = [1.0, 0.01] + [0.0] * (dim - 2)
+    farther = [1.0, 1.0] + [0.0] * (dim - 2)
+    insider = _insert_message(
+        migrated_con, session_id="in", ordinal=0, role="user", text="insider"
+    )
+    _insert_embedding(migrated_con, harness="claude", owner_id=insider, vector=farther)
+    for ordinal in range(_NEARER_OUTSIDERS):
+        outsider = _insert_message(
+            migrated_con,
+            session_id="out",
+            ordinal=ordinal,
+            role="assistant",
+            text="outsider",
+        )
+        _insert_embedding(
+            migrated_con, harness="claude", owner_id=outsider, vector=nearer
+        )
+
+    hits = semantic.run_semantic_search(
+        "ignored by the fixed encoder",
+        _FixedEncoder(query_vector),
+        con=migrated_con,
+        query_prefix="",
+        role="user",
+        limit=5,
+    )
+
+    assert [hit.message_id for hit in hits] == [insider]
+
+
+# --- Exact ranking -----------------------------------------------------------
+
+
+def test_search_returns_full_limit_when_one_owner_crowds_nearest_chunks(
+    migrated_con,
+) -> None:
+    """One message whose chunks fill the nearest neighbourhood does not starve the rest.
+
+    One owner has 64 chunks, all nearer than five single-chunk owners. The
+    nearest chunk per owner is kept before the cut, so ``limit=3`` returns
+    three distinct owners, the crowding one first.
+    """
+    dim = embed.EMBED_DIM
+    query_vector = [1.0] + [0.0] * (dim - 1)
+    nearer = [1.0, 0.01] + [0.0] * (dim - 2)
+    farther = [1.0, 1.0] + [0.0] * (dim - 2)
+    crowder = _insert_message(migrated_con, session_id="crowd", text="crowder")
+    for chunk_index in range(64):
+        _insert_embedding(
+            migrated_con,
+            harness="claude",
+            owner_id=crowder,
+            vector=nearer,
+            chunk_index=chunk_index,
+        )
+    others = []
+    for ordinal in range(5):
+        other = _insert_message(
+            migrated_con, session_id="other", ordinal=ordinal, text="other"
+        )
+        _insert_embedding(
+            migrated_con, harness="claude", owner_id=other, vector=farther
+        )
+        others.append(other)
+
+    hits = semantic.run_semantic_search(
+        "ignored by the fixed encoder",
+        _FixedEncoder(query_vector),
+        con=migrated_con,
+        query_prefix="",
+        limit=3,
+    )
+
+    owners = [hit.message_id for hit in hits]
+    assert len(owners) == 3
+    assert len(set(owners)) == 3
+    assert owners[0] == crowder
+    assert set(owners[1:]) <= set(others)
+
+
+def test_search_leaves_out_orphan_embedding_without_error(migrated_con) -> None:
+    """An embedding whose owner message is missing is left out, never raised.
+
+    An ingest crash between statements can leave such an orphan until the
+    next ingest or embed. The nearest row is an orphan here; the search returns
+    the real messages without it.
+    """
+    dim = embed.EMBED_DIM
+    query_vector = [1.0] + [0.0] * (dim - 1)
+    nearer = [1.0, 0.01] + [0.0] * (dim - 2)
+    farther = [1.0, 1.0] + [0.0] * (dim - 2)
+    _insert_embedding(
+        migrated_con, harness="claude", owner_id="gone#0", vector=query_vector
+    )
+    near_id = _insert_message(migrated_con, ordinal=0, text="near")
+    _insert_embedding(migrated_con, harness="claude", owner_id=near_id, vector=nearer)
+    far_id = _insert_message(migrated_con, ordinal=1, text="far")
+    _insert_embedding(migrated_con, harness="claude", owner_id=far_id, vector=farther)
+
+    hits = semantic.run_semantic_search(
+        "ignored by the fixed encoder",
+        _FixedEncoder(query_vector),
+        con=migrated_con,
+        query_prefix="",
+    )
+
+    assert [hit.message_id for hit in hits] == [near_id, far_id]
+    assert [hit.rank for hit in hits] == [1, 2]
+
+
+def test_search_breaks_distance_ties_by_harness_then_message_id(migrated_con) -> None:
+    """Equal distances rank by harness, then by message id.
+
+    The order does not depend on insertion order or on the DuckDB version.
+    """
+    dim = embed.EMBED_DIM
+    vector = [1.0] + [0.0] * (dim - 1)
+    cursor_id = _insert_message(
+        migrated_con, harness="cursor", session_id="b", ordinal=0, text="tie"
+    )
+    _insert_embedding(migrated_con, harness="cursor", owner_id=cursor_id, vector=vector)
+    claude_id = _insert_message(
+        migrated_con, harness="claude", session_id="z", ordinal=0, text="tie"
+    )
+    _insert_embedding(migrated_con, harness="claude", owner_id=claude_id, vector=vector)
+    for ordinal in (2, 1):
+        owner = _insert_message(
+            migrated_con, harness="claude", session_id="s", ordinal=ordinal, text="tie"
+        )
+        _insert_embedding(migrated_con, harness="claude", owner_id=owner, vector=vector)
+
+    hits = semantic.run_semantic_search(
+        "ignored by the fixed encoder",
+        _FixedEncoder(vector),
+        con=migrated_con,
+        query_prefix="",
+    )
+
+    assert [(hit.harness, hit.message_id) for hit in hits] == [
+        ("claude", "s#1"),
+        ("claude", "s#2"),
+        ("claude", "z#0"),
+        ("cursor", "b#0"),
+    ]
 
 
 # --- Step 5: real-model end-to-end (torch-gated, CI-skipped) ----------------

@@ -8,10 +8,17 @@ contract):
 * :func:`embed_chunks` / :func:`embed_pending` — exercised against a deterministic
   ``FakeEncoder`` and the in-memory ``migrated_con`` fixture, so the per-chunk
   write/selection logic is verified without loading a model.
-* :class:`BgeEncoder` — the only torch-dependent surface; its test is
+* :class:`BgeEncoder` — the only torch-dependent surface. Its Hub-notice
+  handling is tested torch-free with fake ``torch`` and
+  ``sentence_transformers`` modules; its real-model tests are
   ``pytest.importorskip("torch")``-gated and skipped in CI.
 """
 
+import logging
+import os
+import subprocess
+import sys
+import types
 from pathlib import Path
 
 import duckdb
@@ -21,6 +28,14 @@ from conftest import FakeEncoder
 from stockroom import embed, warehouse
 from stockroom.engine_env import EnsureReport
 from stockroom.shim import default_app_dir
+
+#: The logger ``huggingface_hub`` sends the unauthenticated-request notice through.
+HUB_LOGGER = "huggingface_hub.utils._http"
+#: The notice as the Hub sends it.
+HUB_NOTICE = (
+    "You are sending unauthenticated requests to the HF Hub. "
+    "Please set a HF_TOKEN to enable higher rate limits and faster downloads."
+)
 
 
 def _insert_message(
@@ -793,23 +808,104 @@ def test_unauthenticated_hub_notice_is_dropped_and_other_warnings_remain(
 ) -> None:
     """The Hub's unauthenticated-request notice is not a failure and is not printed.
 
-    A different warning from the same logger still comes through, so a real
-    download problem is not swallowed with the notice.
+    Inside ``silence_unauthenticated_hub_warning()``, a different warning from
+    the same logger still comes through, so a real download problem is not
+    swallowed with the notice.
     """
-    import logging
-
-    embed.silence_unauthenticated_hub_warning()
-    hub = logging.getLogger("huggingface_hub.utils._http")
-    notice = (
-        "You are sending unauthenticated requests to the HF Hub. "
-        "Please set a HF_TOKEN to enable higher rate limits and faster downloads."
-    )
+    hub = logging.getLogger(HUB_LOGGER)
     other = "Error while downloading from https://example.invalid: boom"
-    with caplog.at_level(logging.WARNING, logger="huggingface_hub.utils._http"):
-        hub.warning(notice)
-        hub.warning(other)
+    with caplog.at_level(logging.WARNING, logger=HUB_LOGGER):
+        with embed.silence_unauthenticated_hub_warning():
+            hub.warning(HUB_NOTICE)
+            hub.warning(other)
     assert "unauthenticated requests to the HF Hub" not in caplog.text
     assert "Error while downloading" in caplog.text
+
+
+class _LoadFailed(Exception):
+    """Raised inside a silenced block or a fake model load, to test cleanup."""
+
+
+@pytest.mark.parametrize("raised", [False, True], ids=["normal", "raised"])
+def test_hub_notice_filter_is_removed_on_exit(
+    raised: bool, caplog: pytest.LogCaptureFixture
+) -> None:
+    """The filter does not outlive the ``with`` block, even when it raises.
+
+    A filter left on the Hub logger keeps ``stockroom.embed``, and so
+    ``duckdb``, alive until DuckDB 2.0's nanobind shutdown check, which then
+    prints leaked-instance warnings. After the block exits, normally or
+    through an exception (which still propagates), the notice is captured again.
+    """
+    hub = logging.getLogger(HUB_LOGGER)
+    if raised:
+        with pytest.raises(_LoadFailed):
+            with embed.silence_unauthenticated_hub_warning():
+                raise _LoadFailed
+    else:
+        with embed.silence_unauthenticated_hub_warning():
+            pass
+    with caplog.at_level(logging.WARNING, logger=HUB_LOGGER):
+        hub.warning(HUB_NOTICE)
+    assert "unauthenticated requests to the HF Hub" in caplog.text
+
+
+def _fake_model_modules(monkeypatch: pytest.MonkeyPatch, *, fail: bool = False) -> None:
+    """Install fake ``torch`` and ``sentence_transformers`` modules.
+
+    The fake ``torch`` reports no CUDA. The fake ``SentenceTransformer``
+    constructor logs the Hub notice, as the Hub does during the model's
+    requests, and raises :class:`_LoadFailed` when ``fail`` is set.
+    """
+    torch = types.ModuleType("torch")
+    torch.cuda = types.SimpleNamespace(is_available=lambda: False)  # type: ignore[attr-defined]
+
+    class SentenceTransformer:
+        def __init__(self, *args: object, **kwargs: object) -> None:
+            logging.getLogger(HUB_LOGGER).warning(HUB_NOTICE)
+            if fail:
+                raise _LoadFailed("model load failed")
+
+    sentence_transformers = types.ModuleType("sentence_transformers")
+    sentence_transformers.SentenceTransformer = SentenceTransformer  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "torch", torch)
+    monkeypatch.setitem(sys.modules, "sentence_transformers", sentence_transformers)
+
+
+def test_bge_encoder_silences_hub_notice_only_while_loading(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """``BgeEncoder()`` hides the notice during the model load, and only then.
+
+    Torch-free: fake ``torch`` and ``sentence_transformers`` modules stand in,
+    and the fake model constructor logs the notice as the Hub does during its
+    requests. A notice logged after construction is captured.
+    """
+    _fake_model_modules(monkeypatch)
+    hub = logging.getLogger(HUB_LOGGER)
+    with caplog.at_level(logging.WARNING, logger=HUB_LOGGER):
+        embed.BgeEncoder()
+        assert "unauthenticated requests to the HF Hub" not in caplog.text
+        hub.warning(HUB_NOTICE)
+    assert "unauthenticated requests to the HF Hub" in caplog.text
+
+
+def test_bge_encoder_removes_hub_filter_when_load_fails(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """A model load that raises still takes the filter off the Hub logger.
+
+    The fake model constructor logs the notice and raises; the exception
+    propagates out of ``BgeEncoder()``, and a later notice is captured.
+    """
+    _fake_model_modules(monkeypatch, fail=True)
+    hub = logging.getLogger(HUB_LOGGER)
+    with caplog.at_level(logging.WARNING, logger=HUB_LOGGER):
+        with pytest.raises(_LoadFailed, match="model load failed"):
+            embed.BgeEncoder()
+        assert "unauthenticated requests to the HF Hub" not in caplog.text
+        hub.warning(HUB_NOTICE)
+    assert "unauthenticated requests to the HF Hub" in caplog.text
 
 
 def test_bge_encoder_encodes_to_384_on_cpu() -> None:
@@ -852,3 +948,42 @@ def test_bge_encoder_batched_matches_single_within_float32() -> None:
     batched = encoder.encode(texts)
     for single, batch_vec in zip(singles, batched, strict=True):
         assert batch_vec == pytest.approx(single, abs=1e-5)
+
+
+def test_embed_and_semantic_exit_without_nanobind_leak_warnings(
+    warehouse_home: Path,
+) -> None:
+    """``stockroom embed`` then ``stockroom semantic`` exit cleanly with the real model.
+
+    Under DuckDB 2.0, nanobind checks for live instances at interpreter exit
+    and prints ``nanobind: leaked ...`` lines when something still holds
+    ``duckdb`` objects. Each command runs in its own process against a scratch
+    warehouse with one message: both exit 0, ``semantic`` prints a rank-1 row,
+    and neither prints a ``nanobind`` line.
+
+    Torch-gated: skipped under torch-free CI, where no process can reproduce
+    the warning.
+    """
+    pytest.importorskip("torch")
+    _seed_warehouse_message("how does the warehouse lock work")
+    env = {**os.environ, "PYTHONPATH": str(Path(embed.__file__).parent.parent)}
+
+    def run(*args: str) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            [sys.executable, "-m", "stockroom", *args],
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=600,
+            check=False,
+        )
+
+    embedded = run("embed")
+    assert embedded.returncode == 0, embedded.stderr
+    assert "embedded 1" in embedded.stdout
+    assert "nanobind" not in embedded.stderr
+
+    found = run("semantic", "-k", "1", "warehouse lock")
+    assert found.returncode == 0, found.stderr
+    assert any(line.startswith("1\t") for line in found.stdout.splitlines())
+    assert "nanobind" not in found.stderr

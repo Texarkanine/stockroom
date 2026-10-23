@@ -1,1 +1,0 @@
-Nightly cron and launchd payload is (date; stockroom shim ensure-env; stockroom ingest && stockroom embed). A failed heal still ingests; a failed ingest still skips embed.

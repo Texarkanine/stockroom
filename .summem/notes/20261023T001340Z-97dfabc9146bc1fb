@@ -1,0 +1,1 @@
+DuckDB 2.0.0, measured 2026-10-22: USING COMPRESSION zstd raises BinderException on v1.0.0 and v1.1.0 files, works from v1.2.0; in-memory accepts it (stores Uncompressed). No ALTER sets compression. v2.1.2's schema-0 leftover is a bare 12,288-byte file, no tables.

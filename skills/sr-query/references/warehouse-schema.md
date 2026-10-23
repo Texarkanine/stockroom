@@ -95,4 +95,4 @@ erDiagram
     tool_calls ||--o{ embeddings : "owner_table=tool_calls"
 ```
 
-Indexes (including the embeddings HNSW index) are omitted; they are snapshot data, not query-forming structure.
+The warehouse has no secondary index. Primary keys show as `PK`.

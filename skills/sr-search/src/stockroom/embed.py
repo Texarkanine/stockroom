@@ -18,15 +18,16 @@ Design seams (so the bulk runs under torch-free CI, per the Phase-0 contract):
   ``sentence_transformers`` so importing this module never pulls torch.
 
 Storage grain (per-chunk vs mean-pool), owner grain (messages-only), incremental
-detection, the VSS/HNSW index, and the model choice are documented in
+detection, and the model choice are documented in
 ``memory-bank/active/creative/creative-*.md``.
 """
 
 import argparse
+import contextlib
 import importlib
 import logging
 import sys
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from pathlib import Path
 from typing import Protocol
 
@@ -250,7 +251,7 @@ def embed_pending(
     Delegates the encode/write replace path to :func:`_embed_selected_messages`
     and orphan hygiene to :func:`_delete_orphan_message_embeddings` (all models
     for dangling message owners). ``tool_calls`` are not embedded in m1. Assumes
-    a read-write connection with ``vss`` loaded (the chokepoint's ``ensure_vss``).
+    a read-write connection.
 
     When ``on_progress`` is set, emits embed progress from the replace helper,
     then ``embed: removed K orphaned embedding rows`` when ``K > 0``.
@@ -293,20 +294,27 @@ class _DropUnauthenticatedHubWarning(logging.Filter):
         return "unauthenticated requests to the HF Hub" not in record.getMessage()
 
 
-def silence_unauthenticated_hub_warning() -> None:
-    """Stop the Hub's unauthenticated-request notice from reaching stderr.
+@contextlib.contextmanager
+def silence_unauthenticated_hub_warning() -> Iterator[None]:
+    """Keep the Hub's unauthenticated-request notice off stderr inside the block.
 
     The Hub sends that text as an ``X-HF-Warning`` response header, and
     ``huggingface_hub`` logs it once per process. Stockroom does not use a
     token for the local embedding model; the notice is not a failure. Other
     warnings from the same logger, including a failed download, still pass.
-    Idempotent: a second call does not stack another filter.
+
+    The filter comes off when the block exits, even on an exception. A filter
+    left on the Hub logger keeps this module, and so ``duckdb``, alive until
+    interpreter shutdown, where DuckDB 2.0's nanobind check reports them as
+    leaked instances.
     """
     hub = logging.getLogger("huggingface_hub.utils._http")
-    if not any(
-        isinstance(item, _DropUnauthenticatedHubWarning) for item in hub.filters
-    ):
-        hub.addFilter(_DropUnauthenticatedHubWarning())
+    drop = _DropUnauthenticatedHubWarning()
+    hub.addFilter(drop)
+    try:
+        yield
+    finally:
+        hub.removeFilter(drop)
 
 
 class BgeEncoder:
@@ -322,14 +330,14 @@ class BgeEncoder:
     """
 
     def __init__(self, model_name: str = EMBED_MODEL) -> None:
-        silence_unauthenticated_hub_warning()
         import torch  # noqa: PLC0415 — lazy: keep torch off the module import path
         from sentence_transformers import SentenceTransformer  # noqa: PLC0415
 
         device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.model = SentenceTransformer(
-            model_name, device=device, trust_remote_code=False
-        )
+        with silence_unauthenticated_hub_warning():
+            self.model = SentenceTransformer(
+                model_name, device=device, trust_remote_code=False
+            )
 
     def encode(self, texts: list[str]) -> list[list[float]]:
         """Encode ``texts`` into 384-dim vectors (no passage prefix for m1)."""
@@ -467,7 +475,7 @@ def main(
     constructed. A missing torch with a usable freeze is restored once and the
     embed retried. Any other construction failure prints one stderr line
     naming ``sr-initialize``. Opens the warehouse read-write through
-    ``warehouse.open()`` (so ``vss`` is loaded and the schema is current) and
+    ``warehouse.open()`` (so the schema is current) and
     constructs the encoder via ``encoder_factory`` (default :class:`BgeEncoder`,
     which loads torch out of band; tests inject a fake).
     """

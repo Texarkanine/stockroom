@@ -1,17 +1,18 @@
 """Contract tests for migration ``0003_embeddings_hnsw_index.sql``.
 
-``0003`` lands the deferred VSS/HNSW vector index that Phase 2 needs: a cosine
-HNSW index on ``embeddings(vector)`` with experimental persistence enabled (so
-deletes/inserts work against the live index). It is a *thin* migration — it
-creates only the index; the ``vss`` extension is loaded by the caller
-(``warehouse.ensure_vss`` at the chokepoint, or these tests directly), never by
-the migration SQL, keeping the network ``INSTALL`` off the shipped DDL path (see
-``creative-vss-provisioning-and-index.md``).
+``0003`` shipped the VSS/HNSW vector index: a cosine HNSW index on
+``embeddings(vector)`` with experimental persistence enabled (so deletes and
+inserts work against the live index). It is a *thin* migration: it creates
+only the index, and the ``vss`` extension must already be loaded by the
+caller. Released migrations keep their SQL, so it stays as shipped. Stockroom
+no longer loads ``vss``: ``0009`` drops the index, and new warehouses come from
+the frozen schema file and never run ``0003``.
 
-``0001``/``0002`` and their golden snapshots stay frozen; this module adds the
-cumulative ``0003_snapshot.json`` — identical columns/PKs to ``0002`` plus a new
-**indexes** section, so an otherwise column-stable migration is still a
-meaningfully locked artifact.
+So these tests build the chain in a child process that loads ``vss``
+(``released_chain_file`` / ``released_chain_con``) and read the file here
+without it. ``0001``/``0002`` and their golden snapshots stay frozen; this
+module keeps the cumulative ``0003_snapshot.json`` — identical columns/PKs to
+``0002`` plus an **indexes** section holding the HNSW index.
 """
 
 import json
@@ -20,45 +21,19 @@ from pathlib import Path
 
 import duckdb
 
-from stockroom import warehouse
-from stockroom.migrations import discover
-
 SNAPSHOT_PATH = Path(__file__).parent / "fixtures" / "schema" / "0003_snapshot.json"
 
 HNSW_INDEX_NAME = "embeddings_vector_hnsw"
 
 
-def _apply(con: duckdb.DuckDBPyConnection, version: int) -> None:
-    """Execute the packaged migration of exactly ``version`` (no runner)."""
-    path = next(m.path for m in discover() if m.version == version)
-    con.execute(path.read_text(encoding="utf-8"))
+def test_0003_creates_hnsw_cosine_index(released_chain_con) -> None:
+    """R1: after the chain, a non-primary HNSW index sits on ``embeddings(vector)``.
 
-
-def _apply_chain(con: duckdb.DuckDBPyConnection) -> None:
-    """Load ``vss`` then apply ``0001``..``0003`` directly (the chain head).
-
-    ``ensure_vss`` is the precondition ``0003`` assumes (the migration SQL does
-    not ``LOAD``); calling it here mirrors what the chokepoint/fixtures do.
+    Read in this process, which never loads ``vss``.
     """
-    warehouse.ensure_vss(con)
-    for version in (1, 2, 3):
-        _apply(con, version)
+    con = released_chain_con(3)
 
-
-def _unit(slot: int) -> list[float]:
-    """A one-hot 384-vector (1.0 at ``slot``), giving each row a distinct
-    cosine *direction* (mere magnitude scaling leaves cosine unchanged).
-    """
-    v = [0.0] * 384
-    v[slot] = 1.0
-    return v
-
-
-def test_0003_creates_hnsw_cosine_index(mem_con: duckdb.DuckDBPyConnection) -> None:
-    """After the chain, a non-primary HNSW index sits on ``embeddings(vector)``."""
-    _apply_chain(mem_con)
-
-    rows = mem_con.execute(
+    rows = con.execute(
         "SELECT index_name, table_name, expressions, is_primary "
         "FROM duckdb_indexes() WHERE schema_name = 'main' "
         "AND index_name = ?",
@@ -70,31 +45,31 @@ def test_0003_creates_hnsw_cosine_index(mem_con: duckdb.DuckDBPyConnection) -> N
     assert table_name == "embeddings"
     assert expressions == "[vector]"
     assert is_primary is False
+    loaded = con.execute(
+        "SELECT loaded FROM duckdb_extensions() WHERE extension_name = 'vss'"
+    ).fetchone()[0]
+    assert loaded is False
 
 
 def test_0003_index_supports_knn_and_live_delete(
-    mem_con: duckdb.DuckDBPyConnection,
+    released_chain_file, spawn_worker, tmp_path: Path
 ) -> None:
-    """The live index answers cosine KNN and accepts a delete (persistence on)."""
-    _apply_chain(mem_con)
-    for ordinal in range(3):
-        mem_con.execute(
-            "INSERT INTO embeddings "
-            "(harness, owner_table, owner_id, chunk_index, embed_model, vector) "
-            "VALUES ('claude', 'messages', ?, 0, 'm', ?)",
-            [f"s#{ordinal}", _unit(ordinal)],
-        )
+    """R2: the live index answers cosine KNN and accepts a delete (persistence on).
 
-    nearest = mem_con.execute(
-        "SELECT owner_id FROM embeddings "
-        "ORDER BY array_cosine_distance(vector, ?::FLOAT[384]) LIMIT 1",
-        [_unit(0)],
-    ).fetchone()[0]
-    assert nearest == "s#0"
+    Runs whole in a child with ``vss`` loaded (``index_knn_delete``): without
+    ``vss``, every insert or delete on ``embeddings`` fails while the index
+    exists.
+    """
+    db = released_chain_file(3)
+    out = tmp_path / "knn.json"
 
-    # A delete against the live HNSW index must succeed (experimental persistence).
-    mem_con.execute("DELETE FROM embeddings WHERE owner_id = 's#0'")
-    assert mem_con.execute("SELECT count(*) FROM embeddings").fetchone()[0] == 2
+    child = spawn_worker("index_knn_delete", db, out)
+
+    assert child.wait(timeout=120) == 0
+    assert json.loads(out.read_text(encoding="utf-8")) == {
+        "nearest": "s#0",
+        "count": 2,
+    }
 
 
 # --- Cumulative schema golden snapshot (columns + PKs + indexes) ------------
@@ -146,17 +121,14 @@ def _introspect_schema(con: duckdb.DuckDBPyConnection) -> dict:
     return {"tables": tables, "indexes": indexes}
 
 
-def test_migrated_schema_matches_0003_snapshot(
-    mem_con: duckdb.DuckDBPyConnection,
-) -> None:
-    """The post-``0003`` schema (columns + PKs + indexes) byte-matches the golden.
+def test_migrated_schema_matches_0003_snapshot(released_chain_con) -> None:
+    """R3: the post-``0003`` schema (columns + PKs + indexes) matches the golden.
 
     A deliberate schema change regenerates ``0003_snapshot.json``
     (``STOCKROOM_UPDATE_SCHEMA_GOLDEN=1``); accidental drift fails here.
     ``0001``/``0002`` snapshots stay frozen (forward-only).
     """
-    _apply_chain(mem_con)
-    actual = _introspect_schema(mem_con)
+    actual = _introspect_schema(released_chain_con(3))
 
     if os.environ.get("STOCKROOM_UPDATE_SCHEMA_GOLDEN"):
         SNAPSHOT_PATH.parent.mkdir(parents=True, exist_ok=True)

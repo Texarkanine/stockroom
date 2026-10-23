@@ -34,7 +34,7 @@ Semantic search only sees what has been embedded, and embedding is a separate, h
 
 Re-ingest invalidates embeddings only for removed or text-changed messages — unchanged history keeps its vectors, so embed lag after ingest is a small hole rather than a wiped session.
 
-Messages are embedded as one or more chunks (long messages get several vectors); search embeds the query with the same local model, runs cosine KNN over an HNSW index, and dedups chunks back to messages. Scores are cosine similarity — meaningful only *relative to each other within one query*, which is why thresholding on an absolute score is unsound. The model is asymmetric: stored passages and incoming queries get different prefixes, applied automatically by the engine on each side.
+Messages are embedded as one or more chunks (long messages get several vectors); search embeds the query with the same local model, ranks every stored vector by cosine distance, and dedups chunks back to messages. Scores are cosine similarity — meaningful only *relative to each other within one query*, which is why thresholding on an absolute score is unsound. The model is asymmetric: stored passages and incoming queries get different prefixes, applied automatically by the engine on each side.
 
 ## Identity and Provenance
 

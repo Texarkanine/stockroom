@@ -70,14 +70,72 @@ Connection chokepoints, concurrency, and forward-only schema migrations.
 
 Every consumer reaches DuckDB through a warehouse chokepoint:
 
-- **`open()`** — path resolution, lazy migration, VSS load. Writers take an exclusive coordination flock for the connection's lifetime; readers open read-only and back off to a typed busy error when the file stays locked.
+- **`open()`** — path resolution and lazy migration. Writers take an exclusive coordination flock for the connection's lifetime; readers open read-only and back off to a typed busy error when the file stays locked.
 - **`open_current()`** — the dashboard exception: read-only, **no migrate**, typed stale/busy errors. A UI process must not become the migrator mid-browse.
 
 Coordination uses `fcntl.flock` on a sidecar lock file; data integrity uses DuckDB's own file lock. Those are two layers with different jobs — do not collapse them into “just open the file.”
 
 ### Migrations
 
-Migrations are numbered forward-only SQL under the engine's `migrations/` tree; `schema_version` is runner-owned. Schema changes go through the `open()` chokepoint — Architecture does not list DDL here. The query-facing picture of the current schema is [Advanced → Warehouse schema](../advanced/warehouse-schema.md).
+There is one forward-only chain. The runner records `schema_version`.
+
+`open()` runs the next migration, then the next, until the file is current.
+
+Two kinds of change do not work that way.
+
+A migration can need a dependency the engine does not load. `open()` cannot run that step. A file that has not reached the step stops. A file that is already past it runs the later migrations.
+
+A change can be something an SQL statement cannot make. The storage format of the file is one. `open()` creates a new file in the engine's current format. An existing file keeps the format it has. Running the chain does not change that format.
+
+When no warehouse file exists, `open()` does not run the chain from the start. It builds the file from a snapshot of the current schema, in the current storage format, then runs migrations added after the snapshot.
+
+```mermaid
+flowchart TD
+  open["Writer open"]
+  exists{"Warehouse file exists"}
+  ready{"Past the step it cannot run"}
+  stop["Stop and name the file"]
+  chain["Run the chain forward"]
+  build["Build from the schema snapshot"]
+  later["Run migrations after the snapshot"]
+  place["Rename into place"]
+
+  open --> exists
+  exists -->|No| build
+  build --> later
+  later --> place
+  exists -->|Yes| ready
+  ready -->|No| stop
+  ready -->|Yes| chain
+```
+
+#### No warehouse file
+
+The No arrow is a warehouse that does not exist yet, so there is no chain to continue.
+
+`open()` does not start at the first migration. The early migrations include one that needs a dependency the engine does not load, and the engine cannot run that migration. Those migrations also cannot set the storage format. The format is chosen when the file is created, and an SQL statement cannot change the format later.
+
+`open()` builds a snapshot of the current schema, already in the current storage format, and then runs only the migrations added after that snapshot.
+
+The snapshot stays fixed, in the same way a migration stays fixed after the migration ships. A newer picture of the schema is a new snapshot file. The new warehouse records the snapshot in one `schema_version` row, and each later migration adds its own `schema_version` row.
+
+`open()` writes the new warehouse under a temporary name and renames that file onto the warehouse path only while holding the writer flock, and only when no warehouse file is already there. A crash cannot leave a half-built file at the warehouse path.
+
+[Advanced → DuckDB](../advanced/duckdb.md) says which DuckDB versions can open a file in the current storage format.
+
+#### An existing warehouse
+
+The Yes arrow is a warehouse that already exists. The chart then asks whether that file is past the migration the engine cannot run. That migration is the one that needs a dependency the engine does not load.
+
+If the file has not reached that migration, the next SQL step would be the one the engine cannot run. The file holds no history, so `open()` stops, names the file, and tells you to [move the file aside](../user-guide/troubleshooting/index.md#move-the-warehouse-file-aside). `open()` does not change the file.
+
+If the file is already past that migration, `open()` runs the chain forward from the schema version the file is on. The remaining migrations are SQL. SQL cannot change the storage format, so the file keeps that format. Those migrations leave the file with no vector index. Search ranks every vector exactly ([Embeddings](embeddings.md#exact-search)).
+
+#### Released SQL
+
+A migration that has shipped keeps its SQL. Comments may change. The schema snapshot follows the same rule. The check and the edit steps are in [Contributing → Iteration](../contributing/iteration/engine.md#what-you-may-change).
+
+Schema changes go through the `open()` chokepoint — Architecture does not list DDL here. The query-facing picture of the current schema is [Advanced → Warehouse schema](../advanced/warehouse-schema.md).
 
 ## Related procedures
 

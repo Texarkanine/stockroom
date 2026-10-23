@@ -1,1 +1,0 @@
-Root uv lock needs --no-config --refresh (--locked alone accepts a pytorch-index lock). CI pins uv 0.12.22; lock --refresh writes revision 5, and uv 0.8.22 rewrites it to 3. Bump that pin only with a refresh from 0.12.22. Semantic tsv and table include session_id and message_id.

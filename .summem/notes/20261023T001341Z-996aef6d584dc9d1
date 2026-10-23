@@ -1,0 +1,1 @@
+Live tables copied 2026-10-22 into v2.0.0 files: plain 489 MiB (text Uncompressed), zstd on text+tool_input 290 MiB. ILIKE over text 142 vs 196 ms, sum(length(text)) 27 vs 97 ms, latest 50 rows 3 ms both. Copy 5.3 s both.

@@ -1,10 +1,10 @@
 # Embeddings
 
-Local vectors, the index they live in, and how search surfaces split power from judgement.
+Local vectors, how search ranks them, and how search surfaces split power from judgement.
 
 ## Local vectors
 
-The model, the index path, and why semantic recall can lag ingest.
+The model, exact search, and why semantic recall can lag ingest.
 
 ### Model and dimensions
 
@@ -14,9 +14,13 @@ BGE-small is an *asymmetric* retrieval model: stored passages are embedded with 
 
 Torch is required to encode; it is held out of the lock for machine-specific builds — see [Packaging](packaging.md#torch-held-out-of-the-lock).
 
-### VSS and HNSW
+### Exact search
 
-Vectors live in the warehouse and are queried through DuckDB's VSS extension over an HNSW index (migration-owned). Semantic search embeds the query with the same local model. With no scope it runs cosine KNN with over-fetch, then dedups multi-chunk hits back to one row per owner message (max-sim at owner grain). A `--harness` or `--role` scope ranks the joined filtered set instead: DuckDB VSS applies a `WHERE` after the HNSW pick, so that predicate cannot be added to the limit query.
+Vectors live in the warehouse, and semantic search ranks every one of them by cosine distance. It embeds the query with the same local model, keeps the nearest chunk per message (max-sim at owner grain), cuts to the limit, and only then reads the messages' text. `--harness` and `--role` filter before the cut. Equal distances rank by harness, then message id.
+
+There is no vector index and no DuckDB extension. Exact search takes time in proportion to the number of stored vectors.
+
+An embedding whose message row is gone is left out of the result. After an interrupted ingest rewrite, a search can therefore return fewer rows than the limit until the next ingest or embed removes those orphans (below).
 
 Long messages may produce several chunk vectors; that is expected. SQL `query` does not need embeddings; meaning-based recall does.
 

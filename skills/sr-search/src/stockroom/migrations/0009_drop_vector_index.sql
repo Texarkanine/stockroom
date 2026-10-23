@@ -1,0 +1,14 @@
+-- stockroom warehouse — drop the vector index (migration 0009)
+--
+-- Warehouses from earlier releases carry `embeddings_vector_hnsw`, the cosine
+-- HNSW index the released 0003 created. Semantic search now ranks every vector
+-- exactly, so the index only cost space: it held most of the file and could
+-- leave a search short of its limit. This drops it where it exists; a
+-- warehouse without it is unchanged.
+--
+-- Needs no extension: DuckDB drops the index without vss loaded. Without vss,
+-- every insert or delete on `embeddings` fails while the index exists, and
+-- every writer opens through the migrating warehouse.open(), so this runs
+-- before the first such write. Drops an index only and rebuilds no table;
+-- every row stays.
+DROP INDEX IF EXISTS embeddings_vector_hnsw;

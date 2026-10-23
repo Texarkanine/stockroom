@@ -9,6 +9,7 @@ relative-path arithmetic.
 import hashlib
 import json
 import os
+import shutil
 import sqlite3
 import subprocess
 import sys
@@ -20,7 +21,12 @@ import duckdb
 import pytest
 
 import stockroom
-from stockroom import embed, warehouse
+from _warehouse_worker import (
+    INDEXED_VERSIONS,
+    RELEASED_CHAIN_154_ROWS,
+    RELEASED_DUCKDB,
+)
+from stockroom import embed, storage
 from stockroom.migrate import apply_pending
 
 
@@ -132,6 +138,174 @@ def spawn_worker() -> Iterator[Callable[..., subprocess.Popen]]:
             if proc.poll() is None:
                 proc.kill()
             proc.wait()
+
+
+def _worker_env() -> dict[str, str]:
+    """Return this environment with the engine ``src`` first on ``PYTHONPATH``."""
+    env = os.environ.copy()
+    src_dir = str(Path(stockroom.__file__).parent.parent)
+    env["PYTHONPATH"] = os.pathsep.join([src_dir, env.get("PYTHONPATH", "")]).rstrip(
+        os.pathsep
+    )
+    return env
+
+
+@pytest.fixture(scope="session")
+def released_chain(
+    tmp_path_factory: pytest.TempPathFactory,
+) -> Callable[..., Path]:
+    """Return a builder of cached released-chain template files.
+
+    ``released_chain(through, storage, rows)`` returns a closed, checkpointed
+    file that a child process built with the packaged migrations through
+    ``through``, at storage version ``storage``, with ``rows`` messages and
+    one one-hot embedding each (the worker's ``build_chain``). The child loads
+    ``vss`` when the chain reaches ``0003``; this pytest process never loads
+    it. Each template is built once per pytest worker, and tests take copies
+    through ``released_chain_file``; never write to a template.
+    """
+    worker = Path(__file__).parent / "_warehouse_worker.py"
+    base = tmp_path_factory.mktemp("released-chain")
+    built: dict[tuple[int, str, int], Path] = {}
+
+    def _template(through: int, storage: str, rows: int) -> Path:
+        key = (through, storage, rows)
+        if key not in built:
+            name = f"chain-{through}-{storage}-{rows}"
+            db = base / f"{name}.duckdb"
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(worker),
+                    "build_chain",
+                    str(db),
+                    str(through),
+                    str(rows),
+                    storage,
+                    str(base / f"{name}-migrations"),
+                ],
+                env=_worker_env(),
+                capture_output=True,
+                text=True,
+                timeout=300,
+            )
+            assert result.returncode == 0, result.stderr
+            assert result.stdout.strip() == "built", result.stdout
+            built[key] = db
+        return built[key]
+
+    return _template
+
+
+@pytest.fixture
+def released_chain_file(
+    released_chain: Callable[..., Path], tmp_path: Path
+) -> Callable[..., Path]:
+    """Return a factory for this test's copy of a released-chain file.
+
+    ``released_chain_file(through, *, storage="v1.0.0", rows=0, dest=None)``
+    copies the cached template to ``dest`` (default: a file in the test's
+    ``tmp_path``) and returns its path. From schema 3 to 8 the file carries
+    the HNSW index, and this process has no ``vss``: never run an explicit
+    ``CHECKPOINT`` on such a file before ``0009`` has dropped the index
+    (DuckDB 2.0 raises ``FatalException``); a plain close is fine.
+    """
+
+    def _copy(
+        through: int,
+        *,
+        storage: str = "v1.0.0",
+        rows: int = 0,
+        dest: Path | None = None,
+    ) -> Path:
+        template = released_chain(through, storage, rows)
+        target = dest or tmp_path / f"chain-{through}-{storage}-{rows}.duckdb"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(template, target)
+        return target
+
+    return _copy
+
+
+@pytest.fixture(scope="session")
+def released_chain_154(
+    tmp_path_factory: pytest.TempPathFactory,
+) -> Callable[[int, Path], Path]:
+    """Return a copier of warehouses DuckDB 1.5.4 and its ``vss`` wrote.
+
+    Once per pytest worker, one child runs the worker's ``build_chains_154``
+    under ``uv run --with duckdb==1.5.4``. It builds the packaged chain
+    through each of :data:`INDEXED_VERSIONS` into ``v1.0.0`` files with the
+    HNSW index and :data:`RELEASED_CHAIN_154_ROWS` embedded messages: the
+    on-disk format every earlier release left. The fixture fails unless the
+    child reports ``duckdb 1.5.4``, so a test never runs on 2.0-written files
+    by mistake. ``copy(version, dest)`` copies one file to ``dest``. The
+    no-``CHECKPOINT`` rule of ``released_chain_file`` applies.
+    """
+    uv = shutil.which("uv")
+    if uv is None:
+        pytest.fail("uv must be on PATH to build DuckDB 1.5.4 warehouses")
+    engine = Path(stockroom.__file__).parent.parent.parent
+    worker = Path(__file__).parent / "_warehouse_worker.py"
+    out_dir = tmp_path_factory.mktemp("released-chain-154")
+    result = subprocess.run(
+        [
+            uv,
+            "run",
+            "--project",
+            str(engine),
+            "--no-config",
+            "--no-sync",
+            "--with",
+            f"duckdb=={RELEASED_DUCKDB}",
+            "python",
+            str(worker),
+            "build_chains_154",
+            str(out_dir),
+            str(RELEASED_CHAIN_154_ROWS),
+            *(str(version) for version in INDEXED_VERSIONS),
+        ],
+        env=_worker_env(),
+        capture_output=True,
+        text=True,
+        timeout=600,
+    )
+    assert result.returncode == 0, result.stderr
+    lines = result.stdout.splitlines()
+    assert f"duckdb {RELEASED_DUCKDB}" in lines, result.stdout
+    assert lines[-1] == "built", result.stdout
+
+    def _copy(version: int, dest: Path) -> Path:
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(out_dir / f"chain-{version}.duckdb", dest)
+        return dest
+
+    return _copy
+
+
+@pytest.fixture
+def released_chain_con(
+    released_chain_file: Callable[..., Path],
+) -> Iterator[Callable[..., duckdb.DuckDBPyConnection]]:
+    """Return a factory of read-write connections to released-chain copies.
+
+    ``released_chain_con(through, **kwargs)`` opens a fresh copy (see
+    ``released_chain_file``) in this process, without ``vss``. Connections are
+    closed at teardown. The no-``CHECKPOINT`` rule of ``released_chain_file``
+    applies.
+    """
+    opened: list[duckdb.DuckDBPyConnection] = []
+
+    def _open(through: int, **kwargs) -> duckdb.DuckDBPyConnection:
+        con = duckdb.connect(str(released_chain_file(through, **kwargs)))
+        opened.append(con)
+        return con
+
+    try:
+        yield _open
+    finally:
+        for con in opened:
+            con.close()
 
 
 @pytest.fixture
@@ -410,20 +584,19 @@ def schema_con(schema_sql_path: Path) -> Iterator[duckdb.DuckDBPyConnection]:
 
 @pytest.fixture
 def migrated_con() -> Iterator[duckdb.DuckDBPyConnection]:
-    """Yield an in-memory DuckDB with the full migration chain applied.
+    """Yield an in-memory DuckDB at the schema head, built as a new warehouse is.
 
     Unlike ``schema_con`` (which executes only the ``0001`` DDL directly), this
-    runs the real packaged migrations (``0001`` + ``0002`` + …) through
-    :func:`stockroom.migrate.apply_pending` — i.e. the post-migration schema the
-    ingest writer and orchestrator actually target. Each test gets an isolated,
-    up-to-date database.
-
-    ``ensure_vss`` is called before applying the chain because ``0003`` creates
-    the HNSW index and assumes ``vss`` is already loaded (the precondition the
-    ``warehouse.open()`` chokepoint establishes in production).
+    installs the frozen schema file (:func:`stockroom.storage.install_schema`)
+    and then any later migrations through
+    :func:`stockroom.migrate.apply_pending` — the head schema the ingest writer
+    and orchestrator actually target. It never runs the released chain, so it
+    needs no ``vss``; ``test_storage`` keeps the schema file equal to the chain.
+    In memory the zstd clause is accepted and the data stored uncompressed.
+    Each test gets an isolated, up-to-date database.
     """
     con = duckdb.connect(":memory:")
-    warehouse.ensure_vss(con)
+    storage.install_schema(con)
     apply_pending(con)
     try:
         yield con

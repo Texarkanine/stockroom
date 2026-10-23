@@ -1,0 +1,1 @@
+Engine suite has inverse torch skips: test_doctor_cli.py:54 skips when torch is installed, test_doctor.py:205 when torch is already loaded in the worker. Skip counts do not prove torch-gated tests ran; use pytest -rs.

@@ -1,1 +1,0 @@
-sr-initialize Step 2: an install-shaped copy outside the default plugins folders is claude when installed_plugins.json beside its cache/ holds the quoted exact plugin root (grep -qF), checked before CURSOR_PLUGIN_ROOT; else no owner. Supersedes the round-1 owner-rule note.

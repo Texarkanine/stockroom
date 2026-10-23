@@ -1,0 +1,1 @@
+DuckDB 2.0.0, measured 2026-10-22: any explicit storage_compatibility_version (even 'latest') makes a plain connect to the same path in the same process raise ConnectionException. A v1.0.0 file opened with 'v2.0.0' keeps v1.0.0+; 1.5.4 still reads and writes it.

@@ -1,1 +1,0 @@
-sr-initialize Step 2 now reads ${CLAUDE_SKILL_DIR} and ${CLAUDE_PLUGIN_DATA} from a quoted heredoc (IFS= read -r), so the shell never parses the pasted paths and no env var stands in; a value still starting with $ was not substituted. Supersedes the SKILL_DIR="..." note.

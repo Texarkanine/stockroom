@@ -1,0 +1,1 @@
+DuckDB 2.0.0, measured 2026-10-23: a zstd-column file opened read-only with a .wal (killed ingest) lists the replayed rows in pragma_storage_info as persistent=false, Uncompressed; every persistent segment is ZSTD. A zstd check must filter persistent or run with no .wal.

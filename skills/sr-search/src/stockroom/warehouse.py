@@ -16,6 +16,10 @@ This module owns:
 * **Reader/writer backoff** — bounded retry around DuckDB's open-time
   "Could not set lock" ``IOException``, terminating in a typed
   :class:`WarehouseBusyError`.
+* **Creation and the migration floor** — a writer open creates a missing
+  warehouse through :func:`stockroom.storage.create_warehouse` under the
+  flock, and a migrating open refuses a file below
+  :data:`OLDEST_MIGRATABLE_VERSION` with :class:`WarehouseUnmigratableError`.
 
 Concurrency design rationale lives in
 ``memory-bank/active/creative/creative-warehouse-concurrency-locking.md``.
@@ -24,6 +28,7 @@ Concurrency design rationale lives in
 import fcntl
 import os
 import random
+import shlex
 import time
 import weakref
 from collections.abc import Callable, Iterator
@@ -41,6 +46,7 @@ from stockroom.home import (
     home_dir,
     resolve_home,
 )
+from stockroom import storage
 from stockroom.migrate import apply_pending, current_version
 from stockroom.migrations import discover
 
@@ -56,11 +62,12 @@ __all__ = [
     "HOME_SOURCE_OVERRIDE",
     "HOME_SOURCE_XDG",
     "LOCK_FILENAME",
+    "OLDEST_MIGRATABLE_VERSION",
     "WAREHOUSE_FILENAME",
     "XDG_DATA_HOME_ENV_VAR",
     "WarehouseBusyError",
     "WarehouseStaleError",
-    "ensure_vss",
+    "WarehouseUnmigratableError",
     "home_dir",
     "lock_path",
     "open",
@@ -68,6 +75,12 @@ __all__ = [
     "resolve_home",
     "warehouse_path",
 ]
+
+#: The oldest schema version this release migrates. The released ``0003``
+#: needs the ``vss`` extension, which stockroom no longer loads, so a file
+#: below version 3 cannot reach the head. No release wrote rows before
+#: version 4, so such a file is an empty leftover of an unfinished first run.
+OLDEST_MIGRATABLE_VERSION = 3
 
 # Bounded exponential-backoff defaults for opening DuckDB while a migrator may
 # hold the warehouse read-write. Injectable per-call for tests.
@@ -103,6 +116,30 @@ class WarehouseStaleError(RuntimeError):
         )
 
 
+class WarehouseUnmigratableError(RuntimeError):
+    """Raised when a migrating open finds a warehouse it cannot bring to head.
+
+    A file below :data:`OLDEST_MIGRATABLE_VERSION` would need the released
+    ``0003``, and so ``vss``. Nothing is changed: the file stays at ``path``
+    and the user moves it aside. ``path`` and ``current`` make the refusal
+    inspectable; the message names the file and gives a quoted ``mv``
+    command.
+    """
+
+    def __init__(self, path: Path, current: int) -> None:
+        self.path = path
+        self.current = current
+        oldest = OLDEST_MIGRATABLE_VERSION
+        aside = f"{shlex.quote(str(path))} {shlex.quote(str(path) + '.old')}"
+        super().__init__(
+            f"warehouse at {path} is at schema version {current}; this release "
+            f"migrates only from version {oldest} or later. A file below version "
+            f"{oldest} is left from a first run that did not finish and holds no "
+            f"history. Move it aside, for example: mv {aside}, then run the "
+            "command again"
+        )
+
+
 def open_current(
     read_only: bool = True,
     **backoff,
@@ -127,7 +164,6 @@ def open_current(
 
     con = _open_with_backoff(path, read_only=True, **backoff)
     try:
-        ensure_vss(con)
         current = current_version(con)
         latest = _latest_version()
         if current < latest:
@@ -136,31 +172,6 @@ def open_current(
     except BaseException:
         con.close()
         raise
-
-
-def ensure_vss(con: duckdb.DuckDBPyConnection) -> None:
-    """Load the DuckDB ``vss`` extension and enable live HNSW persistence.
-
-    The single place the (rare, provisioning-time) network ``INSTALL`` may
-    occur: ``LOAD vss`` is tried first (offline-safe once the extension is
-    cached); only if that fails is ``INSTALL vss`` run and the load retried.
-    Then ``hnsw_enable_experimental_persistence`` is set so HNSW indexes can be
-    created and *modified* (insert/delete) against a persistent DB — a
-    per-connection ``SET`` (it is not stored in the DB), so the chokepoint must
-    run it on every connection that touches the warehouse post-``0003``.
-
-    Idempotent, and safe on both read-write and read-only connections (``LOAD``
-    and ``SET`` are session-level, not DB writes). Keeping the network
-    ``INSTALL`` out of the shipped migration SQL preserves the offline /
-    supply-chain posture (see
-    ``creative-vss-provisioning-and-index.md``).
-    """
-    try:
-        con.execute("LOAD vss")
-    except duckdb.Error:
-        con.execute("INSTALL vss")
-        con.execute("LOAD vss")
-    con.execute("SET hnsw_enable_experimental_persistence = true")
 
 
 def warehouse_path() -> Path:
@@ -269,15 +280,19 @@ def _migrate_under_lock(path: Path, target_version: int, **backoff) -> None:
 
     Takes the coordination flock (blocking — the single-writer/migrator token),
     re-reads the version inside the lock (another process may have just
-    migrated), and only applies pending migrations if still behind. The lock
-    and the temporary read-write connection are both released before returning,
-    so the subsequent reader open is lock-free.
+    migrated), and only applies pending migrations if still behind. A file
+    below :data:`OLDEST_MIGRATABLE_VERSION` raises
+    :class:`WarehouseUnmigratableError` and is left as it is. The lock and the
+    temporary read-write connection are both released before returning, so
+    the subsequent reader open is lock-free.
     """
     with _flock(lock_path()):
         con = _open_with_backoff(path, read_only=False, **backoff)
         try:
-            ensure_vss(con)
-            if current_version(con) < target_version:
+            current = current_version(con)
+            if current < OLDEST_MIGRATABLE_VERSION:
+                raise WarehouseUnmigratableError(path, current)
+            if current < target_version:
                 apply_pending(con)
         finally:
             con.close()
@@ -302,11 +317,19 @@ def open(  # noqa: A001 — the warehouse "open" verb is the intended public nam
 
     Writers (``read_only=False``) take the exclusive flock — the single-writer
     token — for the connection's lifetime (released when the returned
-    connection is finalized), open read-write under backoff (waiting for any
-    readers to drain), and migrate if behind.
+    connection is finalized). A missing warehouse is created from the frozen
+    schema file (:func:`stockroom.storage.create_warehouse`); an existing one
+    is opened as it is and keeps its storage format. The writer opens
+    read-write under backoff (waiting for any readers to drain) and migrates
+    if behind.
 
-    Set ``migrate=False`` to skip the gate (open as-is). Extra keyword
-    arguments are forwarded as backoff parameters to the open helper.
+    A migrating open of a file below :data:`OLDEST_MIGRATABLE_VERSION` raises
+    :class:`WarehouseUnmigratableError`, changes nothing, and releases the
+    flock. A reader never creates a warehouse.
+
+    Set ``migrate=False`` to skip the gate (open as-is; a writer still creates
+    a missing warehouse). Extra keyword arguments are forwarded as backoff
+    parameters to the open helper.
     """
     path = warehouse_path()
     target_version = _latest_version()
@@ -314,23 +337,27 @@ def open(  # noqa: A001 — the warehouse "open" verb is the intended public nam
     if read_only:
         con = _open_with_backoff(path, read_only=True, **backoff)
         if not migrate or current_version(con) >= target_version:
-            ensure_vss(con)
             return con
         # Behind: become the migrator, then reopen read-only for the caller.
         con.close()
         _migrate_under_lock(path, target_version, **backoff)
         con = _open_with_backoff(path, read_only=True, **backoff)
-        ensure_vss(con)
         return con
 
     # Writer: hold the single-writer flock for the connection's lifetime.
     fd = os.open(lock_path(), os.O_CREAT | os.O_RDWR, 0o644)
     fcntl.flock(fd, fcntl.LOCK_EX)
     try:
+        if not path.exists():
+            storage.create_warehouse(path)
         con = _open_with_backoff(path, read_only=False, **backoff)
-        ensure_vss(con)
-        if migrate and current_version(con) < target_version:
-            apply_pending(con)
+        if migrate:
+            current = current_version(con)
+            if current < OLDEST_MIGRATABLE_VERSION:
+                con.close()
+                raise WarehouseUnmigratableError(path, current)
+            if current < target_version:
+                apply_pending(con)
     except BaseException:
         _release_flock(fd)
         raise
