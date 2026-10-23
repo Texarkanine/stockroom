@@ -1,1 +1,0 @@
-Live-copy measurements 2026-10-21 (DuckDB 2.0.0): DROP INDEX + CHECKPOINT took 0.8 s and cut used blocks 161,453 to 6,846 (37.4 GiB freed in the file); COPY FROM DATABASE then gave a 506 MB file in 5.2 s. Exact top-100 search: 130 ms median vs 34 ms HNSW.
