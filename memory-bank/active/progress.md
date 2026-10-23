@@ -1,51 +1,39 @@
 # Progress
 
-L4 milestone 3 of 7 for `warehouse-file-growth` ([issue 147](https://github.com/Texarkanine/stockroom/issues/147), as amended in `memory-bank/active/projectbrief.md`): create new warehouses in the newest DuckDB storage format with zstd on `messages.text` and `tool_calls.tool_input`. A brand-new warehouse file carries the newest storage tag the pinned DuckDB writes (`v2.0.0+` on 2.0), set explicitly when the file is created. The data segments of both columns show zstd after a write. Existing populated files are not rebuilt, and a stockroom writer that opens one leaves its storage tag unchanged. A `v1.0.0+` file at schema 0 (the empty file a failed first open left behind) still opens and migrates to head without being deleted.
+Stop the warehouse file growing far past the history it holds ([issue 147](https://github.com/Texarkanine/stockroom/issues/147), as amended in `memory-bank/active/projectbrief.md`). Milestones 1 (drop the HNSW index and `vss`) and 2 (DuckDB 2.0) are done. Re-planned on 2026-10-22 after the operator's rulings on migrations. Released migrations are restored as shipped. New warehouses come from a frozen version-9 schema file in DuckDB 2.0's format with zstd. A warehouse migrates or stops with an error. The copy-and-swap that moves old warehouses to the new format is durable. Milestones 1 to 3 make the first release.
 
-**Complexity:** Level 3
+**Complexity:** Level 4
 
-## 2026-10-22 - COMPLEXITY ANALYSIS - COMPLETE
-
-* Work completed
-    - Checked off milestone 2 in `milestones.md` and cleared its sub-run files (its reflection stays in `reflection/`)
-    - Classified milestone 3, "Create new warehouses in the newest DuckDB storage format with ZSTD on messages.text and tool_calls.tool_input"
-* Decisions made
-    - Level 3. The change spans the one production connect site (`warehouse.py`), migration `0001`, how the runner treats a `v1.0.0+` schema-0 file (the zstd clause raises `BinderException` there), and the test helpers in about nine test files that build old files. Two design choices are open: `'latest'` or an explicit 2.0 storage version, and how `0001` runs on an old empty file
-* Insights
-    - Only `warehouse.py:211` connects in production code, so the storage setting has one home. A second read-write connection in one process with another storage setting raises `ConnectionException`, so every connection must agree on it
-
-## 2026-10-22 - PLAN - COMPLETE
+## 2026-10-22 - RELEASE GATE (milestones 1 and 2) - COMPLETE
 
 * Work completed
-    - Probed DuckDB 2.0.0 storage behaviour with scratch scripts (`scratchpad/m3/probe_storage.py`, `probe_followup.py`) and timed reads on zstd and plain copies of this machine's tables (`measure_zstd_reads.py`, from the milestone 2 backup attached read-only)
-    - Wrote the Level 3 plan in `tasks.md`: 6 behaviours (R1 and R2 for the runner, W1 to W4 for the warehouse) and steps 0 to 6
+    - Tachi ran the personal Mac shadow test on Puck against `ce16489` (recorded in `ae39a67`). It used a fresh clone with `make sync`, no `--with`, and no `make shim`. The source was a 383,791,104-byte warehouse with no `.wal`
+    - Exit 0, `shadow: every phase passed`. The copy stayed `v1.0.0+`, all six tables were equal, the schema was at the head, and there was no index
+    - Ingest, embed, and semantic ran, DuckDB 1.5.4 wrote the copy, and 2.0.0 answered after that. No `nanobind` line. The live file's mtime was unchanged
 * Decisions made
-    - An explicit `warehouse.STORAGE_VERSION = "v2.0.0"` on every engine connect, read-only and read-write. `'latest'` moves with a DuckDB bump and still conflicts with plain connects. The setting leaves old files' tags alone, and 1.5.4 still reads and writes them
-    - The runner drops `USING COMPRESSION zstd` when the current database's tag is older than `v1.2.0`, where DuckDB refuses it. The bare schema-0 leftover migrates in place with plain columns
-    - No creative phase: both questions were settled by measurement
-    - Where milestone 3's commits go is the operator's call before build (step 0)
+    - The work Mac stays out of the gate
 * Insights
-    - DuckDB 2.0.0 already defaults to `'latest'` (`v2.0.0+`), so W1 must change the constant to prove the engine sets it explicitly
-    - A plain `v2.0.0` file stores `messages.text` uncompressed: 489 MiB plain against 290 MiB with zstd, and a full-text scan takes 142 ms against 196 ms
-    - The schema-0 leftover from v2.1.2 has no tables at all: `ensure_vss` ran before `apply_pending`
+    - Puck's warehouse is 366 MB. The 88 GB work warehouse in `milestones.md` was not under test
 
-## 2026-10-22 - PREFLIGHT - COMPLETE
+## 2026-10-22 - L4 RE-PLAN - COMPLETE
 
 * Work completed
-    - Ran the Level 3 preflight checks on the milestone 3 plan. TDD encoding, conventions, dependency impact, conflicts, and completeness all pass. No plan edits
-    - Re-measured on DuckDB 2.0.0 (`scratchpad/preflight/`): storage tags for each setting, the zstd clause with `NOT NULL`, the planned regex against `0001`, and the full packaged chain on a `v2.0.0` file (ZSTD on both columns after 500 rows)
-    - `.preflight-status` first line: `PASS WITH ADVISORY`
-* Decisions made
-    - None. The advisories are left to the operator (see `.preflight-status`)
+    - Milestone 3's first Level 3 plan (`77dfeab`) put zstd into `0001` and had the runner drop the clause on old files. It passed preflight with advisory (`dd8e753`). The operator then ruled that released migrations may not be rewritten, which also covers milestone 1's edits to `0003`, `0001`'s comments, the `0003` to `0008` snapshots, and their tests on this branch. That plan is withdrawn. Its measurements, and its preflight's finding that `duckdb_tables().sql` shows `USING COMPRESSION ZSTD` on DuckDB 2.0.0, carry into milestone 3's and milestone 5's risks
+    - Amended the brief (Migrations, Durability, releases, skipped releases, use cases, requirements 1, 2, and 10, acceptance 10 and 11)
+    - Re-planned `milestones.md`: new invariants (Migrations, Migrate or stop, Durability), releases (milestones 1 to 3 together; Mac gate re-run after milestone 3), skipped-release arrivals (schema 3 to 8 migrate, below 3 stops), shared-artifact handoffs, milestone 3 rewritten, milestone 1 amended, milestone 5 builds from the schema file, and milestone 6 must not let a lasting skip leave a warehouse old in silence
+    - Cleared milestone 3's sub-run files (`tasks.md` back to a stub, `.preflight-status` deleted) so `/niko` classifies milestone 3 fresh
+* Decisions made (operator, 2026-10-22)
+    - Released migrations are never edited, comments included. A runner rule that records a version without running it is rejected
+    - One migration chain forever, plus a frozen schema file pinned to one version for new warehouses. A second chain for 2.0 and a declarative tool were each considered and dropped
+    - A warehouse that cannot reach the head stops in an error state that users must resolve. No code copes with older states
+    - Old-format warehouses may not persist. The copy-and-swap is the durable v1-to-v2 step of the chain
+    - Milestone 3 joins the first release on this branch, replacing the separate-branch decision
+* Milestone estimates (advisory)
+    - Milestone 3: Level 3. It restores released files across migrations, snapshots, and tests; adds a schema file, the creation path, and an equality test; and changes fixtures and the shadow builder
+    - Milestone 4: Level 3. The doctor storage report spans doctor, a live-size estimate, and a no-write guarantee
+    - Milestone 5: Level 3. A verified copy with equality and catalog checks
+    - Milestone 6: Level 3. Two phases, lock, time limit, fault injection, and lasting-skip handling
+    - Milestone 7: Level 2. A detached launch from both hooks
 * Insights
-    - On DuckDB 2.0.0, `duckdb_tables().sql` shows `USING COMPRESSION ZSTD`. The brief's requirement 2 says it does not. This matters for milestone 5's catalog equality
-    - A `v1.1.0` storage setting persists as tag `v1.0.0+`, so it is the same case as `v1.0.0`
-
-## 2026-10-22 - RELEASE GATE - COMPLETE
-
-* Work completed
-    - Personal Mac (Puck) shadow run of `constrain-size-as-best-we-can` at `ce16489`. Fresh clone, `make sync`, no `--with`, no `make shim`. Source `~/.local/share/stockroom/warehouse.duckdb`, 383,791,104 bytes, no `.wal`. Exit 0: `shadow: every phase passed`. Copy stayed `v1.0.0+`, six tables equal, schema head, no index. Ingest added 2 Cursor sessions, 28 messages, 54 tool calls. Embed wrote 66 chunks and removed 0 orphans. Semantic returned rank 1. DuckDB 1.5.4 wrote the copy (cosine, 100 rows) and 2.0.0 answered after that. No `nanobind` line. Live file mtime unchanged (2026-10-22 03:31:55). Scratch clone and home removed
-* Decisions made
-    - The work Mac stays out of this gate. Build may start
-* Insights
-    - This warehouse is 366 MB. The work machine's original, described in `milestones.md` as 88 GB, was not the file under test
+    - DuckDB sets compression only at `CREATE TABLE`, and a `v1.0.0` file cannot hold zstd at all. So compression for existing warehouses can come only from a new file, and for new warehouses only from what creates their tables
+    - Restoring the released `0003` and adding the schema file must land together: either alone breaks new installs or edits released history
