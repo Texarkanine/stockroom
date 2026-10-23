@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: warehouse-file-growth, milestone 4 (doctor storage report)
-**Phase:** BUILD - COMPLETE
+**Phase:** QA - COMPLETE (PASS)
 
 ## What Was Done
 - `stockroom doctor probe` reports file size, used blocks, free blocks, a reclaimable estimate, the storage format, free disk, and `warehouse.issue147-swap.duckdb` when that file exists
@@ -26,4 +26,4 @@
 - Help uses a raw description formatter so `free disk` stays one phrase. `stockroom backfill` already uses that formatter
 
 ## Next Step
-- QA review of the doctor storage report.
+- Reflect on the doctor storage report.

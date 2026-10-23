@@ -1,0 +1,5 @@
+PASS
+
+The doctor storage report matches the milestone 4 plan and is acceptable as-is.
+
+The schema-head comparison falls through whether the file is behind head or at head. Probe does not migrate. Connection facts are included when the pragma reads succeed, and a connect or pragma failure returns `warehouse: unavailable` with the stat facts. `reclaimable-bytes` is the warehouse file size minus `live_bytes`: the count of distinct persistent block ids, dropping ids below 0, times `block_size`. The preflight overhead constant stays out. Help text and the contributor probe comment name the storage facts. The check-record line is absent.

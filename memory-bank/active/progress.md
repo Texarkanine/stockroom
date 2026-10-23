@@ -78,3 +78,14 @@
     - `--help` uses `RawDescriptionHelpFormatter` so the storage phrases stay intact
 * Insights
     - argparse wraps the description and can split a two-word phrase such as `free disk` across lines
+
+## 2026-10-23 - QA - COMPLETE
+
+* Work completed
+    - Reviewed the doctor storage report against the milestone 4 plan
+    - Wrote `memory-bank/active/.qa-validation-status`
+* Decisions made
+    - PASS. The implementation is acceptable as-is. Advisories stay advisories
+* Insights
+    - The schema-head comparison falls through on both sides. Probe never migrates
+    - `reclaimable-bytes` stays file size minus the persistent block-id union. The overhead constant stays out

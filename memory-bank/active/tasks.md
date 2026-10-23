@@ -114,4 +114,15 @@ Confirmed in this checkout on DuckDB 2.0: `pragma_database_size` has `block_size
 - [x] Build: doctor help text
 - [x] Build: contributor probe line
 - [x] Build
-- [ ] QA
+- [x] QA
+
+## QA
+
+PASS. The doctor storage report is acceptable as-is.
+
+- Schema-head comparison: `current_version` against `_latest_version` falls through on both sides, and probe never migrates. Stat facts and connection facts stay when the reads succeed. Advisory. Acceptable as-is.
+- Reclaimable formula: file size minus `live_bytes` (distinct persistent block ids times `block_size`). The preflight overhead constant stays out, as the plan decided. Advisory. Acceptable as-is.
+- Reclaimable oracle: `_persistent_block_bytes` repeats the `live_bytes` query, which is the computation the plan required. Advisory. Acceptable as-is.
+- Completeness: missing home, missing file, size, blocks, storage format, reclaimable, backup name, busy lock, below-head bytes, connect failure, and help text are implemented. The check-record line is absent. One extra test covers a pragma failure after connect.
+- Regression: probe uses `resolve_home` and a read-only connect, releases the writer flock before that connect, and existing probe callers that do not use `XDG_DATA_HOME` point `STOCKROOM_HOME` at an empty temp home.
+- Documentation: the contributor probe comment names the storage facts. The smoke comment is unchanged.
