@@ -39,5 +39,16 @@
 - No `ALTER` sets compression. A rebuild of the column (add, update, drop, rename) gets `BinderException` on a `v1.0.0` file and works on `v2.0.0`. Every existing warehouse is `v1.0.0+`
 - `force_compression = 'zstd'` as a connection setting: on `v2.0.0`, every string and JSON column gets ZSTD, integers keep BitPacking, floats keep ALPRD. On `v1.0.0` there is no error, but string segments are written Uncompressed. Real tables: `v2.0.0` 289 MiB forced against 290 MiB with the two-column DDL and 489 MiB with DuckDB's choice; `v1.0.0` 599 MiB forced against 556 MiB with DuckDB's choice
 
+## Operator decisions (2026-10-22, later)
+- One migration chain (no second v2 chain). New warehouses are built from a frozen schema file at version 9 (zstd on the two columns, no index), recorded as one `schema_version` row naming that file; they never run `0003`, so nothing loads `vss`. Old warehouses keep the chain (`0009` drops the index) and get zstd from the copy. The empty old-format leftover is renamed aside and a fresh warehouse built (agent proposal, not yet confirmed in detail)
+- Format policy (operator): old-format warehouses are not permitted to persist. A warehouse runs to the end of the chain, then converts to the next format; a later format repeats that. For the L4 re-plan: the check's skips (low disk, hard links refused) currently let a file stay old, and future migrations must still run on old-format files, because they migrate before they convert
+- The operator asked why not a declarative tool (write only a schema, diff at runtime, as WordPress's `dbDelta` does). Answered in chat: `0002` (add plus drop, which a diff cannot tell from a rename) and `0005` (a data-only reset) cannot be expressed as a schema diff; WordPress itself pairs `dbDelta` with numbered `upgrade_NNN()` routines; no declarative tool was found with DuckDB support, so it would be a home-grown differ; and DuckDB still cannot change compression in place
+
+## Operator rulings (2026-10-22, final in this discussion)
+- Keep migrations (the declarative question was only a challenge). One chain forever, plus a frozen schema file pinned to one version. New warehouses are created from it and migrate forward to the tip. Confirmed by the operator
+- A warehouse that tries to reach the tip and cannot stops in an error state that users discover and must resolve. Code after the DuckDB 2.0 point never detects an older, unmigrated warehouse (for example, one still at schema 8) and copes with it. No degraded modes
+- The copy-and-swap stays: a necessary evil at its point in the chain (the v1-to-v2 format boundary), built as durable, good-practice code, not a short-lived utility, even with about five users today. This replaces the brief's lifetime rule for milestones 5 to 7
+- "I think we have a solid plan!": go-ahead for the L4 re-plan. Milestone 3 joins the first release on this branch (the agent's recommendation; not objected to), because restoring the released `0003` breaks new installs until the schema-file path exists
+
 ## Next Step
-- The operator chooses how new warehouses get zstd now that migrations cannot carry it, and confirms the engine loads `vss` to run the released `0003`; then re-plan (milestone 1 rework on this branch, milestone 3 on its own branch)
+- L4 re-plan: update `projectbrief.md` and `milestones.md` (restore released migrations; schema file for new warehouses; milestones 1 to 3 in the first release; copy-and-swap durable at the format boundary; migrate-or-error), then L4 preflight
