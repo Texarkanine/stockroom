@@ -54,17 +54,16 @@ cd skills/sr-search && uv run --no-sync --no-config pytest -n0 tests/test_smoke.
 
 ## Warehouse schema docs
 
-The query-facing ERD is a generated picture of the current schema. You write the prose around the picture. The generator writes the diagram.
+The diagram on the warehouse schema page is generated. Do not edit the diagram. Edit the sources, then regenerate. You write the prose around the diagram.
 
-An existing warehouse follows the SQL files under `skills/sr-search/src/stockroom/migrations/`.
+The generator reads two sources:
 
-A new warehouse starts from the frozen schema file under `skills/sr-search/src/stockroom/schemas/`. It then runs each later migration. `tests/test_storage.py` checks that the schema file matches the chain at that version.
+- The head schema golden, the highest `NNNN_snapshot.json`. It records the schema the chain produces.
+- `-- @rel` and `-- @rel-none` comments in the migration files. DuckDB has no foreign keys, so those comments are the edges.
 
-Golden snapshots under `skills/sr-search/tests/fixtures/schema/` record the result.
+It writes that diagram into the one Mermaid fence in `skills/sr-query/references/warehouse-schema.md`. The Advanced page is the same file.
 
-Logical relationships are `-- @rel` and `-- @rel-none` comments in the migration files. DuckDB has no `FOREIGN KEY` constraints. The comments are the record of those edges.
-
-The generator reads the highest `NNNN_snapshot.json` and those comments. It writes the Mermaid `erDiagram` into the one mermaid fence in `skills/sr-query/references/warehouse-schema.md`. The Advanced docs symlink that file.
+The design behind the snapshot and the released-SQL rule is in [Warehouse → Migrations](../../architecture/warehouse.md#migrations).
 
 ### What you may change
 
