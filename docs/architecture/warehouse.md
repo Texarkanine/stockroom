@@ -77,58 +77,47 @@ Coordination uses `fcntl.flock` on a sidecar lock file; data integrity uses Duck
 
 ### Migrations
 
-Migrations are numbered SQL files under the engine's `migrations/` tree. The runner records `schema_version`. There is one chain.
+There is one forward-only chain. The runner records `schema_version`. A writer `open()` does not always start at the beginning of that chain. It branches at two cutoffs. The first is whether a warehouse file exists. The second is whether an existing file is at or above the oldest schema version this engine will migrate.
 
 ```mermaid
 flowchart TD
   open["Writer open"]
   exists{"Warehouse file exists"}
-  below{"Schema below 3"}
+  ready{"Old enough to migrate"}
   stop["Stop and name the file"]
-  chain["Run the migration chain"]
-  build["Build from the schema file"]
-  later["Run later migrations"]
+  chain["Run the chain forward"]
+  build["Build from the schema snapshot"]
+  later["Run migrations after the snapshot"]
   place["Rename into place"]
 
   open --> exists
   exists -->|No| build
   build --> later
   later --> place
-  exists -->|Yes| below
-  below -->|Yes| stop
-  below -->|No| chain
+  exists -->|Yes| ready
+  ready -->|No| stop
+  ready -->|Yes| chain
 ```
 
-#### Released migrations
+#### No file yet
 
-A migration that shipped in a release keeps its SQL. You may change its comments.
+`open()` builds the warehouse from a frozen schema snapshot of the chain, then runs only the migrations after that snapshot. The snapshot stands in for the chain up to the version it was taken from. The engine does not run that prefix. The prefix needs an extension this engine does not load.
 
-`make migrations-check` compares that SQL with the latest release tag. CI runs the same check.
+The snapshot is frozen the way a released migration is. A later snapshot is a new file. The new warehouse records one `schema_version` row for the snapshot, and later migrations add their own.
 
-#### New warehouse
+The build writes a temp file. Under the writer flock, `open()` renames it onto the warehouse path only when no file is there. A crash does not leave a half-built file at the live path.
 
-A writer `open()` builds a missing warehouse from `schemas/schema_0009.sql`.
+A new file uses the engine's current storage format. An existing file keeps the format it already has. Which DuckDB versions can open a new file is in [Advanced → DuckDB](../advanced/duckdb.md).
 
-The new file has:
+#### Existing file
 
-- DuckDB 2.0 storage
-- zstd on `messages.text` and `tool_calls.tool_input`
-- one `schema_version` row that names the schema file
+A file at or above that oldest version keeps its storage format. `open()` runs the chain forward from the version the file is on. The chain leaves no vector index. Search ranks every vector exactly ([Embeddings](embeddings.md#exact-search)).
 
-The build runs migrations that come after the schema file. It does not run the chain from the start.
+A file below that version holds no history. The open stops, names the file, and tells you to move it aside. The file is not changed. Reaching the head from there needs the same extension the engine does not load.
 
-The schema file is frozen in the same way as a released migration. A later schema is a new file.
+#### Released SQL
 
-The build writes a temp file. While `open()` holds the writer flock, it renames that file to `warehouse.duckdb` only when no warehouse file exists. A crash does not leave a half-built file at the warehouse path.
-
-#### Existing warehouse
-
-An existing warehouse keeps its storage format. `open()` runs the chain.
-
-- If the file has a vector index, the chain removes it.
-- A file below schema 3 does not migrate. The file holds no history. The open stops, names the file, and tells you to move it aside. The file is not changed.
-
-Stockroom does not load the `vss` extension. A file below schema 3 needs that extension.
+A migration that has shipped keeps its SQL. Comments may change. The schema snapshot follows the same rule. The check and the edit steps are in [Contributing → Iteration](../contributing/iteration/engine.md#what-you-may-change).
 
 Schema changes go through the `open()` chokepoint — Architecture does not list DDL here. The query-facing picture of the current schema is [Advanced → Warehouse schema](../advanced/warehouse-schema.md).
 
