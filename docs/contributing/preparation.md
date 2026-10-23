@@ -72,7 +72,7 @@ You should now have:
 
 ```bash
 make localdev-status    # read-only status report
-stockroom doctor probe  # show shim & system info
+stockroom doctor probe  # show shim & system info, plus file size, used blocks, free blocks, reclaimable space, storage format, free disk, and backup
 stockroom doctor smoke  # ensure Torch actually works
 ```
 

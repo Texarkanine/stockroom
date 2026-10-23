@@ -384,10 +384,14 @@ def _build_parser() -> argparse.ArgumentParser:
     """Build the ``python -m stockroom.doctor`` parser (flat, like shim)."""
     parser = argparse.ArgumentParser(
         prog="python -m stockroom.doctor",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
         description=(
-            "Read-only environment diagnostics. probe: report torch-free "
-            "environment facts (OS, arch, GPU, driver, torch state); smoke: "
-            "verify the provisioned torch + encoder path, failing loudly."
+            "Read-only environment diagnostics.\n"
+            "probe: report torch-free environment facts (OS, arch, GPU, driver,\n"
+            "torch state) and warehouse storage facts: file size, used blocks,\n"
+            "free blocks, the reclaimable estimate, the storage format, free disk,\n"
+            "and backup.\n"
+            "smoke: verify the provisioned torch + encoder path, failing loudly."
         ),
     )
     parser.add_argument(

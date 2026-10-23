@@ -115,3 +115,13 @@ def test_help_documents_both_actions() -> None:
     assert result.returncode == 0, result.stderr
     assert "probe" in result.stdout
     assert "smoke" in result.stdout
+    for phrase in (
+        "file size",
+        "used blocks",
+        "free blocks",
+        "reclaimable",
+        "storage format",
+        "free disk",
+        "backup",
+    ):
+        assert phrase in result.stdout, phrase

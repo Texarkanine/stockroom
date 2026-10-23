@@ -66,3 +66,15 @@
 * Insights
     - On an empty `build_warehouse` file, `free_blocks` is 0 and file size minus the column-block union is 536576 of 798720
     - A cross-process read-only connect fails immediately when a writer holds the DuckDB lock
+
+## 2026-10-23 - BUILD - COMPLETE
+
+* Work completed
+    - Doctor probe reports warehouse size, block use, reclaimable space, storage format, free disk, and the swap backup without writing
+    - Help text and the contributor probe comment name those facts
+    - `make ci` passed: 1098 pytest passed, 39 skipped; 134 JavaScript tests passed
+* Decisions made
+    - `live_bytes` stays the persistent block-id union. The overhead advisory was not adopted
+    - `--help` uses `RawDescriptionHelpFormatter` so the storage phrases stay intact
+* Insights
+    - argparse wraps the description and can split a two-word phrase such as `free disk` across lines

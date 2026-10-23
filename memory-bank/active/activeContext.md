@@ -1,15 +1,29 @@
 # Active Context
 
 ## Current Task: warehouse-file-growth, milestone 4 (doctor storage report)
-**Phase:** PREFLIGHT - COMPLETE (PASS WITH ADVISORY)
+**Phase:** BUILD - COMPLETE
 
 ## What Was Done
-- Tag `v3.0.0` is commit `c9fbcc4` on `main`
-- `memory-bank/active` is on `warehouse-file-growth`. `constrain-size-as-best-we-can` is unchanged
-- Milestone 4 is Level 2. The plan is in `memory-bank/active/tasks.md`
-- `stockroom doctor probe` will report file size, block use, a reclaimable estimate from distinct persistent blocks, the storage format, free disk, and `warehouse.issue147-swap.duckdb` when that file exists
-- Doctor will not call `home_dir` or `open_current`. The check-record line stays in milestone 6
-- Preflight FAIL (fixable) is folded into the plan. Existing probe callers that do not already isolate the home set `STOCKROOM_HOME` to an empty temp home. `live_bytes` unions persistent block ids, drops ids below 0, and skips views. A missing warehouse file is `absent` and is not opened
+- `stockroom doctor probe` reports file size, used blocks, free blocks, a reclaimable estimate, the storage format, free disk, and `warehouse.issue147-swap.duckdb` when that file exists
+- The report does not create a home, open a missing warehouse, migrate a behind-head file, or keep the writer lock
+- `live_bytes` is the distinct persistent block-id union times `block_size`. The preflight overhead advisory stays advisory
+- Help text and the contributor probe comment name the storage facts
+- `make ci` passed: 1098 pytest passed, 39 skipped; 134 JavaScript tests passed
+
+## Files
+- `/home/mobaxterm/git/stockroom/skills/sr-search/src/stockroom/doctor.py`
+- `/home/mobaxterm/git/stockroom/skills/sr-search/tests/test_doctor.py`
+- `/home/mobaxterm/git/stockroom/skills/sr-search/tests/test_doctor_cli.py`
+- `/home/mobaxterm/git/stockroom/docs/contributing/preparation.md`
+
+## Key decisions
+- Doctor reads with `resolve_home` and `duckdb.connect(..., read_only=True)`. It does not call `home_dir` or `open_current`
+- A missing warehouse is `warehouse: absent` and is not opened. A held `.warehouse.lock` is `warehouse: busy`. A connect or pragma failure is `warehouse: unavailable`
+- `--help` uses `RawDescriptionHelpFormatter` so argparse wrapping cannot split the storage phrases
+
+## Deviations
+- One extra test covers a pragma failure after connect. The plan required that outcome, and the connect-failure test does not reach it
+- Help uses a raw description formatter so `free disk` stays one phrase. `stockroom backfill` already uses that formatter
 
 ## Next Step
-- Build the doctor storage report. Preflight passed with an advisory. Keep `live_bytes` as specified. The probe help sentence also names used blocks, free blocks, the reclaimable estimate, and the storage format.
+- QA review of the doctor storage report.

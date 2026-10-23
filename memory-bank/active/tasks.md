@@ -111,7 +111,7 @@ Confirmed in this checkout on DuckDB 2.0: `pragma_database_size` has `block_size
 - [x] Pre-Mortem complete
 - [x] Preflight
 - [x] Build: storage facts on probe
-- [ ] Build: doctor help text
-- [ ] Build: contributor probe line
-- [ ] Build
+- [x] Build: doctor help text
+- [x] Build: contributor probe line
+- [x] Build
 - [ ] QA
