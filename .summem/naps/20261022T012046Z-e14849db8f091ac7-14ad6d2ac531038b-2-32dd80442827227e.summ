@@ -1,1 +1,0 @@
-Measured 2026-10-21 (pre-drop): DuckDB 2.0.0 vss filters WHERE inside the HNSW scan, 1.5.4 post-filters; pragma_hnsw_index_info approx_memory_usage is in-memory size, not disk bytes. Historical only: stockroom now ranks exactly and keeps no index.
