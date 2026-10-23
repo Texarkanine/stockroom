@@ -15,11 +15,16 @@ from pathlib import Path
 import duckdb
 import pytest
 
-from _warehouse_worker import KILLED_SLOT, one_hot
+from _warehouse_worker import (
+    INDEXED_VERSIONS,
+    KILLED_SLOT,
+    RELEASED_CHAIN_154_ROWS,
+    one_hot,
+)
 from stockroom import migrate, semantic, storage, warehouse
 from stockroom.migrations import discover
 from test_schema_0003 import _introspect_schema
-from test_schema_0008 import SNAPSHOT_PATH
+from test_schema_0009 import SNAPSHOT_PATH
 from test_semantic import _FixedEncoder
 
 _PRODUCT_TABLES = {"sessions", "messages", "tool_calls", "embeddings", "_sync_state"}
@@ -359,9 +364,11 @@ def test_writer_open_releases_the_flock_when_creation_fails(
 def test_migrated_warehouse_matches_locked_snapshot(warehouse_home: Path) -> None:
     """A freshly opened warehouse's product schema byte-matches the head snapshot.
 
-    Reuses the schema-introspection helper against the *cumulative* post-``0008``
-    golden (``0008_snapshot.json``: columns + PKs + an empty index list; the
-    VIEW ``session_token_usage`` appears via ``duckdb_columns``). The
+    Reuses the schema-introspection helper against the *cumulative* post-``0009``
+    golden (``0009_snapshot.json``: columns + PKs + an empty index list; the
+    VIEW ``session_token_usage`` appears via ``duckdb_columns``). A new
+    warehouse is built from the frozen schema file, so this also holds that
+    file to the chain's head golden. The
     runner-owned ``schema_version`` bookkeeping table is excluded by the helper
     (it is not part of any product migration), proving the migration framework
     produces precisely the locked product DDL at the chain head: opening the
@@ -396,13 +403,64 @@ def test_new_warehouse_has_no_vector_index(warehouse_home: Path) -> None:
 # --- old indexed warehouses ----------------------------------------------------
 
 
+@pytest.mark.parametrize("version", INDEXED_VERSIONS)
+def test_warehouse_from_an_earlier_release_migrates_to_head_without_vss(
+    warehouse_home: Path, released_chain_154, version: int
+) -> None:
+    """W6: a schema 3 to 8 file that DuckDB 1.5.4 wrote reaches the head here.
+
+    The file is ``v1.0.0``, written by DuckDB 1.5.4 with its ``vss`` (as every
+    earlier release left it), with the HNSW index and embedded messages. The
+    precondition is read in this process without ``vss``. A writer
+    ``open()`` on DuckDB 2.0 then migrates it to the head: every row stays,
+    the index is gone, ``vss`` is not loaded, the storage tag is still
+    ``v1.0.0+``, and exact semantic search finds a row by its own vector.
+    """
+    db = released_chain_154(version, warehouse.warehouse_path())
+    con = duckdb.connect(str(db), read_only=True)
+    try:
+        before_version = migrate.current_version(con)
+        before_indexes = _non_primary_indexes(con)
+    finally:
+        con.close()
+    assert before_version == version
+    assert before_indexes == ["embeddings_vector_hnsw"]
+
+    con = warehouse.open(read_only=False)
+    try:
+        after_version = migrate.current_version(con)
+        indexes = _non_primary_indexes(con)
+        loaded = _vss_loaded(con)
+        counts = _counts(con)
+        tags = con.execute(
+            "SELECT tags FROM duckdb_databases() "
+            "WHERE database_name = current_database()"
+        ).fetchone()[0]
+        nearest = semantic.run_semantic_search(
+            "row seven", _FixedEncoder(one_hot(7)), con=con, query_prefix="", limit=1
+        )
+    finally:
+        con.close()
+
+    assert after_version == _HEAD_VERSION
+    assert indexes == []
+    assert loaded is False
+    assert counts == (RELEASED_CHAIN_154_ROWS, RELEASED_CHAIN_154_ROWS)
+    assert tags["storage_version"] == "v1.0.0+"
+    assert [hit.message_id for hit in nearest] == ["b#7"]
+
+
 def test_schema_eight_indexed_warehouse_with_killed_embed_wal_migrates_to_head(
-    warehouse_home: Path, tmp_path: Path, spawn_worker, wait_for_sentinel
+    warehouse_home: Path,
+    tmp_path: Path,
+    released_chain_file,
+    spawn_worker,
+    wait_for_sentinel,
 ) -> None:
     """A schema-8 indexed file with a killed embed's ``.wal`` migrates with every row.
 
-    One child builds a ``v1.0.0`` file at schema 8 with the HNSW index and 20
-    embedded messages. A second child, with ``vss`` loaded, inserts message
+    One child builds a ``v1.0.0`` file at schema 8 with the released chain, the
+    HNSW index, and 20 embedded messages. A second child, with ``vss`` loaded, inserts message
     ``k#0`` and its embedding, commits, and is killed. The ``.wal`` exists.
     Then ``open(read_only=False)`` here migrates it to head: no index, no
     ``vss``, 21 messages and 21 embeddings, ``k#0`` found first by its own
@@ -410,8 +468,7 @@ def test_schema_eight_indexed_warehouse_with_killed_embed_wal_migrates_to_head(
     """
     db = warehouse.warehouse_path()
     wal = db.with_name(db.name + ".wal")
-    build = spawn_worker("build_indexed", db, 20, tmp_path / "chain")
-    assert build.wait(timeout=120) == 0
+    released_chain_file(8, rows=20, dest=db)
     ready = tmp_path / "inserted"
     embedder = spawn_worker("insert_and_hang", db, ready)
     wait_for_sentinel(ready, timeout=60)
@@ -445,7 +502,11 @@ def test_schema_eight_indexed_warehouse_with_killed_embed_wal_migrates_to_head(
 
 
 def test_writer_killed_after_index_drop_reopens_at_head(
-    warehouse_home: Path, tmp_path: Path, spawn_worker, wait_for_sentinel
+    warehouse_home: Path,
+    tmp_path: Path,
+    released_chain_file,
+    spawn_worker,
+    wait_for_sentinel,
 ) -> None:
     """A migrator killed after it committed ``0009`` leaves a file that reopens at head.
 
@@ -456,8 +517,7 @@ def test_writer_killed_after_index_drop_reopens_at_head(
     """
     db = warehouse.warehouse_path()
     wal = db.with_name(db.name + ".wal")
-    build = spawn_worker("build_indexed", db, 20, tmp_path / "chain")
-    assert build.wait(timeout=120) == 0
+    released_chain_file(8, rows=20, dest=db)
     ready = tmp_path / "migrated"
     migrator = spawn_worker("migrate_and_hang", ready)
     wait_for_sentinel(ready, timeout=60)

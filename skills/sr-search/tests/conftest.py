@@ -21,6 +21,11 @@ import duckdb
 import pytest
 
 import stockroom
+from _warehouse_worker import (
+    INDEXED_VERSIONS,
+    RELEASED_CHAIN_154_ROWS,
+    RELEASED_DUCKDB,
+)
 from stockroom import embed, storage
 from stockroom.migrate import apply_pending
 
@@ -218,6 +223,62 @@ def released_chain_file(
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(template, target)
         return target
+
+    return _copy
+
+
+@pytest.fixture(scope="session")
+def released_chain_154(
+    tmp_path_factory: pytest.TempPathFactory,
+) -> Callable[[int, Path], Path]:
+    """Return a copier of warehouses DuckDB 1.5.4 and its ``vss`` wrote.
+
+    Once per pytest worker, one child runs the worker's ``build_chains_154``
+    under ``uv run --with duckdb==1.5.4``. It builds the packaged chain
+    through each of :data:`INDEXED_VERSIONS` into ``v1.0.0`` files with the
+    HNSW index and :data:`RELEASED_CHAIN_154_ROWS` embedded messages: the
+    on-disk format every earlier release left. The fixture fails unless the
+    child reports ``duckdb 1.5.4``, so a test never runs on 2.0-written files
+    by mistake. ``copy(version, dest)`` copies one file to ``dest``. The
+    no-``CHECKPOINT`` rule of ``released_chain_file`` applies.
+    """
+    uv = shutil.which("uv")
+    if uv is None:
+        pytest.fail("uv must be on PATH to build DuckDB 1.5.4 warehouses")
+    engine = Path(stockroom.__file__).parent.parent.parent
+    worker = Path(__file__).parent / "_warehouse_worker.py"
+    out_dir = tmp_path_factory.mktemp("released-chain-154")
+    result = subprocess.run(
+        [
+            uv,
+            "run",
+            "--project",
+            str(engine),
+            "--no-config",
+            "--no-sync",
+            "--with",
+            f"duckdb=={RELEASED_DUCKDB}",
+            "python",
+            str(worker),
+            "build_chains_154",
+            str(out_dir),
+            str(RELEASED_CHAIN_154_ROWS),
+            *(str(version) for version in INDEXED_VERSIONS),
+        ],
+        env=_worker_env(),
+        capture_output=True,
+        text=True,
+        timeout=600,
+    )
+    assert result.returncode == 0, result.stderr
+    lines = result.stdout.splitlines()
+    assert f"duckdb {RELEASED_DUCKDB}" in lines, result.stdout
+    assert lines[-1] == "built", result.stdout
+
+    def _copy(version: int, dest: Path) -> Path:
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(out_dir / f"chain-{version}.duckdb", dest)
+        return dest
 
     return _copy
 

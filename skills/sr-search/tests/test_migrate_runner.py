@@ -19,6 +19,7 @@ import duckdb
 import pytest
 
 from stockroom import migrate
+from stockroom.migrations import discover
 
 # Product tables declared by the real ``0001`` migration.
 _PRODUCT_TABLES = {"sessions", "messages", "tool_calls", "embeddings", "_sync_state"}
@@ -66,47 +67,52 @@ def test_ensure_schema_version_table_is_idempotent(
 # --- apply_pending: forward-only application (step 3) -----------------------
 
 
-def test_apply_pending_applies_all_packaged_on_fresh_db(
-    mem_con: duckdb.DuckDBPyConnection,
-) -> None:
+def test_apply_pending_applies_all_packaged_on_fresh_db(released_chain_con) -> None:
     """A fresh DB gets every packaged migration in order, landing at the head.
 
     The product tables come from ``0001``; ``0002`` (workspace identity),
-    ``0003`` (retired; it once created a vector index), ``0004`` (durable
-    observation times), ``0005`` (UTC watermark reset), ``0006``
-    (workspace_key), ``0007`` (session tokens + rollup VIEW), ``0008``
-    (entrypoint), and ``0009`` (drops the vector index where it exists) are
-    structural follow-ons. A fresh apply stamps one bookkeeping row per
-    migration, including ``0001``'s, asserted explicitly.
+    ``0003`` (the VSS/HNSW embeddings index), ``0004`` (durable observation
+    times), ``0005`` (UTC watermark reset), ``0006`` (workspace_key),
+    ``0007`` (session tokens + rollup VIEW), ``0008`` (entrypoint), and
+    ``0009`` (drops the vector index) are structural follow-ons. A fresh apply
+    stamps one bookkeeping row per migration, including ``0001``'s, under its
+    packaged filename. ``0003`` needs ``vss`` loaded, which stockroom no longer
+    does, so a child process that loads it runs the real runner on a fresh
+    file (``released_chain_con``); this process reads the result.
     """
-    applied = migrate.apply_pending(mem_con)
+    con = released_chain_con(9)
 
-    assert applied == [1, 2, 3, 4, 5, 6, 7, 8, 9]
-    assert _PRODUCT_TABLES <= _table_names(mem_con)
-    assert migrate.current_version(mem_con) == 9
-
-    version, filename, applied_at = mem_con.execute(
+    rows = con.execute(
         f"SELECT version, filename, applied_at FROM {migrate.SCHEMA_VERSION_TABLE} "
-        "WHERE version = 1"
-    ).fetchone()
-    assert version == 1
-    assert filename == "0001_initial_schema.sql"
-    assert applied_at is not None
+        "ORDER BY version"
+    ).fetchall()
+    assert [(version, filename) for version, filename, _ in rows] == [
+        (m.version, m.path.name) for m in discover()
+    ]
+    assert [version for version, _, _ in rows] == [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    assert rows[0][1] == "0001_initial_schema.sql"
+    assert rows[2][1] == "0003_embeddings_hnsw_index.sql"
+    assert all(applied_at is not None for _, _, applied_at in rows)
+    assert _PRODUCT_TABLES <= _table_names(con)
+    assert migrate.current_version(con) == 9
 
 
-def test_apply_pending_is_idempotent(
-    mem_con: duckdb.DuckDBPyConnection,
-) -> None:
-    """Re-running on a current DB is a no-op: ``[]``, same version, no dup rows."""
-    applied = migrate.apply_pending(mem_con)
-    second = migrate.apply_pending(mem_con)
+def test_apply_pending_is_idempotent(released_chain_con) -> None:
+    """Re-running on a current DB is a no-op: ``[]``, same version, no dup rows.
+
+    The chain at the head comes from a child (see above); the second apply
+    runs here, without ``vss``, and finds nothing pending.
+    """
+    con = released_chain_con(9)
+
+    second = migrate.apply_pending(con)
 
     assert second == []
-    assert migrate.current_version(mem_con) == 9
-    row_count = mem_con.execute(
+    assert migrate.current_version(con) == 9
+    row_count = con.execute(
         f"SELECT count(*) FROM {migrate.SCHEMA_VERSION_TABLE}"
     ).fetchone()[0]
-    assert row_count == len(applied)
+    assert row_count == len(discover())
 
 
 def test_apply_pending_applies_in_ascending_order(

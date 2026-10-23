@@ -6,7 +6,9 @@ engine ``src`` on ``PYTHONPATH`` and ``STOCKROOM_HOME`` pointing at the test's
 temporary warehouse home, so a child runs in a genuinely separate process and
 exercises DuckDB's *cross-process* file lock (a second connection in the same
 process would merely share the instance). The old-warehouse commands load
-``vss`` here, in the child, so the test process itself never loads it.
+``vss`` here, in the child, so the test process itself never loads it. The
+packaged migrations are the released chain (a release never changes their
+SQL), so the old-warehouse builders run them as they are.
 
 Commands:
 
@@ -17,15 +19,18 @@ Commands:
 * ``migrate_report <out_file>`` — open the warehouse as a writer through the
   real chokepoint (lazy gate + flock), then write the observed schema version
   to ``out_file``. Used to race two would-be migrators.
-* ``build_indexed <db> <rows> <scratch_dir>`` — build the warehouse a v2.1.2
-  install left: a ``v1.0.0`` file at schema 8 with the HNSW index, ``<rows>``
-  messages, and one one-hot embedding per message at slots ``0..rows-1``.
-  Checkpoints, closes, and prints ``built``.
 * ``build_chain <db> <through> <rows> <storage> <scratch_dir>`` — build the
   packaged chain through version ``<through>`` into a new file at storage
   version ``<storage>``, with ``vss`` loaded when ``<through>`` is 3 or more,
-  then write ``<rows>`` messages with one one-hot embedding each, as
-  ``build_indexed`` does. Checkpoints, closes, and prints ``built``.
+  then write ``<rows>`` messages ``b#0`` to ``b#<rows-1>``, each with one
+  one-hot embedding at the slot of its ordinal. From schema 3 to 8 the file
+  has the HNSW index. Checkpoints, closes, and prints ``built``.
+* ``build_chains_154 <out_dir> <rows> <version>...`` — run under DuckDB 1.5.4
+  (``uv run --with duckdb==1.5.4``): print ``duckdb <version>``, then do what
+  ``build_chain`` does for each ``<version>`` into
+  ``<out_dir>/chain-<version>.duckdb`` at storage ``v1.0.0``, with 1.5.4's own
+  ``vss``. Prints ``built`` once at the end. These are the files every
+  earlier release left.
 * ``index_knn_delete <db> <out_file>`` — with ``vss`` loaded, insert three
   one-hot embeddings ``s#0`` to ``s#2`` into a file that has the ``0003``
   index, find the nearest to ``s#0``'s vector, delete ``s#0``, and write
@@ -50,16 +55,17 @@ from stockroom import warehouse
 from stockroom.migrate import apply_pending, current_version
 from stockroom.migrations import discover
 
-#: Migration ``0003`` as v2.1.2 shipped it, as ``0003_embeddings_hnsw_index.sql``.
-#: It needs ``vss`` loaded. The packaged ``0003`` is retired.
-V2_1_2_INDEX_SQL = (
-    "SET hnsw_enable_experimental_persistence = true;\n"
-    "CREATE INDEX embeddings_vector_hnsw ON embeddings USING HNSW (vector) "
-    "WITH (metric = 'cosine');\n"
-)
-
 #: Slot of the one-hot vector ``insert_and_hang`` writes.
 KILLED_SLOT = 300
+
+#: The DuckDB every stockroom release before the 2.0 move pinned.
+RELEASED_DUCKDB = "1.5.4"
+
+#: Schema versions an earlier release's warehouse can be at with the index.
+INDEXED_VERSIONS = (3, 4, 5, 6, 7, 8)
+
+#: Messages (one embedding each) in every ``build_chains_154`` file.
+RELEASED_CHAIN_154_ROWS = 20
 
 
 def one_hot(slot: int) -> list[float]:
@@ -77,27 +83,6 @@ def _load_vss(con: duckdb.DuckDBPyConnection) -> None:
         con.execute("INSTALL vss")
         con.execute("LOAD vss")
     con.execute("SET hnsw_enable_experimental_persistence = true")
-
-
-def build_v2_1_2_chain(con: duckdb.DuckDBPyConnection, directory: Path) -> None:
-    """Apply the migration chain v2.1.2 shipped (versions 1 to 8) to ``con``.
-
-    Writes the packaged ``0001``, ``0002``, and ``0004`` to ``0008`` into
-    ``directory`` under their own names, writes :data:`V2_1_2_INDEX_SQL` as
-    ``0003_embeddings_hnsw_index.sql``, and runs the real runner on that
-    directory. ``vss`` must already be loaded on ``con``.
-    """
-    directory.mkdir(parents=True, exist_ok=True)
-    for migration in discover():
-        if migration.version == 3 or migration.version > 8:
-            continue
-        (directory / migration.path.name).write_text(
-            migration.path.read_text(encoding="utf-8"), encoding="utf-8"
-        )
-    (directory / "0003_embeddings_hnsw_index.sql").write_text(
-        V2_1_2_INDEX_SQL, encoding="utf-8"
-    )
-    apply_pending(con, directory)
 
 
 def build_released_chain(
@@ -133,32 +118,39 @@ def _insert_message(
     )
 
 
-def _build_indexed(db: str, rows: str, scratch_dir: str) -> None:
-    con = duckdb.connect(db, config={"storage_compatibility_version": "v1.0.0"})
+def _write_chain(
+    db: Path, through: int, rows: int, storage: str, scratch: Path
+) -> None:
+    con = duckdb.connect(str(db), config={"storage_compatibility_version": storage})
     try:
-        _load_vss(con)
-        build_v2_1_2_chain(con, Path(scratch_dir))
-        for ordinal in range(int(rows)):
+        if through >= 3:
+            _load_vss(con)
+        build_released_chain(con, through, scratch)
+        for ordinal in range(rows):
             _insert_message(con, f"b#{ordinal}", ordinal, ordinal)
         con.execute("CHECKPOINT")
     finally:
         con.close()
-    print("built", flush=True)
 
 
 def _build_chain(
     db: str, through: str, rows: str, storage: str, scratch_dir: str
 ) -> None:
-    con = duckdb.connect(db, config={"storage_compatibility_version": storage})
-    try:
-        if int(through) >= 3:
-            _load_vss(con)
-        build_released_chain(con, int(through), Path(scratch_dir))
-        for ordinal in range(int(rows)):
-            _insert_message(con, f"b#{ordinal}", ordinal, ordinal)
-        con.execute("CHECKPOINT")
-    finally:
-        con.close()
+    _write_chain(Path(db), int(through), int(rows), storage, Path(scratch_dir))
+    print("built", flush=True)
+
+
+def _build_chains_154(out_dir: str, rows: str, *versions: str) -> None:
+    print(f"duckdb {duckdb.__version__}", flush=True)
+    base = Path(out_dir)
+    for version in versions:
+        _write_chain(
+            base / f"chain-{version}.duckdb",
+            int(version),
+            int(rows),
+            "v1.0.0",
+            base / f"chain-{version}-migrations",
+        )
     print("built", flush=True)
 
 
@@ -226,10 +218,10 @@ def main(argv: list[str]) -> None:
         _hold(rest[0], rest[1], read_only=True)
     elif command == "migrate_report":
         _migrate_report(rest[0])
-    elif command == "build_indexed":
-        _build_indexed(rest[0], rest[1], rest[2])
     elif command == "build_chain":
         _build_chain(rest[0], rest[1], rest[2], rest[3], rest[4])
+    elif command == "build_chains_154":
+        _build_chains_154(rest[0], rest[1], *rest[2:])
     elif command == "index_knn_delete":
         _index_knn_delete(rest[0], rest[1])
     elif command == "insert_and_hang":

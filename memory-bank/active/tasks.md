@@ -299,8 +299,8 @@ No new technology - validation not required. No new dependencies; `vss` stays te
     - [x] 2. Schema file and storage module
     - [x] 3. Create through `open()` and stop below schema 3
     - [x] 4. `migrated_con` from the schema file
-    - [ ] 5. Restore the released migrations, goldens, and schema tests
-    - [ ] 6. Shadow script's synthetic warehouse
+    - [x] 5. Restore the released migrations, goldens, and schema tests
+    - [x] 6. Shadow script's synthetic warehouse
     - [ ] 7. Docs and memory bank
     - [ ] 8. Verification gates
 - [ ] QA

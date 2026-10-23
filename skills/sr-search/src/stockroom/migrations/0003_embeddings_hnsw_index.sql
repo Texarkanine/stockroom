@@ -1,0 +1,33 @@
+-- stockroom warehouse — embeddings vector index (migration 0003)
+--
+-- Later note: stockroom no longer loads vss, and the ensure_vss named below is
+-- gone. Migration 0009 drops this index from every warehouse that has it. A
+-- new warehouse is built from schemas/schema_0009.sql and never runs this
+-- file. A warehouse below version 3 would need vss to run it, so it stops
+-- with an error instead. The SQL below is as it shipped: a released
+-- migration never changes its SQL.
+--
+-- Lands the VSS/HNSW vector index forward-declared (but deferred) in 0001: a
+-- cosine HNSW index over embeddings(vector), enabling fast approximate
+-- nearest-neighbour search for Phase 2 semantic/blended search.
+--
+-- THIN BY DESIGN — this file creates only the index. It deliberately does NOT
+-- `INSTALL`/`LOAD` the vss extension: the extension is loaded by the caller
+-- (warehouse.ensure_vss at the open() chokepoint, or test fixtures) BEFORE the
+-- migration runs. This keeps the (network) `INSTALL` out of the shipped DDL and
+-- off the runtime migration hot path, preserving the offline / supply-chain
+-- posture. See creative-vss-provisioning-and-index.md.
+--
+--   * SET hnsw_enable_experimental_persistence — a per-connection setting
+--     (registered by vss, hence requires vss already loaded) that lets the HNSW
+--     index be created and MODIFIED (insert/delete) against a persistent DB.
+--     The chokepoint also sets it on every connection; repeating it here makes
+--     the migration self-sufficient given only a loaded vss.
+--   * metric = 'cosine' — semantic similarity over (unnormalised) embedding
+--     vectors; pairs with array_cosine_distance at query time (Phase 2 m2).
+--
+-- Forward-only: this never mutates 0001/0002, and their locked DDL + golden
+-- snapshots stay untouched. The cumulative post-0003 shape (columns + PKs + this
+-- index) is pinned by test_schema_0003.py against 0003_snapshot.json.
+SET hnsw_enable_experimental_persistence = true;
+CREATE INDEX embeddings_vector_hnsw ON embeddings USING HNSW (vector) WITH (metric = 'cosine');

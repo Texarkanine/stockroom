@@ -36,7 +36,9 @@ Phases, in order (``--stop-after`` ends the run early):
    the hashed freeze into this interpreter's environment when it is missing.
 2. Synthetic measurements: one line per DuckDB behaviour the later milestones
    state. A measurement reports; it does not gate. ``--synthetic`` runs only
-   phases 1 and 2.
+   phases 1 and 2. Its old-format warehouse comes from the released migration
+   chain, run in a child process that loads ``vss`` (the script itself never
+   loads it), so the first run on a machine downloads ``vss`` once.
 3. Copy under the writer flock, refusing a source with a ``.wal``.
 4. Checkpoint the working copy with DuckDB 2.0 and compare every table with
    the baseline copy in both directions.
@@ -120,6 +122,30 @@ rows = con.execute(COSINE_SQL, [query]).fetchall()
 say(f"cosine ok {len(rows)} rows")
 say(f"duckdb {duckdb.__version__}")
 con.close()
+"""
+
+
+#: The chain child program: migrates a new ``v1.0.0`` file at ``argv[1]`` to
+#: the head with the released chain. The released ``0003`` needs ``vss``,
+#: which stockroom no longer loads, so only this child loads it; the script's
+#: own process never does.
+_CHAIN_CHILD = r"""
+import sys
+
+import duckdb
+
+from stockroom.migrate import apply_pending
+
+con = duckdb.connect(sys.argv[1], config={"storage_compatibility_version": "v1.0.0"})
+try:
+    try:
+        con.execute("LOAD vss")
+    except duckdb.Error:
+        con.execute("INSTALL vss")
+        con.execute("LOAD vss")
+    apply_pending(con)
+finally:
+    con.close()
 """
 
 
@@ -655,13 +681,20 @@ def _synthetic(work: Path) -> None:
 
 
 def _synthetic_warehouse(db: Path, *, rows: int) -> None:
-    """Create a migrated ``v1.0.0`` warehouse with ``rows`` random embeddings."""
-    _engine_on_path()
-    from stockroom.migrate import apply_pending
+    """Create a migrated ``v1.0.0`` warehouse with ``rows`` random embeddings.
 
-    con = _connect(db, storage_compatibility_version="v1.0.0")
+    The released chain runs in a child process that loads ``vss``
+    (``_CHAIN_CHILD``); ``0009`` drops the index it makes. After the child has
+    closed the file, this process inserts the embeddings with no extension.
+    """
+    subprocess.run(
+        [sys.executable, "-c", _CHAIN_CHILD, str(db)],
+        env=_engine_env(),
+        check=True,
+        timeout=PROBE_SECONDS,
+    )
+    con = _connect(db)
     try:
-        apply_pending(con)
         _insert_random_embeddings(con, rows)
         con.execute("CHECKPOINT")
     finally:

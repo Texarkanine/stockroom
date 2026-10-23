@@ -22,7 +22,6 @@ from types import ModuleType
 import duckdb
 import pytest
 
-from stockroom.migrate import apply_pending
 from stockroom.migrations import discover
 
 SCRIPT = Path(__file__).resolve().parents[3] / "scripts" / "shadow_duckdb_20.py"
@@ -177,18 +176,57 @@ def test_embeddings_held_allows_only_reported_orphans(shadow: ModuleType) -> Non
     assert not shadow.embeddings_held(100, 99, 0)
 
 
+# --- the synthetic warehouse --------------------------------------------------
+
+
+def test_synthetic_warehouse_builds_the_released_chain_in_a_child(
+    shadow: ModuleType, tmp_path: Path
+) -> None:
+    """H1: ``_synthetic_warehouse`` gives a ``v1.0.0+`` head file with its rows.
+
+    The released ``0003`` needs ``vss``, so the chain runs in a child process
+    that loads it; this process only inserts the embeddings afterwards. The
+    file is at the head with no index and 5 embeddings, and a connection to
+    it here has no ``vss``.
+    """
+    db = tmp_path / "synthetic.duckdb"
+
+    shadow._synthetic_warehouse(db, rows=5)
+
+    con = duckdb.connect(str(db), read_only=True)
+    try:
+        tag = con.execute(
+            "SELECT tags FROM duckdb_databases() "
+            "WHERE database_name = current_database()"
+        ).fetchone()[0]["storage_version"]
+        version = con.execute("SELECT max(version) FROM schema_version").fetchone()[0]
+        indexes = con.execute(
+            "SELECT index_name FROM duckdb_indexes() WHERE NOT is_primary"
+        ).fetchall()
+        embeddings = con.execute("SELECT count(*) FROM embeddings").fetchone()[0]
+        loaded = con.execute(
+            "SELECT loaded FROM duckdb_extensions() WHERE extension_name = 'vss'"
+        ).fetchone()[0]
+    finally:
+        con.close()
+
+    assert tag == "v1.0.0+"
+    assert version == _head()
+    assert indexes == []
+    assert embeddings == 5
+    assert loaded is False
+
+
 # --- the copy after the live phase ---------------------------------------------
 
 
-def _head_warehouse(path: Path, storage: str = "v1.0.0") -> Path:
-    """Create a warehouse at ``storage``, migrated to the schema head, and close it."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    con = duckdb.connect(str(path), config={"storage_compatibility_version": storage})
-    try:
-        apply_pending(con)
-    finally:
-        con.close()
-    return path
+def _head_warehouse(released_chain_file, path: Path, storage: str = "v1.0.0") -> Path:
+    """Put a warehouse at ``storage``, at the schema head, at ``path``.
+
+    It is the released chain, built in a child that loads ``vss``
+    (``released_chain_file``), since the released ``0003`` needs it.
+    """
+    return released_chain_file(_head(), storage=storage, dest=path)
 
 
 def _execute(db: Path, sql: str) -> None:
@@ -205,22 +243,22 @@ def _head() -> int:
 
 
 def test_check_live_copy_passes_old_tag_at_head_without_index(
-    shadow: ModuleType, tmp_path: Path
+    shadow: ModuleType, tmp_path: Path, released_chain_file
 ) -> None:
     """A ``v1.0.0`` file at the schema head with no extra index passes.
 
     ``check_live_copy`` returns the storage tag it read.
     """
-    db = _head_warehouse(tmp_path / "warehouse.duckdb")
+    db = _head_warehouse(released_chain_file, tmp_path / "warehouse.duckdb")
 
     assert shadow.check_live_copy(db) == "v1.0.0+"
 
 
 def test_check_live_copy_names_an_extra_index(
-    shadow: ModuleType, tmp_path: Path
+    shadow: ModuleType, tmp_path: Path, released_chain_file
 ) -> None:
     """A non-primary index on the copy fails the check, which names the index."""
-    db = _head_warehouse(tmp_path / "warehouse.duckdb")
+    db = _head_warehouse(released_chain_file, tmp_path / "warehouse.duckdb")
     _execute(db, "CREATE INDEX extra ON sessions (session_id)")
 
     with pytest.raises(shadow.PhaseError, match="extra"):
@@ -228,14 +266,14 @@ def test_check_live_copy_names_an_extra_index(
 
 
 def test_check_live_copy_names_a_schema_behind_head(
-    shadow: ModuleType, tmp_path: Path
+    shadow: ModuleType, tmp_path: Path, released_chain_file
 ) -> None:
     """A copy whose newest ``schema_version`` row is below the head fails.
 
     The message names the version found and the head.
     """
     head = _head()
-    db = _head_warehouse(tmp_path / "warehouse.duckdb")
+    db = _head_warehouse(released_chain_file, tmp_path / "warehouse.duckdb")
     _execute(db, f"DELETE FROM schema_version WHERE version = {head}")
 
     with pytest.raises(shadow.PhaseError) as excinfo:
@@ -247,14 +285,16 @@ def test_check_live_copy_names_a_schema_behind_head(
 
 
 def test_check_live_copy_names_a_new_storage_tag(
-    shadow: ModuleType, tmp_path: Path
+    shadow: ModuleType, tmp_path: Path, released_chain_file
 ) -> None:
     """A copy whose storage tag moved off ``v1.0.0+`` fails, naming both tags.
 
     DuckDB before 2.0 opens only the old tag, so a moved tag would lock the
     machine's older stockroom copies out of the warehouse.
     """
-    db = _head_warehouse(tmp_path / "warehouse.duckdb", storage="v1.2.0")
+    db = _head_warehouse(
+        released_chain_file, tmp_path / "warehouse.duckdb", storage="v1.2.0"
+    )
 
     with pytest.raises(shadow.PhaseError, match=r"v1\.2\.0\+") as excinfo:
         shadow.check_live_copy(db)

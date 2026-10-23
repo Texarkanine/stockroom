@@ -3,7 +3,9 @@
 ``0004`` adds two uniform time meanings without fabricating source-authored
 timestamps: the source transcript mtime on sessions and stockroom's first
 observation time on messages. Earlier migrations and snapshots remain frozen;
-this module locks the new cumulative schema head.
+this module locks the new cumulative schema head. The chain is built in a
+child process that loads ``vss`` (``released_chain_con``); this process reads
+it without ``vss``.
 """
 
 import json
@@ -12,18 +14,9 @@ from pathlib import Path
 
 import duckdb
 
-from stockroom.migrations import discover
 from test_schema_0003 import _introspect_schema
 
 SNAPSHOT_PATH = Path(__file__).parent / "fixtures" / "schema" / "0004_snapshot.json"
-
-
-def _apply_chain(con: duckdb.DuckDBPyConnection) -> None:
-    """Apply every packaged migration through ``0004``."""
-    for migration in discover():
-        if migration.version > 4:
-            break
-        con.execute(migration.path.read_text(encoding="utf-8"))
 
 
 def _columns(con: duckdb.DuckDBPyConnection, table: str) -> set[str]:
@@ -35,26 +28,22 @@ def _columns(con: duckdb.DuckDBPyConnection, table: str) -> set[str]:
     return {row[0] for row in rows}
 
 
-def test_0004_adds_session_source_mtime(mem_con: duckdb.DuckDBPyConnection) -> None:
+def test_0004_adds_session_source_mtime(released_chain_con) -> None:
     """Sessions gain the source transcript mtime used as activity provenance."""
-    _apply_chain(mem_con)
-    assert "source_mtime" in _columns(mem_con, "sessions")
+    con = released_chain_con(4)
+    assert "source_mtime" in _columns(con, "sessions")
 
 
-def test_0004_adds_message_first_seen_at(
-    mem_con: duckdb.DuckDBPyConnection,
-) -> None:
+def test_0004_adds_message_first_seen_at(released_chain_con) -> None:
     """Messages gain the time at which stockroom first observed them."""
-    _apply_chain(mem_con)
-    assert "first_seen_at" in _columns(mem_con, "messages")
+    con = released_chain_con(4)
+    assert "first_seen_at" in _columns(con, "messages")
 
 
-def test_migrated_schema_matches_0004_snapshot(
-    mem_con: duckdb.DuckDBPyConnection,
-) -> None:
+def test_migrated_schema_matches_0004_snapshot(released_chain_con) -> None:
     """The cumulative post-``0004`` schema byte-matches its golden snapshot."""
-    _apply_chain(mem_con)
-    actual = _introspect_schema(mem_con)
+    con = released_chain_con(4)
+    actual = _introspect_schema(con)
 
     if os.environ.get("STOCKROOM_UPDATE_SCHEMA_GOLDEN"):
         SNAPSHOT_PATH.parent.mkdir(parents=True, exist_ok=True)
