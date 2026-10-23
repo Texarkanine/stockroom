@@ -1,1 +1,0 @@
-2026-10-21: operator dropped HNSW (a later CREATE INDEX can restore it). Exact top-100 was 130 ms vs 34 ms indexed. DROP INDEX + CHECKPOINT took 0.8 s and cut used blocks 161453 to 6846 (37.4 GiB). COPY FROM DATABASE then made a 506 MB file in 5.2 s.

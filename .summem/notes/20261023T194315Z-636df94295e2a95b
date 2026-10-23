@@ -1,0 +1,1 @@
+Operator 2026-10-23: explain a migration cutoff by the mechanism. A step can need a dependency the engine will not load, or the result can be something SQL cannot make. Say that before the branch. Do not use schema version numbers.
