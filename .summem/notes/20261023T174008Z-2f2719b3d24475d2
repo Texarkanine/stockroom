@@ -1,0 +1,1 @@
+After PR 150 lands, restore memory-bank/active from constrain-size-as-best-we-can onto a branch from main. Rebase onto the squash conflicts; a merge-commit rebase ends on main and drops the memory bank.

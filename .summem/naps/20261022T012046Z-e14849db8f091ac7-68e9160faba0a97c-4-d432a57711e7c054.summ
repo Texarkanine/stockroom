@@ -1,1 +1,0 @@
-Historical, pre-drop 2026-10-21: 2.0 vss filters WHERE inside the HNSW scan, 1.5.4 post-filters; pragma count 280901 vs 133793 rows (compact left them; DROP+CREATE+CHECKPOINT matched); approx_memory_usage is RAM, not disk. Stockroom now ranks exactly and keeps no index.
