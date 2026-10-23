@@ -138,7 +138,7 @@ L4 milestone 3 of 7 for `warehouse-file-growth` ([issue 147](https://github.com/
 
 * Work completed
     - Opened PR 150 from `feat/duckdb-2-new-warehouses` (child of this branch with `memory-bank/active/` removed). Ready, not draft. Does not close issue 147. Doc follow-ups on that branch: architecture migrations as cutoffs and a schema snapshot, embeddings exact search without the earlier-release story, iteration schema docs as a generated diagram
-    - Confirmed the existing-file stop is the migrate-or-stop case. No user-guide troubleshooting heading exists for it. The operator will write that heading in the next window and link it from `docs/architecture/warehouse.md`
+    - Confirmed the existing-file stop is the migrate-or-stop case. The user-guide heading is [Move the warehouse file aside](../../docs/user-guide/troubleshooting/index.md#move-the-warehouse-file-aside), linked from the stop paragraph in `docs/architecture/warehouse.md`. `stockroom migrate` prints one line with the `mv` and exits 1. `stockroom ingest` raises the same error and does not print that one-line form
 * Decisions made
     - Operator: do not land `memory-bank/active/` on `main`. After a squash-merge, recover the bank by branching from `main` and checking `memory-bank/active/` out of this branch. Do not rebase this branch onto the landed main
     - `/niko` step 2a stays unrun. Milestone 3 stays unchecked until the operator asks
