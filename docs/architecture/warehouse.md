@@ -79,8 +79,6 @@ Coordination uses `fcntl.flock` on a sidecar lock file; data integrity uses Duck
 
 There is one forward-only chain. The runner records `schema_version`.
 
-#### When open() does not run every migration
-
 `open()` runs the next migration, then the next, until the file is current.
 
 Two kinds of change do not work that way.
@@ -129,7 +127,7 @@ The snapshot stays fixed, in the same way a migration stays fixed after the migr
 
 The Yes arrow is a warehouse that already exists. The chart then asks whether that file is past the migration the engine cannot run. That migration is the one that needs a dependency the engine does not load.
 
-If the file has not reached that migration, the next SQL step would be the one the engine cannot run. The file holds no history, so `open()` stops, names the file, and tells you to move the file aside. `open()` does not change the file.
+If the file has not reached that migration, the next SQL step would be the one the engine cannot run. The file holds no history, so `open()` stops, names the file, and tells you to [move the file aside](../user-guide/troubleshooting/index.md#move-the-warehouse-file-aside). `open()` does not change the file.
 
 If the file is already past that migration, `open()` runs the chain forward from the schema version the file is on. The remaining migrations are SQL. SQL cannot change the storage format, so the file keeps that format. Those migrations leave the file with no vector index. Search ranks every vector exactly ([Embeddings](embeddings.md#exact-search)).
 

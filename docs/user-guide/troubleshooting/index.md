@@ -79,6 +79,18 @@ Let session-start heal run (`shim rectify` includes ensure-env), run `stockroom 
 
 ## Ingest
 
+### Move the warehouse file aside
+
+`stockroom migrate` prints one line and exits 1. The line names the warehouse file and includes a quoted `mv`.
+
+The warehouse file is not damaged. The warehouse file holds no history. Stockroom does not delete the warehouse file, rename the warehouse file, or create a new warehouse on the same path. The path stays occupied. The next open fails in the same way until you move the warehouse file.
+
+`stockroom ingest` raises the same error. `stockroom ingest` does not print the one-line form. The error text still includes the `mv`.
+
+1. Copy the `mv` command from the error text. Stop the copy before `, then run`.
+2. Run the `mv` command. The `mv` command moves the warehouse file to a name that ends in `.old`.
+3. Run the same command again.
+
 ### Empty or sparse results after first install
 
 Confirm the first ingest + embed finished (`sr-initialize`). Wait for the nightly schedule, or run ingest/embed yourself — [Load the Warehouse](../load/index.md) · [CLI](../../advanced/cli.md).
