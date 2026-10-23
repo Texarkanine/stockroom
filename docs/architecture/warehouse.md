@@ -77,13 +77,25 @@ Coordination uses `fcntl.flock` on a sidecar lock file; data integrity uses Duck
 
 ### Migrations
 
-There is one forward-only chain. The runner records `schema_version`. A writer `open()` does not always start at the beginning of that chain. It branches at two cutoffs. The first is whether a warehouse file exists. The second is whether an existing file is at or above the oldest schema version this engine will migrate.
+There is one forward-only chain. The runner records `schema_version`.
+
+#### When open() does not run every migration
+
+`open()` runs the next migration, then the next, until the file is current.
+
+Two kinds of change do not work that way.
+
+A migration can need a dependency the engine does not load. `open()` cannot run that step. A file that has not reached the step stops. A file that is already past it runs the later migrations.
+
+A change can be something an SQL statement cannot make. The storage format of the file is one. `open()` creates a new file in the engine's current format. An existing file keeps the format it has. Running the chain does not change that format.
+
+When no warehouse file exists, `open()` does not run the chain from the start. It builds the file from a snapshot of the current schema, in the current storage format, then runs migrations added after the snapshot.
 
 ```mermaid
 flowchart TD
   open["Writer open"]
   exists{"Warehouse file exists"}
-  ready{"Old enough to migrate"}
+  ready{"Past the step it cannot run"}
   stop["Stop and name the file"]
   chain["Run the chain forward"]
   build["Build from the schema snapshot"]
@@ -101,19 +113,17 @@ flowchart TD
 
 #### No file yet
 
-`open()` builds the warehouse from a frozen schema snapshot of the chain, then runs only the migrations after that snapshot. The snapshot stands in for the chain up to the version it was taken from. The engine does not run that prefix. The prefix needs an extension this engine does not load.
-
-The snapshot is frozen the way a released migration is. A later snapshot is a new file. The new warehouse records one `schema_version` row for the snapshot, and later migrations add their own.
+The snapshot is frozen the way a released migration is. A later snapshot is a new file. The new warehouse records one `schema_version` row for the snapshot. Later migrations add their own `schema_version` rows.
 
 The build writes a temp file. Under the writer flock, `open()` renames it onto the warehouse path only when no file is there. A crash does not leave a half-built file at the live path.
 
-A new file uses the engine's current storage format. An existing file keeps the format it already has. Which DuckDB versions can open a new file is in [Advanced → DuckDB](../advanced/duckdb.md).
+Which DuckDB versions can open a new file is in [Advanced → DuckDB](../advanced/duckdb.md).
 
 #### Existing file
 
-A file at or above that oldest version keeps its storage format. `open()` runs the chain forward from the version the file is on. The chain leaves no vector index. Search ranks every vector exactly ([Embeddings](embeddings.md#exact-search)).
+A file that is already past the step the engine cannot run keeps its storage format. `open()` runs the chain forward from the version the file is on. The chain leaves no vector index. Search ranks every vector exactly ([Embeddings](embeddings.md#exact-search)).
 
-A file below that version holds no history. The open stops, names the file, and tells you to move it aside. The file is not changed. Reaching the head from there needs the same extension the engine does not load.
+A file that has not reached that step holds no history. The open stops, names the file, and tells you to move it aside. The file is not changed.
 
 #### Released SQL
 
