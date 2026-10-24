@@ -59,3 +59,15 @@ Run the verified copy under the writer flock, with a time limit, as one check pa
 * Insights
     - A started entry that is still inside its limit must not have its sibling deleted. That sibling belongs to the pass holding the flock
     - `statvfs` `ST_RDONLY` is the read-only skip. A directory that is merely mode `0555` is a different failure
+
+## 2026-10-24 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated the milestone 6 check-pass plan against the engine
+    - Wrote `memory-bank/active/.preflight-status`
+* Decisions made
+    - First line of `.preflight-status`: `FAIL (fixable)`
+    - The plan was not edited. No test step was out of order, and no step was a change-detector
+* Insights
+    - A schema-file warehouse is already new under this plan, so the alarm test never reaches a sleeping `copy_warehouse` or a `started` record
+    - A stored `skip` has no `next_action` result that builds again, and the diagram sends that case to quiet
