@@ -1,1 +1,0 @@
-Operator 2026-10-22: every warehouse backup stockroom or its contributors make is named warehouse.issue147-<purpose>.duckdb in the stockroom home (M2: warehouse.issue147-pre-duckdb2.duckdb), so later delete-if-present code removes only ours, never a user's own .bak.

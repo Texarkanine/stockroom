@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: warehouse-file-growth, milestone 5 (verified newer-format copy)
-**Phase:** PREFLIGHT - COMPLETE (FAIL (fixable))
+**Phase:** PREFLIGHT - COMPLETE (PASS WITH ADVISORY)
 
 ## What Was Done
 - Classified milestone 5 as Level 3 and wrote the plan in `memory-bank/active/tasks.md`
@@ -10,4 +10,4 @@
 - Success leaves `warehouse.copy.duckdb` and returns sizes and times. The flock, the check record, and the swap stay in milestone 6
 
 ## Next Step
-- Run preflight on the revised plan
+- Operator runs `/niko-build`

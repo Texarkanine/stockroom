@@ -51,3 +51,15 @@ Extend the milestone 3 warehouse builder so it can copy an existing warehouse in
     - The advisory `read_catalog` helper is not added. Table SQL stays in the compare, with the zstd clause removed
 * Insights
     - Preflight copied the two-generation fixture on DuckDB 2.0.0. Both `EXCEPT ALL` directions were empty once the table list was filtered, and the copy's version-9 filename was `0009_drop_vector_index.sql`
+
+## 2026-10-23 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Ran Level 3 preflight on the revised verified-copy plan
+    - First line of `.preflight-status` is `PASS WITH ADVISORY`
+* Decisions made
+    - The revised plan is acceptable to build. Row copy and `EXCEPT ALL` use the current database only. Catalog reads, including `constraint_index`, use connections that have attached nothing
+* Insights
+    - The planned `through=9` tests stay green if `through` means "apply nothing". A case where version 10 is inside the ceiling would lock the predicate
+    - `_introspect_schema` already matches a `v1.0.0` chain at version 9 and a `v2.0.0` schema-file warehouse through `0009_snapshot.json`, so the copy test's column compare is an existing contract
+    - Milestone 6 treats verification mismatch as final. Table-text formatting inside `CopyMismatch` would make a DuckDB pretty-printer change end the check

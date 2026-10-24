@@ -1,0 +1,1 @@
+Stockroom backups are warehouse.issue147-<purpose>.duckdb, so delete-if-present never removes a user's .bak. Pytest that imports torch in-process prints nanobind leaks at exit; code unchanged. No torch: none. embed/semantic: none after the Hub-filter fix.
