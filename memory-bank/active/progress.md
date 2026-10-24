@@ -141,3 +141,26 @@ Run the verified copy under the writer flock, with a time limit, as one check pa
     - A backup hash that does not match the pre-link hash leaves the record `linked`. The next pass writes `swapped` because the inodes already differ
 * Insights
     - The engine suite was run without `tests/test_coverage_collection.py`. That module runs `make coverage-engine`, and that target's sync removes torch
+
+## 2026-10-24 - QA - COMPLETE
+
+* Work completed
+    - Reviewed the check pass against the milestone 6 plan
+    - Wrote `memory-bank/active/.qa-validation-status`
+* Decisions made
+    - PASS. Two advisories do not require a build change
+* Insights
+    - A same-pass refusal to write `swapped` when the backup hash differs does not last. The next pass follows the inode rule and writes `swapped` without hashing again
+
+## 2026-10-24 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `memory-bank/active/reflection/reflection-warehouse-file-growth-m6.md`
+    - Left `productContext`, `systemPatterns`, and `techContext` unchanged
+* Decisions made
+    - The crash after `os.link` and before a durable `linked` record stays unhandled
+    - Finish-swap keeps using inodes. File size stays out of that decision
+* Insights
+    - Finish a `linked` record before deleting `warehouse.copy.duckdb`. That sibling is the verified copy
+    - Clearing `check.json` while `warehouse.issue147-swap.duckdb` exists makes the next `os.link` fail. Milestone 7 must not finish that shape from directory entries
+    - The phase diagram was rewritten twice in preflight. Build and QA each ran once

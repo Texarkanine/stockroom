@@ -1,0 +1,1 @@
+SQL immutable, comments OK, ci strips vs tag. 2.0.0 no vss: CHECKPOINT after ALTER/INSERT/CREATE VIEW on HNSW fatal; close. 0004-0009 reach 9. New warehouse renamed under flock, not hard-linked. 3-8: 1.5.4 vss. No view-SQL compare (v1 fewer parens); table SQL+constraints match.

@@ -274,4 +274,11 @@ The pass uses `fcntl.flock`, `os.link`, `os.replace`, `signal.alarm`, and `hashl
 - [x] Pre-Mortem complete
 - [x] Preflight
 - [x] Build
-- [ ] QA
+- [x] QA
+
+## QA
+
+PASS. The check pass matches the plan. Two advisories do not require a change.
+
+- The module docstring in `skills/sr-search/src/stockroom/check.py` still says later steps own the pass. The pass is in that module. This does not block. No behavior reads that sentence.
+- Phase B returns without writing `swapped` when the backup hash differs from the hash taken before `os.link`. The replace has already happened, and the next pass writes `swapped` because the inodes differ, without hashing again. This does not block. The plan's finish-swap rule is that inode split, and the path where the hashes match still writes `swapped` on the same pass.

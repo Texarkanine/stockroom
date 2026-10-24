@@ -1,1 +1,0 @@
-New warehouse is renamed into place under the writer flock, not hard-linked, so new installs need no hard links. Schema 3-8 tests use DuckDB 1.5.4 vss files. v1.0.0 view SQL has one fewer closing paren than v2.0.0; do not compare view SQL text. Table SQL and constraints match.

@@ -1,0 +1,1 @@
+2026-10-24: M6 check is stockroom.check and stays unstarted. Finish a linked record before deleting warehouse.copy.duckdb. A crash after os.link and before durable linked stays started; the next os.link fails while the swap backup exists.

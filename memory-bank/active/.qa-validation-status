@@ -1,0 +1,7 @@
+PASS
+
+The milestone 6 check pass matches the plan. The record, the phase choice, the readiness ladder, phase A, phase B, the linked resume, the alarm entry point, the doctor line, and the rollback prose are in place. Nothing in this milestone starts the pass. Two advisories do not require a build change.
+
+The opening docstring of `stockroom.check` still says that later steps own the pass. The pass is implemented in that module. Behavior does not depend on the sentence.
+
+Phase B leaves the record `linked` when the backup hash differs from the hash taken before the hard link. The warehouse path has already been replaced. The next acquired pass writes `swapped` because the inodes differ, and it does not hash again. The plan's finish-swap rule is that inode split, and the path where the hashes match still writes `swapped` on the same pass.

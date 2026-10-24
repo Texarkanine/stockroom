@@ -1,1 +1,0 @@
-comments may change (#128 @rel, 0001+0007); SQL must not. make ci compares comments-stripped SQL to the latest tag. 2.0.0 no vss, HNSW: CHECKPOINT after ALTER, INSERT, or CREATE VIEW: FatalException; close checkpoints. 0004-0009, mid-chain kill, tiny checkpoint_threshold reach 9.
