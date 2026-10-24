@@ -109,3 +109,15 @@ Run the verified copy under the writer flock, with a time limit, as one check pa
     - An expired `started` entry stays final and does not replace, even when the backup inode matches the warehouse
 * Insights
     - The directory-entry resume would close the gap before `linked` is durable. It would also replace a warehouse the creative decision keeps final, so it stays out of this plan
+
+## 2026-10-24 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated the third milestone 6 check-pass plan against the engine
+    - Wrote `memory-bank/active/.preflight-status`
+* Decisions made
+    - First line of `.preflight-status`: `PASS WITH ADVISORY`
+    - The plan was not edited. No test step was out of order, and no step was a change-detector
+* Insights
+    - A messages row that omits `text` still gets a persistent `DICT_FSST` segment once the zstd clause is removed, so that fixture is not already new
+    - Publishing the backup under a partial name until `linked` is durable would keep a crash in that window from blocking every later `os.link`

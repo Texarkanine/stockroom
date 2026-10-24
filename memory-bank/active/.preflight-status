@@ -1,43 +1,13 @@
-FAIL (fixable)
+PASS WITH ADVISORY
 
-The revised plan matches the engine on the points the previous preflight rejected. `generations_file` is a checkpointed `v1.0.0` warehouse at schema 9 with the index already dropped, so the alarm child and the wal-removed retry both reach `copy_warehouse`. `next_action` on `skip` returns `phase-a`, and the readiness ladder runs before a build. The 4-hour ceiling, the `2 * live_bytes + 64 MiB` margin, and the overrun label match their creative decisions. Every executable unit is already stub-tests, stub-interface, red, then green. The rollback unit is prose and correctly has no tests. No step was reordered and none was struck. `copy_warehouse`, `live_bytes`, `SWAP_BACKUP_FILENAME`, `FORMAT_BOUNDARY`, and `warehouse._flock` are the functions the plan names. Adding the `check` fact does not collide with the existing doctor assertions, which look up keys rather than locking the whole list.
+The milestone 6 check-pass plan matches the engine. TDD steps are already test-then-code, and none is a change-detector, so tasks.md was not edited.
 
-## Sibling deleted before finish-swap
+`copy_warehouse` leaves `warehouse.copy.duckdb` on success and deletes it, and its `.wal`, on any exception. It does not take the writer flock. `generations_file` is a `v1.0.0` file at schema 9, so it is not already new and the alarm child does reach a patched `copy_warehouse`. `released_chain_file(8)` is below `FORMAT_BOUNDARY`. `_flock` is an exclusive lock on one open file description: a second open in the same process fails with `BlockingIOError`, which is what the busy test relies on. `storage_facts` has four returns (absent, busy, unavailable, present). The probe help text is the description on `python -m stockroom.doctor`, and `probe --help` prints that same description. The preparation comment to extend is the `stockroom doctor probe` line. One short zstd row is enough for the existing segment check to pass. The non-zstd recipe, including a messages row that omits `text`, produces a persistent `DICT_FSST` segment and is not already new, as long as the helper keeps `_require_zstd`'s segment loop.
 
-**FAIL (fixable).** Cleanup deletes the sibling that a `linked` resume has to rename into place.
+Do not treat "empty columns return None" as a skip of that loop. A column with no non-null values can still have a persistent segment. On this DuckDB, removing the zstd clause and inserting a messages row with only `ordinal` and `role` leaves `messages.text` null and still stores `(VARCHAR, DICT_FSST)`. The loop reports it. Returning None whenever the non-null count is 0 marks that fixture already new, and the non-zstd test fails.
 
-Every acquired pass except an unexpired `started` record deletes `warehouse.copy.duckdb` before it chooses an action. `linked` is not final and is not an unexpired start, so that delete runs. The finish-swap step then requires the sibling to still exist when the backup inode matches the warehouse: `os.replace` it onto `warehouse.duckdb`, and do not call `copy_warehouse` or `os.link`. After the delete, the sibling is gone and both of those calls are forbidden, so the replace cannot happen. The replace-after-`linked` test requires that next `run_check` to move that same sibling into place.
+An unexpired `started` record is not a live pass. `run_check` takes the flock before it reads the record. The process that wrote `started` has already released the flock, or this pass would still be waiting on it. Leaving the record in place until the limit is the creative decision's retry delay. It does not protect a sibling another process is writing.
 
-The sibling left by a successful `os.link`, before `os.replace` returns, is the verified copy. It is the file the resume swaps in.
+The structural change worth weighing: publish the backup name only after `linked` is durable. Link the original to a partial name in the same directory, fsync the directory, write `linked`, `os.replace` the partial name onto `warehouse.issue147-swap.duckdb`, then `os.replace` the sibling onto `warehouse.duckdb`. A crash before the record is `linked` never occupies the backup name. Deleting the record is then enough to retry. The plan links straight to `warehouse.issue147-swap.duckdb` and writes `linked` afterward. A crash in between leaves `started`, a backup whose inode matches, and the sibling. An expired `started` entry stays final and does not replace, and every later `os.link` fails until a person removes both the record and that backup. Finish-swap can keep its current rule for a durable `linked` record.
 
-Keep it when the record is `linked`, the backup inode equals the warehouse inode, and `warehouse.copy.duckdb` exists. `os.replace` it onto `warehouse.duckdb`, fsync the directory, and write `swapped` from the measurement fields already stored on the `linked` record. Skip `copy_warehouse`, `os.link`, and the readiness ladder on that path. A ladder skip would replace `linked` and drop the only resume that finishes without copying. When the inodes already differ, the replace has happened: write `swapped`, then delete a stray sibling. If the inodes match and the sibling is already gone, leave the record `linked`. When the sibling is missing and the inodes match, there is no verified copy left to rename. Every other acquired pass keeps today's delete-first rule: phase B, a final record, and an expired `started` entry.
-
-## Free-disk default
-
-`shutil.disk_usage` returns a named tuple. The threshold comparison needs free bytes. Default the seam to a callable that returns `shutil.disk_usage(path).free`. Tests that pass a callable returning an int stay as written.
-
-## Non-zstd fixture
-
-`schema_0009.sql` does not create `schema_version`. `current_version` returns 0 when that table is missing, which is below `FORMAT_BOUNDARY`, so the pass records `below-boundary` and never calls `copy_warehouse`. Build the fixture through `ensure_schema_version_table`, then insert `(9, 'schema_0009.sql')`. `messages` needs `ordinal` and `role`. `tool_calls` needs `tool_name` and `tool_input`. All four are `NOT NULL`.
-
-## Shared zstd walk
-
-`large_column_zstd_problem` keeps `_require_zstd`'s segment-type allow-list: `VARCHAR` for `messages.text`, and `VARCHAR` or `JSON` for `tool_calls.tool_input`, with compression `ZSTD`. The helper is the body of the check milestone 5 already ships. A compression-only walk would accept a zstd segment whose type is outside that set.
-
-## Spy target
-
-`run_check` calls `storage.copy_warehouse` by attribute lookup. A module-level `from stockroom.storage import copy_warehouse` keeps the old function after a patch of `stockroom.storage.copy_warehouse`. The one-second wait test should also assert that the record stays `rehearsed` and the original bytes stay put, so a spy on the wrong object cannot hide a second copy.
-
-## Resume from directory entries
-
-Advisory only. This is a redesign sketch, and it is not part of the plan.
-
-Resume currently depends on the JSON status `linked` landing after `os.link` returns and before `os.replace`. A crash in that gap leaves `started` plus a backup name. An expired `started` entry is final and must not replace the warehouse, and a later phase B cannot `os.link` onto that existing backup. Holding the flock does not identify the gap, because the dead process has already released it.
-
-Under the flock, before cleanup, use the directory entries:
-
-- The backup inode equals the warehouse inode and `warehouse.copy.duckdb` exists. The link happened and the replace has not. `os.replace` the sibling onto `warehouse.duckdb`, fsync the directory, and write `swapped`. Do this when the record says `linked` and when it still says `started`. Keep the sibling and skip the copy.
-- The backup inode differs from the warehouse. The replace already happened. Write `swapped` when the record is behind that, then delete a stray sibling.
-- Any other shape keeps today's sweep, ladder, and phase choice.
-
-`linked` can stay as the status written between the link and the replace, for doctor. It stops being the only key that preserves the verified copy. The extra work is one inode comparison on each acquired pass. A `started` record in that window finishes immediately, instead of waiting out the ceiling and then stopping for good. A file the user named themselves does not match `warehouse.issue147-swap.duckdb`, so the comparison does not swap their backup.
+That finish-swap still replaces when the original inode grew after the crash. Writers can commit into it once the flock is released. Those rows stay on the backup name and are no longer `warehouse.duckdb`. Comparing `st_size` to the stored `original_bytes` before the replace would refuse that swap. The plan does not do this, and the rows are not deleted.

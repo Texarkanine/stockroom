@@ -272,6 +272,6 @@ The pass uses `fcntl.flock`, `os.link`, `os.replace`, `signal.alarm`, and `hashl
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
 - [ ] QA

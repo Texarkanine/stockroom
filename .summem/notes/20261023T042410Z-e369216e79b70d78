@@ -1,1 +1,0 @@
-DuckDB 2.0.0 without vss, file with the HNSW index (2026-10-22): explicit CHECKPOINT after ALTER, INSERT, or CREATE VIEW raises FatalException (Cannot bind index); a plain close checkpoints fine. Runner 0004-0009, a kill mid-chain, tiny checkpoint_threshold: all reach 9.
