@@ -1,0 +1,1 @@
+Backups: warehouse.issue147-<purpose>.duckdb spares .bak. Pytest+torch nanobind leaks (none if no torch; embed/semantic none). Inverse skips: CLI if installed, doctor.py:205 if loaded; pytest -rs. zstd fails v1.0.0/v1.1.0, ok v1.2.0+; mem Uncompressed; no ALTER. schema-0 12288B.

@@ -88,3 +88,14 @@ Extend the milestone 3 warehouse builder so it can copy an existing warehouse in
 * Insights
     - `through` stops at the original's version. The positive "apply up to the ceiling" case is not a test
     - Catalog equality runs on unattached connections. The fault injection covers a deleted row, not a dropped view
+
+## 2026-10-24 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `memory-bank/active/reflection/reflection-warehouse-file-growth-m5.md`
+    - Left product context, system patterns, and tech context unchanged
+* Decisions made
+    - The empty-column zstd rule stays. A check that requires a data segment would reject a warehouse with no tool calls
+* Insights
+    - A `migrations_dir` patch that calls `discover()` recurses. Build the folder first
+    - Preflight's `ATTACH` finding is what let the first implementation pass. The `through` advisory stayed an advisory through QA

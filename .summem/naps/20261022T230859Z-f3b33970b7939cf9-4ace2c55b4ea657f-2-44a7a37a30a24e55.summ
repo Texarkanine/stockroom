@@ -1,1 +1,0 @@
-Inverse torch skips: CLI skips when torch is installed, doctor.py:205 when loaded. Skip counts do not prove they ran; use pytest -rs. DuckDB 2 zstd fails on v1.0.0/v1.1.0, works from v1.2.0; memory stores Uncompressed. No ALTER. v2.1.2 schema-0 leftover is a bare 12288-byte file.

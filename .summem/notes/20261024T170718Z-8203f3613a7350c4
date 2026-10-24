@@ -1,0 +1,1 @@
+Patching migrations.migrations_dir with a callable that calls discover() recurses, because discover() calls migrations_dir(). Build the folder, then point the patch at that path.
