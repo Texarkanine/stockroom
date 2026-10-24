@@ -1,0 +1,1 @@
+SQL immutable. 0003 shipped; no unrun version; 0009 drops index. 2nd connect: ConnectionException. 1.5.4 reads+writes. 3-8:1.5.4 vss. HNSW blocks writes; DROP INDEX in-txn. 2.0.0 CHECKPOINT on HNSW; close. zstd v1.2.0+; validity Uncompressed/Constant; no ALTER. No vss autoload.

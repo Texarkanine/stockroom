@@ -1,1 +1,0 @@
-uv --with duckdb==V selects V (missing exits 1; --project --with 1.5.4 reuses it). DuckDB 2 rejects x ->; use lambda x: (1.5.4 accepts). HNSW dropped; no vss autoload; CREATE INDEX restores it. Zstd validity Uncompressed/Constant. Swap=phase B: copy, verify, hard-link, replace.

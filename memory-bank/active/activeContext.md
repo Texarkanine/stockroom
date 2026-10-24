@@ -1,12 +1,14 @@
 # Active Context
 
 ## Current Task: warehouse-file-growth, milestone 7 (session-start launch)
-**Phase:** PREFLIGHT - COMPLETE (FAIL (fixable))
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
 - Classified milestone 7 as Level 2
-- Planned a detached `python -m stockroom.check` launch in front of `entry`. The two session-start hooks start it. `beforeSubmitPrompt` does not
-- The pass stays unchanged. There is no `stockroom check` subcommand
+- Revised the plan after a fixable preflight failure
+- Tests that wait on `launch` set `PYTHONPATH` to the engine `src` directory. `launch` inherits that environment
+- Unit 4 also updates `docs/user-guide/load/schedule.md` and `docs/user-guide/installed-layout.md`
+- The DuckDB-import advisory stays out of the plan. `entry` and `run_check` stay unchanged
 
 ## Next Step
 - Preflight validation

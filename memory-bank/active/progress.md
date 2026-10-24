@@ -36,3 +36,14 @@ Start the check from the Claude Code and Cursor session-start hooks. Session sta
     - Unit 4 must also update `docs/user-guide/load/schedule.md` and `docs/user-guide/installed-layout.md`, which still say session start only rectifies the shim and launches the dashboard
 * Insights
     - pytest's `pythonpath` does not reach a child process, and `uv run` does not set `PYTHONPATH`. The child's stderr is `DEVNULL`, so the import error shows up only as a non-zero exit
+
+## 2026-10-24 - PLAN - COMPLETE
+
+* Work completed
+    - Revised the session-start launch plan for both fixable findings
+* Decisions made
+    - Tests that wait on `launch` set `PYTHONPATH` to `_SRC` before the call. `launch` passes no `env` and inherits the parent environment
+    - Unit 4 now includes `docs/user-guide/load/schedule.md` and the `hooks/` row in `docs/user-guide/installed-layout.md`
+    - The DuckDB-import advisory stays out of the plan
+* Insights
+    - The hook already exports `PYTHONPATH` for the parent. The gap was only the pytest process
