@@ -83,7 +83,7 @@ flowchart TD
 - [x] Restore every released migration as it shipped and create new warehouses from a frozen schema file in DuckDB 2.0's storage format with ZSTD on messages.text and tool_calls.tool_input
 - [x] Report warehouse file size, block use, reclaimable space, storage format, free disk, and an existing backup from stockroom doctor
 - [x] Build a verified newer-format copy of a warehouse without modifying the original
-- [ ] Run that copy under the writer flock with a time limit, first as a recorded rehearsal and later as a hard-link swap, and skip when the file is not ready
+- [x] Run that copy under the writer flock with a time limit, first as a recorded rehearsal and later as a hard-link swap, and skip when the file is not ready
 - [ ] Start the check from the Claude Code and Cursor session-start hooks
 
 ## Per-milestone done and risks

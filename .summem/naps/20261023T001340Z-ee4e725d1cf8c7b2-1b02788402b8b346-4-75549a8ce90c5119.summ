@@ -1,1 +1,0 @@
-storage_compatibility_version, even latest: 2nd plain in-process connect: ConnectionException. v1.0.0 stays v1.0.0+; 1.5.4 reads+writes. ce16489 no nanobind. SQL immutable; 0003 as shipped; no unrun version. INSTALL/LOAD vss, no autoload; kill after 0003: no vss; 0009 drops index
