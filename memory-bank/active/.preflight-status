@@ -1,0 +1,33 @@
+FAIL (fixable)
+
+Preflight of warehouse-file-growth milestone 5 (Level 3). The plan's scope, TDD order, and copy sequence hold. Catalog reads after `ATTACH` need a plan change before build, or a good copy fails closed.
+
+## Fixable finding
+
+`verify_copy` opens the sibling read-only and attaches the original. On that connection, `duckdb_tables()`, `duckdb_columns()`, `duckdb_constraints()`, and `duckdb_views()` return the sibling, the attached file, and the system database. The helpers in `tests/test_storage.py` filter `schema_name = 'main'` and do not filter `database_name`. Reusing them on the attached connection, which the plan's cross-module note calls for, rejects a good copy.
+
+Measured on DuckDB 2.0.0 in this checkout. The original was a `v1.0.0` chain file at schema 9, with message `e#0` written at version 1 and `l#0` written after version 9. The sibling was built from the schema file, then filled with `INSERT INTO ... BY NAME`.
+
+- `duckdb_tables() WHERE schema_name = 'main'` listed each of the six base tables twice. Walking that list deleted each table and inserted it twice, and the second insert raised `ConstraintException` on the `messages` primary key (`e#0`). Restricting the list to `database_name = current_database()` inserted once. `EXCEPT ALL` in both directions then returned no rows. The copy's version-9 filename was `0009_drop_vector_index.sql`. Neither file had a `.wal`. The original's SHA-256 was unchanged.
+- `_constraints` on the attached sibling connection returns 64 rows. The same helper on the original, opened alone, returns 32. Filtering to `database_name = current_database()` still fails a full-row compare: `constraint_index` for the same `messages` constraints is 38–43 on the attached sibling and 6–11 on the source. Type, text, columns, and name match. Called on each file with nothing attached, the helper matches in full, including `constraint_index`. That is the safe call for the equality test. It is the wrong call on the connection that has the other file attached.
+- `duckdb_columns()` on the attached connection reports 75 rows for the sibling, 75 for the source, and 150 for `system`.
+
+Plan change: name the filter and the constraint key. Base tables for the delete and insert come from `database_name = current_database()`. Constraint equality uses table, type, text, columns, and name. `constraint_index` stays out of any compare made while the other file is attached. The equality test can keep calling `_constraints`, `_tables_sql`, and `_introspect_schema` on two connections that have attached nothing.
+
+## Checks that held
+
+- Complexity is Level 3. Planning is complete. No creative phase was flagged, and no creative document is required.
+- Both executable units put stub tests, the stub interface, and the red run before production code. Nothing to strike and nothing to reorder.
+- `through` stays keyword-only. `apply_pending(con)` and `build_warehouse(dest)` stay valid for current callers. `create_warehouse` still calls `build_warehouse(temp)`, so the one-argument double in `test_create_warehouse_failure_leaves_no_warehouse` still fits.
+- Names, `CopyError(RuntimeError)`, the `NamedTuple` result, and the worker child that loads `vss` match `storage.py`, `warehouse.py`, and `tests/_warehouse_worker.py`.
+- A read-only open of a schema-8 file, in a process that has not loaded `vss`, leaves the SHA-256 unchanged and creates no `.wal`.
+- The two specified rows (`"early " * 40`, `"late " * 40`, and one small JSON object each) store as persistent zstd data segments on the copy: `messages.text` is `(VARCHAR, ZSTD)` and `tool_calls.tool_input` is `(JSON, ZSTD)`.
+- Table SQL matches once ` USING COMPRESSION ZSTD` is removed, including when the sibling side is read from the attached connection and filtered to the current database. View SQL differs: the `v2.0.0` file wraps the view's `LEFT JOIN` in an extra pair of parentheses. The plan already compares view columns and skips view SQL.
+
+## Advisory
+
+Read each file's catalog with nothing attached, and use the attached connection only for `EXCEPT ALL`.
+
+`read_catalog(path)` opens that one file read-only and returns columns in order, primary keys, non-primary indexes, constraints keyed by table, type, columns, and name, and view columns. `verify_copy` compares two of those results. A third connection attaches the original and runs `EXCEPT ALL`. The row copy takes its table list from `read_catalog` before `ATTACH`.
+
+Leave `duckdb_tables().sql` out of that catalog. The zstd segment check already proves compression. This checkout's view SQL shows that DuckDB rewrites statement text across storage versions. Today's table SQL matches after the zstd strip. A later rewrite of table text would delete a good sibling.

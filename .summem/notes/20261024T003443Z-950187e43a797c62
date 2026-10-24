@@ -1,0 +1,1 @@
+2026-10-23: Milestone 5 preflight FAIL fixable. Row copy filters duckdb_tables to the current database. Catalog helpers run with nothing attached, so constraint_index stays. Preflight rerun has not started.

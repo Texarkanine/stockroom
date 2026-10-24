@@ -10,7 +10,7 @@ Extend `stockroom.storage` so it can copy an existing warehouse into a verified 
 
 ### Copy order
 
-The order is the plan. Building the sibling at the storage version comes before any table exists, because the zstd clause fails on an old-format file. Migrating stops at the original's version, because a later migration would make the sibling's tables differ from the rows about to be inserted. Bookkeeping is replaced after that, because the schema file records its own row and equality includes `schema_version`. Verification uses a new read-only connection, because the connection that wrote the sibling is already closed.
+The order is the plan. Building the sibling at the storage version comes before any table exists, because the zstd clause fails on an old-format file. Migrating stops at the original's version, because a later migration would make the sibling's tables differ from the rows about to be inserted. Bookkeeping is replaced after that, because the schema file records its own row and equality includes `schema_version`. `EXCEPT ALL` uses a new read-only connection with the original attached, and only the current database's base tables. Schema and constraints are read from each file with nothing attached, because an attached file makes those helpers list both databases and shifts `constraint_index`.
 
 ```mermaid
 flowchart TD
@@ -19,7 +19,7 @@ flowchart TD
   build[Build the sibling from the schema file]
   bound[Migrate only through that version]
   rows[Replace bookkeeping and insert rows]
-  verify[Reopen read-only and compare]
+  verify[Compare rows attached and catalog alone]
   keep[Leave the sibling and return measurements]
   drop[Delete the sibling and raise]
   read -->|below the boundary| refuse
@@ -42,7 +42,7 @@ flowchart TD
 ### Cross-Module Dependencies
 - `copy_warehouse` → `build_warehouse` → `install_schema` and `apply_pending(through=original_version)`. The schema file already records version 9, so with the packaged chain and an original at version 9, `apply_pending` applies nothing.
 - `copy_warehouse` → a read-only `duckdb.connect` on the original to read `migrate.current_version`, then `ATTACH ? AS source (READ_ONLY)` from the sibling. Neither connection sets `storage_compatibility_version` on the original.
-- `verify_copy` → a new read-only connection on the sibling, with the original attached read-only. `EXCEPT ALL` runs once in each direction for every base table. Catalog checks reuse the helpers already in `tests/test_storage.py`.
+- `verify_copy` → one read-only connection on the sibling, with the original attached, used only for `EXCEPT ALL`. The table names come from `duckdb_tables()` where `database_name = current_database()` and `schema_name = 'main'`. Catalog checks open the original and the sibling separately, with nothing attached, and call the helpers already in `tests/test_storage.py`. Those helpers are not called on a connection that has the other file attached.
 - The worker → `apply_pending` and `LOAD vss`, in the child only. `0003` is the migration that needs `vss`. The worker checkpoints once, after version 9, when the index is already gone.
 
 ### Boundary Changes
@@ -55,10 +55,10 @@ flowchart TD
 - The sibling is `original.with_name("warehouse.copy.duckdb")`, so it is on the same filesystem. The call removes a leftover of that name and its `.wal` before building. It does not remove the original or any `warehouse.issue147-*.duckdb` backup.
 - The sibling is created at `STORAGE_VERSION` from the schema file, then closed with no `.wal`, then opened again with a plain `duckdb.connect` (no storage setting) for the row copy. A second connection in this process may set `storage_compatibility_version` only after the first connection is closed, and this second connection sets none.
 - Migrations `0001` through `0009` do not run on the sibling. The schema file is that schema. Only a migration whose version is greater than `SCHEMA_FILE_VERSION` and at most the original's version runs. This project has none.
-- Before insert, every base table on the sibling is emptied, including `schema_version`. Rows then come from the original with `INSERT INTO ... BY NAME SELECT *`. That drops a row a later migration might have seeded, and it copies `applied_at` rather than stamping a new time.
+- Before insert, every base table on the sibling is emptied, including `schema_version`. The table list is `duckdb_tables()` filtered to `database_name = current_database()` and `schema_name = 'main'`. After `ATTACH`, that view also lists the original and the system database; walking the unfiltered list inserts each table twice and the second insert hits the primary key. Rows then come from the original with `INSERT INTO ... BY NAME SELECT *`. That drops a row a later migration might have seeded, and it copies `applied_at` rather than stamping a new time.
 - Verification failure raises `CopyMismatch` and deletes the sibling and its `.wal`. The original stays. Success leaves the sibling and returns `CopyResult(path, original_bytes, copy_bytes, build_seconds, verify_seconds)`.
 - An original whose `current_version` is below `FORMAT_BOUNDARY` raises `CopyError` before any sibling is created.
-- Catalog equality allows the zstd clause in `duckdb_tables().sql`. It does not compare `duckdb_views().sql`: a `v1.0.0` file reloads the view with different parentheses than a `v2.0.0` file. Column lists, constraints, and view columns are compared.
+- Catalog equality is read from each file with nothing attached. It allows the zstd clause in `duckdb_tables().sql`. It does not compare `duckdb_views().sql`: a `v1.0.0` file reloads the view with different parentheses than a `v2.0.0` file. Column lists, the full constraint rows (including `constraint_index`), and view columns are compared. `constraint_index` shifts while the other file is attached, so no constraint compare runs on that connection.
 - Zstd is read from data segments of `messages.text` and `tool_calls.tool_input` (`segment_type != 'VALIDITY'`). The fixture has a row in each column, so each check expects `ZSTD`.
 - The copy is not `COPY FROM DATABASE`. On DuckDB 2.0.0 that stores `messages.text` as `DICT_FSST`.
 - No test opens the live warehouse. The fixture file is a temp path. The schema-8 refuse test never runs `CHECKPOINT`, because that file still has the HNSW index.
@@ -75,7 +75,7 @@ None - implementation approach is clear.
 - `build_warehouse(dest, through=9)` while `migrations_dir` points at a folder that contains the packaged migrations plus `0010_m10.sql` → bookkeeping is only `(9, 'schema_0009.sql')`, and `sessions` has no `m10` column. The existing unbounded `build_warehouse(dest)` test still applies `0010`.
 - Two-generation `v1.0.0` file at the head, rows `e#0` written at version 1 and `l#0` written after version 9, plus a `warehouse.issue147-swap.duckdb` sibling with known bytes → `copy_warehouse` returns the path `warehouse.copy.duckdb` in that directory. The original's SHA-256 and `v1.0.0+` tag are unchanged. The backup's bytes are unchanged. Neither file has a new `.wal`. The sibling exists, has no `.wal`, has tag `v2.0.0+`, and contains both `e#0` and `l#0`.
 - That same pair → for every base table, both `EXCEPT ALL` directions return no rows, including `schema_version` (`applied_at` included). The copy's version-9 filename is the original's migration name, not `schema_0009.sql`.
-- That same pair → introspected columns, primary keys, and non-primary indexes match; constraints match; table SQL matches once ` USING COMPRESSION ZSTD` is removed; the view name `session_token_usage` matches and its columns match. View SQL text is not an assertion.
+- That same pair, each file opened read-only with nothing attached → introspected columns, primary keys, and non-primary indexes match; the full constraint rows match, including `constraint_index`; table SQL matches once ` USING COMPRESSION ZSTD` is removed; the view name `session_token_usage` matches and its columns match. View SQL text is not an assertion. The helpers are not called on the connection that has the other file attached.
 - That same sibling → `messages.text` data segments are `(VARCHAR, ZSTD)` and `tool_calls.tool_input` data segments are type `VARCHAR` or `JSON` with compression `ZSTD`.
 - Returned `original_bytes` and `copy_bytes` equal the two files' sizes. `build_seconds` and `verify_seconds` are `>= 0`.
 - After a successful copy, delete `l#0` from the sibling, checkpoint, and close → `verify_copy` raises `CopyMismatch`. The original's SHA-256 is unchanged.
@@ -117,14 +117,14 @@ None - implementation approach is clear.
 3. Write tests and run red:
     - Worker command `build_generations <db> <scratch>`: connect at storage `v1.0.0`; apply the packaged chain through version 1; insert message `e#0` with text `"early " * 40` and a `tool_calls` row whose `tool_input` is `{"path": "/tmp/early"}`; load `vss`; apply the chain through version 9; insert message `l#0` with text `"late " * 40` and tool input `{"path": "/tmp/late"}`; `CHECKPOINT`; close; print `built`. Do not checkpoint while the HNSW index exists. Export `EARLY_ID` and `LATE_ID`.
     - Conftest helper, same cache-and-copy shape as `released_chain_file`: one session template, each test gets its own file. The helper's name is `generations_file`.
-    - Fill the assertions listed under Behaviors. The catalog helpers already in `test_storage.py` stay the ones the equality test calls. The schema-8 file comes from `released_chain_file(8)` and the test never checkpoints it. The `0010` copy test uses `released_chain_file(9, rows=1)` and the same `migrations_dir` monkeypatch as `test_build_warehouse_applies_later_migrations`.
+    - Fill the assertions listed under Behaviors. The equality test calls `_introspect_schema`, `_constraints`, and `_tables_sql` on two connections that have attached nothing. The schema-8 file comes from `released_chain_file(8)` and the test never checkpoints it. The `0010` copy test uses `released_chain_file(9, rows=1)` and the same `migrations_dir` monkeypatch as `test_build_warehouse_applies_later_migrations`.
     - Run the new tests. They fail because the new functions raise `NotImplementedError`.
 4. Write code and run green:
     - `build_warehouse` passes `through` to `apply_pending`.
     - `copy_warehouse` reads `current_version` on a read-only connection and closes it. Below `FORMAT_BOUNDARY`, raise `CopyError` and create nothing.
     - Remove a leftover `COPY_FILENAME` and its `.wal`. `build_warehouse(temp, through=version)`. Time that build, including the row copy that follows.
-    - Plain-connect the sibling. `ATTACH ? AS source (READ_ONLY)` with the original path. `DELETE` every base table, then `INSERT INTO table BY NAME SELECT * FROM source.table`. `CHECKPOINT`, close, require no `.wal`, `_fsync` the sibling.
-    - `verify_copy` opens the sibling read-only, attaches the original read-only, and raises `CopyMismatch` when either `EXCEPT ALL` direction, the introspected schema, the constraints, the zstd-stripped table SQL, the view name, or the view columns differ. It checks the two zstd data segments. It does not compare view SQL text.
+    - Plain-connect the sibling. `ATTACH ? AS source (READ_ONLY)` with the original path. Take base-table names from `duckdb_tables()` where `database_name = current_database()` and `schema_name = 'main'`. `DELETE` each of those tables, then `INSERT INTO table BY NAME SELECT * FROM source.table`. `CHECKPOINT`, close, require no `.wal`, `_fsync` the sibling.
+    - `verify_copy` raises `CopyMismatch` when either `EXCEPT ALL` direction differs, or when the unattached catalogs differ. `EXCEPT ALL` runs on a read-only connection to the sibling with the original attached, over the current-database base tables only. Schema, constraints, zstd-stripped table SQL, the view name, and view columns are read by opening each file with nothing attached. The two zstd data segments are read from the sibling on that unattached connection. View SQL text is not compared. `constraint_index` is compared only on those unattached connections.
     - On `CopyMismatch` or any other failure after the sibling is created, `_remove_temp` and re-raise. On success, return `CopyResult` with both sizes and both durations. Do not rename the sibling onto the original, do not delete a backup, and do not take the flock.
     - Extend the module docstring's "this module owns" list with the copy. Do not edit `docs/` or `memory-bank/systemPatterns.md`: `open()` still does not convert an existing file, and nothing a user can run calls the copy yet.
 
@@ -138,6 +138,7 @@ Confirmed in this checkout on DuckDB 2.0, on temp files only, while writing this
 
 - `0003` needs `vss`, and this process must not load it. The generations file is built in the worker. The schema-8 refuse test only reads the file and never checkpoints it.
 - `build_warehouse` closes the storage-setting connection before the row-copy connection opens, and the row-copy connection sets no storage version. The planning probe is the sequence the code uses.
+- After `ATTACH`, `duckdb_tables()` lists the sibling and the original. The row copy and `EXCEPT ALL` take names only from `database_name = current_database()`. Catalog helpers run on connections that have attached nothing, where the full constraint rows match. They are not used on the attached connection, where `constraint_index` shifts.
 - The schema file's bookkeeping row would fail `EXCEPT ALL`. The row copy deletes `schema_version` and inserts the original's rows.
 - A migration past version 9 could add a column or seed a row. `through` stops the column case, and the `0010` tests lock it. `DELETE` before `INSERT` drops a seed; the patched-`build_warehouse` test locks that.
 - View SQL differs by parentheses across storage versions. Verification compares view columns and does not compare `duckdb_views().sql`.

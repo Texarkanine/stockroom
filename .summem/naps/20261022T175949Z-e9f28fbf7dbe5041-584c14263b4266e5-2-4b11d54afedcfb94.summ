@@ -1,1 +1,0 @@
-Identical vectors are common (150 at distance 0), so exact search breaks top-k ties by harness, then id. SET enable_progress_bar = false to parse DuckDB query stdout. 2.0.0 embed/semantic leaks nanobind at exit: the Hub filter pins stockroom.embed; remove it after model load.

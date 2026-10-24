@@ -28,3 +28,26 @@ Extend the milestone 3 warehouse builder so it can copy an existing warehouse in
 * Insights
     - One long `VARCHAR` row and one small `JSON` row store as persistent `ZSTD` when the table was created with the clause
     - A `v1.0.0` file and a `v2.0.0` file reload the same view with different parentheses, so view SQL is the wrong equality check
+
+## 2026-10-23 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Ran Level 3 preflight on the verified newer-format copy
+    - First line of `.preflight-status` is `FAIL (fixable)`
+* Decisions made
+    - The plan changes before build: catalog reads after `ATTACH` must filter to the current database, and constraint equality must ignore `constraint_index` while the other file is attached
+* Insights
+    - On DuckDB 2.0.0, `duckdb_tables()` after `ATTACH` lists every base table twice, and the second `INSERT BY NAME` hits the primary key
+    - `constraint_index` shifts once the other file is attached; the same helper matches in full when each file is opened alone
+    - The specified two-row fixture stores `messages.text` as `(VARCHAR, ZSTD)` and `tool_calls.tool_input` as `(JSON, ZSTD)`
+
+## 2026-10-23 - PLAN - COMPLETE
+
+* Work completed
+    - Revised the copy plan for the fixable preflight finding
+* Decisions made
+    - `DELETE`, `INSERT`, and `EXCEPT ALL` take base-table names from `database_name = current_database()`
+    - `_introspect_schema`, `_constraints`, and `_tables_sql` run on two connections that have attached nothing. The full constraint rows, including `constraint_index`, are the compare
+    - The advisory `read_catalog` helper is not added. Table SQL stays in the compare, with the zstd clause removed
+* Insights
+    - Preflight copied the two-generation fixture on DuckDB 2.0.0. Both `EXCEPT ALL` directions were empty once the table list was filtered, and the copy's version-9 filename was `0009_drop_vector_index.sql`
