@@ -15,3 +15,13 @@ Run the verified copy under the writer flock, with a time limit, as one check pa
     - Did not split the milestone. The plan says to split into a rehearsal milestone and a swap milestone only if classification comes out above Level 3
 * Insights
     - Milestone 7 is what turns the pass on. This sub-run leaves it dormant
+
+## 2026-10-24 - CREATIVE - COMPLETE
+
+* Work completed
+    - Chose the check pass time limit
+* Decisions made
+    - The alarm ceiling is 4 hours (`14400` seconds). `run_check` does not set the alarm. The entry point does, with the default terminate action
+* Insights
+    - The ceiling is for a stuck pass. A healthy copy releases the flock when it finishes
+    - Overrun is final, so a short ceiling is the outcome that needs a person
