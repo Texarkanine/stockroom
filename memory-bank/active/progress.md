@@ -59,3 +59,18 @@ Start the check from the Claude Code and Cursor session-start hooks. Session sta
 * Insights
     - `resolve_home()` returns `(Path, str)`. `launch` and `entry` take the path
     - After unit 1, the new-install proof is already green. Unit 3 does not go red
+
+## 2026-10-24 - BUILD - COMPLETE
+
+* Work completed
+    - Added `launch` and `main` in front of `entry`
+    - Started that module from both session-start hooks, after the dashboard
+    - Proved a swapped record does not build, a missing home stays missing, and an empty install records `already-new`
+    - Updated the hook descriptions
+* Decisions made
+    - The no-argument home is `resolve_home()[0]`
+    - The DuckDB-import advisory stayed out. `entry` and `run_check` are unchanged
+    - The engine suite skipped `tests/test_coverage_collection.py` so the coverage sync would not remove torch
+* Insights
+    - `stockroom check` was already an unknown command, so that lock test was green before the launch existed
+    - The empty-install proof was green on the first run. No production change was required for it

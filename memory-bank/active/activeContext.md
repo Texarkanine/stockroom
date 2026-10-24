@@ -1,14 +1,30 @@
 # Active Context
 
 ## Current Task: warehouse-file-growth, milestone 7 (session-start launch)
-**Phase:** BUILD - IN-PROGRESS
+**Phase:** BUILD - COMPLETE
 
 ## What Was Done
-- Classified milestone 7 as Level 2
-- Revised the plan after a fixable preflight failure
-- Tests that wait on `launch` set `PYTHONPATH` to the engine `src` directory. `launch` inherits that environment
-- Unit 4 also updates `docs/user-guide/load/schedule.md` and `docs/user-guide/installed-layout.md`
-- The DuckDB-import advisory stays out of the plan. `entry` and `run_check` stay unchanged
+- `launch` spawns `python -m stockroom.check --foreground` in a new session with discarded standard streams, and returns without waiting
+- Only the child calls `entry`. An omitted home is `resolve_home()`'s path, not the `(path, source)` tuple
+- Both session-start hooks run that module after `stockroom dashboard`. `beforeSubmitPrompt` does not
+- `stockroom check` stays an unknown command
+- The user-guide and architecture hook descriptions say session start rehearses, then later replaces the warehouse and keeps the original
+
+## Files
+- `/home/mobaxterm/git/stockroom/skills/sr-search/src/stockroom/check.py`
+- `/home/mobaxterm/git/stockroom/skills/sr-search/tests/test_check.py`
+- `/home/mobaxterm/git/stockroom/skills/sr-search/tests/test_dispatcher_cli.py`
+- `/home/mobaxterm/git/stockroom/skills/sr-search/tests/test_packaging.py`
+- `/home/mobaxterm/git/stockroom/hooks/claude-hooks.json`
+- `/home/mobaxterm/git/stockroom/hooks/cursor-hooks.json`
+- `/home/mobaxterm/git/stockroom/docs/user-guide/troubleshooting/index.md`
+- `/home/mobaxterm/git/stockroom/docs/user-guide/quickstart.md`
+- `/home/mobaxterm/git/stockroom/docs/user-guide/dashboard.md`
+- `/home/mobaxterm/git/stockroom/docs/user-guide/load/schedule.md`
+- `/home/mobaxterm/git/stockroom/docs/user-guide/installed-layout.md`
+- `/home/mobaxterm/git/stockroom/docs/architecture/lifecycle.md`
+- `/home/mobaxterm/git/stockroom/docs/architecture/index.md`
+- `/home/mobaxterm/git/stockroom/memory-bank/systemPatterns.md`
 
 ## Next Step
-- Implement the detached launch, then the hook commands, then the prose
+- QA review

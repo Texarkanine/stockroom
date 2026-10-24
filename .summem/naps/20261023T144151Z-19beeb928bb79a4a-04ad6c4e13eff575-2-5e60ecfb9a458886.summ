@@ -1,1 +1,0 @@
-Full pytest drops torch via test_coverage_collection make coverage-engine exact sync. Later: No module named torch.distributed; ensure-env, then rerun. Zstd check: filter persistent or no .wal. Replayed rows persistent=false Uncompressed; persistent segments are ZSTD.

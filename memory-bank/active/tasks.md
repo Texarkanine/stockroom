@@ -125,8 +125,8 @@ No new technology - validation not required
 - [x] Pre-Mortem complete
 - [x] Preflight
 - [x] Unit 1 detached launch
-- [ ] Unit 2 session-start commands
-- [ ] Unit 3 new-install proof
-- [ ] Unit 4 hook description
-- [ ] Build
+- [x] Unit 2 session-start commands
+- [x] Unit 3 new-install proof
+- [x] Unit 4 hook description
+- [x] Build
 - [ ] QA

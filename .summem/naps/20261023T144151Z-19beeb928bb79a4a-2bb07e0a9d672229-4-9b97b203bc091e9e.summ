@@ -1,0 +1,1 @@
+Skip test_coverage_collection to keep torch; its coverage-engine sync removes torch. Zstd: filter persistent or no .wal; replayed rows persistent=false Uncompressed; persistent segments ZSTD. Puck 09ea4ae: copy stayed v1.0.0+, no index; 1.5.4 wrote, 2.0.0 read; inode unchanged.

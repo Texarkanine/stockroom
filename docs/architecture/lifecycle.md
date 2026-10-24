@@ -15,20 +15,21 @@ Harness session-start hooks are designed to be:
 - **Concurrent** — multiple harness sessions may start at once; hooks must not assume exclusive ownership of the machine.
 - **Fault-tolerant** — wrapped so a bad heal or busy port cannot take down session start (`|| true` / equivalent).
 
-Hooks are short-budget work. Session-start hook commands carry an explicit timeout (hundreds of seconds, not “as long as ETL needs”). Anything that can run for minutes does not belong on session start.
+Hooks are short-budget work. Session-start hook commands carry an explicit timeout (hundreds of seconds, not “as long as ETL needs”). The hook command itself returns at once. A detached child may run for minutes. Ingest and embed do not belong on session start.
 
 ### Session start
 
-On session start, Stockroom does two things through the shim:
+On session start, Stockroom does three things:
 
 1. **`shim rectify`** — heal the on-path shim and ensure the engine environment (see [Heal](packaging.md#heal) and [The stockroom shim](packaging.md#the-stockroom-shim)).
-2. **`stockroom dashboard`** — launch (or re-print) the local dashboard URL.
+2. **`stockroom dashboard`** — launch (or re-print) the local dashboard URL. This command goes through the on-path shim.
+3. **The check** — `"$PY" -m stockroom.check` on the same interpreter as rectify. The child is detached. The hook does not wait for the check. The check is not an on-path `stockroom` command.
 
-Session start does **not** ingest, embed, or migrate as its primary work. Those are heavier, longer, and already owned by the schedule and explicit CLI/skill paths. Putting them on the hook would fight timeout limits and turn every new chat into an inelegant ETL termination race.
+The check can run for a long time in the child. The hook starts the child and returns. Session start does **not** ingest, embed, or migrate as its primary work. Those are heavier, longer, and already owned by the schedule and explicit CLI/skill paths. Putting them on the hook would fight timeout limits and turn every new chat into an inelegant ETL termination race.
 
 ### Cursor beforeSubmitPrompt suspenders
 
-On Cursor, `sessionStart` has been observed to miss on some macOS setups. Cursor also registers a trimmed **`beforeSubmitPrompt`** hook that must never block prompt send: it emits `{"continue":true}` immediately, then backgrounds a **path-only** `shim rectify --path-only` (create/rebake the on-path shim; **skip** `ensure-env`). Full ensure + dashboard launch stay on `sessionStart` only. Claude Code does not get this suspenders event.
+On Cursor, `sessionStart` has been observed to miss on some macOS setups. Cursor also registers a trimmed **`beforeSubmitPrompt`** hook that must never block prompt send: it emits `{"continue":true}` immediately, then backgrounds a **path-only** `shim rectify --path-only` (create/rebake the on-path shim; **skip** `ensure-env`). Full ensure, the dashboard launch, and the detached check stay on `sessionStart` only. `beforeSubmitPrompt` does not start the check. Claude Code does not get this suspenders event.
 
 ## Scheduled ingest and embed
 

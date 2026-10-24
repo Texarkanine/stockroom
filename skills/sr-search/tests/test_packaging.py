@@ -165,7 +165,8 @@ def _assert_combined_rectify_then_dashboard(
     dashboard_at = cmd.find("stockroom dashboard")
     assert 0 <= rectify_at < dashboard_at, "rectify must precede dashboard launch"
     rectify_half = cmd[:dashboard_at]
-    launch_half = cmd[dashboard_at:]
+    semicolon = cmd.find(";", dashboard_at)
+    launch_half = cmd[dashboard_at:] if semicolon < 0 else cmd[dashboard_at:semicolon]
     assert "uv run" not in rectify_half, "rectify must not use uv run --no-sync"
     assert "uv run" not in launch_half
     assert "PYTHONPATH=" not in launch_half
@@ -176,6 +177,16 @@ def _assert_combined_rectify_then_dashboard(
     else:
         assert "2>&1" not in cmd, "Cursor hook must leave stderr visible"
     assert "|| true" in cmd, "hook must never fail the triggering event"
+
+
+def _assert_detached_check(cmd: str) -> None:
+    """Session start runs the check after the dashboard, without ``uv run``."""
+    token = 'PYTHONPATH="$APP/src" "$PY" -m stockroom.check'
+    check_at = cmd.find(token)
+    dashboard_at = cmd.find("stockroom dashboard")
+    rectify_at = cmd.find("shim rectify")
+    assert check_at > dashboard_at > rectify_at >= 0
+    assert "uv run" not in cmd[dashboard_at:]
 
 
 def test_cursor_hook_schema_and_combined_command(cursor_hooks: dict) -> None:
@@ -210,6 +221,7 @@ def test_cursor_hook_schema_and_combined_command(cursor_hooks: dict) -> None:
         owner="cursor",
         silence_stderr=False,
     )
+    _assert_detached_check(cmd)
 
 
 def test_cursor_beforesubmit_path_only_suspenders(cursor_hooks: dict) -> None:
@@ -243,6 +255,7 @@ def test_cursor_beforesubmit_path_only_suspenders(cursor_hooks: dict) -> None:
     assert "stockroom dashboard" not in cmd, "dashboard stays on sessionStart only"
     assert "&" in cmd, "rectify work must be backgrounded after continue"
     assert "|| true" in cmd, "hook must never fail the triggering event"
+    assert "stockroom.check" not in cmd
 
 
 def test_claude_hook_schema_and_combined_command(claude_hooks: dict) -> None:
@@ -262,6 +275,7 @@ def test_claude_hook_schema_and_combined_command(claude_hooks: dict) -> None:
         owner="claude",
         silence_stderr=True,
     )
+    _assert_detached_check(cmd)
 
 
 def test_release_config_syncs_both_manifests(release_config: dict) -> None:

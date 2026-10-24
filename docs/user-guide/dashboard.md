@@ -25,7 +25,7 @@ http://127.0.0.1:58008/
 
 The server is idempotent: if something is already listening on the port, the command still prints the URL and exits cleanly.
 
-Session-start hooks also attempt to launch the dashboard automatically when plugin hooks are registered.
+Session-start hooks also attempt to launch the dashboard automatically when plugin hooks are registered, and those hooks start the detached warehouse check. The hook does not wait for the check.
 
 ## What you see
 
@@ -71,7 +71,7 @@ http://127.0.0.1:58008/?view=session&harness={harness}&session={session_id}#msg-
 
 ## Lifecycle notes
 
-- After a plugin update moves the engine path, harness hooks are what rebake the on-path shim (they know the plugin root). Cursor also runs a non-blocking path-only `shim rectify` on each prompt submit as suspenders when `sessionStart` misses (common on some macOS Cursor setups); full ensure + dashboard launch still belong to session start.
+- After a plugin update moves the engine path, harness hooks are what rebake the on-path shim (they know the plugin root). Cursor also runs a non-blocking path-only `shim rectify` on each prompt submit as suspenders when `sessionStart` misses (common on some macOS Cursor setups). Full ensure, the dashboard launch, and the detached warehouse check belong to session start. `beforeSubmitPrompt` does not start the check.
 - If a document request cannot be served as real UI, the listener may return a short **recovery HTML** page (instead of bare JSON) with a few starting steps and a link into troubleshooting. Many causes are possible — [Dashboard UI will not load](troubleshooting/index.md#dashboard-ui-will-not-load).
 - Port conflicts and auto-start misses: [Troubleshooting > Dashboard](troubleshooting/index.md#dashboard).
 

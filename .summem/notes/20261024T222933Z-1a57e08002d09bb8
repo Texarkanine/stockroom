@@ -1,0 +1,1 @@
+2026-10-24: Milestone 7 build: session-start hooks run python -m stockroom.check after dashboard. QA has not run.

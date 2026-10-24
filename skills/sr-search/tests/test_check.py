@@ -18,7 +18,9 @@ import duckdb
 import pytest
 
 from _warehouse_worker import EARLY_ID, LATE_ID
-from stockroom import check, doctor, migrate, storage, warehouse
+from conftest import FakeEncoder
+from stockroom import check, doctor, embed, migrate, semantic, storage, warehouse
+from stockroom.ingest.__main__ import main as ingest_main
 
 
 def test_no_record_chooses_phase_a() -> None:
@@ -844,3 +846,28 @@ def test_main_without_flags_launches_and_does_not_enter(
     monkeypatch.setattr(check, "entry", fake_entry)
     assert check.main([]) == 0
     assert launched == [tmp_path]
+
+
+def test_new_install_records_already_new(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An empty install ingests, answers, and the launched check builds nothing."""
+    home = tmp_path / "home"
+    roots = tmp_path / "roots"
+    home.mkdir()
+    for name in ("cursor", "chats", "claude"):
+        (roots / name).mkdir(parents=True)
+    monkeypatch.setenv("STOCKROOM_HOME", str(home))
+    monkeypatch.setenv("STOCKROOM_CURSOR_ROOT", str(roots / "cursor"))
+    monkeypatch.setenv("STOCKROOM_CURSOR_CHATS_ROOT", str(roots / "chats"))
+    monkeypatch.setenv("STOCKROOM_CLAUDE_ROOT", str(roots / "claude"))
+    monkeypatch.setenv("STOCKROOM_AI_TRACKING_DB", str(roots / "missing.db"))
+    _set_child_pythonpath(monkeypatch)
+    assert ingest_main([]) == 0
+    assert (home / warehouse.WAREHOUSE_FILENAME).is_file()
+    assert embed.main([], encoder_factory=FakeEncoder) == 0
+    assert semantic.main(["hello"], encoder_factory=FakeEncoder) == 0
+    proc = check.launch(home)
+    assert proc.wait(timeout=60) == 0
+    assert check.load_record(home)["status"] == "already-new"
+    assert not (home / storage.COPY_FILENAME).exists()

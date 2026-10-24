@@ -151,7 +151,7 @@ Third-party plugins setting ([Quickstart](#cursor-hooks--auto-dashboard-never-fi
 
 ## Warehouse
 
-`warehouse.issue147-swap.duckdb` is the warehouse from before a check replaced the file. Stockroom does not delete this file.
+Session start runs this check. The first run rehearses a copy of the warehouse and deletes that copy. A later session start replaces `warehouse.duckdb` with a verified copy and keeps the original as `warehouse.issue147-swap.duckdb`. Stockroom does not delete this file.
 
 To put that warehouse back in place:
 
