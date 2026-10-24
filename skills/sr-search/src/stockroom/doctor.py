@@ -9,9 +9,10 @@ both constitutionally read-only (they never install, sync, or write):
   *reported fact*, never an error), torch import state, the engine
   directory, the resolved warehouse home / how it was chosen
   (``home`` / ``home-source``), and warehouse storage (file size, block
-  use, a reclaimable estimate, the storage format, free disk, and an
-  existing swap backup). Facts only — the torch-wheel recommendation
-  mapping is judgment and lives in the ``sr-initialize`` skill prose.
+  use, a reclaimable estimate, the storage format, free disk, an
+  existing swap backup, and the check outcome). Facts only — the
+  torch-wheel recommendation mapping is judgment and lives in the
+  ``sr-initialize`` skill prose.
   Storage facts never create or migrate a warehouse.
 * ``smoke`` — the loud-failing torch/encoder verification: prints
   ``torch.__version__`` and ``torch.cuda.is_available()``, then encodes one
@@ -171,26 +172,32 @@ def storage_facts(
 ) -> list[tuple[str, str]]:
     """Return read-only storage facts for the warehouse under ``home``.
 
-    Does not create the home, the warehouse file, or the lock file, and
-    does not migrate. A missing home or a missing warehouse file is
-    ``warehouse: absent`` and ``connect`` is not called. A held writer
-    flock is ``warehouse: busy`` and ``connect`` is not called. A connect
-    or pragma failure on an existing file is ``warehouse: unavailable``.
-    ``disk-free`` is always present. The swap backup is reported only
-    when :data:`SWAP_BACKUP_FILENAME` is a file in ``home``.
+    Does not create the home, the warehouse file, the lock file, or the
+    check record, and does not migrate. A missing home or a missing
+    warehouse file is ``warehouse: absent`` and ``connect`` is not called.
+    A held writer flock is ``warehouse: busy`` and ``connect`` is not
+    called. A connect or pragma failure on an existing file is
+    ``warehouse: unavailable``. ``disk-free`` is always present. The swap
+    backup is reported only when :data:`SWAP_BACKUP_FILENAME` is a file in
+    ``home``. Every return includes the read-only ``check`` fact.
 
     ``connect`` is ``duckdb.connect`` unless a test injects a substitute.
     """
+    from stockroom.check import check_line
+
+    def with_check(facts: list[tuple[str, str]]) -> list[tuple[str, str]]:
+        return [*facts, ("check", check_line(home))]
+
     disk_free = ("disk-free", str(_disk_free(home)))
     backup = _backup_facts(home)
     warehouse_file = home / WAREHOUSE_FILENAME
     if not home.is_dir() or not warehouse_file.is_file():
-        return [("warehouse", "absent"), disk_free, *backup]
+        return with_check([("warehouse", "absent"), disk_free, *backup])
 
     size = warehouse_file.stat().st_size
     stat_facts = [("warehouse-bytes", str(size)), disk_free, *backup]
     if _writer_lock_busy(home / LOCK_FILENAME):
-        return [("warehouse", "busy"), *stat_facts]
+        return with_check([("warehouse", "busy"), *stat_facts])
 
     try:
         con = connect(str(warehouse_file), read_only=True)
@@ -211,18 +218,20 @@ def storage_facts(
         finally:
             con.close()
     except Exception:
-        return [("warehouse", "unavailable"), *stat_facts]
+        return with_check([("warehouse", "unavailable"), *stat_facts])
 
-    return [
-        ("warehouse", str(warehouse_file)),
-        ("warehouse-bytes", str(size)),
-        ("blocks-used", str(int(used))),
-        ("blocks-free", str(int(free))),
-        ("reclaimable-bytes", str(reclaimable)),
-        ("storage", str(storage)),
-        disk_free,
-        *backup,
-    ]
+    return with_check(
+        [
+            ("warehouse", str(warehouse_file)),
+            ("warehouse-bytes", str(size)),
+            ("blocks-used", str(int(used))),
+            ("blocks-free", str(int(free))),
+            ("reclaimable-bytes", str(reclaimable)),
+            ("storage", str(storage)),
+            disk_free,
+            *backup,
+        ]
+    )
 
 
 def _run_nvidia_smi(args: list[str]) -> str:
@@ -390,7 +399,7 @@ def _build_parser() -> argparse.ArgumentParser:
             "probe: report torch-free environment facts (OS, arch, GPU, driver,\n"
             "torch state) and warehouse storage facts: file size, used blocks,\n"
             "free blocks, the reclaimable estimate, the storage format, free disk,\n"
-            "and backup.\n"
+            "backup, and the check outcome.\n"
             "smoke: verify the provisioned torch + encoder path, failing loudly."
         ),
     )

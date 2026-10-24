@@ -149,6 +149,17 @@ When `stockroom --version` works but the UI looks stale, try `stockroom dashboar
 
 Third-party plugins setting ([Quickstart](#cursor-hooks--auto-dashboard-never-fire) above). If that is already on and nothing seems to auto-heal, the [Dashboard UI will not load](#dashboard-ui-will-not-load) checklist is the next place to look.
 
+## Warehouse
+
+`warehouse.issue147-swap.duckdb` is the warehouse from before a check replaced the file. Stockroom does not delete this file.
+
+To put that warehouse back in place:
+
+1. Stop writers before you rename the files. Do not run ingest, embed, or the nightly job during the rename.
+2. Run `stockroom doctor probe` and read the backup path.
+3. In that same directory, rename `warehouse.duckdb` to a name of your own.
+4. Rename the backup file to `warehouse.duckdb`.
+
 ## Still stuck
 
 - Ask the agent with `/sr-search` (or Claude `/stockroom:sr-search`) and describe the error text — [Skill index](../skills.md).

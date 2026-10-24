@@ -123,5 +123,6 @@ def test_help_documents_both_actions() -> None:
         "storage format",
         "free disk",
         "backup",
+        "check",
     ):
         assert phrase in result.stdout, phrase

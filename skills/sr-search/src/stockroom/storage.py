@@ -376,13 +376,17 @@ def _catalog(con: duckdb.DuckDBPyConnection) -> dict[str, list]:
     }
 
 
-def _require_zstd(con: duckdb.DuckDBPyConnection) -> None:
-    """Require zstd data segments on the two large columns.
+def large_column_zstd_problem(con: duckdb.DuckDBPyConnection) -> str | None:
+    """Return why the two large columns are not stored as zstd, or ``None``.
 
-    An empty column has no data segment and passes. A populated column must
-    have at least one, and every data segment must be zstd. Validity segments
-    stay uncompressed under zstd, so they are excluded. Only persistent
-    segments count.
+    ``None`` means both columns pass. An empty column has no data segment
+    and passes. A populated column with no persistent data segment returns
+    ``"{table}.{column} has rows and no zstd data segment"``. A persistent
+    non-validity segment outside the type allow-list, or not compressed
+    with ``ZSTD``, returns
+    ``"{table}.{column} stored as ({segment_type}, {compression})"``.
+    ``messages.text`` allows ``VARCHAR``. ``tool_calls.tool_input`` allows
+    ``VARCHAR`` or ``JSON``.
     """
     specs = (
         ("messages", "text", {"VARCHAR"}),
@@ -400,12 +404,22 @@ def _require_zstd(con: duckdb.DuckDBPyConnection) -> None:
             [column],
         ).fetchall()
         if populated and not segments:
-            raise CopyMismatch(f"{table}.{column} has rows and no zstd data segment")
+            return f"{table}.{column} has rows and no zstd data segment"
         for segment_type, compression in segments:
             if segment_type not in types or compression != "ZSTD":
-                raise CopyMismatch(
-                    f"{table}.{column} stored as ({segment_type}, {compression})"
-                )
+                return f"{table}.{column} stored as ({segment_type}, {compression})"
+    return None
+
+
+def _require_zstd(con: duckdb.DuckDBPyConnection) -> None:
+    """Raise :class:`CopyMismatch` when the two large columns are not zstd.
+
+    The message is the one :func:`large_column_zstd_problem` returns.
+    ``None`` raises nothing.
+    """
+    problem = large_column_zstd_problem(con)
+    if problem is not None:
+        raise CopyMismatch(problem)
 
 
 def _quote_ident(name: str) -> str:

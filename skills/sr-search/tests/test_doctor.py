@@ -22,7 +22,7 @@ from pathlib import Path
 import duckdb
 import pytest
 
-from stockroom import doctor, migrate, warehouse
+from stockroom import check, doctor, migrate, warehouse
 from stockroom.embed import EMBED_DIM
 from stockroom.shim import default_app_dir
 
@@ -528,6 +528,126 @@ def test_format_facts_renders_key_value_lines() -> None:
     assert lines[0].endswith("Linux")
     assert lines[1].startswith("gpu-compute-cap:")
     assert lines[1].endswith("6.1")
+
+
+def test_check_absent_when_no_record(tmp_path: Path) -> None:
+    """No check record is the check value absent."""
+    home = tmp_path / "home"
+    home.mkdir()
+    assert _storage(home)["check"] == "absent"
+
+
+def test_check_rehearsed_line_names_the_measurement_and_path(tmp_path: Path) -> None:
+    """A rehearsed record is one line with the status, a measurement, and the path."""
+    home = tmp_path / "home"
+    home.mkdir()
+    record_path = home / check.CHECK_RECORD_FILENAME
+    check.write_record(
+        home,
+        {"check_version": 1, "status": "rehearsed", "original_bytes": 100},
+    )
+    value = _storage(home)["check"]
+    assert "\n" not in value
+    assert "rehearsed" in value
+    assert "original_bytes" in value
+    assert str(record_path) in value
+
+
+def test_check_started_inside_the_limit_says_running(tmp_path: Path) -> None:
+    """A started entry still inside its limit says running, not crash."""
+    home = tmp_path / "home"
+    home.mkdir()
+    moment = 1_000_000.0
+    check.write_record(
+        home,
+        {
+            "check_version": 1,
+            "status": "started",
+            "started_at": moment,
+            "limit_seconds": 14_400,
+        },
+    )
+    value = check.check_line(home, now=lambda: moment)
+    assert value.startswith("running")
+    assert "crash" not in value
+
+
+def test_check_started_past_the_limit_says_overrun(tmp_path: Path) -> None:
+    """A started entry past its limit says overrun."""
+    home = tmp_path / "home"
+    home.mkdir()
+    check.write_record(
+        home,
+        {
+            "check_version": 1,
+            "status": "started",
+            "started_at": 0,
+            "limit_seconds": 1,
+        },
+    )
+    value = check.check_line(home, now=lambda: 1.0)
+    assert value.startswith("overrun")
+
+
+def test_check_skip_names_the_reason(tmp_path: Path) -> None:
+    """A low-disk skip names that reason."""
+    home = tmp_path / "home"
+    home.mkdir()
+    check.write_record(
+        home, {"check_version": 1, "status": "skip", "skip_reason": "low-disk"}
+    )
+    assert "low-disk" in _storage(home)["check"]
+
+
+def test_check_unreadable_record(tmp_path: Path) -> None:
+    """A record that is not a JSON object is unreadable."""
+    home = tmp_path / "home"
+    home.mkdir()
+    (home / check.CHECK_RECORD_FILENAME).write_text("{", encoding="utf-8")
+    assert _storage(home)["check"] == "unreadable"
+
+
+def test_storage_facts_does_not_change_mtimes(tmp_path: Path) -> None:
+    """Reading storage facts leaves the warehouse and the record mtimes alone."""
+    home = tmp_path / "home"
+    home.mkdir()
+    database = home / warehouse.WAREHOUSE_FILENAME
+    duckdb.connect(str(database)).close()
+    check.write_record(home, {"check_version": 1, "status": "rehearsed"})
+    record = home / check.CHECK_RECORD_FILENAME
+    stamp = 1_700_000_000
+    os.utime(database, (stamp, stamp))
+    os.utime(record, (stamp, stamp))
+    _storage(home)
+    assert database.stat().st_mtime_ns == record.stat().st_mtime_ns
+    assert database.stat().st_mtime == stamp
+
+
+def test_storage_returns_include_check(tmp_path: Path) -> None:
+    """Absent, busy, unavailable, and present warehouses all report check."""
+    missing = tmp_path / "missing"
+    assert "check" in _storage(missing)
+
+    home = tmp_path / "home"
+    home.mkdir()
+    database = home / warehouse.WAREHOUSE_FILENAME
+    database.write_bytes(b"0123456789")
+    fd = os.open(home / warehouse.LOCK_FILENAME, os.O_CREAT | os.O_RDWR, 0o644)
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX)
+        assert "check" in _storage(home)
+    finally:
+        fcntl.flock(fd, fcntl.LOCK_UN)
+        os.close(fd)
+
+    def fail(*_args, **_kwargs):
+        raise OSError("cannot open")
+
+    assert "check" in _storage(home, connect=fail)
+
+    database.unlink()
+    duckdb.connect(str(database)).close()
+    assert "check" in _storage(home)
 
 
 # --- smoke: loud-failing verification -----------------------------

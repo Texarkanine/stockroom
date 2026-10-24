@@ -130,3 +130,14 @@ Run the verified copy under the writer flock, with a time limit, as one check pa
     - File size stays out of the swap decision
 * Insights
     - The rebuild is the long part. The link, the record write, and the rename are once per machine after that rebuild
+
+## 2026-10-24 - BUILD - COMPLETE
+
+* Work completed
+    - Implemented the check pass in `stockroom.check`, including the linked resume and the alarm entry point
+    - Doctor reports one `check` line on every storage return
+    - Wrote the rollback steps and added the check outcome to the probe index
+* Decisions made
+    - A backup hash that does not match the pre-link hash leaves the record `linked`. The next pass writes `swapped` because the inodes already differ
+* Insights
+    - The engine suite was run without `tests/test_coverage_collection.py`. That module runs `make coverage-engine`, and that target's sync removes torch
