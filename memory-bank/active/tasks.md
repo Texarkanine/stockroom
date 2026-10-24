@@ -108,7 +108,7 @@ None - implementation approach is clear.
 3. Write tests and run red: in-memory connection, `ensure_schema_version_table`, `CREATE TABLE sessions (harness TEXT)`, one `schema_version` row `(9, 'schema_0009.sql')`, a temp directory whose only migration is `0010_m10.sql`. `apply_pending(con, folder, through=9)` returns `[]` and `sessions` has no `m10` column.
 4. Write code and run green: `pending` keeps migrations with `version > current_version` and, when `through` is not `None`, `version <= through`. Update the docstring. The default `through=None` still means every pending migration.
 
-### 2. Copy and verify the sibling — executable
+### 2. Copy and verify the sibling — done
 
 - Files: `skills/sr-search/src/stockroom/storage.py`, `skills/sr-search/src/stockroom/migrate.py` (caller only; the bound already exists), `skills/sr-search/tests/test_storage.py`, `skills/sr-search/tests/_warehouse_worker.py`, `skills/sr-search/tests/conftest.py`
 
@@ -163,6 +163,6 @@ Confirmed in this checkout on DuckDB 2.0, on temp files only, while writing this
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
-- [ ] Build
+- [x] Preflight
+- [x] Build
 - [ ] QA

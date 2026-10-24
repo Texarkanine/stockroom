@@ -228,6 +228,41 @@ def released_chain_file(
 
 
 @pytest.fixture(scope="session")
+def _generations_template(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """Build the two-generation template once per pytest worker.
+
+    The child runs ``build_generations``: a ``v1.0.0`` file at the head, with
+    message ``e#0`` written at version 1 and message ``l#0`` written after
+    version 9. The child loads ``vss``. This process does not.
+    """
+    worker = Path(__file__).parent / "_warehouse_worker.py"
+    base = tmp_path_factory.mktemp("generations")
+    db = base / "generations.duckdb"
+    result = subprocess.run(
+        [sys.executable, str(worker), "build_generations", str(db), str(base / "mig")],
+        env=_worker_env(),
+        capture_output=True,
+        text=True,
+        timeout=300,
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip() == "built", result.stdout
+    return db
+
+
+@pytest.fixture
+def generations_file(_generations_template: Path, tmp_path: Path) -> Path:
+    """Return this test's copy of the two-generation warehouse.
+
+    The copy is ``warehouse.duckdb`` in the test's ``tmp_path``. Never write
+    to the session template.
+    """
+    target = tmp_path / "warehouse.duckdb"
+    shutil.copyfile(_generations_template, target)
+    return target
+
+
+@pytest.fixture(scope="session")
 def released_chain_154(
     tmp_path_factory: pytest.TempPathFactory,
 ) -> Callable[[int, Path], Path]:

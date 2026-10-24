@@ -25,6 +25,12 @@ Commands:
   then write ``<rows>`` messages ``b#0`` to ``b#<rows-1>``, each with one
   one-hot embedding at the slot of its ordinal. From schema 3 to 8 the file
   has the HNSW index. Checkpoints, closes, and prints ``built``.
+* ``build_generations <db> <scratch_dir>`` — build one ``v1.0.0`` file at the
+  head with two generations of rows. Apply the packaged chain through version
+  1, insert message ``e#0`` and a tool call, load ``vss``, apply the chain
+  through version 9, insert message ``l#0`` and a tool call, then checkpoint.
+  The checkpoint runs only after version 9, when the index is already gone.
+  Prints ``built``.
 * ``build_chains_154 <out_dir> <rows> <version>...`` — run under DuckDB 1.5.4
   (``uv run --with duckdb==1.5.4``): print ``duckdb <version>``, then do what
   ``build_chain`` does for each ``<version>`` into
@@ -66,6 +72,12 @@ INDEXED_VERSIONS = (3, 4, 5, 6, 7, 8)
 
 #: Messages (one embedding each) in every ``build_chains_154`` file.
 RELEASED_CHAIN_154_ROWS = 20
+
+#: Message written at schema version 1 by ``build_generations``.
+EARLY_ID = "e#0"
+
+#: Message written after schema version 9 by ``build_generations``.
+LATE_ID = "l#0"
 
 
 def one_hot(slot: int) -> list[float]:
@@ -137,6 +149,44 @@ def _build_chain(
     db: str, through: str, rows: str, storage: str, scratch_dir: str
 ) -> None:
     _write_chain(Path(db), int(through), int(rows), storage, Path(scratch_dir))
+    print("built", flush=True)
+
+
+def _insert_generation(
+    con: duckdb.DuckDBPyConnection, message_id: str, text: str, tool_path: str
+) -> None:
+    """Insert one message and one tool call. No embedding, so no index write."""
+    session_id = message_id.split("#", 1)[0]
+    con.execute(
+        "INSERT INTO messages (harness, session_id, message_id, ordinal, role, text) "
+        "VALUES ('claude', ?, ?, 0, 'user', ?)",
+        [session_id, message_id, text],
+    )
+    con.execute(
+        "INSERT INTO tool_calls "
+        "(harness, session_id, message_id, ordinal, tool_name, tool_input) "
+        "VALUES ('claude', ?, ?, 0, 'Read', ?)",
+        [session_id, message_id, json.dumps({"path": tool_path})],
+    )
+
+
+def _build_generations(db: str, scratch_dir: str) -> None:
+    """Write the two-generation ``v1.0.0`` file ``build_generations`` returns.
+
+    Checkpoint once, after version 9 has dropped the HNSW index. An explicit
+    checkpoint while that index exists raises ``FatalException`` on DuckDB 2.
+    """
+    con = duckdb.connect(db, config={"storage_compatibility_version": "v1.0.0"})
+    try:
+        scratch = Path(scratch_dir)
+        build_released_chain(con, 1, scratch)
+        _insert_generation(con, EARLY_ID, "early " * 40, "/tmp/early")
+        _load_vss(con)
+        build_released_chain(con, 9, scratch)
+        _insert_generation(con, LATE_ID, "late " * 40, "/tmp/late")
+        con.execute("CHECKPOINT")
+    finally:
+        con.close()
     print("built", flush=True)
 
 
@@ -220,6 +270,8 @@ def main(argv: list[str]) -> None:
         _migrate_report(rest[0])
     elif command == "build_chain":
         _build_chain(rest[0], rest[1], rest[2], rest[3], rest[4])
+    elif command == "build_generations":
+        _build_generations(rest[0], rest[1])
     elif command == "build_chains_154":
         _build_chains_154(rest[0], rest[1], *rest[2:])
     elif command == "index_knn_delete":

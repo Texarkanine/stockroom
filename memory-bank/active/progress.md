@@ -63,3 +63,17 @@ Extend the milestone 3 warehouse builder so it can copy an existing warehouse in
     - The planned `through=9` tests stay green if `through` means "apply nothing". A case where version 10 is inside the ceiling would lock the predicate
     - `_introspect_schema` already matches a `v1.0.0` chain at version 9 and a `v2.0.0` schema-file warehouse through `0009_snapshot.json`, so the copy test's column compare is an existing contract
     - Milestone 6 treats verification mismatch as final. Table-text formatting inside `CopyMismatch` would make a DuckDB pretty-printer change end the check
+
+## 2026-10-24 - BUILD - COMPLETE
+
+* Work completed
+    - `apply_pending` and `build_warehouse` stop at a keyword-only `through` version
+    - `copy_warehouse` builds `warehouse.copy.duckdb` from the schema file, copies rows, verifies, and returns sizes and times
+    - The two-generation fixture is built in the worker. This process does not load `vss`
+    - Engine suite 1110 passed and 36 skipped with torch installed. Coverage collection 4 passed. Dashboard JS 134 passed
+* Decisions made
+    - A populated large column must store zstd data segments. An empty column has no data segment and does not fail verification
+    - Row compare and the row copy list base tables for the current database. Catalog compare opens each file with nothing attached
+* Insights
+    - A short `messages.text` row in the schema-file sibling lands as persistent ZSTD. The one-row chain has no tool call, so that column is empty
+    - Patching `migrations_dir` with a function that calls `discover()` recurses. Build the folder, then patch
