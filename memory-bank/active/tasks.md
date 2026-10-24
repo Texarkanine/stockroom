@@ -129,4 +129,16 @@ No new technology - validation not required
 - [x] Unit 3 new-install proof
 - [x] Unit 4 hook description
 - [x] Build
-- [ ] QA
+- [x] QA
+
+## QA
+
+PASS. The session-start launch is acceptable as-is.
+
+- Launch: `launch` starts `python -m stockroom.check --foreground` with discarded streams, a new session, and `close_fds=True`. It passes no `env` and returns the `Popen`. `main` uses `resolve_home()`'s path when the home argument is omitted. `--foreground` calls `entry`. The other path calls `launch` and returns 0. `entry` and `run_check` are unchanged. `check` is not a subcommand.
+- Hooks: both session-start commands run `PYTHONPATH="$APP/src" "$PY" -m stockroom.check` after `stockroom dashboard` and `shim rectify`, inside the group, with no `&`. Claude keeps `>/dev/null 2>&1`. Cursor session start keeps `>/dev/null`. `beforeSubmitPrompt` does not contain `stockroom.check`.
+- New install: the test points the four roots under `tmp_path`, uses `FakeEncoder`, and expects `already-new` with no `warehouse.copy.duckdb`.
+- Docs: troubleshooting states the rehearsal, the deleted copy, and the later swap under `warehouse.issue147-swap.duckdb`. The four rename steps are unchanged. Quickstart, dashboard, schedule, installed layout, lifecycle, the architecture index, and the hooks paragraph in `systemPatterns.md` say session start starts the detached check. Where the plan asked, they say `beforeSubmitPrompt` does not.
+- Advisory. The hook parent imports DuckDB before it spawns, because `launch` lives in `check.py`. The plan left that split out. Acceptable as-is.
+- Advisory. The lifecycle doctrine still calls a repeated session start a no-op when already healthy, and says stdout and stderr are discarded. The check rehearses, then later replaces the warehouse. Cursor session start leaves stderr visible. The session-start section states the check. Acceptable as-is.
+- Advisory. The opening of `systemPatterns.md` still describes session start as rectify and the dashboard. The hooks paragraph includes the detached check. The architecture index and packaging still say every caller goes through the shim. Lifecycle says the check does not. Preflight left those two sentences. Acceptable as-is.

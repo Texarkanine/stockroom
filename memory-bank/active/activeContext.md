@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: warehouse-file-growth, milestone 7 (session-start launch)
-**Phase:** BUILD - COMPLETE
+**Phase:** QA - COMPLETE (PASS)
 
 ## What Was Done
 - `launch` spawns `python -m stockroom.check --foreground` in a new session with discarded standard streams, and returns without waiting
@@ -27,4 +27,4 @@
 - `/home/mobaxterm/git/stockroom/memory-bank/systemPatterns.md`
 
 ## Next Step
-- QA review
+- Reflect on the session-start launch.

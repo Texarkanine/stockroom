@@ -74,3 +74,15 @@ Start the check from the Claude Code and Cursor session-start hooks. Session sta
 * Insights
     - `stockroom check` was already an unknown command, so that lock test was green before the launch existed
     - The empty-install proof was green on the first run. No production change was required for it
+
+## 2026-10-24 - QA - COMPLETE
+
+* Work completed
+    - Reviewed the session-start launch against the milestone 7 plan
+    - Wrote `memory-bank/active/.qa-validation-status`
+* Decisions made
+    - PASS. The implementation is acceptable as-is. Advisories stay advisories
+* Insights
+    - The hook parent still imports DuckDB before `launch` returns. The plan left that split out
+    - Lifecycle's doctrine still calls a repeated session start a no-op. The new section states the rehearsal and the later swap
+    - The architecture index and packaging still say every caller goes through the shim. Lifecycle says the check does not

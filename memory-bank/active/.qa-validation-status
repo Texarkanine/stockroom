@@ -1,0 +1,17 @@
+PASS
+
+The session-start launch matches the milestone 7 plan and is acceptable as-is.
+
+`launch` starts `[sys.executable, "-m", "stockroom.check", "--foreground", home]` with `stdin`, `stdout`, and `stderr` set to `DEVNULL`, `start_new_session=True`, and `close_fds=True`. It passes no `env`, returns the `Popen`, and does not call `entry` or `home_dir`. `main` takes the path from `resolve_home()` when the home argument is omitted. `--foreground` calls `entry` and returns 0. Without that flag, `main` calls `launch` and returns 0 without waiting. `if __name__ == "__main__"` raises `SystemExit(main())`. `entry` and `run_check` are unchanged. `check` is not in `SUBCOMMANDS`.
+
+Both session-start commands run `PYTHONPATH="$APP/src" "$PY" -m stockroom.check` after `shim rectify` and after `stockroom dashboard`, inside the existing group, before `|| true`, with no `&` and no `uv run`. Claude keeps `>/dev/null 2>&1`. Cursor session start keeps `>/dev/null`. `beforeSubmitPrompt` has no `stockroom.check`. The dashboard-command bans stop at the next `;`.
+
+A `swapped` record of check version 1 is `stop`: the pass deletes a leftover sibling if one exists, then returns without rewriting the record or copying. A path that is not a directory returns before the flock. The new-install test points `STOCKROOM_CURSOR_ROOT`, `STOCKROOM_CURSOR_CHATS_ROOT`, `STOCKROOM_CLAUDE_ROOT`, and `STOCKROOM_AI_TRACKING_DB` under `tmp_path`, uses `FakeEncoder`, and expects `already-new` with no `warehouse.copy.duckdb`. Those are the only ingest roots.
+
+Troubleshooting states the rehearsal, the deleted copy, and the later swap to `warehouse.issue147-swap.duckdb`, and the four rename steps are unchanged. Quickstart names both beats. Dashboard, schedule, the installed-layout `hooks/` row, lifecycle, the architecture index Hooks bullet, and the hooks paragraph in `systemPatterns.md` say session start starts the detached check. Where the plan asked, they say `beforeSubmitPrompt` does not.
+
+Advisories, none blocking:
+
+- `python -m stockroom.check` imports DuckDB before `launch` returns, so the hook parent waits on that import. The plan left the stdlib-launcher split out. `entry` and `run_check` stay as they are.
+- The lifecycle doctrine still says a repeated session start is a no-op when already healthy, and that stdout and stderr are discarded. The check rehearses, then on a later start replaces the warehouse. After `swapped` or `already-new` a further pass builds nothing. Cursor session start leaves stderr visible, and the packaging test locks that. The same page's "minutes" sentence sits beside a check whose alarm is four hours; the next paragraph says the child can run a long time. The session-start section states the three actions and that the hook does not wait.
+- The opening of `systemPatterns.md` still describes session start as rectify and the dashboard. The hooks paragraph in that file includes the detached check and says `beforeSubmitPrompt` does not start it. The architecture index and packaging still say every session-start caller goes through the shim. Lifecycle says the check is `"$PY" -m stockroom.check` and is not an on-path `stockroom` command. Preflight left those two shim sentences. Rectify already uses the same interpreter shape.
