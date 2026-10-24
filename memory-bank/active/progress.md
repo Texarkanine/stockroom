@@ -35,3 +35,14 @@ Run the verified copy under the writer flock, with a time limit, as one check pa
 * Insights
     - On a 2000-row zstd fixture the wal peaked at about 20 MB, the logical text, while live bytes stayed 524,288. That fixture is already new, so the check does not copy it
     - For a file the check does copy, live bytes include the uncompressed text, and the wal is about that size again
+
+## 2026-10-24 - CREATIVE - COMPLETE
+
+* Work completed
+    - Chose the doctor word for a started entry whose time limit has passed
+* Decisions made
+    - Inside the limit the line says `running` and a later pass does not build
+    - Past the limit the line says `overrun` and the entry is final. Doctor does not print `crash`
+* Insights
+    - The alarm cannot write a status. The clock is the only signal that separates running from overrun
+    - The writer flock cannot separate them. Ingest and the nightly job hold that same flock

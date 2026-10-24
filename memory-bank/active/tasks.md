@@ -34,7 +34,9 @@ Constraints:
 - Use `doctor.live_bytes`, not the original file size. The work machine's 88 GB file must not skip merely because the file is large.
 - Do not start a copy that is expected to run out of space.
 
-### 3. Doctor label for an expired started entry
+### 3. Doctor label for an expired started entry — resolved
+
+**Decision:** inside the limit the line says `running`. Past the limit it says `overrun`, and that entry is final. The word `crash` is not printed. See `memory-bank/active/creative/creative-expired-check-label.md`.
 
 Before it builds, the pass writes a started entry with its phase, start time, and time limit. The alarm's default action kills the process, so the pass cannot write a later status. Doctor shows a started entry that is still inside its limit as running, not as a crash. The milestone also names overrun as its own final outcome.
 
