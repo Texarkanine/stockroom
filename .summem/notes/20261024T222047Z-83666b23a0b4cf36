@@ -1,0 +1,1 @@
+2026-10-24: Milestone 7 launch spawns python -m stockroom.check --foreground. No stockroom check subcommand. Hooks not wired.

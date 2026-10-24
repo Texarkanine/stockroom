@@ -1,1 +1,0 @@
-QA 2026-10-23: in a torch-provisioned live checkout, pytest --ignore=tests/test_coverage_collection.py runs the rest of the suite and keeps torch; only that module's make coverage-engine runs the exact sync that removes it.

@@ -777,3 +777,70 @@ def test_run_check_does_not_leave_an_alarm(tmp_path: Path) -> None:
     check.run_check(tmp_path, now=lambda: 0.0)
     time.sleep(1.1)
     assert check.load_record(tmp_path)["status"] == "skip"
+
+
+def _set_child_pythonpath(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Put the engine ``src`` directory on ``PYTHONPATH`` for a launched child."""
+    monkeypatch.setenv(
+        "PYTHONPATH",
+        os.pathsep.join([_SRC, os.environ.get("PYTHONPATH", "")]).rstrip(os.pathsep),
+    )
+
+
+def test_launch_on_a_swapped_record_does_not_build(
+    generations_file: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A launched pass leaves a swapped record and builds no copy."""
+    _set_child_pythonpath(monkeypatch)
+    home = generations_file.parent
+    record = {"check_version": 1, "status": "swapped"}
+    check.write_record(home, record)
+    proc = check.launch(home)
+    assert proc.wait(timeout=60) == 0
+    assert check.load_record(home) == record
+    assert not (home / storage.COPY_FILENAME).exists()
+
+
+def test_launch_on_a_missing_home_creates_nothing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A launched pass leaves a missing home missing."""
+    _set_child_pythonpath(monkeypatch)
+    home = tmp_path / "missing"
+    proc = check.launch(home)
+    assert proc.wait(timeout=60) == 0
+    assert not home.exists()
+
+
+def test_launch_does_not_arm_the_parent(
+    generations_file: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The parent has no alarm after launch returns."""
+    _set_child_pythonpath(monkeypatch)
+    home = generations_file.parent
+    check.write_record(home, {"check_version": 1, "status": "swapped"})
+    proc = check.launch(home)
+    assert signal.alarm(0) == 0
+    assert proc.wait(timeout=60) == 0
+
+
+def test_main_without_flags_launches_and_does_not_enter(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """No arguments launch the resolved home and do not call entry here."""
+    monkeypatch.setenv("STOCKROOM_HOME", str(tmp_path))
+    launched: list[Path] = []
+
+    def fake_launch(home: Path) -> subprocess.Popen:
+        launched.append(home)
+        return subprocess.Popen(["true"])
+
+    def fake_entry(
+        home: Path, *, limit_seconds: int = check.TIME_LIMIT_SECONDS
+    ) -> None:
+        raise AssertionError(home)
+
+    monkeypatch.setattr(check, "launch", fake_launch)
+    monkeypatch.setattr(check, "entry", fake_entry)
+    assert check.main([]) == 0
+    assert launched == [tmp_path]

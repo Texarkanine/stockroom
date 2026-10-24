@@ -1,16 +1,20 @@
 """The background check pass: one record, then a rehearsal or a swap.
 
-Nothing in this module is a user-facing subcommand, and importing it does
-not start a pass. The record is one JSON object, ``check.json``, in the
-stockroom home. :func:`next_action` chooses what an acquired pass does with
-that record. Later steps own the pass itself.
+Nothing in this module is a user-facing subcommand. Importing it does not
+start a pass. ``python -m stockroom.check`` spawns a detached child, and
+only that child calls :func:`entry`. The record is one JSON object,
+``check.json``, in the stockroom home. :func:`next_action` chooses what an
+acquired pass does with that record.
 """
 
+import argparse
 import hashlib
 import json
 import os
 import shutil
 import signal
+import subprocess
+import sys
 import tempfile
 import time
 from collections.abc import Callable
@@ -19,6 +23,7 @@ from pathlib import Path
 import duckdb
 
 from stockroom import storage
+from stockroom.home import resolve_home
 from stockroom.migrate import current_version
 from stockroom.warehouse import LOCK_FILENAME, WAREHOUSE_FILENAME, _flock
 
@@ -478,6 +483,46 @@ def _outcome(
     }
 
 
+def launch(home: Path) -> subprocess.Popen:
+    """Spawn one detached foreground pass for ``home`` and return it.
+
+    The child keeps none of this process's standard streams and starts a
+    new session. This process does not wait and does not call :func:`entry`.
+    The child inherits this process's environment.
+    """
+    return subprocess.Popen(
+        [sys.executable, "-m", "stockroom.check", "--foreground", str(home)],
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        start_new_session=True,
+        close_fds=True,
+    )
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Launch a detached pass, or run one when ``--foreground`` is set.
+
+    An omitted home is the path from :func:`stockroom.home.resolve_home`.
+    ``--foreground`` calls :func:`entry` in this process. Otherwise
+    :func:`launch` starts the child and this process returns without waiting.
+    """
+    parser = argparse.ArgumentParser(prog="python -m stockroom.check")
+    parser.add_argument(
+        "--foreground",
+        action="store_true",
+        help="Run one pass in this process.",
+    )
+    parser.add_argument("home", nargs="?", type=Path)
+    args = parser.parse_args(argv)
+    home = args.home if args.home is not None else resolve_home()[0]
+    if args.foreground:
+        entry(home)
+        return 0
+    launch(home)
+    return 0
+
+
 def _write_outcome(home: Path, record: dict) -> bool:
     """Write ``record``. Return ``False`` when the write raises ``OSError``."""
     try:
@@ -485,3 +530,7 @@ def _write_outcome(home: Path, record: dict) -> bool:
     except OSError:
         return False
     return True
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
