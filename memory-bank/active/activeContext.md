@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: warehouse-file-growth, milestone 7 (session-start launch)
-**Phase:** PLAN - COMPLETE
+**Phase:** BUILD - IN-PROGRESS
 
 ## What Was Done
 - Classified milestone 7 as Level 2
@@ -11,4 +11,4 @@
 - The DuckDB-import advisory stays out of the plan. `entry` and `run_check` stay unchanged
 
 ## Next Step
-- Preflight validation
+- Implement the detached launch, then the hook commands, then the prose

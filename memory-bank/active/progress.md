@@ -47,3 +47,15 @@ Start the check from the Claude Code and Cursor session-start hooks. Session sta
     - The DuckDB-import advisory stays out of the plan
 * Insights
     - The hook already exports `PYTHONPATH` for the parent. The gap was only the pytest process
+
+## 2026-10-24 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Re-validated the revised milestone 7 session-start launch plan against the check pass, the hook commands, and the test runner
+    - Recorded `PASS WITH ADVISORY` in `memory-bank/active/.preflight-status`
+* Decisions made
+    - The plan is acceptable as written. No test step moved, and no step was struck
+    - The stdlib launcher split stays an advisory. `entry` and `run_check` stay unchanged
+* Insights
+    - `resolve_home()` returns `(Path, str)`. `launch` and `entry` take the path
+    - After unit 1, the new-install proof is already green. Unit 3 does not go red
