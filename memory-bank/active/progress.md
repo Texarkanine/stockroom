@@ -121,3 +121,12 @@ Run the verified copy under the writer flock, with a time limit, as one check pa
 * Insights
     - A messages row that omits `text` still gets a persistent `DICT_FSST` segment once the zstd clause is removed, so that fixture is not already new
     - Publishing the backup under a partial name until `linked` is durable would keep a crash in that window from blocking every later `os.link`
+
+## 2026-10-24 - OPERATOR
+
+* Decisions made
+    - The gap between `os.link` and a durable `linked` record is accepted. Do not code against it for this change
+    - Hard link stays. It keeps the old inode without a second copy of the old file
+    - File size stays out of the swap decision
+* Insights
+    - The rebuild is the long part. The link, the record write, and the rename are once per machine after that rebuild
