@@ -25,3 +25,14 @@ Start the check from the Claude Code and Cursor session-start hooks. Session sta
     - The new-install proof uses empty transcript roots and `FakeEncoder`
 * Insights
     - A bare `&` in the Cursor session-start command can hold the hook open, because that command discards stdout and leaves stderr open
+
+## 2026-10-24 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated the milestone 7 session-start launch plan against the check pass, the hook commands, and the test runner
+    - Recorded `FAIL (fixable)` in `memory-bank/active/.preflight-status`
+* Decisions made
+    - The red-test steps that wait on `launch` must set `PYTHONPATH` to the engine `src` directory. `launch` keeps inheriting the environment the hook already sets
+    - Unit 4 must also update `docs/user-guide/load/schedule.md` and `docs/user-guide/installed-layout.md`, which still say session start only rectifies the shim and launches the dashboard
+* Insights
+    - pytest's `pythonpath` does not reach a child process, and `uv run` does not set `PYTHONPATH`. The child's stderr is `DEVNULL`, so the import error shows up only as a non-zero exit
