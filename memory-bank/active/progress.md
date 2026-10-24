@@ -14,3 +14,14 @@ Start the check from the Claude Code and Cursor session-start hooks. Session sta
     - Level 2. The check pass already exists. This sub-run starts that pass from the two session-start hooks and returns at once. The L4 milestone already fixes the detach, which hooks launch, and the new-install proof, so this sub-run does not reopen architecture
 * Insights
     - Shipping this milestone turns the rehearsal and the swap on for every install that updates
+
+## 2026-10-24 - PLAN - COMPLETE
+
+* Work completed
+    - Wrote the Level 2 plan for the session-start launch
+* Decisions made
+    - The hook runs `python -m stockroom.check` on the same interpreter rectify uses. There is no `stockroom check` subcommand
+    - The parent spawns a child with the dashboard detach flags and returns. Only the child calls `entry`
+    - The new-install proof uses empty transcript roots and `FakeEncoder`
+* Insights
+    - A bare `&` in the Cursor session-start command can hold the hook open, because that command discards stdout and leaves stderr open

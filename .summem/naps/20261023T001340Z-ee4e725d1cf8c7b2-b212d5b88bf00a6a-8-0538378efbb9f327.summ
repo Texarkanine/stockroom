@@ -1,1 +1,0 @@
-SQL immutable, comments OK. 0003 shipped; no unrun version; 0009 drops index. 2nd connect: ConnectionException. v1.0.0 stays v1.0.0+; 1.5.4 reads+writes. 2.0.0 no vss: CHECKPOINT on HNSW fatal; close. Rename under flock. 3-8: 1.5.4 vss. No view-SQL; tables+constraints match.
