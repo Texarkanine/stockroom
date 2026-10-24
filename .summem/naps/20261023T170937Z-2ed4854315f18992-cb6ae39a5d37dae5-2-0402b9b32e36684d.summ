@@ -1,0 +1,1 @@
+L4 release PR is a child whose tip drops memory-bank/active, so main stays a Fresh /niko checkout. Do not merge that child back. After land, restore memory-bank/active onto a branch from main. Rebase onto the squash. A merge-commit rebase ends on main and drops the memory bank.

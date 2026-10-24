@@ -1,1 +1,0 @@
-Operator 2026-10-23: a mid-L4 release PR is a child of the working branch whose tip drops memory-bank/active, so main stays a Fresh /niko checkout. Do not merge that child back; the deletion would remove the working memory bank.

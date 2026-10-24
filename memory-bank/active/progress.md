@@ -86,3 +86,15 @@ Start the check from the Claude Code and Cursor session-start hooks. Session sta
     - The hook parent still imports DuckDB before `launch` returns. The plan left that split out
     - Lifecycle's doctrine still calls a repeated session start a no-op. The new section states the rehearsal and the later swap
     - The architecture index and packaging still say every caller goes through the shim. Lifecycle says the check does not
+
+## 2026-10-24 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `memory-bank/active/reflection/reflection-warehouse-file-growth-m7.md`
+    - Updated the session-start sentences in `productContext.md` and `systemPatterns.md` that still omitted the check
+* Decisions made
+    - The check stays `python -m stockroom.check`, not a subcommand
+    - techContext needed no change. It names the hook files and does not describe what session start runs
+* Insights
+    - A child of pytest cannot import the engine unless the test sets `PYTHONPATH`
+    - Stop a hook-command slice at the next `;` or the next command fails the dashboard bans
