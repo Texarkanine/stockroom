@@ -165,4 +165,15 @@ Confirmed in this checkout on DuckDB 2.0, on temp files only, while writing this
 - [x] Pre-Mortem complete
 - [x] Preflight
 - [x] Build
-- [ ] QA
+- [x] QA
+
+## QA
+
+PASS. The verified newer-format copy is acceptable as-is.
+
+- `through`: keyword-only, default still applies every later migration. The predicate keeps `version > current` and `version <= through`. The specified tests only show that version 10 stays out when the ceiling is 9. Advisory. Acceptable as-is.
+- Copy: the original stays read-only, a version below `FORMAT_BOUNDARY` raises `CopyError` before a sibling exists, and `warehouse.copy.duckdb` is built from the schema file, filled from the current database, and left in place with sizes and times. Failure deletes the sibling. The backup and the flock stay out.
+- Verification: `EXCEPT ALL` both ways on the attached read-only connection; columns, full constraint rows, non-primary indexes, zstd-stripped table SQL, the view name, and view columns on unattached connections. View SQL stays out. A populated large column must store persistent zstd. An empty column does not fail.
+- Catalog fault injection covers a deleted row. A dropped view is not a test. The catalog compare is implemented, and the success test asserts those facts. Advisory. Acceptable as-is.
+- The schema-8 test catches `CopyError`, which is also the base of `CopyMismatch`. The code raises before `build_warehouse`. Advisory. Acceptable as-is.
+- Documentation: the storage module docstring lists the copy. `docs/` and `memory-bank/systemPatterns.md` stay as the plan required. `verify_copy`'s docstring omits the empty-column case that `_require_zstd` implements. Advisory. Acceptable as-is.

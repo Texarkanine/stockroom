@@ -1,0 +1,14 @@
+PASS
+
+The verified newer-format copy matches the milestone 5 plan and is acceptable as-is.
+
+`apply_pending` and `build_warehouse` take keyword-only `through` and default to every later migration. `copy_warehouse` reads the original read-only, refuses a version below `FORMAT_BOUNDARY` before creating a sibling, builds `warehouse.copy.duckdb` from the schema file through that version, replaces base-table rows from the current database only, and checks the sibling on a fresh read-only connection. Success leaves the sibling and returns sizes and times. Failure after the sibling exists deletes it. The original is never opened for writing, the backup is not touched, and the flock is not taken.
+
+`verify_copy` compares base tables with `EXCEPT ALL` in both directions on an attached read-only connection. Columns, full constraint rows, non-primary indexes, zstd-stripped table SQL, the view name, and view columns are read with nothing attached. View SQL is not compared. A populated `messages.text` or `tool_calls.tool_input` must have persistent zstd data segments. An empty column has none and does not fail.
+
+Advisories, none blocking:
+
+- The `through=9` tests stay green if `through` means "apply nothing". The predicate in `apply_pending` is `version > current` and `version <= through`. A case that applies `0010` when `through=10` is not locked.
+- Deleting `l#0` locks the row branch of `verify_copy`. Dropping `session_token_usage` is not a test. The catalog compare is implemented, and the success test asserts those facts with nothing attached.
+- The schema-8 test catches `CopyError`. `CopyMismatch` is a subclass, so that assertion would also pass if a sibling were built and then deleted. The code raises before `build_warehouse`.
+- `verify_copy`'s docstring says the two large columns require zstd data segments. `_require_zstd` lets an empty column pass and only judges persistent segments. That is what the one-row chain needs, and the two-generation test still requires zstd on both columns.

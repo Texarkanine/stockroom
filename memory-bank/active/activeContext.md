@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: warehouse-file-growth, milestone 5 (verified newer-format copy)
-**Phase:** BUILD - COMPLETE
+**Phase:** QA - COMPLETE (PASS)
 
 ## What Was Done
 - `apply_pending` and `build_warehouse` take keyword-only `through`. The default still applies every later migration
@@ -12,4 +12,4 @@
 - Nanobind leak lines at pytest exit are the known torch-in-process noise
 
 ## Next Step
-- QA review runs automatically
+- Reflect on the verified newer-format copy.

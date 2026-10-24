@@ -77,3 +77,14 @@ Extend the milestone 3 warehouse builder so it can copy an existing warehouse in
 * Insights
     - A short `messages.text` row in the schema-file sibling lands as persistent ZSTD. The one-row chain has no tool call, so that column is empty
     - Patching `migrations_dir` with a function that calls `discover()` recurses. Build the folder, then patch
+
+## 2026-10-24 - QA - COMPLETE
+
+* Work completed
+    - Reviewed the verified newer-format copy against the milestone 5 plan
+    - Wrote `memory-bank/active/.qa-validation-status`
+* Decisions made
+    - PASS. The implementation is acceptable as-is. Advisories stay advisories
+* Insights
+    - `through` stops at the original's version. The positive "apply up to the ceiling" case is not a test
+    - Catalog equality runs on unattached connections. The fault injection covers a deleted row, not a dropped view
