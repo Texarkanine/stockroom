@@ -1,1 +1,0 @@
-Operator 2026-10-22: released migrations are never rewritten; 0003 returns as shipped. No runner rule may record a version unrun. DuckDB 2.0.0: released 0003 needs explicit INSTALL/LOAD vss (no autoload); a kill after 0003 reopens without vss and 0009 drops the index.

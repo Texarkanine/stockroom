@@ -1,0 +1,1 @@
+Puck ce16489 exited 0: make sync, no --with; copy stayed v1.0.0+; 1.5.4 wrote; no nanobind. Released SQL is immutable; 0003 returns shipped; no runner records a version unrun. 2.0.0: 0003 needs INSTALL/LOAD vss, no autoload; kill after 0003 reopens without vss; 0009 drops index.

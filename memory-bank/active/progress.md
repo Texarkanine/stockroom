@@ -71,3 +71,17 @@ Run the verified copy under the writer flock, with a time limit, as one check pa
 * Insights
     - A schema-file warehouse is already new under this plan, so the alarm test never reaches a sleeping `copy_warehouse` or a `started` record
     - A stored `skip` has no `next_action` result that builds again, and the diagram sends that case to quiet
+
+## 2026-10-24 - PLAN - COMPLETE
+
+* Work completed
+    - Revised the check-pass plan for the fixable preflight findings
+    - Took the four advisories into the plan: lazy imports, the zstd message helper, measurements on `swapped`, and a `linked` resume
+* Decisions made
+    - `next_action` on `skip` returns `phase-a`, and the readiness ladder still runs before a build
+    - The alarm child uses `generations_file` and patches the `copy_warehouse` that child calls
+    - A `v2.0.0+` file with a non-zstd segment on either large column is not `already-new`
+    - After `os.link` succeeds the record is `linked` before `os.replace`. `linked` finishes the swap and does not copy again
+* Insights
+    - A schema-file warehouse is already new under this plan, so it cannot be the warehouse that sleeps inside `copy_warehouse`
+    - A final `started` entry plus a backup left by `os.link` would make every later link fail, including after the record is deleted
