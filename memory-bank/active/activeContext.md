@@ -1,31 +1,13 @@
 # Active Context
 
-## Current Task: warehouse-file-growth, milestone 4 (doctor storage report)
-**Phase:** REFLECT COMPLETE
+## Current Task: warehouse-file-growth, milestone 5 (verified newer-format copy)
+**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
 
 ## What Was Done
-- `stockroom doctor probe` reports file size, used blocks, free blocks, a reclaimable estimate, the storage format, free disk, and `warehouse.issue147-swap.duckdb` when that file exists
-- The report does not create a home, open a missing warehouse, migrate a behind-head file, or keep the writer lock
-- `live_bytes` is the distinct persistent block-id union times `block_size`. The preflight overhead advisory stays advisory
-- Help text and the contributor probe comment name the storage facts
-- `make ci` passed: 1098 pytest passed, 39 skipped; 134 JavaScript tests passed
-- QA passed with advisories and no build change
-- Reflection is in `memory-bank/active/reflection/reflection-warehouse-file-growth-m4.md`
-
-## Files
-- `/home/mobaxterm/git/stockroom/skills/sr-search/src/stockroom/doctor.py`
-- `/home/mobaxterm/git/stockroom/skills/sr-search/tests/test_doctor.py`
-- `/home/mobaxterm/git/stockroom/skills/sr-search/tests/test_doctor_cli.py`
-- `/home/mobaxterm/git/stockroom/docs/contributing/preparation.md`
-
-## Key decisions
-- Doctor reads with `resolve_home` and `duckdb.connect(..., read_only=True)`. It does not call `home_dir` or `open_current`
-- A missing warehouse is `warehouse: absent` and is not opened. A held `.warehouse.lock` is `warehouse: busy`. A connect or pragma failure is `warehouse: unavailable`
-- `--help` uses `RawDescriptionHelpFormatter` so argparse wrapping cannot split the storage phrases
-
-## Deviations
-- One extra test covers a pragma failure after connect. The plan required that outcome, and the connect-failure test does not reach it
-- Help uses a raw description formatter so `free disk` stays one phrase. `stockroom backfill` already uses that formatter
+- Checked off milestone 4 after `REFLECT COMPLETE` and removed that sub-run's ephemeral files
+- Classified the first unchecked milestone as Level 3
+- The work is a complete copy-and-verify path on the milestone 3 builder: read-only attach, newer-format temp file, row copy, `schema_version` replacement, both-direction multiset equality, catalog equality, zstd on the two large columns, and returned measurements
+- The L4 milestone already fixes that design, including one old-format fixture at the format boundary and no trigger. This sub-run does not choose a new architecture
 
 ## Next Step
-- Run `/niko` to continue to the next milestone.
+- Load the Level 3 workflow and run the plan phase

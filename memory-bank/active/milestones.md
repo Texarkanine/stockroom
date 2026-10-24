@@ -81,7 +81,7 @@ flowchart TD
 - [x] Drop the HNSW index with a migration and remove the vss extension and everything else about the index from the engine
 - [x] Move the engine to DuckDB 2.0 and prove it on a copy of a real warehouse
 - [x] Restore every released migration as it shipped and create new warehouses from a frozen schema file in DuckDB 2.0's storage format with ZSTD on messages.text and tool_calls.tool_input
-- [ ] Report warehouse file size, block use, reclaimable space, storage format, free disk, and an existing backup from stockroom doctor
+- [x] Report warehouse file size, block use, reclaimable space, storage format, free disk, and an existing backup from stockroom doctor
 - [ ] Build a verified newer-format copy of a warehouse without modifying the original
 - [ ] Run that copy under the writer flock with a time limit, first as a recorded rehearsal and later as a hard-link swap, and skip when the file is not ready
 - [ ] Start the check from the Claude Code and Cursor session-start hooks

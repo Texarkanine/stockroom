@@ -1,102 +1,16 @@
 # Progress
 
-`stockroom doctor` probe prints file size, used blocks, free blocks, a reclaimable estimate, the storage format, free disk, and, when a backup file is present, its path and size. The report does not write. When the warehouse is missing, behind the schema head, or busy, the report still prints the facts that need no database connection.
+Extend the milestone 3 warehouse builder so it can copy an existing warehouse into a verified newer-format sibling. The original stays read-only and unchanged. The copy is built from the frozen schema file, with zstd on `messages.text` and `tool_calls.tool_input`, then checked for multiset equality in both directions and catalog equality. The builder returns sizes and times. This milestone does not replace the live file and does not start the check.
 
-**Complexity:** Level 2
+**Complexity:** Level 3
 
 ## 2026-10-23 - COMPLEXITY-ANALYSIS - COMPLETE
 
 * Work completed
-    - Confirmed tag `v3.0.0` is commit `c9fbcc4` on `main`
-    - Restored `memory-bank/active` onto `warehouse-file-growth` from `constrain-size-as-best-we-can`
-    - Checked milestone 3 after its reflect phase
-    - Classified milestone 4 as Level 2
+    - Checked milestone 4 after its reflect phase
+    - Removed the milestone 4 sub-run files
+    - Classified milestone 5, the verified newer-format copy, as Level 3
 * Decisions made
-    - Level 2. The change is one read-only section on the existing doctor probe. The L4 milestone already fixes the facts, the reclaimable estimate, and the no-write rule
+    - Level 3. The change is a complete copy-and-verify feature on the existing builder. The L4 milestone already fixes the design, so this sub-run does not reopen architecture
 * Insights
-    - Apart from version files, `v3.0.0` and `constrain-size-as-best-we-can` differ in `memory-bank/active` and SumMem notes
-
-## 2026-10-23 - PLAN - COMPLETE
-
-* Work completed
-    - Wrote the Level 2 plan for the doctor storage report
-    - Named the swap backup `warehouse.issue147-swap.duckdb`
-    - Left the check-record line on milestone 6
-* Decisions made
-    - Doctor reads with `resolve_home` and a read-only connect. Doctor does not call `home_dir` or `open_current`
-    - The reclaimable estimate is file size minus distinct persistent block ids times `block_size`
-    - A busy lock or a failed read prints the stat facts and does not raise
-* Insights
-    - `pragma_database_size` on DuckDB 2.0 exposes `used_blocks`, `free_blocks`, and `block_size`
-    - `open_current` creates the home through `home_dir` and refuses a behind-head file, so doctor cannot use `open_current`
-
-## 2026-10-23 - PREFLIGHT - COMPLETE
-
-* Work completed
-    - Preflight of the milestone 4 doctor storage report
-    - Wrote `memory-bank/active/.preflight-status`
-* Decisions made
-    - First line of `.preflight-status` is `FAIL (fixable)`
-    - Existing probe callers that do not already isolate the home must use a temp home before build, so the suite does not open the live warehouse
-* Insights
-    - Same-process `LOCK_EX|LOCK_NB` blocks, and `warehouse.open` keeps `.warehouse.lock` until the connection object is finalized, not when `close()` returns
-    - Persistent `block_id` `-1` is a constant-segment sentinel; per-table sums double-count a shared id; `pragma_storage_info` raises on views
-    - A read-only connect does not create a missing file, and it works after a storage-config connection is closed
-
-## 2026-10-23 - PLAN - COMPLETE
-
-* Work completed
-    - Revised the plan for the fixable preflight finding and the four advisories
-* Decisions made
-    - Existing probe callers that do not already isolate the home set `STOCKROOM_HOME` to an empty temp home. `_probe` does not set that variable
-    - `live_bytes` unions persistent block ids across base tables, drops ids below 0, and skips views
-    - A missing warehouse file is `warehouse: absent`. Probe does not connect
-    - The happy-path test drops the writer connection and collects garbage before probe
-* Insights
-    - `block_id` `-1` is a constant-segment sentinel and is not a file block
-
-## 2026-10-23 - PREFLIGHT - COMPLETE
-
-* Work completed
-    - Re-ran preflight on the revised milestone 4 doctor storage report
-    - Wrote `memory-bank/active/.preflight-status`
-* Decisions made
-    - First line of `.preflight-status` is `PASS WITH ADVISORY`
-    - The plan is acceptable as written. The overhead constant and the wider help sentence stay advisory
-* Insights
-    - On an empty `build_warehouse` file, `free_blocks` is 0 and file size minus the column-block union is 536576 of 798720
-    - A cross-process read-only connect fails immediately when a writer holds the DuckDB lock
-
-## 2026-10-23 - BUILD - COMPLETE
-
-* Work completed
-    - Doctor probe reports warehouse size, block use, reclaimable space, storage format, free disk, and the swap backup without writing
-    - Help text and the contributor probe comment name those facts
-    - `make ci` passed: 1098 pytest passed, 39 skipped; 134 JavaScript tests passed
-* Decisions made
-    - `live_bytes` stays the persistent block-id union. The overhead advisory was not adopted
-    - `--help` uses `RawDescriptionHelpFormatter` so the storage phrases stay intact
-* Insights
-    - argparse wraps the description and can split a two-word phrase such as `free disk` across lines
-
-## 2026-10-23 - QA - COMPLETE
-
-* Work completed
-    - Reviewed the doctor storage report against the milestone 4 plan
-    - Wrote `memory-bank/active/.qa-validation-status`
-* Decisions made
-    - PASS. The implementation is acceptable as-is. Advisories stay advisories
-* Insights
-    - The schema-head comparison falls through on both sides. Probe never migrates
-    - `reclaimable-bytes` stays file size minus the persistent block-id union. The overhead constant stays out
-
-## 2026-10-23 - REFLECT - COMPLETE
-
-* Work completed
-    - Wrote `memory-bank/active/reflection/reflection-warehouse-file-growth-m4.md`
-    - Noted warehouse storage facts on the doctor row in `memory-bank/techContext.md`
-* Decisions made
-    - `productContext` and `systemPatterns` need no change. The storage report does not change who the product serves, and the read-only connect is local to doctor
-* Insights
-    - argparse's default help formatter can split a two-word phrase across lines
-    - A healthy new warehouse reports most of its file as reclaimable, and milestone 6 inherits that estimate
+    - Milestone 6 is the one the L4 plan says to split if classification comes out above Level 3. Milestone 5 has no such split

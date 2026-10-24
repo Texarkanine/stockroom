@@ -1,0 +1,1 @@
+1.5.4, no vss: INSERT/DELETE fails on HNSW (unknown index type), even no-match; DROP INDEX IF EXISTS in a transaction works. Drop before writes (2026-10-22). No orphan guard: per-statement commits can leave orphans until next ingest or embed; top-k may be short, never an error.
