@@ -1,13 +1,12 @@
 # Active Context
 
 ## Current Task: warehouse-file-growth, milestone 5 (verified newer-format copy)
-**Phase:** PREFLIGHT - COMPLETE (PASS WITH ADVISORY)
+**Phase:** BUILD - IN-PROGRESS
 
 ## What Was Done
 - Classified milestone 5 as Level 3 and wrote the plan in `memory-bank/active/tasks.md`
-- Preflight returned `FAIL (fixable)`: after `ATTACH`, catalog helpers see both databases
-- Revised the plan. Row copy and `EXCEPT ALL` list base tables for the current database only. Schema, constraints, and view columns are read from each file with nothing attached, so `constraint_index` stays in that compare
-- Success leaves `warehouse.copy.duckdb` and returns sizes and times. The flock, the check record, and the swap stay in milestone 6
+- Preflight returned `PASS WITH ADVISORY` on the revised plan
+- `apply_pending` takes keyword-only `through` and applies nothing above that version. The default still applies every pending migration. `test_migrate_runner.py` is green (8 tests)
 
 ## Next Step
-- Operator runs `/niko-build`
+- Copy an existing warehouse to `warehouse.copy.duckdb` and verify it

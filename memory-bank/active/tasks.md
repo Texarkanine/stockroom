@@ -99,7 +99,7 @@ None - implementation approach is clear.
 
 ## Implementation Plan
 
-### 1. Stop apply_pending at a version — executable
+### 1. Stop apply_pending at a version — done
 
 - Files: `skills/sr-search/src/stockroom/migrate.py`, `skills/sr-search/tests/test_migrate_runner.py`
 
