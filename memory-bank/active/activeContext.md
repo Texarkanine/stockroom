@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: warehouse-file-growth, milestone 6 (check pass)
-**Phase:** PLAN - COMPLETE
+**Phase:** PREFLIGHT - COMPLETE (FAIL (fixable))
 
 ## What Was Done
 - Classified milestone 6 as Level 3. Rehearsal and swap stay one pass
@@ -10,4 +10,4 @@
 - Preflight returned `FAIL (fixable)`. The revision retries a stored skip, alarms on `generations_file`, and does not treat a non-zstd `v2.0.0+` file as already new. `linked` finishes a swap that already hard-linked the original
 
 ## Next Step
-- Preflight the revised plan
+- Revise the plan so a linked resume keeps its sibling, then preflight again

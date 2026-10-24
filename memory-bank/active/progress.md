@@ -85,3 +85,15 @@ Run the verified copy under the writer flock, with a time limit, as one check pa
 * Insights
     - A schema-file warehouse is already new under this plan, so it cannot be the warehouse that sleeps inside `copy_warehouse`
     - A final `started` entry plus a backup left by `os.link` would make every later link fail, including after the record is deleted
+
+## 2026-10-24 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated the revised milestone 6 check-pass plan against the engine
+    - Wrote `memory-bank/active/.preflight-status`
+* Decisions made
+    - First line of `.preflight-status`: `FAIL (fixable)`
+    - The plan was not edited. No test step was out of order, and no step was a change-detector
+* Insights
+    - Cleanup deletes `warehouse.copy.duckdb` before `finish-swap`, and that sibling is the verified copy the resume has to rename into place
+    - The backup inode, the warehouse inode, and the sibling name are enough to finish a replace that died before the record reached `linked`
