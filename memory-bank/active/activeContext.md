@@ -6,7 +6,8 @@
 ## What Was Done
 - Checked milestone 5 and classified milestone 6 as Level 3
 - The time limit is 4 hours, recorded in `memory-bank/active/creative/creative-check-time-limit.md`
-- The free-disk margin and the doctor label for an expired started entry are still open
+- Free disk must be at least `2 * live_bytes + 64 MiB`, recorded in `memory-bank/active/creative/creative-free-disk-margin.md`
+- The doctor label for an expired started entry is still open
 
 ## Next Step
-- Resolve the free-disk margin in the creative phase
+- Resolve the doctor label in the creative phase

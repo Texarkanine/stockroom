@@ -20,7 +20,9 @@ Constraints:
 - Measured on this machine after the index drop: a zstd copy of the live tables was 288 MiB and took 5.7 s. The work machine's warehouse file is 88 GB, and that file is not the size the disk check uses.
 - Take the simpler option whenever it cannot lose a warehouse.
 
-### 2. Free-disk margin
+### 2. Free-disk margin — resolved
+
+**Decision:** skip when free disk is below `2 * live_bytes + 64 MiB`. See `memory-bank/active/creative/creative-free-disk-margin.md`.
 
 The brief says free disk must cover the new file plus a margin, and the new file's size is estimated from live data size, not from the warehouse file size. The margin is not a number.
 
