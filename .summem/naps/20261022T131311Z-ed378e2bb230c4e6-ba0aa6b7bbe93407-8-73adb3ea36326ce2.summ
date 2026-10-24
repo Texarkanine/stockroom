@@ -1,0 +1,1 @@
+1.5.4 no vss: HNSW blocks writes; DROP INDEX in-txn first. orphans if crash; top-k may be short, no error; ties: harness id. No Hub filter after load. Backup warehouse.issue147-<purpose>.duckdb spares .bak. pytest+torch leaks nanobind. zstd at v1.2.0+; mem Uncompressed; no ALTER.

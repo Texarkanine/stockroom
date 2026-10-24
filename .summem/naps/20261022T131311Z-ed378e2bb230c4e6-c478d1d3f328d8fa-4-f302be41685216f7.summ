@@ -1,1 +1,0 @@
-1.5.4 no vss: HNSW blocks embeddings writes, even no-match; DROP INDEX IF EXISTS in a transaction first. Crash leaves orphans; top-k may be short, never an error. Ties break by harness, then id. SET enable_progress_bar = false. Remove Hub filter after model load (2.0.0 nanobind).
