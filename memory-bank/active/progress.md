@@ -46,3 +46,16 @@ Run the verified copy under the writer flock, with a time limit, as one check pa
 * Insights
     - The alarm cannot write a status. The clock is the only signal that separates running from overrun
     - The writer flock cannot separate them. Ingest and the nightly job hold that same flock
+
+## 2026-10-24 - PLAN - COMPLETE
+
+* Work completed
+    - Wrote the Level 3 plan for the check pass
+    - Measured peak files during a copy of an already-zstd fixture before choosing the disk margin
+* Decisions made
+    - The pass lives in `stockroom.check` and is not a user-facing subcommand
+    - Phase A writes `rehearsed` before it deletes `warehouse.copy.duckdb`. Phase B calls `copy_warehouse` again
+    - Doctor prints one `check` line. Inside the limit it says `running`. Past the limit it says `overrun`
+* Insights
+    - A started entry that is still inside its limit must not have its sibling deleted. That sibling belongs to the pass holding the flock
+    - `statvfs` `ST_RDONLY` is the read-only skip. A directory that is merely mode `0555` is a different failure

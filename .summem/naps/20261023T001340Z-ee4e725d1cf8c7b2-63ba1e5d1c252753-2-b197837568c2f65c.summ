@@ -1,0 +1,1 @@
+2.0.0: explicit storage_compatibility_version (even latest) raises ConnectionException on a second plain in-process connect. v1.0.0 at v2.0.0 stays v1.0.0+; 1.5.4 reads and writes it. plain 489 MiB, zstd 290 MiB; ILIKE 142/196 ms; sum(length) 27/97 ms; 50 rows 3 ms; copy 5.3 s.

@@ -1,0 +1,1 @@
+2026-10-24: Milestone 6 plan: alarm ceiling 4h; skip when free disk is below 2*live_bytes+64MiB; expired start displays overrun. Preflight has not run.
