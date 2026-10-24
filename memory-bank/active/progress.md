@@ -97,3 +97,15 @@ Run the verified copy under the writer flock, with a time limit, as one check pa
 * Insights
     - Cleanup deletes `warehouse.copy.duckdb` before `finish-swap`, and that sibling is the verified copy the resume has to rename into place
     - The backup inode, the warehouse inode, and the sibling name are enough to finish a replace that died before the record reached `linked`
+
+## 2026-10-24 - PLAN - COMPLETE
+
+* Work completed
+    - Revised the check-pass plan for the second fixable preflight
+    - Took the fixture, allow-list, free-byte, and spy advisories into the plan
+* Decisions made
+    - A `linked` record finishes before leftover cleanup. Matching inodes and a sibling means replace that sibling and write `swapped` from the stored measurements. Differing inodes means write `swapped` and then delete a stray sibling. A missing sibling leaves the record `linked`
+    - Finish-swap does not run the readiness ladder
+    - An expired `started` entry stays final and does not replace, even when the backup inode matches the warehouse
+* Insights
+    - The directory-entry resume would close the gap before `linked` is durable. It would also replace a warehouse the creative decision keeps final, so it stays out of this plan

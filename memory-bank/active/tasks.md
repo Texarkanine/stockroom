@@ -10,21 +10,24 @@
 
 ### Check pass
 
-The pass takes the writer flock before it reads the record. A busy flock writes nothing and deletes nothing. An unexpired start is left alone so the pass that holds the flock can finish. Every other acquired pass deletes a leftover sibling first. Final records then stop. A stored skip is phase A, and the readiness ladder still runs before any build. Status `linked` finishes a swap that already hard-linked the original. It does not copy again.
+The pass takes the writer flock before it reads the record. A busy flock writes nothing and deletes nothing. A `linked` record is handled before leftover cleanup, because that sibling is the verified copy the resume renames into place. An unexpired start is left alone so the pass that holds the flock can finish. Every other acquired pass deletes a leftover sibling first. Final records then stop. A stored skip is phase A, and the readiness ladder still runs before any build. Finish-swap does not run that ladder and does not copy again.
 
 ```mermaid
 flowchart TD
   take[Take the writer flock]
   quiet[Write nothing and delete nothing]
+  linked{Record is linked}
+  finish[Finish that swap]
   keep[Leave an unexpired start alone]
   sweep[Delete a leftover sibling]
   stop[Stop on a final record]
   choose[Skip mark already new or choose a phase]
   rehearse[Phase A]
   swap[Phase B copy then link]
-  finish[Finish a linked swap]
   take -->|busy| quiet
-  take -->|held| keep
+  take -->|held| linked
+  linked -->|yes| finish
+  linked -->|no| keep
   keep -->|inside the limit| quiet
   keep -->|otherwise| sweep
   sweep --> stop
@@ -32,7 +35,6 @@ flowchart TD
   choose -->|phase A including a stored skip| rehearse
   choose -->|phase B| swap
   choose -->|waiting| quiet
-  choose -->|linked| finish
 ```
 
 ## Component Analysis
@@ -56,9 +58,9 @@ flowchart TD
 ### Boundary Changes
 
 - New module `stockroom.check`. Not a user-facing subcommand
-- `storage.large_column_zstd_problem(con) -> str | None`. `None` means both large columns pass. A populated column with no persistent data segment returns `"{table}.{column} has rows and no zstd data segment"`. Any other persistent non-validity segment that is not zstd returns `"{table}.{column} stored as ({segment_type}, {compression})"`. Empty columns return `None`
+- `storage.large_column_zstd_problem(con) -> str | None`. `None` means both large columns pass. The helper is the body `_require_zstd` already uses, including its type allow-list: `VARCHAR` for `messages.text`, and `VARCHAR` or `JSON` for `tool_calls.tool_input`, with compression `ZSTD`. A populated column with no persistent data segment returns `"{table}.{column} has rows and no zstd data segment"`. A persistent non-validity segment outside that set returns `"{table}.{column} stored as ({segment_type}, {compression})"`, including a `ZSTD` segment whose type is not allowed. Empty columns return `None`
 - `doctor.storage_facts` gains a `check` pair. Existing keys stay
-- `run_check(home, *, now, disk_free)` and `entry(home, *, limit_seconds)` are the seams tests use. Defaults are `time.time`, `shutil.disk_usage`, and `TIME_LIMIT_SECONDS`
+- `run_check(home, *, now, disk_free)` and `entry(home, *, limit_seconds)` are the seams tests use. Defaults are `time.time`, a callable that returns `shutil.disk_usage(path).free`, and `TIME_LIMIT_SECONDS`. `shutil.disk_usage` itself returns a named tuple, so the comparison uses `.free`
 
 ### Invariants
 
@@ -69,8 +71,9 @@ flowchart TD
 - `os.link` of the original onto the backup name happens before `os.replace`. A failed link does not replace
 - The sibling is `warehouse.copy.duckdb` beside the warehouse. Phase A deletes it only after the rehearsed record is in place
 - Busy, low disk, a wal, a read-only filesystem, no warehouse, and a schema below `FORMAT_BOUNDARY` are skips. Skips are not final. `next_action` on `skip` returns `phase-a`. The readiness ladder runs before the build, so a skip whose cause is still true is written again and does not build
-- `swapped`, `mismatch`, `already-new`, and an expired `started` entry are final for `CHECK_VERSION`. `linked` is not final. An expired `started` entry does not replace the warehouse, even if a sibling and a backup are both present
+- `swapped`, `mismatch`, `already-new`, and an expired `started` entry are final for `CHECK_VERSION`. `linked` is not final. An expired `started` entry does not replace the warehouse, even if a sibling and a backup are both present. Directory entries do not promote `started` to a finished swap
 - After `os.link` succeeds, the pass writes `linked` before `os.replace`. `swapped` carries the same measurement fields as `rehearsed`
+- A `linked` resume keeps `warehouse.copy.duckdb` until it renames that file. When the backup inode equals the warehouse inode and the sibling exists, the pass `os.replace`s the sibling onto `warehouse.duckdb`, fsyncs the directory, and writes `swapped` from the measurements already on the record. It does not call `copy_warehouse`, `os.link`, or the readiness ladder. When the inodes already differ, it writes `swapped` and then deletes a stray sibling. When the inodes match and the sibling is already gone, the record stays `linked`
 - `rehearsed` waits `86400` seconds, then phase B runs
 - The alarm ceiling is `14400` seconds. Only `entry` calls `signal.alarm`. It installs no handler
 - Free disk must be at least `2 * live_bytes + 64 MiB` or the pass skips
@@ -107,20 +110,21 @@ Record and phase choice, with `now` supplied by the test:
 - `os.statvfs` reports `ST_RDONLY` → `skip` / `read-only`, original bytes unchanged, no sibling
 - `released_chain_file(8)` placed at `warehouse.duckdb` → `skip` / `below-boundary`, original bytes unchanged, no sibling
 - Schema-file warehouse with a zstd `messages.text` row, and one with no rows → `already-new`, no sibling
-- A schema-9 `v2.0.0+` file whose `messages.text` has a persistent non-zstd segment, and one whose `tool_calls.tool_input` does → `copy_warehouse` is called and the record is not `already-new`. Each file is built by connecting with `storage_compatibility_version` `v2.0.0`, running the schema-file SQL with the zstd clause removed from only that column, inserting `(9, 'schema_0009.sql')`, inserting one non-null value, checkpointing, and closing that connection before `run_check`
+- A schema-9 `v2.0.0+` file whose `messages.text` has a persistent non-zstd segment, and one whose `tool_calls.tool_input` does → `copy_warehouse` is called and the record is not `already-new`. Each file is built by connecting with `storage_compatibility_version` `v2.0.0`, calling `migrate.ensure_schema_version_table`, running the schema-file SQL with the zstd clause removed from only that column, inserting `(9, 'schema_0009.sql')`, inserting one row, checkpointing, and closing that connection before `run_check`. The `messages` row supplies `ordinal` and `role`. The `tool_calls` row supplies `tool_name` and `tool_input`. Those four columns are `NOT NULL`. The insert also supplies the primary-key columns so the row lands. Without the schema-version table, `current_version` is 0 and the pass records `below-boundary` instead of calling `copy_warehouse`
 - `warehouse.duckdb.wal` records `skip` / `wal`; after that wal is removed, the next `run_check` on `generations_file` calls `copy_warehouse`
 - `disk_free` below `2 * live_bytes + 64 MiB` → `skip` / `low-disk`, no sibling
 - `disk_free` equal to that threshold → not a low-disk skip
 - Writer flock already held → the record file is unchanged, the sibling is unchanged, and nothing is deleted
 - Phase A on `generations_file` → record `rehearsed` with original size, copy size, free disk, build seconds, verify seconds, and lock seconds; sibling absent; original SHA-256 unchanged
-- A second `run_check` one second after that rehearsal does not call `copy_warehouse`
+- A second `run_check` one second after that rehearsal does not call `copy_warehouse`. The record stays `rehearsed` and the original SHA-256 is unchanged. The spy patches `stockroom.storage.copy_warehouse`, which is the attribute `run_check` calls
 - Phase B when `now` is `86400` seconds after `rehearsed_at` → `copy_warehouse` runs again; backup SHA-256 equals the original's SHA-256 from before the link; backup inode matched the original before the replace; `warehouse.duckdb` is the new file; sibling absent; record `swapped` and still carries `original_bytes`
 - A marker left at `warehouse.copy.duckdb` before phase B is not the file that ends up at `warehouse.duckdb`
 - `verify_copy` raises `CopyMismatch` → record `mismatch`, sibling absent, original unchanged, and a later `run_check` does not call `copy_warehouse`
 - `os.link` raises → no replace, original bytes unchanged, backup absent
 - `os.link` links and then raises, before `linked` is written → backup SHA-256 equals the original, `warehouse.duckdb` still the original bytes, record still `started`
-- `os.replace` raises after `linked` is on disk → warehouse bytes unchanged, backup inode matches the warehouse, record is `linked`. The next `run_check` replaces the sibling onto `warehouse.duckdb`, writes `swapped` with `original_bytes`, and does not call `copy_warehouse`
-- `os.replace` replaces and the process stops before `swapped` → inodes differ and the record is still `linked`. The next `run_check` writes `swapped` and does not call `copy_warehouse` or `os.link`
+- `os.replace` raises after `linked` is on disk → warehouse bytes unchanged, backup inode matches the warehouse, record is `linked`, and the sibling is still present. The next `run_check` does not delete that sibling first. It replaces the sibling onto `warehouse.duckdb`, writes `swapped` with `original_bytes`, and does not call `copy_warehouse`
+- `os.replace` replaces and the process stops before `swapped` → inodes differ and the record is still `linked`. The next `run_check` writes `swapped`, does not call `copy_warehouse` or `os.link`, and then deletes a stray sibling
+- `linked`, backup inode equals the warehouse inode, and the sibling is already absent → the record stays `linked`, the warehouse bytes are unchanged, and `copy_warehouse` is not called
 - Final `swapped` record plus a leftover sibling → sibling deleted, record still `swapped`, `copy_warehouse` not called
 - Expired `started` plus a leftover sibling and a backup whose inode differs → sibling deleted, warehouse bytes unchanged, backup left in place, record still `started`, `copy_warehouse` not called
 - Unexpired `started` plus a sibling → sibling kept, `copy_warehouse` not called
@@ -172,8 +176,8 @@ Doctor, read-only:
 
 1. Stub tests: empty tests for missing home, missing warehouse, wal, wal removed then a build, read-only, schema 8, zstd row, empty warehouse, non-zstd `messages.text`, non-zstd `tool_calls.tool_input`, low disk, disk equal to the threshold, and busy flock.
 2. Stub interface: `run_check(home, *, now=time.time, disk_free=None)` and `storage.large_column_zstd_problem(con) -> str | None`. `_require_zstd` raises `CopyMismatch` with the returned message and raises nothing when the helper returns `None`.
-3. Write tests and run red: each skip asserts the record status and reason, an unchanged original SHA-256 when a file existed, and no `warehouse.copy.duckdb`. The wal-retry test uses `generations_file`, deletes the wal after the skip, and asserts the next `run_check` calls `copy_warehouse`. Already-new asserts status `already-new` and no sibling. Each non-zstd file asserts the spy was called and the status is not `already-new`. The threshold case uses a `disk_free` that returns exactly `2 * live_bytes + 64 * 1024 * 1024` and must not record `low-disk`. The busy test holds `warehouse._flock` on `home / LOCK_FILENAME` and asserts the record bytes and a pre-created sibling are unchanged.
-4. Write code and run green: import `live_bytes` inside `run_check`, not at module import. If `home` is not a directory, return without creating it. Otherwise take `warehouse._flock` with `blocking=False` and return on `BlockingIOError` before any read or delete. Then the order in the pinned diagram. Read-only means `os.statvfs(home).f_flag & os.ST_RDONLY`. Schema comes from a read-only connect and `current_version`, with no migrate. Already-new means storage tag `v2.0.0+` and `large_column_zstd_problem` returns `None`. Low disk uses `live_bytes` on that same read-only connection. A stored `skip` still walks this ladder before phase A. Skips and `already-new` are written with `write_record`. A record write that raises `OSError` returns without replacing the warehouse.
+3. Write tests and run red: each skip asserts the record status and reason, an unchanged original SHA-256 when a file existed, and no `warehouse.copy.duckdb`. The wal-retry test uses `generations_file`, deletes the wal after the skip, and asserts the next `run_check` calls `copy_warehouse`. Already-new asserts status `already-new` and no sibling. Each non-zstd file is built through `migrate.ensure_schema_version_table` and a full row, asserts the spy was called, and asserts the status is not `already-new`. The threshold case uses a `disk_free` that returns exactly `2 * live_bytes + 64 * 1024 * 1024` and must not record `low-disk`. The busy test holds `warehouse._flock` on `home / LOCK_FILENAME` and asserts the record bytes and a pre-created sibling are unchanged.
+4. Write code and run green: import `live_bytes` inside `run_check`, not at module import. If `home` is not a directory, return without creating it. Otherwise take `warehouse._flock` with `blocking=False` and return on `BlockingIOError` before any read or delete. Then the order in the pinned diagram, so a `linked` record finishes before any sibling delete. When `disk_free` is omitted, call `shutil.disk_usage(home).free`. Read-only means `os.statvfs(home).f_flag & os.ST_RDONLY`. Schema comes from a read-only connect and `current_version`, with no migrate. Already-new means storage tag `v2.0.0+` and `large_column_zstd_problem` returns `None`. That helper keeps the type allow-list and the two `CopyMismatch` messages. Low disk uses `live_bytes` on that same read-only connection. A stored `skip` still walks this ladder before phase A. A `linked` resume does not walk it. Skips and `already-new` are written with `write_record`. A record write that raises `OSError` returns without replacing the warehouse. `run_check` calls `storage.copy_warehouse` by attribute lookup.
 
 ### 3. Phase A — executable
 
@@ -181,17 +185,17 @@ Doctor, read-only:
 
 1. Stub tests: empty tests for the rehearsal record, the unchanged original, and the second call inside one day.
 2. Stub interface: no new signature. `run_check` grows a phase A body.
-3. Write tests and run red: `generations_file`'s parent is the home. After `run_check`, the record is `rehearsed` and carries the measurement names, the sibling is gone, and the original SHA-256 matches the hash taken before the call. A spy replaces `storage.copy_warehouse` only in the second test, after a real first call has written `rehearsed`, and `now` is one second later. The spy must not be called.
+3. Write tests and run red: `generations_file`'s parent is the home. After `run_check`, the record is `rehearsed` and carries the measurement names, the sibling is gone, and the original SHA-256 matches the hash taken before the call. A spy replaces `stockroom.storage.copy_warehouse` only in the second test, after a real first call has written `rehearsed`, and `now` is one second later. The spy must not be called. The record stays `rehearsed` and the original SHA-256 is unchanged.
 4. Write code and run green: on `phase-a`, write `started` with phase `A`, `started_at`, and `limit_seconds` before `copy_warehouse`. On `CopyMismatch`, write `mismatch` and return. On success, write `rehearsed` with the `CopyResult` fields, the free-disk sample from before the build, and `lock_seconds` from flock acquire until just before that write. Then delete `warehouse.copy.duckdb` and its `.wal`. `rehearsed_at` is `now()`.
 
 ### 4. Phase B — executable
 
 - Files: `check.py`, `test_check.py`
 
-1. Stub tests: empty tests for the swap proof, the marker sibling, replace-after-`linked`, and a `linked` record whose inodes already differ.
+1. Stub tests: empty tests for the swap proof, the marker sibling, replace-after-`linked`, a `linked` record whose inodes already differ, and a `linked` record whose matching sibling is already gone.
 2. Stub interface: no new signature.
-3. Write tests and run red: run a real phase A, then `run_check` with `now` at `rehearsed_at + 86400`. Backup path is `home / doctor.SWAP_BACKUP_FILENAME`. Its SHA-256 equals the original hash from before this second call. `warehouse.duckdb` opens read-only at storage tag `v2.0.0+` and contains the generation rows. The sibling is gone. The record is `swapped` and its `original_bytes` equals the rehearsed record's `original_bytes`. The marker test plants `b"not a database"` at the sibling after phase A and asserts `warehouse.duckdb` is not those bytes. The replace-after-`linked` test makes `os.replace` raise and asserts the record is `linked`, the warehouse bytes are unchanged, and the backup inode matches. A following `run_check` writes `swapped` with `original_bytes` and does not call `copy_warehouse`. The inode-differ test stops after `os.replace` and before `swapped`. A following `run_check` writes `swapped` and does not call `copy_warehouse` or `os.link`.
-4. Write code and run green: on `phase-b`, delete a leftover sibling, write `started` with phase `B`, call `copy_warehouse`, hash the original, `os.link` it to the backup name, and write `linked` with the `CopyResult` fields before `os.replace`. Fsync the sibling and the directory, `os.replace` the sibling onto `warehouse.duckdb`, hash the backup, and write `swapped` with those same fields. On `finish-swap`, if the backup inode equals the warehouse inode and the sibling exists, replace and write `swapped`. If the inodes differ, write `swapped` and do not copy or link. Do not remove an existing backup. If `os.link` raises before `linked` is written, do not replace. A bare `started` record never takes the finish-swap path.
+3. Write tests and run red: run a real phase A, then `run_check` with `now` at `rehearsed_at + 86400`. Backup path is `home / doctor.SWAP_BACKUP_FILENAME`. Its SHA-256 equals the original hash from before this second call. `warehouse.duckdb` opens read-only at storage tag `v2.0.0+` and contains the generation rows. The sibling is gone. The record is `swapped` and its `original_bytes` equals the rehearsed record's `original_bytes`. The marker test plants `b"not a database"` at the sibling after phase A and asserts `warehouse.duckdb` is not those bytes. The replace-after-`linked` test makes `os.replace` raise and asserts the record is `linked`, the warehouse bytes are unchanged, the backup inode matches, and the sibling is still there. A following `run_check` still sees that sibling, replaces it onto `warehouse.duckdb`, writes `swapped` with `original_bytes`, and does not call `copy_warehouse`. The inode-differ test stops after `os.replace` and before `swapped`. A following `run_check` writes `swapped`, does not call `copy_warehouse` or `os.link`, and then the stray sibling is gone. The missing-sibling test starts from `linked` with matching inodes and no sibling. `run_check` leaves the record `linked` and does not call `copy_warehouse`.
+4. Write code and run green: on `phase-b`, delete a leftover sibling, write `started` with phase `B`, call `copy_warehouse`, hash the original, `os.link` it to the backup name, and write `linked` with the `CopyResult` fields before `os.replace`. Fsync the sibling and the directory, `os.replace` the sibling onto `warehouse.duckdb`, hash the backup, and write `swapped` with those same fields. On `finish-swap`, run before leftover cleanup. If the backup inode equals the warehouse inode and the sibling exists, `os.replace` it, fsync the directory, and write `swapped` from the measurement fields already on the `linked` record. Do not call `copy_warehouse`, `os.link`, or the readiness ladder. If the inodes differ, write `swapped` and then delete a stray sibling and its `.wal`. If the inodes match and the sibling is gone, leave the record `linked`. Do not remove an existing backup. If `os.link` raises before `linked` is written, do not replace. A bare `started` record never takes the finish-swap path.
 
 ### 5. Failures, finality, and leftover cleanup — executable
 
@@ -201,7 +205,7 @@ Doctor, read-only:
 1. Stub tests: empty tests for `CopyMismatch`, link failure, link-then-raise before `linked`, leftover cleanup on `swapped`, leftover cleanup on an expired start that also has a foreign backup, and keeping the sibling on an unexpired start.
 2. Stub interface: no new signature. The cleanup order from the diagram is part of `run_check`.
 3. Write tests and run red: monkeypatch `storage.verify_copy`, `os.link`, and `os.replace` at the points above. Finality tests write the record with `write_record`, plant a sibling, call `run_check`, and assert `copy_warehouse` was not used. The expired-start test also plants a backup whose inode differs and asserts the warehouse bytes are unchanged.
-4. Write code and run green: cleanup runs only after the unexpired-start return, and it unlinks the sibling and its `.wal` only. It does not unlink `warehouse.duckdb` or the backup name. Expired `started` returns after cleanup without rewriting the record and without `os.replace`. `CopyMismatch` writes `mismatch`. Other exceptions from the build propagate with the `started` record left as written. `linked` is only written after `os.link` returns.
+4. Write code and run green: cleanup runs only after the unexpired-start return and only when the record is not `linked`. It unlinks the sibling and its `.wal` only. It does not unlink `warehouse.duckdb` or the backup name. Expired `started` returns after cleanup without rewriting the record and without `os.replace`. `CopyMismatch` writes `mismatch`. Other exceptions from the build propagate with the `started` record left as written. `linked` is only written after `os.link` returns.
 
 ### 6. Alarm entry point — executable
 
@@ -243,7 +247,8 @@ The pass uses `fcntl.flock`, `os.link`, `os.replace`, `signal.alarm`, and `hashl
 - `signal.alarm` in the xdist worker would kill the worker. `run_check` does not set it. `entry`'s `finally` clears it when the pass returns. The hang test is a subprocess.
 - `copy_warehouse` leaves the sibling on success and deletes it on `CopyMismatch`. Phase A writes `rehearsed` before it deletes the sibling. A crash between those two is cleaned up on the next acquired pass.
 - Deleting the sibling while a start is unexpired would remove the live pass's file. Cleanup is skipped for `running`.
-- `os.link` onto an existing backup raises when the record is not `linked`. The pass does not delete that backup and does not replace the warehouse. A `linked` record finishes the replace or writes `swapped` when the inodes already differ, and does not copy again.
+- `os.link` onto an existing backup raises when the record is not `linked`. The pass does not delete that backup and does not replace the warehouse. A `linked` record is finished before leftover cleanup, so the verified sibling is still there to rename. When the inodes already differ, `swapped` is written and a stray sibling is deleted afterward.
+- A crash after `os.link` returns and before `linked` is durable leaves `started`, a backup whose inode matches the warehouse, and the verified sibling. The plan does not finish that shape. An expired `started` entry is final and does not replace, including when the inodes match. The backup name remains, so a later `os.link` fails until a person removes the record and that backup.
 - `statvfs` `ST_RDONLY` is the read-only skip. A directory mode of `0555` is not that flag. The test stubs `os.statvfs`. An `OSError` while writing the record returns without replacing the warehouse.
 - The 20 MB wal measured on 2026-10-24 was an already-zstd file the pass will not copy. The `2 * live_bytes + 64 MiB` rule is for uncompressed sources. A source whose logical rows are far larger than live bytes can still run out of space and leave a final `started` entry.
 - This checkout is the live shim. Tests use `tmp_path` and do not open the live warehouse. `make ci` and the commit hook's frozen sync remove torch. After either one, `stockroom shim ensure-env` puts the freeze back. Do not use a bare `uv sync` for these tests.
@@ -257,7 +262,7 @@ The pass uses `fcntl.flock`, `os.link`, `os.replace`, `signal.alarm`, and `hashl
 - The record is written in place and doctor reads a partial file. The plan writes a temp file, fsyncs, and `os.replace`s it.
 - The SHA-256 compared after the swap is `warehouse.duckdb`, which is already the new file. The plan hashes the original before the link and the backup path after the replace.
 - A short alarm becomes a false final overrun. The ceiling is 4 hours, and tests that need a fast death pass `limit_seconds=1` into the child only. The child sleeps inside `copy_warehouse` on `generations_file`, which is not already new.
-- A crash after the hard link leaves a backup that makes the next `os.link` fail, and a final `started` entry would never retry. The plan writes `linked` before `os.replace`. `linked` is not final, and the next pass finishes the swap without copying. An expired `started` entry still does not replace.
+- A crash after the hard link leaves a backup that makes the next `os.link` fail, and a final `started` entry would never retry. The plan writes `linked` before `os.replace`, and the next pass finishes that `linked` record without deleting the sibling first. An expired `started` entry still does not replace, including when its backup inode matches. That directory-entry resume stays out of the plan because the creative decision keeps an expired `started` entry final.
 
 ## Status
 
