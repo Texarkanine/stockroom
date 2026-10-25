@@ -27,3 +27,15 @@ Fix the two pull request 152 release blockers on `warehouse-file-growth`: run th
 * Insights
     - `generations_file` is written by DuckDB 2.0.0, so its table SQL matches a schema-file copy and cannot catch this bug
     - `docs/architecture/lifecycle.md` is the only tracked page that names `"$PY" -m stockroom.check`
+
+## 2026-10-25 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated the Level 2 plan against the codebase: hook commands, packaging tests, `_catalog`, fixtures, and lifecycle docs all match the plan's claims
+    - Wrote `memory-bank/active/.preflight-status` with first line `PASS WITH ADVISORY`
+* Decisions made
+    - No plan edits needed: TDD ordering is correct in both executable units, the prose unit correctly owes no tests, and no change-detectors were scheduled
+    - Recorded one advisory: routing the check through a `stockroom check --detach` shim subcommand would give the interpreter question one owner, at the cost of reversing an archived decision
+* Insights
+    - `_catalog` is private to `storage.py` and the copy tests use their own helpers, so dropping `table_sql` breaks nothing unlisted
+    - The expected red message `table_sql differ from the original` matches `_verify_catalog`'s f-string exactly
