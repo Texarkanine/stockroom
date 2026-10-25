@@ -168,3 +168,30 @@ Correct the warehouse-check sentences on pull request 152, rewrite the troublesh
     - Keep `check.json`, because a missing record starts phase A again.
 * Insights
     - A plan that describes prose by rules invites a reviewer to find the next uncovered state. A plan that contains the prose can be checked claim by claim.
+
+## 2026-10-25 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Sixth preflight: `FAIL (fixable)`. Steps 4 to 9 held. The status list and the problem paragraph claimed too much.
+
+## 2026-10-25 - PLAN - COMPLETE
+
+* Work completed
+    - Named the six words that mean nothing to put back, and sent every other word to "Still stuck".
+    - Scoped the problem paragraph to `running` and `linked`, and the `check.json` warning to after the restore.
+    - Added the deleted-record caveat, the not-yet-migrated skip, and a `busy` wait after the one session.
+    - Dropped the parenthetical definition of the new format.
+* Decisions made
+    - Narrow sentences, do not add branches.
+
+## 2026-10-25 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated the Level 2 prose plan against the hooks, `_readiness`, phase A and phase B, `_finish_swap`, `format_facts`, the doctor probe, and pull request 152 comment `4371593291`.
+    - Wrote `FAIL (fixable)` as the first line of `.preflight-status`.
+* Decisions made
+    - The plan changes before build: the copy-condition sentences, and the problem and solution sentences that are not true for every probe word.
+    - Steps 4 through 9 stay. No `tasks.md` edit.
+* Insights
+    - Schema below 9 is `skip` / `below-boundary`, and `already-new` compares the storage tag `v2.0.0+`.
+    - An expired `started` record and a stuck `linked` record never become `swapped`. Deleting `check.json` while the backup name remains does not make `os.link` succeed.
