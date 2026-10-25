@@ -40,10 +40,10 @@ No new executable behavior.
 
 1. Keep the link token `[click here!](http://localhost:58008)` byte for byte.
 2. Replace only the warehouse-check sentence on that same bullet. State all of these:
-    - On an eligible existing warehouse, the first run rehearses a copy. At least one day later, a session start replaces the file and keeps the original under a backup name.
+    - On an eligible existing warehouse, the first run rehearses a copy. At least one day later, a session start that still finds the warehouse eligible replaces the file and keeps the original under a backup name.
     - A warehouse that is already in the new format is recorded as already new. The check does not rehearse it and does not replace it.
     - Eligible is defined in the troubleshooting warehouse section. Link that section.
-3. Do not say that every warehouse which is not already new is rehearsed or replaced. `_readiness` does not copy a missing file, a file with `warehouse.duckdb.wal`, a read-only directory, a schema below version 9, or a file with free disk under twice the live size plus 64 MiB.
+3. Do not say that every warehouse which is not already new is rehearsed or replaced. `_readiness` does not copy a missing file, a file with `warehouse.duckdb.wal`, a stockroom home on a read-only filesystem, a schema below version 9, or a file with free disk under twice the live size plus 64 MiB.
 4. Keep the trailing Dashboard link.
 
 ### 3. Troubleshooting restore — prose/policy
@@ -54,19 +54,20 @@ No new executable behavior.
 1. Replace the `## Warehouse` section through the four numbered steps. Do not edit `## Still stuck`.
 2. Write the section in the spirit of ASD-STE100: short sentences, active voice, one meaning per word. Keep these names: `warehouse.duckdb`, `warehouse.duckdb.wal`, `warehouse.issue147-swap.duckdb`, `already-new`, `swapped`, `linked`, `running`, `overrun`, `check.json`, `stockroom doctor probe`.
 3. Put these three blocks before any numbered step, in this order.
-    - When this applies. `warehouse.issue147-swap.duckdb` is in the same directory as `warehouse.duckdb`, and the reader wants the original warehouse back. A new-format warehouse is recorded `already-new`. The check does not rehearse it and does not replace it. If the probe `backup` line is `absent`, this restore does not apply.
-    - The problem. The check rehearses only an eligible warehouse. Eligible means all of these: the warehouse file is present, no `warehouse.duckdb.wal` is beside it, the directory is not on a read-only disk, the schema version is 9 or above, free disk is at least twice the live size plus 64 MiB, and the file is not already in the new format. On an eligible warehouse, the first run makes a copy and then deletes that copy. At least one day later, a session start replaces `warehouse.duckdb` with a verified copy and leaves the original as `warehouse.issue147-swap.duckdb`. Stockroom does not delete that file. The backup name can exist before the record is `swapped`. A rename in that window can put the new copy back on `warehouse.duckdb`. Some records never become `swapped`.
-    - The solution. Rename only when the check has stopped and the check line starts with `swapped`. A `swapped` record does not replace `warehouse.duckdb`. The reader renames the files. Stockroom does not rename them. A `linked` line that is not busy needs one new session, because that session is what can write `swapped`. If the line stays `linked`, the live file was not replaced. Do not rename. An `overrun` line does not become `swapped`. Move `warehouse.issue147-swap.duckdb` aside, then delete `check.json`. Do not use the rename steps for `overrun`.
-4. Then give the steps, in this order. Do not tell the reader to wait for `swapped` with no new session.
+    - When this applies. `warehouse.issue147-swap.duckdb` is in the same directory as `warehouse.duckdb`, and the reader wants the original warehouse back. A new-format warehouse is recorded `already-new`. The check does not rehearse it and does not replace it. If the probe `backup` value is `absent`, this restore does not apply.
+    - The problem. The check rehearses only an eligible warehouse. Eligible means all of these: the warehouse file is present, no `warehouse.duckdb.wal` is beside it, the stockroom home is not on a read-only filesystem, the schema version is 9 or above, free disk is at least twice the live size plus 64 MiB, and the file is not already in the new format. On an eligible warehouse, the first run makes a copy and then deletes that copy. At least one day later, a session start that still finds the warehouse eligible replaces `warehouse.duckdb` with a verified copy and leaves the original as `warehouse.issue147-swap.duckdb`. Stockroom does not delete that file. The backup name can exist before the record is `swapped`. While the record is `linked`, the check can put the new copy on `warehouse.duckdb`. The reader does not rename in that window. Some records never become `swapped`.
+    - The solution. Rename only when the check value starts with `swapped` and the warehouse value is not `busy`. The replacement has already happened. The live file is the verified copy. A `swapped` record does not replace that file again. The reader renames the files. Stockroom does not rename them. A `linked` value that is not busy needs one new session, because that session is what can write `swapped`. If the value stays `linked`, stop. Do not rename. Do not say whether the live file is the original. An `overrun` value does not become `swapped`. Move `warehouse.issue147-swap.duckdb` aside, then delete `check.json`. Do not use the rename steps for `overrun`. A `swapped` value while the warehouse value is `busy` means wait. Do not rename yet.
+4. Then give the steps, in this order. Probe prints `key: value`. The check value is the text after `check:`. That value starts with the status word. Do not tell the reader to wait for `swapped` with no new session. Keep the heading `## Warehouse`.
     1. Run `stockroom doctor probe`.
-    2. Read the `warehouse` line, the `check` line, and the `backup` line.
-    3. If `backup` is `absent`, stop.
-    4. If the check line starts with `running`, wait and run step 1 again. Do not rename.
-    5. If the check line starts with `linked` and the warehouse line is `busy`, wait and run step 1 again. Do not rename.
-    6. If the check line starts with `linked` and the warehouse line is not `busy`, start one session and run step 1 again. If the check line then starts with `swapped`, go to step 8. If it still starts with `linked`, stop. Do not rename.
-    7. If the check line starts with `overrun`, do not rename `warehouse.duckdb`. Move `warehouse.issue147-swap.duckdb` aside. Delete `check.json` in that same directory. Stop.
-    8. If the check line starts with `swapped` and the warehouse line is not `busy`, stop writers (do not run ingest, embed, or the nightly job), read the path on the `backup` line, rename `warehouse.duckdb` to a name of the reader's own, then rename the backup file to `warehouse.duckdb`. Do not start a session during those renames.
-    9. If the check line starts with any other word, stop. Do not rename.
+    2. Read the `warehouse` value, the `check` value, and the `backup` value.
+    3. If the `backup` value is `absent`, stop.
+    4. If the check value starts with `running`, wait and run step 1 again. Do not rename.
+    5. If the check value starts with `linked` and the warehouse value is `busy`, wait and run step 1 again. Do not rename.
+    6. If the check value starts with `linked` and the warehouse value is not `busy`, start one session and run step 1 again. If the check value then starts with `swapped`, go to step 9. If it still starts with `linked`, stop. Do not rename.
+    7. If the check value starts with `overrun`, do not rename `warehouse.duckdb`. Move `warehouse.issue147-swap.duckdb` aside. Delete `check.json` in that same directory. Stop.
+    8. If the check value starts with `swapped` and the warehouse value is `busy`, wait and run step 1 again. Do not rename.
+    9. If the check value starts with `swapped` and the warehouse value is not `busy`, stop writers (do not run ingest, embed, or the nightly job), read the path on the `backup` value, rename `warehouse.duckdb` to a name of the reader's own, then rename the backup file to `warehouse.duckdb`. Do not start a session during those renames.
+    10. If the check value starts with any other word, stop. Do not rename.
 
 ### 4. Dead schema-head comparison — executable
 
@@ -84,7 +85,7 @@ No new executable behavior.
 - No tests: prose/policy artifact
 
 1. If `Texarkanine` has already replied to comment `4371593291`, stop. Do not post a second reply.
-2. Otherwise post one reply with `gh`, `in_reply_to` `4371593291`. The reply is limited to a version-1 `started` object. It says: this check writes `check_version` 1, `started_at`, and `limit_seconds`, and `write_record` stores the whole object. `next_action` reads the time fields only when `check_version` is 1. On that object, a missing field raises `KeyError` and a value that cannot be added raises `TypeError`, in both `check_line` and `next_action`. That child dies before phase A. A `try`/`except` only in `check_line` does not change that child. An object whose `check_version` is missing or is not 1 takes phase A, including `{"status": "started"}`. End with `Disposition: dismiss. No code change.`
+2. Otherwise post one reply with `gh`, `in_reply_to` `4371593291`. The reply is limited to a version-1 `started` object. It says: this check writes `check_version` 1, `started_at`, and `limit_seconds`, and `write_record` stores the whole object. `next_action` reads the time fields only when `check_version` is 1. On that object, a missing field raises `KeyError` and a value that cannot be added raises `TypeError`, in both `check_line` and `next_action`. That child dies before phase A. A `try`/`except` only in `check_line` does not change that child. An object whose `check_version` is missing or is not 1 makes `next_action` return `phase-a`, including `{"status": "started"}`. Readiness can still skip the copy on that path. End with `Disposition: dismiss. No code change.`
 3. Do not reply to the full-flush nit or to the comments that this plan fixes in docs.
 
 ## Technology Validation
@@ -110,7 +111,8 @@ No new technology - validation not required
 
 - The plan is carried out as a change to `_finish_swap`: the brief and step 3 forbid a state-machine edit. The restore is documentation.
 - The old comment "Report it" is implemented as a new probe fact: step 4 deletes the comment and adds no fact. The existing below-head test is the guard.
-- A reader still renames while the record is `linked` because the steps come first: step 3 puts the situation, the problem, and the solution before the numbered list, and the list renames only from `swapped`.
+- A reader still renames while the record is `linked` because the steps come first: step 3 puts the situation, the problem, and the solution before the numbered list, and the list renames only from a `swapped` value that is not busy.
+- A busy `swapped` reader matches no step: step 8 waits and probes again.
 - The page grows a new restore command that takes the writer flock: declined. That command is a different task. This page carries the branches until such a command exists.
 - Pull request 152 is merged while `memory-bank/active/` is present, so `main` is no longer a fresh Niko checkout: already covered by the challenge. Archive stays a later operator step.
 

@@ -1,16 +1,16 @@
 # Active Context
 
 ## Current Task: warehouse-check-review-wording
-**Phase:** PREFLIGHT - COMPLETE (FAIL (fixable))
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
 
-- First preflight failed with three fixable findings. The plan now matches them.
-- The restore renames only from a stopped `swapped` record. `running` and busy `linked` wait. A free `linked` record gets one new session. `overrun` uses the backup-aside recovery.
-- Rehearsal is limited to an eligible warehouse, and the replacement is at least one day later.
-- The dismiss reply is limited to a version-1 `started` object.
+- Second preflight failed on two fixable wording gaps. The plan now covers them.
+- A busy `swapped` value waits. The check, not the reader, is the actor that can replace the live file while the record is `linked`.
+- Probe words are values after `key:`. A `linked` value that stays `linked` is a stop, with no claim about which bytes are live.
+- The day-later replacement still has to find the warehouse eligible. The dismiss reply says `next_action` returns `phase-a`, and readiness can still skip the copy.
 - No new test. No new command. No change to the check state machine or to `os.fsync`.
 
 ## Next Step
 
-- Revise the plan for a busy `swapped` record and for which actor replaces the live file.
+- Preflight the revised plan.

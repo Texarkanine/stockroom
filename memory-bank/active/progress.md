@@ -68,3 +68,18 @@ Correct the warehouse-check sentences on pull request 152, rewrite the troublesh
 * Insights
     - The check writes `swapped` before it leaves the writer flock, so probe can show `swapped` and `warehouse: busy` together.
     - The check's `os.replace` puts the new copy on `warehouse.duckdb` while the record is still `linked`. A reader rename in that window does not.
+
+## 2026-10-25 - PLAN - COMPLETE
+
+* Work completed
+    - Added a wait for a busy `swapped` value.
+    - Named the check as the actor that replaces the live file while the record is `linked`.
+    - Spoke of probe values, not of a line that starts with the status word.
+    - Limited the day-later replacement to a warehouse that is still eligible.
+    - Said `next_action` returns `phase-a`, and that readiness can still skip the copy.
+* Decisions made
+    - Do not say a `linked` value that stays `linked` means the live file is the original.
+    - Say that a `swapped` record means the replacement has already happened.
+    - Declined a read-only restore fact on the probe. The page keeps the branches.
+* Insights
+    - A failed write of `swapped` can leave the record `linked` after `os.replace`. The live file is then the new copy.
