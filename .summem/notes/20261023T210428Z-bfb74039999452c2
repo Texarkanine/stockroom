@@ -1,1 +1,0 @@
-2026-10-23: M1-M3 are on main as squash 0e1e62e. Ship them as v3.0.0 by merging release-please PR 151 before milestone 4. Then restore memory-bank/active onto a new branch from that main. Do not rebase constrain-size-as-best-we-can.
