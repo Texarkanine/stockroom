@@ -1,13 +1,14 @@
 # Active Context
 
 ## Current Task: warehouse-check-review-wording
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
 
-- Operator approved the pull request 152 review disposition, then added the troubleshooting shape.
-- Complexity is Level 2. The work corrects existing sentences and deletes one dead branch. It does not change the check state machine.
+- Classified the review follow-up as Level 2.
+- Wrote the plan: three prose edits, one dead-branch deletion guarded by the existing below-head doctor test, and one GitHub dismiss reply.
+- No new test. No new dependency. No change to the check state machine or to `os.fsync`.
 
 ## Next Step
 
-- Load the Level 2 workflow and run the plan phase.
+- Preflight validation.

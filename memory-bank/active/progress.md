@@ -18,3 +18,15 @@ Correct the warehouse-check sentences on pull request 152, rewrite the troublesh
     - Do not change the quickstart "click here!" link text.
 * Insights
     - `test_storage_below_head_does_not_change_the_file` already locks the observable probe contract for a warehouse below the schema head.
+
+## 2026-10-25 - PLAN - COMPLETE
+
+* Work completed
+    - Planned three documentation edits, the deletion of the dead schema-head comparison, and one dismiss reply on comment `4371593291`.
+    - Mapped the deletion to the existing doctor test. Added no new test.
+* Decisions made
+    - Troubleshooting order is situation, problem, solution, then steps, in ASD-STE100.
+    - The quickstart "click here!" token stays byte for byte.
+    - No schema-lag fact. No `F_FULLFSYNC`. No check-state change.
+* Insights
+    - A red test for this deletion would not go red for a missing outcome. The `pass` body has none.
