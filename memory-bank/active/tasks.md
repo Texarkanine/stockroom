@@ -172,4 +172,15 @@ No new technology - validation not required
 - [x] Pre-Mortem complete
 - [x] Preflight
 - [x] Build
-- [ ] QA
+- [x] QA
+
+## QA Results
+
+PASS. Reviewed commit `c1244b7` against this plan.
+
+- Units 1, 2, and 3: the shipped lifecycle sentence, quickstart bullet, and troubleshooting `## Warehouse` section match the plan text byte for byte. The claims match the hooks, `check.py`, `_backup_facts`, and `format_facts`. The restore page meets the harm-only gate in `.preflight-status`.
+- Unit 4: the schema-head block and both imports are gone, nothing else in `doctor.py` used them, and `ruff` is clean. `test_doctor.py` and `test_doctor_cli.py` passed (43 passed, 2 skipped).
+- Unit 5: comment `4371593291` has exactly one `Texarkanine` reply (`4372377536`), and its body matches the plan text. No `F_FULLFSYNC` in the tree, and `check.py` is not changed.
+- Advisory: the `already-new` sentence leaves out the large-column zstd condition, and the restore page does not cover check words other than `swapped`. Both are deliberate under the operator's harm-only decision.
+- Advisory: in `progress.md`, the BUILD entry sits above three older PREFLIGHT `FAIL (fixable)` entries instead of at the bottom. The ledger reads as if preflight failed after build. Reflect and archive should know.
+- Advisory, outside this diff and older than it: the `storage_facts` docstring says the backup is reported "only when" the file exists, but `_backup_facts` always reports `backup: absent`. The lifecycle "stdout/stderr discarded" bullet is wrong for the Cursor hook, which discards stdout only.

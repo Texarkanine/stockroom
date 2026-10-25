@@ -172,7 +172,14 @@ Correct the warehouse-check sentences on pull request 152, rewrite the troublesh
 ## 2026-10-25 - PREFLIGHT - COMPLETE
 
 * Work completed
-    - Sixth preflight: `FAIL (fixable)`. Steps 4 to 9 held. The status list and the problem paragraph claimed too much.
+    - Validated the Level 2 prose plan against the hooks, `_readiness`, phase A and phase B, `_finish_swap`, `format_facts`, the doctor probe, and pull request 152 comment `4371593291`.
+    - Wrote `FAIL (fixable)` as the first line of `.preflight-status`.
+* Decisions made
+    - The plan changes before build: the copy-condition sentences, and the problem and solution sentences that are not true for every probe word.
+    - Steps 4 through 9 stay. No `tasks.md` edit.
+* Insights
+    - Schema below 9 is `skip` / `below-boundary`, and `already-new` compares the storage tag `v2.0.0+`.
+    - An expired `started` record and a stuck `linked` record never become `swapped`. Deleting `check.json` while the backup name remains does not make `os.link` succeed.
 
 ## 2026-10-25 - PLAN - COMPLETE
 
@@ -187,7 +194,14 @@ Correct the warehouse-check sentences on pull request 152, rewrite the troublesh
 ## 2026-10-25 - PREFLIGHT - COMPLETE
 
 * Work completed
-    - Seventh preflight: `FAIL (fixable)`. Lifecycle, quickstart, deletion, and reply can ship. Steps 5 to 9 held.
+    - Validated the revised Level 2 prose plan against the hooks, `_readiness`, `copy_warehouse`, phase A and phase B, `_finish_swap`, `format_facts`, the doctor probe, and pull request 152 comment `4371593291`.
+    - Wrote `FAIL (fixable)` as the first line of `.preflight-status`.
+* Decisions made
+    - The plan changes before build: the `running` write sentence, the promise that the word becomes `swapped`, the `absent` claim, and a gate before step 4.
+    - Steps 5 to 9 stay. No `tasks.md` edit.
+* Insights
+    - The live file is replaced only after `linked` is written. A `running` word is still a `started` record, and `copy_warehouse` does not open the original for writing.
+    - `absent` is a missing `check.json`. After a landed swap that word can sit on the new copy while the backup line is still a path.
 
 ## 2026-10-25 - PLAN - COMPLETE
 
@@ -201,7 +215,16 @@ Correct the warehouse-check sentences on pull request 152, rewrite the troublesh
 ## 2026-10-25 - PREFLIGHT - COMPLETE
 
 * Work completed
-    - Eighth preflight: `FAIL (fixable)`. Real step bugs: step 4 looped after a completed restore, and step 3 started the session while the warehouse was busy.
+    - Validated the revised Level 2 prose plan against the hooks, `_readiness`, phase A and phase B, `_finish_swap`, `format_facts`, the doctor probe, and pull request 152 comment `4371593291`.
+    - Wrote `FAIL (fixable)` as the first line of `.preflight-status`.
+* Decisions made
+    - The plan changes before build: the copy overview, the `running` and `absent` claims, the solution paragraph, and steps 3 and 4.
+    - Lifecycle, quickstart, the schema-head deletion, the dismiss reply, and steps 5 to 9 stay.
+    - No `tasks.md` edit.
+* Insights
+    - `os.replace` of the live file runs only after `linked` is written.
+    - A `skip` on the phase B day overwrites the `rehearsed` record, and the next pass is phase A.
+    - A `linked` session that loses the flock does not finish the swap, and `swapped` with an absent backup loops if step 4 returns to step 1.
 
 ## 2026-10-25 - PLAN - COMPLETE
 
@@ -234,40 +257,21 @@ Correct the warehouse-check sentences on pull request 152, rewrite the troublesh
 * Insights
     - None beyond the plan.
 
-## 2026-10-25 - PREFLIGHT - COMPLETE
+## 2026-10-25 - QA - COMPLETE
 
 * Work completed
-    - Validated the Level 2 prose plan against the hooks, `_readiness`, phase A and phase B, `_finish_swap`, `format_facts`, the doctor probe, and pull request 152 comment `4371593291`.
-    - Wrote `FAIL (fixable)` as the first line of `.preflight-status`.
+    - Reviewed build commit `c1244b7` against the plan. Result: PASS.
+    - The three doc units match the plan text byte for byte. The schema-head deletion is clean, and the doctor tests pass. The GitHub reply exists once and matches the plan text.
 * Decisions made
-    - The plan changes before build: the copy-condition sentences, and the problem and solution sentences that are not true for every probe word.
-    - Steps 4 through 9 stay. No `tasks.md` edit.
+    - No blocking findings. The advisories are in `tasks.md`.
 * Insights
-    - Schema below 9 is `skip` / `below-boundary`, and `already-new` compares the storage tag `v2.0.0+`.
-    - An expired `started` record and a stuck `linked` record never become `swapped`. Deleting `check.json` while the backup name remains does not make `os.link` succeed.
+    - Checking shipped bytes against the plan text by script made the doc review mechanical. Semantic review then only had to cover the code claims.
 
-## 2026-10-25 - PREFLIGHT - COMPLETE
+## 2026-10-25 - REFLECT - COMPLETE
 
 * Work completed
-    - Validated the revised Level 2 prose plan against the hooks, `_readiness`, `copy_warehouse`, phase A and phase B, `_finish_swap`, `format_facts`, the doctor probe, and pull request 152 comment `4371593291`.
-    - Wrote `FAIL (fixable)` as the first line of `.preflight-status`.
-* Decisions made
-    - The plan changes before build: the `running` write sentence, the promise that the word becomes `swapped`, the `absent` claim, and a gate before step 4.
-    - Steps 5 to 9 stay. No `tasks.md` edit.
+    - Wrote `reflection/reflection-warehouse-check-review-wording.md`.
+    - Put the progress log back in time order after QA flagged it.
+    - Reconciled persistent files. No update needed.
 * Insights
-    - The live file is replaced only after `linked` is written. A `running` word is still a `started` record, and `copy_warehouse` does not open the original for writing.
-    - `absent` is a missing `check.json`. After a landed swap that word can sit on the new copy while the backup line is still a path.
-
-## 2026-10-25 - PREFLIGHT - COMPLETE
-
-* Work completed
-    - Validated the revised Level 2 prose plan against the hooks, `_readiness`, phase A and phase B, `_finish_swap`, `format_facts`, the doctor probe, and pull request 152 comment `4371593291`.
-    - Wrote `FAIL (fixable)` as the first line of `.preflight-status`.
-* Decisions made
-    - The plan changes before build: the copy overview, the `running` and `absent` claims, the solution paragraph, and steps 3 and 4.
-    - Lifecycle, quickstart, the schema-head deletion, the dismiss reply, and steps 5 to 9 stay.
-    - No `tasks.md` edit.
-* Insights
-    - `os.replace` of the live file runs only after `linked` is written.
-    - A `skip` on the phase B day overwrites the `rehearsed` record, and the next pass is phase A.
-    - A `linked` session that loses the flock does not finish the swap, and `swapped` with an absent backup loops if step 4 returns to step 1.
+    - Judge a human recovery procedure on harm, not on full state coverage. Put the exact prose in the plan from the start.
