@@ -1,0 +1,1 @@
+Restore after a swap: rename only when the check word is swapped. Never use warehouse.copy.duckdb as a name; every stop pass deletes it. Keep check.json, or a later session can swap again.
