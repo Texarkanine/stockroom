@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: warehouse-check-review-wording
-**Phase:** PLAN - COMPLETE
+**Phase:** PREFLIGHT - COMPLETE (FAIL (fixable))
 
 ## What Was Done
 
@@ -13,4 +13,4 @@
 
 ## Next Step
 
-- Preflight the revised plan.
+- Revise the plan for a busy `swapped` record and for which actor replaces the live file.
