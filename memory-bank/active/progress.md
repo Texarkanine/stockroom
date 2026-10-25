@@ -95,3 +95,16 @@ Correct the warehouse-check sentences on pull request 152, rewrite the troublesh
 * Insights
     - An expired phase A `started` record has no swap backup. Later passes delete the sibling and leave `check.json`, so the check stays stopped.
     - `format_facts` pads after the colon. The text after `check:` does not start with the status word.
+
+## 2026-10-25 - PLAN - COMPLETE
+
+* Work completed
+    - Split `overrun` with no backup file from the absent-backup stop.
+    - Sent the probe after the one session back to the wait branch, with a 300-second or `busy` gate before a `linked` stop.
+    - Defined the probe value as the text after the aligning spaces, and the comparison as its first word.
+* Decisions made
+    - Do not start a second session.
+    - Do not move a backup file when the backup value is `absent`.
+    - Declined a read-only restore fact again. The page keeps the branches.
+* Insights
+    - `format_facts` pads after the colon, so the characters immediately after `check:` are spaces.

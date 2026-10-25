@@ -1,17 +1,16 @@
 # Active Context
 
 ## Current Task: warehouse-check-review-wording
-**Phase:** PREFLIGHT - COMPLETE (FAIL (fixable))
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
 
-- Second preflight failed on two fixable wording gaps. The plan now covers them.
-- A busy `swapped` value waits. The check, not the reader, is the actor that can replace the live file while the record is `linked`.
-- Probe words are values after `key:`. A `linked` value that stays `linked` is a stop, with no claim about which bytes are live.
-- The day-later replacement still has to find the warehouse eligible. The dismiss reply says `next_action` returns `phase-a`, and readiness can still skip the copy.
+- Third preflight failed on three fixable gaps. The plan now covers them.
+- An `overrun` value with no backup file deletes `check.json` and does not move a file. Any other absent backup means the rename does not apply.
+- After the one session, the next probe starts at the wait branch. A not-busy `linked` value stops only after `busy` has been seen, or after 300 seconds. There is no second session.
+- The status word is the first word of the value after the aligning spaces. It is not the characters immediately after the colon.
 - No new test. No new command. No change to the check state machine or to `os.fsync`.
-- Third preflight failed on three fixable gaps: overrun with no backup, the second probe jumping to the rename, and padded probe values.
 
 ## Next Step
 
-- Re-plan the three fixable findings. Do not build.
+- Preflight the revised plan.
