@@ -181,7 +181,7 @@ def _assert_combined_rectify_then_dashboard(
 
 def _assert_detached_check(cmd: str) -> None:
     """Session start runs the check after the dashboard, without ``uv run``."""
-    token = 'PYTHONPATH="$APP/src" "$PY" -m stockroom.check'
+    token = 'PYTHONPATH="$APP/src" "$APP/.venv/bin/python" -m stockroom.check'
     check_at = cmd.find(token)
     dashboard_at = cmd.find("stockroom dashboard")
     rectify_at = cmd.find("shim rectify")
@@ -256,6 +256,27 @@ def test_cursor_beforesubmit_path_only_suspenders(cursor_hooks: dict) -> None:
     assert "&" in cmd, "rectify work must be backgrounded after continue"
     assert "|| true" in cmd, "hook must never fail the triggering event"
     assert "stockroom.check" not in cmd
+
+
+def test_session_start_check_uses_the_engine_venv(
+    cursor_hooks: dict, claude_hooks: dict
+) -> None:
+    """Session start runs the check on the engine .venv interpreter.
+
+    Rectify still uses the bare ``uv python find`` interpreter. The check
+    does not: that interpreter has no duckdb.
+    """
+    check_token = 'PYTHONPATH="$APP/src" "$APP/.venv/bin/python" -m stockroom.check'
+    bare_check = 'PYTHONPATH="$APP/src" "$PY" -m stockroom.check'
+    rectify_token = '"$PY" -m stockroom shim rectify'
+    commands = (
+        _hook_command_entries(cursor_hooks, "cursor")[0]["command"],
+        _hook_command_entries(claude_hooks, "claude")[0]["command"],
+    )
+    for cmd in commands:
+        assert check_token in cmd
+        assert bare_check not in cmd
+        assert rectify_token in cmd
 
 
 def test_claude_hook_schema_and_combined_command(claude_hooks: dict) -> None:

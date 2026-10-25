@@ -15,7 +15,7 @@ import duckdb
 import pytest
 
 from _warehouse_worker import EARLY_ID, LATE_ID
-from stockroom import migrate, migrations, storage
+from stockroom import migrate, migrations, storage, warehouse
 from stockroom.migrations import discover
 from test_schema_0003 import _introspect_schema
 
@@ -511,6 +511,39 @@ def test_copy_warehouse_catalog_matches_when_each_file_is_alone(
     finally:
         original_con.close()
         copy_con.close()
+
+
+def test_copy_warehouse_accepts_a_154_origin_boolean_default(
+    warehouse_home: Path, released_chain_154
+) -> None:
+    """A warehouse DuckDB 1.5.4 wrote still copies after warehouse.open migrates it to schema 9.
+
+    The migrated sessions default is still CAST('f' AS BOOLEAN). The schema-file sibling spells that default as DEFAULT(false). copy_warehouse returns the sibling.
+    """
+    original = released_chain_154(8, warehouse.warehouse_path())
+    assert original.is_relative_to(warehouse_home)
+    con = warehouse.open(read_only=False)
+    try:
+        version = migrate.current_version(con)
+    finally:
+        con.close()
+    assert version == 9
+
+    read_only = duckdb.connect(str(original), read_only=True)
+    try:
+        original_sql = _tables_sql(read_only)["sessions"]
+    finally:
+        read_only.close()
+    assert "CAST('f' AS BOOLEAN)" in original_sql
+
+    result = storage.copy_warehouse(original)
+    read_only = duckdb.connect(str(result.path), read_only=True)
+    try:
+        copy_sql = _tables_sql(read_only)["sessions"]
+    finally:
+        read_only.close()
+    assert "DEFAULT(false)" in copy_sql
+    assert copy_sql != original_sql
 
 
 def test_copy_warehouse_stores_large_columns_as_zstd(generations_file: Path) -> None:

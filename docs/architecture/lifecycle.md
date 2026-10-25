@@ -23,7 +23,7 @@ On session start, Stockroom does three things:
 
 1. **`shim rectify`** — heal the on-path shim and ensure the engine environment (see [Heal](packaging.md#heal) and [The stockroom shim](packaging.md#the-stockroom-shim)).
 2. **`stockroom dashboard`** — launch (or re-print) the local dashboard URL. This command goes through the on-path shim.
-3. **The check** — `"$PY" -m stockroom.check` on the same interpreter as rectify. The child is detached. The hook does not wait for the check. The check is not an on-path `stockroom` command.
+3. **The check** — `"$APP/.venv/bin/python" -m stockroom.check` on the engine `.venv` interpreter that rectify just ensured. The child is detached. The hook does not wait for the check. The check is not an on-path `stockroom` command.
 
 The check can run for a long time in the child. The hook starts the child and returns. Session start does **not** ingest, embed, or migrate as its primary work. Those are heavier, longer, and already owned by the schedule and explicit CLI/skill paths. Putting them on the hook would fight timeout limits and turn every new chat into an inelegant ETL termination race.
 

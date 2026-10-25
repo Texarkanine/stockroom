@@ -39,3 +39,17 @@ Fix the two pull request 152 release blockers on `warehouse-file-growth`: run th
 * Insights
     - `_catalog` is private to `storage.py` and the copy tests use their own helpers, so dropping `table_sql` breaks nothing unlisted
     - The expected red message `table_sql differ from the original` matches `_verify_catalog`'s f-string exactly
+
+## 2026-10-25 - BUILD - COMPLETE
+
+* Work completed
+    - Session-start hooks and packaging tests now run the check with `$APP/.venv/bin/python`
+    - Lifecycle item 3 names that interpreter
+    - `copy_warehouse` accepts a DuckDB 1.5.4-origin warehouse at schema 9
+    - `make ci`: 1167 pytest passed, 39 skipped; 134 dashboard JavaScript tests passed
+* Decisions made
+    - Left `check.launch` on `sys.executable`, because the hook parent is now the `.venv` interpreter
+    - Did not add a `stockroom check` subcommand. The preflight advisory stays out of this build
+* Insights
+    - The red copy failed with `table_sql differ from the original` after migration left `CAST('f' AS BOOLEAN)` in place
+    - `uv --directory` runs pytest with the engine directory as cwd, so the plan's `skills/sr-search/tests/...` paths do not resolve

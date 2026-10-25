@@ -3,7 +3,7 @@
   "hooks": {
     "sessionStart": [
       {
-        "command": "cat >/dev/null; export PATH=\"$HOME/.local/bin:/usr/bin:/bin:$PATH\"; { APP=\"${CURSOR_PLUGIN_ROOT}/skills/sr-search\"; PY=$(uv python find --project \"$APP\" --no-config) && PYTHONPATH=\"$APP/src\" \"$PY\" -m stockroom shim rectify --owner cursor --app-dir \"$APP\"; stockroom dashboard; PYTHONPATH=\"$APP/src\" \"$PY\" -m stockroom.check; } >/dev/null || true",
+        "command": "cat >/dev/null; export PATH=\"$HOME/.local/bin:/usr/bin:/bin:$PATH\"; { APP=\"${CURSOR_PLUGIN_ROOT}/skills/sr-search\"; PY=$(uv python find --project \"$APP\" --no-config) && PYTHONPATH=\"$APP/src\" \"$PY\" -m stockroom shim rectify --owner cursor --app-dir \"$APP\"; stockroom dashboard; PYTHONPATH=\"$APP/src\" \"$APP/.venv/bin/python\" -m stockroom.check; } >/dev/null || true",
         "timeout": 300
       }
     ],

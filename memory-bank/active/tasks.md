@@ -34,7 +34,7 @@ Two prescribed corrections on pull request 152. Session start must run `stockroo
 
 ## Implementation Plan
 
-### 1. Session-start check interpreter — executable
+### 1. Session-start check interpreter — executable [x]
 
 - Files: `skills/sr-search/tests/test_packaging.py`, `hooks/cursor-hooks.json`, `hooks/claude-hooks.json`
 - Do not change `skills/sr-search/src/stockroom/check.py`. `launch` already spawns `sys.executable`. The hook parent must be the `.venv` interpreter, or `import duckdb` fails before `launch`.
@@ -52,7 +52,7 @@ The three session-start tests fail while the hooks still use `"$PY"` for the che
 
 4. Write code and run green: In both hook commands, replace only `PYTHONPATH="$APP/src" "$PY" -m stockroom.check` with `PYTHONPATH="$APP/src" "$APP/.venv/bin/python" -m stockroom.check`. Run the same pytest command. All four tests pass.
 
-### 2. Lifecycle sentence — prose/policy
+### 2. Lifecycle sentence — prose/policy [x]
 
 - Files: `docs/architecture/lifecycle.md`
 - No tests: prose/policy artifact
@@ -62,7 +62,7 @@ The three session-start tests fail while the hooks still use `"$PY"` for the che
 
 `3. **The check** — `"$APP/.venv/bin/python" -m stockroom.check` on the engine `.venv` interpreter that rectify just ensured. The child is detached. The hook does not wait for the check. The check is not an on-path `stockroom` command.`
 
-### 3. Drop table SQL from the catalog compare — executable
+### 3. Drop table SQL from the catalog compare — executable [x]
 
 - Files: `skills/sr-search/tests/test_storage.py`, `skills/sr-search/src/stockroom/storage.py`
 - Do not change `test_schema_file_matches_chain_at_nine` or `test_copy_warehouse_catalog_matches_when_each_file_is_alone`.
@@ -126,6 +126,6 @@ No new technology - validation not required. The 1.5.4 warehouse comes from the 
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
-- [ ] Build
+- [x] Preflight
+- [x] Build
 - [ ] QA

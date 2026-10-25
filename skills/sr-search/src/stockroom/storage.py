@@ -238,8 +238,8 @@ def verify_copy(original: Path, copy: Path) -> None:
     Compares every base table with ``EXCEPT ALL`` in both directions, on a
     read-only connection to ``copy`` with ``original`` attached, and only
     tables in the current database. Compares columns, constraints, indexes,
-    table SQL apart from the zstd clause, the view name, and view columns by
-    opening each file with nothing attached. Does not compare view SQL.
+    the view name, and view columns by opening each file with nothing attached.
+    Does not compare table SQL or view SQL.
     Requires zstd data segments on the two large columns of ``copy``.
     """
     _verify_rows(original, copy)
@@ -334,11 +334,7 @@ def _base_tables(con: duckdb.DuckDBPyConnection) -> list[str]:
 
 
 def _catalog(con: duckdb.DuckDBPyConnection) -> dict[str, list]:
-    """Schema facts that must match, with the zstd clause removed from table SQL."""
-    table_sql = con.execute(
-        "SELECT table_name, sql FROM duckdb_tables() "
-        "WHERE schema_name = 'main' ORDER BY table_name"
-    ).fetchall()
+    """Schema facts that must match. Table SQL is not one of them."""
     return {
         "columns": con.execute(
             "SELECT table_name, column_name, data_type, is_nullable "
@@ -358,10 +354,6 @@ def _catalog(con: duckdb.DuckDBPyConnection) -> dict[str, list]:
             "WHERE schema_name = 'main' AND is_primary = false "
             "ORDER BY index_name"
         ).fetchall(),
-        "table_sql": [
-            (name, (sql or "").replace(" USING COMPRESSION ZSTD", ""))
-            for name, sql in table_sql
-        ],
         "views": con.execute(
             "SELECT view_name FROM duckdb_views() "
             "WHERE schema_name = 'main' AND NOT internal ORDER BY view_name"
