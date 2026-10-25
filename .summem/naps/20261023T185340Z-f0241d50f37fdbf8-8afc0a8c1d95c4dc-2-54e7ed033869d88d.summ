@@ -1,0 +1,1 @@
+Operator 2026-10-23: docs state the current system; history separate or omitted. Make tables are indexes. Procedures are numbered STE100 steps. Architecture states migration cutoffs and the schema snapshot, not filenames or schema versions. Schema-docs names diagram's sources.

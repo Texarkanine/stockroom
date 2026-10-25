@@ -84,7 +84,7 @@ flowchart TD
 - [x] Report warehouse file size, block use, reclaimable space, storage format, free disk, and an existing backup from stockroom doctor
 - [x] Build a verified newer-format copy of a warehouse without modifying the original
 - [x] Run that copy under the writer flock with a time limit, first as a recorded rehearsal and later as a hard-link swap, and skip when the file is not ready
-- [ ] Start the check from the Claude Code and Cursor session-start hooks
+- [x] Start the check from the Claude Code and Cursor session-start hooks
 
 ## Per-milestone done and risks
 
