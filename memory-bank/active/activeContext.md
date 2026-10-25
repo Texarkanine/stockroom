@@ -1,16 +1,14 @@
 # Active Context
 
 ## Current Task: warehouse-check-review-wording
-**Phase:** PREFLIGHT - COMPLETE (FAIL (fixable))
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
 
-- Preflight of the revised prose plan failed on the restore page. Lifecycle, quickstart, the schema-head deletion, and the dismiss reply can ship as written. Steps 5 to 9 stay.
-- The live file is replaced only after the record is `linked`. A `running` word is still a `started` record.
-- A `skip` on the replacement day overwrites the `rehearsed` record. The next pass is a new trial, not the replacement.
-- `absent` means `check.json` is missing. It does not mean the live file is the original.
-- Step 3 starts the one session before the warehouse line is a path. Step 4 sends `swapped` with no backup path back to step 1, which loops.
+- The plan carries the exact text of every doc edit and of the GitHub reply.
+- After eight fixable preflights, the restore page has one gate: rename only on `swapped`, wait on `running` or a busy warehouse, start one session on `linked`, and stop at "Still stuck" on any other word.
+- The page forbids `warehouse.copy.duckdb` as the reader's name, moves a `.wal` with its file, and keeps `check.json`.
 
 ## Next Step
 
-- Revise those restore sentences, then run preflight again.
+- Preflight the single-gate plan.
