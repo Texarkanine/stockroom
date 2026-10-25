@@ -1,0 +1,1 @@
+L4 PR tip drops memory-bank/active (Fresh; unmerged). Restore from main, rebase onto squash; merge rebase drops bank. Docs as-is; history separate/omitted; Make tables=indexes; STE100 steps. Arch: cutoffs+schema snapshot, not filenames or versions. Schema-docs: diagram sources.
