@@ -1,9 +1,0 @@
-PASS WITH ADVISORY
-
-Operator decision, 2026-10-25, after eight fixable preflights and a three-model consult (Gemini Argon 4, GPT-5.6 Sol, Muse Wonder). No ninth preflight subagent ran. All three found the single rename gate safe and the per-state truth test unbounded. The operator chose: apply two edits, pass with advisory, build.
-
-The two edits went into the plan before this status. The opening says the check keeps the original in place if a step fails. Step 8 names the replaced file `warehouse.replaced.duckdb` and its `.wal` `warehouse.replaced.duckdb.wal`.
-
-The restore page is judged on harm only. It must never tell a reader to rename while the gate is not met (check word `swapped`, warehouse line a path, backup line a path), delete `check.json`, or use the name `warehouse.copy.duckdb`. It does none of these.
-
-Advisory: the page does not say which file is the original for check words other than `swapped`. Those readers stop at "Still stuck". That is deliberate. Units 1, 2, 4, and 5 matched the code in preflights six through eight.
