@@ -120,3 +120,15 @@ Correct the warehouse-check sentences on pull request 152, rewrite the troublesh
 * Insights
     - Step 2 is the only instruction that reads the status word, and the re-probe steps skip it.
     - A `busy` warehouse value from before the one session is not evidence that session's check has run.
+
+## 2026-10-25 - PLAN - COMPLETE
+
+* Work completed
+    - Required a read of the three first words after every new probe, before the wait branch.
+    - Started the `linked` stop's `busy` observation and its 300-second clock at the one session.
+    - Added one reply sentence: `doctor probe` still raises on the version-1 object.
+* Decisions made
+    - Forget a `busy` word from before the session.
+    - Declined a read-only `restore` fact again.
+* Insights
+    - "Continue from step 3" skipped the only instruction that reads the probe.
