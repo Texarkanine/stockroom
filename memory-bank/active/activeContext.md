@@ -5,13 +5,12 @@
 
 ## What Was Done
 
-- Five preflights failed a plan that described the restore page by rules. Each round found a new state the rules did not cover.
-- The operator handed the writing to Claude Opus 5.5. The plan now carries the exact text of every doc edit and of the GitHub reply.
-- The restore page names four outcomes: `swapped` restores, `running` and `linked` complete first, `unreadable` goes to "Still stuck", and every other word has nothing to put back. It does not branch on every record state.
-- New facts in the page: the replaced file must not be named `warehouse.copy.duckdb`, a `.wal` moves with its file, and `check.json` stays.
-
-- Sixth preflight kept steps 4 to 9. The status list now names the no-restore words, and every other word goes to "Still stuck".
+- Preflight of the revised prose plan failed on the restore page. Lifecycle, quickstart, the schema-head deletion, and the dismiss reply can ship as written.
+- The check replaces `warehouse.duckdb` only after it has written `linked`. A `running` word is still a `started` record.
+- Letting the check finish does not make the word `swapped` for a phase A pass, a mismatch, a failed link, or a stuck `linked` record.
+- `absent` means `check.json` is missing. After a landed swap, that word can sit on the new copy while the backup line is still a path.
+- Steps 5 to 9 stay. Step 4 needs a gate: check word `swapped`, warehouse value a path, backup value a path.
 
 ## Next Step
 
-- Preflight the revised plan.
+- Revise those restore sentences, then run preflight again.

@@ -79,11 +79,11 @@ No new executable behavior.
    - `absent`, `skip`, `rehearsed`, `already-new`, `mismatch`, or `overrun`: the check did not replace the warehouse. `warehouse.duckdb` is still the original. There is nothing to put back.
    - Any other word, including `unreadable`: do not rename a file. See [Still stuck](#still-stuck).
 
-   These meanings are true only if nobody deleted `check.json`. If it was deleted, see [Still stuck](#still-stuck).
+   If the `backup` line shows a path and the word is not `swapped`, `running`, `linked`, or `overrun`, someone deleted `check.json` after a replacement. The list above does not apply. See [Still stuck](#still-stuck).
 
-   **The problem.** While the word is `running` or `linked`, the check can still write to `warehouse.duckdb`. If you rename a file during that time, the check can replace it again. Also, a writer (ingest, embed, or the nightly job) that finds no `warehouse.duckdb` makes a new, empty one.
+   **The problem.** While the word is `running` or `linked`, the check can still replace `warehouse.duckdb`. A check that is `running` can reach the replacement before it ends. If you rename a file during that time, the check can replace it again. Also, a writer (ingest, embed, or the nightly job) that finds no `warehouse.duckdb` makes a new, empty one.
 
-   **The solution.** Let the check complete, so that the word is `swapped`. After that, the check does not replace `warehouse.duckdb` again. Then stop all writers and exchange the two file names yourself. Keep `check.json` after the restore. It is the record that tells the check that the replacement is complete. If you delete it, a later session start can copy and replace the restored warehouse again.
+   **The solution.** Wait until the check ends. If it ends with `swapped`, the check does not replace `warehouse.duckdb` again. Stop all writers and exchange the two file names yourself. If it ends with another word, read that word in the list above. Keep `check.json` after the restore. It is the record that tells the check that the replacement is complete. If you delete it, a later session start can copy and replace the restored warehouse again.
 
    To put the original back:
 
@@ -91,9 +91,9 @@ No new executable behavior.
    2. If the `check` word is `running`, wait. A copy of a large warehouse can take hours. Then go to step 1.
    3. If the `check` word is `linked`, start one new session in Cursor or Claude Code. Wait ten minutes. Then run `stockroom doctor probe` again.
        - If the `warehouse` line says `busy`, wait and run it again.
-       - If the word is now `swapped`, go to step 4.
        - If the word is still `linked` and the `warehouse` line shows a path, stop. Do not rename a file. See [Still stuck](#still-stuck).
-   4. Make sure that no writer runs during steps 5 to 8. Do not run `stockroom ingest`, `stockroom embed`, or the nightly job.
+       - If the word is anything else, go to step 1.
+   4. Continue only if the `check` word is `swapped` and the `backup` line shows a path. Otherwise, go to step 1. Make sure that no writer runs during steps 5 to 8. Do not run `stockroom ingest`, `stockroom embed`, or the nightly job.
    5. Run `stockroom doctor probe`. If the `warehouse` line says `busy`, wait and run it again. Continue when the `warehouse` line shows a path.
    6. Go to the directory that contains the file on the `backup` line.
    7. Rename `warehouse.duckdb` to a name of your own, for example `warehouse.replaced.duckdb`. Do not use `warehouse.copy.duckdb`, because the check deletes a file with that name. If `warehouse.duckdb.wal` exists, rename it to your new name plus `.wal`.
@@ -102,8 +102,9 @@ No new executable behavior.
    ~~~
 
 2. Each claim and the code that makes it true:
-    - Only `swapped` means replaced: `os.replace` runs only after `linked` is written, so `absent`, `skip`, `rehearsed`, `already-new`, `mismatch`, and an expired `started` (`overrun`) all leave the original as `warehouse.duckdb`. The exception is a `check.json` deleted after a swap, which the page names and sends to "Still stuck".
-    - The problem paragraph is scoped to `running` and `linked`, the only words for which the check can still write `warehouse.duckdb`.
+    - Only `swapped` means replaced: `os.replace` runs only after `linked` is written, so `absent`, `skip`, `rehearsed`, `already-new`, `mismatch`, and an expired `started` (`overrun`) all leave the original as `warehouse.duckdb`. The exception is a `check.json` deleted after a swap. The check never deletes its record, so a backup path beside a word other than `swapped`, `running`, `linked`, or `overrun` can only come from that deletion. An `overrun` can have a backup path from `os.link` before `linked` was durable, and the live file is still the original.
+    - The problem paragraph is scoped to `running` and `linked`. A `running` phase B pass writes `linked` and calls `os.replace` in the same pass.
+    - Step 4 is the gate before every rename: `swapped` and a backup path. A `busy` re-probe or any other word goes back to step 1.
     - Below-boundary skips repeat until a writer `open()` migrates the warehouse, which the nightly ingest does.
     - The `check.json` warning is scoped to after the restore. At that point `warehouse.issue147-swap.duckdb` is gone, so a new phase B `os.link` can succeed.
     - `linked` completes on a later pass: `next_action` returns `finish-swap`, and `_finish_swap` writes `swapped` or leaves `linked`. A `linked` that stays `linked` is the uncommon case, so the page stops and sends the reader to "Still stuck".
