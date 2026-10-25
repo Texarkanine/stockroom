@@ -132,3 +132,26 @@ Correct the warehouse-check sentences on pull request 152, rewrite the troublesh
     - Declined a read-only `restore` fact again.
 * Insights
     - "Continue from step 3" skipped the only instruction that reads the probe.
+
+## 2026-10-25 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated the revised Level 2 plan against the hooks, `_readiness`, phase B, `_finish_swap`, `format_facts`, the doctor probe, and pull request 152 comment `4371593291`.
+    - Wrote `FAIL (fixable)` as the first line of `.preflight-status`.
+* Decisions made
+    - The plan changes before build: when the rename applies, which directory the file steps use, the 300-second linked stop, and the two halves of `already-new`.
+    - No `tasks.md` edit.
+* Insights
+    - The backup file is present for `linked` and for `overrun`, so a present file is not the rename condition.
+    - Both session-start hooks time out at 300 seconds, and the check launcher is the last command in that budget.
+    - `already-new` requires storage `v2.0.0+` and no large-column zstd problem.
+
+## 2026-10-25 - PLAN - STOPPED
+
+* Work completed
+    - Did not revise the plan for the fifth fixable preflight.
+* Decisions made
+    - Stopped after five preflight failures on the restore prose. The same class of gap has persisted past two revisions.
+    - Build does not start until the operator chooses the shape of the restore page.
+* Insights
+    - The other four review calls are stable in the plan. The restore ladder is the part that does not stay true.
