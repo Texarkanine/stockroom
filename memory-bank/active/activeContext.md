@@ -1,14 +1,16 @@
 # Active Context
 
 ## Current Task: warehouse-check-review-wording
-**Phase:** PREFLIGHT - COMPLETE (FAIL (fixable))
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
 
-- Classified the review follow-up as Level 2.
-- Wrote the plan: three prose edits, one dead-branch deletion guarded by the existing below-head doctor test, and one GitHub dismiss reply.
-- No new test. No new dependency. No change to the check state machine or to `os.fsync`.
+- First preflight failed with three fixable findings. The plan now matches them.
+- The restore renames only from a stopped `swapped` record. `running` and busy `linked` wait. A free `linked` record gets one new session. `overrun` uses the backup-aside recovery.
+- Rehearsal is limited to an eligible warehouse, and the replacement is at least one day later.
+- The dismiss reply is limited to a version-1 `started` object.
+- No new test. No new command. No change to the check state machine or to `os.fsync`.
 
 ## Next Step
 
-- Revise the plan for the three fixable preflight findings, then run preflight again.
+- Preflight the revised plan.

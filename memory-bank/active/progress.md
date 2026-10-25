@@ -43,3 +43,16 @@ Correct the warehouse-check sentences on pull request 152, rewrite the troublesh
     - A stopped `linked` record reaches `swapped` only on a later check pass, and some `linked` and `started` records never do.
     - `_readiness` skips several warehouses that are not `already-new`.
     - `next_action` reads `started_at` only for check version 1.
+
+## 2026-10-25 - PLAN - COMPLETE
+
+* Work completed
+    - Revised the troubleshooting branches, the eligible-warehouse sentence, and the dismiss reply after the fixable preflight.
+    - Took the day-wait advisory so "a later session start" is not read as the next session.
+    - Declined a new flock-owning restore command.
+* Decisions made
+    - Rename only when the check line starts with `swapped` and the warehouse is not busy.
+    - Eligible keeps the `_readiness` skips, including schema version 9 and the free-disk floor.
+    - The GitHub reply names `KeyError` and `TypeError` for check version 1 only.
+* Insights
+    - Waiting for `swapped` without a new session deadlocks a child that already exited at `linked`.
