@@ -108,3 +108,15 @@ Correct the warehouse-check sentences on pull request 152, rewrite the troublesh
     - Declined a read-only restore fact again. The page keeps the branches.
 * Insights
     - `format_facts` pads after the colon, so the characters immediately after `check:` are spaces.
+
+## 2026-10-25 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated the revised Level 2 plan against the hooks, `_readiness`, phase A and phase B, `_finish_swap`, `format_facts`, the doctor probe, and pull request 152 comment `4371593291`.
+    - Wrote `FAIL (fixable)` as the first line of `.preflight-status`.
+* Decisions made
+    - The plan changes before build: each new probe is read before the wait branch, and the linked stop's busy observation and 300-second clock start at the one session.
+    - No `tasks.md` edit.
+* Insights
+    - Step 2 is the only instruction that reads the status word, and the re-probe steps skip it.
+    - A `busy` warehouse value from before the one session is not evidence that session's check has run.
