@@ -155,3 +155,16 @@ Correct the warehouse-check sentences on pull request 152, rewrite the troublesh
     - Build does not start until the operator chooses the shape of the restore page.
 * Insights
     - The other four review calls are stable in the plan. The restore ladder is the part that does not stay true.
+
+## 2026-10-25 - PLAN - COMPLETE
+
+* Work completed
+    - Claude Opus 5.5 took over the writing. Rewrote the brief and the plan so each prose unit carries the exact text to ship.
+    - Wrote the restore page as situation, problem, solution, then nine steps, with a probe excerpt.
+    - Wrote the GitHub reply text.
+* Decisions made
+    - Only `swapped` restores. `running` and `linked` complete first. Uncommon states stop and go to "Still stuck".
+    - Forbid `warehouse.copy.duckdb` as the reader's name, because `_remove_sibling` deletes it.
+    - Keep `check.json`, because a missing record starts phase A again.
+* Insights
+    - A plan that describes prose by rules invites a reviewer to find the next uncovered state. A plan that contains the prose can be checked claim by claim.
