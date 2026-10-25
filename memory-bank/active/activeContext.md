@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: warehouse-check-review-wording
-**Phase:** PLAN - COMPLETE
+**Phase:** PREFLIGHT - COMPLETE (FAIL (fixable))
 
 ## What Was Done
 
@@ -11,4 +11,4 @@
 
 ## Next Step
 
-- Preflight validation.
+- Revise the plan for the three fixable preflight findings, then run preflight again.

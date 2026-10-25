@@ -1,0 +1,54 @@
+FAIL (fixable)
+
+Preflight of Level 2 task `warehouse-check-review-wording`. No creative docs. `tasks.md` was not edited: no scheduled change-detector to strike, and no unit had its test steps after its code steps.
+
+## Checks that passed
+
+Wrong-reference: `progress.md` is Level 2. Prerequisites: the implementation plan, technology validation, and pre-mortem are complete. TDD: units 1, 2, 3, and 5 are prose or a GitHub reply and owe no tests. Unit 4 deletes the `pass` comparison in `storage_facts`. A user of `stockroom doctor probe` does not observe that deletion. `current_version` and `_latest_version` are read, the body writes no fact, and `test_storage_below_head_does_not_change_the_file` is ordered before the edit. A test that the source omits `_latest_version` would be a change-detector. None is scheduled. Conventions: the docs stay under `docs/`, the deletion stays in `skills/sr-search/src/stockroom/doctor.py`, and the existing test stays in `skills/sr-search/tests/test_doctor.py`. Dependencies: the false hook sentence is only in `docs/architecture/lifecycle.md`. `docs/user-guide/dashboard.md` already says the hook does not wait. Both hook files run rectify, then `stockroom dashboard`, then `python -m stockroom.check`. `launch` returns without waiting, so unit 1's replacement sentence matches the hooks. `gh` is authenticated as Texarkanine. Review comment `4371593291` is on `doctor.py` and has no Texarkanine reply. No step replies to the `os.fsync` nit or edits `_fsync`.
+
+## Findings
+
+### Restore wait
+
+Severity: FAIL (fixable). Unit 3 conflicts with `check.py` and `skills/sr-search/tests/test_check.py`.
+
+The steps wait until the `check` line shows `swapped`, and they forbid a new session until the rename is finished. `_finish_swap` is the pass that writes `swapped` after a child has already exited at `linked`. Session start is what launches that pass. `test_failed_replace_resumes_from_linked` and `test_replace_that_lands_resumes_without_copying` cover it. A child still inside phase B holds the writer flock, so probe shows `warehouse: busy`, and that same process can still write `swapped`. Waiting is the right action there. A child that has exited leaves `linked` with the flock free. Waiting, with no new session, leaves the record where it is.
+
+One more pass is not always a swap. `test_linked_without_sibling_stays_linked`: the backup and `warehouse.duckdb` still share an inode, `warehouse.copy.duckdb` is gone, and the next pass stays `linked`. The live file was not replaced. These renames do not apply.
+
+`test_link_that_lands_stays_started`: the backup exists, the live file was not replaced, and the record stays `started`. Probe shows `running`, then `overrun`. It does not show `swapped`. An expired `started` record is `stop` and does not call `_finish_swap`. The recovery already accepted for that window is to move `warehouse.issue147-swap.duckdb` aside and delete `check.json`. Unit 3's opening block treats "the backup file is present" as the situation, so that reader enters a wait that cannot end.
+
+Keep the rename behind `swapped`, the writer stop, the backup path, and the two renames. Replace the wait with these branches:
+
+- `running`, or `linked` while probe shows `warehouse: busy`: wait and probe again. Do not rename.
+- `linked`, and the warehouse line is not `busy`: start one session so the check can finish, then probe again. Rename only if the line shows `swapped`. If it still shows `linked`, stop. Do not rename.
+- `overrun`: do not wait for `swapped`. Send the reader to the backup-aside recovery. Do not use these renames.
+- `swapped`, and not `busy`: stop writers, read the backup path, and rename. Do not start a session during those renames.
+
+### Rehearsal scope
+
+Severity: FAIL (fixable). Units 2 and 3 conflict with `_readiness`. Requirement 2 asks for an eligible existing warehouse.
+
+Unit 2 says an existing warehouse that is not already in the new format is rehearsed on the first run and replaced on a later session start. Unit 3's problem block says the same for an older warehouse. `_readiness` returns a record and does not copy when the warehouse file is missing (`skip`, `no-warehouse`), a `.wal` is beside it (`wal`), the filesystem is read-only, `current_version` is below `FORMAT_BOUNDARY` (9, `below-boundary`), free space is under `2 * live_bytes + 64MiB` (`low-disk`), or the file is already new. Already-new is `storage_version == "v2.0.0+"` and `large_column_zstd_problem` is None. That sentence in the plan is true: the check writes `already-new` and does not copy or replace.
+
+A schema-8 warehouse is not already new. The first run records `below-boundary`. It does not rehearse.
+
+Say "eligible" for the run where `_readiness` returns None. Keep the already-new sentence. The rehearsed set is that eligible case.
+
+### Dismiss reply
+
+Severity: FAIL (fixable). Unit 5 conflicts with `next_action`.
+
+The prescribed reply says an object that lacks `started_at` and `limit_seconds` raises, and the detached child exits in `next_action` without starting phase A. `next_action` returns `phase-a` when `check_version` is missing or not 1, and it does not read those fields. `{"status": "started"}` starts phase A. `check_line` still raises `KeyError` on that object. A `try`/`except` only in `check_line` would change probe for that object. There is no child exit on that object.
+
+The version-1 case holds. `_outcome` writes `check_version` 1, `started_at`, and `limit_seconds` on every `started` record this check publishes, and `write_record` stores the whole object. For a version-1 `started` object, `check_line` and `next_action` both evaluate `started_at + limit_seconds`. A missing field raises `KeyError`. A value that cannot be added raises `TypeError`. That child dies in `next_action` before phase A. A `try`/`except` only in `check_line` leaves that child as it is.
+
+Narrow the reply to the version-1 object, name `KeyError` and `TypeError`, and state that any other `check_version` takes phase A. Keep `Disposition: dismiss. No code change.` Comment `4371593291` still has no Texarkanine reply, so one reply is still the action.
+
+## Advisory
+
+Phase B waits `PHASE_B_WAIT_SECONDS` (86400) after `rehearsed_at`. A session start before that is `wait` and does not replace. The phrase "a later session start" can stay. It can also say the wait is a day.
+
+`test_storage_below_head_does_not_change_the_file` asserts the file bytes, `schema_version` 1, `warehouse-bytes`, and `disk-free`. It stays green if a schema-lag fact is added. The plan already forbids that fact. Do not add a test that the source omits `_latest_version`.
+
+One structural change, not applied. Give the restore one owner that holds the writer flock. A small command. It is not `stockroom doctor`, because probe does not write, and it does not change `next_action`, `_finish_swap`, or `_fsync`. It takes the flock, reads the record, and renames only when the status is `swapped`. On `linked` it exits without renaming and tells the reader to start one session and run it again. On `running` or `overrun` it exits without renaming. The troubleshooting section becomes those three outcomes. The cost is a new public command, tests for the three record words, and retiring the six-step rename. This wording task can ship without that command. Until the command exists, the page still has to carry the branches in the restore-wait finding.

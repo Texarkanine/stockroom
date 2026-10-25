@@ -30,3 +30,16 @@ Correct the warehouse-check sentences on pull request 152, rewrite the troublesh
     - No schema-lag fact. No `F_FULLFSYNC`. No check-state change.
 * Insights
     - A red test for this deletion would not go red for a missing outcome. The `pass` body has none.
+
+## 2026-10-25 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated the Level 2 plan against the hook commands, `check.py`, the doctor probe, and pull request 152 comment `4371593291`.
+    - Wrote `FAIL (fixable)` as the first line of `.preflight-status`.
+* Decisions made
+    - The plan changes before build: the restore wait, the rehearsal sentence, and the dismiss reply.
+    - No `tasks.md` edit. Unit 4 stays on the existing below-head test, with no new test.
+* Insights
+    - A stopped `linked` record reaches `swapped` only on a later check pass, and some `linked` and `started` records never do.
+    - `_readiness` skips several warehouses that are not `already-new`.
+    - `next_action` reads `started_at` only for check version 1.
