@@ -129,6 +129,7 @@ No new technology - validation not required. The 1.5.4 warehouse comes from the 
 - [x] Preflight
 - [x] Build
 - [x] QA
+- [x] Reflect
 
 ## QA
 

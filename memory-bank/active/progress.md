@@ -65,3 +65,15 @@ Fix the two pull request 152 release blockers on `warehouse-file-growth`: run th
     - Recorded one non-blocking advisory: default-only drift is no longer visible to the catalog compare, which is the prescribed trade-off bounded by the surviving catalog keys, the row compare, the zstd check, and the `v2.0.0` table-SQL pin
 * Insights
     - `test_schema_file_matches_chain_at_nine` remains the table-SQL lock where both files share DuckDB 2.0.0 spelling, so the 1.5.4 exception does not silently become the general rule
+
+## 2026-10-25 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `memory-bank/active/reflection/reflection-fix-pr152-check-blockers.md`
+    - Recorded in `systemPatterns.md` that the check runs on `$APP/.venv/bin/python` after rectify
+* Decisions made
+    - Left `productContext.md` and `techContext.md` unchanged. The product constraint and the toolchain are the same
+    - Left the shim-subcommand advisory out of the implementation
+* Insights
+    - DuckDB 2.0.0 leaves a 1.5.4 `CAST('f' AS BOOLEAN)` default in place through schema 9
+    - The hook parent imports DuckDB, so the `.venv` interpreter has to be that parent
