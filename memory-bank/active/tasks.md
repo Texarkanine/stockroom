@@ -60,7 +60,7 @@ No new executable behavior.
 
    Session start runs a check on the warehouse file. The check runs in the background and does not ask first.
 
-   If the warehouse uses the older storage format and the check can copy it safely, the check makes a trial copy in the new format, verifies it, and deletes it. At least one day later, if the warehouse can still be copied safely, a session start makes a new verified copy and puts it in place of `warehouse.duckdb`. The check keeps the original file in the same directory, under the name `warehouse.issue147-swap.duckdb`. Stockroom never deletes that file.
+   If the warehouse uses the older storage format and the check can copy it safely, the check makes a trial copy in the new format, verifies it, and deletes it. At least one day later, if the warehouse can still be copied safely, a session start makes a new verified copy and puts it in place of `warehouse.duckdb`. The check keeps the original file in the same directory, under the name `warehouse.issue147-swap.duckdb`. Stockroom never deletes that file. If a step fails, the check keeps the original in place.
 
    The check does not copy when it is not safe. For example, free disk can be low, a database write can be incomplete, or an ingest can still need to bring the warehouse to the current schema. Then the check does nothing, and a later session start begins again with a trial copy. If a copy does not pass verification, the check stops and keeps the original in place. A warehouse that already uses the new format is recorded as `already-new`. The check does not copy it or replace it.
 
@@ -89,7 +89,7 @@ No new executable behavior.
    5. Make sure that no writer runs during steps 6 to 9. Do not run `stockroom ingest`, `stockroom embed`, or the nightly job.
    6. Run `stockroom doctor probe` again. If the `warehouse` line says `busy`, wait and run it again. Continue when the `warehouse` line shows a path.
    7. Go to the directory that contains the file on the `backup` line.
-   8. Rename `warehouse.duckdb` to a name of your own, for example `warehouse.replaced.duckdb`. Do not use `warehouse.copy.duckdb`, because the check deletes a file with that name. If `warehouse.duckdb.wal` exists, rename it to your new name plus `.wal`.
+   8. Rename `warehouse.duckdb` to `warehouse.replaced.duckdb`. Do not use `warehouse.copy.duckdb`, because the check deletes a file with that name. If `warehouse.duckdb.wal` exists, rename it to `warehouse.replaced.duckdb.wal`.
    9. Rename `warehouse.issue147-swap.duckdb` to `warehouse.duckdb`.
    10. Run `stockroom doctor probe`. The `backup` line says `absent`, and the `check` word is still `swapped`.
    ~~~

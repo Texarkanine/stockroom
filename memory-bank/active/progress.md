@@ -215,6 +215,16 @@ Correct the warehouse-check sentences on pull request 152, rewrite the troublesh
 ## 2026-10-25 - PREFLIGHT - COMPLETE
 
 * Work completed
+    - Operator stopped the ninth preflight and consulted Gemini Argon 4, GPT-5.6 Sol, and Muse Wonder.
+    - All three: the gate is safe, the per-state truth test is unbounded, do not run another preflight.
+    - Applied two edits: the opening says the original stays in place if a step fails, and step 8 uses the fixed name `warehouse.replaced.duckdb`.
+    - Recorded `PASS WITH ADVISORY` by operator decision. The restore page is judged on harm only.
+* Insights
+    - A preflight that checks prose against every state of a state machine does not converge. Judge a human procedure on whether it can cause harm.
+
+## 2026-10-25 - PREFLIGHT - COMPLETE
+
+* Work completed
     - Validated the Level 2 prose plan against the hooks, `_readiness`, phase A and phase B, `_finish_swap`, `format_facts`, the doctor probe, and pull request 152 comment `4371593291`.
     - Wrote `FAIL (fixable)` as the first line of `.preflight-status`.
 * Decisions made
