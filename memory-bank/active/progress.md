@@ -201,6 +201,20 @@ Correct the warehouse-check sentences on pull request 152, rewrite the troublesh
 ## 2026-10-25 - PREFLIGHT - COMPLETE
 
 * Work completed
+    - Eighth preflight: `FAIL (fixable)`. Real step bugs: step 4 looped after a completed restore, and step 3 started the session while the warehouse was busy.
+
+## 2026-10-25 - PLAN - COMPLETE
+
+* Work completed
+    - Replaced the status list with one gate: rename only on `swapped`, wait on `running` or `busy`, one session on `linked`, stop on any other word.
+    - Step 1 now ends on `backup: absent`, which also ends the procedure after the restore.
+    - Qualified the day-later replacement, the restart after a skip, and a failed verification.
+* Decisions made
+    - Gave up telling readers of other status words that there is nothing to put back. Every per-state claim drew a new edge case.
+
+## 2026-10-25 - PREFLIGHT - COMPLETE
+
+* Work completed
     - Validated the Level 2 prose plan against the hooks, `_readiness`, phase A and phase B, `_finish_swap`, `format_facts`, the doctor probe, and pull request 152 comment `4371593291`.
     - Wrote `FAIL (fixable)` as the first line of `.preflight-status`.
 * Decisions made
@@ -221,3 +235,17 @@ Correct the warehouse-check sentences on pull request 152, rewrite the troublesh
 * Insights
     - The live file is replaced only after `linked` is written. A `running` word is still a `started` record, and `copy_warehouse` does not open the original for writing.
     - `absent` is a missing `check.json`. After a landed swap that word can sit on the new copy while the backup line is still a path.
+
+## 2026-10-25 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated the revised Level 2 prose plan against the hooks, `_readiness`, phase A and phase B, `_finish_swap`, `format_facts`, the doctor probe, and pull request 152 comment `4371593291`.
+    - Wrote `FAIL (fixable)` as the first line of `.preflight-status`.
+* Decisions made
+    - The plan changes before build: the copy overview, the `running` and `absent` claims, the solution paragraph, and steps 3 and 4.
+    - Lifecycle, quickstart, the schema-head deletion, the dismiss reply, and steps 5 to 9 stay.
+    - No `tasks.md` edit.
+* Insights
+    - `os.replace` of the live file runs only after `linked` is written.
+    - A `skip` on the phase B day overwrites the `rehearsed` record, and the next pass is phase A.
+    - A `linked` session that loses the flock does not finish the swap, and `swapped` with an absent backup loops if step 4 returns to step 1.

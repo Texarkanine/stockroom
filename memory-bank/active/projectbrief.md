@@ -16,7 +16,7 @@ A reader of the quickstart and the troubleshooting page learns that the check mo
 
 ### Use-Case 3
 
-A reader who wants the original warehouse back first learns when this applies, what the problem is, and what the solution is. Only a `swapped` record means the warehouse was replaced. `running` and `linked` are finished first. Every other status means there is nothing to put back. Then the reader follows short steps.
+A reader who wants the original warehouse back first learns when this applies, what the problem is, and what the solution is. The reader renames only on a `swapped` record. `running` and a busy warehouse wait. `linked` gets one new session. Every other status stops at "Still stuck". Then the reader follows short steps.
 
 ### Use-Case 4
 
