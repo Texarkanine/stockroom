@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: warehouse-check-review-wording
-**Phase:** PLAN - COMPLETE
+**Phase:** PREFLIGHT - COMPLETE (FAIL (fixable))
 
 ## What Was Done
 
@@ -10,7 +10,8 @@
 - Probe words are values after `key:`. A `linked` value that stays `linked` is a stop, with no claim about which bytes are live.
 - The day-later replacement still has to find the warehouse eligible. The dismiss reply says `next_action` returns `phase-a`, and readiness can still skip the copy.
 - No new test. No new command. No change to the check state machine or to `os.fsync`.
+- Third preflight failed on three fixable gaps: overrun with no backup, the second probe jumping to the rename, and padded probe values.
 
 ## Next Step
 
-- Preflight the revised plan.
+- Re-plan the three fixable findings. Do not build.

@@ -83,3 +83,15 @@ Correct the warehouse-check sentences on pull request 152, rewrite the troublesh
     - Declined a read-only restore fact on the probe. The page keeps the branches.
 * Insights
     - A failed write of `swapped` can leave the record `linked` after `os.replace`. The live file is then the new copy.
+
+## 2026-10-25 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated the revised Level 2 plan against the hooks, `_readiness`, phase A and phase B, `_finish_swap`, `format_facts`, the doctor probe, and pull request 152 comment `4371593291`.
+    - Wrote `FAIL (fixable)` as the first line of `.preflight-status`.
+* Decisions made
+    - The plan changes before build: the overrun recovery has to run when the backup is absent, the second probe has to re-enter the ladder, and the probe value is the field after the aligning spaces.
+    - No `tasks.md` edit.
+* Insights
+    - An expired phase A `started` record has no swap backup. Later passes delete the sibling and leave `check.json`, so the check stays stopped.
+    - `format_facts` pads after the colon. The text after `check:` does not start with the status word.
