@@ -15,7 +15,7 @@ Harness session-start hooks are designed to be:
 - **Concurrent** — multiple harness sessions may start at once; hooks must not assume exclusive ownership of the machine.
 - **Fault-tolerant** — wrapped so a bad heal or busy port cannot take down session start (`|| true` / equivalent).
 
-Hooks are short-budget work. Session-start hook commands carry an explicit timeout (hundreds of seconds, not “as long as ETL needs”). The hook command itself returns at once. A detached child may run for minutes. Ingest and embed do not belong on session start.
+Hooks are short-budget work. Session-start hook commands carry an explicit timeout (hundreds of seconds, not “as long as ETL needs”). The hook command waits for rectify and the dashboard launch, then starts the check as a detached child and returns without waiting for it. A detached child may run for minutes. Ingest and embed do not belong on session start.
 
 ### Session start
 

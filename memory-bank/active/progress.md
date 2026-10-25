@@ -222,6 +222,18 @@ Correct the warehouse-check sentences on pull request 152, rewrite the troublesh
 * Insights
     - A preflight that checks prose against every state of a state machine does not converge. Judge a human procedure on whether it can cause harm.
 
+## 2026-10-25 - BUILD - COMPLETE
+
+* Work completed
+    - Applied the three doc edits from the plan text by script, so the shipped bytes match the plan.
+    - Deleted the dead schema-head comparison in `storage_facts`. The below-head doctor test passed before and after the deletion.
+    - Posted the dismiss reply on comment `4371593291` as `discussion_r4372377536`.
+    - Gates: ruff, format, REUSE, schema-docs, migrations, strict docs build, dashboard JS 134 passed, pytest 1164 passed and 36 skipped.
+* Decisions made
+    - Skipped `test_coverage_collection.py` on the local run because it removes torch.
+* Insights
+    - None beyond the plan.
+
 ## 2026-10-25 - PREFLIGHT - COMPLETE
 
 * Work completed

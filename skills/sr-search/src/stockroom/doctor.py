@@ -53,12 +53,10 @@ from stockroom.embed import (
     encoder_load_remedy,
     missing_torch_remedy,
 )
-from stockroom.migrate import current_version
 from stockroom.shim import default_app_dir
 from stockroom.warehouse import (
     LOCK_FILENAME,
     WAREHOUSE_FILENAME,
-    _latest_version,
     resolve_home,
 )
 
@@ -211,9 +209,6 @@ def storage_facts(
                 "WHERE database_name = current_database()"
             ).fetchone()[0]
             storage = tags["storage_version"]
-            if current_version(con) < _latest_version():
-                # The file is behind the schema head. Report it; do not migrate.
-                pass
             reclaimable = size - live_bytes(con)
         finally:
             con.close()

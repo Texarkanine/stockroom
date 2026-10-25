@@ -151,14 +151,40 @@ Third-party plugins setting ([Quickstart](#cursor-hooks--auto-dashboard-never-fi
 
 ## Warehouse
 
-Session start runs this check. The first run rehearses a copy of the warehouse and deletes that copy. A later session start replaces `warehouse.duckdb` with a verified copy and keeps the original as `warehouse.issue147-swap.duckdb`. Stockroom does not delete this file.
+Session start runs a check on the warehouse file. The check runs in the background and does not ask first.
 
-To put that warehouse back in place:
+If the warehouse uses the older storage format and the check can copy it safely, the check makes a trial copy in the new format, verifies it, and deletes it. At least one day later, if the warehouse can still be copied safely, a session start makes a new verified copy and puts it in place of `warehouse.duckdb`. The check keeps the original file in the same directory, under the name `warehouse.issue147-swap.duckdb`. Stockroom never deletes that file. If a step fails, the check keeps the original in place.
 
-1. Stop writers before you rename the files. Do not run ingest, embed, or the nightly job during the rename.
-2. Run `stockroom doctor probe` and read the backup path.
-3. In that same directory, rename `warehouse.duckdb` to a name of your own.
-4. Rename the backup file to `warehouse.duckdb`.
+The check does not copy when it is not safe. For example, free disk can be low, a database write can be incomplete, or an ingest can still need to bring the warehouse to the current schema. Then the check does nothing, and a later session start begins again with a trial copy. If a copy does not pass verification, the check stops and keeps the original in place. A warehouse that already uses the new format is recorded as `already-new`. The check does not copy it or replace it.
+
+### Put the original warehouse back
+
+**When this applies.** The check replaced `warehouse.duckdb`, and you want the original back. Run `stockroom doctor probe`. Two values tell you where you are: the `backup` line, and the first word after `check:`.
+
+```text
+warehouse:         /home/you/.local/share/stockroom/warehouse.duckdb
+backup:            /home/you/.local/share/stockroom/warehouse.issue147-swap.duckdb
+check:             swapped original_bytes=… path=…
+```
+
+If the `backup` line says `absent`, there is no original file to put back.
+
+**The problem.** The replacement takes more than one step. While the check word is `running` or `linked`, the check can still replace `warehouse.duckdb`, so a rename that you make can be undone. Also, a writer (ingest, embed, or the nightly job) that finds no `warehouse.duckdb` makes a new, empty one.
+
+**The solution.** Rename the files only when the check word is `swapped`. That word means the replacement is complete, and the check does not touch `warehouse.duckdb` or the backup again. If the word is `running`, wait for the check to end. If it is `linked`, one new session lets the check complete the replacement. For any other word, do not rename a file. Keep `check.json` after the restore. If you delete it, a later session start can copy and replace the restored warehouse again.
+
+To put the original back:
+
+1. Run `stockroom doctor probe`. If the `backup` line says `absent`, stop. There is nothing to put back.
+2. If the `warehouse` line says `busy`, or the `check` word is `running`, wait. A copy of a large warehouse can take hours. Then go to step 1.
+3. If the `check` word is `linked`, start one new session in Cursor or Claude Code. Wait ten minutes, then run `stockroom doctor probe` again. If the `warehouse` line says `busy`, wait and run it again. If the word is still `linked`, stop and see [Still stuck](#still-stuck). Do not start another session.
+4. If the `check` word is not `swapped`, stop. Do not rename a file. See [Still stuck](#still-stuck).
+5. Make sure that no writer runs during steps 6 to 9. Do not run `stockroom ingest`, `stockroom embed`, or the nightly job.
+6. Run `stockroom doctor probe` again. If the `warehouse` line says `busy`, wait and run it again. Continue when the `warehouse` line shows a path.
+7. Go to the directory that contains the file on the `backup` line.
+8. Rename `warehouse.duckdb` to `warehouse.replaced.duckdb`. Do not use `warehouse.copy.duckdb`, because the check deletes a file with that name. If `warehouse.duckdb.wal` exists, rename it to `warehouse.replaced.duckdb.wal`.
+9. Rename `warehouse.issue147-swap.duckdb` to `warehouse.duckdb`.
+10. Run `stockroom doctor probe`. The `backup` line says `absent`, and the `check` word is still `swapped`.
 
 ## Still stuck
 
