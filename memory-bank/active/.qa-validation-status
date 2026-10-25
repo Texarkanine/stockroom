@@ -1,0 +1,11 @@
+PASS
+
+The two pull request 152 blockers are fixed as planned and acceptable as-is.
+
+Hooks: both session-start commands run `PYTHONPATH="$APP/src" "$APP/.venv/bin/python" -m stockroom.check` after `stockroom dashboard` after `shim rectify`, with the `;` separators unchanged. Rectify still runs on `"$PY"`, `beforeSubmitPrompt` still has no `stockroom.check`, and `stockroom/check.py` is untouched, so `launch`'s `sys.executable` child is now the engine `.venv` interpreter. `docs/architecture/lifecycle.md` item 3 is the prescribed sentence naming that interpreter.
+
+Storage: `_catalog` in `skills/sr-search/src/stockroom/storage.py` drops only the `table_sql` key and its `duckdb_tables()` query. Columns, constraints, indexes, views, view columns, the bidirectional `EXCEPT ALL` row compare, and `_require_zstd` all remain. The `verify_copy` and `_catalog` docstrings carry the prescribed wording. No released migration SQL changed.
+
+Tests: `test_session_start_check_uses_the_engine_venv` pins the `.venv` token, the absence of the bare `"$PY"` check token, and the rectify token in both harnesses. `test_copy_warehouse_accepts_a_154_origin_boolean_default` migrates a real `released_chain_154(8)` warehouse through `warehouse.open`, asserts schema 9 with `CAST('f' AS BOOLEAN)` still present, then asserts the copy spells `DEFAULT(false)` and differs from the original table SQL. `test_schema_file_matches_chain_at_nine` still pins table SQL between two `v2.0.0` files, and `test_verify_copy_rejects_a_deleted_row` still covers a real mismatch. QA reran the eight targeted packaging and storage tests: 8 passed. Build reported `make ci` at 1167 pytest passed, 39 skipped, and 134 dashboard JavaScript tests passed.
+
+Advisory, non-blocking: dropping `table_sql` also drops any default-only drift the remaining catalog keys cannot see, because the columns compare does not carry column defaults. That is the prescribed trade-off from the scratch issue and the plan's pre-mortem, bounded by the surviving catalog keys, the row compare, the zstd check, and the `v2.0.0` table-SQL pin. Acceptable as-is.

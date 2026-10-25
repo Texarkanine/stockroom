@@ -128,4 +128,14 @@ No new technology - validation not required. The 1.5.4 warehouse comes from the 
 - [x] Pre-Mortem complete
 - [x] Preflight
 - [x] Build
-- [ ] QA
+- [x] QA
+
+## QA
+
+PASS. The two pull request 152 blockers are acceptable as-is.
+
+- Hooks: both session-start commands use `"$APP/.venv/bin/python"` for the check after `stockroom dashboard` after `shim rectify`; rectify stays on `"$PY"`, `beforeSubmitPrompt` has no check, and `check.py` is untouched.
+- Docs: `docs/architecture/lifecycle.md` item 3 is the prescribed sentence.
+- Storage: `_catalog` drops only `table_sql`; columns, constraints, indexes, views, view columns, the row compare, and `_require_zstd` remain. No released migration SQL changed.
+- Tests: the new 1.5.4-origin copy test migrates through `warehouse.open`, keeps the `CAST('f' AS BOOLEAN)` precondition, and sees `DEFAULT(false)` in the copy. The `v2.0.0` table-SQL pin and the deleted-row rejection are unchanged. QA reran the eight targeted tests: 8 passed.
+- Advisory: dropping `table_sql` also drops default-only drift the remaining keys cannot see. That is the prescribed trade-off, bounded by the surviving checks. Non-blocking.

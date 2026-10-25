@@ -53,3 +53,15 @@ Fix the two pull request 152 release blockers on `warehouse-file-growth`: run th
 * Insights
     - The red copy failed with `table_sql differ from the original` after migration left `CAST('f' AS BOOLEAN)` in place
     - `uv --directory` runs pytest with the engine directory as cwd, so the plan's `skills/sr-search/tests/...` paths do not resolve
+
+## 2026-10-25 - QA - COMPLETE
+
+* Work completed
+    - Reviewed the build diff against the plan, the project brief, and `systemPatterns.md`
+    - Reran the eight targeted packaging and storage tests: 8 passed
+    - Wrote `memory-bank/active/.qa-validation-status` with first line `PASS`
+* Decisions made
+    - PASS: both hooks run the check on the engine `.venv` interpreter with rectify unchanged, and `_catalog` drops only `table_sql`
+    - Recorded one non-blocking advisory: default-only drift is no longer visible to the catalog compare, which is the prescribed trade-off bounded by the surviving catalog keys, the row compare, the zstd check, and the `v2.0.0` table-SQL pin
+* Insights
+    - `test_schema_file_matches_chain_at_nine` remains the table-SQL lock where both files share DuckDB 2.0.0 spelling, so the 1.5.4 exception does not silently become the general rule
