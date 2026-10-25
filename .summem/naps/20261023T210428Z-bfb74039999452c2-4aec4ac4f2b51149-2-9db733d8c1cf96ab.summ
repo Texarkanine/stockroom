@@ -1,1 +1,0 @@
-2026-10-23: M1-M3 shipped as v3.0.0 (c9fbcc4) via release-please PR 151. warehouse-file-growth restored memory-bank/active from the old branch onto main. Do not rebase constrain-size-as-best-we-can.

@@ -1,0 +1,1 @@
+Session-start check uses $APP/.venv/bin/python after rectify. Catalog compare omits table_sql: DuckDB 1.5.4 keeps DEFAULT(CAST('f' AS BOOLEAN)) after schema 9.
