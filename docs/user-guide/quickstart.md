@@ -27,6 +27,6 @@ Get Stockroom installed and running in a few minutes.
 ## What to try next
 
 - Prefer **`sr-search`** when you are unsure whether the question is structured SQL or meaning-based recall — [Search](search.md).
-- Open the local metrics UI with **`sr-dashboard`** (also launched automatically on session start - [click here!](http://localhost:58008) - when hooks are registered) — [Dashboard](dashboard.md).
+- Open the local metrics UI with **`sr-dashboard`** (also launched automatically on session start - [click here!](http://localhost:58008) - when hooks are registered) — [Dashboard](dashboard.md). Session start also checks the warehouse file. When it is safe to do so, the check moves an older warehouse to the new storage format in two steps: a trial copy first, then, at least a day later, a verified copy that takes its place, with the original kept under a backup name. A warehouse that already uses the new format is left as it is — [Warehouse](troubleshooting/index.md#warehouse).
 - Curious what landed on disk? See [Installed layout](installed-layout.md).
 - If something fails *and your agent can't figure it out*, see [Troubleshooting](troubleshooting/index.md) (sections follow this guide's order).

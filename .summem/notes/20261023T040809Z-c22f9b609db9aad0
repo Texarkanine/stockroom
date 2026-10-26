@@ -1,1 +1,0 @@
-Operator 2026-10-22: a released migration may gain or change comments (#128 added @rel lines to 0001 and 0007); its SQL may never change to do something materially different. A make ci/CI gate compares released migrations' SQL, comments stripped, to the latest tag.

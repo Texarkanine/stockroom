@@ -1,1 +1,0 @@
-DuckDB 2.0.0, measured 2026-10-22: a pytest process that loads the engine conftest and imports torch in-process (importorskip) prints nanobind leaked-instance lines at exit; exit code unchanged. No torch: none. embed/semantic subprocesses: none after the Hub-filter fix.

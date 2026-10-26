@@ -17,7 +17,7 @@ This all lands in wherever your chosen harness stores plugin data:
 | `.cursor-plugin/plugin.json` / `.claude-plugin/plugin.json` | Harness manifests; same skills tree underneath |
 | `skills/sr-*` | Skill wrappers (`SKILL.md`) agents invoke |
 | `skills/sr-search/` | Python engine (`uv` project, warehouse, dashboard, CLI) |
-| `hooks/` | Session-start hooks (dashboard + shim rectify — never ingest/migrate) |
+| `hooks/` | Session-start hooks for shim rectify, the dashboard, and the detached check. The hooks never ingest or migrate. `beforeSubmitPrompt` does not start the check. |
 
 ## Runtime home
 

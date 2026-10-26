@@ -1,0 +1,1 @@
+2026-10-24: Milestone 6 plan revised again. A linked resume keeps warehouse.copy.duckdb and renames it. Expired started still does not replace, even when the backup inode matches. Third preflight has not run.

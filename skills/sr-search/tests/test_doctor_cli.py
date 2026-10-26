@@ -61,10 +61,12 @@ def _one_stderr_line(result: subprocess.CompletedProcess) -> str:
     return lines[0]
 
 
-def test_probe_exits_zero_and_prints_fact_keys() -> None:
+def test_probe_exits_zero_and_prints_fact_keys(tmp_path: Path) -> None:
     """``doctor probe`` in a torch-free env exits 0 and reports the
     always-present fact keys."""
-    result = _run("probe")
+    home = tmp_path / "empty-home"
+    home.mkdir()
+    result = _run("probe", env={"STOCKROOM_HOME": str(home)})
     assert result.returncode == 0, result.stderr
     for key in (
         "os:",
@@ -113,3 +115,14 @@ def test_help_documents_both_actions() -> None:
     assert result.returncode == 0, result.stderr
     assert "probe" in result.stdout
     assert "smoke" in result.stdout
+    for phrase in (
+        "file size",
+        "used blocks",
+        "free blocks",
+        "reclaimable",
+        "storage format",
+        "free disk",
+        "backup",
+        "check",
+    ):
+        assert phrase in result.stdout, phrase

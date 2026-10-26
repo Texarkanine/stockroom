@@ -7,9 +7,13 @@ both constitutionally read-only (they never install, sync, or write):
   name / driver / driver-CUDA ceiling / compute capability (``nvidia-smi``
   in its stable ``--query-gpu=`` CSV mode; absence or failure is a
   *reported fact*, never an error), torch import state, the engine
-  directory, and the resolved warehouse home / how it was chosen
-  (``home`` / ``home-source``). Facts only — the torch-wheel recommendation
-  mapping is judgment and lives in the ``sr-initialize`` skill prose.
+  directory, the resolved warehouse home / how it was chosen
+  (``home`` / ``home-source``), and warehouse storage (file size, block
+  use, a reclaimable estimate, the storage format, free disk, an
+  existing swap backup, and the check outcome). Facts only — the
+  torch-wheel recommendation mapping is judgment and lives in the
+  ``sr-initialize`` skill prose.
+  Storage facts never create or migrate a warehouse.
 * ``smoke`` — the loud-failing torch/encoder verification: prints
   ``torch.__version__`` and ``torch.cuda.is_available()``, then encodes one
   string through the production :class:`stockroom.embed.BgeEncoder` path
@@ -30,11 +34,17 @@ Design record: ``memory-bank/active/creative/creative-onboarding-logic-surface.m
 """
 
 import argparse
+import fcntl
 import importlib
+import os
 import platform
+import shutil
 import subprocess
 import sys
 from collections.abc import Callable
+from pathlib import Path
+
+import duckdb
 
 from stockroom.embed import (
     EMBED_DIM,
@@ -44,7 +54,11 @@ from stockroom.embed import (
     missing_torch_remedy,
 )
 from stockroom.shim import default_app_dir
-from stockroom.warehouse import resolve_home
+from stockroom.warehouse import (
+    LOCK_FILENAME,
+    WAREHOUSE_FILENAME,
+    resolve_home,
+)
 
 #: An injectable runner for ``nvidia-smi``: takes the argument list (after
 #: the executable) and returns stdout text, raising on any failure
@@ -53,6 +67,166 @@ SmiRunner = Callable[[list[str]], str]
 
 #: An injectable importer with the :func:`importlib.import_module` signature.
 Importer = Callable[[str], object]
+
+#: An injectable ``duckdb.connect``. Tests pass a substitute; the default
+#: opens the warehouse file read-only.
+Connect = Callable[..., duckdb.DuckDBPyConnection]
+
+#: Swap backup name milestone 6 writes and this report reads.
+#: ``warehouse.issue147-`` is the stockroom backup prefix, so a user's own
+#: ``warehouse.duckdb.bak`` is never reported as this file.
+SWAP_BACKUP_FILENAME = "warehouse.issue147-swap.duckdb"
+
+
+def live_bytes(con: duckdb.DuckDBPyConnection) -> int:
+    """Return the live-size estimate for an open warehouse, in bytes.
+
+    The estimate is the number of distinct persistent block ids from
+    ``pragma_storage_info``, times ``block_size`` from
+    ``pragma_database_size``. Block ids below 0 are dropped. Each base
+    table in ``main`` contributes its ids; views are skipped. A non-empty
+    ``additional_block_ids`` list is part of the same union.
+    """
+    block_size = con.execute(
+        "SELECT block_size FROM pragma_database_size() "
+        "WHERE database_name = current_database()"
+    ).fetchone()[0]
+    views = {
+        name
+        for (name,) in con.execute(
+            "SELECT view_name FROM duckdb_views() "
+            "WHERE database_name = current_database() AND schema_name = 'main'"
+        ).fetchall()
+    }
+    tables = [
+        name
+        for (name,) in con.execute(
+            "SELECT table_name FROM duckdb_tables() "
+            "WHERE database_name = current_database() AND schema_name = 'main'"
+        ).fetchall()
+        if name not in views
+    ]
+    ids: set[int] = set()
+    for name in tables:
+        literal = "'" + name.replace("'", "''") + "'"
+        rows = con.execute(
+            "SELECT block_id, additional_block_ids "
+            f"FROM pragma_storage_info({literal}) WHERE persistent"
+        ).fetchall()
+        for block_id, extra in rows:
+            if block_id is not None and int(block_id) >= 0:
+                ids.add(int(block_id))
+            if extra:
+                for extra_id in extra:
+                    if extra_id is not None and int(extra_id) >= 0:
+                        ids.add(int(extra_id))
+    return len(ids) * int(block_size)
+
+
+def _disk_free(path: Path) -> int:
+    """Free bytes at ``path``, or at the nearest existing parent."""
+    anchor = path
+    while not anchor.exists():
+        parent = anchor.parent
+        if parent == anchor:
+            break
+        anchor = parent
+    return int(shutil.disk_usage(anchor).free)
+
+
+def _backup_facts(home: Path) -> list[tuple[str, str]]:
+    """Report the swap backup file, or ``backup: absent``."""
+    backup = home / SWAP_BACKUP_FILENAME
+    if not backup.is_file():
+        return [("backup", "absent")]
+    return [("backup", str(backup)), ("backup-bytes", str(backup.stat().st_size))]
+
+
+def _writer_lock_busy(lock: Path) -> bool:
+    """True when ``lock`` exists and a non-blocking exclusive flock fails.
+
+    Opens with no ``O_CREAT``. A successful acquire is released before
+    returning, so the caller does not keep the writer lock.
+    """
+    if not lock.is_file():
+        return False
+    try:
+        fd = os.open(lock, os.O_RDWR)
+    except OSError:
+        return False
+    try:
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            return True
+        fcntl.flock(fd, fcntl.LOCK_UN)
+        return False
+    finally:
+        os.close(fd)
+
+
+def storage_facts(
+    home: Path, *, connect: Connect = duckdb.connect
+) -> list[tuple[str, str]]:
+    """Return read-only storage facts for the warehouse under ``home``.
+
+    Does not create the home, the warehouse file, the lock file, or the
+    check record, and does not migrate. A missing home or a missing
+    warehouse file is ``warehouse: absent`` and ``connect`` is not called.
+    A held writer flock is ``warehouse: busy`` and ``connect`` is not
+    called. A connect or pragma failure on an existing file is
+    ``warehouse: unavailable``. ``disk-free`` is always present. The swap
+    backup is reported only when :data:`SWAP_BACKUP_FILENAME` is a file in
+    ``home``. Every return includes the read-only ``check`` fact.
+
+    ``connect`` is ``duckdb.connect`` unless a test injects a substitute.
+    """
+    from stockroom.check import check_line
+
+    def with_check(facts: list[tuple[str, str]]) -> list[tuple[str, str]]:
+        return [*facts, ("check", check_line(home))]
+
+    disk_free = ("disk-free", str(_disk_free(home)))
+    backup = _backup_facts(home)
+    warehouse_file = home / WAREHOUSE_FILENAME
+    if not home.is_dir() or not warehouse_file.is_file():
+        return with_check([("warehouse", "absent"), disk_free, *backup])
+
+    size = warehouse_file.stat().st_size
+    stat_facts = [("warehouse-bytes", str(size)), disk_free, *backup]
+    if _writer_lock_busy(home / LOCK_FILENAME):
+        return with_check([("warehouse", "busy"), *stat_facts])
+
+    try:
+        con = connect(str(warehouse_file), read_only=True)
+        try:
+            used, free = con.execute(
+                "SELECT used_blocks, free_blocks FROM pragma_database_size() "
+                "WHERE database_name = current_database()"
+            ).fetchone()
+            tags = con.execute(
+                "SELECT tags FROM duckdb_databases() "
+                "WHERE database_name = current_database()"
+            ).fetchone()[0]
+            storage = tags["storage_version"]
+            reclaimable = size - live_bytes(con)
+        finally:
+            con.close()
+    except Exception:
+        return with_check([("warehouse", "unavailable"), *stat_facts])
+
+    return with_check(
+        [
+            ("warehouse", str(warehouse_file)),
+            ("warehouse-bytes", str(size)),
+            ("blocks-used", str(int(used))),
+            ("blocks-free", str(int(free))),
+            ("reclaimable-bytes", str(reclaimable)),
+            ("storage", str(storage)),
+            disk_free,
+            *backup,
+        ]
+    )
 
 
 def _run_nvidia_smi(args: list[str]) -> str:
@@ -124,13 +298,15 @@ def probe_facts(
     """Gather ordered, torch-free environment facts as ``(key, value)`` pairs.
 
     Always reported: ``os``, ``arch``, ``gpu``, ``torch``, ``engine-dir``,
-    ``home``, ``home-source``. When a GPU is visible and parseable, also
-    ``driver``, ``driver-cuda`` (the driver's CUDA ceiling), and
-    ``gpu-compute-cap`` (the ``sm_`` generation input to the wheel choice).
-    When torch imports, also ``torch-cuda``. Every ``nvidia-smi`` failure
-    degrades to a reported fact (``gpu: none`` when absent,
-    ``gpu: unavailable`` on error/garbage) — probe never raises and never
-    imports torch eagerly. Home facts come from
+    ``home``, ``home-source``, plus the storage facts from
+    :func:`storage_facts` (always ``disk-free``; ``warehouse`` is
+    ``absent``, ``busy``, ``unavailable``, or the warehouse path). When a
+    GPU is visible and parseable, also ``driver``, ``driver-cuda`` (the
+    driver's CUDA ceiling), and ``gpu-compute-cap`` (the ``sm_`` generation
+    input to the wheel choice). When torch imports, also ``torch-cuda``.
+    Every ``nvidia-smi`` failure degrades to a reported fact (``gpu: none``
+    when absent, ``gpu: unavailable`` on error/garbage) — probe never
+    raises and never imports torch eagerly. Home facts come from
     :func:`stockroom.warehouse.resolve_home` (no mkdir).
     """
     home, home_source = resolve_home()
@@ -142,6 +318,7 @@ def probe_facts(
         ("engine-dir", str(default_app_dir())),
         ("home", str(home)),
         ("home-source", home_source),
+        *storage_facts(home),
     ]
 
 
@@ -211,10 +388,14 @@ def _build_parser() -> argparse.ArgumentParser:
     """Build the ``python -m stockroom.doctor`` parser (flat, like shim)."""
     parser = argparse.ArgumentParser(
         prog="python -m stockroom.doctor",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
         description=(
-            "Read-only environment diagnostics. probe: report torch-free "
-            "environment facts (OS, arch, GPU, driver, torch state); smoke: "
-            "verify the provisioned torch + encoder path, failing loudly."
+            "Read-only environment diagnostics.\n"
+            "probe: report torch-free environment facts (OS, arch, GPU, driver,\n"
+            "torch state) and warehouse storage facts: file size, used blocks,\n"
+            "free blocks, the reclaimable estimate, the storage format, free disk,\n"
+            "backup, and the check outcome.\n"
+            "smoke: verify the provisioned torch + encoder path, failing loudly."
         ),
     )
     parser.add_argument(

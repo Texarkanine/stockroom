@@ -1,1 +1,0 @@
-Exact semantic top-100 over 133,793 vectors, measured 2026-10-22: rank (min distance per owner), cut, then join messages takes 220 ms on 1.5.4 and ~160 ms on 2.0.0; an EXISTS orphan guard 689/320 ms; join-first QUALIFY 1.7/2.0 s.

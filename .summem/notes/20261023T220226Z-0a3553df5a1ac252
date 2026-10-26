@@ -1,0 +1,1 @@
+2026-10-23: warehouse-file-growth at 36b3c4d is main plus the memory bank. Milestone 4 doctor storage report passed preflight with an advisory. live_bytes stays the union of persistent block ids, dropping ids below 0. Build has not started.

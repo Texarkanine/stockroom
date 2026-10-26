@@ -1,0 +1,1 @@
+Skip test_coverage_collection (removes torch). Zstd: persistent or no .wal; replay Uncompressed. L4 PR drops active/; restore from main, rebase on squash; merge rebase drops bank. Docs as-is. Arch: cutoffs+schema snapshot, not filenames/versions. Make tables=indexes. STE100.

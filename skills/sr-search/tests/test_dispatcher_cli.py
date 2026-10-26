@@ -78,6 +78,14 @@ def test_no_args_prints_usage_to_stderr(tmp_path: Path) -> None:
     assert "usage" in result.stderr.lower()
 
 
+def test_check_is_not_a_subcommand(tmp_path: Path) -> None:
+    """``stockroom check`` is not a command: exit 2, and the token is named."""
+    result = _run("check", home=tmp_path / "home")
+    assert result.returncode == 2
+    assert "check" in result.stderr
+    assert "Traceback" not in result.stderr
+
+
 def test_unknown_subcommand_is_clean_error(tmp_path: Path) -> None:
     """An unknown token exits 2, names the token on stderr, no traceback."""
     result = _run("bogus", home=tmp_path / "home")

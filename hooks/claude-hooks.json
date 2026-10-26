@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "export PATH=\"$HOME/.local/bin:/usr/bin:/bin:$PATH\"; { APP=\"${CLAUDE_PLUGIN_ROOT}/skills/sr-search\"; PY=$(uv python find --project \"$APP\" --no-config) && PYTHONPATH=\"$APP/src\" \"$PY\" -m stockroom shim rectify --owner claude --app-dir \"$APP\"; stockroom dashboard; } >/dev/null 2>&1 || true",
+            "command": "export PATH=\"$HOME/.local/bin:/usr/bin:/bin:$PATH\"; { APP=\"${CLAUDE_PLUGIN_ROOT}/skills/sr-search\"; PY=$(uv python find --project \"$APP\" --no-config) && PYTHONPATH=\"$APP/src\" \"$PY\" -m stockroom shim rectify --owner claude --app-dir \"$APP\"; stockroom dashboard; PYTHONPATH=\"$APP/src\" \"$APP/.venv/bin/python\" -m stockroom.check; } >/dev/null 2>&1 || true",
             "timeout": 300
           }
         ]

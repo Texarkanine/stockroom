@@ -54,7 +54,7 @@ Everything that runs Stockroom on a machine goes through the on-path `stockroom`
 - **Engine** — locked uv project under `skills/sr-search/` (`src/stockroom/`, migrations, tests). Run-in-place; not an installed Python package.
 - **Warehouse** — single-file DuckDB under stockroom home. Rebuildable ETL from harness session records.
 - **Embeddings** — local `sentence-transformers` vectors; torch is provisioned per-machine and held out of the dependency lock.
-- **Hooks** — session-start commands that rectify the shim and launch the dashboard. Fire-and-forget; never the ingest path.
+- **Hooks** — session-start commands that rectify the shim, launch the dashboard, and start the detached check. Fire-and-forget; the hook does not wait. Never the ingest path.
 - **Schedule** — nightly `stockroom shim ensure-env`, then `stockroom ingest && stockroom embed` on the platform scheduler.
 - **Dashboard** — local offline metrics UI on port 58008; opens the warehouse without migrating.
 

@@ -1,0 +1,1 @@
+2026-10-24: Milestone 6 check pass is stockroom.check, not a subcommand. entry sets SIGALRM and installs no handler. A linked record finishes before leftover cleanup. An expired started entry does not replace.

@@ -10,14 +10,19 @@ torch/encoder path is ``importorskip("torch")``-gated per the
 engine-wide convention.
 """
 
+import fcntl
+import gc
+import os
 import subprocess
 import sys
 import types
+from collections.abc import Callable
 from pathlib import Path
 
+import duckdb
 import pytest
 
-from stockroom import doctor, warehouse
+from stockroom import check, doctor, migrate, warehouse
 from stockroom.embed import EMBED_DIM
 from stockroom.shim import default_app_dir
 
@@ -26,6 +31,15 @@ from stockroom.shim import default_app_dir
 def stockroom_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """Isolate freeze lookups under a fresh STOCKROOM_HOME."""
     home = tmp_path / "stockroom-home"
+    home.mkdir()
+    monkeypatch.setenv("STOCKROOM_HOME", str(home))
+    return home
+
+
+@pytest.fixture
+def empty_stockroom_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """Point STOCKROOM_HOME at an empty directory with no warehouse file."""
+    home = tmp_path / "empty-home"
     home.mkdir()
     monkeypatch.setenv("STOCKROOM_HOME", str(home))
     return home
@@ -118,7 +132,7 @@ def _probe(**kwargs) -> dict[str, str]:
     return dict(facts)
 
 
-def test_probe_reports_os_and_arch() -> None:
+def test_probe_reports_os_and_arch(empty_stockroom_home: Path) -> None:
     """Os/arch come from the platform module as stable facts."""
     import platform
 
@@ -127,7 +141,9 @@ def test_probe_reports_os_and_arch() -> None:
     assert facts["arch"] == platform.machine()
 
 
-def test_probe_reports_gpu_and_driver_when_smi_parseable() -> None:
+def test_probe_reports_gpu_and_driver_when_smi_parseable(
+    empty_stockroom_home: Path,
+) -> None:
     """A healthy nvidia-smi yields GPU name, driver, driver CUDA
     ceiling, and the compute capability (the sm_ generation input)."""
     facts = _probe(smi_runner=_smi_ok)
@@ -137,7 +153,7 @@ def test_probe_reports_gpu_and_driver_when_smi_parseable() -> None:
     assert facts["gpu-compute-cap"] == "6.1"
 
 
-def test_probe_reports_gpu_none_when_smi_absent() -> None:
+def test_probe_reports_gpu_none_when_smi_absent(empty_stockroom_home: Path) -> None:
     """No nvidia-smi on PATH is a fact (gpu: none), never an error."""
     facts = _probe(smi_runner=_smi_absent)
     assert facts["gpu"] == "none"
@@ -146,28 +162,30 @@ def test_probe_reports_gpu_none_when_smi_absent() -> None:
 
 
 @pytest.mark.parametrize("runner", [_smi_failing, _smi_garbage])
-def test_probe_degrades_gracefully_on_smi_failure(runner) -> None:
+def test_probe_degrades_gracefully_on_smi_failure(
+    runner, empty_stockroom_home: Path
+) -> None:
     """An erroring or garbage-emitting nvidia-smi degrades to an
     'unavailable' fact — no traceback, no raise."""
     facts = _probe(smi_runner=runner)
     assert facts["gpu"] == "unavailable"
 
 
-def test_probe_reports_torch_not_installed() -> None:
+def test_probe_reports_torch_not_installed(empty_stockroom_home: Path) -> None:
     """An unimportable torch is a reported fact."""
     facts = _probe(torch_importer=_import_absent)
     assert facts["torch"] == "not installed"
     assert "torch-cuda" not in facts
 
 
-def test_probe_reports_torch_version_and_cuda() -> None:
+def test_probe_reports_torch_version_and_cuda(empty_stockroom_home: Path) -> None:
     """An importable torch yields its version and CUDA availability."""
     facts = _probe(torch_importer=_importer_for(_fake_torch("2.11.0", cuda=True)))
     assert facts["torch"] == "2.11.0"
     assert facts["torch-cuda"] == "True"
 
 
-def test_probe_reports_engine_dir() -> None:
+def test_probe_reports_engine_dir(empty_stockroom_home: Path) -> None:
     """The engine dir fact names where the engine environment lives."""
     facts = _probe()
     assert facts["engine-dir"] == str(default_app_dir())
@@ -198,7 +216,7 @@ def test_probe_home_facts_do_not_mkdir(
     assert not target.exists()
 
 
-def test_probe_never_imports_torch_eagerly() -> None:
+def test_probe_never_imports_torch_eagerly(empty_stockroom_home: Path) -> None:
     """Importing the module and probing goes through the injected
     importer only — the real torch is never touched."""
     if "torch" in sys.modules:
@@ -216,6 +234,291 @@ def test_probe_never_imports_torch_eagerly() -> None:
     assert "torch" not in sys.modules
 
 
+def _refusing_connect() -> tuple[list[tuple[object, object]], Callable[..., object]]:
+    """A connect stand-in that records every call, then raises."""
+    calls: list[tuple[object, object]] = []
+
+    def connect(*args: object, **kwargs: object) -> object:
+        calls.append((args, kwargs))
+        raise AssertionError("connect was called")
+
+    return calls, connect
+
+
+def _storage(
+    home: Path, *, connect: Callable[..., object] | None = None
+) -> dict[str, str]:
+    """Run storage_facts and return the pairs as a dict."""
+    kwargs = {} if connect is None else {"connect": connect}
+    facts = doctor.storage_facts(home, **kwargs)
+    keys = [key for key, _ in facts]
+    assert len(keys) == len(set(keys)), f"duplicate fact keys: {keys}"
+    return dict(facts)
+
+
+def _persistent_block_bytes(con: duckdb.DuckDBPyConnection) -> int:
+    """Live bytes from distinct persistent block ids, views excluded.
+
+    This is the oracle for ``doctor.live_bytes``: persistent ``block_id``
+    values, plus a non-empty ``additional_block_ids`` list, dropping ids
+    below 0, times ``block_size``.
+    """
+    block_size = con.execute(
+        "SELECT block_size FROM pragma_database_size() "
+        "WHERE database_name = current_database()"
+    ).fetchone()[0]
+    views = {
+        name
+        for (name,) in con.execute(
+            "SELECT view_name FROM duckdb_views() "
+            "WHERE database_name = current_database() AND schema_name = 'main'"
+        ).fetchall()
+    }
+    tables = [
+        name
+        for (name,) in con.execute(
+            "SELECT table_name FROM duckdb_tables() "
+            "WHERE database_name = current_database() AND schema_name = 'main'"
+        ).fetchall()
+        if name not in views
+    ]
+    ids: set[int] = set()
+    for name in tables:
+        literal = "'" + name.replace("'", "''") + "'"
+        rows = con.execute(
+            "SELECT block_id, additional_block_ids "
+            f"FROM pragma_storage_info({literal}) WHERE persistent"
+        ).fetchall()
+        for block_id, extra in rows:
+            if block_id is not None and block_id >= 0:
+                ids.add(int(block_id))
+            if extra:
+                for extra_id in extra:
+                    if extra_id is not None and extra_id >= 0:
+                        ids.add(int(extra_id))
+    return len(ids) * int(block_size)
+
+
+@pytest.fixture
+def released_warehouse(warehouse_home: Path) -> Path:
+    """A head warehouse whose writer flock has been released."""
+    con = warehouse.open()
+    path = warehouse_home / warehouse.WAREHOUSE_FILENAME
+    con.close()
+    del con
+    gc.collect()
+    return path
+
+
+def test_storage_missing_home_reports_absent_without_connecting(tmp_path: Path) -> None:
+    """A home that does not exist is warehouse: absent, with free disk.
+
+    The connect is not called, blocks-used is absent, and the home, the
+    warehouse file, and the lock file stay absent.
+    """
+    home = tmp_path / "missing-home"
+    calls, connect = _refusing_connect()
+    facts = _storage(home, connect=connect)
+    assert calls == []
+    assert facts["warehouse"] == "absent"
+    assert int(facts["disk-free"]) > 0
+    assert "blocks-used" not in facts
+    assert not home.exists()
+    assert not (home / warehouse.WAREHOUSE_FILENAME).exists()
+    assert not (home / warehouse.LOCK_FILENAME).exists()
+
+
+def test_storage_missing_file_reports_absent_without_connecting(tmp_path: Path) -> None:
+    """A home with no warehouse file is warehouse: absent.
+
+    The connect is not called, and probe does not create the file.
+    """
+    home = tmp_path / "home"
+    home.mkdir()
+    calls, connect = _refusing_connect()
+    facts = _storage(home, connect=connect)
+    assert calls == []
+    assert facts["warehouse"] == "absent"
+    assert not (home / warehouse.WAREHOUSE_FILENAME).exists()
+
+
+def test_storage_reports_warehouse_bytes(released_warehouse: Path) -> None:
+    """warehouse-bytes is the warehouse file's stat size."""
+    facts = _probe()
+    assert facts["warehouse-bytes"] == str(released_warehouse.stat().st_size)
+
+
+def test_storage_reports_used_and_free_blocks(released_warehouse: Path) -> None:
+    """blocks-used and blocks-free match pragma_database_size."""
+    con = duckdb.connect(str(released_warehouse), read_only=True)
+    try:
+        used, free = con.execute(
+            "SELECT used_blocks, free_blocks FROM pragma_database_size() "
+            "WHERE database_name = current_database()"
+        ).fetchone()
+    finally:
+        con.close()
+    facts = _probe()
+    assert facts["blocks-used"] == str(int(used))
+    assert facts["blocks-free"] == str(int(free))
+
+
+def test_storage_reports_storage_format(released_warehouse: Path) -> None:
+    """storage is duckdb_databases().tags['storage_version']."""
+    con = duckdb.connect(str(released_warehouse), read_only=True)
+    try:
+        tags = con.execute(
+            "SELECT tags FROM duckdb_databases() "
+            "WHERE database_name = current_database()"
+        ).fetchone()[0]
+    finally:
+        con.close()
+    facts = _probe()
+    assert facts["storage"] == tags["storage_version"]
+
+
+def test_storage_reports_reclaimable_bytes(released_warehouse: Path) -> None:
+    """reclaimable-bytes is the file size minus the persistent-block estimate.
+
+    The estimate unions persistent block ids, drops ids below 0, and
+    includes a non-empty additional_block_ids list. The result is >= 0.
+    """
+    con = duckdb.connect(str(released_warehouse), read_only=True)
+    try:
+        expected = _persistent_block_bytes(con)
+        assert doctor.live_bytes(con) == expected
+    finally:
+        con.close()
+    facts = _probe()
+    assert int(facts["reclaimable-bytes"]) == (
+        released_warehouse.stat().st_size - expected
+    )
+    assert int(facts["reclaimable-bytes"]) >= 0
+
+
+def test_storage_reports_backup_when_present(tmp_path: Path) -> None:
+    """The swap backup's path and size are reported when that file exists."""
+    home = tmp_path / "home"
+    home.mkdir()
+    backup = home / doctor.SWAP_BACKUP_FILENAME
+    backup.write_bytes(b"swap-bytes")
+    facts = _storage(home)
+    assert facts["backup"] == str(backup)
+    assert facts["backup-bytes"] == str(backup.stat().st_size)
+
+
+def test_storage_reports_backup_absent(tmp_path: Path) -> None:
+    """No swap backup is backup: absent, with no backup-bytes line."""
+    home = tmp_path / "home"
+    home.mkdir()
+    facts = _storage(home)
+    assert facts["backup"] == "absent"
+    assert "backup-bytes" not in facts
+
+
+def test_storage_ignores_other_backup_names(tmp_path: Path) -> None:
+    """A user backup such as warehouse.duckdb.bak is not the swap backup."""
+    home = tmp_path / "home"
+    home.mkdir()
+    (home / "warehouse.duckdb.bak").write_bytes(b"user-backup")
+    facts = _storage(home)
+    assert facts["backup"] == "absent"
+    assert "backup-bytes" not in facts
+
+
+def test_storage_busy_lock_does_not_connect(tmp_path: Path) -> None:
+    """A held writer flock is warehouse: busy, with the file size, and no connect."""
+    home = tmp_path / "home"
+    home.mkdir()
+    warehouse_file = home / warehouse.WAREHOUSE_FILENAME
+    warehouse_file.write_bytes(b"0123456789")
+    fd = os.open(home / warehouse.LOCK_FILENAME, os.O_CREAT | os.O_RDWR, 0o644)
+    calls, connect = _refusing_connect()
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX)
+        facts = _storage(home, connect=connect)
+    finally:
+        fcntl.flock(fd, fcntl.LOCK_UN)
+        os.close(fd)
+    assert calls == []
+    assert facts["warehouse"] == "busy"
+    assert facts["warehouse-bytes"] == str(warehouse_file.stat().st_size)
+
+
+def test_storage_below_head_does_not_change_the_file(warehouse_home: Path) -> None:
+    """A warehouse below the schema head is not migrated.
+
+    Probe does not raise, does not change the file's bytes, does not
+    change schema_version, and still prints warehouse-bytes and disk-free.
+    """
+    warehouse_home.mkdir()
+    path = warehouse_home / warehouse.WAREHOUSE_FILENAME
+    con = duckdb.connect(str(path))
+    try:
+        migrate.ensure_schema_version_table(con)
+        con.execute(
+            f"INSERT INTO {migrate.SCHEMA_VERSION_TABLE} (version, filename) "
+            "VALUES (1, '0001_test.sql')"
+        )
+    finally:
+        con.close()
+    before = path.read_bytes()
+    names = sorted(entry.name for entry in warehouse_home.iterdir())
+    facts = _probe()
+    assert path.read_bytes() == before
+    assert sorted(entry.name for entry in warehouse_home.iterdir()) == names
+    con = duckdb.connect(str(path), read_only=True)
+    try:
+        assert migrate.current_version(con) == 1
+    finally:
+        con.close()
+    assert facts["warehouse-bytes"] == str(path.stat().st_size)
+    assert int(facts["disk-free"]) > 0
+
+
+def test_storage_connect_failure_is_unavailable(tmp_path: Path) -> None:
+    """A connect that raises is warehouse: unavailable and probe does not raise."""
+    home = tmp_path / "home"
+    home.mkdir()
+    warehouse_file = home / warehouse.WAREHOUSE_FILENAME
+    warehouse_file.write_bytes(b"not-a-database")
+
+    def connect(*_args: object, **_kwargs: object) -> object:
+        raise OSError("cannot open")
+
+    facts = _storage(home, connect=connect)
+    assert facts["warehouse"] == "unavailable"
+    assert facts["warehouse-bytes"] == str(warehouse_file.stat().st_size)
+    assert int(facts["disk-free"]) > 0
+
+
+def test_storage_read_failure_is_unavailable(tmp_path: Path) -> None:
+    """A pragma failure after connect is warehouse: unavailable.
+
+    Stat facts stay, connection facts do not, and probe does not raise.
+    """
+    home = tmp_path / "home"
+    home.mkdir()
+    warehouse_file = home / warehouse.WAREHOUSE_FILENAME
+    warehouse_file.write_bytes(b"x")
+
+    class _Broken:
+        def execute(self, *_args: object, **_kwargs: object) -> object:
+            raise duckdb.CatalogException("pragma failed")
+
+        def close(self) -> None:
+            return None
+
+    def connect(*_args: object, **_kwargs: object) -> _Broken:
+        return _Broken()
+
+    facts = _storage(home, connect=connect)
+    assert facts["warehouse"] == "unavailable"
+    assert facts["warehouse-bytes"] == str(warehouse_file.stat().st_size)
+    assert int(facts["disk-free"]) > 0
+    assert "blocks-used" not in facts
+
+
 def test_format_facts_renders_key_value_lines() -> None:
     """format_facts emits one aligned ``key: value`` line per fact."""
     text = doctor.format_facts([("os", "Linux"), ("gpu-compute-cap", "6.1")])
@@ -225,6 +528,126 @@ def test_format_facts_renders_key_value_lines() -> None:
     assert lines[0].endswith("Linux")
     assert lines[1].startswith("gpu-compute-cap:")
     assert lines[1].endswith("6.1")
+
+
+def test_check_absent_when_no_record(tmp_path: Path) -> None:
+    """No check record is the check value absent."""
+    home = tmp_path / "home"
+    home.mkdir()
+    assert _storage(home)["check"] == "absent"
+
+
+def test_check_rehearsed_line_names_the_measurement_and_path(tmp_path: Path) -> None:
+    """A rehearsed record is one line with the status, a measurement, and the path."""
+    home = tmp_path / "home"
+    home.mkdir()
+    record_path = home / check.CHECK_RECORD_FILENAME
+    check.write_record(
+        home,
+        {"check_version": 1, "status": "rehearsed", "original_bytes": 100},
+    )
+    value = _storage(home)["check"]
+    assert "\n" not in value
+    assert "rehearsed" in value
+    assert "original_bytes" in value
+    assert str(record_path) in value
+
+
+def test_check_started_inside_the_limit_says_running(tmp_path: Path) -> None:
+    """A started entry still inside its limit says running, not crash."""
+    home = tmp_path / "home"
+    home.mkdir()
+    moment = 1_000_000.0
+    check.write_record(
+        home,
+        {
+            "check_version": 1,
+            "status": "started",
+            "started_at": moment,
+            "limit_seconds": 14_400,
+        },
+    )
+    value = check.check_line(home, now=lambda: moment)
+    assert value.startswith("running")
+    assert "crash" not in value
+
+
+def test_check_started_past_the_limit_says_overrun(tmp_path: Path) -> None:
+    """A started entry past its limit says overrun."""
+    home = tmp_path / "home"
+    home.mkdir()
+    check.write_record(
+        home,
+        {
+            "check_version": 1,
+            "status": "started",
+            "started_at": 0,
+            "limit_seconds": 1,
+        },
+    )
+    value = check.check_line(home, now=lambda: 1.0)
+    assert value.startswith("overrun")
+
+
+def test_check_skip_names_the_reason(tmp_path: Path) -> None:
+    """A low-disk skip names that reason."""
+    home = tmp_path / "home"
+    home.mkdir()
+    check.write_record(
+        home, {"check_version": 1, "status": "skip", "skip_reason": "low-disk"}
+    )
+    assert "low-disk" in _storage(home)["check"]
+
+
+def test_check_unreadable_record(tmp_path: Path) -> None:
+    """A record that is not a JSON object is unreadable."""
+    home = tmp_path / "home"
+    home.mkdir()
+    (home / check.CHECK_RECORD_FILENAME).write_text("{", encoding="utf-8")
+    assert _storage(home)["check"] == "unreadable"
+
+
+def test_storage_facts_does_not_change_mtimes(tmp_path: Path) -> None:
+    """Reading storage facts leaves the warehouse and the record mtimes alone."""
+    home = tmp_path / "home"
+    home.mkdir()
+    database = home / warehouse.WAREHOUSE_FILENAME
+    duckdb.connect(str(database)).close()
+    check.write_record(home, {"check_version": 1, "status": "rehearsed"})
+    record = home / check.CHECK_RECORD_FILENAME
+    stamp = 1_700_000_000
+    os.utime(database, (stamp, stamp))
+    os.utime(record, (stamp, stamp))
+    _storage(home)
+    assert database.stat().st_mtime_ns == record.stat().st_mtime_ns
+    assert database.stat().st_mtime == stamp
+
+
+def test_storage_returns_include_check(tmp_path: Path) -> None:
+    """Absent, busy, unavailable, and present warehouses all report check."""
+    missing = tmp_path / "missing"
+    assert "check" in _storage(missing)
+
+    home = tmp_path / "home"
+    home.mkdir()
+    database = home / warehouse.WAREHOUSE_FILENAME
+    database.write_bytes(b"0123456789")
+    fd = os.open(home / warehouse.LOCK_FILENAME, os.O_CREAT | os.O_RDWR, 0o644)
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX)
+        assert "check" in _storage(home)
+    finally:
+        fcntl.flock(fd, fcntl.LOCK_UN)
+        os.close(fd)
+
+    def fail(*_args, **_kwargs):
+        raise OSError("cannot open")
+
+    assert "check" in _storage(home, connect=fail)
+
+    database.unlink()
+    duckdb.connect(str(database)).close()
+    assert "check" in _storage(home)
 
 
 # --- smoke: loud-failing verification -----------------------------

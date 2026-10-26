@@ -75,7 +75,10 @@ def current_version(con: duckdb.DuckDBPyConnection) -> int:
 
 
 def apply_pending(
-    con: duckdb.DuckDBPyConnection, directory: Path | None = None
+    con: duckdb.DuckDBPyConnection,
+    directory: Path | None = None,
+    *,
+    through: int | None = None,
 ) -> list[int]:
     """Apply every pending migration in ascending order; return their versions.
 
@@ -86,12 +89,20 @@ def apply_pending(
     migration is applied-and-recorded, or neither (the recorded version stays
     honest). Returns ``[]`` when the DB is already current or ahead.
 
+    ``through`` stops the run at that version: a migration whose version is
+    above ``through`` stays pending. ``through=None`` applies every pending
+    migration, which is what every existing caller does.
+
     Assumes a read-write connection; the caller is responsible for cross-process
     exclusivity (the warehouse flock).
     """
     ensure_schema_version_table(con)
     version = current_version(con)
-    pending = [m for m in discover(directory) if m.version > version]
+    pending = [
+        m
+        for m in discover(directory)
+        if m.version > version and (through is None or m.version <= through)
+    ]
 
     applied: list[int] = []
     for migration in pending:

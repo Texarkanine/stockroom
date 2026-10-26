@@ -34,4 +34,4 @@ A user can install from the marketplace, run `sr-initialize`, and use `sr-search
 - AGPLv3 (including the network-served dashboard).
 - uv-locked except torch (per-machine wheel).
 - Both Cursor and Claude Code ingested; both plugin manifests ship.
-- Session-start hook: idempotent, fire-and-forget, never errors; launches dashboard (and rectifies the on-path shim) — never ingests or migrates.
+- Session-start hook: idempotent, fire-and-forget, never errors; launches the dashboard, rectifies the on-path shim, and starts a warehouse check without waiting — never ingests or migrates.

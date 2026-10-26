@@ -184,3 +184,37 @@ def test_apply_pending_no_op_when_db_is_ahead(
     assert applied == []
     assert migrate.current_version(mem_con) == 5
     assert "alpha" not in _table_names(mem_con)
+
+
+def test_apply_pending_stops_at_through(
+    mem_con: duckdb.DuckDBPyConnection, tmp_path: Path
+) -> None:
+    """``through`` applies nothing above that version.
+
+    Bookkeeping is already at 9 and the only migration is ``0010_m10.sql``,
+    which would add ``sessions.m10``. ``through=9`` returns nothing and
+    ``sessions`` has no ``m10`` column.
+    """
+    migrate.ensure_schema_version_table(mem_con)
+    mem_con.execute("CREATE TABLE sessions (harness TEXT)")
+    mem_con.execute(
+        f"INSERT INTO {migrate.SCHEMA_VERSION_TABLE} (version, filename) "
+        "VALUES (9, 'schema_0009.sql')"
+    )
+    folder = tmp_path / "migrations"
+    folder.mkdir()
+    (folder / "0010_m10.sql").write_text(
+        "ALTER TABLE sessions ADD COLUMN m10 TEXT;", encoding="utf-8"
+    )
+
+    applied = migrate.apply_pending(mem_con, folder, through=9)
+
+    columns = {
+        row[0]
+        for row in mem_con.execute(
+            "SELECT column_name FROM duckdb_columns() "
+            "WHERE schema_name = 'main' AND table_name = 'sessions'"
+        ).fetchall()
+    }
+    assert applied == []
+    assert "m10" not in columns

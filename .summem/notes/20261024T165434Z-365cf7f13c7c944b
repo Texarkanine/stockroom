@@ -1,0 +1,1 @@
+A schema-file copy stores a short messages.text row as persistent ZSTD. An empty tool_calls column has no data segment, and verification allows that.
