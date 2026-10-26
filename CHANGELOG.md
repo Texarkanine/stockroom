@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.1.0](https://github.com/Texarkanine/stockroom/compare/v3.0.0...v3.1.0) (2026-10-26)
+
+
+### Features
+
+* swap an old warehouse to zstd storage after a recorded rehearsal ([#152](https://github.com/Texarkanine/stockroom/issues/152)) ([e7a0d3a](https://github.com/Texarkanine/stockroom/commit/e7a0d3a300be5c727dc54d856e92027b8ab74098))
+
 ## [3.0.0](https://github.com/Texarkanine/stockroom/compare/v2.1.3...v3.0.0) (2026-10-23)
 
 
