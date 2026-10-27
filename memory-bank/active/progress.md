@@ -68,3 +68,15 @@ Reclaim `warehouse.issue147-swap.duckdb` a fortnight after a recorded swap. The 
 * Insights
     - Matching inodes have to be part of the parent gate. A clock-only gate would launch forever, because the child would keep the file
 
+## 2026-10-27 - PREFLIGHT - COMPLETE (PASS WITH ADVISORY)
+
+* Work completed
+    - Validated the revised Level 3 plan against the default preflight checks, tracing every touched constant and import through the live codebase
+    - Confirmed strict TDD ordering in Units 1 and 2, the re-export convention for the moved filenames, and that existing stop-path tests stay green under the reclaim
+    - Verified `stockroom/__init__.py` is import-light, so the fresh-interpreter DuckDB assertion is meaningful, and that no reader of `check.json` exists outside `check`/`doctor`/tests
+* Decisions made
+    - Plan validated as `PASS WITH ADVISORY`; no blocking findings; no in-phase plan edits (no strikes, no step swaps)
+* Insights
+    - The parent's due-predicate and the child's unlink predicate are stated twice in the plan; one shared `_swap_backup_due` helper would make drift between gate and reclaim impossible
+    - The parent's flock-free stat path can race a concurrent due child; treating `OSError` from the stat calls as "start the child" closes it, per the plan's own Challenges principle
+

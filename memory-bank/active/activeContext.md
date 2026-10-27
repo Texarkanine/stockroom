@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: Fortnight backup reclaim and finished-home short-circuit
-**Phase:** PLAN - COMPLETE
+**Phase:** PREFLIGHT - COMPLETE (PASS WITH ADVISORY)
 
 ## What Was Done
 - Revised the Level 3 plan to the operator's gate from 2026-10-27. The hook text stays.
@@ -10,4 +10,4 @@
 - The two filenames the parent stats move to `stockroom.home`. `warehouse` and `doctor` re-export them.
 
 ## Next Step
-- Preflight the revised plan.
+- Proceed to `/niko-build`. During build, use one due-predicate for the gate and the unlink, treat `OSError` from the parent's `stat` calls as "start the child", add the one-sentence qualifier in `docs/architecture/lifecycle.md`, and cite `test_expired_start_deletes_a_leftover_and_keeps_the_backup` instead of a second expired-start test.
