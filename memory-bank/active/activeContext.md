@@ -1,12 +1,14 @@
 # Active Context
 
 ## Current Task: Fortnight backup reclaim and finished-home short-circuit
-**Phase:** PLAN - COMPLETE
+**Phase:** PREFLIGHT - COMPLETE (PASS WITH ADVISORY)
 
 ## What Was Done
-- Level 3 plan for task `fortnight-backup-and-quiet-check`. No open questions. Creative decisions stand: check-pass retention at 14 days from `started_at`, and a parent gate that returns only when the backup is not a file.
-- Unlink lives in `_acquired` on the `swapped` stop path, under the flock already held. `main` returns before `launch` for version 1 `swapped`, `already-new`, or `mismatch` when that backup is not a file. Importing `stockroom.check` must not import DuckDB.
-- `SWAP_BACKUP_FILENAME` moves onto `check` and is re-exported from `doctor`. Hooks stay. Item 2 of issue 155 stays out.
+- Level 3 plan for task `fortnight-backup-and-quiet-check` validated against codebase reality.
+- Verified TDD order across Units 1 and 2; Unit 3 confirmed as docs/policy artifact.
+- Verified DuckDB import boundary, `doctor.SWAP_BACKUP_FILENAME` re-export, and hook execution compatibility.
+- Preflight completed with `PASS WITH ADVISORY`.
 
 ## Next Step
-- Preflight the plan.
+- Proceed to `/niko-build` to implement the plan.
+

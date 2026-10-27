@@ -1,0 +1,34 @@
+PASS WITH ADVISORY
+
+## Findings
+
+1. **Check 1: Wrong-Reference Guard** (PASS) - Complexity level is verified as Level 3 in both `tasks.md` and `progress.md`.
+2. **Check 2: Verify Prerequisites** (PASS) - All planning checklists in `tasks.md` are complete. Creative documents exist and have been cross-checked: `creative-swap-backup-cleanup.md` and `creative-check-machinery-lifetime.md`.
+3. **Check 3: TDD Plan Encoding** (PASS) - Units 1 and 2 are executable and strictly follow TDD: stub tests, stub interface, write tests & run red, write code & run green. Unit 3 is documentation/policy only and is appropriately exempt from test requirements. No change-detectors or misplaced steps detected.
+4. **Check 4: Convention Compliance** (PASS) - File locations, naming conventions, and runtime isolation conform to `systemPatterns.md`. The hook execution contract and session-start behavior remain intact.
+5. **Check 5: Dependency Impact** (PASS) - Re-exporting `SWAP_BACKUP_FILENAME` on `doctor` maintains compatibility for `doctor.probe_facts` and existing tests. Deferred engine imports in `check.py` avoid loading DuckDB or engine submodules on import.
+6. **Check 6: Conflict Detection** (PASS) - No duplicate implementations or conflicting logic. The parent short-circuit strictly respects the `--foreground` entrypoint and runs safely.
+7. **Check 7: Completeness Precheck** (PASS) - All requirements from `projectbrief.md` map to concrete, verified implementation steps in `tasks.md`.
+
+## Advisory Items
+
+1. **Advisory: Module-level globals binding in `check.py` (`_import_engine`)**
+   When `_import_engine()` binds `duckdb`, `storage`, `current_version`, `LOCK_FILENAME`, `WAREHOUSE_FILENAME`, and `_flock` dynamically, static linters (such as `ruff` F821 undefined name) and IDE indexers may report undefined variable errors inside helper functions.
+   *Recommendation:* Declare these identifiers at module level as `None` (or under `typing.TYPE_CHECKING`) prior to `_import_engine()` to ensure clean linting without triggering early imports.
+
+2. **Advisory (Radical Innovation): Pre-deadline quiet parent during the 14-day retention window**
+   *Context:* Under the current plan, when a warehouse swap has completed (`status == "swapped"`) and the backup file `warehouse.issue147-swap.duckdb` exists, `_finished_without_backup` returns `False`. Consequently, every session start during the 14-day retention window will call `launch(home)` to start a detached child process. That child acquires the flock, evaluates `now < started_at + 14 * 86400`, performs a no-op stop, and exits.
+   *Sketch:* The parent gate `_finished_without_backup(home)` could be structurally broadened to `_can_skip_check(home, *, now=time.time)`:
+   ```python
+   def _can_skip_check(home: Path, *, now: float) -> bool:
+       record = load_record(home) # handled safely with OSError/ValueError guards
+       ...
+       backup_file = home / SWAP_BACKUP_FILENAME
+       if status == "swapped" and backup_file.is_file():
+           started_at = record.get("started_at")
+           if isinstance(started_at, (int, float)) and not isinstance(started_at, bool):
+               if now < started_at + SWAP_BACKUP_RETENTION_SECONDS:
+                   return True  # Fortnight has not elapsed; child pass would be a no-op
+       return False
+   ```
+   *Benefit:* Eliminates spawning hundreds of background child processes over the 14-day window on active workstations, while still launching the child on the exact first session start after the retention deadline expires to perform the unlink.

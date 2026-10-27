@@ -28,3 +28,17 @@ Reclaim `warehouse.issue147-swap.duckdb` a fortnight after a recorded swap, and 
     - The DuckDB import assertion runs in a fresh interpreter
 * Insights
     - `storage`, `migrate`, and `warehouse` import DuckDB, so moving the `duckdb` import line alone does not make the parent quiet
+
+## 2026-10-27 - PREFLIGHT - COMPLETE (PASS WITH ADVISORY)
+
+* Work completed
+    - Validated implementation plan in `memory-bank/active/tasks.md` against default Level 3 preflight checks
+    - Confirmed strict TDD ordering (stub tests -> stub interface -> write tests / run red -> write code / run green) across Units 1 and 2
+    - Verified import boundaries, re-exports, and backward compatibility for `SWAP_BACKUP_FILENAME`
+    - Formulated advisory recommendations for module globals in `check.py` and pre-deadline child-spawn suppression
+* Decisions made
+    - Plan validated as `PASS WITH ADVISORY`
+    - Implementation plan proceeds to Build without structural blockers
+* Insights
+    - Parent gate can cleanly avoid importing DuckDB while keeping all child background machinery working as intended
+
