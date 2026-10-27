@@ -25,7 +25,7 @@ On session start, Stockroom does three things:
 2. **`stockroom dashboard`** — launch (or re-print) the local dashboard URL. This command goes through the on-path shim.
 3. **The check** — `"$APP/.venv/bin/python" -m stockroom.check` on the engine `.venv` interpreter that rectify just ensured. The child is detached. The hook does not wait for the check. The check is not an on-path `stockroom` command.
 
-The check can run for a long time in the child. The hook starts the child and returns. Session start does **not** ingest, embed, or migrate as its primary work. Those are heavier, longer, and already owned by the schedule and explicit CLI/skill paths. Putting them on the hook would fight timeout limits and turn every new chat into an inelegant ETL termination race.
+The check can run for a long time in the child. The hook starts the child and returns. A finished home whose backup is not due to be removed starts no child. Session start does **not** ingest, embed, or migrate as its primary work. Those are heavier, longer, and already owned by the schedule and explicit CLI/skill paths. Putting them on the hook would fight timeout limits and turn every new chat into an inelegant ETL termination race.
 
 ### Cursor beforeSubmitPrompt suspenders
 

@@ -1,1 +1,0 @@
-live_bytes unions persistent block ids, dropping ids below 0. Doctor probe uses RawDescriptionHelpFormatter so 'free disk' stays one phrase. copy_warehouse leaves warehouse.copy.duckdb; apply_pending gains through. View SQL is not compared across storage versions.

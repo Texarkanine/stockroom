@@ -92,3 +92,19 @@ Reclaim `warehouse.issue147-swap.duckdb` a fortnight after a recorded swap. The 
 * Insights
     - The shared predicate must let `OSError` propagate. Swallowing it as "not due" would skip the reclaim session the advisory is closing
 
+## 2026-10-27 - BUILD - COMPLETE
+
+* Work completed
+    - Unlink a swapped backup 14 days after `started_at` when the inodes differ, under the writer flock, without rewriting `check.json`
+    - The parent returns without a child and without DuckDB when that child would leave the disk alone, and launches for an unfinished home or a due backup
+    - Moved the two filenames to `stockroom.home` and re-exported them
+    - Updated the restore section and one sentence in the lifecycle doc
+* Decisions made
+    - `_swap_backup_due` is the only predicate. The parent maps `OSError` to launch. The unlink leaves the backup when that call raises
+    - The user guide says 14 days
+    - The expired-start test keeps a fortnight-old backup instead of a second test
+* Insights
+    - Placeholders at import, rebound by `_import_engine` inside `run_check`, keep DuckDB off the parent
+    - `make test` on this machine needs Node 22 from nvm. Brew `node` is 26 and the dashboard target rejects it
+    - Two suite failures are outside this change: `/tmp` resolves to `/private/tmp` in the dashboard identity round trip, and the root docs lock fails `uv lock --locked --refresh`
+

@@ -164,9 +164,11 @@ Build note: `_needs_child` calls `_swap_backup_due`. `OSError` from that call st
 - No tests: prose/policy artifact
 - Creative ref: `memory-bank/active/creative/creative-swap-backup-cleanup.md`
 
-1. In the Warehouse overview, replace the claim that Stockroom never deletes `warehouse.issue147-swap.duckdb`. State that the file stays for a fortnight after the swap, and that a later session start can remove it after that.
-2. In "Put the original warehouse back", replace the claim that a `swapped` check does not touch the backup again. State that the check leaves `warehouse.duckdb` in place, and that it removes the backup after the fortnight. Putting the original back has to happen before then. A session started after the deadline can remove the backup in the background. A session during the fortnight does not.
-3. Leave the rest of the procedure: probe first, stop when `backup` is `absent`, wait on `busy` / `running`, one session on `linked`, rename only when the word is `swapped`, do not use `warehouse.copy.duckdb`, keep `check.json`.
+1. [x] In the Warehouse overview, replace the claim that Stockroom never deletes `warehouse.issue147-swap.duckdb`. State that the file stays for a fortnight after the swap, and that a later session start can remove it after that.
+2. [x] In "Put the original warehouse back", replace the claim that a `swapped` check does not touch the backup again. State that the check leaves `warehouse.duckdb` in place, and that it removes the backup after the fortnight. Putting the original back has to happen before then. A session started after the deadline can remove the backup in the background. A session during the fortnight does not.
+3. [x] Leave the rest of the procedure: probe first, stop when `backup` is `absent`, wait on `busy` / `running`, one session on `linked`, rename only when the word is `swapped`, do not use `warehouse.copy.duckdb`, keep `check.json`.
+
+Build note: the user guide says 14 days. `docs/architecture/lifecycle.md` adds one sentence: a finished home whose backup is not due starts no child.
 
 ## Technology Validation
 
@@ -200,5 +202,5 @@ No new technology - validation not required.
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight
-- [ ] Build
+- [x] Build
 - [ ] QA
