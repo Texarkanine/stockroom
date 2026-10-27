@@ -1,6 +1,6 @@
 # Progress
 
-Reclaim `warehouse.issue147-swap.duckdb` a fortnight after a recorded swap, and return from the session-start check before `launch()` once that home is finished and the backup is gone. Item 2 of issue 155 stays out.
+Reclaim `warehouse.issue147-swap.duckdb` a fortnight after a recorded swap. The session-start hook stays. The process it starts returns without a child when that child would leave the disk alone, and starts a child for an unfinished migration or when that backup is due to unlink. Item 2 of issue 155 stays out.
 
 **Complexity:** Level 3
 
@@ -53,4 +53,18 @@ Reclaim `warehouse.issue147-swap.duckdb` a fortnight after a recorded swap, and 
     - The child still starts for an unfinished migration and when a swapped backup is due to unlink
 * Insights
     - A present backup is not by itself a reason to start the child. The unlink predicate is
+
+## 2026-10-27 - PLAN - COMPLETE
+
+* Work completed
+    - Revised the Level 3 plan, the brief, and the check-lifetime design note to the operator's gate
+    - The parent calls `launch()` for an unfinished version-1 home, and for a swapped backup whose fortnight has elapsed and whose inode differs
+    - The parent returns when the child would leave the disk alone, including a young swapped backup
+* Decisions made
+    - The hook files are not edited
+    - The unlink stays in `_acquired`. The parent does not unlink
+    - `WAREHOUSE_FILENAME` and `SWAP_BACKUP_FILENAME` move to `stockroom.home`, which stays stdlib-only
+    - The due child may still import DuckDB. The flock stays on `warehouse`
+* Insights
+    - Matching inodes have to be part of the parent gate. A clock-only gate would launch forever, because the child would keep the file
 

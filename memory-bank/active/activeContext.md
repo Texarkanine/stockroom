@@ -1,13 +1,13 @@
 # Active Context
 
 ## Current Task: Fortnight backup reclaim and finished-home short-circuit
-**Phase:** PLAN - IN-PROGRESS
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Operator revised the parent gate after the first preflight. The hook stays. The process it already starts returns when a child would leave the disk alone, including a swapped backup still inside the fortnight.
-- The child still starts for an unfinished migration, and when a version-1 `swapped` backup is a file, `started_at` is a number, the fortnight has elapsed, and the inodes differ.
-- The previous preflight status does not cover this gate.
+- Revised the Level 3 plan to the operator's gate from 2026-10-27. The hook text stays.
+- `main` calls `launch()` in two cases: the home is not a finished version-1 record, or version 1 `swapped` has a backup file, a numeric `started_at`, a fortnight elapsed, a live warehouse file, and a different inode.
+- `main` returns without a child, and without DuckDB, when that child would leave the disk alone. A young swapped backup is one of those returns. `already-new` and `mismatch` return even if a backup file is present. The parent does not unlink.
+- The two filenames the parent stats move to `stockroom.home`. `warehouse` and `doctor` re-export them.
 
 ## Next Step
-- Rewrite the Level 3 plan to that gate.
-
+- Preflight the revised plan.
