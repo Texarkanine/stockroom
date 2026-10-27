@@ -1,11 +1,15 @@
 """The background check pass: one record, then a rehearsal or a swap.
 
 Nothing in this module is a user-facing subcommand. Importing it does not
-start a pass. ``python -m stockroom.check`` spawns a detached child, and
-only that child calls :func:`entry`. The record is one JSON object,
-``check.json``, in the stockroom home. :func:`next_action` chooses what an
-acquired pass does with that record.
+start a pass and does not import DuckDB. ``python -m stockroom.check``
+starts a child when the home is not a finished version-1 record, or when
+a swapped backup is due to be removed. It returns without a child when
+that child would leave the disk alone. Only the child calls :func:`entry`.
+The record is one JSON object, ``check.json``, in the stockroom home.
+:func:`next_action` chooses what an acquired pass does with that record.
 """
+
+from __future__ import annotations
 
 import argparse
 import hashlib
@@ -19,13 +23,24 @@ import tempfile
 import time
 from collections.abc import Callable
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-import duckdb
+from stockroom.home import SWAP_BACKUP_FILENAME, WAREHOUSE_FILENAME, resolve_home
 
-from stockroom import storage
-from stockroom.home import resolve_home
-from stockroom.migrate import current_version
-from stockroom.warehouse import LOCK_FILENAME, WAREHOUSE_FILENAME, _flock
+if TYPE_CHECKING:
+    import duckdb
+
+    from stockroom import storage
+    from stockroom.migrate import current_version
+    from stockroom.warehouse import LOCK_FILENAME, _flock
+else:
+    # Placeholders. :func:`_import_engine` rebinds them on the child path.
+    # The parent gate does not import DuckDB.
+    duckdb = None
+    storage = None
+    current_version = None
+    LOCK_FILENAME = None
+    _flock = None
 
 #: Record written by this check. A different value chooses phase A again.
 CHECK_VERSION = 1
@@ -184,6 +199,19 @@ def entry(home: Path, *, limit_seconds: int = TIME_LIMIT_SECONDS) -> None:
         signal.alarm(0)
 
 
+def _import_engine() -> None:
+    """Bind the DuckDB engine names the child uses.
+
+    Importing this module does not import DuckDB. :func:`run_check` calls
+    this once before it takes the flock. The parent gate does not call it.
+    """
+    global duckdb, storage, current_version, LOCK_FILENAME, _flock
+    import duckdb
+    from stockroom import storage
+    from stockroom.migrate import current_version
+    from stockroom.warehouse import LOCK_FILENAME, _flock
+
+
 def run_check(
     home: Path,
     *,
@@ -203,9 +231,10 @@ def run_check(
     """
     if not home.is_dir():
         return
+    _import_engine()
     try:
         with _flock(home / LOCK_FILENAME, blocking=False):
-            from stockroom.doctor import SWAP_BACKUP_FILENAME, live_bytes
+            from stockroom.doctor import live_bytes
 
             _acquired(
                 home,
@@ -562,12 +591,57 @@ def launch(home: Path) -> subprocess.Popen:
     )
 
 
+def _needs_child(home: Path, *, now: float) -> bool:
+    """Return whether the parent should start a child for ``home``.
+
+    True when ``home`` is not a finished version-1 record: the record is
+    missing or unreadable, ``check_version`` is not :data:`CHECK_VERSION`,
+    or the status is not ``swapped``, ``already-new``, or ``mismatch``.
+    Also true when a version-1 ``swapped`` backup is already due
+    (:func:`_swap_backup_due`). ``OSError`` from that check is true, so a
+    stat race starts the child.
+
+    False when the child would leave the disk alone. That includes a
+    finished record whose backup is absent, a ``swapped`` backup that is
+    still inside the fortnight, a ``swapped`` backup whose ``started_at``
+    is missing or a bool, a missing live warehouse, matching inodes, and
+    an ``already-new`` or ``mismatch`` record even when a backup file is
+    present.
+
+    Does not unlink and does not write.
+    """
+    try:
+        record = load_record(home)
+    except (OSError, ValueError):
+        return True
+    if not isinstance(record, dict):
+        return True
+    if record.get("check_version") != CHECK_VERSION:
+        return True
+    status = record.get("status")
+    if status not in {"swapped", "already-new", "mismatch"}:
+        return True
+    if status != "swapped":
+        return False
+    try:
+        return _swap_backup_due(
+            record,
+            backup=home / SWAP_BACKUP_FILENAME,
+            warehouse=home / WAREHOUSE_FILENAME,
+            now=now,
+        )
+    except OSError:
+        return True
+
+
 def main(argv: list[str] | None = None) -> int:
     """Launch a detached pass, or run one when ``--foreground`` is set.
 
     An omitted home is the path from :func:`stockroom.home.resolve_home`.
-    ``--foreground`` calls :func:`entry` in this process. Otherwise
-    :func:`launch` starts the child and this process returns without waiting.
+    ``--foreground`` calls :func:`entry` in this process and is not gated.
+    Otherwise :func:`launch` starts the child when :func:`_needs_child` is
+    true. A finished home whose child would leave the disk alone returns
+    without a child. This process does not wait.
     """
     parser = argparse.ArgumentParser(prog="python -m stockroom.check")
     parser.add_argument(
@@ -581,7 +655,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.foreground:
         entry(home)
         return 0
-    launch(home)
+    if _needs_child(home, now=time.time()):
+        launch(home)
     return 0
 
 

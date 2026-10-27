@@ -1041,3 +1041,242 @@ def test_reclaim_second_pass_leaves_the_record(tmp_path: Path) -> None:
     assert not backup.exists()
     assert (tmp_path / warehouse.WAREHOUSE_FILENAME).read_bytes() == warehouse_bytes
     assert (tmp_path / check.CHECK_RECORD_FILENAME).read_bytes() == raw
+
+
+def _spy_parent(monkeypatch: pytest.MonkeyPatch, home: Path) -> list[Path]:
+    """Point ``main`` at ``home`` and record ``launch`` without calling ``entry``."""
+    monkeypatch.setenv("STOCKROOM_HOME", str(home))
+    launched: list[Path] = []
+
+    def fake_launch(path: Path) -> subprocess.Popen:
+        launched.append(path)
+        return subprocess.Popen(["true"])
+
+    def fake_entry(
+        path: Path, *, limit_seconds: int = check.TIME_LIMIT_SECONDS
+    ) -> None:
+        raise AssertionError(path)
+
+    monkeypatch.setattr(check, "launch", fake_launch)
+    monkeypatch.setattr(check, "entry", fake_entry)
+    return launched
+
+
+def _freeze_check_clock(monkeypatch: pytest.MonkeyPatch, now: float) -> None:
+    """Make ``check.time.time`` return ``now`` for the parent gate."""
+    monkeypatch.setattr(check.time, "time", lambda: now)
+
+
+@pytest.mark.parametrize("status", ["swapped", "already-new", "mismatch"])
+def test_parent_finished_without_a_backup_returns(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, status: str
+) -> None:
+    """A finished version-1 home with no backup file returns without a child."""
+    (tmp_path / warehouse.WAREHOUSE_FILENAME).write_bytes(b"warehouse")
+    check.write_record(
+        tmp_path,
+        {"check_version": 1, "status": status, "started_at": _STARTED_AT},
+    )
+    _freeze_check_clock(monkeypatch, _deadline())
+    launched = _spy_parent(monkeypatch, tmp_path)
+    assert check.main([]) == 0
+    assert launched == []
+
+
+def test_parent_young_swap_returns(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A swapped backup one second under a fortnight does not start a child."""
+    _finished_pair(tmp_path, status="swapped", started_at=_STARTED_AT)
+    _freeze_check_clock(monkeypatch, _deadline() - 1)
+    launched = _spy_parent(monkeypatch, tmp_path)
+    assert check.main([]) == 0
+    assert launched == []
+
+
+def test_parent_due_swap_starts_the_child(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A swapped backup at exactly a fortnight starts the child and does not enter here."""
+    _finished_pair(tmp_path, status="swapped", started_at=_STARTED_AT)
+    _freeze_check_clock(monkeypatch, _deadline())
+    launched = _spy_parent(monkeypatch, tmp_path)
+    assert check.main([]) == 0
+    assert launched == [tmp_path]
+
+
+def test_parent_same_inode_returns(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A backup name that is the live warehouse does not start the child after the fortnight."""
+    _finished_pair(tmp_path, status="swapped", started_at=_STARTED_AT, same_inode=True)
+    _freeze_check_clock(monkeypatch, _deadline())
+    launched = _spy_parent(monkeypatch, tmp_path)
+    assert check.main([]) == 0
+    assert launched == []
+
+
+def test_parent_missing_started_at_returns(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A swapped backup with no started_at does not start the child."""
+    _finished_pair(tmp_path, status="swapped", started_at=None)
+    _freeze_check_clock(monkeypatch, _deadline())
+    launched = _spy_parent(monkeypatch, tmp_path)
+    assert check.main([]) == 0
+    assert launched == []
+
+
+def test_parent_bool_started_at_returns(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A swapped backup whose started_at is a bool does not start the child."""
+    (tmp_path / warehouse.WAREHOUSE_FILENAME).write_bytes(b"warehouse")
+    (tmp_path / doctor.SWAP_BACKUP_FILENAME).write_bytes(b"backup")
+    check.write_record(
+        tmp_path,
+        {"check_version": 1, "status": "swapped", "started_at": True},
+    )
+    _freeze_check_clock(monkeypatch, _deadline())
+    launched = _spy_parent(monkeypatch, tmp_path)
+    assert check.main([]) == 0
+    assert launched == []
+
+
+def test_parent_missing_warehouse_returns(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A due swapped record with no live warehouse does not start the child."""
+    (tmp_path / doctor.SWAP_BACKUP_FILENAME).write_bytes(b"backup")
+    check.write_record(
+        tmp_path,
+        {"check_version": 1, "status": "swapped", "started_at": _STARTED_AT},
+    )
+    _freeze_check_clock(monkeypatch, _deadline())
+    launched = _spy_parent(monkeypatch, tmp_path)
+    assert check.main([]) == 0
+    assert launched == []
+
+
+@pytest.mark.parametrize("status", ["already-new", "mismatch"])
+def test_parent_other_terminal_with_a_backup_returns(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, status: str
+) -> None:
+    """An already-new or mismatch record returns even when the backup file is present."""
+    _finished_pair(tmp_path, status=status, started_at=_STARTED_AT)
+    _freeze_check_clock(monkeypatch, _deadline())
+    launched = _spy_parent(monkeypatch, tmp_path)
+    assert check.main([]) == 0
+    assert launched == []
+
+
+@pytest.mark.parametrize("status", ["rehearsed", "linked", "started", "skip"])
+def test_parent_unfinished_status_starts_the_child(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, status: str
+) -> None:
+    """A version-1 home that has not finished starts the child.
+
+    No record is ``test_main_without_flags_launches_and_does_not_enter``.
+    """
+    check.write_record(tmp_path, {"check_version": 1, "status": status})
+    launched = _spy_parent(monkeypatch, tmp_path)
+    assert check.main([]) == 0
+    assert launched == [tmp_path]
+
+
+@pytest.mark.parametrize("payload", ["[]", "not-json"])
+def test_parent_unreadable_record_starts_the_child(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, payload: str
+) -> None:
+    """A check record ``load_record`` cannot read starts the child."""
+    (tmp_path / check.CHECK_RECORD_FILENAME).write_text(payload, encoding="utf-8")
+    launched = _spy_parent(monkeypatch, tmp_path)
+    assert check.main([]) == 0
+    assert launched == [tmp_path]
+
+
+def test_parent_other_check_version_starts_the_child(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A swapped record whose check_version is not 1 starts the child."""
+    check.write_record(tmp_path, {"check_version": 2, "status": "swapped"})
+    launched = _spy_parent(monkeypatch, tmp_path)
+    assert check.main([]) == 0
+    assert launched == [tmp_path]
+
+
+def test_parent_stat_error_on_a_due_backup_starts_the_child(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A stat error while judging a due swapped backup starts the child."""
+    _finished_pair(tmp_path, status="swapped", started_at=_STARTED_AT)
+    _freeze_check_clock(monkeypatch, _deadline())
+    real_stat = Path.stat
+    seen = {"n": 0}
+
+    def stat(self: Path, *, follow_symlinks: bool = True) -> os.stat_result:
+        if self.name == doctor.SWAP_BACKUP_FILENAME:
+            seen["n"] += 1
+            if seen["n"] > 1:
+                raise FileNotFoundError(self)
+        return real_stat(self, follow_symlinks=follow_symlinks)
+
+    monkeypatch.setattr(Path, "stat", stat)
+    launched = _spy_parent(monkeypatch, tmp_path)
+    assert check.main([]) == 0
+    assert launched == [tmp_path]
+
+
+def test_foreground_on_a_young_swap_enters(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """``--foreground`` runs the pass here, including when the parent would return."""
+    _finished_pair(tmp_path, status="swapped", started_at=_STARTED_AT)
+    _freeze_check_clock(monkeypatch, _deadline() - 1)
+    entered: list[Path] = []
+
+    def fake_entry(
+        home: Path, *, limit_seconds: int = check.TIME_LIMIT_SECONDS
+    ) -> None:
+        entered.append(home)
+
+    def fake_launch(home: Path) -> subprocess.Popen:
+        raise AssertionError(home)
+
+    monkeypatch.setattr(check, "entry", fake_entry)
+    monkeypatch.setattr(check, "launch", fake_launch)
+    assert check.main(["--foreground", str(tmp_path)]) == 0
+    assert entered == [tmp_path]
+
+
+_QUIET_IMPORT = """
+import sys
+
+import stockroom.check as check
+
+imported = "duckdb" in sys.modules
+code = check.main([])
+after = "duckdb" in sys.modules
+sys.stdout.write(f"{imported} {after} {code}\\n")
+"""
+
+
+def test_importing_check_on_a_young_swap_does_not_import_duckdb(
+    tmp_path: Path,
+) -> None:
+    """Importing the check and returning on a young swapped backup does not import DuckDB."""
+    _finished_pair(tmp_path, status="swapped", started_at=time.time())
+    env = os.environ.copy()
+    env["PYTHONPATH"] = os.pathsep.join([_SRC, env.get("PYTHONPATH", "")]).rstrip(
+        os.pathsep
+    )
+    env["STOCKROOM_HOME"] = str(tmp_path)
+    result = subprocess.run(
+        [sys.executable, "-c", _QUIET_IMPORT],
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip() == "False False 0"

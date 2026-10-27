@@ -53,6 +53,7 @@ from stockroom.embed import (
     encoder_load_remedy,
     missing_torch_remedy,
 )
+from stockroom.home import SWAP_BACKUP_FILENAME
 from stockroom.shim import default_app_dir
 from stockroom.warehouse import (
     LOCK_FILENAME,
@@ -71,11 +72,6 @@ Importer = Callable[[str], object]
 #: An injectable ``duckdb.connect``. Tests pass a substitute; the default
 #: opens the warehouse file read-only.
 Connect = Callable[..., duckdb.DuckDBPyConnection]
-
-#: Swap backup name milestone 6 writes and this report reads.
-#: ``warehouse.issue147-`` is the stockroom backup prefix, so a user's own
-#: ``warehouse.duckdb.bak`` is never reported as this file.
-SWAP_BACKUP_FILENAME = "warehouse.issue147-swap.duckdb"
 
 
 def live_bytes(con: duckdb.DuckDBPyConnection) -> int:

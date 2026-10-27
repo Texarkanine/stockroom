@@ -5,6 +5,7 @@ Stdlib-only on purpose: heal imports (``shim`` → ``engine_env`` →
 interpreter with no project site-packages — any third-party import
 dies before ``ensure_engine_env`` can sync.
 The warehouse module re-exports these names for existing callers.
+``doctor`` re-exports :data:`SWAP_BACKUP_FILENAME`.
 """
 
 from __future__ import annotations
@@ -32,6 +33,14 @@ HOME_SOURCE_DEFAULT = "default"
 #: was chosen.
 CONFIG_HOME_SOURCE_XDG = "XDG_CONFIG_HOME"
 CONFIG_HOME_SOURCE_DEFAULT = "default"
+
+#: Live warehouse file inside the stockroom home.
+WAREHOUSE_FILENAME = "warehouse.duckdb"
+
+#: Pre-swap warehouse kept beside the live file after a successful swap.
+#: ``warehouse.issue147-`` is the stockroom backup prefix, so a user's own
+#: ``warehouse.duckdb.bak`` is not this file.
+SWAP_BACKUP_FILENAME = "warehouse.issue147-swap.duckdb"
 
 
 def resolve_home() -> tuple[Path, str]:

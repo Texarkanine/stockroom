@@ -144,10 +144,10 @@ Build note: the predicate lives in `_swap_backup_due`. `_reclaim_swap_backup` un
 - Files: `skills/sr-search/src/stockroom/check.py`, `skills/sr-search/src/stockroom/home.py`, `skills/sr-search/src/stockroom/doctor.py`, `skills/sr-search/src/stockroom/warehouse.py`, `skills/sr-search/tests/test_check.py`
 - Creative ref: `memory-bank/active/creative/creative-check-machinery-lifetime.md`
 
-1. Stub tests: empty tests for backup-absent quiet, the young parent, the due parent, the same-inode parent, missing `started_at`, the missing live warehouse, `already-new` and `mismatch` with a backup file, the unfinished statuses, the unreadable record, the other `check_version`, and the fresh-interpreter import on a young swapped home.
-2. Stub interface: `_needs_child(home, *, now: float) -> bool` with a docstring that states the two launch cases and the returns. Body returns `True`. `main` does not call it yet. Move `WAREHOUSE_FILENAME = "warehouse.duckdb"` and `SWAP_BACKUP_FILENAME = "warehouse.issue147-swap.duckdb"` onto `stockroom.home`. Re-export `WAREHOUSE_FILENAME` from `warehouse` and `SWAP_BACKUP_FILENAME` from `doctor`. `home` stays stdlib-only. `run_check` passes `SWAP_BACKUP_FILENAME` into `_acquired`.
-3. Write tests and run red: parent tests monkeypatch `launch` and `entry` as `test_main_without_flags_launches_and_does_not_enter` does, and monkeypatch `check.time.time` for the clock. The import test runs a fresh interpreter against a young swapped home that still has the backup file. Run them and confirm the spawn and import tests fail.
-4. Write code and run green:
+1. [x] Stub tests: empty tests for backup-absent quiet, the young parent, the due parent, the same-inode parent, missing `started_at`, the missing live warehouse, `already-new` and `mismatch` with a backup file, the unfinished statuses, the unreadable record, the other `check_version`, and the fresh-interpreter import on a young swapped home.
+2. [x] Stub interface: `_needs_child(home, *, now: float) -> bool` with a docstring that states the two launch cases and the returns. Body returns `True`. `main` does not call it yet. Move `WAREHOUSE_FILENAME = "warehouse.duckdb"` and `SWAP_BACKUP_FILENAME = "warehouse.issue147-swap.duckdb"` onto `stockroom.home`. Re-export `WAREHOUSE_FILENAME` from `warehouse` and `SWAP_BACKUP_FILENAME` from `doctor`. `home` stays stdlib-only. `run_check` passes `SWAP_BACKUP_FILENAME` into `_acquired`.
+3. [x] Write tests and run red: parent tests monkeypatch `launch` and `entry` as `test_main_without_flags_launches_and_does_not_enter` does, and monkeypatch `check.time.time` for the clock. The import test runs a fresh interpreter against a young swapped home that still has the backup file. Run them and confirm the spawn and import tests fail.
+4. [x] Write code and run green:
     - Add `from __future__ import annotations` so the `duckdb` and `storage` annotations are not evaluated at import.
     - Import DuckDB, `storage`, and `warehouse` only for type checkers (`TYPE_CHECKING`). Remove those module-level runtime imports, and the `migrate` import. Add `_import_engine()` that binds `duckdb`, `storage`, `current_version`, `LOCK_FILENAME`, and `_flock` on the module. Call it at the start of `run_check`, before `_flock`. Do not call it from `main`'s parent branch. Do not rebind `WAREHOUSE_FILENAME`; the parent and the child both use the name from `home`.
     - `check` must not import `doctor` or `warehouse` at module level. `run_check` may still import `live_bytes` from `doctor` inside the function. That keeps the child behavior and avoids an import cycle with doctor's re-export.
@@ -155,6 +155,8 @@ Build note: the predicate lives in `_swap_backup_due`. `_reclaim_swap_backup` un
     - In `main`, keep the `--foreground` branch first (`entry`, return). Otherwise, if `_needs_child(home, now=time.time())`, call `launch`. Otherwise return 0.
     - Update the module docstring: importing the module does not start a pass and does not import DuckDB; `main` launches a child only for an unfinished home or a backup that is due, and returns without a child when the child would leave the disk alone.
     - Run the new parent tests, then the whole engine suite (`make test` from the repo root).
+
+Build note: `_needs_child` calls `_swap_backup_due`. `OSError` from that call starts the child. The unlink path treats the same error as not due. `tests/test_check.py`: 75 passed. `tests/test_doctor.py`: 46 passed, 1 skipped. `tests/test_warehouse_home_xdg.py`: 6 passed. The engine suite runs after the prose step.
 
 ### 3. Restore section — prose/policy
 
