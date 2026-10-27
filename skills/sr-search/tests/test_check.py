@@ -686,7 +686,11 @@ def test_final_swapped_record_deletes_a_leftover_sibling(
 def test_expired_start_deletes_a_leftover_and_keeps_the_backup(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """An expired start drops the sibling, leaves a foreign backup, and does not copy."""
+    """An expired start drops the sibling, leaves a foreign backup, and does not copy.
+
+    ``started_at`` is a fortnight old. The status is ``started``, not
+    ``swapped``, so this pass does not unlink the backup.
+    """
     original = tmp_path / warehouse.WAREHOUSE_FILENAME
     original.write_bytes(b"original")
     sibling = tmp_path / storage.COPY_FILENAME
@@ -705,7 +709,7 @@ def test_expired_start_deletes_a_leftover_and_keeps_the_backup(
     )
     before_record = (tmp_path / check.CHECK_RECORD_FILENAME).read_bytes()
     calls = _spy_copy(monkeypatch)
-    check.run_check(tmp_path, now=lambda: 10.0)
+    check.run_check(tmp_path, now=lambda: check.SWAP_BACKUP_RETENTION_SECONDS)
     assert calls == []
     assert not sibling.exists()
     assert original.read_bytes() == b"original"
@@ -871,3 +875,169 @@ def test_new_install_records_already_new(
     assert proc.wait(timeout=60) == 0
     assert check.load_record(home)["status"] == "already-new"
     assert not (home / storage.COPY_FILENAME).exists()
+
+
+# An expired ``started`` record is not ``swapped``, so reclaim does not read
+# the clock. ``test_expired_start_deletes_a_leftover_and_keeps_the_backup``
+# keeps that backup when ``started_at`` is already a fortnight old.
+
+
+_STARTED_AT = 1_700_000_000.0
+
+
+def _deadline() -> float:
+    """The instant a backup that started at :data:`_STARTED_AT` is due."""
+    return _STARTED_AT + check.SWAP_BACKUP_RETENTION_SECONDS
+
+
+def _finished_pair(
+    home: Path,
+    *,
+    status: str,
+    started_at: float | None,
+    same_inode: bool = False,
+) -> tuple[bytes, bytes]:
+    """Write a live warehouse, a backup name, and a check record.
+
+    Returns the raw ``check.json`` bytes and the warehouse bytes. A
+    ``started_at`` of ``None`` omits that field. ``same_inode`` hard-links
+    the backup name to the live warehouse.
+    """
+    original = home / warehouse.WAREHOUSE_FILENAME
+    original.write_bytes(b"warehouse")
+    backup = home / doctor.SWAP_BACKUP_FILENAME
+    if same_inode:
+        os.link(original, backup)
+    else:
+        backup.write_bytes(b"backup")
+    record: dict = {"check_version": 1, "status": status}
+    if started_at is not None:
+        record["started_at"] = started_at
+    check.write_record(home, record)
+    raw = (home / check.CHECK_RECORD_FILENAME).read_bytes()
+    return raw, original.read_bytes()
+
+
+def test_reclaim_young_swap_keeps_the_backup(tmp_path: Path) -> None:
+    """A swapped backup one second under a fortnight stays.
+
+    The warehouse bytes and the raw check record stay with it.
+    """
+    raw, warehouse_bytes = _finished_pair(
+        tmp_path, status="swapped", started_at=_STARTED_AT
+    )
+    backup = tmp_path / doctor.SWAP_BACKUP_FILENAME
+    check.run_check(tmp_path, now=lambda: _deadline() - 1)
+    assert backup.read_bytes() == b"backup"
+    assert (tmp_path / warehouse.WAREHOUSE_FILENAME).read_bytes() == warehouse_bytes
+    assert (tmp_path / check.CHECK_RECORD_FILENAME).read_bytes() == raw
+
+
+def test_reclaim_at_the_fortnight_removes_the_backup(tmp_path: Path) -> None:
+    """A swapped backup at exactly a fortnight is removed.
+
+    The warehouse bytes and the raw check record stay.
+    """
+    raw, warehouse_bytes = _finished_pair(
+        tmp_path, status="swapped", started_at=_STARTED_AT
+    )
+    backup = tmp_path / doctor.SWAP_BACKUP_FILENAME
+    check.run_check(tmp_path, now=lambda: _deadline())
+    assert not backup.exists()
+    assert (tmp_path / warehouse.WAREHOUSE_FILENAME).read_bytes() == warehouse_bytes
+    assert (tmp_path / check.CHECK_RECORD_FILENAME).read_bytes() == raw
+
+
+def test_reclaim_same_inode_keeps_the_backup_name(tmp_path: Path) -> None:
+    """A backup name that is a hard link of the live warehouse stays after the fortnight."""
+    raw, warehouse_bytes = _finished_pair(
+        tmp_path, status="swapped", started_at=_STARTED_AT, same_inode=True
+    )
+    backup = tmp_path / doctor.SWAP_BACKUP_FILENAME
+    original = tmp_path / warehouse.WAREHOUSE_FILENAME
+    check.run_check(tmp_path, now=lambda: _deadline())
+    assert backup.is_file()
+    assert backup.stat().st_ino == original.stat().st_ino
+    assert original.read_bytes() == warehouse_bytes
+    assert (tmp_path / check.CHECK_RECORD_FILENAME).read_bytes() == raw
+
+
+def test_reclaim_missing_started_at_keeps_the_backup(tmp_path: Path) -> None:
+    """A swapped record with no started_at keeps the backup past the deadline."""
+    raw, warehouse_bytes = _finished_pair(tmp_path, status="swapped", started_at=None)
+    backup = tmp_path / doctor.SWAP_BACKUP_FILENAME
+    check.run_check(tmp_path, now=lambda: _deadline())
+    assert backup.read_bytes() == b"backup"
+    assert (tmp_path / warehouse.WAREHOUSE_FILENAME).read_bytes() == warehouse_bytes
+    assert (tmp_path / check.CHECK_RECORD_FILENAME).read_bytes() == raw
+
+
+def test_reclaim_bool_started_at_keeps_the_backup(tmp_path: Path) -> None:
+    """A swapped record whose started_at is a bool keeps the backup."""
+    original = tmp_path / warehouse.WAREHOUSE_FILENAME
+    original.write_bytes(b"warehouse")
+    backup = tmp_path / doctor.SWAP_BACKUP_FILENAME
+    backup.write_bytes(b"backup")
+    check.write_record(
+        tmp_path,
+        {"check_version": 1, "status": "swapped", "started_at": True},
+    )
+    raw = (tmp_path / check.CHECK_RECORD_FILENAME).read_bytes()
+    check.run_check(tmp_path, now=lambda: _deadline())
+    assert backup.read_bytes() == b"backup"
+    assert original.read_bytes() == b"warehouse"
+    assert (tmp_path / check.CHECK_RECORD_FILENAME).read_bytes() == raw
+
+
+def test_reclaim_linked_keeps_a_fortnight_old_backup(tmp_path: Path) -> None:
+    """A linked record keeps a fortnight-old backup.
+
+    Finish-swap may write ``swapped``. This pass does not unlink the backup.
+    """
+    _raw, warehouse_bytes = _finished_pair(
+        tmp_path, status="linked", started_at=_STARTED_AT
+    )
+    backup = tmp_path / doctor.SWAP_BACKUP_FILENAME
+    check.run_check(tmp_path, now=lambda: _deadline())
+    assert backup.read_bytes() == b"backup"
+    assert (tmp_path / warehouse.WAREHOUSE_FILENAME).read_bytes() == warehouse_bytes
+
+
+def test_reclaim_mismatch_keeps_the_backup(tmp_path: Path) -> None:
+    """A mismatch record keeps a fortnight-old backup, and the record bytes stay."""
+    raw, warehouse_bytes = _finished_pair(
+        tmp_path, status="mismatch", started_at=_STARTED_AT
+    )
+    backup = tmp_path / doctor.SWAP_BACKUP_FILENAME
+    check.run_check(tmp_path, now=lambda: _deadline())
+    assert backup.read_bytes() == b"backup"
+    assert (tmp_path / warehouse.WAREHOUSE_FILENAME).read_bytes() == warehouse_bytes
+    assert (tmp_path / check.CHECK_RECORD_FILENAME).read_bytes() == raw
+
+
+def test_reclaim_already_new_keeps_the_backup(tmp_path: Path) -> None:
+    """An already-new record keeps a fortnight-old backup, and the record bytes stay."""
+    raw, warehouse_bytes = _finished_pair(
+        tmp_path, status="already-new", started_at=_STARTED_AT
+    )
+    backup = tmp_path / doctor.SWAP_BACKUP_FILENAME
+    check.run_check(tmp_path, now=lambda: _deadline())
+    assert backup.read_bytes() == b"backup"
+    assert (tmp_path / warehouse.WAREHOUSE_FILENAME).read_bytes() == warehouse_bytes
+    assert (tmp_path / check.CHECK_RECORD_FILENAME).read_bytes() == raw
+
+
+def test_reclaim_second_pass_leaves_the_record(tmp_path: Path) -> None:
+    """After the backup is removed, a second pass changes nothing and raises nothing."""
+    raw, warehouse_bytes = _finished_pair(
+        tmp_path, status="swapped", started_at=_STARTED_AT
+    )
+    backup = tmp_path / doctor.SWAP_BACKUP_FILENAME
+    check.run_check(tmp_path, now=lambda: _deadline())
+    assert not backup.exists()
+    assert (tmp_path / warehouse.WAREHOUSE_FILENAME).read_bytes() == warehouse_bytes
+    assert (tmp_path / check.CHECK_RECORD_FILENAME).read_bytes() == raw
+    check.run_check(tmp_path, now=lambda: _deadline() + 1)
+    assert not backup.exists()
+    assert (tmp_path / warehouse.WAREHOUSE_FILENAME).read_bytes() == warehouse_bytes
+    assert (tmp_path / check.CHECK_RECORD_FILENAME).read_bytes() == raw

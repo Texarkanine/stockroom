@@ -80,3 +80,15 @@ Reclaim `warehouse.issue147-swap.duckdb` a fortnight after a recorded swap. The 
     - The parent's due-predicate and the child's unlink predicate are stated twice in the plan; one shared `_swap_backup_due` helper would make drift between gate and reclaim impossible
     - The parent's flock-free stat path can race a concurrent due child; treating `OSError` from the stat calls as "start the child" closes it, per the plan's own Challenges principle
 
+## 2026-10-27 - BUILD - IN-PROGRESS
+
+* Work completed
+    - Entered build. The preflight checkpoint was already `3d74def`
+* Decisions made
+    - One `_swap_backup_due` owns the predicate. `_reclaim_swap_backup` unlinks only when it is true. `_needs_child` launches when it is true
+    - `OSError` from that predicate starts the child and does not unlink
+    - `test_expired_start_deletes_a_leftover_and_keeps_the_backup` keeps its backup at a fortnight, instead of a second expired-start test
+    - `docs/architecture/lifecycle.md` gets one sentence: a finished home with nothing due starts no child
+* Insights
+    - The shared predicate must let `OSError` propagate. Swallowing it as "not due" would skip the reclaim session the advisory is closing
+

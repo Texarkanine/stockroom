@@ -132,10 +132,12 @@ The import case is a subprocess of `sys.executable`, with `PYTHONPATH` set to th
 - Files: `skills/sr-search/src/stockroom/check.py`, `skills/sr-search/tests/test_check.py`
 - Creative ref: `memory-bank/active/creative/creative-swap-backup-cleanup.md`
 
-1. Stub tests: add empty tests in `test_check.py` for the young swap, the exact fortnight, the same inode, missing `started_at`, `linked`, `mismatch`, `already-new`, expired `started`, and the second pass.
-2. Stub interface: add `SWAP_BACKUP_RETENTION_SECONDS = 14 * 86400` and `_reclaim_swap_backup(home, record, *, now, backup_name) -> None` with a docstring that states the predicate. Body returns without unlinking. Do not call it yet.
-3. Write tests and run red: fill the tests. Each builds a home with `warehouse.duckdb`, `warehouse.issue147-swap.duckdb`, and a record written through `write_record`. Deadline tests use `now=lambda: started_at + check.SWAP_BACKUP_RETENTION_SECONDS`. The young test subtracts one second. The same-inode test uses `os.link`. Assert raw `check.json` bytes, warehouse bytes, and whether the backup path exists. Run those tests and confirm they fail.
-4. Write code and run green: from `_acquired`, after `_remove_sibling`, when `action == "stop"` and `record is not None`, call `_reclaim_swap_backup` with `now()` and `backup_name`. The function unlinks only when `check_version` is `CHECK_VERSION`, status is `swapped`, `started_at` is an `int` or `float` and not a `bool`, `now >= started_at + SWAP_BACKUP_RETENTION_SECONDS`, both paths `is_file()`, and `stat().st_ino` differs. `unlink` that backup path only. Run the new tests.
+1. [x] Stub tests: add empty tests in `test_check.py` for the young swap, the exact fortnight, the same inode, missing `started_at`, `linked`, `mismatch`, `already-new`, expired `started`, and the second pass.
+2. [x] Stub interface: add `SWAP_BACKUP_RETENTION_SECONDS = 14 * 86400` and `_reclaim_swap_backup(home, record, *, now, backup_name) -> None` with a docstring that states the predicate. Body returns without unlinking. Do not call it yet.
+3. [x] Write tests and run red: fill the tests. Each builds a home with `warehouse.duckdb`, `warehouse.issue147-swap.duckdb`, and a record written through `write_record`. Deadline tests use `now=lambda: started_at + check.SWAP_BACKUP_RETENTION_SECONDS`. The young test subtracts one second. The same-inode test uses `os.link`. Assert raw `check.json` bytes, warehouse bytes, and whether the backup path exists. Run those tests and confirm they fail.
+4. [x] Write code and run green: from `_acquired`, after `_remove_sibling`, when `action == "stop"` and `record is not None`, call `_reclaim_swap_backup` with `now()` and `backup_name`. The function unlinks only when `check_version` is `CHECK_VERSION`, status is `swapped`, `started_at` is an `int` or `float` and not a `bool`, `now >= started_at + SWAP_BACKUP_RETENTION_SECONDS`, both paths `is_file()`, and `stat().st_ino` differs. `unlink` that backup path only. Run the new tests.
+
+Build note: the predicate lives in `_swap_backup_due`. `_reclaim_swap_backup` unlinks only when it is true, and an `OSError` from the check leaves the backup. A bool `started_at` is covered by `test_reclaim_bool_started_at_keeps_the_backup`. The expired-start case is the existing `test_expired_start_deletes_a_leftover_and_keeps_the_backup`, with `now` at the fortnight. `tests/test_check.py`: 54 passed.
 
 ### 2. Quiet parent, DuckDB not imported — executable
 
@@ -195,6 +197,6 @@ No new technology - validation not required.
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
 - [ ] QA

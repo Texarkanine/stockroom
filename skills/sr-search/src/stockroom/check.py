@@ -37,6 +37,9 @@ TIME_LIMIT_SECONDS = 14400
 #: How long a ``rehearsed`` record of this check version waits before phase B.
 PHASE_B_WAIT_SECONDS = 86400
 
+#: How long a ``swapped`` backup stays after ``started_at``. Fourteen days.
+SWAP_BACKUP_RETENTION_SECONDS = 14 * 86400
+
 #: Sidecar file name under the stockroom home.
 CHECK_RECORD_FILENAME = "check.json"
 
@@ -234,6 +237,8 @@ def _acquired(
     if action == "running":
         return
     _remove_sibling(home)
+    if action == "stop" and record is not None:
+        _reclaim_swap_backup(home, record, now=now(), backup_name=backup_name)
     if action in {"stop", "wait"}:
         return
     decision = _readiness(home, disk_free=disk_free, live_bytes=live_bytes)
@@ -416,6 +421,63 @@ def _remove_sibling(home: Path) -> None:
     sibling = home / storage.COPY_FILENAME
     sibling.unlink(missing_ok=True)
     sibling.with_name(sibling.name + ".wal").unlink(missing_ok=True)
+
+
+def _swap_backup_due(
+    record: dict | None,
+    *,
+    backup: Path,
+    warehouse: Path,
+    now: float,
+) -> bool:
+    """Return whether ``backup`` is a swapped file due to be unlinked.
+
+    True only when ``record`` is check version :data:`CHECK_VERSION` with
+    status ``swapped``, ``started_at`` is an int or a float and not a bool,
+    ``now`` is at least :data:`SWAP_BACKUP_RETENTION_SECONDS` after
+    ``started_at``, ``backup`` and ``warehouse`` are both files, and their
+    inode numbers differ. ``stat`` follows links. ``OSError`` from ``stat``
+    propagates. Any other input is false. This function does not unlink
+    and does not write.
+    """
+    if not isinstance(record, dict):
+        return False
+    if record.get("check_version") != CHECK_VERSION:
+        return False
+    if record.get("status") != "swapped":
+        return False
+    started_at = record.get("started_at")
+    if isinstance(started_at, bool) or not isinstance(started_at, (int, float)):
+        return False
+    if now < started_at + SWAP_BACKUP_RETENTION_SECONDS:
+        return False
+    if not backup.is_file() or not warehouse.is_file():
+        return False
+    return backup.stat().st_ino != warehouse.stat().st_ino
+
+
+def _reclaim_swap_backup(
+    home: Path, record: dict, *, now: float, backup_name: str
+) -> None:
+    """Unlink a due swap backup. The caller holds the writer flock.
+
+    Unlinks ``home / backup_name`` only when :func:`_swap_backup_due` is
+    true for ``record``, that path, and the live warehouse in ``home``.
+    A missing backup stays missing. Does not write ``check.json``.
+    ``OSError`` from the due check leaves the backup in place.
+    """
+    backup = home / backup_name
+    try:
+        due = _swap_backup_due(
+            record,
+            backup=backup,
+            warehouse=home / WAREHOUSE_FILENAME,
+            now=now,
+        )
+    except OSError:
+        return
+    if due:
+        backup.unlink(missing_ok=True)
 
 
 def _readiness(
