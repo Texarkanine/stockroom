@@ -4,6 +4,7 @@
 **Phase:** REFLECT - COMPLETE
 
 ## What Was Done
+- Draft pull request: https://github.com/Texarkanine/stockroom/pull/156 on `final-migration-cleanup`. It is not marked ready.
 - `_swap_backup_due` is the one predicate. The swapped stop path unlinks `warehouse.issue147-swap.duckdb` when it is true. `check.json` and the live warehouse stay.
 - `main` launches a child only for an unfinished version-1 home, or when that predicate is already true. Otherwise it returns without a child and without DuckDB. `OSError` from the parent's stat starts the child. The unlink does not treat that error as due.
 - Filenames live on `stockroom.home`. `warehouse` and `doctor` re-export them.
@@ -29,4 +30,4 @@
 - QA's two notes stay optional: the loose test comment, and the restore steps' writer window.
 
 ## Next Step
-- Run `/niko-archive` to create the archive document and finalize the current project.
+- Run `/niko-archive` to create the archive document and finalize the current project. The draft pull request stays draft until that is done and the operator marks it ready.
