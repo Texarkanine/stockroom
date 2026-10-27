@@ -15,3 +15,16 @@ Reclaim `warehouse.issue147-swap.duckdb` a fortnight after a recorded swap, and 
     - Item 2 of issue 155 is out of scope
 * Insights
     - Design notes already exist at `memory-bank/active/creative/creative-swap-backup-cleanup.md` and `memory-bank/active/creative/creative-check-machinery-lifetime.md`
+
+## 2026-10-27 - PLAN - COMPLETE
+
+* Work completed
+    - Mapped the check pass, the parent `main` path, the doctor backup name, and the restore section
+    - Wrote the Level 3 plan in `memory-bank/active/tasks.md`
+* Decisions made
+    - No open questions. The creative decisions stand
+    - The unlink is called from `_acquired` only. The parent gate does not unlink
+    - `SWAP_BACKUP_FILENAME` is defined on `check` and re-exported from `doctor`
+    - The DuckDB import assertion runs in a fresh interpreter
+* Insights
+    - `storage`, `migrate`, and `warehouse` import DuckDB, so moving the `duckdb` import line alone does not make the parent quiet
