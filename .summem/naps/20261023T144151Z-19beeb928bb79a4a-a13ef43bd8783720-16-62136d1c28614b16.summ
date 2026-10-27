@@ -1,0 +1,1 @@
+Skip test_coverage_collection (removes torch). Do not rebase constrain-size-as-best-we-can. L4 PR drops active/; restore from main, rebase on squash; merge rebase drops bank. No schema versions; no view-SQL compare across versions. Zstd: persistent or no .wal; replay Uncompressed

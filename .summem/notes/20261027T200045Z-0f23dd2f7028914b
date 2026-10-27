@@ -1,0 +1,1 @@
+Swap-backup due is one predicate. OSError on stat starts the check child and does not unlink the backup.

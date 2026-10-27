@@ -108,3 +108,26 @@ Reclaim `warehouse.issue147-swap.duckdb` a fortnight after a recorded swap. The 
     - `make test` on this machine needs Node 22 from nvm. Brew `node` is 26 and the dashboard target rejects it
     - Two suite failures are outside this change: `/tmp` resolves to `/private/tmp` in the dashboard identity round trip, and the root docs lock fails `uv lock --locked --refresh`
 
+
+## 2026-10-27 - QA - COMPLETE (PASS)
+
+* Work completed
+    - Reviewed the build diff against the Level 3 plan for KISS, DRY, YAGNI, completeness, regressions, leftover scaffolding, and docs
+    - Targeted suites: 121 passed, 1 skipped. Ruff check and format: clean
+* Decisions made
+    - PASS. Nothing blocks acceptance
+    - Optional fixes: a loose pointer comment in `test_check.py`, and the restore steps could warn that a session after the 14 days can remove the backup
+* Insights
+    - Every runtime use of the placeholder engine names is reached only through `run_check`. That is what keeps DuckDB off the parent path
+
+## 2026-10-27 - REFLECT - COMPLETE
+
+* Work completed
+    - Compared the brief, the revised plan, both creative decisions, the build, and the QA pass
+    - Wrote `memory-bank/active/reflection/reflection-fortnight-backup-and-quiet-check.md`
+    - Persistent files: productContext, systemPatterns, and techContext stay. None of them stated a contract this change broke. The home module was already the stdlib path layer. The hook still starts the check command on session start.
+* Decisions made
+    - QA's two notes stay optional. Applying them would reopen a pass that already succeeded
+* Insights
+    - The shared due-predicate has to raise `OSError`. The parent and the unlink want opposite answers, and the helper cannot pick one
+    - The first preflight had approved a gate the operator then removed. Retiring that status avoided building it

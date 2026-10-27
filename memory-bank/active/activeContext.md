@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: Fortnight backup reclaim and finished-home short-circuit
-**Phase:** BUILD - COMPLETE
+**Phase:** REFLECT - COMPLETE
 
 ## What Was Done
 - `_swap_backup_due` is the one predicate. The swapped stop path unlinks `warehouse.issue147-swap.duckdb` when it is true. `check.json` and the live warehouse stay.
@@ -24,5 +24,9 @@
 - Extra tests: a bool `started_at`, a stat error on a due backup, and `--foreground` on a young swap.
 - `make test`: 1228 passed, 6 skipped, 2 failed. The failures are not in this change. Dashboard identity resolves `/tmp` to `/private/tmp` on macOS. The root docs lock is stale under `uv lock --locked --refresh`. Dashboard JS: 134 passed, with Node 22 from nvm.
 
+## Reflection
+- The revised plan held. The shared predicate raises `OSError`; the parent launches and the unlink does not. Written in `memory-bank/active/reflection/reflection-fortnight-backup-and-quiet-check.md`.
+- QA's two notes stay optional: the loose test comment, and the restore steps' writer window.
+
 ## Next Step
-- `/niko-qa`
+- Run `/niko-archive` to create the archive document and finalize the current project.

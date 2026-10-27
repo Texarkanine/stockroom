@@ -203,4 +203,14 @@ No new technology - validation not required.
 - [x] Pre-Mortem complete
 - [x] Preflight
 - [x] Build
-- [ ] QA
+- [x] QA
+
+## QA Results
+
+PASS. Reviewed `git diff 3d74def HEAD` against this plan. Targeted suites (`test_check.py`, `test_doctor.py`, `test_warehouse_home_xdg.py`): 121 passed, 1 skipped. Ruff check and format: clean.
+
+- Completeness: every acceptance criterion in the brief has a test. The parent gate, the reclaim, the filename move, both docs, and the fresh-interpreter DuckDB test are all in place. Non-blocking.
+- KISS / DRY: `_swap_backup_due` is the one predicate for both the gate and the reclaim. `_needs_child` repeats the version and status checks only to sort homes into launch and return. `_import_engine` rebinds module globals. The plan chose that design, and every runtime use of DuckDB, `storage`, `current_version`, and `_flock` is reached only through `run_check`. Non-blocking.
+- Regression: the foreground branch still runs first. `warehouse.WAREHOUSE_FILENAME` and `doctor.SWAP_BACKUP_FILENAME` are re-exported. `home` stays stdlib-only. The hook files are not changed. Non-blocking.
+- Integrity (advisory): `test_check.py` has a loose comment block above `_STARTED_AT` that points to `test_expired_start_deletes_a_leftover_and_keeps_the_backup`. That test's own docstring already says this, so the block is noise. Removing it is optional.
+- Documentation (advisory): the restore steps tell the user not to run writers during steps 6 to 9. After the 14 days, a new session in that window can also remove the backup. The solution paragraph above the steps already says to restore before the 14 days end, so this does not block.
