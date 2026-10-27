@@ -42,3 +42,15 @@ Reclaim `warehouse.issue147-swap.duckdb` a fortnight after a recorded swap, and 
 * Insights
     - Parent gate can cleanly avoid importing DuckDB while keeping all child background machinery working as intended
 
+## 2026-10-27 - PLAN - IN-PROGRESS
+
+* Work completed
+    - Operator recalled the plan and chose the quiet-parent gate
+    - Retired the preflight status that passed the coarser rule
+* Decisions made
+    - The session-start hook text stays
+    - The parent returns without a child when that child would leave the disk alone
+    - The child still starts for an unfinished migration and when a swapped backup is due to unlink
+* Insights
+    - A present backup is not by itself a reason to start the child. The unlink predicate is
+

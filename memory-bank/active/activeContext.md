@@ -1,14 +1,13 @@
 # Active Context
 
 ## Current Task: Fortnight backup reclaim and finished-home short-circuit
-**Phase:** PREFLIGHT - COMPLETE (PASS WITH ADVISORY)
+**Phase:** PLAN - IN-PROGRESS
 
 ## What Was Done
-- Level 3 plan for task `fortnight-backup-and-quiet-check` validated against codebase reality.
-- Verified TDD order across Units 1 and 2; Unit 3 confirmed as docs/policy artifact.
-- Verified DuckDB import boundary, `doctor.SWAP_BACKUP_FILENAME` re-export, and hook execution compatibility.
-- Preflight completed with `PASS WITH ADVISORY`.
+- Operator revised the parent gate after the first preflight. The hook stays. The process it already starts returns when a child would leave the disk alone, including a swapped backup still inside the fortnight.
+- The child still starts for an unfinished migration, and when a version-1 `swapped` backup is a file, `started_at` is a number, the fortnight has elapsed, and the inodes differ.
+- The previous preflight status does not cover this gate.
 
 ## Next Step
-- Proceed to `/niko-build` to implement the plan.
+- Rewrite the Level 3 plan to that gate.
 
