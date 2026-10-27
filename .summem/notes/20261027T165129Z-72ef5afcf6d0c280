@@ -1,0 +1,1 @@
+Swap backup reclaim is 14d after swapped started_at (issue 154). Issue 155: short-circuit when terminal and backup absent; remove the check next major; no check-2.json.

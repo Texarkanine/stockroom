@@ -1,1 +1,0 @@
-argparse's default help formatter replaces a space with a newline, so a two-word --help assertion can fail. Doctor probe uses RawDescriptionHelpFormatter so 'free disk' stays one phrase.
