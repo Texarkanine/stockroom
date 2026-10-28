@@ -234,3 +234,14 @@ The 14-day backup soak starts when the new warehouse is the live file. Phase B `
     - `_distinct_backup` is shared by the parent and the stop path. The `keep` / `stamp` / `unlink` function stays out
 * Insights
     - A frozen phase B clock makes `started_at` and `swapped_at` equal. Only the later resume clock shows the gap
+
+## 2026-10-28 - QA - COMPLETE (FAIL)
+
+* Work completed
+    - Reviewed `4503ab5..c07a81c` against the Level 2 soak-clock plan for KISS, DRY, YAGNI, completeness, regressions, leftover scaffolding, and docs
+    - `tests/test_check.py`: 82 passed. Ruff check and format: clean
+* Decisions made
+    - FAIL (fixable). Build reruns. `test_parent_missing_started_at_returns` asserts a launch, and its name says the parent returns. It and three other retargeted tests still name `started_at` when the body tests `swapped_at`
+    - Advisories: the unused `_outcome` `swapped_at` parameter, an unwrapped module docstring line, and the lifecycle sentence that misses the one stamp child
+* Insights
+    - When a test is retargeted, its name is part of the change. The plan said to retarget these tests and did not say to rename them

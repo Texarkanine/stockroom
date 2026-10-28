@@ -117,4 +117,13 @@ No new technology - validation not required.
 - [x] Pre-Mortem complete
 - [x] Preflight
 - [x] Build
-- [ ] QA
+- [ ] QA — FAIL (fixable, Build reruns)
+
+## QA Results (2026-10-28) — FAIL
+
+- `tests/test_check.py`: 82 passed. Ruff check and format: clean. Every planned behavior has a test, and units 1-4 match the plan.
+- Blocking B1: `test_parent_missing_started_at_returns` asserts a launch, and its name says the parent returns. Rename it and the other three retargeted tests that still name `started_at`: `test_reclaim_missing_started_at_keeps_the_backup`, `test_reclaim_bool_started_at_keeps_the_backup`, and `test_parent_bool_started_at_returns`.
+- Advisory A1: drop the unused `swapped_at` parameter on `_outcome` (preflight A4).
+- Advisory A2: reflow line 8 of the `check.py` module docstring.
+- Advisory A3: `docs/architecture/lifecycle.md` should say that an unstamped distinct backup starts one child.
+- Advisory A4: `_stamp_swapped_at` re-checks its guard. The plan asked for this, so it is acceptable.
