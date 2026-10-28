@@ -1,12 +1,13 @@
 # Active Context
 
 ## Current Task: Soak clock starts when the new warehouse is live
-**Phase:** QA - COMPLETE (PASS)
+**Phase:** REFLECT COMPLETE
 
 ## What Was Done
 - The 14-day unlink reads `swapped_at`. Phase B and both `_finish_swap` writes stamp it from the injected `now`.
 - A swapped record with no `swapped_at` is stamped on the stop path only when the backup and the live warehouse are different files, and that pass returns before the unlink.
 - The user guide says the backup stays 14 days after the new warehouse is the one in use. The numbered restore steps are unchanged.
+- Reflection is in `memory-bank/active/reflection/reflection-fortnight-backup-and-quiet-check.md`. It replaces the earlier reflection, which measured the soak from `started_at`.
 
 ## Files
 - `/Users/tex/git/stockroom/skills/sr-search/src/stockroom/check.py`
@@ -20,4 +21,4 @@
 - `_distinct_backup` is the shared file check. A `keep` / `stamp` / `unlink` function was not added.
 
 ## Next Step
-- QA passed on the second run. Proceed to `/niko-reflect`.
+- Run `/niko-archive` to archive this task.

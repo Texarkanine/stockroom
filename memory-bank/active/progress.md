@@ -268,3 +268,13 @@ The 14-day backup soak starts when the new warehouse is the live file. Phase B `
     - Advisory only: `_stamp_swapped_at` keeps the redundant guard the plan asked for
 * Insights
     - No doc still measures the 14 days from the swap or from `started_at`
+
+## 2026-10-28 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `memory-bank/active/reflection/reflection-fortnight-backup-and-quiet-check.md` for the soak-clock rework. It replaces the 2026-10-27 reflection, which measured the soak from `started_at`
+    - Persistent files: productContext, systemPatterns, and techContext skipped. The soak clock is one subsystem, and none of those files stated the old clock
+* Decisions made
+    - The shared `_distinct_backup` check stays. A `keep` / `stamp` / `unlink` function does not
+* Insights
+    - A deadline fixture whose two clocks are equal does not prove which field the predicate reads
