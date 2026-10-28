@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.0](https://github.com/Texarkanine/stockroom/compare/v3.1.0...v3.2.0) (2026-10-28)
+
+
+### Features
+
+* reclaim the swap backup after 14 days and skip a finished check ([#154](https://github.com/Texarkanine/stockroom/issues/154)) ([#156](https://github.com/Texarkanine/stockroom/issues/156)) ([6492072](https://github.com/Texarkanine/stockroom/commit/64920725052a2a22dc42a0adf2b7452c727a711b))
+
 ## [3.1.0](https://github.com/Texarkanine/stockroom/compare/v3.0.0...v3.1.0) (2026-10-26)
 
 
