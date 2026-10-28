@@ -42,6 +42,7 @@ from stockroom.home import (
     HOME_SOURCE_DEFAULT,
     HOME_SOURCE_OVERRIDE,
     HOME_SOURCE_XDG,
+    WAREHOUSE_FILENAME,
     XDG_DATA_HOME_ENV_VAR,
     home_dir,
     resolve_home,
@@ -50,8 +51,8 @@ from stockroom import storage
 from stockroom.migrate import apply_pending, current_version
 from stockroom.migrations import discover
 
-#: Filenames placed inside the warehouse home.
-WAREHOUSE_FILENAME = "warehouse.duckdb"
+#: Lock sidecar inside the warehouse home. The warehouse file name is
+#: :data:`stockroom.home.WAREHOUSE_FILENAME`, re-exported here.
 LOCK_FILENAME = ".warehouse.lock"
 
 # Re-export home resolution for existing ``from stockroom.warehouse import …``

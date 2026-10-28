@@ -1,0 +1,1 @@
+2026-10-27: Quiet parent and fortnight unlink are in check.py. One predicate, _swap_backup_due. Parent OSError on stat starts the child. Hook text unchanged.

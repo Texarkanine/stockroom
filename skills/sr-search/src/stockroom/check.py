@@ -1,11 +1,17 @@
 """The background check pass: one record, then a rehearsal or a swap.
 
 Nothing in this module is a user-facing subcommand. Importing it does not
-start a pass. ``python -m stockroom.check`` spawns a detached child, and
-only that child calls :func:`entry`. The record is one JSON object,
-``check.json``, in the stockroom home. :func:`next_action` chooses what an
-acquired pass does with that record.
+start a pass and does not import DuckDB. ``python -m stockroom.check``
+starts a child when the home is not a finished version-1 record, when a
+swapped backup is due to be removed, or when a swapped record has no
+``swapped_at`` and the backup is a different file from the live warehouse.
+It returns without a child when that child would leave the disk alone.
+Only the child calls :func:`entry`.
+The record is one JSON object, ``check.json``, in the stockroom home.
+:func:`next_action` chooses what an acquired pass does with that record.
 """
+
+from __future__ import annotations
 
 import argparse
 import hashlib
@@ -19,13 +25,24 @@ import tempfile
 import time
 from collections.abc import Callable
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-import duckdb
+from stockroom.home import SWAP_BACKUP_FILENAME, WAREHOUSE_FILENAME, resolve_home
 
-from stockroom import storage
-from stockroom.home import resolve_home
-from stockroom.migrate import current_version
-from stockroom.warehouse import LOCK_FILENAME, WAREHOUSE_FILENAME, _flock
+if TYPE_CHECKING:
+    import duckdb
+
+    from stockroom import storage
+    from stockroom.migrate import current_version
+    from stockroom.warehouse import LOCK_FILENAME, _flock
+else:
+    # Placeholders. :func:`_import_engine` rebinds them on the child path.
+    # The parent gate does not import DuckDB.
+    duckdb = None
+    storage = None
+    current_version = None
+    LOCK_FILENAME = None
+    _flock = None
 
 #: Record written by this check. A different value chooses phase A again.
 CHECK_VERSION = 1
@@ -36,6 +53,9 @@ TIME_LIMIT_SECONDS = 14400
 
 #: How long a ``rehearsed`` record of this check version waits before phase B.
 PHASE_B_WAIT_SECONDS = 86400
+
+#: How long a ``swapped`` backup stays after ``swapped_at``. Fourteen days.
+SWAP_BACKUP_RETENTION_SECONDS = 14 * 86400
 
 #: Sidecar file name under the stockroom home.
 CHECK_RECORD_FILENAME = "check.json"
@@ -181,6 +201,19 @@ def entry(home: Path, *, limit_seconds: int = TIME_LIMIT_SECONDS) -> None:
         signal.alarm(0)
 
 
+def _import_engine() -> None:
+    """Bind the DuckDB engine names the child uses.
+
+    Importing this module does not import DuckDB. :func:`run_check` calls
+    this once before it takes the flock. The parent gate does not call it.
+    """
+    global duckdb, storage, current_version, LOCK_FILENAME, _flock
+    import duckdb
+    from stockroom import storage
+    from stockroom.migrate import current_version
+    from stockroom.warehouse import LOCK_FILENAME, _flock
+
+
 def run_check(
     home: Path,
     *,
@@ -200,9 +233,10 @@ def run_check(
     """
     if not home.is_dir():
         return
+    _import_engine()
     try:
         with _flock(home / LOCK_FILENAME, blocking=False):
-            from stockroom.doctor import SWAP_BACKUP_FILENAME, live_bytes
+            from stockroom.doctor import live_bytes
 
             _acquired(
                 home,
@@ -229,11 +263,23 @@ def _acquired(
     record = load_record(home)
     action = next_action(record, now=now())
     if action == "finish-swap" and record is not None:
-        _finish_swap(home, record, backup_name=backup_name)
+        _finish_swap(home, record, backup_name=backup_name, now=now())
         return
     if action == "running":
         return
     _remove_sibling(home)
+    if action == "stop" and record is not None:
+        if _needs_swapped_at_stamp(record):
+            try:
+                distinct = _distinct_backup(
+                    home / backup_name, home / WAREHOUSE_FILENAME
+                )
+            except OSError:
+                return
+            if distinct:
+                _stamp_swapped_at(home, record, now=now())
+                return
+        _reclaim_swap_backup(home, record, now=now(), backup_name=backup_name)
     if action in {"stop", "wait"}:
         return
     decision = _readiness(home, disk_free=disk_free, live_bytes=live_bytes)
@@ -335,14 +381,16 @@ def _phase_b(
         return
     swapped = dict(linked)
     swapped["status"] = "swapped"
+    swapped["swapped_at"] = now()
     _write_outcome(home, swapped)
 
 
-def _finish_swap(home: Path, record: dict, *, backup_name: str) -> None:
+def _finish_swap(home: Path, record: dict, *, backup_name: str, now: float) -> None:
     """Finish a linked swap from the sibling, or record one that already landed.
 
     Does not copy, link, or walk the readiness ladder. A missing sibling
-    with matching inodes leaves the record linked.
+    with matching inodes leaves the record linked. Both swapped writes set
+    ``swapped_at`` to ``now`` and leave ``started_at`` as it was.
     """
     original = home / WAREHOUSE_FILENAME
     backup = home / backup_name
@@ -357,10 +405,12 @@ def _finish_swap(home: Path, record: dict, *, backup_name: str) -> None:
         _fsync(home)
         swapped = dict(record)
         swapped["status"] = "swapped"
+        swapped["swapped_at"] = now
         _write_outcome(home, swapped)
         return
     swapped = dict(record)
     swapped["status"] = "swapped"
+    swapped["swapped_at"] = now
     if _write_outcome(home, swapped):
         _remove_sibling(home)
 
@@ -418,6 +468,98 @@ def _remove_sibling(home: Path) -> None:
     sibling.with_name(sibling.name + ".wal").unlink(missing_ok=True)
 
 
+def _distinct_backup(backup: Path, warehouse: Path) -> bool:
+    """Return whether ``backup`` and ``warehouse`` are different files.
+
+    True when both are files and their inode numbers differ. ``stat``
+    follows links. ``OSError`` propagates. This function does not unlink
+    and does not write.
+    """
+    if not backup.is_file() or not warehouse.is_file():
+        return False
+    return backup.stat().st_ino != warehouse.stat().st_ino
+
+
+def _needs_swapped_at_stamp(record: dict) -> bool:
+    """Return whether a version-1 swapped record still needs ``swapped_at``.
+
+    True when the key is missing or its value is ``None``. A bool or any
+    other present value is false.
+    """
+    if record.get("check_version") != CHECK_VERSION:
+        return False
+    if record.get("status") != "swapped":
+        return False
+    return "swapped_at" not in record or record.get("swapped_at") is None
+
+
+def _stamp_swapped_at(home: Path, record: dict, *, now: float) -> None:
+    """Write ``swapped_at`` as ``now`` when :func:`_needs_swapped_at_stamp` is true.
+
+    Does not unlink. A failed write does not raise.
+    """
+    if not _needs_swapped_at_stamp(record):
+        return
+    stamped = dict(record)
+    stamped["swapped_at"] = now
+    _write_outcome(home, stamped)
+
+
+def _swap_backup_due(
+    record: dict | None,
+    *,
+    backup: Path,
+    warehouse: Path,
+    now: float,
+) -> bool:
+    """Return whether ``backup`` is a swapped file due to be unlinked.
+
+    True only when ``record`` is check version :data:`CHECK_VERSION` with
+    status ``swapped``, ``swapped_at`` is an int or a float and not a bool,
+    ``now`` is at least :data:`SWAP_BACKUP_RETENTION_SECONDS` after
+    ``swapped_at``, ``backup`` and ``warehouse`` are both files, and their
+    inode numbers differ. ``started_at`` is not this clock. ``stat`` follows
+    links. ``OSError`` from ``stat`` propagates. Any other input is false.
+    This function does not unlink and does not write.
+    """
+    if not isinstance(record, dict):
+        return False
+    if record.get("check_version") != CHECK_VERSION:
+        return False
+    if record.get("status") != "swapped":
+        return False
+    swapped_at = record.get("swapped_at")
+    if isinstance(swapped_at, bool) or not isinstance(swapped_at, (int, float)):
+        return False
+    if now < swapped_at + SWAP_BACKUP_RETENTION_SECONDS:
+        return False
+    return _distinct_backup(backup, warehouse)
+
+
+def _reclaim_swap_backup(
+    home: Path, record: dict, *, now: float, backup_name: str
+) -> None:
+    """Unlink a due swap backup. The caller holds the writer flock.
+
+    Unlinks ``home / backup_name`` only when :func:`_swap_backup_due` is
+    true for ``record``, that path, and the live warehouse in ``home``.
+    A missing backup stays missing. Does not write ``check.json``.
+    ``OSError`` from the due check leaves the backup in place.
+    """
+    backup = home / backup_name
+    try:
+        due = _swap_backup_due(
+            record,
+            backup=backup,
+            warehouse=home / WAREHOUSE_FILENAME,
+            now=now,
+        )
+    except OSError:
+        return
+    if due:
+        backup.unlink(missing_ok=True)
+
+
 def _readiness(
     home: Path,
     *,
@@ -471,6 +613,7 @@ def _outcome(
         "status": status,
         "phase": phase,
         "started_at": started_at,
+        "swapped_at": None,
         "limit_seconds": TIME_LIMIT_SECONDS if phase is not None else None,
         "rehearsed_at": None,
         "original_bytes": None,
@@ -500,12 +643,66 @@ def launch(home: Path) -> subprocess.Popen:
     )
 
 
+def _needs_child(home: Path, *, now: float) -> bool:
+    """Return whether the parent should start a child for ``home``.
+
+    True when ``home`` is not a finished version-1 record: the record is
+    missing or unreadable, ``check_version`` is not :data:`CHECK_VERSION`,
+    or the status is not ``swapped``, ``already-new``, or ``mismatch``.
+    Also true when a version-1 ``swapped`` record has no ``swapped_at`` and
+    the backup is a different file from the live warehouse, and when a
+    version-1 ``swapped`` backup is already due (:func:`_swap_backup_due`).
+    ``OSError`` from either file check is true, so a stat race starts the
+    child.
+
+    False when the child would leave the disk alone. That includes a
+    finished record whose backup is absent, a missing live warehouse, a
+    backup that is the same file as the live warehouse, a ``swapped``
+    backup that is still inside the fortnight, a ``swapped`` backup whose
+    ``swapped_at`` is a bool, and an ``already-new`` or ``mismatch`` record
+    even when a backup file is present.
+
+    Does not unlink and does not write.
+    """
+    try:
+        record = load_record(home)
+    except (OSError, ValueError):
+        return True
+    if not isinstance(record, dict):
+        return True
+    if record.get("check_version") != CHECK_VERSION:
+        return True
+    status = record.get("status")
+    if status not in {"swapped", "already-new", "mismatch"}:
+        return True
+    if status != "swapped":
+        return False
+    backup = home / SWAP_BACKUP_FILENAME
+    warehouse_path = home / WAREHOUSE_FILENAME
+    if _needs_swapped_at_stamp(record):
+        try:
+            return _distinct_backup(backup, warehouse_path)
+        except OSError:
+            return True
+    try:
+        return _swap_backup_due(
+            record,
+            backup=backup,
+            warehouse=warehouse_path,
+            now=now,
+        )
+    except OSError:
+        return True
+
+
 def main(argv: list[str] | None = None) -> int:
     """Launch a detached pass, or run one when ``--foreground`` is set.
 
     An omitted home is the path from :func:`stockroom.home.resolve_home`.
-    ``--foreground`` calls :func:`entry` in this process. Otherwise
-    :func:`launch` starts the child and this process returns without waiting.
+    ``--foreground`` calls :func:`entry` in this process and is not gated.
+    Otherwise :func:`launch` starts the child when :func:`_needs_child` is
+    true. A finished home whose child would leave the disk alone returns
+    without a child. This process does not wait.
     """
     parser = argparse.ArgumentParser(prog="python -m stockroom.check")
     parser.add_argument(
@@ -519,7 +716,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.foreground:
         entry(home)
         return 0
-    launch(home)
+    if _needs_child(home, now=time.time()):
+        launch(home)
     return 0
 
 

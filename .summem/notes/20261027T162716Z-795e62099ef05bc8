@@ -1,0 +1,1 @@
+Swap-backup cleanup: check pass deletes warehouse.issue147-swap.duckdb 30d after swapped started_at if inodes differ. Not ingest, mtime, rows, or atime. check.json stays.

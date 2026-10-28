@@ -1,0 +1,1 @@
+Session-start hooks stay. check.main returns before launch when a v1 terminal record has nothing to do, including a swapped backup younger than 14d. Child still runs for an unfinished migration and when that backup is due to unlink.

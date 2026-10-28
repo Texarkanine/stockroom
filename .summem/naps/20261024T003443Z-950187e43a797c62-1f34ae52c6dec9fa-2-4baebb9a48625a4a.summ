@@ -1,0 +1,1 @@
+Milestone 5 preflight passed with advisory after a fixable fail. Row copy uses the current database; catalog helpers open each file alone. Advisories stayed out of the plan.
