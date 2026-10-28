@@ -4,9 +4,9 @@
 **Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Revised the Level 2 plan after a fixable preflight. The missing soak stamp runs only when the backup and the live warehouse are both files and their inodes differ.
-- Named the existing tests that keep their assertions, and the two fixtures that gain `swapped_at` so they still test what they say.
-- The Rework section replaces the brief clauses that measure 14 days from `started_at`. Acceptance criteria 7 and 12 stay.
+- Revised the plan again. `test_replace_that_lands_resumes_without_copying` resumes at a later clock and expects `swapped_at` from that clock.
+- `OSError` on the new file check starts the child and does not crash the stamp. The rehearsed record, not the hand-written round trip, shows `swapped_at is None`.
+- Use-cases 1, 3, and 4 are in the list of brief clauses this rework replaces.
 
 ## Next Step
 - Preflight the revised plan.

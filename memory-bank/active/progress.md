@@ -185,3 +185,26 @@ The 14-day backup soak starts when the new warehouse is the live file. Phase B `
     - One `_mark_swapped` writer stays out of this rework
 * Insights
     - `run_check` on a swapped home with no backup must not rewrite `check.json`, because those tests call the child directly
+
+## 2026-10-28 - PLAN - COMPLETE
+
+* Work completed
+    - Added the landed-replace resume to the plan after the second fixable preflight
+* Decisions made
+    - `test_replace_that_lands_resumes_without_copying` resumes 15 days later and expects `swapped_at` from that clock
+    - `OSError` on the new file check starts the child and leaves the record on the stop path
+    - Use-cases 1, 3, and 4 join the brief clauses this rework replaces
+* Insights
+    - The failed-replace resume does not exercise the branch where the new warehouse is already live
+
+## 2026-10-28 - PREFLIGHT - COMPLETE (FAIL (fixable))
+
+* Work completed
+    - Re-validated the revised Level 2 plan against the default preflight checks, the live `check.py`, and `test_check.py`
+    - Both earlier findings are fixed. The file-gated stamp keeps every named existing test green, and AC 7 and AC 12 hold
+    - TDD ordering, conventions, and dependency impact pass. No strikes or step swaps
+* Decisions made
+    - FAIL (fixable). Rework item 5 (the replace landed and the `swapped` write was delayed) has no test. The only resume test covers the failed-replace branch of `_finish_swap`
+* Insights
+    - `_finish_swap` has two `swapped` writes, and each one needs its own resume test at a later clock
+    - One tri-state `keep` / `stamp` / `unlink` predicate would let the parent gate and the child share the distinct-files check
