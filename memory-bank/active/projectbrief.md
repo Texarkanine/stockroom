@@ -79,3 +79,22 @@ Status is `linked`, `started`, `rehearsed`, or `skip`, the record is missing or 
 13. `already-new` or `mismatch`, backup present: the parent returns and does not spawn a child.
 14. `rehearsed`, `linked`, `started`, `skip`, no record, an unreadable record, or a `check_version` other than 1: the parent spawns the child.
 15. The parent path does not import DuckDB, including the return for a young swapped backup.
+
+## Rework
+
+Operator, 2026-10-28. The 14-day retention must start when the new warehouse is the live file. Phase B `started_at` stays the alarm clock for a `started` record. It is not the soak clock.
+
+A `linked` record has no age limit. `_finish_swap` copies that record and only changes `status`, so a fortnight-old `started_at` is what gets saved as `swapped`. That pass returns before the unlink. The next session start can remove the backup with no soak on the new file.
+
+1. Record the soak time when the new file is `warehouse.duckdb` and the record becomes `swapped`: at the end of phase B after `os.replace`, and in `_finish_swap` after it replaces or finds that the replace already happened.
+2. Unlink `warehouse.issue147-swap.duckdb` only when that soak time is at least 14 days old. The pass that writes `swapped` does not unlink.
+3. Keep `started_at` as the phase B start. A `started` record still overruns four hours after that stamp.
+4. Update the user guide so the 14 days are after the new warehouse is in use.
+5. If the replace succeeded and the `swapped` write is delayed, the soak time is the write. The backup then stays 14 days from the write.
+
+PR 156 review, same rework:
+
+- The troubleshooting-guide comment is this clock change.
+- Dismiss the `memory-bank/active/tasks.md` comment. That tree is archived before merge, so the file will not be on `main`.
+- Dismiss rejecting boolean `check_version`. The writer stores the integer `1`.
+- Dismiss rejecting non-finite `started_at`. The writer stores `time.time()`.

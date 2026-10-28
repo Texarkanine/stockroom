@@ -131,3 +131,14 @@ Reclaim `warehouse.issue147-swap.duckdb` a fortnight after a recorded swap. The 
 * Insights
     - The shared due-predicate has to raise `OSError`. The parent and the unlink want opposite answers, and the helper cannot pick one
     - The first preflight had approved a gate the operator then removed. Retiring that status avoided building it
+
+## 2026-10-28 - REWORK - IN-PROGRESS
+
+* Work completed
+    - Operator chose rework over archive on the completed fortnight-backup task
+* Decisions made
+    - The 14-day clock starts when the new warehouse is the live file, not at phase B `started_at`
+    - PR 156: dismiss the `tasks.md` comment because `memory-bank/active/` is archived before merge
+    - PR 156: dismiss boolean `check_version` and non-finite `started_at`
+* Insights
+    - A `linked` record can sit indefinitely, and `_finish_swap` keeps the original `started_at`, so the backup can be removed on the session after the one that writes `swapped`
