@@ -1,10 +1,11 @@
 # Active Context
 
 ## Current Task: Soak clock starts when the new warehouse is live
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Level 2. The 14-day retention moves from phase B `started_at` to the moment the new warehouse is the live file. The change stays in the check pass, its tests, and the user guide.
+- Level 2 plan: unlink from `swapped_at`, stamp that field when the record becomes `swapped`, and stamp an already-swapped record that lacks it so the parent still launches once.
+- `started_at` stays the four-hour alarm. There is no fallback from a missing `swapped_at` to `started_at`.
 
 ## Next Step
-- Load the Level 2 workflow and plan.
+- Preflight the plan.

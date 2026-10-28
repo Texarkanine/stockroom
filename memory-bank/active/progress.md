@@ -151,3 +151,14 @@ The 14-day backup soak starts when the new warehouse is the live file. Phase B `
     - One subsystem: the check pass, its tests, and the user-guide sentences. A second timestamp on the existing record. `started_at` stays the alarm clock.
 * Insights
     - Level 1 is too small: both write sites and the predicate have to agree. Level 3 is too big: this does not add a component or change the check's shape.
+
+## 2026-10-28 - PLAN - COMPLETE
+
+* Work completed
+    - Wrote the Level 2 plan in `memory-bank/active/tasks.md`
+* Decisions made
+    - `swapped_at` is the soak clock, stamped when status becomes `swapped`
+    - A swapped record with no `swapped_at` is stamped on the stop path and kept 14 days from that stamp
+    - `started_at` is not a fallback clock
+* Insights
+    - The parent has to launch when the stamp is missing, or the child never writes it
