@@ -439,6 +439,7 @@ def _rehearse(generations_file: Path) -> dict:
     check.run_check(generations_file.parent, now=lambda: 1_000.0)
     record = check.load_record(generations_file.parent)
     assert record["status"] == "rehearsed"
+    assert record["swapped_at"] is None
     return record
 
 
@@ -494,6 +495,7 @@ def test_phase_b_swaps_in_a_new_copy(generations_file: Path) -> None:
     assert _message_ids(generations_file) == {EARLY_ID, LATE_ID}
     assert not (home / storage.COPY_FILENAME).exists()
     assert record["status"] == "swapped"
+    assert record["swapped_at"] == rehearsed["rehearsed_at"] + 86_400
     assert record["original_bytes"] == rehearsed["original_bytes"]
 
 
@@ -535,11 +537,15 @@ def test_failed_replace_resumes_from_linked(
         return real_link(*args, **kwargs)
 
     monkeypatch.setattr(os, "link", link)
-    check.run_check(home, now=_day_later(rehearsed))
+    later = record["started_at"] + 15 * 86_400
+    check.run_check(home, now=lambda: later)
     resumed = check.load_record(home)
     assert calls == []
     assert links == []
     assert resumed["status"] == "swapped"
+    assert resumed["started_at"] == record["started_at"]
+    assert resumed["swapped_at"] == later
+    assert backup.is_file()
     assert resumed["original_bytes"] == rehearsed["original_bytes"]
     assert _message_ids(generations_file) == {EARLY_ID, LATE_ID}
 
@@ -570,10 +576,15 @@ def test_replace_that_lands_resumes_without_copying(
         return real_link(*args, **kwargs)
 
     monkeypatch.setattr(os, "link", link)
-    check.run_check(home, now=_day_later(rehearsed))
+    later = record["started_at"] + 15 * 86_400
+    check.run_check(home, now=lambda: later)
+    resumed = check.load_record(home)
     assert calls == []
     assert links == []
-    assert check.load_record(home)["status"] == "swapped"
+    assert resumed["status"] == "swapped"
+    assert resumed["started_at"] == record["started_at"]
+    assert resumed["swapped_at"] == later
+    assert backup.is_file()
     assert not stray.exists()
     assert generations_file.read_bytes() != b"stray sibling"
 
@@ -894,14 +905,15 @@ def _finished_pair(
     home: Path,
     *,
     status: str,
-    started_at: float | None,
+    started_at: float | None = None,
+    swapped_at: float | None = None,
     same_inode: bool = False,
 ) -> tuple[bytes, bytes]:
     """Write a live warehouse, a backup name, and a check record.
 
-    Returns the raw ``check.json`` bytes and the warehouse bytes. A
-    ``started_at`` of ``None`` omits that field. ``same_inode`` hard-links
-    the backup name to the live warehouse.
+    Returns the raw ``check.json`` bytes and the warehouse bytes.
+    ``started_at`` and ``swapped_at`` of ``None`` omit that field.
+    ``same_inode`` hard-links the backup name to the live warehouse.
     """
     original = home / warehouse.WAREHOUSE_FILENAME
     original.write_bytes(b"warehouse")
@@ -913,6 +925,8 @@ def _finished_pair(
     record: dict = {"check_version": 1, "status": status}
     if started_at is not None:
         record["started_at"] = started_at
+    if swapped_at is not None:
+        record["swapped_at"] = swapped_at
     check.write_record(home, record)
     raw = (home / check.CHECK_RECORD_FILENAME).read_bytes()
     return raw, original.read_bytes()
@@ -924,7 +938,10 @@ def test_reclaim_young_swap_keeps_the_backup(tmp_path: Path) -> None:
     The warehouse bytes and the raw check record stay with it.
     """
     raw, warehouse_bytes = _finished_pair(
-        tmp_path, status="swapped", started_at=_STARTED_AT
+        tmp_path,
+        status="swapped",
+        started_at=_STARTED_AT,
+        swapped_at=_STARTED_AT,
     )
     backup = tmp_path / doctor.SWAP_BACKUP_FILENAME
     check.run_check(tmp_path, now=lambda: _deadline() - 1)
@@ -939,7 +956,10 @@ def test_reclaim_at_the_fortnight_removes_the_backup(tmp_path: Path) -> None:
     The warehouse bytes and the raw check record stay.
     """
     raw, warehouse_bytes = _finished_pair(
-        tmp_path, status="swapped", started_at=_STARTED_AT
+        tmp_path,
+        status="swapped",
+        started_at=_deadline(),
+        swapped_at=_STARTED_AT,
     )
     backup = tmp_path / doctor.SWAP_BACKUP_FILENAME
     check.run_check(tmp_path, now=lambda: _deadline())
@@ -951,7 +971,11 @@ def test_reclaim_at_the_fortnight_removes_the_backup(tmp_path: Path) -> None:
 def test_reclaim_same_inode_keeps_the_backup_name(tmp_path: Path) -> None:
     """A backup name that is a hard link of the live warehouse stays after the fortnight."""
     raw, warehouse_bytes = _finished_pair(
-        tmp_path, status="swapped", started_at=_STARTED_AT, same_inode=True
+        tmp_path,
+        status="swapped",
+        started_at=_STARTED_AT,
+        swapped_at=_STARTED_AT,
+        same_inode=True,
     )
     backup = tmp_path / doctor.SWAP_BACKUP_FILENAME
     original = tmp_path / warehouse.WAREHOUSE_FILENAME
@@ -963,8 +987,91 @@ def test_reclaim_same_inode_keeps_the_backup_name(tmp_path: Path) -> None:
 
 
 def test_reclaim_missing_started_at_keeps_the_backup(tmp_path: Path) -> None:
-    """A swapped record with no started_at keeps the backup past the deadline."""
-    raw, warehouse_bytes = _finished_pair(tmp_path, status="swapped", started_at=None)
+    """A swapped record with no swapped_at keeps the backup and stamps now."""
+    _finished_pair(tmp_path, status="swapped", started_at=_STARTED_AT)
+    backup = tmp_path / doctor.SWAP_BACKUP_FILENAME
+    check.run_check(tmp_path, now=lambda: _deadline())
+    record = check.load_record(tmp_path)
+    assert backup.read_bytes() == b"backup"
+    assert (tmp_path / warehouse.WAREHOUSE_FILENAME).read_bytes() == b"warehouse"
+    assert record["started_at"] == _STARTED_AT
+    assert record["swapped_at"] == _deadline()
+
+
+def test_reclaim_same_inode_without_swapped_at_leaves_the_record(
+    tmp_path: Path,
+) -> None:
+    """A hard link with no swapped_at is not a distinct backup, so nothing is stamped."""
+    raw, warehouse_bytes = _finished_pair(
+        tmp_path, status="swapped", started_at=_STARTED_AT, same_inode=True
+    )
+    backup = tmp_path / doctor.SWAP_BACKUP_FILENAME
+    check.run_check(tmp_path, now=lambda: _deadline())
+    assert backup.is_file()
+    assert (tmp_path / warehouse.WAREHOUSE_FILENAME).read_bytes() == warehouse_bytes
+    assert (tmp_path / check.CHECK_RECORD_FILENAME).read_bytes() == raw
+
+
+def test_reclaim_stat_error_on_an_unstamped_swap_leaves_the_record(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A stat error while judging an unstamped swap does not raise and does not write."""
+    raw, _warehouse_bytes = _finished_pair(
+        tmp_path, status="swapped", started_at=_STARTED_AT
+    )
+    real_stat = Path.stat
+
+    def stat(self: Path, *, follow_symlinks: bool = True) -> os.stat_result:
+        if self.name == doctor.SWAP_BACKUP_FILENAME:
+            raise FileNotFoundError(self)
+        return real_stat(self, follow_symlinks=follow_symlinks)
+
+    monkeypatch.setattr(Path, "stat", stat)
+    check.run_check(tmp_path, now=lambda: _deadline())
+    assert (tmp_path / check.CHECK_RECORD_FILENAME).read_bytes() == raw
+
+
+def test_reclaim_second_pass_keeps_a_fresh_stamp(tmp_path: Path) -> None:
+    """The pass after a stamp does not move swapped_at or remove the backup."""
+    _finished_pair(tmp_path, status="swapped", started_at=_STARTED_AT)
+    backup = tmp_path / doctor.SWAP_BACKUP_FILENAME
+    check.run_check(tmp_path, now=lambda: _deadline())
+    check.run_check(tmp_path, now=lambda: _deadline() + 1)
+    record = check.load_record(tmp_path)
+    assert backup.read_bytes() == b"backup"
+    assert record["swapped_at"] == _deadline()
+
+
+def test_reclaim_bool_started_at_keeps_the_backup(tmp_path: Path) -> None:
+    """A swapped record whose swapped_at is a bool keeps the backup."""
+    original = tmp_path / warehouse.WAREHOUSE_FILENAME
+    original.write_bytes(b"warehouse")
+    backup = tmp_path / doctor.SWAP_BACKUP_FILENAME
+    backup.write_bytes(b"backup")
+    check.write_record(
+        tmp_path,
+        {
+            "check_version": 1,
+            "status": "swapped",
+            "started_at": _STARTED_AT,
+            "swapped_at": True,
+        },
+    )
+    raw = (tmp_path / check.CHECK_RECORD_FILENAME).read_bytes()
+    check.run_check(tmp_path, now=lambda: _deadline())
+    assert backup.read_bytes() == b"backup"
+    assert original.read_bytes() == b"warehouse"
+    assert (tmp_path / check.CHECK_RECORD_FILENAME).read_bytes() == raw
+
+
+def test_reclaim_old_started_at_keeps_a_young_swap(tmp_path: Path) -> None:
+    """A fortnight-old started_at does not remove a backup whose swapped_at is now."""
+    raw, warehouse_bytes = _finished_pair(
+        tmp_path,
+        status="swapped",
+        started_at=_STARTED_AT,
+        swapped_at=_deadline(),
+    )
     backup = tmp_path / doctor.SWAP_BACKUP_FILENAME
     check.run_check(tmp_path, now=lambda: _deadline())
     assert backup.read_bytes() == b"backup"
@@ -972,20 +1079,17 @@ def test_reclaim_missing_started_at_keeps_the_backup(tmp_path: Path) -> None:
     assert (tmp_path / check.CHECK_RECORD_FILENAME).read_bytes() == raw
 
 
-def test_reclaim_bool_started_at_keeps_the_backup(tmp_path: Path) -> None:
-    """A swapped record whose started_at is a bool keeps the backup."""
-    original = tmp_path / warehouse.WAREHOUSE_FILENAME
-    original.write_bytes(b"warehouse")
-    backup = tmp_path / doctor.SWAP_BACKUP_FILENAME
-    backup.write_bytes(b"backup")
-    check.write_record(
-        tmp_path,
-        {"check_version": 1, "status": "swapped", "started_at": True},
+def test_reclaim_due_swapped_at_without_started_at_removes_the_backup(
+    tmp_path: Path,
+) -> None:
+    """A due swapped_at removes the backup when started_at is absent."""
+    raw, warehouse_bytes = _finished_pair(
+        tmp_path, status="swapped", started_at=None, swapped_at=_STARTED_AT
     )
-    raw = (tmp_path / check.CHECK_RECORD_FILENAME).read_bytes()
+    backup = tmp_path / doctor.SWAP_BACKUP_FILENAME
     check.run_check(tmp_path, now=lambda: _deadline())
-    assert backup.read_bytes() == b"backup"
-    assert original.read_bytes() == b"warehouse"
+    assert not backup.exists()
+    assert (tmp_path / warehouse.WAREHOUSE_FILENAME).read_bytes() == warehouse_bytes
     assert (tmp_path / check.CHECK_RECORD_FILENAME).read_bytes() == raw
 
 
@@ -1030,7 +1134,10 @@ def test_reclaim_already_new_keeps_the_backup(tmp_path: Path) -> None:
 def test_reclaim_second_pass_leaves_the_record(tmp_path: Path) -> None:
     """After the backup is removed, a second pass changes nothing and raises nothing."""
     raw, warehouse_bytes = _finished_pair(
-        tmp_path, status="swapped", started_at=_STARTED_AT
+        tmp_path,
+        status="swapped",
+        started_at=_deadline(),
+        swapped_at=_STARTED_AT,
     )
     backup = tmp_path / doctor.SWAP_BACKUP_FILENAME
     check.run_check(tmp_path, now=lambda: _deadline())
@@ -1087,7 +1194,12 @@ def test_parent_young_swap_returns(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """A swapped backup one second under a fortnight does not start a child."""
-    _finished_pair(tmp_path, status="swapped", started_at=_STARTED_AT)
+    _finished_pair(
+        tmp_path,
+        status="swapped",
+        started_at=_STARTED_AT,
+        swapped_at=_STARTED_AT,
+    )
     _freeze_check_clock(monkeypatch, _deadline() - 1)
     launched = _spy_parent(monkeypatch, tmp_path)
     assert check.main([]) == 0
@@ -1098,7 +1210,12 @@ def test_parent_due_swap_starts_the_child(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """A swapped backup at exactly a fortnight starts the child and does not enter here."""
-    _finished_pair(tmp_path, status="swapped", started_at=_STARTED_AT)
+    _finished_pair(
+        tmp_path,
+        status="swapped",
+        started_at=_deadline(),
+        swapped_at=_STARTED_AT,
+    )
     _freeze_check_clock(monkeypatch, _deadline())
     launched = _spy_parent(monkeypatch, tmp_path)
     assert check.main([]) == 0
@@ -1109,7 +1226,13 @@ def test_parent_same_inode_returns(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """A backup name that is the live warehouse does not start the child after the fortnight."""
-    _finished_pair(tmp_path, status="swapped", started_at=_STARTED_AT, same_inode=True)
+    _finished_pair(
+        tmp_path,
+        status="swapped",
+        started_at=_STARTED_AT,
+        swapped_at=_STARTED_AT,
+        same_inode=True,
+    )
     _freeze_check_clock(monkeypatch, _deadline())
     launched = _spy_parent(monkeypatch, tmp_path)
     assert check.main([]) == 0
@@ -1119,23 +1242,58 @@ def test_parent_same_inode_returns(
 def test_parent_missing_started_at_returns(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """A swapped backup with no started_at does not start the child."""
-    _finished_pair(tmp_path, status="swapped", started_at=None)
+    """A swapped backup with no swapped_at starts the child that will stamp it."""
+    _finished_pair(tmp_path, status="swapped", started_at=_STARTED_AT)
+    _freeze_check_clock(monkeypatch, _deadline())
+    launched = _spy_parent(monkeypatch, tmp_path)
+    assert check.main([]) == 0
+    assert launched == [tmp_path]
+
+
+def test_parent_same_inode_without_swapped_at_returns(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A hard link with no swapped_at does not start the child."""
+    _finished_pair(tmp_path, status="swapped", started_at=_STARTED_AT, same_inode=True)
     _freeze_check_clock(monkeypatch, _deadline())
     launched = _spy_parent(monkeypatch, tmp_path)
     assert check.main([]) == 0
     assert launched == []
 
 
+def test_parent_stat_error_on_an_unstamped_swap_starts_the_child(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A stat error while judging an unstamped swapped backup starts the child."""
+    _finished_pair(tmp_path, status="swapped", started_at=_STARTED_AT)
+    _freeze_check_clock(monkeypatch, _deadline())
+    real_stat = Path.stat
+
+    def stat(self: Path, *, follow_symlinks: bool = True) -> os.stat_result:
+        if self.name == doctor.SWAP_BACKUP_FILENAME:
+            raise FileNotFoundError(self)
+        return real_stat(self, follow_symlinks=follow_symlinks)
+
+    monkeypatch.setattr(Path, "stat", stat)
+    launched = _spy_parent(monkeypatch, tmp_path)
+    assert check.main([]) == 0
+    assert launched == [tmp_path]
+
+
 def test_parent_bool_started_at_returns(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """A swapped backup whose started_at is a bool does not start the child."""
+    """A swapped backup whose swapped_at is a bool does not start the child."""
     (tmp_path / warehouse.WAREHOUSE_FILENAME).write_bytes(b"warehouse")
     (tmp_path / doctor.SWAP_BACKUP_FILENAME).write_bytes(b"backup")
     check.write_record(
         tmp_path,
-        {"check_version": 1, "status": "swapped", "started_at": True},
+        {
+            "check_version": 1,
+            "status": "swapped",
+            "started_at": _STARTED_AT,
+            "swapped_at": True,
+        },
     )
     _freeze_check_clock(monkeypatch, _deadline())
     launched = _spy_parent(monkeypatch, tmp_path)
@@ -1209,7 +1367,12 @@ def test_parent_stat_error_on_a_due_backup_starts_the_child(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """A stat error while judging a due swapped backup starts the child."""
-    _finished_pair(tmp_path, status="swapped", started_at=_STARTED_AT)
+    _finished_pair(
+        tmp_path,
+        status="swapped",
+        started_at=_STARTED_AT,
+        swapped_at=_STARTED_AT,
+    )
     _freeze_check_clock(monkeypatch, _deadline())
     real_stat = Path.stat
     seen = {"n": 0}
@@ -1265,7 +1428,8 @@ def test_importing_check_on_a_young_swap_does_not_import_duckdb(
     tmp_path: Path,
 ) -> None:
     """Importing the check and returning on a young swapped backup does not import DuckDB."""
-    _finished_pair(tmp_path, status="swapped", started_at=time.time())
+    now = time.time()
+    _finished_pair(tmp_path, status="swapped", started_at=now, swapped_at=now)
     env = os.environ.copy()
     env["PYTHONPATH"] = os.pathsep.join([_SRC, env.get("PYTHONPATH", "")]).rstrip(
         os.pathsep

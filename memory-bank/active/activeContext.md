@@ -1,12 +1,22 @@
 # Active Context
 
 ## Current Task: Soak clock starts when the new warehouse is live
-**Phase:** PREFLIGHT - COMPLETE (PASS WITH ADVISORY)
+**Phase:** BUILD - COMPLETE
 
 ## What Was Done
-- Revised the plan again. `test_replace_that_lands_resumes_without_copying` resumes at a later clock and expects `swapped_at` from that clock.
-- `OSError` on the new file check starts the child and does not crash the stamp. The rehearsed record, not the hand-written round trip, shows `swapped_at is None`.
-- Use-cases 1, 3, and 4 are in the list of brief clauses this rework replaces.
+- The 14-day unlink reads `swapped_at`. Phase B and both `_finish_swap` writes stamp it from the injected `now`.
+- A swapped record with no `swapped_at` is stamped on the stop path only when the backup and the live warehouse are different files, and that pass returns before the unlink.
+- The user guide says the backup stays 14 days after the new warehouse is the one in use. The numbered restore steps are unchanged.
+
+## Files
+- `/Users/tex/git/stockroom/skills/sr-search/src/stockroom/check.py`
+- `/Users/tex/git/stockroom/skills/sr-search/tests/test_check.py`
+- `/Users/tex/git/stockroom/docs/user-guide/troubleshooting/index.md`
+
+## Decisions
+- Deadline fixtures set `started_at` to the run's `now` and `swapped_at` to the old start, so the previous predicate fails those tests.
+- The 15-day failed-replace resume is the second pass of `test_failed_replace_resumes_from_linked`.
+- `_distinct_backup` is the shared file check. A `keep` / `stamp` / `unlink` function was not added.
 
 ## Next Step
-- Build unit 1. The preflight passed with advisory.
+- QA review.

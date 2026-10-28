@@ -220,3 +220,17 @@ The 14-day backup soak starts when the new warehouse is the live file. Phase B `
     - Advisories: name the `started_at` the retargeted deadline fixture carries, update the module and `main` docstrings, rewrite the missing-`started_at` test instead of adding one, and drop the unused `_outcome` parameter
 * Insights
     - A deadline fixture with `started_at` equal to `swapped_at` passes before the change. The old-clock test is the one that guards Unit 1
+
+## 2026-10-28 - BUILD - COMPLETE
+
+* Work completed
+    - Unlink reads `swapped_at`. Phase B and both `_finish_swap` writes stamp it from the injected clock
+    - A missing or `None` `swapped_at` is stamped on the stop path only when the backup and the live warehouse are different files, and that pass returns before the unlink
+    - The user guide measures the 14 days from when the new warehouse is the one in use
+    - `tests/test_check.py`: 82 passed. Engine pytest: 1232 passed, 6 skipped, 5 failed outside this change (dashboard `/tmp` vs `/private/tmp`, stale root docs lock, and three Node 26 coverage tests). Those three pass with Node 22. Dashboard JS: 134 passed under Node 22. Ruff check and format are clean
+* Decisions made
+    - Deadline fixtures use a young `started_at` so the old predicate fails the new assertions
+    - The failed-replace 15-day resume is the second pass of the existing test
+    - `_distinct_backup` is shared by the parent and the stop path. The `keep` / `stamp` / `unlink` function stays out
+* Insights
+    - A frozen phase B clock makes `started_at` and `swapped_at` equal. Only the later resume clock shows the gap
