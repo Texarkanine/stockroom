@@ -117,7 +117,7 @@ No new technology - validation not required.
 - [x] Pre-Mortem complete
 - [x] Preflight
 - [x] Build
-- [ ] QA — FAIL (fixable, Build reruns)
+- [ ] QA
 
 ## QA Results (2026-10-28) — FAIL
 

@@ -986,7 +986,7 @@ def test_reclaim_same_inode_keeps_the_backup_name(tmp_path: Path) -> None:
     assert (tmp_path / check.CHECK_RECORD_FILENAME).read_bytes() == raw
 
 
-def test_reclaim_missing_started_at_keeps_the_backup(tmp_path: Path) -> None:
+def test_reclaim_missing_swapped_at_stamps_and_keeps_the_backup(tmp_path: Path) -> None:
     """A swapped record with no swapped_at keeps the backup and stamps now."""
     _finished_pair(tmp_path, status="swapped", started_at=_STARTED_AT)
     backup = tmp_path / doctor.SWAP_BACKUP_FILENAME
@@ -1042,7 +1042,7 @@ def test_reclaim_second_pass_keeps_a_fresh_stamp(tmp_path: Path) -> None:
     assert record["swapped_at"] == _deadline()
 
 
-def test_reclaim_bool_started_at_keeps_the_backup(tmp_path: Path) -> None:
+def test_reclaim_bool_swapped_at_keeps_the_backup(tmp_path: Path) -> None:
     """A swapped record whose swapped_at is a bool keeps the backup."""
     original = tmp_path / warehouse.WAREHOUSE_FILENAME
     original.write_bytes(b"warehouse")
@@ -1239,7 +1239,7 @@ def test_parent_same_inode_returns(
     assert launched == []
 
 
-def test_parent_missing_started_at_returns(
+def test_parent_missing_swapped_at_starts_the_child(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """A swapped backup with no swapped_at starts the child that will stamp it."""
@@ -1280,7 +1280,7 @@ def test_parent_stat_error_on_an_unstamped_swap_starts_the_child(
     assert launched == [tmp_path]
 
 
-def test_parent_bool_started_at_returns(
+def test_parent_bool_swapped_at_returns(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """A swapped backup whose swapped_at is a bool does not start the child."""

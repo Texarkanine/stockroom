@@ -245,3 +245,15 @@ The 14-day backup soak starts when the new warehouse is the live file. Phase B `
     - Advisories: the unused `_outcome` `swapped_at` parameter, an unwrapped module docstring line, and the lifecycle sentence that misses the one stamp child
 * Insights
     - When a test is retargeted, its name is part of the change. The plan said to retarget these tests and did not say to rename them
+
+## 2026-10-28 - BUILD - COMPLETE
+
+* Work completed
+    - Renamed the four tests so each name states `swapped_at` and the assertion
+    - Dropped the unused `swapped_at` parameter on `_outcome`. The record still stores `None`
+    - Reflowed the module docstring. The lifecycle sentence now includes the one stamp child
+    - `tests/test_check.py` passed after the rename. Ruff check and format are clean
+* Decisions made
+    - `_stamp_swapped_at` keeps the guard the plan asked for
+* Insights
+    - A retargeted test whose name still describes the old assertion fails review even when the body is right

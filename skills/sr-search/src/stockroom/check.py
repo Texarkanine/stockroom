@@ -5,7 +5,8 @@ start a pass and does not import DuckDB. ``python -m stockroom.check``
 starts a child when the home is not a finished version-1 record, when a
 swapped backup is due to be removed, or when a swapped record has no
 ``swapped_at`` and the backup is a different file from the live warehouse.
-It returns without a child when that child would leave the disk alone. Only the child calls :func:`entry`.
+It returns without a child when that child would leave the disk alone.
+Only the child calls :func:`entry`.
 The record is one JSON object, ``check.json``, in the stockroom home.
 :func:`next_action` chooses what an acquired pass does with that record.
 """
@@ -604,7 +605,6 @@ def _outcome(
     *,
     phase: str | None = None,
     started_at: float | None = None,
-    swapped_at: float | None = None,
     skip_reason: str | None = None,
 ) -> dict:
     """A record with every field set, and only the outcome filled in."""
@@ -613,7 +613,7 @@ def _outcome(
         "status": status,
         "phase": phase,
         "started_at": started_at,
-        "swapped_at": swapped_at,
+        "swapped_at": None,
         "limit_seconds": TIME_LIMIT_SECONDS if phase is not None else None,
         "rehearsed_at": None,
         "original_bytes": None,

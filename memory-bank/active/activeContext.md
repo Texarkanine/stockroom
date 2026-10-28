@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: Soak clock starts when the new warehouse is live
-**Phase:** QA - COMPLETE (FAIL)
+**Phase:** BUILD - COMPLETE
 
 ## What Was Done
 - The 14-day unlink reads `swapped_at`. Phase B and both `_finish_swap` writes stamp it from the injected `now`.
@@ -12,6 +12,7 @@
 - `/Users/tex/git/stockroom/skills/sr-search/src/stockroom/check.py`
 - `/Users/tex/git/stockroom/skills/sr-search/tests/test_check.py`
 - `/Users/tex/git/stockroom/docs/user-guide/troubleshooting/index.md`
+- `/Users/tex/git/stockroom/docs/architecture/lifecycle.md`
 
 ## Decisions
 - Deadline fixtures set `started_at` to the run's `now` and `swapped_at` to the old start, so the previous predicate fails those tests.
@@ -19,4 +20,4 @@
 - `_distinct_backup` is the shared file check. A `keep` / `stamp` / `unlink` function was not added.
 
 ## Next Step
-- QA failed on test naming. Rerun Build to rename the four retargeted tests (B1) and optionally apply advisories A1-A3 in `tasks.md`.
+- QA review of the renamed tests and the three advisories.
