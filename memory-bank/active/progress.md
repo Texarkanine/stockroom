@@ -1,8 +1,8 @@
 # Progress
 
-Reclaim `warehouse.issue147-swap.duckdb` a fortnight after a recorded swap. The session-start hook stays. The process it starts returns without a child when that child would leave the disk alone, and starts a child for an unfinished migration or when that backup is due to unlink. Item 2 of issue 155 stays out.
+The 14-day backup soak starts when the new warehouse is the live file. Phase B `started_at` stays the alarm clock. The backup is unlinked only when the soak time is at least 14 days old.
 
-**Complexity:** Level 3
+**Complexity:** Level 2
 
 ## 2026-10-27 - COMPLEXITY-ANALYSIS - COMPLETE
 
@@ -142,3 +142,12 @@ Reclaim `warehouse.issue147-swap.duckdb` a fortnight after a recorded swap. The 
     - PR 156: dismiss boolean `check_version` and non-finite `started_at`
 * Insights
     - A `linked` record can sit indefinitely, and `_finish_swap` keeps the original `started_at`, so the backup can be removed on the session after the one that writes `swapped`
+
+## 2026-10-28 - COMPLEXITY-ANALYSIS - COMPLETE
+
+* Work completed
+    - Classified the soak-clock rework as Level 2
+* Decisions made
+    - One subsystem: the check pass, its tests, and the user-guide sentences. A second timestamp on the existing record. `started_at` stays the alarm clock.
+* Insights
+    - Level 1 is too small: both write sites and the predicate have to agree. Level 3 is too big: this does not add a component or change the check's shape.
