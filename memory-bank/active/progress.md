@@ -162,3 +162,26 @@ The 14-day backup soak starts when the new warehouse is the live file. Phase B `
     - `started_at` is not a fallback clock
 * Insights
     - The parent has to launch when the stamp is missing, or the child never writes it
+
+## 2026-10-28 - PREFLIGHT - COMPLETE (FAIL (fixable))
+
+* Work completed
+    - Validated the Level 2 soak-clock plan against the default preflight checks and the live `check.py` and `test_check.py`
+    - TDD ordering, conventions, and dependency impact pass. No strikes or step swaps
+* Decisions made
+    - FAIL (fixable). Five existing tests go red under the stamp or the new parent launch, and the plan does not list them
+    - The unconditional parent launch on a missing `swapped_at` contradicts AC 7 and AC 12 of the brief
+* Insights
+    - Gating the missing-stamp launch on a present backup keeps finished homes quiet. One `_mark_swapped` writer would keep every `swapped` write carrying the soak clock
+
+## 2026-10-28 - PLAN - COMPLETE
+
+* Work completed
+    - Revised the plan for the fixable preflight
+* Decisions made
+    - Stamp and launch for a missing `swapped_at` only when both files exist and the inodes differ
+    - Acceptance criteria 7 and 12 stay. The Rework section replaces the `started_at` clock clauses
+    - `_stamp_swapped_at` writes through `_write_outcome` and returns `None`
+    - One `_mark_swapped` writer stays out of this rework
+* Insights
+    - `run_check` on a swapped home with no backup must not rewrite `check.json`, because those tests call the child directly

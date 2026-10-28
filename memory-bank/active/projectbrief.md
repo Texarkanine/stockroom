@@ -91,6 +91,9 @@ A `linked` record has no age limit. `_finish_swap` copies that record and only c
 3. Keep `started_at` as the phase B start. A `started` record still overruns four hours after that stamp.
 4. Update the user guide so the 14 days are after the new warehouse is in use.
 5. If the replace succeeded and the `swapped` write is delayed, the soak time is the write. The backup then stays 14 days from the write.
+6. This rework replaces the original clauses that measure the 14 days from `started_at`: requirements 1, 3, 5, and 6, and acceptance criteria 2, 4, 9, and 11. Acceptance criteria 7 and 12 stay: no backup, or no live warehouse, and the parent does not start a child.
+
+A swapped record with no soak time is stamped only when the backup and the live warehouse are both files and their inodes differ. That is the one extra child. Homes with nothing distinct to keep stay quiet.
 
 PR 156 review, same rework:
 

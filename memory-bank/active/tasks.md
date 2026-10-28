@@ -4,7 +4,7 @@
 * Complexity: Level 2
 * Type: bug fix
 
-The 14-day unlink reads `swapped_at`, stamped when the record becomes `swapped`. Phase B `started_at` stays the four-hour alarm clock. A swapped record with no `swapped_at` is stamped on the stop path and kept for 14 days from that stamp, so a warehouse that already swapped still gets the soak.
+The 14-day unlink reads `swapped_at`, stamped when the record becomes `swapped`. Phase B `started_at` stays the four-hour alarm clock. A swapped record with no `swapped_at` is stamped on the stop path only when the backup and the live warehouse are both files and their inodes differ, and that backup is kept for 14 days from the stamp. The Rework section of the brief replaces the original clauses that measure those 14 days from `started_at`. Acceptance criteria 7 and 12 stay.
 
 ## Test Plan (TDD)
 
@@ -21,7 +21,10 @@ The 14-day unlink reads `swapped_at`, stamped when the record becomes `swapped`.
 - Late resume: phase B links, the replace fails, and a pass 15 days after `started_at` finishes the swap → status `swapped`, `started_at` unchanged, `swapped_at` is the resume `now`, backup remains.
 - Quiet parent: `swapped_at` one second under 14 days → `main` does not call `launch`.
 - Due parent: `swapped_at` exactly 14 days old, inodes differ → `main` calls `launch` and does not call `entry`.
-- Unstamped parent: version 1 `swapped`, `swapped_at` absent, `started_at` a fortnight old → `main` calls `launch`.
+- Unstamped parent: version 1 `swapped`, `swapped_at` absent, both files, inodes differ → `main` calls `launch`.
+- No backup: version 1 `swapped`, `swapped_at` absent, backup not a file → `main` does not call `launch`.
+- No live warehouse: version 1 `swapped`, `swapped_at` absent, backup present, live warehouse missing → `main` does not call `launch`.
+- Same inode, no soak time: `swapped_at` absent, backup name hard-linked to the live warehouse → `main` does not call `launch`, and `run_check` does not write `swapped_at`.
 - Bool parent: `swapped_at` is `true` → `main` does not call `launch`.
 
 ### Test Infrastructure
@@ -37,7 +40,7 @@ The 14-day unlink reads `swapped_at`, stamped when the record becomes `swapped`.
 
 - Files: `skills/sr-search/src/stockroom/check.py`, `skills/sr-search/tests/test_check.py`
 
-1. Stub tests: retarget the young, deadline, same-inode, second-pass, and parent young/due/same-inode tests so the fortnight is `swapped_at`. Add empty tests for the old `started_at`, the absent `started_at`, the bool `swapped_at`, and the bool parent. Point `test_reclaim_bool_started_at_keeps_the_backup` and `test_parent_bool_started_at_returns` at `swapped_at`.
+1. Stub tests: retarget the young, deadline, same-inode, second-pass, and parent young/due/same-inode tests so the fortnight is `swapped_at`. Add empty tests for the old `started_at`, the absent `started_at`, the bool `swapped_at`, and the bool parent. Point `test_reclaim_bool_started_at_keeps_the_backup` and `test_parent_bool_started_at_returns` at `swapped_at`. Add `swapped_at` to two fixtures that must keep their current meaning: `test_importing_check_on_a_young_swap_does_not_import_duckdb` gets `swapped_at` equal to its young `started_at`, and `test_parent_stat_error_on_a_due_backup_starts_the_child` gets `swapped_at=_STARTED_AT`.
 2. Stub interface: add `swapped_at: float | None = None` to `_outcome`, stored on the record. `_swap_backup_due` keeps its signature. Its docstring names `swapped_at` as the soak clock and `started_at` as not that clock.
 3. Write tests and run red: `_finished_pair` gains `swapped_at`. Deadline helpers use it. The old-clock test sets `started_at` to `_STARTED_AT` and `swapped_at` to the run's `now`. The bool tests set `swapped_at` to `True` and `started_at` to `_STARTED_AT`. `test_record_round_trip` expects `swapped_at: None`. Run those tests and confirm the deadline and old-clock cases fail.
 4. Write code and run green: `_swap_backup_due` reads `swapped_at` with the same rules it used for `started_at` (not a bool, int or float, `now >= swapped_at + SWAP_BACKUP_RETENTION_SECONDS`, both files, inodes differ). A missing `swapped_at` is false. The retention comment names `swapped_at`. Run the retargeted tests.
@@ -56,9 +59,14 @@ The 14-day unlink reads `swapped_at`, stamped when the record becomes `swapped`.
 - Files: `skills/sr-search/src/stockroom/check.py`, `skills/sr-search/tests/test_check.py`
 
 1. Stub tests: empty tests for the missing-soak reclaim, the second pass one second later, and the unstamped parent.
-2. Stub interface: `_stamp_swapped_at(home, record, *, now: float) -> dict` writes `swapped_at` when the key is missing or the value is `None`, and returns the record it wrote. A bool or any other value is left in place. Docstring says this does not unlink.
-3. Write tests and run red: a fortnight-old `started_at` and no `swapped_at` → `run_check` at the deadline keeps the backup and sets `swapped_at` to that `now`. One second later the backup and `swapped_at` stay. `main` on that unstamped home calls `launch`. `test_parent_missing_started_at_returns` changes with this: no `swapped_at` launches. Run the new tests and confirm the stamp is absent and the parent does not launch.
-4. Write code and run green: on `stop` for `swapped`, when `swapped_at` is missing or `None`, call `_stamp_swapped_at` and return before the unlink. `_needs_child` returns true for version 1 `swapped` when `swapped_at` is missing or `None`. A bool still follows `_swap_backup_due` and does not launch. Run these tests, then `tests/test_check.py`.
+2. Stub interface: `_stamp_swapped_at(home, record, *, now: float) -> None` writes `swapped_at` through `_write_outcome` when the key is missing or the value is `None`. A bool or any other value is left in place. A failed write does not raise. Docstring says this does not unlink.
+3. Write tests and run red: a fortnight-old `started_at`, no `swapped_at`, both files, distinct inodes → `run_check` at the deadline keeps the backup and sets `swapped_at` to that `now`. One second later the backup and `swapped_at` stay. `main` on that home calls `launch`. `test_reclaim_missing_started_at_keeps_the_backup` becomes that stamp test: it no longer expects the raw record to stay unchanged. `test_parent_missing_started_at_returns` becomes the unstamped-parent launch, because that home has two distinct files and no `swapped_at`. Run the new tests and confirm the stamp is absent and the parent does not launch.
+4. Write code and run green: on `stop` for `swapped`, when `swapped_at` is missing or `None` and the backup and the live warehouse are both files with different inodes, call `_stamp_swapped_at` and return before the unlink. `_stamp_swapped_at` writes through `_write_outcome` and returns `None`. A false write leaves the record unstamped and does not raise. `_needs_child` returns true for that same pair of files. It returns false when the backup is missing, the live warehouse is missing, or the inodes match, which keeps acceptance criteria 7 and 12. A bool still follows `_swap_backup_due` and does not launch. These existing tests stay as they are, because their homes have no distinct backup to stamp:
+    - `test_final_swapped_record_deletes_a_leftover_sibling` has no backup file, so the raw record stays unchanged.
+    - `test_launch_on_a_swapped_record_does_not_build` has no backup file, so the loaded record stays equal to the one it wrote.
+    - `test_parent_finished_without_a_backup_returns` has no backup file, so the swapped case still does not launch.
+    - `test_parent_missing_warehouse_returns` has no live warehouse, so it still does not launch.
+    A same-inode home with no `swapped_at` does not launch and `run_check` does not write the field. Run these tests, then `tests/test_check.py`.
 
 ### 4. User guide — prose/policy
 
@@ -80,8 +88,11 @@ No new technology - validation not required.
 
 ## Challenges & Mitigations
 
-- A missing `swapped_at` that the parent treats as quiet never gets stamped, and the backup stays forever. The unstamped-parent test expects `launch`. The child is the only writer.
+- A missing `swapped_at` that the parent treats as quiet never gets stamped, and a distinct backup stays forever. The unstamped-parent test expects `launch` only when both files exist and the inodes differ. The child is the only writer.
+- Launching for every missing stamp would start a child when there is no backup or no live warehouse. Those homes stay quiet. The stamp on the stop path uses the same file check, so a direct `run_check` does not rewrite them either.
 - Stamping a bool would erase the value the bool test keeps. `_stamp_swapped_at` writes only for a missing key or `None`.
+- A raw `write_record` that raises crashes the child, and the next session launches again. `_write_outcome` already returns false on `OSError`. The stamp uses it.
+- One `_mark_swapped` helper for every `swapped` write was considered and left out. This rework sets `swapped_at` at the two finish sites and on the one backfill. A fourth writer is not added.
 - `_finish_swap` has no clock today. Passing `now()` from `_acquired` keeps the resume test's injected clock. A private `time.time()` inside `_finish_swap` would ignore that injection.
 - A frozen `now()` makes phase B's `started_at` and `swapped_at` equal. That pass cannot show the gap. The resume test uses a second clock 15 days later.
 - Backfill changes raw `check.json` bytes. Deadline tests that assert unchanged bytes must already carry `swapped_at`, or they take the stamp path and fail.
@@ -91,7 +102,8 @@ No new technology - validation not required.
 
 - The predicate still unlinks from `started_at`. The old-clock test is the one that goes red, and unit 1 does not finish until it stays green.
 - The stamp and the unlink run in one stop pass, so a fortnight-old `started_at` loses the backup while the stamp is written. Unit 3 returns after the stamp, and the missing-soak test expects the backup to remain.
-- `_finish_swap` writes `swapped` and forgets `swapped_at`. The next session's backfill would start the 14 days one session late. Unit 2 still sets it on both swapped writes, and the resume test reads that value. The backfill covers a record that already reached `swapped` without the field.
+- `_finish_swap` writes `swapped` and forgets `swapped_at`. The next session's backfill would start the 14 days one session late, and only when a distinct backup exists. Unit 2 still sets it on both swapped writes, and the resume test reads that value. The backfill covers a record that already reached `swapped` without the field.
+- The missing-stamp launch ignores the files and starts a child for a home with no backup. The no-backup and no-warehouse behaviors are in the test plan, and unit 3 launches only when both files exist and the inodes differ.
 
 ## Status
 

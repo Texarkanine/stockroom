@@ -4,8 +4,9 @@
 **Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Level 2 plan: unlink from `swapped_at`, stamp that field when the record becomes `swapped`, and stamp an already-swapped record that lacks it so the parent still launches once.
-- `started_at` stays the four-hour alarm. There is no fallback from a missing `swapped_at` to `started_at`.
+- Revised the Level 2 plan after a fixable preflight. The missing soak stamp runs only when the backup and the live warehouse are both files and their inodes differ.
+- Named the existing tests that keep their assertions, and the two fixtures that gain `swapped_at` so they still test what they say.
+- The Rework section replaces the brief clauses that measure 14 days from `started_at`. Acceptance criteria 7 and 12 stay.
 
 ## Next Step
-- Preflight the plan.
+- Preflight the revised plan.
