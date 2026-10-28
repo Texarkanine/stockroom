@@ -208,3 +208,15 @@ The 14-day backup soak starts when the new warehouse is the live file. Phase B `
 * Insights
     - `_finish_swap` has two `swapped` writes, and each one needs its own resume test at a later clock
     - One tri-state `keep` / `stamp` / `unlink` predicate would let the parent gate and the child share the distinct-files check
+
+## 2026-10-28 - PREFLIGHT - COMPLETE (PASS WITH ADVISORY)
+
+* Work completed
+    - Re-validated the revised Level 2 plan against the default preflight checks, the live `check.py`, and `test_check.py`
+    - The landed-replace resume now reads `swapped_at`, so both `swapped` writes in `_finish_swap` have a test. Earlier advisories are applied
+    - Traced every existing `swapped` and `linked` test. None goes red without being named in the plan. No strikes or step swaps
+* Decisions made
+    - PASS WITH ADVISORY. The first line of `.preflight-status` is `PASS WITH ADVISORY`
+    - Advisories: name the `started_at` the retargeted deadline fixture carries, update the module and `main` docstrings, rewrite the missing-`started_at` test instead of adding one, and drop the unused `_outcome` parameter
+* Insights
+    - A deadline fixture with `started_at` equal to `swapped_at` passes before the change. The old-clock test is the one that guards Unit 1

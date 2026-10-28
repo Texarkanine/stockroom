@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: Soak clock starts when the new warehouse is live
-**Phase:** PLAN - COMPLETE
+**Phase:** PREFLIGHT - COMPLETE (PASS WITH ADVISORY)
 
 ## What Was Done
 - Revised the plan again. `test_replace_that_lands_resumes_without_copying` resumes at a later clock and expects `swapped_at` from that clock.
@@ -9,4 +9,4 @@
 - Use-cases 1, 3, and 4 are in the list of brief clauses this rework replaces.
 
 ## Next Step
-- Preflight the revised plan.
+- Build unit 1. The preflight passed with advisory.
