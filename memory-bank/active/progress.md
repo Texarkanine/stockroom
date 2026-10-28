@@ -257,3 +257,14 @@ The 14-day backup soak starts when the new warehouse is the live file. Phase B `
     - `_stamp_swapped_at` keeps the guard the plan asked for
 * Insights
     - A retargeted test whose name still describes the old assertion fails review even when the body is right
+
+## 2026-10-28 - QA - COMPLETE (PASS)
+
+* Work completed
+    - Reviewed `4503ab5..fc3383c` against the Level 2 soak-clock plan. Checked the rerun build `c07a81c..fc3383c` against the first QA's findings
+    - `tests/test_check.py`: 82 passed. Ruff check and format: clean
+* Decisions made
+    - PASS. The blocking test-name finding is fixed, and the three advisories are applied
+    - Advisory only: `_stamp_swapped_at` keeps the redundant guard the plan asked for
+* Insights
+    - No doc still measures the 14 days from the swap or from `started_at`

@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: Soak clock starts when the new warehouse is live
-**Phase:** BUILD - COMPLETE
+**Phase:** QA - COMPLETE (PASS)
 
 ## What Was Done
 - The 14-day unlink reads `swapped_at`. Phase B and both `_finish_swap` writes stamp it from the injected `now`.
@@ -20,4 +20,4 @@
 - `_distinct_backup` is the shared file check. A `keep` / `stamp` / `unlink` function was not added.
 
 ## Next Step
-- QA review of the renamed tests and the three advisories.
+- QA passed on the second run. Proceed to `/niko-reflect`.

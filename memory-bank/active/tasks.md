@@ -117,7 +117,14 @@ No new technology - validation not required.
 - [x] Pre-Mortem complete
 - [x] Preflight
 - [x] Build
-- [ ] QA
+- [x] QA
+
+## QA Results (2026-10-28, second run) — PASS
+
+- Reviewed `4503ab5..fc3383c`. `tests/test_check.py`: 82 passed. Ruff check and format: clean.
+- B1 is fixed. The four retargeted tests now state `swapped_at` and their assertion. The `started_at` names that remain belong to tests about `started_at`.
+- A1 to A3 are applied: `_outcome` drops the parameter and no caller passes it, the docstring is reflowed, and the lifecycle doc names the stamp child.
+- Advisory: `_stamp_swapped_at` keeps the redundant guard the plan asked for. It does not block.
 
 ## QA Results (2026-10-28) — FAIL
 
